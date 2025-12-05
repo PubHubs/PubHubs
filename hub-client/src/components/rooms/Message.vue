@@ -35,7 +35,7 @@
 							:secured="isSecured(segment.tokenId)"
 							:dialogOpen="segment.tokenId"
 							title="rooms.join_room"
-							message="rooms.join_secured_room_dialog"
+							message="rooms.join_sure"
 							:messageValues="[]"
 							@close="activeMentionCard = null"
 						/>
