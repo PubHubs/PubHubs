@@ -44,46 +44,16 @@ export function useMentions() {
 
 		const mentions: MentionMatch[] = [];
 
-		for (let i = 0; i < body.length; ) {
-			const atPos = body.indexOf('@', i);
-			const hashPos = body.indexOf('#', i);
+		// Matches: @displayName~userId~ or #displayName~roomId~
+		const mentionRegex = /([@#])([^~]+)~([^~]+)~/g;
 
-			// Find the nearest marker
-			const atFound = atPos !== -1;
-			const hashFound = hashPos !== -1;
-
-			let start = -1;
-			let marker: '@' | '#' | null = null;
-
-			if (atFound && (!hashFound || atPos < hashPos)) {
-				start = atPos;
-				marker = '@';
-			} else if (hashFound) {
-				start = hashPos;
-				marker = '#';
-			}
-
-			// No further markers found → stop
-			if (start === -1) break;
-
-			// Find the opening tilde
-			const openTilde = body.indexOf('~', start);
-			if (openTilde === -1) {
-				i = start + 1;
-				continue;
-			}
-
-			const displayName = body.substring(start, openTilde);
-
-			// Find the closing tilde
-			const closeTilde = body.indexOf('~', openTilde + 1);
-			if (closeTilde === -1) {
-				i = start + 1;
-				continue;
-			}
-
-			const id = body.substring(openTilde + 1, closeTilde);
-			const end = closeTilde + 1; // Include the closing tilde
+		let match;
+		while ((match = mentionRegex.exec(body)) !== null) {
+			const marker = match[1] as '@' | '#';
+			const displayName = match[0].substring(0, match[0].indexOf('~'));
+			const id = match[3];
+			const start = match.index;
+			const end = start + match[0].length;
 
 			// Validate
 			const isValid = marker === '#' ? !!rooms.getTPublicRoom(id) : !!pubhubs.client.getUser(id);
@@ -98,9 +68,6 @@ export function useMentions() {
 					tokenId: id,
 				});
 			}
-
-			// Move past this token (valid or not)
-			i = isValid ? end : start + 1;
 		}
 
 		return mentions;
