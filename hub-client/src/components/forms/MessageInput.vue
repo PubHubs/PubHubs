@@ -341,9 +341,9 @@
 
 		// Make sure pseudonym is included if it hasn't
 		if (filters.extractPseudonymFromString(userMention)) {
-			userMention = '@' + filters.extractPseudonym(user.userId) + '~' + user.userId;
+			userMention = '@' + filters.extractPseudonym(user.userId) + '~' + user.userId + '~';
 		} else {
-			userMention = '@' + userMention + '~' + user.userId;
+			userMention = '@' + userMention + '~' + user.userId + '~';
 		}
 
 		let message = value.value?.toString();
@@ -357,7 +357,7 @@
 		elTextInput.value?.$el.focus();
 	}
 	function mentionRoom(room: TPublicRoom) {
-		let roomMention = room.name + '~' + room.room_id;
+		let roomMention = room.name + '~' + room.room_id + '~';
 
 		let message = value.value?.toString();
 		if (message?.lastIndexOf('#') === -1) {

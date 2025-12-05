@@ -9,8 +9,8 @@ import { useRooms } from '@hub-client/stores/rooms';
  * Composable for detecting and resolving in-text mentions of users and rooms.
  *
  * Supported mention formats:
- * * `@displayName~userId`
- * * `#displayName~roomId`
+ * * `@displayName~userId~`
+ * * `#displayName~roomId~`
  *
  * The parser extracts these patterns from a plain-text message body and produces:
  * 1. A list of detected mentions (`MentionMatch[]`).
@@ -34,7 +34,7 @@ export function useMentions() {
 	 * - Room mentions are valid only if `rooms.getTPublicRoom(id)` exists.
 	 *
 	 * Example:
-	 *   "@Alice~abc123 hello #General~room42"
+	 *   "hi @Name~@f6b-392:testhub.matrix.host~ , come join #Test~!kUroOyLPHNRGNWtWyE:testhub.matrix.host~"
 	 *
 	 * @param body The raw message content.
 	 * @returns An array of `MentionMatch` describing valid detected mentions.
@@ -43,11 +43,12 @@ export function useMentions() {
 		if (!body) return [];
 
 		const mentions: MentionMatch[] = [];
-		let index = 0;
 
-		while (index < body.length) {
-			const atPos = body.indexOf('@', index);
-			const hashPos = body.indexOf('#', index);
+		for (let i = 0; i < body.length; ) {
+			const atPos = body.indexOf('@', i);
+			const hashPos = body.indexOf('#', i);
+
+			// Find the nearest marker
 			const atFound = atPos !== -1;
 			const hashFound = hashPos !== -1;
 
@@ -65,35 +66,41 @@ export function useMentions() {
 			// No further markers found → stop
 			if (start === -1) break;
 
-			// Determine where the displayName ends (~)
-			const tilde = body.indexOf('~', start);
-			const endToken = tilde;
-			const hasEndToken = endToken !== -1;
-			const tokenEnd = hasEndToken ? endToken : body.length;
+			// Find the opening tilde
+			const openTilde = body.indexOf('~', start);
+			if (openTilde === -1) {
+				i = start + 1;
+				continue;
+			}
 
-			const displayName = body.substring(start, tokenEnd);
+			const displayName = body.substring(start, openTilde);
 
-			// Identifier extends until the next space or end of string
-			const nextSpace = body.indexOf(' ', tokenEnd + 1);
-			const id = body.substring(tokenEnd + 1, nextSpace === -1 ? body.length : nextSpace);
+			// Find the closing tilde
+			const closeTilde = body.indexOf('~', openTilde + 1);
+			if (closeTilde === -1) {
+				i = start + 1;
+				continue;
+			}
 
-			// Validate via known users/rooms
+			const id = body.substring(openTilde + 1, closeTilde);
+			const end = closeTilde + 1; // Include the closing tilde
+
+			// Validate
 			const isValid = marker === '#' ? !!rooms.getTPublicRoom(id) : !!pubhubs.client.getUser(id);
 
 			if (isValid) {
 				mentions.push({
 					type: marker,
 					start,
-					end: nextSpace === -1 ? body.length : nextSpace,
+					end,
 					displayName,
-					id: `${id}-${start}`, // unique key for rendering
-					tokenId: id, // id of the room/user
+					id: `${id}-${start}`,
+					tokenId: id,
 				});
-				index = nextSpace === -1 ? body.length : nextSpace;
-			} else {
-				// Skip invalid token and continue parsing
-				index = start + 1;
 			}
+
+			// Move past this token (valid or not)
+			i = isValid ? end : start + 1;
 		}
 
 		return mentions;
