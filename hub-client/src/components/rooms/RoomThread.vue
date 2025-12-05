@@ -106,7 +106,7 @@
 	const activeReactionPanel = ref<string | null>(null);
 
 	const filteredEvents = computed(() => {
-		return threadEvents.filter((event) => !event.isDeleted);
+		return threadEvents.filter((event) => !event.isDeleted && event.matrixEvent.getType() !== EventType.Reaction);
 	});
 
 	const numberOfThreadEvents = computed(() => Math.max(filteredEvents.value.length, 1));

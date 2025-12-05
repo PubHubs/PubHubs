@@ -9,10 +9,11 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
-## Changed not yet merged to stable
+## 04 December 2025 - v3.1.0
 
 - [NEW, BREAKING] Reintroduces support for the pubhubs card in the backend
   - *Internal:* pubhubs card attributes with `not_addable_by_default = true` need to be added to `pubhubs.toml`, as well as a `[auth.yivi.card]` section.
+- [NEW] Using sliding sync instead of /sync API
 - [NEW] Direct url links to room and pages in the hub-client still redirect after the login or registration flow.
 - [BUG] Fixed direct url links to rooms and pages not working in hub-client
 - [BREAKING] The old pubhubs server (that served the global client) has been removed
@@ -25,6 +26,9 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] The entire hub icon in the global bar is now clickable (including the part covered by the unread message counter).
 - [BUG] Error responses from PHC, the Authentication Server and the Transcryptor are now correctly parsed.
 - [NEW] To minimize calls to the stateEP, a local "shadow record" of the user state objects stored at PHC is kept.
+- [NEW] Removed the plugin system
+- [BUG] Removed creating superfluous admin rooms
+- [NEW] Added Roomlibrary
 
 ## 11 September 2025 - v3.0.0
 

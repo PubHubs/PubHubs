@@ -113,7 +113,7 @@ hub-unit-test: # This job runs in the test stage.
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
     - docker
-  image: python:3.13
+  image: python:latest
   before_script:
     - python --version # For debugging
     - pip install unittest-xml-reporting
@@ -329,9 +329,12 @@ build-and-deploy-global-client-stable:
   rules:
     - if: $CI_COMMIT_TAG
   needs:
-    - globalclient-build
-    - globalclient-format-check
-    - globalclient-unit-test
+    - job: globalclient-build
+      optional: true
+    - job: globalclient-format-check
+      optional: true
+    - job: globalclient-unit-test
+      optional: true
   tags: [docker]
   image: node:24.10.0
   script:
