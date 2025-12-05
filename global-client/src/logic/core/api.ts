@@ -28,7 +28,7 @@ const phc_api = _env.PHC_URL
 			overwriteObject: '.ph/user/obj/by-hash',
 			polymorphicPseudonymPackage: '.ph/user/ppp',
 			hashedHubPseudonymPackage: '.ph/user/hhpp',
-			CardPseudPackage: '.ph/card-pseud',
+			CardPseudPackage: '.ph/user/card-pseud',
 		})
 	: null;
 

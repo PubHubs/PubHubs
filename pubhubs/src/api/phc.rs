@@ -659,7 +659,7 @@ pub mod user {
         type ResponseType = Result<CardPseudResp>;
 
         const METHOD: http::Method = http::Method::POST;
-        const PATH: &'static str = ".ph/card-pseud";
+        const PATH: &'static str = ".ph/user/card-pseud";
     }
 
     /// Returned by [`CardPseudEP`].
