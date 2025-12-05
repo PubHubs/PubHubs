@@ -65,7 +65,7 @@
 		"tailwindcss": "^4.1.11",
 		"typescript": "^5.0.2",
 		"vite-plugin-node-polyfills": "^0.24.0",
-		"vitest": "^4",
+		"vitest": "^3",
 		"vue-eslint-parser": "^9",
 		"webpack": "^5.97.1"
 	},
