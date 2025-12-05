@@ -70,7 +70,7 @@ describe('Multi-server setup', () => {
 			expect(localStorage.getItem('UserSecret')).toBeNull();
 
 			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
-			await phcServer['_stateEP']();
+			await phcServer.stateEP();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, oldUserSecretObject, { usersecret: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 }, backup: null });
 
 			expect(localStorage.getItem('UserSecret')).toBeTypeOf('string');
@@ -97,7 +97,7 @@ describe('Multi-server setup', () => {
 			};
 			const mockedIdentifyingAttrs: SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
-			const oldUserSecret = await phcServer['_getUserSecretObject']();
+			const oldUserSecret = await phcServer.getUserSecretObject();
 
 			const userSecret = localStorage.getItem('UserSecret');
 
