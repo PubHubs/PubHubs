@@ -27,7 +27,7 @@ export function useMentions() {
 	 * Mention syntax rules:
 	 * - A mention begins with either `@` (user) or `#` (room).
 	 * - A `~` separates the displayed name from the identifier.
-	 * - The identifier continues until the next whitespace or end of message.
+	 * - A second `~` indicates the end of the id.
 	 *
 	 * Validation rules:
 	 * - User mentions are valid only if `pubhubs.client.getUser(id)` exists.
