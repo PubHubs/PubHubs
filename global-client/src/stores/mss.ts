@@ -187,7 +187,7 @@ const useMSS = defineStore('mss', {
 			} else {
 				const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
 				await startYiviAuthentication(yiviUrl, issuance_request);
-				// What to do if the disclosure fails?
+				// TODO Think about how to handle case where enter is succesful but the disclosure in yivi fails.
 			}
 			// 5. Decode and return card
 			const decoded = decodeJWT(signedCardAttr) as Attr;
@@ -273,7 +273,7 @@ const useMSS = defineStore('mss', {
 		},
 
 		decodeSignedAttributes(
-			authSuccess: { attrs: any },
+			authSuccess: Record<string, string>,
 			identifyingAttrs: Set<string>,
 		): {
 			signedAttrs: { handle: string; attr: Attr }[];
@@ -288,8 +288,6 @@ const useMSS = defineStore('mss', {
 			const signedAttrs: { handle: string; attr: Attr }[] = [];
 
 			for (const [handle, attr] of Object.entries(authSuccess.attrs)) {
-				if (typeof attr !== 'string') continue;
-
 				const dec = decodeJWT(attr) as Attr;
 				signedAttrs.push({ handle, attr: dec });
 
