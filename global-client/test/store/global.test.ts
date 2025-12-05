@@ -68,7 +68,7 @@ describe('Global', () => {
 			const mockedIdentifyingAttrs: SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
-			await phcServer['_stateEP']();
+			await phcServer.stateEP();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, null, null);
 			const resp = await global.checkLoginAndSettings();
 			expect(resp).toEqual(true);
