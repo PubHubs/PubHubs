@@ -13,8 +13,8 @@ import filters from '@hub-client/logic/core/filters';
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
-import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source } from '@global-client/models/MSS/TAuths';
-import { EnterStartResp, HubInfoResp, InfoResp, ResultResponse, ReturnCard, isResult } from '@global-client/models/MSS/TGeneral';
+import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, Source } from '@global-client/models/MSS/TAuths';
+import { DecodedAttributes, EnterStartResp, HubInfoResp, InfoResp, ResultResponse, ReturnCard, isResult } from '@global-client/models/MSS/TGeneral';
 import { Attr, Constellation, HubInformation, PHCEnterMode, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
@@ -49,11 +49,10 @@ const useMSS = defineStore('mss', {
 					: { source: loginMethod.source, attr_types: [], attr_type_choices: loginMethod.login_choices, yivi_chained_session: false };
 
 			// 3. Start authentication
-			const authStartSuccess = await authServer.authStartEP(authStartReq);
+			const { task, state } = await authServer.authStartEP(authStartReq);
+			authServer.setState(state);
 
 			// 4. Handle Yivi task
-			const { task, state } = authStartSuccess;
-			authServer.setState(state);
 			if (loginMethod.source !== Source.Yivi || !task.Yivi) {
 				throw new Error(`Task mismatch for source ${loginMethod.source}: ${JSON.stringify(task)}`);
 			}
@@ -77,14 +76,16 @@ const useMSS = defineStore('mss', {
 			const authSuccess = await authServer.completeAuthEP(proof, authServer.getState());
 
 			// 6. Validate attributes
-			this.validateAttributes(authSuccess, enterMode);
+			this.validateAttributes(authSuccess, enterMode, loginMethod);
 
 			// 7. Decode attributes
-			const { signedAttrs, signedAddAttrs, signedIdentifyingAttrs, identifyingHandle } = this.decodeSignedAttributes(authSuccess, identifyingAttrs);
+			const { identifying, additional } = this.decodeSignedAttributes(authSuccess.attrs, identifyingAttrs);
 
 			// 8. Enter PubHubs
+			// ? If there are several identifying attributes pick the first one
+			const identifyingHandle = Object.keys(identifying)[0];
 			const identifyingAttr = authSuccess.attrs[identifyingHandle];
-			const { entered, errorMessage } = await this.phcServer.enter(signedAddAttrs, enterMode, identifyingAttr);
+			const { entered, errorMessage } = await this.phcServer.enter(additional, enterMode, identifyingAttr);
 			if (!entered) return errorMessage;
 
 			// Load updated state
@@ -96,17 +97,17 @@ const useMSS = defineStore('mss', {
 
 			// 9. Issue a Pubhubs card if registering a new account
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				const comment = '\nCard issued with the following attributes:\n' + signedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
+				const allDecodedAttrs = Object.entries(authSuccess.attrs).map(([handle, signedAttr]) => ({ handle, attr: decodeJWT(signedAttr) as Attr }));
+				const comment = '\nCard issued with the following attributes:\n' + allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
 				const { cardAttr, errorMessage } = await this.issueCard(true, comment);
 				if (!cardAttr) return errorMessage;
-				signedIdentifyingAttrs['ph_card'] = cardAttr;
+				identifying['ph_card'] = cardAttr;
 			}
 
 			// 10. Get attribute Key Response
-			const attrKeyReq: AuthAttrKeyReq = this.buildAttributeKeyRequest(signedIdentifyingAttrs, userSecretObject);
+			const attrKeyReq: AuthAttrKeyReq = this.buildAttributeKeyRequest(identifying, userSecretObject);
 			const attrKeyResp = await authServer.attrKeysEP(attrKeyReq);
 
-			// Retry rules
 			if ('RetryWithNewAttr' in attrKeyResp) {
 				useGlobal().logout();
 				return { key: 'errors.retry_with_new_attr' };
@@ -114,7 +115,7 @@ const useMSS = defineStore('mss', {
 
 			// 11. Store user secret objects
 			if (ResultResponse.Success in attrKeyResp) {
-				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, signedIdentifyingAttrs, userSecretObject, objectDetails);
+				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, identifying, userSecretObject, objectDetails);
 			}
 		},
 
@@ -272,49 +273,41 @@ const useMSS = defineStore('mss', {
 			return infoResp;
 		},
 
-		decodeSignedAttributes(
-			authSuccess: Record<string, string>,
-			identifyingAttrs: Set<string>,
-		): {
-			signedAttrs: { handle: string; attr: Attr }[];
-			signedAddAttrs: string[];
-			signedIdentifyingAttrs: SignedIdentifyingAttrs;
-			identifyingHandle: string;
-		} {
-			const signedIdentifyingAttrs: SignedIdentifyingAttrs = {};
-			const signedAddAttrs: string[] = [];
-			let identifyingHandle: string | null = null;
-			// Collect all attributes for Pubhubs Card comment text (signedAttrs)
-			const signedAttrs: { handle: string; attr: Attr }[] = [];
+		decodeSignedAttributes(attributes: Record<string, string>, identifyingAttrs: Set<string>): DecodedAttributes {
+			const identifying: Record<string, { signedAttr: string; id: string; value: string }> = {};
+			const additional: string[] = [];
 
-			for (const [handle, attr] of Object.entries(authSuccess.attrs)) {
-				const dec = decodeJWT(attr) as Attr;
-				signedAttrs.push({ handle, attr: dec });
+			for (const [handle, signedAttr] of Object.entries(attributes)) {
+				const decoded = decodeJWT(signedAttr) as Attr;
 
 				if (identifyingAttrs.has(handle)) {
-					identifyingHandle = handle;
-					signedIdentifyingAttrs[handle] = {
-						signedAttr: attr,
-						id: dec.attr_type,
-						value: dec.value,
+					identifying[handle] = {
+						signedAttr,
+						id: decoded.attr_type,
+						value: decoded.value,
 					};
 				} else {
-					signedAddAttrs.push(attr);
+					additional.push(signedAttr);
 				}
 			}
-			if (!identifyingHandle) {
+
+			if (Object.keys(identifying).length === 0) {
 				throw new Error('Identifying attribute missing in authentication response.');
 			}
-			return { signedAttrs, signedAddAttrs, signedIdentifyingAttrs, identifyingHandle };
+
+			return { identifying, additional };
 		},
-		validateAttributes(authSuccess: { attrs: {} }, enterMode: PHCEnterMode): void {
+		validateAttributes(authSuccess: { attrs: {} }, enterMode: PHCEnterMode, loginMethod: LoginMethod): void {
 			const keys = Object.keys(authSuccess.attrs);
 			let allowedAttributeSets: string[][];
+
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				allowedAttributeSets = [['email', 'phone']];
+				allowedAttributeSets = [loginMethod.register_attr];
 			} else {
-				allowedAttributeSets = [['ph_card'], ['email']];
+				// At least one of the choices need to match for login
+				allowedAttributeSets = loginMethod.login_choices.flat().map((attr) => [attr]);
 			}
+
 			const isValid = allowedAttributeSets.some((set) => responseEqualToRequested(keys, set));
 			if (!isValid) {
 				throw new Error('Disclosed attributes do not match the requested ones.');

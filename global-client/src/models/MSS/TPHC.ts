@@ -150,14 +150,12 @@ export type UserSecretData = {
 	};
 };
 
-type UserSecretObjectOld = UserSecretData;
-
 export type UserSecretObjectNew = {
 	version: number;
 	data: UserSecretData;
 };
 
-export type UserSecretObject = UserSecretObjectOld | UserSecretObjectNew;
+export type UserSecretObject = UserSecretData | UserSecretObjectNew;
 
 export function isUserSecretObjectNew(obj: any): obj is UserSecretObjectNew {
 	return obj && typeof obj === 'object' && 'data' in obj;

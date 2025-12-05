@@ -62,7 +62,7 @@ describe('Multi-server setup', () => {
 			const mockedIdentifyingAttrs: SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			// Use the old way of encoding the key
-			const userSecret = window.crypto.getRandomValues(new Uint8Array(32));
+			const userSecret = globalThis.crypto.getRandomValues(new Uint8Array(32));
 			const encUserSecret = await phcServer['_encryptData'](userSecret, new TextEncoder().encode('someKey1'));
 			let oldUserSecretObject: UserSecretData = { emailAttrId: { emailAttrValue: { ts: 'timestamp1', encUserSecret: Buffer.from(encUserSecret).toString('base64') } } };
 
@@ -82,7 +82,7 @@ describe('Multi-server setup', () => {
 			expect(userSecretObject.object).toEqual(backupObject.object);
 
 			// Test if globalsettings encrypted with the old userSecret encoding can be retrieved without throwing an error on crypto.subtle.decrypt
-			const globalSettings = window.crypto.getRandomValues(new Uint8Array(32));
+			const globalSettings = globalThis.crypto.getRandomValues(new Uint8Array(32));
 			const oldEncryptedGlobalSettings = await EncryptVersion0.encryptDataVersion0(globalSettings, 'ThisIsAUserSecret');
 			const decodedGlobalSettings = await phcServer['_decryptData'](oldEncryptedGlobalSettings, 'ThisIsAUserSecret');
 			expect(decodedGlobalSettings).toEqual(globalSettings);
