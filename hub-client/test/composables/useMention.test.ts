@@ -12,14 +12,14 @@ import { MentionMatch } from '@hub-client/models/components/TMessage';
 import { useRooms } from '@hub-client/stores/rooms';
 
 // Test constants
-const body = 'Dit is #test~!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host ja';
-const body2 = '#test~!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host';
+const body = 'Dit is #test~!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host~ ja';
+const body2 = '#test~!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host~';
 const body3 = '#test';
 const expectedMention = [
 	{
 		type: '#',
 		start: 7,
-		end: 52,
+		end: 53,
 		displayName: '#test',
 		id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host-7',
 		tokenId: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host',
@@ -39,7 +39,7 @@ const expectedMention2 = [
 	{
 		type: '#',
 		start: 0,
-		end: 45,
+		end: 46,
 		displayName: '#test',
 		id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host-0',
 		tokenId: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host',
@@ -62,7 +62,7 @@ describe('useMentions', () => {
 	const mentionComposable = useMentions();
 
 	// Test a mention within normal text
-	test('parseMentions&buildSegments', () => {
+	test('parseMentions&buildSegments1', () => {
 		const mentions: MentionMatch[] = mentionComposable.parseMentions(body);
 		expect(mentions).toEqual(expectedMention);
 		const segments = mentionComposable.buildSegments(body, mentions);
