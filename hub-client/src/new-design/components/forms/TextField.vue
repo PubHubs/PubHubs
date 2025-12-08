@@ -7,29 +7,40 @@
 		</label>
 
 		<!-- Input element -->
-		<textarea v-if="type==='textarea'"
-			class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
-			v-model="model"
-			:aria-invalid="!validated ? 'true' : undefined"
-			:aria-required="required ? 'true' : undefined"
-			:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
-			:disabled="disabled"
-			:name="name"
-			:placeholder="placeholder"
-			@keypress="update()"
-		/>
-		<input v-else
-			class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
-			v-model="model"
-			:aria-invalid="!validated ? 'true' : undefined"
-			:aria-required="required ? 'true' : undefined"
-			:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
-			:disabled="disabled"
-			:name="name"
-			:placeholder="placeholder"
-			:type="type"
-			@keypress="update()"
-		></input>
+		<div class="w-full flex items-center">
+			<div class="flex-grow" :class="{'w-full':!showLength}">
+				<textarea v-if="type==='textarea'"
+					class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
+					v-model="model"
+					:aria-invalid="!validated ? 'true' : undefined"
+					:aria-required="required ? 'true' : undefined"
+					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
+					:disabled="disabled"
+					:name="name"
+					:placeholder="placeholder"
+					@keypress="update()"
+				/>
+				<input v-else
+					class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
+					v-model="model"
+					:aria-invalid="!validated ? 'true' : undefined"
+					:aria-required="required ? 'true' : undefined"
+					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
+					:disabled="disabled"
+					:name="name"
+					:placeholder="placeholder"
+					:type="type"
+					@keypress="update()"
+				></input>
+			</div>
+			<div v-if="showLength" class="pl-2">
+				<span>{{ model?.length }}</span>
+				<template v-if="maxLen">
+					/ {{ maxLen }}
+				</template>
+
+			</div>
+		</div>
 
 		<!-- Helper text -->
 		<p v-if="props.help && validated" class="text-on-surface-dim text-label-small justify-end" aria-live="polite">
@@ -45,7 +56,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { inject, onMounted, useAttrs } from 'vue';
+	import { inject, onMounted, useAttrs, computed } from 'vue';
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
@@ -66,6 +77,7 @@
 			validation?: Object;
 			type?: string;
 			disabled?: boolean;
+			showLength?: boolean;
 		}>(),
 		{
 			placeholder: '',
@@ -80,8 +92,9 @@
 	const { id, slotDefault, fieldName, update, changed } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
 
-	// Accessibility
 	onMounted(() => {
+
+		// Accessibility
 		if (process.env.NODE_ENV !== 'production') {
 			const hasVisibleLabel = !!slotDefault.value || !!props.name;
 			const hasAriaLabel = !!(attrs as any)['aria-label'];
@@ -98,4 +111,12 @@
 			}
 		}
 	});
+
+	const maxLen = computed(()=>{
+		if (!props.validation) return false;
+		if (!props.validation.maxLength) return false;
+		return props.validation.maxLength;
+	});
+
+
 </script>

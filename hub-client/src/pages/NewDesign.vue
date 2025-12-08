@@ -63,13 +63,13 @@
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Inputs</h2>
 				<TextField placeholder="Type voornaam">Voornaam</TextField>
-				<TextField placeholder="Type achternaam" :validation="{ required: true }" help="Hier dus je achternaam">Achternaam</TextField>
+				<TextField placeholder="Type achternaam" :validation="{ required: true, maxLength: 10 }" :show-length="true" help="Hier dus je achternaam">Achternaam</TextField>
 				<TextField placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField>
 
 				<h2 class="my-200">TextArea</h2>
-				<TextArea placeholder="Typ opmerking" :validation="{ required: true, minLength: 10 }">Opmerking</TextArea>
+				<TextArea placeholder="Typ opmerking" :validation="{ required: true, minLength: 10, maxLength: 100 }" :show-length="true">Opmerking</TextArea>
 				<TextArea placeholder="Type veel" help="Echt lange tekst kan hier">Lange tekst</TextArea>
-				<TextArea placeholder="Extra">Nog meer</TextArea>
+				<TextArea placeholder="Extra" :show-length="true">Nog meer</TextArea>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -104,7 +104,7 @@
 
 			<ValidatedForm v-slot="{ isValidated }">
 				<TextField v-model="formValues.firstname" placeholder="Type voornaam">Voornaam</TextField>
-				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, minLength: 10 }" help="Hier dus je achternaam">{{ $t('roomlibrary.info.name') }}</TextField>
+				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, minLength: 10, maxLength: 20 }" help="Hier dus je achternaam">{{ $t('roomlibrary.info.name') }}</TextField>
 				<TextField v-model="formValues.age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
 
 				<TextArea placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
