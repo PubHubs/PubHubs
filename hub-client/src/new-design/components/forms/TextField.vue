@@ -1,5 +1,5 @@
 <template>
-	<div class="gap-075 flex w-[320px] flex-col items-start justify-start mb-2">
+	<div class="gap-075 mb-2 flex w-[320px] flex-col items-start justify-start">
 		<!-- Label -->
 		<label :for="id" class="text-label-small gap-050 text-on-surface inline-flex w-full items-start justify-start">
 			<slot></slot>
@@ -7,9 +7,10 @@
 		</label>
 
 		<!-- Input element -->
-		<div class="w-full flex items-center">
-			<div class="flex-grow" :class="{'w-full':!showLength}">
-				<textarea v-if="type==='textarea'"
+		<div class="flex w-full items-center">
+			<div class="flex-grow" :class="{ 'w-full': !showLength }">
+				<textarea
+					v-if="type === 'textarea'"
 					class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
@@ -20,7 +21,8 @@
 					:placeholder="placeholder"
 					@keypress="update()"
 				/>
-				<input v-else
+				<input
+					v-else
 					class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
@@ -31,14 +33,11 @@
 					:placeholder="placeholder"
 					:type="type"
 					@keypress="update()"
-				></input>
+				/>
 			</div>
 			<div v-if="showLength" class="pl-2">
 				<span>{{ model?.length }}</span>
-				<template v-if="maxLen">
-					/ {{ maxLen }}
-				</template>
-
+				<template v-if="maxLen"> / {{ maxLen }} </template>
 			</div>
 		</div>
 
@@ -56,7 +55,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { inject, onMounted, useAttrs, computed } from 'vue';
+	import { computed, inject, onMounted, useAttrs } from 'vue';
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
@@ -64,7 +63,7 @@
 
 	// Components
 
-	const model = defineModel<string|number>();
+	const model = defineModel<string | number>();
 	const attrs = useAttrs();
 
 	// Props
@@ -93,7 +92,6 @@
 	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
 
 	onMounted(() => {
-
 		// Accessibility
 		if (process.env.NODE_ENV !== 'production') {
 			const hasVisibleLabel = !!slotDefault.value || !!props.name;
@@ -112,11 +110,9 @@
 		}
 	});
 
-	const maxLen = computed(()=>{
+	const maxLen = computed(() => {
 		if (!props.validation) return false;
 		if (!props.validation.maxLength) return false;
 		return props.validation.maxLength;
 	});
-
-
 </script>
