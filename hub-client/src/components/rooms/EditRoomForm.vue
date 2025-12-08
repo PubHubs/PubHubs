@@ -1,51 +1,14 @@
 <template>
 	<Dialog :title="title" :buttons="dialogButtons" @close="close($event)" width="w-full max-w-[960px]">
-		<form @keydown.enter.stop class="flex flex-col gap-4">
-			<FormLine>
-				<Label>{{ t('admin.name') }}</Label>
-				<TextInput
-					:placeholder="t('admin.name_placeholder')"
-					:maxlength="validationComposable.roomSchemaConstants.maxNameLength"
-					v-model="editRoom.name"
-					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
-				/>
-				<P class="text-label-small float-end"> {{ editRoom.name.length }} / {{ validationComposable.roomSchemaConstants.maxNameLength }} </P>
-			</FormLine>
-
-			<FormLine>
-				<Label>{{ t('admin.topic') }}</Label>
-				<TextInput
-					:placeholder="t('admin.topic_placeholder')"
-					:maxlength="validationComposable.roomSchemaConstants.maxTopicLength"
-					v-model="editRoom.topic"
-					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
-				/>
-				<P class="text-label-small float-end"> {{ editRoom.topic.length }} / {{ validationComposable.roomSchemaConstants.maxTopicLength }} </P>
-			</FormLine>
-
-			<FormLine v-if="!secured">
-				<Label>{{ t('admin.room_type') }}</Label>
-				<TextInput
-					:placeholder="t('admin.room_type_placeholder')"
-					:maxlength="validationComposable.roomSchemaConstants.maxTypeLength"
-					v-model="editRoom.type"
-					:disabled="!isNewRoom"
-					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
-				/>
-				<P v-if="editRoom.type" class="text-label-small float-end"> {{ editRoom.type.length }} / {{ validationComposable.roomSchemaConstants.maxTypeLength }} </P>
-			</FormLine>
+		<ValidatedForm @keydown.enter.stop @validated="isValidated($event)">
+			<TextField v-model="editRoom.name" :validation="{ required: true, maxLength: roomValidations.maxNameLength }" :placeholder="t('admin.name_placeholder')" :show-length="true">{{ t('admin.name') }}</TextField>
+			<TextField v-model="editRoom.topic" :validation="{ maxLength: roomValidations.maxTopicLength }" :placeholder="t('admin.topic_placeholder')" :show-length="true">{{ t('admin.topic') }}</TextField>
+			<TextField v-if="!secured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
 
 			<div v-if="secured">
-				<FormLine class="mb-2">
-					<Label>{{ t('admin.secured_description') }}</Label>
-					<TextInput
-						:placeholder="t('admin.secured_description_placeholder')"
-						:maxlength="validationComposable.roomSchemaConstants.maxDescriptionLength"
-						v-model="editRoom.user_txt"
-						class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
-					/>
-					<P class="text-label-small float-end"> {{ editRoom.user_txt.length }} / {{ validationComposable.roomSchemaConstants.maxDescriptionLength }} </P>
-				</FormLine>
+				<TextField v-model="editRoom.user_txt" :validation="{ maxLength: roomValidations.maxDescriptionLength }" :placeholder="t('admin.secured_description_placeholder')" :show-length="true">{{
+					t('admin.secured_description')
+				}}</TextField>
 				<div>
 					<div class="mt-4 flex flex-wrap gap-2">
 						<Label>{{ t('admin.secured_yivi_attributes') }}</Label>
@@ -54,7 +17,7 @@
 							<span v-if="selectedAttributes.length > 1" @click.stop="removeAttribute(index)" class="text-accent-red hover:text-on-accent-red ml-2 cursor-pointer">&times;</span>
 						</button>
 						<Button
-							v-if="selectedAttributes.length < validationComposable.roomSchemaConstants.maxAttributes"
+							v-if="selectedAttributes.length < roomValidations.maxAttributes"
 							type="button"
 							class="bg-surface text-on-surface ml-2 rounded-xs px-2 py-1"
 							@click="selectedAttributes.push({ label: '', attribute: '', accepted: [], profile: false })"
@@ -98,26 +61,7 @@
 					</div>
 				</div>
 			</div>
-
-			<div v-if="errorMessage" class="mt-4">
-				<P class="text-accent-red">{{ errorMessage }}</P>
-			</div>
-
-			<div v-if="formErrors && Object.keys(formErrors).length" class="mt-4">
-				<P class="text-accent-red">
-					{{
-						Object.values(formErrors)
-							.map((error) =>
-								t(
-									error.translationKey,
-									error.parameters.map((param) => t(param)),
-								),
-							)
-							.join(', ')
-					}}
-				</P>
-			</div>
-		</form>
+		</ValidatedForm>
 	</Dialog>
 </template>
 
@@ -156,6 +100,9 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useYivi } from '@hub-client/stores/yivi';
 
+	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
+	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
+
 	const { t } = useI18n();
 	const editRoomComposable = useEditRoom();
 	const validationComposable = useValidation();
@@ -176,7 +123,6 @@
 	const formErrors = ref<Record<string, ValidationMessage> | null>(null);
 	const selectedAttributes = ref<Array<TEditRoomFormAttributes>>([{ label: '', attribute: '', accepted: [], profile: false }]);
 	let OriginalAttributes: Array<TEditRoomFormAttributes> = [{ label: '', attribute: '', accepted: [], profile: false }];
-	const isFormValid = ref(false);
 	const errorMessage = ref<string | undefined>(undefined);
 	const autoCompleteLength = 80;
 
@@ -187,6 +133,15 @@
 		type: '',
 		user_txt: '',
 	});
+
+	const roomValidations = {
+		maxNameLength: 100,
+		maxTopicLength: 100,
+		maxDescriptionLength: 100,
+		maxAttributes: 12,
+		maxValues: 400,
+		maxTypeLength: 100,
+	};
 
 	// props (use factory defaults)
 	const props = defineProps({
@@ -204,22 +159,7 @@
 
 	const title = computed(() => (isNewRoom.value ? (props.secured ? t('admin.add_secured_room') : t('admin.add_room')) : props.secured ? t('admin.edit_secured_room') : t('admin.edit_name')));
 
-	const dialogButtons = computed(() => [
-		{
-			...buttonsSubmitCancel[0],
-			enabled: isFormValid.value,
-		},
-		buttonsSubmitCancel[1],
-	]);
-
-	// validation watcher
-	watch(
-		[() => editRoom.value.name, () => editRoom.value.topic, () => editRoom.value.type, () => editRoom.value.user_txt, () => selectedAttributes.value],
-		() => {
-			isFormValid.value = validateRoomForm();
-		},
-		{ immediate: true, deep: true },
-	);
+	const dialogButtons = ref(buttonsSubmitCancel);
 
 	onBeforeMount(() => {
 		if (isNewRoom.value) {
@@ -247,34 +187,44 @@
 		}
 	});
 
-	function validateRoomForm() {
-		const acceptedLengths = selectedAttributes.value.map((s) => s.accepted.length);
-		const labelLengths = selectedAttributes.value.map((s) => (s.label ? s.label.length : 0));
+	const isValidated = (validated: boolean) => {
+		dialogButtons.value = [
+			{
+				...buttonsSubmitCancel[0],
+				enabled: validated,
+			},
+			buttonsSubmitCancel[1],
+		];
+	};
 
-		const acceptedMax = acceptedLengths.length ? Math.max(...acceptedLengths) : 0;
-		const acceptedMin = acceptedLengths.length ? Math.min(...acceptedLengths) : 0;
-		const labelMin = labelLengths.length ? Math.min(...labelLengths) : 0;
+	// function validateRoomForm() {
+	// 	const acceptedLengths = selectedAttributes.value.map((s) => s.accepted.length);
+	// 	const labelLengths = selectedAttributes.value.map((s) => (s.label ? s.label.length : 0));
 
-		const values = {
-			name: editRoom.value.name,
-			topic: editRoom.value.topic,
-			type: editRoom.value.type ? editRoom.value.type : RoomType.PH_MESSAGES_DEFAULT,
-			description: props.secured ? editRoom.value.user_txt : undefined,
-			attributes: selectedAttributes.value,
-			acceptedMax,
-			acceptedMin,
-			labelMin,
-		};
+	// 	const acceptedMax = acceptedLengths.length ? Math.max(...acceptedLengths) : 0;
+	// 	const acceptedMin = acceptedLengths.length ? Math.min(...acceptedLengths) : 0;
+	// 	const labelMin = labelLengths.length ? Math.min(...labelLengths) : 0;
 
-		if (props.secured) formErrors.value = validationComposable.validateBySchema(values, validationComposable.editSecuredRoomSchema);
-		else formErrors.value = validationComposable.validateBySchema(values, validationComposable.editPublicRoomSchema);
+	// 	const values = {
+	// 		name: editRoom.value.name,
+	// 		topic: editRoom.value.topic,
+	// 		type: editRoom.value.type ? editRoom.value.type : RoomType.PH_MESSAGES_DEFAULT,
+	// 		description: props.secured ? editRoom.value.user_txt : undefined,
+	// 		attributes: selectedAttributes.value,
+	// 		acceptedMax,
+	// 		acceptedMin,
+	// 		labelMin,
+	// 	};
 
-		const hasErrors = !!formErrors.value && Object.keys(formErrors.value).length > 0;
-		return !hasErrors;
-	}
+	// 	if (props.secured) formErrors.value = validationComposable.validateBySchema(values, validationComposable.editSecuredRoomSchema);
+	// 	else formErrors.value = validationComposable.validateBySchema(values, validationComposable.editPublicRoomSchema);
+
+	// 	const hasErrors = !!formErrors.value && Object.keys(formErrors.value).length > 0;
+	// 	return !hasErrors;
+	// }
 
 	async function submitRoom(): Promise<boolean> {
-		if (!validateRoomForm()) return false;
+		// if (!validateRoomForm()) return false;
 
 		if (!props.secured) {
 			const room = editRoom.value as TEditRoom;
