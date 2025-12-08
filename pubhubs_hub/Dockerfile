@@ -4,16 +4,16 @@
 
 ### BUILD STAGE:  YIVI
 # Should be the same debian version as the version on which synapse is based.
-FROM golang:bookworm AS yivi_build
+FROM golang:trixie AS yivi_build
 
 WORKDIR /irmago
-RUN git clone https://github.com/privacybydesign/irmago . --branch v0.18.1 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago . --branch v0.19.1 --depth 1
 RUN GO111MODULE=auto go install ./irma
 
 
 ## FINAL CONTAINER STAGE
 
-FROM ghcr.io/element-hq/synapse:v1.139.2
+FROM ghcr.io/element-hq/synapse:v1.143.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 

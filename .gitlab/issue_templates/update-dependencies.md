@@ -21,9 +21,9 @@ Also make sure to not squash the commits so we can search for them later.
 ## Global Client
 
 For reference, dependencies are in `package.json`.
-
 - [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted. 
+  - **NOTE** Don't update msw or vitest until #978 has been fixed.
   - **NOTE** Don't update tailwind-merge and tailwindcss until #1073 has been fixed.
   - 2024-nov: Mo:  could not update `eslint` related packages
   - 2024-sept: laura:  could not update `eslint` related packages
@@ -41,7 +41,8 @@ For reference, dependencies are in `package.json`.
 - [ ] Check the version number in the [`Dockerfile`](hub-client/Dockerfile): `FROM XX-slim`.  (You can find a list of tags [here](https://hub.docker.com/_/node/tags?name=slim).)
 - [ ] In the `hub-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
-  - **NOTE** Don't update msw until #978 has been fixed.
+  - **NOTE** Updating vue-datepicker breaks the hub-client.
+  - **NOTE** Don't update msw or vitest until #978 has been fixed.
   - **NOTE** Don't update tailwind-merge and tailwindcss until #1073 has been fixed.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
   - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.

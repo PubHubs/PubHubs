@@ -48,8 +48,9 @@ enum RelationType {
 	RelatesTo = 'm.relates_to',
 	InReplyTo = 'm.in_reply_to',
 	Thread = 'm.thread',
-	EventId = 'event_id',
+	Replace = 'm.replace',
 	Annotation = 'm.annotation',
+	EventId = 'event_id',
 }
 
 // Redaction strings that are not included in Matrix enums

@@ -100,7 +100,7 @@
 	const vote = (choice: string) => {
 		const voteObject = getVoteObject(choice);
 		if (voteObject) {
-			if (voteObject.userIds.includes(user.userId)) {
+			if (voteObject.userIds.includes(user.user.userId)) {
 				//user has already voted on this specific choice
 				pubhubs.addVote(rooms.currentRoomId, props.eventId, props.option.id, 'redacted');
 			} else {
