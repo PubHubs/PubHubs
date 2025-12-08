@@ -93,8 +93,8 @@
 					</Button>
 					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu($event, items2)" variant="primary" title="this is a tooltip">Right click menu test</Button>
 
-					<TextField2 placeholder="Korte tekst" :validation="{ maxLength: 10 }" help="Hier dus een korte tekst">Korte</TextField2>
-					<TextArea2 placeholder="Lange tekst" :validation="{ required: true, minLength: 10 }" help="Lang">Lang</TextArea2>
+					<TextField placeholder="Korte tekst" :validation="{ maxLength: 10 }" help="Hier dus een korte tekst">Korte</TextField>
+					<TextArea placeholder="Lange tekst" :validation="{ required: true, minLength: 10 }" help="Lang">Lang</TextArea>
 				</div>
 			</div>
 		</div>
@@ -144,9 +144,7 @@
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
-	import TextArea2 from '@hub-client/new-design/components/forms/TextArea-v2.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
-	import TextField2 from '@hub-client/new-design/components/forms/TextField-v2.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';

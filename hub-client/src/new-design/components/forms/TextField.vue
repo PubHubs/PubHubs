@@ -1,51 +1,96 @@
 <template>
-	<div class="gap-075 mb-100 flex flex-col items-start justify-start" @focusin="setFocus(true)" @focusout="setFocus(false)">
-		<div class="text-label-small gap-050 inline-flex items-start justify-start">
-			<div class="text-surface-on-surface justify-end"><slot></slot></div>
-			<div v-if="required" class="text-accent-red justify-end">*</div>
-		</div>
-		<div class="bg-surface-base outline-surface-on-surface-dim outline-offset-thin rounded px-175 py-100 outline" :class="{ 'ring-button-blue ring-3': hasFocus, 'outline-on-surface-dim': validated, 'outline-accent-error': !validated }">
-			<input ref="input" v-model="model" class="text-on-surface-dim justify-start" :placeholder="placeholder" @keypress="update()" />
-		</div>
-		<div v-if="!validated" class="text-accent-red text-label-small gap-050 flex items-center"><Icon type="warning"></Icon>{{ $t(validateField!.translationKey, validateField!.parameters) }}</div>
-		<div v-if="help" class="text-on-surface-dim text-label-small justify-end">{{ help }}</div>
+	<div class="gap-075 flex w-[320px] flex-col items-start justify-start mb-2">
+		<!-- Label -->
+		<label :for="id" class="text-label-small gap-050 text-on-surface inline-flex w-full items-start justify-start">
+			<slot></slot>
+			<span v-if="required" class="text-accent-red" aria-hidden="true">*</span>
+		</label>
+
+		<!-- Input element -->
+		<textarea v-if="type==='textarea'"
+			class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
+			v-model="model"
+			:aria-invalid="!validated ? 'true' : undefined"
+			:aria-required="required ? 'true' : undefined"
+			:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
+			:disabled="disabled"
+			:name="name"
+			:placeholder="placeholder"
+			@keypress="update()"
+		/>
+		<input v-else
+			class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
+			v-model="model"
+			:aria-invalid="!validated ? 'true' : undefined"
+			:aria-required="required ? 'true' : undefined"
+			:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
+			:disabled="disabled"
+			:name="name"
+			:placeholder="placeholder"
+			:type="type"
+			@keypress="update()"
+		></input>
+
+		<!-- Helper text -->
+		<p v-if="props.help && validated" class="text-on-surface-dim text-label-small justify-end" aria-live="polite">
+			{{ help }}
+		</p>
+
+		<!-- Validation error -->
+		<p v-else-if="!validated" class="text-accent-red text-label-small flex items-center gap-100 text-pretty" role="alert" aria-live="assertive">
+			<span class="ml-075">{{ $t(validateField!.translationKey, validateField!.parameters) }}</span>
+		</p>
 	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { inject, onMounted } from 'vue';
-
-	import Icon from '@hub-client/components/elements/Icon.vue';
+	import { inject, onMounted, useAttrs } from 'vue';
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const model = defineModel();
-	const props = defineProps({
-		placeholder: {
-			type: String,
-			default: '',
-		},
-		name: {
-			type: String,
-			default: '',
-		},
-		validation: {
-			type: Object,
-			default: undefined,
-		},
-		help: {
-			type: String,
-			default: '',
-		},
-	});
+	// Components
 
-	const { fieldName, setFocus, hasFocus, update, changed } = useFormInput(props, model);
+	const model = defineModel<string|number>();
+	const attrs = useAttrs();
+
+	// Props
+	const props = withDefaults(
+		defineProps<{
+			name?: string;
+			id?: string;
+			placeholder?: string;
+			help?: string;
+			validation?: Object;
+			type?: string;
+			disabled?: boolean;
+		}>(),
+		{
+			placeholder: '',
+			help: '',
+			validation: undefined,
+			type: 'text',
+			disabled: false,
+		},
+	);
+
+	// Validation etc.
+	const { id, slotDefault, fieldName, update, changed } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
 
+	// Accessibility
 	onMounted(() => {
+		if (process.env.NODE_ENV !== 'production') {
+			const hasVisibleLabel = !!slotDefault.value || !!props.name;
+			const hasAriaLabel = !!(attrs as any)['aria-label'];
+			if (!hasVisibleLabel && !hasAriaLabel) {
+				console.warn('[TextInput-v2] Accessible name missing. Provide either a visible label (slot / name prop) or `aria-label` attribute.');
+			}
+		}
+
+		// Add field for form validation
 		if (props.validation) {
 			const addField = inject('addField') as Function;
 			if (typeof addField === 'function') {
