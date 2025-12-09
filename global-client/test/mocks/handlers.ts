@@ -1,35 +1,9 @@
 // Packages
 import { HttpResponse, http } from 'msw';
 
-
-
 // Models
 import PHCServer from '@global-client/models/MSS/PHC';
 import { PHCStateResp, PHCWelcomeResp } from '@global-client/models/MSS/TMultiServerSetup';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 let encryptedUserSecret = null;
 let encryptedUserSecretBackup = null;

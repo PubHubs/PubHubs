@@ -2,8 +2,8 @@
 	<div v-if="user.isLoggedIn && setupReady" class="font-body text-on-surface text-body flex w-full shrink-0">
 		<HeaderFooter class="bg-surface-low relative shrink-0" :class="isMobile ? '!w-[calc(50%_-_40px)]' : 'flex max-w-[320px]'">
 			<template #header>
-				<div class="flex h-full justify-between py-2 w-full">
-					<div class="flex items-center justify-between w-full">
+				<div class="flex h-full w-full justify-between py-2">
+					<div class="flex w-full items-center justify-between">
 						<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
 						<Notification class="absolute right-4" />
 					</div>
