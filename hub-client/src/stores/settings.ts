@@ -84,6 +84,8 @@ interface Settings {
 	featureFlags: { main: FeatureFlags; stable: FeatureFlags; local: FeatureFlags };
 }
 
+let readyHandler: ((e: MessageEvent) => void) | null = null;
+
 const defaultSettings: Settings = {
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
@@ -307,19 +309,30 @@ const useSettings = defineStore('settings', {
 			const isMobile = window.innerWidth < 1024;
 			this.isMobileState = isMobile;
 
-			const iframe = document.getElementById('hub-frame-id') as HTMLIFrameElement;
-			if (iframe && iframe.contentWindow) {
-				iframe.contentWindow.postMessage({ isMobileState: isMobile }, '*');
+			const iframe = document.getElementById('hub-frame-id') as HTMLIFrameElement | null;
+			if (iframe?.contentWindow) {
+				iframe.contentWindow.postMessage({ type: 'viewport-update', isMobileState: isMobile }, '*');
 			}
 		},
 
-		startListening() {
+		startListeningMobile() {
 			this.updateIsMobile();
 			window.addEventListener('resize', this.updateIsMobile);
+
+			readyHandler = (event: MessageEvent) => {
+				if (event.data?.type === 'viewport-ready') {
+					this.updateIsMobile();
+				}
+			};
+			window.addEventListener('message', readyHandler);
 		},
 
-		stopListening() {
+		stopListeningMobile() {
 			window.removeEventListener('resize', this.updateIsMobile);
+
+			if (readyHandler) {
+				window.removeEventListener('message', readyHandler);
+			}
 		},
 	},
 });

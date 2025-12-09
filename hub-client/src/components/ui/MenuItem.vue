@@ -3,7 +3,7 @@
 		role="menuitem"
 		:class="{ 'bg-background': roomIsActive || menuItemIsActive || adminMenuIsActive }"
 		@click="
-			click();
+			scrollToEnd();
 			room && menu.setActiveMenuItem(room.roomId);
 		"
 		class="hover:bg-background h-fit rounded-lg px-4 py-2 transition-all duration-200 ease-in-out"
@@ -26,6 +26,8 @@
 	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
+
 	// Stores
 	import { useMenu } from '@hub-client/stores/menu';
 	import { Room, useRooms } from '@hub-client/stores/rooms';
@@ -33,6 +35,7 @@
 	const menu = useMenu();
 	const rooms = useRooms();
 	const router = useRouter();
+	const { scrollToEnd } = useGlobalScroll();
 
 	const adminMenuIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {

@@ -1,92 +1,83 @@
 <template>
-	<div class="bg-background font-body text-on-surface text-body h-screen w-full">
-		<div v-if="setupReady" class="h-full">
-			<div v-if="user.isLoggedIn" class="flex h-full">
-				<HeaderFooter class="bg-surface-low w-full" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">
-					<template #header>
-						<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
-							<span class="font-semibold uppercase">hub</span>
-							<hr class="bg-on-surface-dim h-[2px] grow" />
-						</div>
-						<div class="flex h-full justify-between py-2">
-							<div class="flex items-center justify-between">
-								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
-								<Notification class="absolute right-4" />
-								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
-								<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
-							</div>
-							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
-						</div>
-					</template>
-
-					<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
-						<section class="flex flex-col gap-2">
-							<div class="text-hub-text group bg-surface flex items-center justify-between overflow-hidden rounded-xl py-2 pr-4 pl-2" role="complementary">
-								<div class="flex w-full items-center gap-2 truncate">
-									<Avatar :avatarUrl="user.userAvatar(user.userId!) ?? user.avatarUrl" :userId="user.userId!" />
-									<div class="flex h-fit w-full flex-col overflow-hidden">
-										<p class="truncate leading-tight font-bold">
-											{{ user.userDisplayName(user.userId!) }}
-										</p>
-										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
-									</div>
-								</div>
-								<Icon
-									data-testid="edit-userinfo"
-									type="pencil-simple"
-									class="hover:text-accent-primary cursor-pointer"
-									@click="
-										settingsDialog = true;
-										hubSettings.hideBar();
-									"
-								/>
-							</div>
-
-							<Menu>
-								<template v-for="(item, index) in menu.getMenu" :key="index">
-									<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ t(item.key) }}</MenuItem>
-								</template>
-							</Menu>
-						</section>
-
-						<!-- Public rooms -->
-						<RoomListHeader label="admin.public_rooms">
-							<template #roomlist>
-								<RoomList :roomTypes="PublicRooms" />
-							</template>
-						</RoomListHeader>
-
-						<!-- Secured rooms -->
-						<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
-							<template #roomlist>
-								<RoomList :roomTypes="SecuredRooms" />
-							</template>
-						</RoomListHeader>
-
-						<!-- When user is admin, show the moderation tools menu -->
-						<RoomListHeader v-if="disclosureEnabled && user.isAdmin" label="menu.moderation_tools">
-							<Menu>
-								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ t('menu.moderation_tools_disclosure') }} </MenuItem>
-							</Menu>
-						</RoomListHeader>
-
-						<!-- When user is admin, show the admin tools menu -->
-						<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
-							<template #roomlist>
-								<Menu>
-									<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
-									<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
-									<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
-								</Menu>
-							</template>
-						</RoomListHeader>
+	<div v-if="user.isLoggedIn && setupReady" class="font-body text-on-surface text-body flex w-full shrink-0">
+		<HeaderFooter class="bg-surface-low relative shrink-0" :class="isMobile ? '!w-[calc(50%_-_40px)]' : 'flex max-w-[320px]'">
+			<template #header>
+				<div class="flex h-full justify-between py-2 w-full">
+					<div class="flex items-center justify-between w-full">
+						<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
+						<Notification class="absolute right-4" />
 					</div>
-				</HeaderFooter>
-
-				<div class="h-full w-full overflow-x-hidden overflow-y-auto" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }" role="document">
-					<router-view></router-view>
+					<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
 				</div>
+			</template>
+
+			<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
+				<section class="flex flex-col gap-2">
+					<div class="text-hub-text group bg-surface flex items-center justify-between overflow-hidden rounded-xl py-2 pr-4 pl-2" role="complementary">
+						<div class="flex w-full items-center gap-2 truncate">
+							<Avatar :avatarUrl="user.userAvatar(user.userId!) ?? user.avatarUrl" :userId="user.userId!" />
+							<div class="flex h-fit w-full flex-col overflow-hidden">
+								<p class="truncate leading-tight font-bold">
+									{{ user.userDisplayName(user.userId!) }}
+								</p>
+								<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
+							</div>
+						</div>
+						<Icon
+							data-testid="edit-userinfo"
+							type="pencil-simple"
+							class="hover:text-accent-primary cursor-pointer"
+							@click="
+								scrollToEnd();
+								settingsDialog = true;
+								hubSettings.hideBar();
+							"
+						/>
+					</div>
+
+					<Menu>
+						<template v-for="(item, index) in menu.getMenu" :key="index">
+							<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ t(item.key) }}</MenuItem>
+						</template>
+					</Menu>
+				</section>
+
+				<!-- Public rooms -->
+				<RoomListHeader label="admin.public_rooms">
+					<template #roomlist>
+						<RoomList :roomTypes="PublicRooms" />
+					</template>
+				</RoomListHeader>
+
+				<!-- Secured rooms -->
+				<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
+					<template #roomlist>
+						<RoomList :roomTypes="SecuredRooms" />
+					</template>
+				</RoomListHeader>
+
+				<!-- When user is admin, show the moderation tools menu -->
+				<RoomListHeader v-if="disclosureEnabled && user.isAdmin" label="menu.moderation_tools">
+					<Menu>
+						<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ t('menu.moderation_tools_disclosure') }} </MenuItem>
+					</Menu>
+				</RoomListHeader>
+
+				<!-- When user is admin, show the admin tools menu -->
+				<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
+					<template #roomlist>
+						<Menu>
+							<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
+							<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
+							<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
+						</Menu>
+					</template>
+				</RoomListHeader>
 			</div>
+		</HeaderFooter>
+
+		<div class="h-full flex-1 shrink-0 overflow-x-hidden overflow-y-auto" :class="isMobile ? 'w-screen' : 'w-full'" role="document">
+			<router-view />
 		</div>
 
 		<Disclosure v-if="disclosureEnabled" />
@@ -100,7 +91,7 @@
 <script setup lang="ts">
 	// Packages
 	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
-	import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
 
@@ -118,6 +109,8 @@
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
 	import Notification from '@hub-client/components/ui/Notification.vue';
 	import RoomListHeader from '@hub-client/components/ui/RoomListHeader.vue';
+
+	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
@@ -154,6 +147,7 @@
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
+	const { scrollToEnd } = useGlobalScroll();
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
@@ -176,12 +170,8 @@
 		);
 
 		// Listen to isMobileState from global client
-		window.addEventListener('message', (event) => {
-			if (event.data?.isMobileState !== undefined) {
-				settings.isMobileState = event.data.isMobileState;
-			}
-		});
-		settings.updateIsMobile();
+		window.parent.postMessage({ type: 'viewport-ready' }, '*');
+		window.addEventListener('message', handleViewport);
 
 		await startMessageBox();
 
@@ -201,6 +191,12 @@
 
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted done');
 	});
+
+	const handleViewport = (e: MessageEvent) => {
+		if (e.data?.type === 'viewport-update') {
+			settings.isMobileState = e.data.isMobileState;
+		}
+	};
 
 	async function startMessageBox() {
 		if (!hubSettings.isSolo) {

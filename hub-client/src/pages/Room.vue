@@ -6,7 +6,7 @@
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
 					<hr class="bg-on-surface-dim h-[2px] grow" />
 				</div>
-				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
+				<div class="relative flex h-full items-center justify-between gap-4 w-full" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden" data-testid="roomtype">
 						<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
 						<Icon v-if="showLibrary" type="caret-left" size="base" @click.stop="toggleLibrary" class="cursor-pointer" />
