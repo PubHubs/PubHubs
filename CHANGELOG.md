@@ -9,10 +9,14 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+## 09 December 2025 - v3.1.1
+
+- [FIX] Fixed that secured room notifcations cannot be removed.
+
 ## 04 December 2025 - v3.1.0
 
 - [NEW, BREAKING] Reintroduces support for the pubhubs card in the backend
-  - *Internal:* pubhubs card attributes with `not_addable_by_default = true` need to be added to `pubhubs.toml`, as well as a `[auth.yivi.card]` section.
+  - _Internal:_ pubhubs card attributes with `not_addable_by_default = true` need to be added to `pubhubs.toml`, as well as a `[auth.yivi.card]` section.
 - [NEW] Using sliding sync instead of /sync API
 - [NEW] Direct url links to room and pages in the hub-client still redirect after the login or registration flow.
 - [BUG] Fixed direct url links to rooms and pages not working in hub-client
