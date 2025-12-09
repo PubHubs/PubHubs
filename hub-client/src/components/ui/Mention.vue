@@ -1,11 +1,11 @@
 <template>
-	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 w-fit overflow-y-auto rounded-lg shadow-lg">
+	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg">
 		<ul>
 			<li v-for="(member, index) in filteredUsers" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(member)">
-				<div class="flex items-center gap-4 py-2">
+				<div class="flex max-w-3000 items-center gap-4 py-2">
 					<Avatar :avatar-url="user.userAvatar(member.userId)" :user-id="member.userId" />
 					<div>
-						{{ member.rawDisplayName }} <span class="text-on-surface-dim">{{ shortId(member.userId) }} </span>
+						<P class="truncate">{{ member.rawDisplayName }}</P> <P class="text-on-surface-dim truncate">{{ shortId(member.userId) }} </P>
 					</div>
 				</div>
 			</li>

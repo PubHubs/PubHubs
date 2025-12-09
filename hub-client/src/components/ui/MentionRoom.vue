@@ -1,10 +1,10 @@
 <template>
-	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 w-fit overflow-y-auto rounded-lg shadow-lg">
+	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg">
 		<ul>
 			<li v-for="(room, index) in filteredRooms" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(room)">
-				<div class="flex max-w-4000 items-center gap-4 truncate py-2">
+				<div class="flex max-w-3000 items-center gap-4 py-2">
 					<div class="">
-						{{ room.name }} <span class="text-on-surface-dim">{{ shortId(room.room_id) }} </span>
+						<P class="truncate">{{ room.name }}</P> <P class="text-on-surface-dim truncate">{{ shortId(room.room_id) }} </P>
 					</div>
 				</div>
 			</li>
