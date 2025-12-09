@@ -48,7 +48,7 @@ export function useMentions() {
 		const mentionRegex = /([@#])([^~]+)~([^~]+)~/g;
 
 		let match;
-		while (match = mentionRegex.exec(body)) {
+		while ((match = mentionRegex.exec(body))) {
 			const marker = match[1] as '@' | '#';
 			const id = match[3];
 			const start = match.index;
