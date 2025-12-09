@@ -23,14 +23,10 @@ Also make sure to not squash the commits so we can search for them later.
 For reference, dependencies are in `package.json`.
 - [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted. 
-  - **NOTE** Don't update msw or vitest until #978 has been fixed.
-  - **NOTE** Don't update tailwind-merge and tailwindcss until #1073 has been fixed.
   - 2024-nov: Mo:  could not update `eslint` related packages
   - 2024-sept: laura:  could not update `eslint` related packages
-  - 2024-sept: `vuedraggable`'s latest, `2.24.3`, seems off, as the current is `4.1.0`; not updated.
+  - 2025-dec: `vuedraggable` and `mavon-editor` have both a vue2 and vue3 version in npm, which means the latest version can show a lower version number which is for vue2.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
-  - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
-  - (2024-jul) updating 'msw' to 2.3.3 breaks the tests when its ran on gitlab. If it's not fixed in 2024-oct, make an issue at msw repo.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
 
@@ -41,11 +37,7 @@ For reference, dependencies are in `package.json`.
 - [ ] Check the version number in the [`Dockerfile`](hub-client/Dockerfile): `FROM XX-slim`.  (You can find a list of tags [here](https://hub.docker.com/_/node/tags?name=slim).)
 - [ ] In the `hub-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
-  - **NOTE** Updating vue-datepicker breaks the hub-client.
-  - **NOTE** Don't update msw or vitest until #978 has been fixed.
-  - **NOTE** Don't update tailwind-merge and tailwindcss until #1073 has been fixed.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
-  - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
 
