@@ -4,7 +4,9 @@
 			<li v-for="(member, index) in filteredUsers" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(member)">
 				<div class="flex items-center gap-4 py-2">
 					<Avatar :avatar-url="user.userAvatar(member.userId)" :user-id="member.userId" />
-					<div>{{ member.rawDisplayName }}</div>
+					<div>
+						{{ member.rawDisplayName }} <span class="text-on-surface-dim">{{ shortId(member.userId) }} </span>
+					</div>
 				</div>
 			</li>
 		</ul>
@@ -115,5 +117,10 @@
 			left: `${props.left}px`,
 			top: `${props.top - 40 - elContainer.value.clientHeight}px`,
 		};
+	}
+	function shortId(id: string): string | null {
+		const idRegex = /([^:]+):/g;
+		const result = idRegex.exec(id);
+		return result ? result[1] : null;
 	}
 </script>

@@ -2,8 +2,10 @@
 	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 w-fit overflow-y-auto rounded-lg shadow-lg">
 		<ul>
 			<li v-for="(room, index) in filteredRooms" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(room)">
-				<div class="flex max-w-3000 items-center gap-4 truncate py-2">
-					<div class="">{{ room.name }}</div>
+				<div class="flex max-w-4000 items-center gap-4 truncate py-2">
+					<div class="">
+						{{ room.name }} <span class="text-on-surface-dim">{{ shortId(room.room_id) }} </span>
+					</div>
 				</div>
 			</li>
 		</ul>
@@ -107,5 +109,10 @@
 			left: `${props.left}px`,
 			top: `${props.top - 40 - elContainer.value.clientHeight}px`,
 		};
+	}
+	function shortId(id: string): string | null {
+		const idRegex = /([^:]+):/g;
+		const result = idRegex.exec(id);
+		return result ? result[1] : null;
 	}
 </script>
