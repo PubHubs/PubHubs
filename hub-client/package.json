@@ -57,7 +57,7 @@
 		"eslint-plugin-vue": "^9",
 		"jsdoc": "^4.0.2",
 		"jsdom": "^27",
-		"msw": "2.3.2",
+		"msw": "^2.12.4",
 		"postcss": "^8.5.3",
 		"prettier": "^3.5.0",
 		"prettier-eslint": "^16.3.0",
@@ -65,7 +65,7 @@
 		"tailwindcss": "^4.1.11",
 		"typescript": "^5.0.2",
 		"vite-plugin-node-polyfills": "^0.24.0",
-		"vitest": "^3",
+		"vitest": "^4",
 		"vue-eslint-parser": "^9",
 		"webpack": "^5.97.1"
 	},
