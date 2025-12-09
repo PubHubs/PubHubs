@@ -1,6 +1,6 @@
 <template>
 	<Teleport to="body">
-		<Dialog v-if="props.dialogOpen" @close="handleClose" :title="t(title)" :buttons="buttonsYesNo" :allowOverflow="true">
+		<Dialog v-if="props.dialogOpen" @close="handleClose" :title="t(title)" :buttons="props.secured ? buttonsCancel : buttonsYesNo" :allowOverflow="true">
 			<P class="text-label-small-min/label-small-max text-wrap">
 				{{ t(message, messageValues) }}
 			</P>
@@ -22,7 +22,7 @@
 	import { router } from '@hub-client/logic/core/router';
 
 	// Logic
-	import { DialogButtonAction, buttonsYesNo } from '@hub-client/stores/dialog';
+	import { DialogButtonAction, buttonsCancel, buttonsYesNo } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 	const pubhubs = usePubhubsStore();
