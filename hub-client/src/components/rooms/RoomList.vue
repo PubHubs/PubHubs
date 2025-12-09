@@ -129,7 +129,7 @@
 				if (await dialog.okcancel(t(leaveMsg))) {
 					await pubhubs.leaveRoom(roomId);
 					if (rooms.roomIsSecure(roomId)) {
-						notificationsStore.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
+						notifications.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
 					}
 					await router.replace({ name: 'home' });
 				}
@@ -146,7 +146,7 @@
 	async function dismissNotification(room_id: string, event: Event) {
 		event.stopPropagation();
 		if (await dialog.okcancel(t('rooms.leave_sure'))) {
-			notificationsStore.removeNotification(room_id, TNotificationType.RemovedFromSecuredRoom);
+			notifications.removeNotification(room_id, TNotificationType.RemovedFromSecuredRoom);
 		}
 	}
 </script>
