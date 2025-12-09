@@ -89,7 +89,9 @@ export type EnterResp =
 			};
 	  };
 
-export type CardPseudResp = { RetryWithNewAuthToken: string; Success: { card_pseud: number; registration_date?: number } };
+export type CardPseudResp = { RetryWithNewAuthToken: string; Success: CardPseudRespSucces };
+
+export type CardPseudRespSucces = { card_pseud: number; registration_date?: number };
 
 export type PHCEnterResp = Result<EnterResp, ErrorCode>;
 

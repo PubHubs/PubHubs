@@ -9,7 +9,7 @@ import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } f
 import { Api } from '@hub-client/logic/core/apiCore';
 
 // Models
-import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
+import { ErrorCode, Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
 import * as TPHC from '@global-client/models/MSS/TPHC';
 
 // Stores
@@ -88,7 +88,7 @@ export default class PHCServer {
 	async welcome() {
 		return await handleErrors<TPHC.WelcomeRespPHC>(() => this._phcAPI.apiGET<TPHC.PHCWelcomeResp>(this._phcAPI.apiURLS.welcome));
 	}
-	async cardPseudePackage(): Promise<TPHC.CardPseudResp> {
+	async cardPseudePackage(): Promise<TPHC.CardPseudRespSucces> {
 		const options = {
 			headers: {
 				'Content-Type': 'application/json',
@@ -97,7 +97,15 @@ export default class PHCServer {
 			method: 'POST',
 		};
 		const CardPsFn = () => this._phcAPI.api<Result<TPHC.CardPseudResp, ErrorCode>>(this._phcAPI.apiURLS.CardPseudPackage, options);
-		return await handleErrors<TPHC.CardPseudResp>(CardPsFn);
+
+		const okCardPseudResp = await handleErrors<TPHC.CardPseudResp>(CardPsFn);
+		if (ResultResponse.Success in okCardPseudResp) {
+			return okCardPseudResp.Success;
+		} else if ('RetryWithNewAuthToken' in okCardPseudResp) {
+			throw new Error('Retreiving the Pseudo card package failed — retry with a new Authtoken.');
+		} else {
+			throw new Error('Unexpected response in OK CardPseudResponse');
+		}
 	}
 
 	private _setAuthToken(authTokenPackage: TPHC.AuthTokenPackage) {

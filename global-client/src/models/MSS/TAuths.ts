@@ -59,7 +59,9 @@ export type YiviReleaseNextSessionResp = { Success: {} } | { PleaseRestartAuth: 
 
 export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string };
 
-export type CardResp = { Success: { attr: string; issuance_request: string; yivi_requestor_url: string } } | { PleaseRetryWithNewCardPseud: string };
+export type CardResp = { Success: CardRespSuccess } | { PleaseRetryWithNewCardPseud: string };
+
+export type CardRespSuccess = { attr: string; issuance_request: string; yivi_requestor_url: string };
 
 export type CardReq = { card_pseud_package: { card_pseud: number; registration_date?: number }; comment: string };
 

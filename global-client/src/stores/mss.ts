@@ -153,23 +153,15 @@ const useMSS = defineStore('mss', {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
-			const pseudoResp = await this.phcServer.cardPseudePackage();
-			if (!(ResultResponse.Success in pseudoResp)) {
-				throw new Error('Retreiving the Pseudo card package failed — retry with a new Authtoken.');
-			}
-
+			const pseudoRespSuccess = await this.phcServer.cardPseudePackage();
 			const cardReq: CardReq = {
-				card_pseud_package: pseudoResp.Success,
+				card_pseud_package: pseudoRespSuccess,
 				comment: comment,
 			};
 
 			// 2. Get signed card attribute from Auth server
-			const cardResp = await authServer.CardEP(cardReq);
-			if (!(ResultResponse.Success in cardResp)) {
-				throw new Error('Card issuance failed — retry with a new PseudoCard.');
-			}
-
-			const { attr: signedCardAttr, issuance_request, yivi_requestor_url } = cardResp.Success;
+			const cardRespSuccess = await authServer.CardEP(cardReq);
+			const { attr: signedCardAttr, issuance_request, yivi_requestor_url } = cardRespSuccess;
 
 			// 3. Add card attribute to PubHubs Central Server
 			const { entered, errorMessage } = await this.phcServer.enter([signedCardAttr], PHCEnterMode.Login, identifyingAttr);
@@ -178,17 +170,13 @@ const useMSS = defineStore('mss', {
 			}
 			// 4. Add card to Yivi
 			if (chainedSession) {
-				const releaseResp = await authServer.YiviReleaseNextSessionEP({
+				await authServer.YiviReleaseNextSessionEP({
 					state: authServer.getState(),
 					next_session: issuance_request,
 				});
-				if (!(ResultResponse.Success in releaseResp)) {
-					throw new Error('Failed to add the card to the Yivi chained session.');
-				}
 			} else {
 				const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
 				await startYiviAuthentication(yiviUrl, issuance_request);
-				// TODO Think about how to handle case where enter is succesful but the disclosure in yivi fails.
 			}
 			// 5. Decode and return card
 			const decoded = decodeJWT(signedCardAttr) as Attr;

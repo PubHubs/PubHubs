@@ -100,13 +100,31 @@ export default class AuthenticationServer {
 		const YiviWaitForResulFn = () => this._authsApi.api<Result<TAuths.YiviWaitForResultResp, ErrorCode>>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
 		return await handleErrors<TAuths.YiviWaitForResultResp>(YiviWaitForResulFn);
 	}
-	public async CardEP(requestBody: TAuths.CardReq): Promise<TAuths.CardResp> {
+	public async CardEP(requestBody: TAuths.CardReq): Promise<TAuths.CardRespSuccess> {
 		const CardFn = () => this._authsApi.api<Result<TAuths.CardResp, ErrorCode>>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
-		return await handleErrors<TAuths.CardResp>(CardFn);
+		const CardEPResponse = await handleErrors<TAuths.CardResp>(CardFn);
+		if (ResultResponse.Success in CardEPResponse) {
+			return CardEPResponse.Success;
+		} else if ('PleaseRetryWithNewCardPseud' in CardEPResponse) {
+			throw new Error('Card issuance failed — retry with a new PseudoCard.');
+		} else {
+			throw new Error('Unexpected response in OK CardEPResponse');
+		}
 	}
-	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq): Promise<TAuths.YiviReleaseNextSessionResp> {
+	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq): Promise<{}> {
 		const YiviReleaseNextSessioFn = () => this._authsApi.api<Result<TAuths.YiviReleaseNextSessionResp, ErrorCode>>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
-		return await handleErrors<TAuths.YiviReleaseNextSessionResp>(YiviReleaseNextSessioFn);
+		const YiviReleaseNextSessionResponse = await handleErrors<TAuths.YiviReleaseNextSessionResp>(YiviReleaseNextSessioFn);
+		if (ResultResponse.Success in YiviReleaseNextSessionResponse) {
+			return YiviReleaseNextSessionResponse.Success;
+		} else if ('PleaseRestartAuth' in YiviReleaseNextSessionResponse) {
+			throw new Error('Something went wrong; please start again at AuthStartEP.');
+		} else if ('SessionGone' in YiviReleaseNextSessionResponse) {
+			throw new Error('The session provided to YiviReleaseNextSessionEP can not be found');
+		} else if ('TooEarly' in YiviReleaseNextSessionResponse) {
+			throw new Error('Trying to release a yivi servder thats not there yet');
+		} else {
+			throw new Error('Unexpected Result in Ok YiviReleaseNextSessionResponse');
+		}
 	}
 
 	/**
