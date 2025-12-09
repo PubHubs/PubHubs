@@ -58,7 +58,7 @@ const expectedSegment3 = [{ type: 'text', content: '#test', id: null }];
 describe('useMentions', () => {
 	setActivePinia(createPinia());
 	// Need a valid roomId to link to
-	useRooms().publicRooms = [{ room_id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host' }];
+	useRooms().publicRooms = [{ room_id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host', name: 'test' }];
 	const mentionComposable = useMentions();
 
 	// Test a mention within normal text
