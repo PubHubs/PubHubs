@@ -203,7 +203,7 @@ do
     echo "testhub$i"
     rm -rf "testhub${i}"
     cp -r matrix_test_config "testhub$i"
-    chmod -R 777 "testhub$i"
+    chmod 777 "testhub$i"
 done
 ```
 
