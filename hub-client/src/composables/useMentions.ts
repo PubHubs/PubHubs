@@ -50,15 +50,14 @@ export function useMentions() {
 		let match;
 		while ((match = mentionRegex.exec(body)) !== null) {
 			const marker = match[1] as '@' | '#';
-			const displayName = match[1] + match[2];
 			const id = match[3];
 			const start = match.index;
 			const end = start + match[0].length;
 
 			// Validate
-			const isValid = marker === '#' ? !!rooms.getTPublicRoom(id) : !!pubhubs.client.getUser(id);
+			const displayName = marker === '#' ? '#' + rooms.getTPublicRoom(id)?.name : '@' + pubhubs.client.getUser(id)?.rawDisplayName;
 
-			if (isValid) {
+			if (displayName) {
 				mentions.push({
 					type: marker,
 					start,
