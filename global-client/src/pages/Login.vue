@@ -4,8 +4,8 @@
 		<InlineSpinner size="lg" />
 	</div>
 
-	<div v-else>
-		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
+	<div v-else class="flex-col">
+		<div class="bg-surface flex h-[80px] w-full items-center px-6 py-4">
 			<div class="flex h-full w-full items-center justify-between gap-16">
 				<a :href="globalClientUrl" rel="noopener noreferrer" class="h-full py-2">
 					<Logo />

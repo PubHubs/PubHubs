@@ -1,7 +1,7 @@
 <template>
-	<div class="w-full max-w-screen">
+	<div class="w-full max-w-screen flex-col">
 		<!-- Header -->
-		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
+		<div class="bg-surface flex h-[80px] w-full items-center px-6 py-4">
 			<div class="flex h-full w-full items-center justify-between gap-16">
 				<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer" class="h-full py-2">
 					<Logo />
