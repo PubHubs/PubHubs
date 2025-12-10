@@ -158,7 +158,7 @@ pub mod user {
     ///
     /// [`identifying_attr`]: Self::identifying_attr
     /// [`add_attrs`]: Self::add_attrs
-    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[derive(Serialize, Deserialize, Debug, Clone, Default)]
     #[serde(deny_unknown_fields)]
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
@@ -166,6 +166,8 @@ pub mod user {
         /// If omitted, an `AuthToken` must be passed via the `Authorization` header instead.
         ///
         /// [`Attr`]: attr::Attr
+        #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub identifying_attr: Option<Signed<attr::Attr>>,
 
         /// The mode determines whether we want to create an account if none exists,
@@ -176,7 +178,21 @@ pub mod user {
         /// Add these attributes to your account, required, for example, when registering a new
         /// account, or when no bannable attribute is registered for this account.
         #[serde(default)]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub add_attrs: Vec<Signed<attr::Attr>>,
+
+        /// When the registration of a new user account is needed for this request, check that none
+        /// of the provided attributes already bans another user.  If one of the supplied
+        /// attributes does ban another user, [`EnterResp::AttributeAlreadyTaken`] is returned.
+        ///
+        /// Checking for this condition is useful when an end-user already has an account, supplied
+        /// one attribute that bans it, but not an identifying attribute tied to their original
+        /// account.  If this check is not performed, a second account is created, which is not
+        /// what the user might want.  With this check, the frontend can prompt the user to confirm
+        /// that they really do want to create a (potential) second account.
+        #[serde(default)]
+        #[serde(skip_serializing_if = "std::ops::Not::not")]
+        pub register_only_with_unique_attrs: bool,
     }
 
     /// Returned by [`EnterEP`].
@@ -197,9 +213,21 @@ pub mod user {
         /// The given identifying attribute (in [`EnterReq::add_attrs`] or [`EnterReq::identifying_attr`])
         /// is already tied to another account.
         ///
+        /// If [`EnterReq::register_only_with_unique_attrs`] is set, this variant will also be returned if
+        /// a registration is attempted, but one of the supplied attributes already bans another
+        /// user.
+        ///
         /// May occasionally happen under the [`EnterMode::LoginOrRegister`] mode if the account
         /// was created by some parallel invocation of [`EnterEP`] at about the same time.
-        AttributeAlreadyTaken(attr::Attr),
+        AttributeAlreadyTaken {
+            #[serde(flatten)]
+            attr: attr::Attr,
+
+            /// Set if this attribute was taken in the sense that it already bans another user.
+            #[serde(default)]
+            #[serde(skip_serializing_if = "std::ops::Not::not")]
+            bans_other_user: bool,
+        },
 
         /// Cannot register an account with these attributes:  no bannable attribute provided.
         NoBannableAttribute,
@@ -673,5 +701,21 @@ pub mod user {
 
         /// The requested registration pseudonym, signed by PHC's jwt key.
         Success(Signed<CardPseudPackage>),
+    }
+
+    #[cfg(test)]
+    mod test {
+        use super::*;
+
+        #[test]
+        fn backwards_compat() {
+            let _: EnterResp = serde_json::from_value(serde_json::json!({
+                "AttributeAlreadyTaken": {
+                    "attr_type": "Fr7Gsfh73AU9k9N4eR9vDBINhMOImXm-Qqfkz0RxjwI",
+                    "value": "blurp"
+                }
+            }))
+            .unwrap();
+        }
     }
 }

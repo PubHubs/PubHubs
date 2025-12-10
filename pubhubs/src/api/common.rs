@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    Deserialize, Serialize,
     de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
 };
 
 use anyhow::Context as _;
@@ -264,8 +264,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-            >,
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {
@@ -519,7 +519,9 @@ pub trait EndpointDetails {
 /// Wraps one of the dalek types to enforce hex serialization
 macro_rules! wrap_dalek_type {
     {$type:ident, $wrapped_type:path, derive( $($derive:tt)* ), $visitor_type:path } => {
-        /// Wrapper around [`$wrapped_type`] enforcing base16 serialization.
+        #[doc = "Wrapper around [`"]
+        #[doc = stringify!($wrapped_type)]
+        #[doc = "`] enforcing base16 serialization."]
         #[derive(Clone, Debug, Serialize, Deserialize, $( $derive )* )]
         #[serde(transparent)]
         pub struct $type {
