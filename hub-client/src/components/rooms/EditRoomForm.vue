@@ -138,10 +138,10 @@
 
 	// Composables
 	import { useEditRoom } from '@hub-client/composables/useEditRoom';
+	import { useValidation } from '@hub-client/composables/useValidation';
 
 	// Logic
 	import { isEmpty, trimSplit } from '@hub-client/logic/core/extensions';
-	import { useValidation } from '@hub-client/logic/validation/useValidation';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';

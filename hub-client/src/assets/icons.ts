@@ -263,4 +263,6 @@ const icons: { [key: string]: { [key: string]: string } } = {
 	},
 };
 
-export { icons };
+const iconTypes = Object.keys(icons);
+
+export { icons, iconTypes };

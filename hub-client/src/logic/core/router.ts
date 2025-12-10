@@ -75,6 +75,13 @@ const routes = [
 		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
+		path: '/design',
+		name: 'design',
+		component: () => import('@hub-client/pages/NewDesign.vue'),
+		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+	},
+
+	{
 		path: '/nop',
 		name: 'nop',
 		component: () => import('@hub-client/pages/NotImplemented.vue'),

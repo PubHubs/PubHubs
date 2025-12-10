@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 
 // Components
+import Icon from '@hub-client/components/elements/Icon.vue';
 import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
 
 import { en } from '@hub-client/locales/en';
