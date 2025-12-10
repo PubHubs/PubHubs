@@ -193,6 +193,8 @@ const nl = {
 	menu: {
 		calender: 'Kalender',
 		contact: 'Admin Contact',
+		copy_hub_url: 'Kopieer link naar hub',
+		copy_room_url: 'Kopieer link naar room',
 		home: 'Hub welkom',
 		directmsg: 'Directe berichten',
 		discover: 'Ontdek kamers',

@@ -9,8 +9,11 @@
 							<hr class="bg-on-surface-dim h-[2px] grow" />
 						</div>
 						<div class="flex h-full justify-between py-2">
-							<div class="flex items-center justify-between">
-								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
+							<div class="flex items-center justify-between gap-2">
+								<div class="group hover:border-on-surface-dim relative flex cursor-pointer items-center gap-2 hover:mt-[2px] hover:border-b-2 hover:border-dotted" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
+									<H3 class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
+									<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
+								</div>
 								<Notification class="absolute right-4" />
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
 								<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
@@ -260,6 +263,15 @@
 			html.classList.add('dark');
 		} else {
 			html.classList.remove('dark');
+		}
+	}
+
+	async function copyHubUrl() {
+		try {
+			await navigator.clipboard.writeText(hubSettings.hubUrl);
+			console.log('Hub URL copied to clipboard');
+		} catch (err) {
+			console.error('Failed to copy hub URL:', err);
 		}
 	}
 </script>

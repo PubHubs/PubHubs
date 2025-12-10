@@ -194,6 +194,8 @@ const en = {
 	menu: {
 		calender: 'Calender',
 		contact: 'Contact Admin',
+		copy_hub_url: 'Copy link to hub',
+		copy_room_url: 'Copy link to room',
 		home: 'Hub welcome',
 		directmsg: 'Direct messages',
 		discover: 'Discover rooms',
