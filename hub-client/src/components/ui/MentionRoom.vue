@@ -95,7 +95,7 @@
 
 	function filterRooms(searchQuery: string) {
 		const query = searchQuery.slice(searchQuery.lastIndexOf('#') + 1);
-		return roomsStore.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query) || room.topic?.toLowerCase().includes(query));
+		return roomsStore.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query.toLowerCase()) || room.topic?.toLowerCase().includes(query.toLowerCase()));
 	}
 
 	function clickedItem(item: any) {
