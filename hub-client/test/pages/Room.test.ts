@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 import { createRouter, createWebHistory } from 'vue-router';
 
 // Logic
+import { setUpi18n } from '@hub-client/i18n';
 import { routes } from '@hub-client/logic/core/router';
 
 // Pages
@@ -24,9 +25,11 @@ describe('Room.vue Test', () => {
 			pushed = p;
 		};
 
+		const i18n = setUpi18n();
+
 		const wrapper = mount(Room, {
 			global: {
-				plugins: [createTestingPinia(), router],
+				plugins: [createTestingPinia(), router, i18n],
 			},
 			props: {
 				id: '!some_room:some.server',
