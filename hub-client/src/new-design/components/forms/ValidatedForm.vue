@@ -8,6 +8,8 @@
 	// Packages
 	import { computed, provide, ref } from 'vue';
 
+	const emit = defineEmits(['validated']);
+
 	type fieldType = {
 		name: string;
 		model: any;
@@ -29,6 +31,8 @@
 		if (!changed || fields.value.length === 0) {
 			validated = false;
 		}
+		console.info('isValidated', changed, validated);
+		emit('validated', validated);
 		return validated;
 	});
 
