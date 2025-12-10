@@ -22,11 +22,12 @@ import { useUser } from '@hub-client/stores/user';
 class MatrixService {
 	private slidingSync: SlidingSync | null = null;
 	private client: MatrixClient | null = null;
-	private subscribedRooms = new Map<string, string>(); // TODO: Move to store
+	private subscribedRooms: Map<string, string> = new Map<string, string>(); // TODO: Move to store
 
 	// TODO: Use room composable instead
 	private roomsStore = useRooms();
 
+	private roomsCount: number = 0;
 	private initialRoomLoading: boolean = true;
 	/**
 	 * Construct a MatrixService instance.
@@ -231,8 +232,12 @@ class MatrixService {
 			const currentUser = useUser();
 			if (state !== SlidingSyncState.Complete) return;
 
+			this.roomsCount = response?.lists.roomList.count ?? 0;
 			const roomList = response?.rooms;
-			if (!roomList || Object.keys(roomList).length === 0) return;
+			if (this.roomsCount <= 0 || !roomList || Object.keys(roomList).length <= 0) {
+				this.roomsStore.setRoomsLoaded(true);
+				return;
+			}
 			//console.error('sliding sync RoomList ', roomList);
 
 			const joinPromises: Promise<any>[] = [];
