@@ -1,11 +1,9 @@
 <template>
 	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg">
 		<ul>
-			<li v-for="(room, index) in filteredRooms" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(room)">
-				<div class="flex max-w-3000 items-center gap-4 py-2">
-					<div class="">
-						<P class="truncate">{{ room.name }}</P> <P class="text-on-surface-dim truncate">{{ shortId(room.room_id) }} </P>
-					</div>
+			<li v-for="(room, index) in filteredRooms" :key="index" class="group hover:bg-surface-high flex cursor-pointer px-4" @click.stop="clickedItem(room)">
+				<div class="flex max-w-3000 flex-col items-center py-2">
+					<TruncatedText :title="room.name">{{ room.name }}</TruncatedText> <TruncatedText class="text-on-surface-dim">{{ shortId(room.room_id) }} </TruncatedText>
 				</div>
 			</li>
 		</ul>
@@ -15,6 +13,8 @@
 <script setup lang="ts">
 	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
+
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';

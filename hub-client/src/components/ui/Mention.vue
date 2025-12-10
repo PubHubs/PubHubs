@@ -1,12 +1,10 @@
 <template>
 	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg">
 		<ul>
-			<li v-for="(member, index) in filteredUsers" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(member)">
-				<div class="flex max-w-3000 items-center gap-4 py-2">
-					<Avatar :avatar-url="user.userAvatar(member.userId)" :user-id="member.userId" />
-					<div>
-						<P class="truncate">{{ member.rawDisplayName }}</P> <P class="text-on-surface-dim truncate">{{ shortId(member.userId) }} </P>
-					</div>
+			<li v-for="(member, index) in filteredUsers" :key="index" class="group hover:bg-surface-high flex cursor-pointer items-center gap-2 px-4" @click.stop="clickedItem(member)">
+				<Avatar :avatar-url="user.userAvatar(member.userId)" :user-id="member.userId"></Avatar>
+				<div class="flex max-w-3000 flex-col items-center py-2">
+					<TruncatedText :title="member.rawDisplayName">{{ member.rawDisplayName }}</TruncatedText> <TruncatedText class="text-on-surface-dim">{{ shortId(member.userId) }} </TruncatedText>
 				</div>
 			</li>
 		</ul>
@@ -17,6 +15,7 @@
 	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
 
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	// Components
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
