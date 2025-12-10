@@ -5,6 +5,9 @@ const en = {
 		loading: 'Loading ...',
 		or: 'or',
 	},
+	card: {
+		description: 'Card issued with the following attributes:',
+	},
 	state: {
 		button_request: 'Request access',
 		initial: 'Checking whether hub client has access to cookies and local storage...',

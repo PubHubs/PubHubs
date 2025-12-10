@@ -26,7 +26,7 @@ export type LoginMethod = {
 	readonly source: Source;
 	readonly attr_types: readonly string[];
 	readonly identifying_attr: string[];
-	readonly login_choices: string[][];
+	readonly login_attr: string[];
 	readonly register_attr: string[];
 };
 
@@ -35,7 +35,7 @@ export const loginMethods: Record<string, LoginMethod> = {
 		source: Source.Yivi,
 		attr_types: ['email', 'phone', 'ph_card'],
 		identifying_attr: ['email', 'ph_card'],
-		login_choices: [['ph_card', 'email']],
+		login_attr: ['ph_card'],
 		register_attr: ['email', 'phone'],
 	},
 } as const;

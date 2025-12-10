@@ -1,6 +1,7 @@
 // Packages
 import { assert } from 'chai';
 import { defineStore } from 'pinia';
+import { useI18n } from 'vue-i18n';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
@@ -46,7 +47,7 @@ const useMSS = defineStore('mss', {
 			const authStartReq: AuthStartReq =
 				enterMode === PHCEnterMode.LoginOrRegister
 					? { source: loginMethod.source, attr_types: loginMethod.register_attr, attr_type_choices: [], yivi_chained_session: true }
-					: { source: loginMethod.source, attr_types: [], attr_type_choices: loginMethod.login_choices, yivi_chained_session: false };
+					: { source: loginMethod.source, attr_types: loginMethod.login_attr, attr_type_choices: [], yivi_chained_session: false };
 
 			// 3. Start authentication
 			const { task, state } = await authServer.authStartEP(authStartReq);
@@ -97,8 +98,9 @@ const useMSS = defineStore('mss', {
 
 			// 9. Issue a Pubhubs card if registering a new account
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
+				const { t } = useI18n();
 				const allDecodedAttrs = Object.entries(authSuccess.attrs).map(([handle, signedAttr]) => ({ handle, attr: decodeJWT(signedAttr) as Attr }));
-				const comment = '\nCard issued with the following attributes:\n' + allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
+				const comment = `\n ${t('card.decription')}\n` + allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
 				const { cardAttr, errorMessage } = await this.issueCard(true, comment);
 				if (!cardAttr) return errorMessage;
 				identifying['ph_card'] = cardAttr;
@@ -287,17 +289,16 @@ const useMSS = defineStore('mss', {
 		},
 		validateAttributes(authSuccess: { attrs: {} }, enterMode: PHCEnterMode, loginMethod: LoginMethod): void {
 			const keys = Object.keys(authSuccess.attrs);
-			let allowedAttributeSets: string[][];
+			let allowedAttributeSets: string[];
 
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				allowedAttributeSets = [loginMethod.register_attr];
+				allowedAttributeSets = loginMethod.register_attr;
 			} else {
 				// At least one of the choices need to match for login
-				allowedAttributeSets = loginMethod.login_choices.flat().map((attr) => [attr]);
+				allowedAttributeSets = loginMethod.login_attr;
 			}
 
-			const isValid = allowedAttributeSets.some((set) => responseEqualToRequested(keys, set));
-			if (!isValid) {
+			if (!responseEqualToRequested(keys, allowedAttributeSets)) {
 				throw new Error('Disclosed attributes do not match the requested ones.');
 			}
 		},

@@ -555,6 +555,7 @@ export default class PHCServer {
 			this.triggerLogoutProcedure();
 		} else if ('State' in okStateResp) {
 			this._userStateObjects = okStateResp.State.stored_objects;
+			console.error(okStateResp.State.could_be_banned_by);
 			return okStateResp.State;
 		} else {
 			throw new Error('Unknown response from the state endpoint.');
