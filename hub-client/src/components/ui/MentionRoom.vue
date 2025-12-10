@@ -1,10 +1,9 @@
 <template>
 	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg">
 		<ul>
-			<li v-for="(member, index) in filteredUsers" :key="index" class="group hover:bg-surface-high flex cursor-pointer items-center gap-2 px-4" @click.stop="clickedItem(member)">
-				<Avatar :avatar-url="user.userAvatar(member.userId)" :user-id="member.userId"></Avatar>
+			<li v-for="(room, index) in filteredRooms" :key="index" class="group hover:bg-surface-high flex cursor-pointer px-4" @click.stop="clickedItem(room)">
 				<div class="flex max-w-3000 flex-col items-center py-2">
-					<TruncatedText :title="member.rawDisplayName">{{ member.rawDisplayName }}</TruncatedText> <TruncatedText class="text-on-surface-dim">{{ shortId(member.userId) }} </TruncatedText>
+					<TruncatedText :title="room.name">{{ room.name }}</TruncatedText> <TruncatedText class="text-on-surface-dim">{{ shortId(room.room_id) }} </TruncatedText>
 				</div>
 			</li>
 		</ul>
@@ -16,16 +15,12 @@
 	import { computed, onMounted, ref, watch } from 'vue';
 
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
-	// Components
-	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 
 	// Stores
-	import { useRooms } from '@hub-client/stores/rooms';
-	import { useUser } from '@hub-client/stores/user';
+	import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 
 	// Types
 	type Props = {
@@ -35,14 +30,13 @@
 		room: Room;
 	};
 
-	const user = useUser();
 	const emit = defineEmits(['click']);
 	const isVisible = ref(false);
 	const positionOfAt = ref(0); // Position of @-sign of user in the current message
-	const rooms = useRooms();
+	const roomsStore = useRooms();
 	const elContainer = ref<HTMLElement | null>(null);
 
-	let users = ref([] as TRoomMember[]);
+	let rooms = ref([] as TPublicRoom[]);
 
 	const props = withDefaults(defineProps<Props>(), {
 		msg: undefined,
@@ -52,32 +46,32 @@
 	});
 
 	onMounted(() => {
-		initUserMention();
+		initRoomMention();
 	});
 
 	// Watch for changes in the props.msg to control visibility
 	watch(
 		() => props.msg,
 		() => {
-			initUserMention();
+			initRoomMention();
 		},
 	);
 
-	function initUserMention() {
-		// If the current message includes a @, we need to get all other users in the room
-		// when it does not, we keep the user-dialog invisible
-		if (props.msg?.includes('@')) {
-			users.value = rooms.currentRoom?.getOtherJoinedMembers() || [];
+	function initRoomMention() {
+		/* If the current message includes a #, we need to get all other rooms
+		 when it does not, we keep the room-dialog invisible */
+		if (props.msg?.includes('#')) {
+			rooms.value = roomsStore.publicRooms.filter((room) => room.room_id !== props.room.roomId) || [];
 
-			// Check at which position the @ is and if there is a list of
-			// filtered users to check if we must display the dialog
-			if (props.msg?.endsWith('@')) {
+			/* Check at which position the # is and if there is a list of
+			 filtered rooms to check if we must display the dialog */
+			if (props.msg?.endsWith('#')) {
 				positionOfAt.value = props.msg.length;
 				isVisible.value = true;
 			} else if ((props.msg?.length ?? 0) < positionOfAt.value && positionOfAt.value > 0) {
 				positionOfAt.value = 0;
 				isVisible.value = false;
-			} else if (filteredUsers.value.length > 0) {
+			} else if (filteredRooms.value.length) {
 				isVisible.value = true;
 			}
 		} else {
@@ -85,24 +79,23 @@
 		}
 	}
 
-	const filteredUsers = computed(() => {
+	const filteredRooms = computed(() => {
 		const query = props.msg ?? '';
 
-		if (query.endsWith('@')) {
-			return displayAllUsers();
+		if (query.endsWith('#')) {
+			return displayAllRooms();
 		} else {
-			return filterUsers(query);
+			return filterRooms(query);
 		}
 	});
 
-	function displayAllUsers() {
-		return users.value;
+	function displayAllRooms() {
+		return rooms.value;
 	}
 
-	function filterUsers(query: string) {
-		const searchTerm = query.slice(query.lastIndexOf('@') + 1);
-		const newUserList = users.value.filter((user) => user.rawDisplayName !== undefined && user.rawDisplayName.toLowerCase().includes(searchTerm.toLowerCase()));
-		return newUserList;
+	function filterRooms(searchQuery: string) {
+		const query = searchQuery.slice(searchQuery.lastIndexOf('#') + 1);
+		return roomsStore.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query.toLowerCase()) || room.topic?.toLowerCase().includes(query.toLowerCase()));
 	}
 
 	function clickedItem(item: any) {

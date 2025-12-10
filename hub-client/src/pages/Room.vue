@@ -65,7 +65,7 @@
 		</HeaderFooter>
 	</template>
 	<!-- Secure room join dialog -->
-	<SecuredRoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" @close="router.push({ name: 'home' })" />
+	<RoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" @close="router.push({ name: 'home' })" />
 </template>
 
 <script setup lang="ts">
@@ -158,10 +158,6 @@
 		isSearchBarExpanded.value = isExpanded;
 	};
 
-	// const roomLibrary = computed (() => {
-	// 	return rooms.rooms[props.id].getRoomLibrary();
-	// })
-
 	onMounted(() => {
 		update();
 		LOGGER.log(SMI.ROOM, `Room mounted `);
@@ -227,7 +223,6 @@
 				// Room does not exist or user failed to join room
 				promise.catch(() => {
 					router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find' } });
-					return;
 				});
 			}
 		}
@@ -276,16 +271,16 @@
 		currentRoomToEdit.value = currentPublicRooms.find((room) => room.room_id === props.id);
 
 		// If room is not there then don't show dialog box. Throw an error.
-		if (!currentRoomToEdit.value) {
-			router.push({
-				name: 'error-page',
-				query: { errorKey: 'errors.cant_find_room' },
-			});
-		} else {
+		if (currentRoomToEdit.value) {
 			if (currentRoomToEdit.value?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
 				secured.value = true;
 			}
 			showEditRoom.value = true;
+		} else {
+			router.push({
+				name: 'error-page',
+				query: { errorKey: 'errors.cant_find_room' },
+			});
 		}
 	}
 

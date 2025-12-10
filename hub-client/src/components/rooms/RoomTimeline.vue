@@ -53,7 +53,7 @@
 <script setup lang="ts">
 	// Packages
 	import { Direction, EventType, MatrixEvent } from 'matrix-js-sdk';
-	import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+	import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 	// Components
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';

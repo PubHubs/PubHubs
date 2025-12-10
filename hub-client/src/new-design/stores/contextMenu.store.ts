@@ -19,6 +19,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 	const x = ref(0);
 	const y = ref(0);
 	const items = ref<MenuItem[]>([]);
+	const currentTargetId = ref<string | number | null>(null);
 
 	// Computed
 	const position = computed(() => ({ x: x.value, y: y.value }));
@@ -36,13 +37,14 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		}
 	}
 
-	function open(newItems: MenuItem[], clientX = 0, clientY = 0) {
+	function open(newItems: MenuItem[], clientX = 0, clientY = 0, targetId: string | number | null = null) {
 		if (!newItems || newItems.length === 0) return;
 
 		items.value = newItems;
 		x.value = clientX;
 		y.value = clientY;
 		isOpen.value = true;
+		currentTargetId.value = targetId;
 
 		_disableWheelScroll();
 	}
@@ -50,6 +52,8 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 	function close() {
 		isOpen.value = false;
 		items.value = [];
+		currentTargetId.value = null;
+
 		_enableWheelScroll();
 	}
 
@@ -78,6 +82,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		open,
 		position,
 		select,
+		currentTargetId,
 		x,
 		y,
 	};
