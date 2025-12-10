@@ -9,7 +9,7 @@
 		<div v-if="!(route.name === 'onboarding')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
 	</div>
 
-	<Dialog v-if="dialog.visible" @close="dialog.close" />
+	<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 </template>
 
 <script setup lang="ts">
@@ -21,6 +21,7 @@
 	// Components
 	import GlobalBar from '@global-client/components/ui/GlobalBar.vue';
 	import MobileMenu from '@global-client/components/ui/MobileMenu.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	import useRootScroll from '@global-client/composables/useRootScroll';
 

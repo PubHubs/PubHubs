@@ -84,7 +84,7 @@
 
 		<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false" />
 
-		<Dialog v-if="dialog.visible" @close="dialog.close" />
+		<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 	</div>
 </template>
 

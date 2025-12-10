@@ -1,5 +1,5 @@
 <template>
-	<GlobalDialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
+	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" type="global">
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.theme') }}</Label>
@@ -34,7 +34,7 @@
 				<Button class="w-fit" @click="installPromptStore.setShowPrompt(true)">{{ $t('pwa.open_instructions') }}</Button>
 			</div>
 		</div>
-	</GlobalDialog>
+	</Dialog>
 </template>
 
 <script setup lang="ts">
@@ -43,12 +43,11 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import GlobalDialog from '@global-client/components/ui/GlobalDialog.vue';
-
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import ButtonGroup from '@hub-client/components/forms/ButtonGroup.vue';
 	import Label from '@hub-client/components/forms/Label.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Composables
 	import { FormDataType, useFormState } from '@hub-client/composables/useFormState';

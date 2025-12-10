@@ -35,8 +35,8 @@
 	import { ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import SettingsDialog from '@global-client/components/forms/SettingsDialog.vue';
 	// Components
+	import SettingsDialog from '@global-client/components/forms/SettingsDialog.vue';
 	import GlobalbarButton from '@global-client/components/ui/GlobalbarButton.vue';
 	import HubMenu from '@global-client/components/ui/HubMenu.vue';
 	import Logo from '@global-client/components/ui/Logo.vue';
@@ -68,7 +68,7 @@
 	);
 
 	async function logout() {
-		if (await dialog.yesno(t('logout.logout_sure'))) {
+		if (await dialog.yesno(t('logout.logout_sure'), '', 'global')) {
 			await global.logout();
 		}
 	}
