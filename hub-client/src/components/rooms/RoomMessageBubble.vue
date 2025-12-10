@@ -1,5 +1,5 @@
 <template>
-	<div ref="elReactionPopUp">
+	<div ref="elReactionPopUp" @contextmenu="openMenu($event, getContextMenuItems(), props.event.event_id)">
 		<div class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
 			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
@@ -22,6 +22,7 @@
 					:class="['transition-all duration-500 ease-in-out', { 'ring-on-surface-dim cursor-pointer ring-1 ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
+					@contextmenu="openMenu($event, event.sender !== user.userId ? [{ label: 'Direct message', icon: 'chat-circle', onClick: () => user.goToUserRoom(event.sender) }] : [])"
 				/>
 
 				<!-- Profile Card -->
@@ -35,7 +36,7 @@
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
-							<div class="flex w-full min-w-0 flex-grow flex-wrap items-center gap-2">
+							<div class="flex w-full min-w-0 grow flex-wrap items-center gap-2">
 								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
 								<span class="flex gap-2">
 									<span class="text-label-small">|</span>
@@ -119,7 +120,7 @@
 						</template>
 					</Suspense>
 
-					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
+					<Message :event="event" :deleted="redactedMessage" />
 					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
 					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
@@ -194,6 +195,12 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// New design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { MenuItem, useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+
+	const contextMenuStore = useContextMenuStore();
+	const { openMenu } = useContextMenu();
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 	const pubhubs = usePubhubsStore();
@@ -303,6 +310,7 @@
 			'p-2 transition-all duration-150 ease-in-out hover:bg-surface-low': !props.deleteMessageDialog,
 			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
+			'!bg-surface-low': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
 		};
 
 		// Return base classes if not an announcement or is redacted
@@ -387,7 +395,68 @@
 
 	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.
 	const timerReady = ref(false);
-	window.setTimeout(() => {
+	globalThis.setTimeout(() => {
 		timerReady.value = true;
 	}, 1000);
+
+	function getContextMenuItems() {
+		const menu: MenuItem[] = [];
+
+		// Direct message (only if sender is not current user)
+		if (props.event.sender !== user.userId) {
+			menu.push({
+				label: 'Direct message',
+				icon: 'chat-circle',
+				onClick: () => user.goToUserRoom(props.event.sender),
+			});
+		}
+
+		// Reaction
+		if (!props.event.redactedMessage) {
+			menu.push({
+				label: 'Add reaction',
+				icon: 'smiley',
+				onClick: () => emit('reactionPanelToggle', props.event.event_id),
+			});
+		}
+
+		// Reply
+		if (!props.event.msgIsNotSend && !props.event.redactedMessage && !props.event.isThreadRoot) {
+			menu.push({
+				label: 'Reply',
+				icon: 'arrow-bend-up-left',
+				onClick: () => reply(),
+			});
+		}
+
+		// Thread reply
+		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !props.event.redactedMessage) {
+			menu.push({
+				label: 'Reply in thread',
+				icon: 'chat-circle',
+				onClick: () => replyInThread(),
+			});
+		}
+
+		// Disclosure (moderator/admin action)
+		if (props.event.msgIsNotSend && user.isAdmin && props.event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)) {
+			menu.push({
+				label: 'Disclosure',
+				icon: 'warning',
+				onClick: () => router.push({ name: 'ask-disclosure', query: { user: props.event.sender } }),
+			});
+		}
+
+		// Delete (only your own messages)
+		if (settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !props.event.msgIsNotSend && props.event.sender === user.userId && !props.event.redactedMessage && !(props.viewFromThread && props.event.isThreadRoot)) {
+			menu.push({
+				label: 'Delete message',
+				icon: 'trash',
+				isDelicate: true,
+				onClick: () => onDeleteMessage(props.event),
+			});
+		}
+
+		return menu;
+	}
 </script>

@@ -1225,8 +1225,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
 		},
 		async routeToRoomPage(room: { room_id: string }) {
-			const room_id = room.room_id;
-			await router.push({ name: 'room', params: { id: room_id } });
+			await router.push({ name: 'room', params: { id: room.room_id } });
 		},
 
 		// Set up admin room. Corner case is that members might not have joined yet and room is available.
