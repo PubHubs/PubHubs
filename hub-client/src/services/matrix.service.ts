@@ -27,8 +27,9 @@ class MatrixService {
 	// TODO: Use room composable instead
 	private roomsStore = useRooms();
 
-	private roomsCount: number = 0;
-	private initialRoomLoading: boolean = true;
+	private roomsCount: number = 0; // number of rooms returned by sliding sync
+	private roomsUpperRange: number = SystemDefaults.mainRoomListRange; // current number of the upper range of the roomlist
+	private initialRoomLoading: boolean = true; // Are we fetching the first roomlist with only memberdata? (vs the main roomlist with all data)
 	/**
 	 * Construct a MatrixService instance.
 	 *
@@ -132,12 +133,24 @@ class MatrixService {
 		LOGGER.log(SMI.SYNC, 'Sliding Sync stopped');
 	}
 
-	/* Switch the list of sliding sync rooms after collecting the initial roomslist.
+	/**
+	 * Switch the list of sliding sync after collecting the initial roomslist
+	 * When there are more rooms than the current upperRange: increase it to wait for the next load of rooms
 	 */
 	private SetRoomSlidingSync() {
 		if (this.initialRoomLoading) {
-			this.slidingSync?.setList(SlidingSyncOptions.roomList, RoomLists.get(SlidingSyncOptions.mainRoomList)!);
 			this.initialRoomLoading = false;
+		}
+
+		const mainRoomList = RoomLists.get(SlidingSyncOptions.mainRoomList);
+		mainRoomList!.ranges[0][1] = this.roomsUpperRange;
+
+		// change sliding sync to current mainRoomlist
+		this.slidingSync?.setList(SlidingSyncOptions.roomList, mainRoomList!);
+
+		// increase the upperrange for the next time
+		if (this.roomsUpperRange < this.roomsCount) {
+			this.roomsUpperRange += SystemDefaults.mainRoomListRange;
 		}
 	}
 
@@ -238,7 +251,7 @@ class MatrixService {
 				this.roomsStore.setRoomsLoaded(true);
 				return;
 			}
-			//console.error('sliding sync RoomList ', roomList);
+			//console.error('sliding sync RoomList ', response);
 
 			const joinPromises: Promise<any>[] = [];
 
