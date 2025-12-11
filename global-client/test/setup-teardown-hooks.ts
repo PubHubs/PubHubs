@@ -1,12 +1,20 @@
 // Packages
 import { vi } from 'vitest';
 
+
+
+
+
+
+
+
 // @ts-expect-error
-global._env = {
-	PUBHUBS_URL: 'http://test',
-	PHC_URL: 'http://test',
-	HUB_URL: 'http://test',
+ global._env = {
+ 	PUBHUBS_URL: 'http://testdomain',
+ 	PHC_URL: 'http://testdomain',
+ 	HUB_URL: 'http://testdomain',
 };
+
 
 /**
  * Mocks the window.matchMedia function.

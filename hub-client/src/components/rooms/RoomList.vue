@@ -1,7 +1,24 @@
 <template>
 	<Menu>
 		<template v-for="room in currentJoinedRooms" :key="room.roomId">
-			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" icon="chats-circle" @click="hubSettings.hideBar()" class="group inline-block w-full">
+			<MenuItem
+				:to="{ name: 'room', params: { id: room.roomId } }"
+				:room="room"
+				class="group inline-block w-full"
+				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && '!bg-background'"
+				icon="chats-circle"
+				@click="hubSettings.hideBar()"
+				@contextmenu="
+					openMenu(
+						$event,
+						[
+							{ label: 'Enter room', icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: room.roomId } }) },
+							{ label: 'Leave room', icon: 'x', isDelicate: true, onClick: () => leaveRoom(room.roomId) },
+						],
+						room.roomId,
+					)
+				"
+			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
 						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
@@ -29,11 +46,11 @@
 			<MenuItem
 				icon="shield"
 				v-if="notification.room_id"
+				class="group text-on-surface-dim inline-block w-full"
 				@click="
 					dialogOpen = notification.room_id;
 					messageValues = notification.message_values;
 				"
-				class="group text-on-surface-dim inline-block w-full"
 			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
@@ -51,13 +68,13 @@
 	<div class="ml-4">
 		<InlineSpinner v-if="!roomsLoaded" />
 	</div>
-	<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" />
+	<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" :secured="true" />
 </template>
 
 <script setup lang="ts">
 	// Packages
 	import { NotificationCountType } from 'matrix-js-sdk';
-	import { PropType, computed, ref } from 'vue';
+	import { PropType, computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
@@ -69,10 +86,10 @@
 	import GroupRoomName from '@hub-client/components/rooms/GroupRoomName.vue';
 	import PrivateRoomName from '@hub-client/components/rooms/PrivateRoomName.vue';
 	import RoomName from '@hub-client/components/rooms/RoomName.vue';
-	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Menu from '@hub-client/components/ui/Menu.vue';
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
+	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
@@ -87,6 +104,12 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
+	// New design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+
+	const { openMenu } = useContextMenu();
+	const contextMenuStore = useContextMenuStore();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
 	const notifications = useNotifications();
@@ -106,6 +129,10 @@
 		},
 	});
 
+	onMounted(() => {
+		rooms.fetchPublicRooms();
+	});
+
 	const currentJoinedRooms = computed(() => {
 		return rooms.fetchRoomArrayByAccessibility(props.roomTypes).filter((room: Room) => room.isHidden() === false);
 	});
@@ -123,16 +150,14 @@
 					await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
 					await router.replace({ name: 'home' });
 				}
-			} else {
+			} else if (await dialog.okcancel(t(leaveMsg))) {
 				// Message should changed based on who (admin) is leaving the room and under which condition.
 				// e.g., Admin leaves the room and he is the only member or when admin leaves the room which makes the room without adminstrator.
-				if (await dialog.okcancel(t(leaveMsg))) {
-					await pubhubs.leaveRoom(roomId);
-					if (rooms.roomIsSecure(roomId)) {
-						notificationsStore.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
-					}
-					await router.replace({ name: 'home' });
+				await pubhubs.leaveRoom(roomId);
+				if (rooms.roomIsSecure(roomId)) {
+					notifications.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
 				}
+				await router.replace({ name: 'home' });
 			}
 		}
 	}
@@ -146,7 +171,7 @@
 	async function dismissNotification(room_id: string, event: Event) {
 		event.stopPropagation();
 		if (await dialog.okcancel(t('rooms.leave_sure'))) {
-			notificationsStore.removeNotification(room_id, TNotificationType.RemovedFromSecuredRoom);
+			notifications.removeNotification(room_id, TNotificationType.RemovedFromSecuredRoom);
 		}
 	}
 </script>

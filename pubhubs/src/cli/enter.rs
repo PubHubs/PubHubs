@@ -95,12 +95,15 @@ pub struct EnterArgs {
     )]
     add_attr_type: Vec<Handle>,
 
-
     /// Don't add any attributes when entering pubhubs
     #[arg(long, 
         conflicts_with = "add_attr_type",
         conflicts_with = "auth_token")]
-    dont_add_attrs: bool
+    dont_add_attrs: bool,
+
+    /// Don't create a new account if one of the supplied attributes already bans another account
+    #[arg(long, conflicts_with = "auth_token")]
+    register_only_with_unique_attrs: bool,
 }
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy)]
@@ -481,6 +484,7 @@ impl EnterArgs {
                     identifying_attr: Some(identifying_attr),
                     mode: api::phc::user::EnterMode::LoginOrRegister,
                     add_attrs: attrs.values().map(Clone::clone).collect(),
+                    register_only_with_unique_attrs: self.register_only_with_unique_attrs,
                 },
             )
             .await
@@ -529,6 +533,7 @@ impl EnterArgs {
                         identifying_attr: None,
                         mode: api::phc::user::EnterMode::Login,
                         add_attrs: vec![attr],
+                        register_only_with_unique_attrs: false,
                     },
                 )
                 .auth_header(auth_token.clone())
