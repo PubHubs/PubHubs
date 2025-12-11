@@ -143,7 +143,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: false,
-			phCard: false,
+			phCard: true,
 		},
 	},
 };
