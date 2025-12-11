@@ -232,7 +232,9 @@
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-	import { PHCEnterMode, loginMethods } from '@global-client/models/MSS/TMultiServerSetup';
+	// Models
+	import { loginMethods } from '@global-client/models/MSS/TAuths';
+	import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 	// Logic
 	import { useMSS } from '@global-client/stores/mss';
@@ -351,7 +353,7 @@
 
 		try {
 			const mss = useMSS();
-			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister);
+			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister, t('card.decription'));
 			if (errorMessage) {
 				error.value = errorMessage;
 				return;
