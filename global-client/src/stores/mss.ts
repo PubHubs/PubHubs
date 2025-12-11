@@ -106,7 +106,7 @@ const useMSS = defineStore('mss', {
 			// 9. Issue a Pubhubs card if registering a new account
 			if (isRegistering && cardFeature) {
 				const allDecodedAttrs = Object.entries(authSuccess.attrs).map(([handle, signedAttr]) => ({ handle, attr: decodeJWT(signedAttr) as Attr }));
-				const comment = `\n ${phCardTranslation}\n` + allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
+				const comment = `\n${phCardTranslation}\n` + allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
 				const { cardAttr, errorMessage } = await this.issueCard(true, comment);
 				if (!cardAttr) return errorMessage;
 				identifying['ph_card'] = cardAttr;
