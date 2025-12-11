@@ -43,6 +43,7 @@ enum FeatureFlag {
 	unreadCounter = 'unreadCounter',
 	consent = 'consent',
 	roomLibrary = 'roomLibrary',
+	phCard = 'phCard',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -112,6 +113,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
+			phCard: true,
 		},
 		stable: {
 			signedMessages: true,
@@ -126,6 +128,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
+			phCard: true,
 		},
 		local: {
 			signedMessages: true,
@@ -140,6 +143,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: false,
+			phCard: true,
 		},
 	},
 };
