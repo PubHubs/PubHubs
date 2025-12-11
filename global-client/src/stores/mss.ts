@@ -22,7 +22,7 @@ import Transcryptor from '@global-client/models/MSS/Transcryptor';
 // Stores
 import { useGlobal } from '@global-client/stores/global';
 
-import { FeatureFlag } from '@hub-client/stores/settings';
+import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const useMSS = defineStore('mss', {
 	state: () => {
@@ -38,7 +38,9 @@ const useMSS = defineStore('mss', {
 	},
 
 	actions: {
-		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode): Promise<{ key: string; values?: string[] } | undefined> {
+		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode, phCardTranslation?: string): Promise<{ key: string; values?: string[] } | undefined> {
+			const settings = useSettings();
+			const cardFeature = settings.isFeatureEnabled(FeatureFlag.phCard);
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch supported attr types
@@ -49,9 +51,9 @@ const useMSS = defineStore('mss', {
 			const isRegistering = enterMode === PHCEnterMode.LoginOrRegister;
 			const authStartReq: AuthStartReq = {
 				source: loginMethod.source,
-				attr_types: !isRegistering && !FeatureFlag.phCard ? loginMethod.login_attr : loginMethod.register_attr,
+				attr_types: !isRegistering && cardFeature ? loginMethod.login_attr : loginMethod.register_attr,
 				attr_type_choices: [],
-				yivi_chained_session: !(!isRegistering || !FeatureFlag.phCard),
+				yivi_chained_session: isRegistering && cardFeature,
 			};
 
 			// 3. Start authentication
@@ -68,7 +70,7 @@ const useMSS = defineStore('mss', {
 			// Disclose attributes in Yivi
 			let proof: { Yivi: { disclosure: string } };
 
-			if (isRegistering && !FeatureFlag.phCard) {
+			if (isRegistering && cardFeature) {
 				startYiviAuthentication(yiviUrl, disclosure_request);
 				const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
 				if (!(ResultResponse.Success in jwt)) throw new Error('Restart authentication please');
@@ -82,7 +84,7 @@ const useMSS = defineStore('mss', {
 			const authSuccess = await authServer.completeAuthEP(proof, authServer.getState());
 
 			// 6. Validate attributes
-			this.validateAttributes(authSuccess, isRegistering, loginMethod);
+			this.validateAttributes(authSuccess, isRegistering || !cardFeature, loginMethod);
 
 			// 7. Decode attributes
 			const { identifying, additional } = this.decodeSignedAttributes(authSuccess.attrs, identifyingAttrs);
@@ -102,10 +104,9 @@ const useMSS = defineStore('mss', {
 			const userSecretObject = userSecret?.object ?? null;
 
 			// 9. Issue a Pubhubs card if registering a new account
-			if (isRegistering && !FeatureFlag.phCard) {
-				const { t } = useI18n();
+			if (isRegistering && cardFeature) {
 				const allDecodedAttrs = Object.entries(authSuccess.attrs).map(([handle, signedAttr]) => ({ handle, attr: decodeJWT(signedAttr) as Attr }));
-				const comment = `\n ${t('card.decription')}\n` + allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
+				const comment = `\n ${phCardTranslation}\n` + allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
 				const { cardAttr, errorMessage } = await this.issueCard(true, comment);
 				if (!cardAttr) return errorMessage;
 				identifying['ph_card'] = cardAttr;
@@ -292,11 +293,11 @@ const useMSS = defineStore('mss', {
 
 			return { identifying, additional };
 		},
-		validateAttributes(authSuccess: { attrs: {} }, isRegistering: boolean, loginMethod: LoginMethod): void {
+		validateAttributes(authSuccess: { attrs: {} }, isRegisteringOrNoCard: boolean, loginMethod: LoginMethod): void {
 			const keys = Object.keys(authSuccess.attrs);
 			let allowedAttributeSets: string[];
 
-			if (isRegistering || !FeatureFlag.phCard) {
+			if (isRegisteringOrNoCard) {
 				allowedAttributeSets = loginMethod.register_attr;
 			} else {
 				// At least one of the choices need to match for login
