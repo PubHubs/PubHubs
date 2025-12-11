@@ -6,7 +6,7 @@ const nl = {
 		or: 'of',
 	},
 	card: {
-	description: 'Kaart uitgegeven met de volgende kenmerken:',
+		description: 'Kaart uitgegeven met de volgende kenmerken:',
 	},
 	state: {
 		button_request: 'Verleen toegang',
