@@ -1,7 +1,6 @@
 interface MessageSegment {
 	type: 'text' | 'room' | 'user';
 	content?: string;
-	displayName?: string;
 	id: string | null;
 	tokenId?: string;
 }
