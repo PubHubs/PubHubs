@@ -18,7 +18,7 @@
 					@click.once="userStore.goToUserRoom(segment.tokenId)"
 					class="text-accent-primary cursor-pointer"
 					@contextmenu="openMenu($event, [{ label: 'direct message', icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])"
-					>{{ segment.displayName }}
+					>{{ segment.content }}
 				</span>
 
 				<!-- Room Mention segment -->
@@ -28,7 +28,7 @@
 					class="relative"
 					@contextmenu="openMenu($event, [{ label: 'join', icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId!, segment.id!) }])"
 				>
-					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
+					<span class="text-accent-primary cursor-pointer">{{ segment.content }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
 						<RoomLoginDialog
 							v-if="segment.type === 'room'"

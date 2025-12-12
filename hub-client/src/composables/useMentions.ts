@@ -12,10 +12,14 @@ import { useRooms } from '@hub-client/stores/rooms';
  * * `@displayName~userId~`
  * * `#displayName~roomId~`
  *
- * The parser extracts these patterns from a plain-text message body and produces:
- * 1. A list of detected mentions (`MentionMatch[]`).
- * 2. A list of message segments (`MessageSegment[]`) mixing normal text and enriched mentions
+ * `parseMentions` extracts these patterns from a plain-text message body:
+ * - A list of detected mentions (`MentionMatch[]`).
  *
+ * `buildSegments` uses the `parseMentions` output to generate:
+ * - A list of message segments (`MessageSegment[]`) mixing normal text and mentions.
+ *
+ * `formatMentions` uses `parseMentions` and `buildSegments` to:
+ *  - Reconstruct the full message string with mentions replaced by their display names
  */
 export function useMentions() {
 	const rooms = useRooms();
@@ -27,14 +31,14 @@ export function useMentions() {
 	 * Mention syntax rules:
 	 * - A mention begins with either `@` (user) or `#` (room).
 	 * - A `~` separates the displayed name from the identifier.
-	 * - A second `~` indicates the end of the id.
+	 * - A second `~` indicates the end of the identifier.
 	 *
 	 * Validation rules:
 	 * - User mentions are valid only if `pubhubs.client.getUser(id)` exists.
 	 * - Room mentions are valid only if `rooms.getTPublicRoom(id)` exists.
 	 *
 	 * Example:
-	 *   "hi @Name~@f6b-392:testhub.matrix.host~ , come join #Test~!kUroOyLPHNRGNWtWyE:testhub.matrix.host~"
+	 *   "hi `@Name~@f6b-392:testhub.matrix.host~` , come join `#Test~!kUroOyLPHNRGNWtWyE:testhub.matrix.host~`"
 	 *
 	 * @param body The raw message content.
 	 * @returns An array of `MentionMatch` describing valid detected mentions.
@@ -71,72 +75,89 @@ export function useMentions() {
 
 		return mentions;
 	}
-
 	/**
-	 * Converts the message body and parsed mention information into renderable segments.
+	 * * Reconstructs the full message string with mentions replaced by their display names.
 	 *
-	 * Each segment is either:
-	 * - `{ type: 'text', content: string }`
-	 * - `{ type: 'room', displayName, id, tokenId}`
-	 * - `{ type: 'user', displayName, id, tokenId}`
+	 * Example:
+	 *   Input:
+	 *    - "Hello `@Name~@f6b-392:testhub.matrix.host~`, welcome to `#Test~!kUroOyLPHNRGNWtWyE:testhub.matrix.host~`"
 	 *
-	 * The output is ordered and non-overlapping. Normal text between mentions is preserved.
-	 *
-	 * @param body The original message text.
-	 * @param mentions Parsed mention matches from `parseMentions()`.
-	 * @returns An array of `MessageSegment` describing how the text should be rendered.
+	 *   Output:
+	 *    - "Hello `@Name, welcome to #Test`"
+	 * @param body The raw message body.
+	 * @returns A string in which all valid mentions are replaced with their display name.
 	 */
-	function buildSegments(body: string, mentions: MentionMatch[]): MessageSegment[] {
-		if (!body) return [{ type: 'text', content: '', id: null }];
-		if (!mentions.length) return [{ type: 'text', content: body, id: null }];
-
-		const segments: MessageSegment[] = [];
-		let lastIndex = 0;
-
-		mentions.forEach((mention) => {
-			// Add text preceding the mention
-			if (mention.start > lastIndex) {
-				segments.push({
-					type: 'text',
-					content: body.substring(lastIndex, mention.start),
-					id: null,
-				});
-			}
-
-			// Add enriched mention segment
-			if (mention.type === '#') {
-				segments.push({
-					type: 'room',
-					displayName: mention.displayName,
-					id: mention.id,
-					tokenId: mention.tokenId,
-				});
-			} else {
-				segments.push({
-					type: 'user',
-					displayName: mention.displayName,
-					id: mention.id,
-					tokenId: mention.tokenId,
-				});
-			}
-
-			lastIndex = mention.end;
-		});
-
-		// Remaining trailing text
-		if (lastIndex < body.length) {
-			segments.push({
-				type: 'text',
-				content: body.substring(lastIndex),
-				id: null,
-			});
-		}
-
-		return segments;
+	function formatMentions(body: string): string {
+		const mentions = parseMentions(body);
+		const segments = buildSegments(body, mentions);
+		return segments.map((segment) => segment.content).join('');
 	}
 
 	return {
 		parseMentions,
 		buildSegments,
+		formatMentions,
 	};
+}
+/**
+ * Converts the message body and parsed mention information into renderable segments.
+ *
+ * Each segment is either:
+ * - `{ type: 'text', content: string }`
+ * - `{ type: 'room', displayName, id, tokenId}`
+ * - `{ type: 'user', displayName, id, tokenId}`
+ *
+ * The output is ordered and non-overlapping. Normal text between mentions is preserved.
+ *
+ * @param body The original message text.
+ * @param mentions Parsed mention matches from `parseMentions()`.
+ * @returns An array of `MessageSegment` describing how the text should be rendered.
+ */
+function buildSegments(body: string, mentions: MentionMatch[]): MessageSegment[] {
+	if (!body) return [{ type: 'text', content: '', id: null }];
+	if (!mentions.length) return [{ type: 'text', content: body, id: null }];
+
+	const segments: MessageSegment[] = [];
+	let lastIndex = 0;
+
+	mentions.forEach((mention) => {
+		// Add text preceding the mention
+		if (mention.start > lastIndex) {
+			segments.push({
+				type: 'text',
+				content: body.substring(lastIndex, mention.start),
+				id: null,
+			});
+		}
+
+		// Add enriched mention segment
+		if (mention.type === '#') {
+			segments.push({
+				type: 'room',
+				content: mention.displayName,
+				id: mention.id,
+				tokenId: mention.tokenId,
+			});
+		} else {
+			segments.push({
+				type: 'user',
+				content: mention.displayName,
+				id: mention.id,
+				tokenId: mention.tokenId,
+			});
+		}
+
+		lastIndex = mention.end;
+	});
+
+	// Remaining trailing text
+	if (lastIndex < body.length) {
+		segments.push({
+			type: 'text',
+			content: body.substring(lastIndex),
+			id: null,
+		});
+	}
+
+	return segments;
 }
