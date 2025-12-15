@@ -1,7 +1,8 @@
 // Packages
 import { usePubhubsStore } from './pubhubs';
 import { assert } from 'chai';
-import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
+import { EventType, MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
+import { MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
 // Logic
@@ -14,6 +15,7 @@ import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 // Models
 import { OnboardingType } from '@hub-client/models/constants';
+import { MatrixType } from '@hub-client/models/constants';
 import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
 
 // Stores
@@ -112,6 +114,22 @@ const useUser = defineStore('user', {
 		// #region Setter method
 		setClient(client: MatrixClient) {
 			this.client = client;
+		},
+
+		loadFromSlidingSync(roomData: MSC3575RoomData): boolean {
+			// profile data of members is in the join content of roommember events, need only update when there is new content
+			const membersOnlyProfileUpdate = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
+			if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
+
+			membersOnlyProfileUpdate.forEach((member) => {
+				const profile = {
+					avatar_url: member.content.avatar_url ?? undefined,
+					displayname: member.content.displayname ?? undefined,
+				};
+				this.setAllProfiles(member.sender, profile);
+			});
+
+			return true;
 		},
 
 		// Storing my  UserId

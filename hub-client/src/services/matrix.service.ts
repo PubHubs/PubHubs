@@ -189,26 +189,6 @@ class MatrixService {
 		}
 	}
 
-	// TODO: Might need refactoring to align with new file structure.
-	// Also needs to be added to the store and composable
-	syncUsersProfile(roomData: MSC3575RoomData): boolean {
-		const currentUser = useUser();
-
-		// profile data of members is in the join content of roommember events, need only update when there is new content
-		const membersOnlyProfileUpdate = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
-		if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
-
-		membersOnlyProfileUpdate.forEach((member) => {
-			const profile = {
-				avatar_url: member.content.avatar_url ?? undefined,
-				displayname: member.content.displayname ?? undefined,
-			};
-			currentUser.setAllProfiles(member.sender, profile);
-		});
-
-		return true;
-	}
-
 	// #endregion
 
 	// #region Event handlers
@@ -256,7 +236,7 @@ class MatrixService {
 			const joinPromises: Promise<any>[] = [];
 
 			for (const [roomId, roomData] of Object.entries(roomList)) {
-				this.syncUsersProfile(roomData);
+				currentUser.loadFromSlidingSync(roomData);
 
 				// get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
 				const latestRoomMemberInfo = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
