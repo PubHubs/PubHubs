@@ -31,7 +31,6 @@
 		if (!changed || fields.value.length === 0) {
 			validated = false;
 		}
-		console.info('isValidated', changed, validated);
 		emit('validated', validated);
 		return validated;
 	});
