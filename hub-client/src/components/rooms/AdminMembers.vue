@@ -36,6 +36,7 @@
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiHubManagement';
 
+	import { roles } from '@hub-client/models/constants';
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
 
@@ -152,6 +153,6 @@
 		const powerLevelsEvent = roomState.state.find((event) => event.type === EventType.RoomPowerLevels);
 		if (!powerLevelsEvent) return undefined;
 		const userPowerLevel = powerLevelsEvent.content.users || {};
-		return userPowerLevel[userId] === 100;
+		return userPowerLevel[userId] === roles.Admin;
 	}
 </script>
