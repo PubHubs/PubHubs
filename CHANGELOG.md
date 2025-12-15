@@ -12,6 +12,9 @@ _Please add a brief description of any changes and any migrations to be performe
 - _internal_ Add "issue perms = [pbdf.PubHubs.account]" under [requestors.pubhubs-auths-stable] before merging to stable in /data/yivi/config.
 - [NEW] Reintroduced Pubhubs card for login
 - [NEW] Backend: adds the option to check for a reused phone number during registration
+- [NEW] Messages can be shared.
+- [NEW] New permissions/roles for different types of users (in client).
+
 
 ## 09 December 2025 - v3.1.1
 
