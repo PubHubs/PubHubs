@@ -81,7 +81,7 @@
 
 					<!--Steward and above can broadcast only in main time line-->
 					<button
-						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
+						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
@@ -155,9 +155,10 @@
 
 	// Models
 	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-	import { RelationType } from '@hub-client/models/constants';
+	import { RelationType, actions } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import Room from '@hub-client/models/rooms/Room';
 
 	// Stores

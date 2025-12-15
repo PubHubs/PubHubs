@@ -30,9 +30,9 @@
 							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
 							<GlobalBarButton type="users" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
 							<!--Only show Editing icon for steward but not for administrator-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) === 50" type="dots-three-vertical" @click="stewardCanEdit()" />
-							<!--Except for moderator everyone should talk to room moderator e.g., admins-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) !== 50 && room.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
+							<GlobalBarButton v-if="hasRoomPermission(room.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
+							<!--Except for moderator everyone should talk to room moderator-->
+							<GlobalBarButton v-if="hasRoomPermission(room.getUserPowerLevel(user.userId), actions.MessageSteward) && room.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
 						</RoomHeaderButtons>
 						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" @search-started="showMembers = false" :room="rooms.currentRoom" />
 					</div>
@@ -94,7 +94,8 @@
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-	import { ScrollPosition } from '@hub-client/models/constants';
+	import { ScrollPosition, actions } from '@hub-client/models/constants';
+	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	// Models
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
