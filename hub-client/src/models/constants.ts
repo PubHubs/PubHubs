@@ -89,6 +89,10 @@ enum OnboardingType {
 	full = 'full',
 }
 
+enum QueryParameterKey {
+	EventId = 'eventid',
+}
+
 // File types
 const imageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/svg'];
 const imageTypesExt = ['png', 'jpeg', 'jpg', 'gif', 'svg'];
@@ -137,4 +141,5 @@ export {
 	allTypes,
 	imageTypesExt,
 	RelatedEventsOptions,
+	QueryParameterKey,
 };

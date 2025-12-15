@@ -42,7 +42,8 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :room="room" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
+					<RoomTimeline v-if="rooms.rooms[props.id].getTimelineNewestMessageEventId()" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)">
+					</RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room.getCurrentThreadId()"
@@ -123,6 +124,7 @@
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
 	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
+	const scrollToEventId = ref<string>();
 
 	// Passed by the router
 	const props = defineProps({
@@ -155,6 +157,8 @@
 
 	onMounted(() => {
 		update();
+		// Update might not have rooms loaded in the store, therefore, scrollToEventId is explicitly set here.
+		scrollToEventId.value = rooms.scrollPositions[props.id];
 		LOGGER.log(SMI.ROOM, `Room mounted `);
 	});
 
@@ -232,8 +236,9 @@
 		// If there is a position saved in scrollPositions for this room: go there
 		// otherwise it goes to the newest event in the timeline
 		const timeline = roomTimeLineComponent.value?.elRoomTimeline;
-		const savedPosition = rooms.scrollPositions[rooms.currentRoom.roomId];
 
+		const savedPosition = rooms.scrollPositions[rooms.currentRoom.roomId];
+		scrollToEventId.value = savedPosition;
 		if (timeline && savedPosition) {
 			rooms.currentRoom.setCurrentEvent({
 				eventId: savedPosition,
@@ -244,6 +249,7 @@
 
 	async function onScrollToEventId(ev: any) {
 		// if there is a threadId and this is a valid id in the room: set the current threadId
+
 		if (ev.threadId && ev.threadId !== ev.eventId) {
 			if (!room.value.findEventById(ev.threadId)) {
 				try {
@@ -257,6 +263,7 @@
 			room.value.setCurrentThreadId(undefined);
 		}
 		room.value.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
+		scrollToEventId.value = ev.eventId;
 	}
 
 	async function stewardCanEdit() {
