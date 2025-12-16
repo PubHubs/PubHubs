@@ -12,7 +12,7 @@
 						<Icon v-if="showLibrary" type="caret-left" size="base" @click.stop="toggleLibrary" class="cursor-pointer" />
 						<Icon v-if="showLibrary" type="folder-simple" size="base" data-testid="roomlibrary-icon" />
 						<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
-						<div class="group relative hover:mt-[2px] hover:cursor-pointer" @click="copyHubUrl" :title="t('menu.copy_room_url')">
+						<div class="group relative hover:mt-[2px] hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
 							<div class="flex flex-col group-hover:border-b-2 group-hover:border-dotted">
 								<H3 class="text-on-surface flex">
 									<TruncatedText class="font-headings font-semibold">
@@ -93,6 +93,9 @@
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 
+	// Composables
+	import { useClipboard } from '@hub-client/composables/useClipboard';
+
 	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
@@ -117,6 +120,7 @@
 	const user = useUser();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
+	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
 	const showMembers = ref(false);
@@ -304,16 +308,5 @@
 
 	function toggleLibrary() {
 		showLibrary.value = !showLibrary.value;
-	}
-
-	async function copyHubUrl() {
-		try {
-			const route = router.resolve({ name: 'room', params: { id: room.value!.roomId } });
-			const fullUrl = `${window.location.origin}${window.location.pathname}${route.href}`;
-			await navigator.clipboard.writeText(fullUrl);
-			console.log('Room URL copied to clipboard:', fullUrl);
-		} catch (err) {
-			console.error('Failed to copy room URL:', err);
-		}
 	}
 </script>

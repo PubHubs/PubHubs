@@ -124,6 +124,9 @@
 	import Notification from '@hub-client/components/ui/Notification.vue';
 	import RoomListHeader from '@hub-client/components/ui/RoomListHeader.vue';
 
+	// Composables
+	import { useClipboard } from '@hub-client/composables/useClipboard';
+
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
 	import { routes } from '@hub-client/logic/core/router';
@@ -158,6 +161,7 @@
 	const dialog = useDialog();
 	const pubhubs = usePubhubsStore();
 	const menu = useMenu();
+	const { copyHubUrl } = useClipboard();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
@@ -263,15 +267,6 @@
 			html.classList.add('dark');
 		} else {
 			html.classList.remove('dark');
-		}
-	}
-
-	async function copyHubUrl() {
-		try {
-			await navigator.clipboard.writeText(hubSettings.hubUrl);
-			console.log('Hub URL copied to clipboard');
-		} catch (err) {
-			console.error('Failed to copy hub URL:', err);
 		}
 	}
 </script>
