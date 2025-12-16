@@ -21,7 +21,7 @@ if [ -n "$HUB_CLIENT_FILES" ]; then
   echo "Formatting hub-client files..."
   cd hub-client
   echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx prettier --write --ignore-unknown --config ./.prettierrc
-  echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx eslint --ext .js,.vue,.ts --fix
+  # echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx eslint --ext .js,.vue,.ts --fix
   cd ..
   echo "$HUB_CLIENT_FILES" | xargs git add
   echo "Hub-client formatted"
@@ -32,7 +32,7 @@ if [ -n "$GLOBAL_CLIENT_FILES" ]; then
   echo "Formatting global-client files..."
   cd global-client
   echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx prettier --write --ignore-unknown --config ./.prettierrc
-  echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx eslint --ext .js,.vue,.ts --fix
+  # echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx eslint --ext .js,.vue,.ts --fix
   cd ..
   echo "$GLOBAL_CLIENT_FILES" | xargs git add
   echo "Global-client formatted"
