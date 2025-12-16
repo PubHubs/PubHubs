@@ -1,0 +1,45 @@
+#!/usr/bin/env sh
+
+# Only run hooks in local development
+if [ -n "$CI" ] || [ -n "$GITLAB_CI" ]; then
+  exit 0
+fi
+
+echo "Running pre-commit checks..."
+
+# Get all staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Filter for hub-client files
+HUB_CLIENT_FILES=$(echo "$STAGED_FILES" | grep '^hub-client/src/.*\.(ts|vue|js)$' || true)
+
+# Filter for global-client files
+GLOBAL_CLIENT_FILES=$(echo "$STAGED_FILES" | grep '^global-client/src/.*\.(ts|vue|js)$' || true)
+
+# Process hub-client
+if [ -n "$HUB_CLIENT_FILES" ]; then
+  echo "Formatting hub-client files..."
+  cd hub-client
+  echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx prettier --write --ignore-unknown --config ./.prettierrc
+  echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx eslint --fix
+  cd ..
+  echo "$HUB_CLIENT_FILES" | xargs git add
+  echo "Hub-client formatted"
+fi
+
+# Process global-client
+if [ -n "$GLOBAL_CLIENT_FILES" ]; then
+  echo "Formatting global-client files..."
+  cd global-client
+  echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx prettier --write --ignore-unknown --config ./.prettierrc
+  echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx eslint --fix
+  cd ..
+  echo "$GLOBAL_CLIENT_FILES" | xargs git add
+  echo "Global-client formatted"
+fi
+
+if [ -z "$HUB_CLIENT_FILES" ] && [ -z "$GLOBAL_CLIENT_FILES" ]; then
+  echo "No client files to format"
+fi
+
+echo "Pre-commit checks complete!"
