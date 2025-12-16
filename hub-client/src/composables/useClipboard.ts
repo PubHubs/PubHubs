@@ -1,10 +1,10 @@
 /**
  * Composable for clipboard operations and URL sharing
  */
+import { getHubUrl, getRoomUrl } from '@hub-client/logic/core/urls';
 
 import { useHubSettings } from '@hub-client/stores/hub-settings';
 import { useRooms } from '@hub-client/stores/rooms';
-import { getHubUrl, getRoomUrl } from '@hub-client/logic/core/urls';
 
 /**
  * Composable for clipboard operations

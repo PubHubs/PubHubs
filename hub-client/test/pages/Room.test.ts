@@ -4,12 +4,13 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, test } from 'vitest';
 import { createRouter, createWebHistory } from 'vue-router';
 
-// Logic
-import { setUpi18n } from '@hub-client/i18n';
 import { routes } from '@hub-client/logic/core/router';
 
 // Pages
 import Room from '@hub-client/pages/Room.vue';
+
+// Logic
+import { setUpi18n } from '@hub-client/i18n';
 
 describe('Room.vue Test', () => {
 	test('room cannot be found redirects to error page', async () => {
