@@ -24,7 +24,7 @@
 		"@privacybydesign/yivi-frontend": "^0.2.1",
 		"@privacybydesign/yivi-web": "^0",
 		"@vue/test-utils": "^2.2.3",
-		"@vuepic/vue-datepicker": "^12.1.0",
+		"@vuepic/vue-datepicker": "^11.0.2",
 		"@vueuse/core": "^14.1.0",
 		"chai": "^6.2.1",
 		"emojibase": "^17",
