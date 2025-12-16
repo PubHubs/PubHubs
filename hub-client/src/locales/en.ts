@@ -199,6 +199,8 @@ const en = {
 		contact: 'Contact Admin',
 		copy_hub_url: 'Copy link to hub',
 		copy_room_url: 'Copy link to room',
+		enter_room: 'Enter room',
+		leave_room: 'Leave room',
 		home: 'Hub welcome',
 		directmsg: 'Direct messages',
 		discover: 'Discover rooms',

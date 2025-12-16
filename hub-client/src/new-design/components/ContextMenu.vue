@@ -3,7 +3,7 @@
 		<div
 			v-if="store.isOpen"
 			ref="menuRef"
-			class="bg-surface-elevated rounded-base flex w-fit max-w-3000 min-w-1000 flex-col shadow-xl"
+			class="bg-surface-elevated rounded-base flex w-fit max-w-4000 min-w-1000 flex-col shadow-xl"
 			:style="{ left: `${pos.x}px`, top: `${pos.y}px`, position: 'fixed', zIndex: 9999 }"
 			role="menu"
 			tabindex="-1"
