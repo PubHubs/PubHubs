@@ -7,7 +7,6 @@
 			</OptionButton>
 			<div>{{ yesVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', yesVotes.length) }}</div>
 			<div class="mr-2 flex gap-2" v-for="vote in yesVotes" :key="vote[0]">
-				<AvatarDisplayName class="h-5 w-5" :userId="vote[0]"></AvatarDisplayName>
 				<UserDisplayName :userId="vote[0]" :userDisplayName="user.userDisplayName(vote[0])"></UserDisplayName>
 			</div>
 		</div>
@@ -18,7 +17,6 @@
 			</OptionButton>
 			<div>{{ maybeVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', maybeVotes.length) }}</div>
 			<div class="mr-2 flex gap-2" v-for="vote in maybeVotes" :key="vote[0]">
-				<AvatarDisplayName class="h-5 w-5" :userId="vote[0]"></AvatarDisplayName>
 				<UserDisplayName :userId="vote[0]" :userDisplayName="user.userDisplayName(vote[0])"></UserDisplayName>
 			</div>
 		</div>
@@ -29,7 +27,6 @@
 			</OptionButton>
 			<div>{{ noVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', noVotes.length) }}</div>
 			<div class="mr-2 flex gap-2" v-for="vote in noVotes" :key="vote[0]">
-				<AvatarDisplayName class="h-5 w-5" :userId="vote[0]"></AvatarDisplayName>
 				<UserDisplayName :userId="vote[0]" :userDisplayName="user.userDisplayName(vote[0])"></UserDisplayName>
 			</div>
 		</div>
