@@ -1,17 +1,17 @@
 <template>
 	<div class="flex">
-		<Button
-			v-for="(option, index) in options"
-			:key="index"
-			:color="optionIsSelected(option) ? 'primary' : 'gray'"
-			:size="size"
-			:class="roundedClass(index)"
-			@click="
-				selectOption(option);
-				changed();
-			"
-			>{{ option.label }}</Button
-		>
+				<Button
+					v-for="(option, index) in options"
+					:key="index"
+					:color="optionIsSelected(option) ? 'primary' : 'gray'"
+					:size="size"
+					:class="roundedClass(index)"
+					@click="
+						selectOption(option);
+						changed();
+					"
+					>{{ option.label }}</Button
+				>
 	</div>
 </template>
 
@@ -25,7 +25,8 @@
 	// Composables
 	import { Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
-	const props = defineProps({
+	const props = defineProps(
+		{
 		options: {
 			type: Array as PropType<Options>,
 			required: true,
