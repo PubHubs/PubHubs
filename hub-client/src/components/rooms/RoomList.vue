@@ -12,8 +12,9 @@
 					openMenu(
 						$event,
 						[
-							{ label: 'Enter room', icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: room.roomId } }) },
-							{ label: 'Leave room', icon: 'x', isDelicate: true, onClick: () => leaveRoom(room.roomId) },
+							{ label: t('menu.enter_room'), icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: room.roomId } }) },
+							{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl(room.roomId) },
+							{ label: t('menu.leave_room'), icon: 'x', isDelicate: true, onClick: () => leaveRoom(room.roomId) },
 						],
 						room.roomId,
 					)
@@ -91,6 +92,9 @@
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	// Composables
+	import { useClipboard } from '@hub-client/composables/useClipboard';
+
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
@@ -117,6 +121,7 @@
 	const router = useRouter();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
+	const { copyRoomUrl } = useClipboard();
 	const messageValues = ref<(string | number)[]>([]);
 	const dialogOpen = ref<string | null>(null);
 	const dialog = useDialog();

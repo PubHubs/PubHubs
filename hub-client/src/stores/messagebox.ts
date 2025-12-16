@@ -82,6 +82,7 @@ enum MessageType {
 	RemoveAccessToken = 'removeAccessToken', // Hub frame sends a message to remove its' access token to the global client.
 	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
 	BarHide = 'visibilityBar-hide',
+	EventChange = 'eventchange',
 }
 
 /**

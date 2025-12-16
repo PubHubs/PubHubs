@@ -89,6 +89,28 @@ enum OnboardingType {
 	full = 'full',
 }
 
+// Different roles for users in PubHubs. Add new user type here.
+enum roles {
+	Admin = 100,
+	SuperSteward = 75,
+	Steward = 50,
+	Expert = 25,
+	User = 0,
+}
+
+// Actions that the user can carry out
+enum actions {
+	Invite = 'Invite',
+	StewardPanel = 'StewardPanel',
+	AdminPanel = 'AdminPanel',
+	MessageSteward = 'MessageSteward',
+	MessageAdmin = 'MessageAdmin',
+	RoomAnnouncement = 'RoomAnnouncement',
+}
+
+enum QueryParameterKey {
+	EventId = 'eventid',
+}
 // File types
 const imageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/svg'];
 const imageTypesExt = ['png', 'jpeg', 'jpg', 'gif', 'svg'];
@@ -137,4 +159,7 @@ export {
 	allTypes,
 	imageTypesExt,
 	RelatedEventsOptions,
+	roles,
+	actions,
+	QueryParameterKey,
 };

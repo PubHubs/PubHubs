@@ -20,6 +20,7 @@
 							:deleted-event="item.isDeleted"
 							:data-event-id="item.matrixEvent.event.event_id"
 							class="room-event"
+							:class="{ 'animate-highlight': props.eventIdToScroll === item.matrixEvent.event.event_id }"
 							:active-profile-card="activeProfileCard"
 							:active-reaction-panel="activeReactionPanel"
 							@in-reply-to-click="onInReplyToClick"
@@ -52,7 +53,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { Direction, EventType, MatrixEvent } from 'matrix-js-sdk';
+	import { Direction, EventType } from 'matrix-js-sdk';
 	import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 	// Components
@@ -125,6 +126,10 @@
 			type: Room,
 			required: true,
 		},
+
+		eventIdToScroll: {
+			type: String,
+		},
 	});
 	const emit = defineEmits([RoomEmit.ScrolledToEventId]);
 
@@ -169,12 +174,16 @@
 	watch(() => roomTimeLine.value.length, onTimelineChange);
 
 	watch(
-		() => props.room.getCurrentEvent(),
-		async () => {
-			// This needs to await otherwise events are not loaded when switching rooms
-			await onScrollToEvent(props.room.getCurrentEvent());
-			setupEventIntersectionObserver();
+		() => props.eventIdToScroll,
+		(eventId) => {
+			if (!eventId) return;
+			scrollToEvent({ eventId }, { position: ScrollPosition.Center });
 		},
+	);
+
+	watch(
+		() => props.room.getCurrentEvent(),
+		() => setupEventIntersectionObserver(),
 		{ deep: true },
 	);
 
@@ -220,7 +229,11 @@
 		onScroll();
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline done `, roomTimeLine);
-		props.room.setCurrentEvent(props.room.getLiveTimelineNewestEvent as unknown as TCurrentEvent);
+
+		// If there is an eventId needed to scroll to that event.
+		const eventId = props.eventIdToScroll ? props.eventIdToScroll : props.room.getTimelineNewestMessageEventId();
+		if (!eventId) return;
+		scrollToEvent({ eventId }, { position: ScrollPosition.Center });
 	}
 
 	function setupEventIntersectionObserver() {
@@ -368,7 +381,7 @@
 
 		if (settings.isFeatureEnabled(FeatureFlag.notifications)) {
 			// If the room is empty then no reference to elRoomEvent is present. In that case, ElementObserver needs to be initialized.
-			if (!eventObserver || !elRoomEvent) {
+			if (!eventObserver || !elRoomEvent.value) {
 				eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
 			}
 
@@ -398,13 +411,6 @@
 		});
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange ended `, roomTimeLine.value);
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	async function onScrollToEvent(currentEvent: TCurrentEvent | undefined) {
-		if (currentEvent) {
-			scrollToEvent(currentEvent, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
-		}
 	}
 
 	function onScroll() {
@@ -547,6 +553,7 @@
 
 		const doScroll = (elEvent: Element, currentEvent: TCurrentEvent) => {
 			// Position is taken from currentEvent, otherwise options
+
 			const position = currentEvent.position ?? options.position;
 			elEvent.scrollIntoView({ block: position, behavior: ScrollBehavior.Smooth });
 			// Style the event depending on the select option.
@@ -572,35 +579,10 @@
 			}
 			elEvent = elRoomTimeline.value.querySelector(`[id="${currentEvent.eventId}"]`);
 		}
+
 		if (elEvent) {
 			doScroll(elEvent, currentEvent);
 			emit(RoomEmit.ScrolledToEventId);
 		}
 	}
 </script>
-
-<style scoped>
-	/* The highlight animation is used when scrolling to an event with the highlight option selected. */
-	.room-event {
-		background: none;
-		border-radius: 15px;
-	}
-
-	.room-event.highlighted {
-		animation: highlight 1s;
-	}
-
-	@keyframes highlight {
-		0% {
-			background: none;
-		}
-
-		70% {
-			background: gray;
-		}
-
-		100% {
-			background: none;
-		}
-	}
-</style>

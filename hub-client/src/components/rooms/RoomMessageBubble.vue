@@ -38,6 +38,7 @@
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
 							<div class="flex w-full min-w-0 grow flex-wrap items-center gap-2">
 								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
+								<div>{{ event.event_id }}</div>
 								<span class="flex gap-2">
 									<span class="text-label-small">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="false" />
@@ -57,6 +58,16 @@
 								</template>
 
 								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
+									<div v-if="isSupported">
+										<button
+											@click="copy(`${source}?eventid=${event.event_id}`)"
+											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										>
+											<!-- by default, `copied` will be reset in 1.5s -->
+											<Icon type="link" size="sm" v-if="!copied"></Icon>
+											<Icon type="check" size="sm" v-else>Copied!</Icon>
+										</button>
+									</div>
 									<!-- Reaction Button -->
 									<button
 										v-if="!redactedMessage"
@@ -94,6 +105,7 @@
 										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										:title="t('menu.moderation_tools_disclosure')"
 									>
+										xp
 										<Icon type="warning" size="sm" />
 									</button>
 
@@ -156,6 +168,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import { useClipboard } from '@vueuse/core';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -181,6 +194,7 @@
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import { router } from '@hub-client/logic/core/router';
+	import { CONFIG } from '@hub-client/logic/logging/Config';
 
 	// Models
 	import { RelationType } from '@hub-client/models/constants';
@@ -190,6 +204,7 @@
 
 	// Stores
 	import { useConnection } from '@hub-client/stores/connection';
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -206,10 +221,14 @@
 	const pubhubs = usePubhubsStore();
 	const user = useUser();
 	const settings = useSettings();
+	const hubSettings = useHubSettings();
 	const { t } = useI18n();
 	const hover = ref(false);
 	const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
+	const source = ref('');
+	const { text, copy, copied, isSupported } = useClipboard({ source });
+	//
 
 	let roomMember = ref();
 	let threadLength = ref(0);
@@ -248,7 +267,14 @@
 		},
 	});
 
-	onMounted(() => (threadLength.value = props.eventThreadLength));
+	// Set the ref variable to the url to be shared.
+
+	// ${baseUrl}#/hub/${hubName}/${roomId}
+
+	onMounted(() => {
+		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
+		threadLength.value = props.eventThreadLength;
+	});
 
 	onBeforeUnmount(() => {
 		// If the profile card is open when this component is unmounted, close it.

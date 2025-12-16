@@ -6,7 +6,7 @@ const nl = {
 		or: 'of',
 	},
 	card: {
-		description: 'Kaart uitgegeven met de volgende kenmerken',
+		description: 'Kaart uitgegeven met de volgende kenmerken:',
 	},
 	state: {
 		button_request: 'Verleen toegang',
@@ -196,6 +196,10 @@ const nl = {
 	menu: {
 		calender: 'Kalender',
 		contact: 'Admin Contact',
+		copy_hub_url: 'Kopieer link naar hub',
+		copy_room_url: 'Kopieer link naar kamer',
+		enter_room: 'Ga naar kamer',
+		leave_room: 'Verlaat kamer',
 		home: 'Hub welkom',
 		directmsg: 'Directe berichten',
 		discover: 'Ontdek kamers',
