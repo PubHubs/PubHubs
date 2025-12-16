@@ -20,8 +20,8 @@ GLOBAL_CLIENT_FILES=$(echo "$STAGED_FILES" | grep -E '^global-client/src/.*\.(ts
 if [ -n "$HUB_CLIENT_FILES" ]; then
   echo "Formatting hub-client files..."
   cd hub-client
-  echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npm run format
-  # echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npm run lint
+  echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx prettier --write --ignore-unknown --config ./.prettierrc
+  echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx eslint --ext .js,.vue,.ts --fix
   cd ..
   echo "$HUB_CLIENT_FILES" | xargs git add
   echo "Hub-client formatted"
@@ -31,8 +31,8 @@ fi
 if [ -n "$GLOBAL_CLIENT_FILES" ]; then
   echo "Formatting global-client files..."
   cd global-client
-  echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npm run format
-  # echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npm run lint
+  echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx prettier --write --ignore-unknown --config ./.prettierrc
+  echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx eslint --ext .js,.vue,.ts --fix
   cd ..
   echo "$GLOBAL_CLIENT_FILES" | xargs git add
   echo "Global-client formatted"
