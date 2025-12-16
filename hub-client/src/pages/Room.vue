@@ -6,23 +6,26 @@
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
 					<hr class="bg-on-surface-dim h-[2px] grow" />
 				</div>
-				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
-					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden" data-testid="roomtype">
+				<div class="flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
+					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="relative flex w-fit items-center gap-3" data-testid="roomtype">
 						<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
 						<Icon v-if="showLibrary" type="caret-left" size="base" @click.stop="toggleLibrary" class="cursor-pointer" />
 						<Icon v-if="showLibrary" type="folder-simple" size="base" data-testid="roomlibrary-icon" />
 						<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
-						<div class="flex flex-col">
-							<H3 class="text-on-surface flex">
-								<TruncatedText class="font-headings font-semibold">
-									<PrivateRoomHeader v-if="room.isPrivateRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
-									<GroupRoomHeader v-else-if="room.isGroupRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
-									<AdminContactRoomHeader v-else-if="room.isAdminContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
-									<StewardContactRoomHeader v-else-if="room.isStewardContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
-									<RoomName v-else :room="rooms.currentRoom" />
-								</TruncatedText>
-							</H3>
-							<TruncatedText class="hidden md:inline"> </TruncatedText>
+						<div class="group relative hover:mt-[2px] hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
+							<div class="flex flex-col group-hover:border-b-2 group-hover:border-dotted">
+								<H3 class="text-on-surface flex">
+									<TruncatedText class="font-headings font-semibold">
+										<PrivateRoomHeader v-if="room.isPrivateRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
+										<GroupRoomHeader v-else-if="room.isGroupRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
+										<AdminContactRoomHeader v-else-if="room.isAdminContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
+										<StewardContactRoomHeader v-else-if="room.isStewardContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
+										<RoomName v-else :room="rooms.currentRoom" />
+									</TruncatedText>
+								</H3>
+								<TruncatedText class="hidden md:inline"> </TruncatedText>
+							</div>
+							<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2" />
 						</div>
 					</div>
 					<div class="flex gap-4" :class="{ 'w-full': isSearchBarExpanded }">
@@ -69,6 +72,7 @@
 <script setup lang="ts">
 	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
@@ -90,14 +94,17 @@
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 
+	// Composables
+	import { useClipboard } from '@hub-client/composables/useClipboard';
+
 	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	// Models
 	import { ScrollPosition, actions } from '@hub-client/models/constants';
 	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
-	// Models
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 	import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
 	import { TSearchParameters } from '@hub-client/models/search/TSearch';
@@ -109,11 +116,13 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	const { t } = useI18n();
 	const route = useRoute();
 	const rooms = useRooms();
 	const user = useUser();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
+	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
 	const showMembers = ref(false);

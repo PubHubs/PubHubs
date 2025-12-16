@@ -11,8 +11,8 @@
 		:title="computedTitle"
 		@click="handleClick"
 	>
-		<Icon v-if="icon" :type="icon" />
-		{{ label }}
+		<Icon v-if="icon" :type="icon" class="shrink-0" />
+		<span class="truncate">{{ label }}</span>
 	</button>
 </template>
 
