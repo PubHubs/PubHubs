@@ -37,6 +37,8 @@
                   python3
                   sqlite
                 ];
+
+                # NPM install if node_oduels not found.
               };
           };
         }) systems
