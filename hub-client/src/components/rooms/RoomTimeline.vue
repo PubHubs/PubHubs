@@ -173,13 +173,7 @@
 
 	watch(() => roomTimeLine.value.length, onTimelineChange);
 
-	watch(
-		() => props.eventIdToScroll,
-		(eventId) => {
-			if (!eventId) return;
-			scrollToEvent({ eventId }, { position: ScrollPosition.Center });
-		},
-	);
+	watch(() => props.eventIdToScroll,	(eventId) => {	if (!eventId) return;	scrollToEvent({ eventId }, { position: ScrollPosition.Center });},	);
 
 	watch(
 		() => props.room.getCurrentEvent(),
