@@ -11,10 +11,10 @@ echo "Running pre-commit checks..."
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
 
 # Filter for hub-client files
-HUB_CLIENT_FILES=$(echo "$STAGED_FILES" | grep '^hub-client/src/.*\.(ts|vue|js)$' || true)
+HUB_CLIENT_FILES=$(echo "$STAGED_FILES" | grep -E '^hub-client/src/.*\.(ts|vue|js)$' || true)
 
 # Filter for global-client files
-GLOBAL_CLIENT_FILES=$(echo "$STAGED_FILES" | grep '^global-client/src/.*\.(ts|vue|js)$' || true)
+GLOBAL_CLIENT_FILES=$(echo "$STAGED_FILES" | grep -E '^global-client/src/.*\.(ts|vue|js)$' || true)
 
 # Process hub-client
 if [ -n "$HUB_CLIENT_FILES" ]; then
