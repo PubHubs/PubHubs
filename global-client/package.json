@@ -4,7 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"format": "npx prettier ./src --fix --ignore-unknown --config ./.prettierrc",
+		"format": "npx prettier ./src --write --ignore-unknown --config ./.prettierrc",
 		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",
 		"pwa": "vite build && npx http-server dist",
 		"test": "vitest",
