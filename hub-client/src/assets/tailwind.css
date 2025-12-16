@@ -314,6 +314,22 @@
 	--text-label-tiny: 12px;
 	--text-label-tiny--line-height: 1.3;
 	--text-label-tiny--font-weight: 500;
+
+	/* Animations */
+	--animate-highlight: highlight 5s ease-in-out;
+	@keyframes highlight {
+		0% {
+			background: none;
+		}
+
+		70% {
+			background: var(--color-surface-subtle);
+		}
+
+		100% {
+			background: none;
+		}
+	}
 }
 
 @layer base {

@@ -33,9 +33,9 @@
 							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
 							<GlobalBarButton type="users" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
 							<!--Only show Editing icon for steward but not for administrator-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) === 50" type="dots-three-vertical" @click="stewardCanEdit()" />
-							<!--Except for moderator everyone should talk to room moderator e.g., admins-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) !== 50 && room.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
+							<GlobalBarButton v-if="hasRoomPermission(room.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
+							<!--Except for moderator everyone should talk to room moderator-->
+							<GlobalBarButton v-if="hasRoomPermission(room.getUserPowerLevel(user.userId), actions.MessageSteward) && room.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
 						</RoomHeaderButtons>
 						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" @search-started="showMembers = false" :room="rooms.currentRoom" />
 					</div>
@@ -45,7 +45,8 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :room="room" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
+					<RoomTimeline v-if="rooms.rooms[props.id].getTimelineNewestMessageEventId()" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)">
+					</RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room.getCurrentThreadId()"
@@ -101,7 +102,8 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { ScrollPosition } from '@hub-client/models/constants';
+	import { ScrollPosition, actions } from '@hub-client/models/constants';
+	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 	import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -132,6 +134,7 @@
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
 	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
+	const scrollToEventId = ref<string>();
 
 	// Passed by the router
 	const props = defineProps({
@@ -164,6 +167,8 @@
 
 	onMounted(() => {
 		update();
+		// Update might not have rooms loaded in the store, therefore, scrollToEventId is explicitly set here.
+		scrollToEventId.value = rooms.scrollPositions[props.id];
 		LOGGER.log(SMI.ROOM, `Room mounted `);
 	});
 
@@ -241,8 +246,9 @@
 		// If there is a position saved in scrollPositions for this room: go there
 		// otherwise it goes to the newest event in the timeline
 		const timeline = roomTimeLineComponent.value?.elRoomTimeline;
-		const savedPosition = rooms.scrollPositions[rooms.currentRoom.roomId];
 
+		const savedPosition = rooms.scrollPositions[rooms.currentRoom.roomId];
+		scrollToEventId.value = savedPosition;
 		if (timeline && savedPosition) {
 			rooms.currentRoom.setCurrentEvent({
 				eventId: savedPosition,
@@ -253,6 +259,7 @@
 
 	async function onScrollToEventId(ev: any) {
 		// if there is a threadId and this is a valid id in the room: set the current threadId
+
 		if (ev.threadId && ev.threadId !== ev.eventId) {
 			if (!room.value.findEventById(ev.threadId)) {
 				try {
@@ -266,6 +273,7 @@
 			room.value.setCurrentThreadId(undefined);
 		}
 		room.value.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
+		scrollToEventId.value = ev.eventId;
 	}
 
 	async function stewardCanEdit() {

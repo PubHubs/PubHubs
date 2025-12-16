@@ -5,6 +5,9 @@ const nl = {
 		loading: 'Laden ...',
 		or: 'of',
 	},
+	card: {
+		description: 'Kaart uitgegeven met de volgende kenmerken:',
+	},
 	state: {
 		button_request: 'Verleen toegang',
 		initial: 'Controleren of de hub client toegang heeft tot cookies en lokale opslag...',

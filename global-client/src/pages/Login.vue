@@ -75,7 +75,8 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { PHCEnterMode, loginMethods } from '@global-client/models/MSS/TMultiServerSetup';
+	import { loginMethods } from '@global-client/models/MSS/TAuths';
+	import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 	// Stores
 	import { useMSS } from '@global-client/stores/mss';

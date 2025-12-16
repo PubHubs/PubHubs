@@ -9,6 +9,13 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+- _internal_ Add "issue perms = [pbdf.PubHubs.account]" under [requestors.pubhubs-auths-stable] before merging to stable in /data/yivi/config.
+- [NEW] Reintroduced Pubhubs card for login
+- [NEW] Backend: adds the option to check for a reused phone number during registration
+- [NEW] Messages can be shared.
+- [NEW] New permissions/roles for different types of users (in client).
+
+
 ## 09 December 2025 - v3.1.1
 
 - [FIX] Fixed that secured room notifcations cannot be removed.
@@ -16,12 +23,10 @@ _Please add a brief description of any changes and any migrations to be performe
 ## 04 December 2025 - v3.1.0
 
 - [NEW, BREAKING] Reintroduces support for the pubhubs card in the backend
-  - _Internal:_ pubhubs card attributes with `not_addable_by_default = true` need to be added to `pubhubs.toml`, as well as a `[auth.yivi.card]` section.
 - [NEW] Using sliding sync instead of /sync API
 - [NEW] Direct url links to room and pages in the hub-client still redirect after the login or registration flow.
 - [BUG] Fixed direct url links to rooms and pages not working in hub-client
 - [BREAKING] The old pubhubs server (that served the global client) has been removed
-  - _Internal:_ the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted after merge
 - [NEW] The development setup has been simplified, see `maskfile.md`
 - [BUG] The login page is no longer visible for a split second upon a refresh when logged in.
 - [NEW] The login and home (hub discovery) page are now split.

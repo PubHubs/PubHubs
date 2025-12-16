@@ -269,7 +269,7 @@ impl EndpointDetails for CardEP {
 #[serde(deny_unknown_fields)]
 #[must_use]
 pub struct CardReq {
-    /// A by PHC signed registration pseudonym obtained via [`phc::user::CardPseudEP.`]
+    /// A by PHC signed registration pseudonym obtained via [`phc::user::CardPseudEP`].
     pub card_pseud_package: Signed<phc::user::CardPseudPackage>,
 
     /// Optional comment used after the registration date field.

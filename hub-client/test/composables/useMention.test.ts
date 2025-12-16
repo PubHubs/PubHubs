@@ -1,3 +1,24 @@
+/**
+ * Tests for the `useMentions` composable.
+ *
+ * This test verifies:
+ * - Correct parsing of mentions from a message (`parseMentions`)
+ * - Correct building of text around mentions (`buildSegments`)
+ * - Validation logic: only valid rooms should produce mention objects
+ * - Handling of cases such as:
+ *    - Mentions inside normal text
+ *    - A message that is only a mention
+ *    - Invalid mention syntax
+ *    - Multiple mentions inside a single message
+ *
+ * These tests are only for rooms since they are easier to mock
+ * and since user and room mentions use exactly the same logic
+ * (except for the function that is hard to mock)
+ *
+ * The tests rely on a minimal Pinia setup and a mocked rooms store:
+ * added one room mock to`useRooms().publicRooms` to allow validation of
+ * `#room~roomId~` tokens.
+ */
 // Packages
 import { createPinia, setActivePinia } from 'pinia';
 import { describe, expect, test } from 'vitest';
@@ -15,6 +36,7 @@ import { useRooms } from '@hub-client/stores/rooms';
 const body = 'Dit is #test~!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host~ ja';
 const body2 = '#test~!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host~';
 const body3 = '#test';
+const body4 = 'Dit is een test voor #test~!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host~ en #test~!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host~';
 const expectedMention = [
 	{
 		type: '#',
@@ -29,7 +51,7 @@ const expectedSegment = [
 	{ type: 'text', content: 'Dit is ', id: null },
 	{
 		type: 'room',
-		displayName: '#test',
+		content: '#test',
 		id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host-7',
 		tokenId: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host',
 	},
@@ -48,12 +70,46 @@ const expectedMention2 = [
 const expectedSegment2 = [
 	{
 		type: 'room',
-		displayName: '#test',
+		content: '#test',
 		id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host-0',
 		tokenId: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host',
 	},
 ];
 const expectedSegment3 = [{ type: 'text', content: '#test', id: null }];
+const expectedMention4 = [
+	{
+		displayName: '#test',
+		end: 67,
+		id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host-21',
+		start: 21,
+		tokenId: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host',
+		type: '#',
+	},
+	{
+		displayName: '#test',
+		end: 117,
+		id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host-71',
+		start: 71,
+		tokenId: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host',
+		type: '#',
+	},
+];
+const expectedSegment4 = [
+	{ type: 'text', content: '#test', id: null },
+	{
+		type: 'room',
+		content: '#test',
+		id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host-21',
+		tokenId: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host',
+	},
+	{ type: 'text', content: '', id: null },
+	{
+		type: 'room',
+		content: '#test',
+		id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host-71',
+		tokenId: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host',
+	},
+];
 
 describe('useMentions', () => {
 	setActivePinia(createPinia());
@@ -81,5 +137,12 @@ describe('useMentions', () => {
 		expect(mentions).toEqual([]);
 		const segments = mentionComposable.buildSegments(body3, mentions);
 		expect(segments).toEqual(expectedSegment3);
+	});
+	// Test two mentions within normal text
+	test('parseMentions&buildSegments4', () => {
+		const mentions: MentionMatch[] = mentionComposable.parseMentions(body4);
+		expect(mentions).toEqual(expectedMention4);
+		const segments = mentionComposable.buildSegments(body3, mentions);
+		expect(segments).toEqual(expectedSegment4);
 	});
 });

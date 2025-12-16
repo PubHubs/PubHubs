@@ -107,7 +107,7 @@
 	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { RouteParamValue, useRouter } from 'vue-router';
+	import { NavigationFailure, RouteParamValue, isNavigationFailure, useRouter } from 'vue-router';
 
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
@@ -133,6 +133,7 @@
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	import { QueryParameterKey } from '@hub-client/models/constants';
 	// Models
 	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
@@ -224,15 +225,42 @@
 				hubSettings.initHubInformation(message.content as HubInformation);
 			});
 
-			// Listen to roomchange
 			messagebox.addCallback('parentFrame', MessageType.RoomChange, async (message: Message) => {
+				let navigationResult: NavigationFailure | void | undefined = undefined;
+				//TODO: content from MessageType.RoomChange is roomId? maybe we can rename content to roomId.
 				const content = message.content as RouteParamValue;
-				const isNonRoomRoute = routes.some((r) => r.name === content && r.name !== 'room');
-				if (isNonRoomRoute) {
-					router.push({ name: content });
+				// If content is a roomId then it has a format that starts with !.
+				if (content.startsWith('!')) {
+					navigationResult = await router.push({ name: 'room', params: { id: content } });
 				} else {
-					router.push({ name: 'room', params: { id: content } });
+					navigationResult = await router.push({ name: content as any });
 				}
+
+				// FALLBACK to homepage if there is a navigation failure.
+				if (navigationResult && isNavigationFailure(navigationResult)) {
+					await router.push({ name: 'home' });
+				}
+			});
+
+			// Listen to event change
+			messagebox.addCallback('parentFrame', MessageType.EventChange, (message: Message) => {
+				const url = message.content;
+
+				const [routePart, queryPart] = url.split('?');
+
+				const params = new URLSearchParams(queryPart);
+
+				const eventId = params.get(QueryParameterKey.EventId);
+
+				if (!eventId) return;
+
+				// Ignore any empty values
+				const splitRoutePart: string[] = routePart.split('/').filter(Boolean);
+
+				const roomId = splitRoutePart[splitRoutePart.length - 1];
+
+				// Set the scroll position to event
+				rooms.scrollPositions[roomId] = eventId;
 			});
 
 			// Listen to global menu change
