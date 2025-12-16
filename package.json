@@ -1,12 +1,13 @@
 {
-	"name": "pubhubs-canonical",
-	"version": "0.5.0",
-	"private": true,
-	"description": "PubHubs monorepo",
-	"scripts": {
-		"prepare": "husky"
-	},
-	"devDependencies": {
-		"husky": "^9.1.7"
-	}
+  "name": "pubhubs-canonical",
+  "version": "0.5.0",
+  "private": true,
+  "description": "PubHubs monorepo",
+  "scripts": {
+    "prepare": "husky",
+    "postinstall": "(cd global-client && npm install); (cd hub-client && npm install)"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
 }
