@@ -60,7 +60,7 @@
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
+	import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 
 	const pubhubsStore = usePubhubsStore();
 	const hubSettings = useHubSettings();
@@ -71,9 +71,16 @@
 	const expandedCardId = ref<string | null>(null);
 	const searchQuery = ref('');
 
+	type TVisiblePublicRoom = TPublicRoom & {
+		nameToLower: string;
+		topicToLower: string;
+	};
+
+	let visiblePublicRooms = ref<TVisiblePublicRoom[]>([]);
+
 	const filteredRooms = computed(() => {
 		const query = searchQuery.value.toLowerCase().trim();
-		return rooms.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query) || room.topic?.toLowerCase().includes(query));
+		return visiblePublicRooms.value.filter((room) => room.nameToLower.includes(query) || room.topicToLower.includes(query));
 	});
 
 	const handleToggleExpand = (roomId: string) => {
@@ -112,5 +119,11 @@
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms();
+		// for quicker searching: add tolower name and topic
+		visiblePublicRooms.value = rooms.visiblePublicRooms.map((room) => ({
+			...room,
+			nameToLower: room.name?.toLowerCase() ?? '',
+			topicToLower: room.topic?.toLowerCase() ?? '',
+		}));
 	});
 </script>
