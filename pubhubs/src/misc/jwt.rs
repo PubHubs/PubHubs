@@ -314,12 +314,7 @@ impl NumericDate {
 
     /// Creates a numeric date representing the current moment
     pub fn now() -> Self {
-        Self::new(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system clock reports a time before the Unix epoch")
-                .as_secs(),
-        )
+        std::time::SystemTime::now().into()
     }
 
     /// Returns the number of seconds this date is after the unix epoch.
@@ -341,6 +336,15 @@ impl NumericDate {
 
         datetime
     }
+}
+
+impl From<std::time::SystemTime> for NumericDate {
+    fn from(st : std::time::SystemTime) -> Self {
+            Self::new(st.duration_since(std::time::UNIX_EPOCH)
+                .expect("before unix epoch")
+                .as_secs(),)
+    }
+
 }
 
 impl From<&NumericDate> for std::time::SystemTime {

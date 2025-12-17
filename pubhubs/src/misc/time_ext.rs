@@ -53,7 +53,7 @@ pub fn format_time_wrt(t: time::SystemTime, now: time::SystemTime) -> FormattedT
 }
 
 pub mod human_duration {
-    use serde::{Deserialize as _, de::Error as _};
+    use serde::{de::Error as _, Deserialize as _};
 
     pub fn deserialize<'de, D>(d: D) -> Result<core::time::Duration, D::Error>
     where

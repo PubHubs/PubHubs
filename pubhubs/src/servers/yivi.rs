@@ -916,6 +916,52 @@ impl SessionType {
     }
 }
 
+/// Represents a Yivi _epoch_ by its sequence number.  The `0`th epoch starts at 1970-01-01T00:00:00Z
+/// and each epoch lasts exactly $60 \cdot 60 \cdot 24 \cdot 7$ seconds (= 1 week).
+#[derive(Debug, Clone, Copy)]
+pub struct Epoch {
+    seqnr: u64
+}
+
+impl Epoch {
+    /// Length of a Yivi epoch in seconds.
+    pub const fn seconds() -> u64  {
+        60*60*24*7
+    }
+
+    /// Returns the current Yivi epoch
+    pub fn current() -> Epoch {
+       api::NumericDate::now().into() 
+    }
+
+    /// Returns the Yivi epoch with the given sequence number
+    pub fn with_seqnr(seqnr: u64) -> Self {
+        Self { seqnr }
+    }
+
+    /// Returns the second of this epoch starts
+    pub fn starts(&self) -> api::NumericDate {
+        api::NumericDate::new(self.seqnr * Self::seconds())
+    }
+
+    /// Returns the first second of the next epoch
+    pub fn ends(&self) -> api::NumericDate {
+        api::NumericDate::new((self.seqnr+1) * Self::seconds())
+    }
+}
+
+impl From<api::NumericDate> for Epoch {
+    fn from(nd : api::NumericDate) -> Self {
+        Self { seqnr: nd.timestamp() / Self::seconds() }
+    }
+}
+
+impl std::fmt::Display for Epoch {
+    fn fmt(&self, f : &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Yivi epoch {} that starts {} and ends {}", self.seqnr, self.starts(), self.ends())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
