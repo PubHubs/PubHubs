@@ -381,7 +381,7 @@
 
 		if (settings.isFeatureEnabled(FeatureFlag.notifications)) {
 			// If the room is empty then no reference to elRoomEvent is present. In that case, ElementObserver needs to be initialized.
-			if (!eventObserver || !elRoomEvent) {
+			if (!eventObserver || !elRoomEvent.value) {
 				eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
 			}
 

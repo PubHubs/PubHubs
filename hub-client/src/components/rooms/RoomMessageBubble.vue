@@ -41,7 +41,6 @@
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
 							<div class="flex w-full min-w-0 grow flex-wrap items-center gap-2">
 								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
-								<div>{{ event.event_id }}</div>
 								<span class="flex gap-2">
 									<span class="text-label-small">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="false" />
