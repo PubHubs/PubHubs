@@ -917,7 +917,8 @@ impl SessionType {
 
 /// Represents a Yivi _epoch_ by its sequence number.  The `0`th epoch starts at 1970-01-01T00:00:00Z
 /// and each epoch lasts exactly $60 \cdot 60 \cdot 24 \cdot 7$ seconds (= 1 week).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct Epoch {
     seqnr: u64,
 }

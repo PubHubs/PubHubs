@@ -8,6 +8,7 @@ use crate::servers::yivi;
 
 use actix_web::web;
 
+use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use super::server::*;
@@ -26,15 +27,84 @@ pub struct CardConfig {
     pub card_attr_type: Handle,
 
     /// For how long is a PubHubs card valid?
-    #[serde(with = "time_ext::human_duration")]
-    #[serde(default = "default_card_valid_for")]
-    pub valid_for: core::time::Duration,
+    #[serde(default)]
+    pub valid_for: CardValidFor,
 
     /// What registration source to use.  Default: [`crate::servers::Config::phc_url`].
     ///
     /// Use [`App::registration_source()`] to get the default.
     #[serde(default)]
     registration_source: Option<String>,
+}
+
+/// Configuration of PubHubs card issuance
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum CardValidFor {
+    Historic(BTreeSet<HistoricCardValidFor>),
+
+    /// To be deprecated
+    Simple(#[serde(with = "time_ext::human_duration")] core::time::Duration),
+}
+
+impl Default for CardValidFor {
+    fn default() -> Self {
+        CardValidFor::Historic(Default::default()) // empty BTreeSet
+    }
+}
+
+impl CardValidFor {
+    /// Returns the duration for which a card issued now is valid
+    pub fn now(&self) -> core::time::Duration {
+        self.at(api::NumericDate::now())
+    }
+
+    /// Returns the duration for which a card issued at the given moment is valid
+    pub fn at(&self, moment: api::NumericDate) -> core::time::Duration {
+        match self {
+            CardValidFor::Simple(duration) => *duration,
+            CardValidFor::Historic(historic) => {
+                historic
+                    // of all historic entries ..
+                    .range(
+                        // that were at or before the yivi epoch of the given moment ..
+                        ..=HistoricCardValidFor {
+                            starting_epoch: yivi::Epoch::from(moment),
+                            value: core::time::Duration::MAX,
+                        },
+                    )
+                    // pick the latest..
+                    .next_back()
+                    .copied()
+                    // if there is a latest
+                    .unwrap_or_default()
+                    .value
+            }
+        }
+    }
+}
+
+/// Configuration of PubHubs card issuance
+#[derive(
+    serde::Deserialize, serde::Serialize, Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq,
+)]
+#[serde(deny_unknown_fields)]
+pub struct HistoricCardValidFor {
+    // NOTE: do not change the order of these fields; derive(PartialOrd) depends on it
+    /// Starting which yivi epoch did the card validity have this value?
+    pub starting_epoch: yivi::Epoch,
+
+    #[serde(with = "time_ext::human_duration")]
+    pub value: core::time::Duration,
+}
+
+impl Default for HistoricCardValidFor {
+    fn default() -> Self {
+        Self {
+            starting_epoch: yivi::Epoch::with_seqnr(0),
+            value: core::time::Duration::from_secs(2 * 7 * 24 * 3600), // two weeks
+        }
+    }
 }
 
 fn default_card_attr_type() -> Handle {
@@ -46,10 +116,6 @@ impl Default for CardConfig {
         serde_json::from_value(serde_json::json!({}))
             .expect("expected all fields of CardConfig to have default values")
     }
-}
-
-fn default_card_valid_for() -> core::time::Duration {
-    core::time::Duration::from_secs(2 * 7 * 24 * 3600) // two weeks
 }
 
 /// The different types of PubHubs cards
@@ -128,7 +194,7 @@ impl App {
                     api::ErrorCode::InternalError
                 })?,
         )
-        .valid_for(yivi.card_config.valid_for)
+        .valid_for(yivi.card_config.valid_for.now())
         .attribute(
             yivi.card_config.card_type.id().to_string(),
             card_pseud.clone(),
@@ -208,5 +274,49 @@ impl App {
             issuance_request,
             yivi_requestor_url: yivi.requestor_url.clone(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_card_valid_for() {
+        let cvf: CardValidFor = serde_json::from_value(serde_json::json!("3w")).unwrap();
+        assert_eq!(
+            cvf,
+            CardValidFor::Simple(core::time::Duration::from_hours(3 * 24 * 7))
+        );
+
+        assert_eq!(cvf.now(), core::time::Duration::from_hours(3 * 24 * 7));
+
+        let cvf: CardValidFor = serde_json::from_value(serde_json::json!([
+            { "starting_epoch": 521, "value": "4w" },  // epoch for 1980-01-01
+            { "starting_epoch": 1565, "value": "5w" } // epoch for 2000-01-01
+        ]))
+        .unwrap();
+
+        assert_eq!(cvf.now(), core::time::Duration::from_hours(5 * 24 * 7));
+        assert_eq!(
+            cvf.at(api::NumericDate::from(
+                humantime::parse_rfc3339_weak("1980-01-01 00:00:00").unwrap()
+            )),
+            core::time::Duration::from_hours(4 * 24 * 7)
+        );
+        assert_eq!(
+            cvf.at(api::NumericDate::from(
+                // start of epoch 512
+                humantime::parse_rfc3339_weak("1979-12-27T00:00:00").unwrap()
+            )),
+            core::time::Duration::from_hours(4 * 24 * 7)
+        );
+        assert_eq!(
+            cvf.at(api::NumericDate::from(
+                // the second before epoch 512 starts
+                humantime::parse_rfc3339_weak("1979-12-26T23:59:59").unwrap()
+            )),
+            core::time::Duration::from_hours(2 * 24 * 7)
+        );
     }
 }
