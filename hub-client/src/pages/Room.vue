@@ -16,10 +16,10 @@
 							<div class="flex flex-col group-hover:border-b-2 group-hover:border-dotted">
 								<H3 class="text-on-surface flex">
 									<TruncatedText class="font-headings font-semibold">
-										<PrivateRoomHeader v-if="room.isPrivateRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
-										<GroupRoomHeader v-else-if="room.isGroupRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
-										<AdminContactRoomHeader v-else-if="room.isAdminContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
-										<StewardContactRoomHeader v-else-if="room.isStewardContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
+										<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
+										<GroupRoomHeader v-else-if="room!.isGroupRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
+										<AdminContactRoomHeader v-else-if="room!.isAdminContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
+										<StewardContactRoomHeader v-else-if="room!.isStewardContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 										<RoomName v-else :room="rooms.currentRoom" />
 									</TruncatedText>
 								</H3>
@@ -33,9 +33,9 @@
 							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
 							<GlobalBarButton type="users" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
 							<!--Only show Editing icon for steward but not for administrator-->
-							<GlobalBarButton v-if="hasRoomPermission(room.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
+							<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
 							<!--Except for moderator everyone should talk to room moderator-->
-							<GlobalBarButton v-if="hasRoomPermission(room.getUserPowerLevel(user.userId), actions.MessageSteward) && room.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
+							<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.MessageSteward) && room!.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
 						</RoomHeaderButtons>
 						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" @search-started="showMembers = false" :room="rooms.currentRoom" />
 					</div>
@@ -43,21 +43,20 @@
 			</template>
 
 			<div class="flex h-full w-full justify-between overflow-hidden">
-				<RoomLibrary v-if="showLibrary" :room="room" @close="toggleLibrary"></RoomLibrary>
+				<RoomLibrary v-if="showLibrary" :room="room!" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="rooms.rooms[props.id].getTimelineNewestMessageEventId()" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)">
-					</RoomTimeline>
+					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
 				</div>
 				<RoomThread
-					v-if="room.getCurrentThreadId()"
+					v-if="room!.getCurrentThreadId()"
 					:class="{ hidden: showLibrary }"
-					:room="room"
-					:scroll-to-event-id="room.getCurrentEvent()?.eventId"
-					@scrolled-to-event-id="room.setCurrentEvent(undefined)"
+					:room="room!"
+					:scroll-to-event-id="room!.getCurrentEvent()?.eventId"
+					@scrolled-to-event-id="room!.setCurrentEvent(undefined)"
 					@thread-length-changed="currentThreadLengthChanged"
 				>
 				</RoomThread>
-				<RoomMemberList v-if="showMembers" :room="room" @close="toggleMembersList"></RoomMemberList>
+				<RoomMemberList v-if="showMembers" :room="room!" @close="toggleMembersList"></RoomMemberList>
 			</div>
 
 			<template #footer>
@@ -123,7 +122,7 @@
 	const router = useRouter();
 	const hubSettings = useHubSettings();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
-	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
+	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | undefined>(undefined);
 	const showEditRoom = ref(false);
 	const showMembers = ref(false);
 	const showLibrary = ref(false);
@@ -143,6 +142,7 @@
 
 	const searchParameters = ref<TSearchParameters>({ roomId: props.id, term: '' });
 
+	// This guarantees that room has a value, so in the template we can safely use room!
 	const room = computed(() => {
 		let r = rooms.rooms[props.id];
 		if (!r) {
@@ -205,7 +205,7 @@
 	}
 
 	function currentThreadLengthChanged(newLength: number) {
-		room.value.setCurrentThreadLength(newLength);
+		room.value!.setCurrentThreadLength(newLength);
 	}
 
 	async function update() {
@@ -261,18 +261,18 @@
 		// if there is a threadId and this is a valid id in the room: set the current threadId
 
 		if (ev.threadId && ev.threadId !== ev.eventId) {
-			if (!room.value.findEventById(ev.threadId)) {
+			if (!room.value!.findEventById(ev.threadId)) {
 				try {
-					await room.value.loadToEvent(ev.threadId);
+					await room.value!.loadToEvent(ev.threadId);
 				} catch (e) {
 					LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${ev.thread}`);
 				}
 			}
-			room.value.setCurrentThreadId(ev.threadId);
+			room.value!.setCurrentThreadId(ev.threadId);
 		} else {
-			room.value.setCurrentThreadId(undefined);
+			room.value!.setCurrentThreadId(undefined);
 		}
-		room.value.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
+		room.value!.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
 		scrollToEventId.value = ev.eventId;
 	}
 
@@ -302,7 +302,7 @@
 	}
 
 	function notPrivateRoom() {
-		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
+		return !room.value!.isPrivateRoom() && !room.value!.isGroupRoom() && !room.value!.isAdminContactRoom() && !room.value!.isStewardContactRoom();
 	}
 
 	function toggleMembersList() {
@@ -310,7 +310,7 @@
 	}
 
 	async function messageRoomSteward() {
-		const members = room.value.getRoomStewards();
+		const members = room.value!.getRoomStewards();
 		await rooms.createStewardRoomOrModify(props.id, members);
 	}
 
