@@ -26,7 +26,7 @@
 					@contextmenu="openMenu($event, event.sender !== user.userId ? [{ label: 'Direct message', icon: 'chat-circle', onClick: () => user.goToUserRoom(event.sender) }] : [])"
 				/>
 				<!-- Avatar placeholder -->
-				<div v-else class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-low"></div>
+				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
 
 				<!-- Profile Card -->
 				<div v-if="hasBeenVisible" class="relative">
