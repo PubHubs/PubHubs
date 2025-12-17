@@ -50,7 +50,7 @@ pub struct SessionRequest {
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(rename = "skipExpiryCheck")]
-    skip_expiry_check : Vec<CredentialTypeIdentifier>
+    skip_expiry_check: Vec<CredentialTypeIdentifier>,
 }
 
 impl ExtendedSessionRequest {
@@ -72,7 +72,7 @@ impl ExtendedSessionRequest {
                 context: LdContext::Issuance,
                 disclose: None,
                 credentials: Some(credentials),
-                skip_expiry_check: vec![]
+                skip_expiry_check: vec![],
             },
             next_session: None,
         }
@@ -133,10 +133,12 @@ impl ExtendedSessionRequest {
             )?;
 
         let session_type = LdContext::from_jwt_sub(
-            &session_type_perhaps.expect("bug: expected session_type to be set here")
-        ).context("unknown subject in signed extended session request")?;
+            &session_type_perhaps.expect("bug: expected session_type to be set here"),
+        )
+        .context("unknown subject in signed extended session request")?;
 
-        let session_request: Self = claims.extract(session_type.jwt_key())?
+        let session_request: Self = claims
+            .extract(session_type.jwt_key())?
             .with_context(|| format!("missing claim {}", session_type.jwt_key()))?;
 
         anyhow::ensure!(
@@ -206,15 +208,12 @@ pub enum LdContext {
 }
 
 impl LdContext {
-    pub fn from_jwt_sub(jwt_sub : &str) -> Option<LdContext> {
+    pub fn from_jwt_sub(jwt_sub: &str) -> Option<LdContext> {
         match jwt_sub {
-                "verification_request" =>
-            Some(LdContext::Disclosure),
-                "signature_request" =>
-            Some(LdContext::Signature),
-                "issue_request" =>
-            Some(LdContext::Issuance),
-            _ => None
+            "verification_request" => Some(LdContext::Disclosure),
+            "signature_request" => Some(LdContext::Signature),
+            "issue_request" => Some(LdContext::Issuance),
+            _ => None,
         }
     }
 
@@ -248,7 +247,7 @@ pub struct AttributeRequest {
 
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub value : Option<String>,
+    pub value: Option<String>,
 }
 
 /// Known as
@@ -920,18 +919,18 @@ impl SessionType {
 /// and each epoch lasts exactly $60 \cdot 60 \cdot 24 \cdot 7$ seconds (= 1 week).
 #[derive(Debug, Clone, Copy)]
 pub struct Epoch {
-    seqnr: u64
+    seqnr: u64,
 }
 
 impl Epoch {
     /// Length of a Yivi epoch in seconds.
-    pub const fn seconds() -> u64  {
-        60*60*24*7
+    pub const fn seconds() -> u64 {
+        60 * 60 * 24 * 7
     }
 
     /// Returns the current Yivi epoch
     pub fn current() -> Epoch {
-       api::NumericDate::now().into() 
+        api::NumericDate::now().into()
     }
 
     /// Returns the Yivi epoch with the given sequence number
@@ -946,19 +945,27 @@ impl Epoch {
 
     /// Returns the first second of the next epoch
     pub fn ends(&self) -> api::NumericDate {
-        api::NumericDate::new((self.seqnr+1) * Self::seconds())
+        api::NumericDate::new((self.seqnr + 1) * Self::seconds())
     }
 }
 
 impl From<api::NumericDate> for Epoch {
-    fn from(nd : api::NumericDate) -> Self {
-        Self { seqnr: nd.timestamp() / Self::seconds() }
+    fn from(nd: api::NumericDate) -> Self {
+        Self {
+            seqnr: nd.timestamp() / Self::seconds(),
+        }
     }
 }
 
 impl std::fmt::Display for Epoch {
-    fn fmt(&self, f : &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Yivi epoch {} that starts {} and ends {}", self.seqnr, self.starts(), self.ends())
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Yivi epoch {} that starts {} and ends {}",
+            self.seqnr,
+            self.starts(),
+            self.ends()
+        )
     }
 }
 

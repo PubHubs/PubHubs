@@ -22,7 +22,7 @@ struct HandleChoice {
 
 impl std::ops::Deref for HandleChoice {
     type Target = Vec<Handle>;
-    
+
     fn deref(&self) -> &Vec<Handle> {
         &self.inner
     }
@@ -31,14 +31,14 @@ impl std::ops::Deref for HandleChoice {
 impl core::str::FromStr for HandleChoice {
     type Err = anyhow::Error;
 
-    fn from_str(s : &str) -> Result<Self, Self::Err> {
-        let mut handles : Vec<Handle> = Default::default();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut handles: Vec<Handle> = Default::default();
 
         for part in s.split('|') {
             handles.push(Handle::from_str(part)?);
         }
 
-        Ok(Self{ inner: handles })
+        Ok(Self { inner: handles })
     }
 }
 
@@ -96,9 +96,7 @@ pub struct EnterArgs {
     add_attr_type: Vec<Handle>,
 
     /// Don't add any attributes when entering pubhubs
-    #[arg(long, 
-        conflicts_with = "add_attr_type",
-        conflicts_with = "auth_token")]
+    #[arg(long, conflicts_with = "add_attr_type", conflicts_with = "auth_token")]
     dont_add_attrs: bool,
 
     /// Don't create a new account if one of the supplied attributes already bans another account
@@ -349,7 +347,7 @@ impl EnterArgs {
             );
         }
 
-        let mut attr_type_choices : Vec<Vec<Handle>> = Default::default();
+        let mut attr_type_choices: Vec<Vec<Handle>> = Default::default();
 
         attr_type_choices.push(Vec::<Handle>::clone(&self.id_attr_type));
 
@@ -364,7 +362,7 @@ impl EnterArgs {
                     source: attr::Source::Yivi,
                     yivi_chained_session: self.wait_for_card,
                     attr_types: Default::default(),
-                    attr_type_choices
+                    attr_type_choices,
                 },
             )
             .await
@@ -470,11 +468,14 @@ impl EnterArgs {
         };
 
         if !self.id_attr_type.contains(&id_attr_type) {
-            anyhow::bail!("authentication server returned unexpected attribute type {id_attr_type} for identifying attribute; we were expecting one of {}", 
-                        self.id_attr_type.iter()
-                        .map(Handle::as_str)
-                        .collect::<Vec<&str>>()
-                        .join(", "));
+            anyhow::bail!(
+                "authentication server returned unexpected attribute type {id_attr_type} for identifying attribute; we were expecting one of {}",
+                self.id_attr_type
+                    .iter()
+                    .map(Handle::as_str)
+                    .collect::<Vec<&str>>()
+                    .join(", ")
+            );
         }
 
         let enter_resp = client
@@ -516,15 +517,22 @@ impl EnterArgs {
                 anyhow::bail!("failed to retrieve registration pseudonym");
             };
 
-            let api::auths::CardResp::Success { attr, issuance_request, .. } = client
+            let api::auths::CardResp::Success {
+                attr,
+                issuance_request,
+                ..
+            } = client
                 .query_with_retry::<api::auths::CardEP, _, _>(
-                            &constellation.auths_url,
-                            api::auths::CardReq {
-                                card_pseud_package,
-                                comment: self.card_comment.clone(),
-                            } ).await? else {
-                    anyhow::bail!("failed to obtain pubhubs card from authentication server");
-                };
+                    &constellation.auths_url,
+                    api::auths::CardReq {
+                        card_pseud_package,
+                        comment: self.card_comment.clone(),
+                    },
+                )
+                .await?
+            else {
+                anyhow::bail!("failed to obtain pubhubs card from authentication server");
+            };
 
             let enter_resp = client
                 .query::<api::phc::user::EnterEP>(
@@ -569,7 +577,7 @@ impl EnterArgs {
                     &constellation.auths_url,
                     api::auths::YiviReleaseNextSessionReq {
                         state: auth_state.clone(),
-                        next_session: Some(issuance_request)
+                        next_session: Some(issuance_request),
                     },
                 )
                 .await

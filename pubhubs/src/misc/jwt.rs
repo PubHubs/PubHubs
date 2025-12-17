@@ -339,12 +339,13 @@ impl NumericDate {
 }
 
 impl From<std::time::SystemTime> for NumericDate {
-    fn from(st : std::time::SystemTime) -> Self {
-            Self::new(st.duration_since(std::time::UNIX_EPOCH)
+    fn from(st: std::time::SystemTime) -> Self {
+        Self::new(
+            st.duration_since(std::time::UNIX_EPOCH)
                 .expect("before unix epoch")
-                .as_secs(),)
+                .as_secs(),
+        )
     }
-
 }
 
 impl From<&NumericDate> for std::time::SystemTime {
