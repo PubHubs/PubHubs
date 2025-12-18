@@ -6,7 +6,7 @@ use std::rc::Rc;
 use actix_web::web;
 use digest::Digest as _;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
+use crate::servers::{self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
     api::{self, EndpointDetails as _},
     attr,
@@ -173,7 +173,14 @@ impl App {
             .map(|attr_type| (attr_type.handles.preferred().clone(), attr_type.clone()))
             .collect();
 
-        Ok(api::auths::WelcomeResp { attr_types })
+        Ok(api::auths::WelcomeResp {
+            attr_types,
+            card_validity: app
+                .get_yivi()
+                .map(|yivi| yivi.card_config.valid_for.to_welcome_ep_format())
+                .ok()
+                .flatten(),
+        })
     }
 }
 

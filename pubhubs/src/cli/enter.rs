@@ -170,7 +170,7 @@ impl EnterArgs {
             )
         }
 
-        let api::auths::WelcomeResp { attr_types } = client
+        let api::auths::WelcomeResp { attr_types, .. } = client
             .query_with_retry::<api::auths::WelcomeEP, _, _>(
                 &constellation.auths_url,
                 api::NoPayload,

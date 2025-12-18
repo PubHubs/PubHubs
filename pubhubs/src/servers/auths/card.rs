@@ -8,7 +8,7 @@ use crate::servers::yivi;
 
 use actix_web::web;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet,VecDeque};
 use std::rc::Rc;
 
 use super::server::*;
@@ -81,6 +81,34 @@ impl CardValidFor {
                     .value
             }
         }
+    }
+
+    pub fn to_welcome_ep_format(&self) -> Option<Vec<api::auths::HistoricCardValidity>> {
+        let CardValidFor::Historic(historic) = self else {
+            return None;
+        };
+
+        let mut list : VecDeque<api::auths::HistoricCardValidity>  = historic.iter().map(|hcvf|{
+            api::auths::HistoricCardValidity{
+                starting_at_timestamp: hcvf.starting_epoch.starts(),
+                card_valid_for_secs: hcvf.value.as_secs(),
+            }
+        }).collect();
+
+        let unix_epoch = api::NumericDate::new(0);
+
+        'epoch_present: {
+            if let Some(hcv) = list.front() && hcv.starting_at_timestamp == unix_epoch {
+                 break 'epoch_present;
+            }
+
+            list.push_front(api::auths::HistoricCardValidity{
+                starting_at_timestamp: unix_epoch,
+                card_valid_for_secs: self.at(unix_epoch).as_secs()
+            });
+        }
+        
+        Some(list.into())
     }
 }
 
