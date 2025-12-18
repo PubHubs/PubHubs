@@ -14,39 +14,51 @@
         "x86_64-darwin"
       ];
 
-      # Define the development shell for the specified system
-      devShellsBySys = builtins.listToAttrs (
+      # Helper to generate attrs for each system
+      forAllSystems = f: builtins.listToAttrs (
         map (system: {
           name = system;
-          value = {
-            default =
-              let
-                pkgs = import nixpkgs { inherit system; };
-              in
-              pkgs.mkShell {
-                packages = with pkgs; [
-                  rustc
-                  cargo
-                  cargo-watch
-                  docker
-                  mask
-                  nodejs
-                  nodePackages.sass
-                  openssl
-                  pkg-config
-                  python3
-                  sqlite
-                ];
-
-                # NPM install if node_oduels not found.
-              };
-          };
+          value = f system;
         }) systems
       );
     in
     {
-      devShells = devShellsBySys // {
-        default = devShellsBySys."${builtins.currentSystem}".default;
-      };
+      # Packages output
+      packages = forAllSystems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          irmago = pkgs.callPackage ./packages/irmago.nix { };
+          default = pkgs.callPackage ./packages/irmago.nix { };
+        }
+      );
+
+      # Development shells
+      devShells = forAllSystems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              rustc
+              cargo
+              cargo-watch
+              docker
+              mask
+              nodejs
+              nodePackages.sass
+              openssl
+              pkg-config
+              python3
+              sqlite
+            ] ++ [
+              # Custom packages
+              (pkgs.callPackage ./packages/irmago.nix { })
+            ];
+          };
+        }
+      );
     };
 }
