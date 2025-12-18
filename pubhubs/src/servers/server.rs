@@ -569,6 +569,9 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         }
         None
     }
+
+    /// Will be invoked for each instance of [`App`] that is created.
+    async fn local_task(_weak: std::rc::Weak<Self>) {}
 }
 
 /// What's internally common between PubHubs [`AppCreator`]s.

@@ -69,6 +69,9 @@ pub struct App {
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
+
+    // channel for sending messages between apps
+    pub broadcast : tokio::sync::broadcast::Sender<InterAppMsg>,
 }
 
 impl Deref for App {
@@ -313,6 +316,46 @@ impl crate::servers::App<Server> for App {
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
         Some(&self.master_enc_key_part)
     }
+
+    async fn local_task(weak : std::rc::Weak<Self>) {
+        use tokio::sync::broadcast::error::RecvError;
+
+        let mut receiver : tokio::sync::broadcast::Receiver<InterAppMsg>;
+        
+        {
+            let Some(app) = weak.upgrade() else {
+                log::debug!("App is gone before local task started");
+                return 
+            };
+
+            receiver = app.broadcast.subscribe();
+        }
+
+        loop {
+            tokio::select! {
+                recv_result = receiver.recv() => {
+                    let Ok(msg) = recv_result else {
+                        match recv_result.unwrap_err() {
+                            RecvError::Closed => {
+                                return;
+                            }
+                            RecvError::Lagged(skipped) => {
+                                log::error!("PHC local task on {:?} is lagging behind, and has skipped processing {skipped} messages!", std::thread::current().id());
+                                continue;
+                            }
+                       }
+                    };
+                },
+                _ = tokio::time::sleep(core::time::Duration::from_secs(5)) => {
+                    log::debug!("phc local task still alive on thread {:?} receiver (w:{}, s:{}) app (w:{}, s: {})", 
+                        // TODO: MYSTERY:  why is the number of strong references to the sender 6?
+                        std::thread::current().id(), 
+                            receiver.sender_weak_count(), receiver.sender_strong_count(),
+                            weak.weak_count(), weak.strong_count());
+                }
+            }
+        }
+    }
 }
 
 impl App {
@@ -336,6 +379,7 @@ impl App {
         }
         .check(tdi, url)
     }
+
 }
 
 #[derive(Clone)]
@@ -354,6 +398,9 @@ pub struct AppCreator {
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
+    
+    // channel for sending messages between apps
+    pub broadcast : tokio::sync::broadcast::Sender<InterAppMsg>,
 }
 
 impl Deref for AppCreator {
@@ -387,6 +434,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             user_object_hmac_secret: self.user_object_hmac_secret,
             quota: self.quota,
             card_pseud_validity: self.card_pseud_validity,
+            broadcast: self.broadcast,
         }
     }
 
@@ -445,6 +493,13 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_boxed_slice(),
             quota: xconf.user_quota.clone(),
             card_pseud_validity: xconf.card_pseud_validity,
+            broadcast: tokio::sync::broadcast::Sender::new(10),
         })
     }
+}
+
+/// Message sent between [`App`] instances accross threads
+#[derive(Clone,Debug)]
+pub(crate) enum InterAppMsg {
+    
 }

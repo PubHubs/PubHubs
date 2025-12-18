@@ -4,14 +4,14 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use actix_web::web;
-use anyhow::{Context as _, Result, bail};
+use anyhow::{bail, Context as _, Result};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::api;
 use crate::servers::{
-    App, AppBase, AppCreator, Command, DiscoverVerdict, Name, Server, for_all_servers,
-    server::RunningState,
+    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, DiscoverVerdict,
+    Name, Server,
 };
 
 /// A set of running PubHubs servers.
@@ -506,8 +506,8 @@ impl DiscoveryLimiter {
                 |server: &mut S| -> bool {
                     let Some(new_constellation) = new_constellation_maybe else {
                         return false; // no, don't restart the server, but exit the binary so that
-                        // - hopefully - a new version of the binary will be started
-                        // by e.g. systemd
+                                      // - hopefully - a new version of the binary will be started
+                                      // by e.g. systemd
                     };
 
                     let extra = match server.create_running_state(&new_constellation) {
@@ -766,6 +766,26 @@ impl<S: Server> Runner<S> {
 
                             // and then server-specific endpoints
                             app.configure_actix_app(sc);
+
+                            let weak = Rc::downgrade(&app);
+
+                            tokio::task::spawn_local(async move {
+                                let thread = std::thread::current();
+
+                                log::debug!(
+                                    "{}: spawned local task on thread {:?}",
+                                    S::NAME,
+                                    thread.id()
+                                );
+
+                                S::AppT::local_task(weak).await;
+
+                                log::debug!(
+                                    "{}: local task on thread {:?} stopped",
+                                    S::NAME,
+                                    thread.id()
+                                );
+                            });
                         },
                     )
                 })
