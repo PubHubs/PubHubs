@@ -1047,6 +1047,7 @@ async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_
         verifying_key: Some(vk),
         hub_version: "n/a".to_owned(),
         hub_client_url: "http://example.com".parse().unwrap(),
+        dynamic: None,
     }))
 }
 
