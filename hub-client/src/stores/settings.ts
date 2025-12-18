@@ -93,7 +93,7 @@ const defaultSettings: Settings = {
 	language: fallbackLanguage,
 	_i18n: { locale: undefined, availableLocales: undefined },
 	// First check if the Notifications API is supported.
-	notificationsPermission: 'Notification' in window ? (Notification.permission === 'denied' || Notification.permission === 'default' ? NotificationsPermission.Deny : NotificationsPermission.Allow) : NotificationsPermission.Deny,
+	notificationsPermission: 'Notification' in globalThis ? (Notification.permission === 'denied' || Notification.permission === 'default' ? NotificationsPermission.Deny : NotificationsPermission.Allow) : NotificationsPermission.Deny,
 
 	/**
 	 * Enable/disable feature flags here.
@@ -172,7 +172,7 @@ const useSettings = defineStore('settings', {
 			if (state.theme !== Theme.System) {
 				return state.theme;
 			}
-			if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+			if (globalThis.matchMedia('(prefers-color-scheme: dark)').matches) {
 				return Theme.Dark;
 			}
 			return Theme.Light;
@@ -207,10 +207,10 @@ const useSettings = defineStore('settings', {
 		 */
 		getThemeOptions: () => (themes: Function | undefined) => {
 			const options = Object.values(Theme).map((e) => {
-				if (typeof themes !== 'function') {
-					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
-				} else {
+				if (typeof themes === 'function') {
 					return { label: themes('themes.' + e), value: e };
+				} else {
+					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
 				}
 			});
 			return options;
@@ -225,10 +225,10 @@ const useSettings = defineStore('settings', {
 
 		getNotificationOptions: () => (notifications: Function | undefined) => {
 			const options = Object.values(NotificationsPermission).map((e) => {
-				if (typeof notifications !== 'function') {
-					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
-				} else {
+				if (typeof notifications === 'function') {
 					return { label: notifications('notifications.' + e), value: e };
+				} else {
+					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
 				}
 			});
 			return options;
@@ -312,7 +312,7 @@ const useSettings = defineStore('settings', {
 			this.isMobileState = isMobile;
 
 			const iframe = document.getElementById('hub-frame-id') as HTMLIFrameElement;
-			if (iframe && iframe.contentWindow) {
+			if (iframe?.contentWindow) {
 				iframe.contentWindow.postMessage({ isMobileState: isMobile }, '*');
 			}
 		},

@@ -17,6 +17,7 @@ import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 import Room from '@hub-client/models/rooms/Room';
 import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
+import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
 
 // Stores
@@ -66,7 +67,7 @@ function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
 		return false;
 	}
 
-	const hasEmptyAttributeType = Object.keys(room.accepted).some((key) => key === '');
+	const hasEmptyAttributeType = Object.keys(room.accepted).includes('');
 	if (hasEmptyAttributeType) return false;
 
 	return true;
@@ -87,7 +88,7 @@ const useRooms = defineStore('rooms', {
 			askDisclosureMessage: null as AskDisclosureMessage | null,
 			newAskDisclosureMessage: false,
 			initialRoomsLoaded: false,
-			timestamps: [] as Array<Array<Number | string>>,
+			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
 		};
 	},
@@ -105,7 +106,7 @@ const useRooms = defineStore('rooms', {
 		roomsArray(state): Array<Room> {
 			const values = Object.values(state.rooms);
 			// check if the room has an Id and if the Id is different from the name (because then the Id would be displayed and the room unreachable)
-			const rooms = values.filter((room) => typeof room.roomId !== 'undefined' && room.roomId !== room.name);
+			const rooms = values.filter((room) => room.roomId !== undefined && room.roomId !== room.name);
 			return rooms;
 		},
 
@@ -139,7 +140,7 @@ const useRooms = defineStore('rooms', {
 		roomExists: (state) => {
 			return (roomId: string) => {
 				if (roomId) {
-					return typeof state.rooms[roomId] === 'undefined' ? false : true;
+					return state.rooms[roomId] !== undefined;
 				}
 				return false;
 			};
@@ -147,7 +148,7 @@ const useRooms = defineStore('rooms', {
 
 		room: (state) => {
 			return (roomId: string): Room | undefined => {
-				if (typeof state.rooms[roomId] !== 'undefined') {
+				if (state.rooms[roomId] !== undefined) {
 					return state.rooms[roomId];
 				}
 				return undefined;
@@ -156,7 +157,7 @@ const useRooms = defineStore('rooms', {
 
 		getRoomTopic: (state) => {
 			return (roomId: string) => {
-				if (typeof state.rooms[roomId] === 'undefined') return '';
+				if (state.rooms[roomId] === undefined) return '';
 				const room = state.rooms[roomId];
 				return room.getTopic();
 			};
@@ -179,7 +180,7 @@ const useRooms = defineStore('rooms', {
 
 		nonSecuredPublicRooms(state): Array<TPublicRoom> {
 			return state.publicRooms.filter((room: TPublicRoom) => {
-				return typeof room.room_type === 'undefined' || room.room_type !== RoomType.PH_MESSAGES_RESTRICTED;
+				return room.room_type === undefined || room.room_type !== RoomType.PH_MESSAGES_RESTRICTED;
 			});
 		},
 
@@ -209,7 +210,7 @@ const useRooms = defineStore('rooms', {
 			});
 			return total;
 		},
-		roomtimestamps(state): Array<Array<Number | string>> {
+		roomtimestamps(state): Array<Array<number | string>> {
 			return state.timestamps;
 		},
 	},
@@ -224,7 +225,7 @@ const useRooms = defineStore('rooms', {
 		setRoomsLoaded(value: boolean) {
 			this.initialRoomsLoaded = value;
 		},
-		setTimestamps(timestamps: Array<Array<Number | string>>) {
+		setTimestamps(timestamps: Array<Array<number | string>>) {
 			this.timestamps = timestamps;
 		},
 
@@ -265,7 +266,7 @@ const useRooms = defineStore('rooms', {
 		},
 
 		updateRoomList(roomId: string, name: string, type: string) {
-			if (!this.roomList.find((room) => room.roomId === roomId)) {
+			if (!this.roomList.some((room) => room.roomId === roomId)) {
 				this.roomList.push({ roomId: roomId, roomType: type, name: name });
 			}
 		},
@@ -337,7 +338,7 @@ const useRooms = defineStore('rooms', {
 		async fetchPublicRooms() {
 			const pubhubs = usePubhubsStore();
 			const rooms = await pubhubs.getAllPublicRooms();
-			this.publicRooms = rooms.sort(propCompare('name'));
+			this.publicRooms = rooms.toSorted(propCompare('name'));
 		},
 
 		// Filter rooms based on type defined. Synapse public rooms doesn't have a type so they are undefined.
@@ -370,7 +371,7 @@ const useRooms = defineStore('rooms', {
 			// if (types.includes(RoomType.PH_MESSAGES_DM)) {
 			// 	return rooms.filter((room) => room.getType() !== undefined && types.includes(room.getType() as RoomType)).filter((room) => isVisiblePrivateRoom(room.name, user));
 			// }
-			return rooms.filter((room) => room.getType() !== undefined && types.includes(room.getType() as RoomType));
+			// return rooms.filter((room) => room.getType() !== undefined && types.includes(room.getType() as RoomType));
 		},
 
 		memberOfPublicRoom(roomId: string): boolean {
@@ -394,7 +395,7 @@ const useRooms = defineStore('rooms', {
 			}
 
 			if (creatingAdminUser) {
-				this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
+				this.roomNotices[roomId][creatingAdminUser] = ['rooms.admin_badge'];
 			}
 			const limit = 100000;
 			const encodedObject = encodeURIComponent(
@@ -694,12 +695,6 @@ const useRooms = defineStore('rooms', {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
 		getTotalPrivateRoomUnreadMsgCount(): number {
-			// const dmRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
-			// const groupRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_GROUP) ?? [];
-			// const adminRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
-
-			// const totalPrivateRooms = [...dmRooms, ...groupRooms, ...adminRooms];
-
 			const totalPrivateRooms = this.fetchRoomArrayByAccessibility(DirectRooms);
 			return totalPrivateRooms.reduce((total, room) => total + (room.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
 		},

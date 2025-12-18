@@ -165,7 +165,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			// this actually does nothing when already joined, but it will return the room to be stored
 
 			for (const room_id of joinedRooms) {
-				if (!knownRooms.find((kr: any) => kr.roomId === room_id)) {
+				if (!knownRooms.some((kr: any) => kr.roomId === room_id)) {
 					const roomName = allPublicRooms.find((r: any) => r.room_id === room_id)?.name ?? undefined;
 
 					// join again and then store the room in the client store
@@ -225,9 +225,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			let matrixRoom = this.client.getRoom(roomId);
 			try {
-				if (!matrixRoom) {
-					matrixRoom = await this.client.joinRoom(roomId);
-				}
+				matrixRoom ??= await this.client.joinRoom(roomId);
 				if (matrixRoom) {
 					this.client.store.storeRoom(matrixRoom);
 
@@ -262,14 +260,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		showError(error: string | MatrixError) {
-			if (typeof error !== 'string') {
-				if (error.errcode !== 'M_FORBIDDEN' && error.data) {
-					this.showDialog(error.data.error as string);
-				} else {
-					logger.trace(SMI.STORE, 'showing error dialog', { error });
-				}
-			} else {
+			if (typeof error === 'string') {
 				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
+			} else if (error.errcode !== 'M_FORBIDDEN' && error.data) {
+				this.showDialog(error.data.error as string);
+			} else {
+				logger.trace(SMI.STORE, 'showing error dialog', { error });
 			}
 		},
 
@@ -381,7 +377,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
 				let roomType: string = getRoomType(matrixRoom);
-				rooms.initRoomsWithMatrixRoom(matrixRoom!, matrixRoom?.name ?? undefined, roomType, []);
+				rooms.initRoomsWithMatrixRoom(matrixRoom, matrixRoom?.name ?? undefined, roomType, []);
 			} catch (err) {
 				throw err;
 			}
@@ -458,12 +454,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (existingRoomId === false) {
 				const otherUserForName = otherUsers;
 				const privateRoomName = createNewPrivateRoomName([me, ...otherUserForName]);
-				const stewardRoomName = roomIdForStewardRoomCreate !== '' ? roomIdForStewardRoomCreate + ',' + privateRoomName : '';
+				const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
 				const inviteIds = otherUsers.map((u) => u.userId);
 
 				const room = await this.createRoom({
 					preset: 'trusted_private_chat',
-					name: roomIdForStewardRoomCreate !== '' ? stewardRoomName : privateRoomName,
+					name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
 					visibility: 'private',
 					invite: inviteIds,
 					is_direct: true,
@@ -934,7 +930,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			try {
 				// FileLibrary
 				if (eventType === PubHubsMgType.LibraryFileMessage) {
-					await this.client.sendEvent(roomId, eventType as keyof TimelineEvents, content);
+					await this.client.sendEvent(roomId, eventType as unknown as keyof TimelineEvents, content);
 				} else {
 					await this.client.sendMessage(roomId, thread, content);
 				}
@@ -973,8 +969,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (!this.client.getUsers) {
 				return [];
 			}
-			const users = (await this.client.getUsers()) as Array<MatrixUser>;
-			return users;
+			return this.client.getUsers();
 		},
 
 		/**
@@ -983,7 +978,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @returns the promise of searchRoomEvents or an empty promise (when no term is given)
 		 */
 		async searchRoomEvents(term: string, searchParameters: TSearchParameters): Promise<ISearchResults> {
-			if (!term || !term.length) {
+			if (!term?.length) {
 				const emptySearchResult: ISearchResults = {
 					results: [],
 					highlights: [],
@@ -1075,7 +1070,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		/**
 		 * Fetches latest room timestamps from the API
 		 */
-		async fetchTimestamps(): Promise<Array<Array<Number | string>>> {
+		async fetchTimestamps(): Promise<Array<Array<number | string>>> {
 			const url = `${api_synapse.apiURLS.data}?data=timestamps`;
 			return await api_synapse.apiGET(url);
 		},
