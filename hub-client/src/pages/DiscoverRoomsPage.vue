@@ -23,7 +23,7 @@
 		</div>
 
 		<!-- Room grid -->
-		<div class="flex w-full flex-col gap-2">
+		<div v-if="roomsLoaded" class="flex w-full flex-col gap-2">
 			<div class="flex w-full justify-center rounded-xl py-8">
 				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="3xl:grid-cols-3 grid w-full grid-cols-1 gap-8 px-0 transition-all duration-300 md:grid-cols-2 lg:px-16">
 					<RoomCard
@@ -43,6 +43,9 @@
 					<P>{{ t('rooms.no_rooms_found') }}</P>
 				</div>
 			</div>
+		</div>
+		<div>
+			<InlineSpinner v-if="!roomsLoaded" class="mx-auto w-full" />
 		</div>
 	</div>
 </template>
@@ -70,6 +73,7 @@
 	const roomTimestamps = ref<Record<string, Date>>({});
 	const expandedCardId = ref<string | null>(null);
 	const searchQuery = ref('');
+	let roomsLoaded = ref(true);
 
 	type TVisiblePublicRoom = TPublicRoom & {
 		nameToLower: string;
@@ -118,7 +122,9 @@
 	});
 
 	onMounted(async () => {
+		roomsLoaded.value = false;
 		await rooms.fetchPublicRooms();
+		roomsLoaded.value = true;
 		// for quicker searching: add tolower name and topic
 		visiblePublicRooms.value = rooms.visiblePublicRooms.map((room) => ({
 			...room,
