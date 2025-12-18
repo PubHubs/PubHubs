@@ -119,7 +119,7 @@
 			await uploadAvatar();
 		}
 		if (avatarMxcUrl.value !== undefined) {
-			user.setAvatarMxcUrl(avatarMxcUrl.value);
+			user.setAvatarUrl(avatarMxcUrl.value);
 		}
 		if (blobUrl.value) {
 			URL.revokeObjectURL(blobUrl.value);
@@ -149,7 +149,7 @@
 			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, (mxUrl) => {
 				avatarMxcUrl.value = mxUrl;
 				if (avatarMxcUrl.value !== undefined) {
-					user.setAvatarMxcUrl(avatarMxcUrl.value);
+					user.setAvatarUrl(avatarMxcUrl.value);
 				}
 			});
 		} else {

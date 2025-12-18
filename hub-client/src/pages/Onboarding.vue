@@ -231,7 +231,7 @@
 	const hubName = ref(hubSettings.hubName);
 	const isMobile = computed(() => settings.isMobileState);
 	const inputValue = ref('');
-	const pseudonym = ref(user.userId.split(':')[0].substring(1));
+	const pseudonym = ref(user.userId?.split(':')[0].substring(1));
 	const isUsernameChanged = computed(() => inputValue.value !== '');
 	const isConsentOnly = computed(() => route.query.type === 'consent');
 	const originalRoute = route.query.originalRoute;
@@ -271,7 +271,7 @@
 			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, async (mxUrl) => {
 				avatarMxcUrl.value = mxUrl;
 				if (avatarMxcUrl.value) {
-					await user.setAvatarMxcUrl(avatarMxcUrl.value);
+					await user.setAvatarUrl(avatarMxcUrl.value);
 				}
 			});
 		} catch (error) {

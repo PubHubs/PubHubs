@@ -1010,7 +1010,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async getAuthorizedMediaUrl(url: string): Promise<string | null> {
+		async fetchAuthorizedMediaUrl(url: string): Promise<string | null> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
