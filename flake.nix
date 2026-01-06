@@ -53,6 +53,7 @@
               pkg-config # 0.29.2
               python3 # 3.13.11
               sqlite # 3.51.1
+              tmux # 3.6a
             ] ++ [
               # Custom packages
               (pkgs.callPackage ./packages/irmago.nix { }) # 0.19.1
