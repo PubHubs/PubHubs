@@ -10,7 +10,9 @@ client-config.local.js
 *.swp
 node_modules
 
-
 # Added by cargo
-
 /target
+
+# Nix
+.direnv
+result

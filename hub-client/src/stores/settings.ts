@@ -142,7 +142,7 @@ const defaultSettings: Settings = {
 			unreadCounter: true,
 			roomLibrary: true,
 			votingWidget: true,
-			consent: false,
+			consent: true,
 			phCard: true,
 		},
 	},
