@@ -12,7 +12,7 @@
 				<Icon type="user" size="sm" class="mr-1" />
 
 				<span class="mx-1">
-					{{ user.rawDisplayName }}
+					{{ user.user.displayName }}
 					<span v-if="memberList.length > 0">,</span>
 				</span>
 

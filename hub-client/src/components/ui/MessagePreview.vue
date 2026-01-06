@@ -54,9 +54,6 @@
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
-	// Composables
-	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
-
 	// Logic
 	import filters from '@hub-client/logic/core/filters';
 
@@ -130,7 +127,7 @@
 		return getOtherDMUser()?.rawDisplayName;
 	});
 
-	const pseudonym = computed(() => (getOtherDMUser()?.userId ? filters.extractPseudonym(getOtherDMUser()?.userId) : ''));
+	const pseudonym = computed(() => (getOtherDMUser()?.userId ? filters.extractPseudonym(getOtherDMUser()!.userId) : ''));
 
 	const isGroupOrContact = computed(() => roomType.value === RoomType.PH_MESSAGES_GROUP || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT || roomType.value === RoomType.PH_MESSAGE_STEWARD_CONTACT);
 
