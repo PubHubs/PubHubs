@@ -1,39 +1,36 @@
+import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 // Models
 // Packages
 import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
-import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
-import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
+import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { RoomMessageEventContent, TimelineEvents } from 'matrix-js-sdk/lib/types';
-import { defineStore } from 'pinia';
-
-// Composables
-import { useMatrix } from '@hub-client/composables/matrix.composable';
-
+import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
+import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
+import { User, useUser } from '@hub-client/stores/user';
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
-import { Authentication } from '@hub-client/logic/core/authentication';
-import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
-import { router } from '@hub-client/logic/core/router';
 import { hasHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+
+import { Authentication } from '@hub-client/logic/core/authentication';
 import { LOGGER } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
-import { getRoomType } from '@hub-client/logic/pubhubs.logic';
-
-import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
-import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
-import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import Room from '@hub-client/models/rooms/Room';
+import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { TSearchParameters } from '@hub-client/models/search/TSearch';
-
+import { defineStore } from 'pinia';
+import { getRoomType } from '@hub-client/logic/pubhubs.logic';
+import { router } from '@hub-client/logic/core/router';
 // Stores
 import { useConnection } from '@hub-client/stores/connection';
+// Composables
+import { useMatrix } from '@hub-client/composables/matrix.composable';
 import { useMessageActions } from '@hub-client/stores/message-actions';
-import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
-import { User, useUser } from '@hub-client/stores/user';
 
 const logger = LOGGER;
 const publicRoomsLoading: Promise<any> | null = null; // Outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -322,15 +319,17 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		// actual performing of publicRooms API call
 		async performGetAllPublicRooms(): Promise<TPublicRoom[]> {
+			console.info('performGetAllPublicRooms');
 			if (!this.client.publicRooms) {
 				return [];
 			}
-			if (Date.now() < this.lastPublicCheck + 2_500) {
-				//Only check again after 4 seconds.
+			// Only check again after 1 minute
+			if (Date.now() < this.lastPublicCheck + 60_000) {
 				return this.publicRooms;
 			}
 
 			let publicRoomsResponse = await this.client.publicRooms({ limit: 1000 }); // because we need all the public rooms, limit is set high to limit the number of calls
+			console.info('performGetAllPublicRooms, first chunk',publicRoomsResponse);
 			let public_rooms = publicRoomsResponse.chunk;
 
 			// Previous versions had a problem, but I cannot reproduce it anymore: DANGER this while loop turns infinite when the generated public rooms request is a POST request. This happens when the optional 'options' parameter is supplied to 'this.client.publicRooms'. Then the pagination doesn't work anymore and the loop becomes infinite.
