@@ -842,8 +842,13 @@ export default class Room {
 		this.deleteMessage(event, undefined, threadRootId);
 	}
 
-	public getRoomAvatarMxcUrl(): string | null {
-		return this.matrixRoom.getMxcAvatarUrl();
+	// get the authorized url of the room-avatar
+	public async getRoomAvatarAuthorizedUrl(): Promise<string | undefined> {
+		const mxcUrl = this.matrixRoom.getMxcAvatarUrl();
+		if (mxcUrl) {
+			return await this.matrixFiles.getAuthorizedMediaUrl(mxcUrl);
+		}
+		return undefined;
 	}
 
 	public getRoomMembers(): number {

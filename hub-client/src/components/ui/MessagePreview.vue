@@ -70,7 +70,6 @@
 	const router = useRouter();
 	const rooms = useRooms();
 	const { t } = useI18n();
-	const { getAuthorizedMediaUrl } = useMatrixFiles();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
 	const props = defineProps({
@@ -92,10 +91,7 @@
 				avatarOverrideUrl.value = undefined;
 				return;
 			}
-			const mxcUrl = props.room.getRoomAvatarMxcUrl();
-			if (mxcUrl) {
-				avatarOverrideUrl.value = await getAuthorizedMediaUrl(mxcUrl);
-			}
+			avatarOverrideUrl.value = await props.room.getRoomAvatarAuthorizedUrl();
 		},
 		{ immediate: true },
 	);
