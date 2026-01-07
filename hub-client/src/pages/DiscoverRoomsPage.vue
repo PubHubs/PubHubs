@@ -37,7 +37,7 @@
 						:room="room"
 						:isSecured="rooms.publicRoomIsSecure(room.room_id)"
 						:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
-						:timestamp="roomTimestamps[room.room_id] || 0"
+						:timestamp="roomTimestamps[room.room_id]"
 						:isExpanded="expandedCardId === room.room_id"
 						@toggleExpand="handleToggleExpand(room.room_id)"
 					/>
