@@ -1,11 +1,16 @@
 <template>
 	<div v-if="user.isLoggedIn && setupReady" class="font-body text-on-surface text-body flex w-full shrink-0">
-		<HeaderFooter class="bg-surface-low relative shrink-0" :class="isMobile ? '!w-[calc(50%_-_40px)]' : 'flex max-w-[320px]'">
+		<HeaderFooter class="bg-surface-low relative shrink-0" :class="isMobile ? 'w-[calc(50%-40px)]!' : 'flex max-w-[320px]'">
 			<template #header>
 				<div class="flex h-full w-full justify-between py-2">
-					<div class="flex w-full items-center justify-between">
-						<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
+					<div class="flex items-center justify-between gap-2">
+						<div class="group hover:border-on-surface-dim hover:mt-025 relative flex cursor-pointer items-center gap-2 hover:border-b-2 hover:border-dotted" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
+							<H3 class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
+							<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
+						</div>
 						<Notification class="absolute right-4" />
+						<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
+						<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
 					</div>
 					<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
 				</div>
@@ -86,6 +91,8 @@
 
 		<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 	</div>
+
+	<ContextMenu />
 </template>
 
 <script setup lang="ts">
@@ -93,7 +100,7 @@
 	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { RouteParamValue, useRouter } from 'vue-router';
+	import { NavigationFailure, RouteParamValue, isNavigationFailure, useRouter } from 'vue-router';
 
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
@@ -110,6 +117,8 @@
 	import Notification from '@hub-client/components/ui/Notification.vue';
 	import RoomListHeader from '@hub-client/components/ui/RoomListHeader.vue';
 
+	// Composables
+	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Logic
@@ -119,6 +128,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
+	import { QueryParameterKey } from '@hub-client/models/constants';
 	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
@@ -133,6 +143,9 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// New design
+	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
+
 	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
 	const settings = useSettings();
@@ -143,6 +156,7 @@
 	const dialog = useDialog();
 	const pubhubs = usePubhubsStore();
 	const menu = useMenu();
+	const { copyHubUrl } = useClipboard();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
@@ -208,15 +222,42 @@
 				hubSettings.initHubInformation(message.content as HubInformation);
 			});
 
-			// Listen to roomchange
 			messagebox.addCallback('parentFrame', MessageType.RoomChange, async (message: Message) => {
+				let navigationResult: NavigationFailure | void | undefined = undefined;
+				//TODO: content from MessageType.RoomChange is roomId? maybe we can rename content to roomId.
 				const content = message.content as RouteParamValue;
-				const isNonRoomRoute = routes.some((r) => r.name === content && r.name !== 'room');
-				if (isNonRoomRoute) {
-					router.push({ name: content });
+				// If content is a roomId then it has a format that starts with !.
+				if (content.startsWith('!')) {
+					navigationResult = await router.push({ name: 'room', params: { id: content } });
 				} else {
-					router.push({ name: 'room', params: { id: content } });
+					navigationResult = await router.push({ name: content as any });
 				}
+
+				// FALLBACK to homepage if there is a navigation failure.
+				if (navigationResult && isNavigationFailure(navigationResult)) {
+					await router.push({ name: 'home' });
+				}
+			});
+
+			// Listen to event change
+			messagebox.addCallback('parentFrame', MessageType.EventChange, (message: Message) => {
+				const url = message.content;
+
+				const [routePart, queryPart] = url.split('?');
+
+				const params = new URLSearchParams(queryPart);
+
+				const eventId = params.get(QueryParameterKey.EventId);
+
+				if (!eventId) return;
+
+				// Ignore any empty values
+				const splitRoutePart: string[] = routePart.split('/').filter(Boolean);
+
+				const roomId = splitRoutePart[splitRoutePart.length - 1];
+
+				// Set the scroll position to event
+				rooms.scrollPositions[roomId] = eventId;
 			});
 
 			// Listen to global menu change

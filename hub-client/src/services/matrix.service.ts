@@ -22,12 +22,14 @@ import { useUser } from '@hub-client/stores/user';
 class MatrixService {
 	private slidingSync: SlidingSync | null = null;
 	private client: MatrixClient | null = null;
-	private subscribedRooms = new Map<string, string>(); // TODO: Move to store
+	private subscribedRooms: Map<string, string> = new Map<string, string>(); // TODO: Move to store
 
 	// TODO: Use room composable instead
 	private roomsStore = useRooms();
 
-	private initialRoomLoading: boolean = true;
+	private roomsCount: number = 0; // number of rooms returned by sliding sync
+	private roomsUpperRange: number = SystemDefaults.mainRoomListRange; // current number of the upper range of the roomlist
+	private initialRoomLoading: boolean = true; // Are we fetching the first roomlist with only memberdata? (vs the main roomlist with all data)
 	/**
 	 * Construct a MatrixService instance.
 	 *
@@ -131,12 +133,24 @@ class MatrixService {
 		LOGGER.log(SMI.SYNC, 'Sliding Sync stopped');
 	}
 
-	/* Switch the list of sliding sync rooms after collecting the initial roomslist.
+	/**
+	 * Switch the list of sliding sync after collecting the initial roomslist
+	 * When there are more rooms than the current upperRange: increase it to wait for the next load of rooms
 	 */
 	private SetRoomSlidingSync() {
 		if (this.initialRoomLoading) {
-			this.slidingSync?.setList(SlidingSyncOptions.roomList, RoomLists.get(SlidingSyncOptions.mainRoomList)!);
 			this.initialRoomLoading = false;
+		}
+
+		const mainRoomList = RoomLists.get(SlidingSyncOptions.mainRoomList);
+		mainRoomList!.ranges[0][1] = this.roomsUpperRange;
+
+		// change sliding sync to current mainRoomlist
+		this.slidingSync?.setList(SlidingSyncOptions.roomList, mainRoomList!);
+
+		// increase the upperrange for the next time
+		if (this.roomsUpperRange < this.roomsCount) {
+			this.roomsUpperRange += SystemDefaults.mainRoomListRange;
 		}
 	}
 
@@ -175,26 +189,6 @@ class MatrixService {
 		}
 	}
 
-	// TODO: Might need refactoring to align with new file structure.
-	// Also needs to be added to the store and composable
-	syncUsersProfile(roomData: MSC3575RoomData): boolean {
-		const currentUser = useUser();
-
-		// profile data of members is in the join content of roommember events, need only update when there is new content
-		const membersOnlyProfileUpdate = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
-		if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
-
-		membersOnlyProfileUpdate.forEach((member) => {
-			const profile = {
-				avatar_url: member.content.avatar_url ?? undefined,
-				displayname: member.content.displayname ?? undefined,
-			};
-			currentUser.setAllProfiles(member.sender, profile);
-		});
-
-		return true;
-	}
-
 	// #endregion
 
 	// #region Event handlers
@@ -231,14 +225,18 @@ class MatrixService {
 			const currentUser = useUser();
 			if (state !== SlidingSyncState.Complete) return;
 
+			this.roomsCount = response?.lists.roomList.count ?? 0;
 			const roomList = response?.rooms;
-			if (!roomList || Object.keys(roomList).length === 0) return;
-			//console.error('sliding sync RoomList ', roomList);
+			if (this.roomsCount <= 0 || !roomList || Object.keys(roomList).length <= 0) {
+				this.roomsStore.setRoomsLoaded(true);
+				return;
+			}
+			//console.error('sliding sync RoomList ', response);
 
 			const joinPromises: Promise<any>[] = [];
 
 			for (const [roomId, roomData] of Object.entries(roomList)) {
-				this.syncUsersProfile(roomData);
+				currentUser.loadFromSlidingSync(roomData);
 
 				// get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
 				const latestRoomMemberInfo = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];

@@ -1,4 +1,5 @@
 // Packages
+import { Locale, enGB as localeEN, nl as localeNL } from 'date-fns/locale';
 import { App } from 'vue';
 import { I18nOptions, createI18n } from 'vue-i18n';
 
@@ -11,6 +12,12 @@ import { nl } from '@hub-client/locales/nl';
 type Language = 'nl' | 'en';
 
 const supportedLanguages: Language[] = ['nl', 'en'];
+
+// associate locale to language
+const languageLocale: Record<string, Locale> = {
+	en: localeEN,
+	nl: localeNL,
+};
 
 // The default language is determined by the browser
 const defaultLanguage = getLanguageFromBrowser() || 'nl';
@@ -119,4 +126,4 @@ function languageIsSupported(language: string): language is Language {
 	return supportedLanguages.includes(language as Language);
 }
 
-export { Language, currentLanguage, fallbackLanguage, setLanguage, setUpi18n, supportedLanguages };
+export { Language, currentLanguage, fallbackLanguage, setLanguage, setUpi18n, supportedLanguages, languageLocale };

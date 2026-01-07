@@ -4,6 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
+		"format": "npx prettier ./src --write --ignore-unknown --config ./.prettierrc",
 		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",
 		"pwa": "vite build && npx http-server dist",
 		"test": "vitest",
@@ -43,7 +44,7 @@
 		"eslint-plugin-vue": "^9",
 		"jsdoc": "^4.0.2",
 		"jsdom": "^27",
-		"msw": "2.3.2",
+		"msw": "^2.12.4",
 		"postcss": "^8.5.3",
 		"prettier": "^3.5.0",
 		"prettier-eslint": "^16.3.0",
@@ -52,7 +53,7 @@
 		"typescript": "^5.0.2",
 		"vite-plugin-node-polyfills": "^0.24.0",
 		"vite-plugin-pwa": "^1.0.0",
-		"vitest": "^3"
+		"vitest": "^4"
 	},
 	"eslintConfig": {
 		"root": true,

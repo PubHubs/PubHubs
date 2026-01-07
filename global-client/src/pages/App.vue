@@ -9,7 +9,9 @@
 		<div v-if="!(route.name === 'onboarding')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
 	</div>
 
-	<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
+	<Dialog v-if="dialog.visible" @close="dialog.close" />
+
+	<ContextMenu />
 </template>
 
 <script setup lang="ts">
@@ -21,8 +23,10 @@
 	// Components
 	import GlobalBar from '@global-client/components/ui/GlobalBar.vue';
 	import MobileMenu from '@global-client/components/ui/MobileMenu.vue';
+
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
+	// Composables
 	import useRootScroll from '@global-client/composables/useRootScroll';
 
 	// Logic
@@ -30,6 +34,7 @@
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	// Stores
 	import { useGlobal } from '@global-client/stores/global';
 	import { useHubs } from '@global-client/stores/hubs';
 	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
@@ -37,6 +42,9 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { NotificationsPermission, useSettings } from '@hub-client/stores/settings';
+
+	// New design
+	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 
 	const isMobile = computed(() => settings.isMobileState);
 	const LOGGER = new Logger('GC', CONFIG);

@@ -5,6 +5,9 @@ const nl = {
 		loading: 'Laden ...',
 		or: 'of',
 	},
+	card: {
+		description: 'Kaart uitgegeven met de volgende kenmerken:',
+	},
 	state: {
 		button_request: 'Verleen toegang',
 		initial: 'Controleren of de hub client toegang heeft tot cookies en lokale opslag...',
@@ -193,6 +196,10 @@ const nl = {
 	menu: {
 		calender: 'Kalender',
 		contact: 'Admin Contact',
+		copy_hub_url: 'Kopieer link naar hub',
+		copy_room_url: 'Kopieer link naar kamer',
+		enter_room: 'Ga naar kamer',
+		leave_room: 'Verlaat kamer',
 		home: 'Hub welkom',
 		directmsg: 'Directe berichten',
 		discover: 'Ontdek kamers',
@@ -565,8 +572,9 @@ const nl = {
 		min_length: '{0} is te kort, er moeten minimaal {1} karakters zijn, maar er zijn {2}',
 		max_items: 'Te veel {0}, er mogen maximaal {1} items zijn, maar er zijn {2}',
 		min_items: 'Te weinig {0}, er moeten minimaal {1} items zijn, maar er zijn {2}',
-		max_value: '{0} is te hoog, de maximale waarde is {1}, maar er zijn {2}',
-		min_value: '{0} moet minimaal een waarde van {1} hebben, maar er zijn {2}',
+		max_value: '{0} is te hoog, de maximale waarde is {1}',
+		min_value: '{0} moet minimaal een waarde van {1} hebben',
+		is_number: '{0} moet een getal zijn',
 	},
 	bubble: {
 		organize: 'Organiseer je hubs door ze te slepen.',
