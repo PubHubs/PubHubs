@@ -23,7 +23,7 @@
 		</div>
 
 		<!-- Room grid -->
-		<div class="flex w-full flex-col gap-2">
+		<div v-if="roomsLoaded" class="flex w-full flex-col gap-2">
 			<div class="flex w-full justify-center rounded-xl py-8">
 				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="3xl:grid-cols-3 grid w-full grid-cols-1 gap-8 px-0 transition-all duration-300 md:grid-cols-2 lg:px-16">
 					<RoomCard
@@ -44,6 +44,9 @@
 				</div>
 			</div>
 		</div>
+		<div>
+			<InlineSpinner v-if="!roomsLoaded" class="mx-auto w-full" />
+		</div>
 	</div>
 </template>
 <script setup lang="ts">
@@ -60,7 +63,7 @@
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
+	import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 
 	const pubhubsStore = usePubhubsStore();
 	const hubSettings = useHubSettings();
@@ -70,10 +73,18 @@
 	const roomTimestamps = ref<Record<string, Date>>({});
 	const expandedCardId = ref<string | null>(null);
 	const searchQuery = ref('');
+	let roomsLoaded = ref(true);
+
+	type TVisiblePublicRoom = TPublicRoom & {
+		nameToLower: string;
+		topicToLower: string;
+	};
+
+	let visiblePublicRooms = ref<TVisiblePublicRoom[]>([]);
 
 	const filteredRooms = computed(() => {
 		const query = searchQuery.value.toLowerCase().trim();
-		return rooms.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query) || room.topic?.toLowerCase().includes(query));
+		return visiblePublicRooms.value.filter((room) => room.nameToLower.includes(query) || room.topicToLower.includes(query));
 	});
 
 	const handleToggleExpand = (roomId: string) => {
@@ -111,6 +122,14 @@
 	});
 
 	onMounted(async () => {
+		roomsLoaded.value = false;
 		await rooms.fetchPublicRooms();
+		roomsLoaded.value = true;
+		// for quicker searching: add tolower name and topic
+		visiblePublicRooms.value = rooms.visiblePublicRooms.map((room) => ({
+			...room,
+			nameToLower: room.name?.toLowerCase() ?? '',
+			topicToLower: room.topic?.toLowerCase() ?? '',
+		}));
 	});
 </script>
