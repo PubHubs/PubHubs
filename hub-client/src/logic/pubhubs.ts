@@ -41,6 +41,7 @@ export function findRoomsToRejoin(joinedRooms: string[], knownRooms: MatrixRoom[
  * Resolves a "public rooms" list using either the provided Matrix client or a
  * server API helper. This is a small shim making the composable code simpler.
  * (Tries api_synapse if available or falls back to MatrixClient.publicRooms())
+ * TODO: Is this used somewhere? Seems not, could be removed.
  */
 export async function fetchAllPublicRooms(client?: MatrixClient): Promise<TPublicRoom[]> {
 	// If your project exposes api_synapse.getPublicRooms use it (common pattern)

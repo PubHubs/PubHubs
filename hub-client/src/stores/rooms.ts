@@ -1,5 +1,3 @@
-import { RoomType } from './../models/rooms/TBaseRoom';
-import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 // Packages
 import { EventType, IStateEvent, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
@@ -341,6 +339,7 @@ const useRooms = defineStore('rooms', {
 			const pubhubs = usePubhubsStore();
 			const rooms = await pubhubs.getAllPublicRooms();
 			this.publicRooms = rooms.toSorted(propCompare('name'));
+			console.info('fetchPublicRooms sorted', this.privateRooms);
 		},
 
 		// Filter rooms based on type defined. Synapse public rooms doesn't have a type so they are undefined.
