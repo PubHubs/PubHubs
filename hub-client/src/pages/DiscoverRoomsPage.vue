@@ -125,6 +125,7 @@
 		roomsLoaded.value = false;
 		await rooms.fetchPublicRooms();
 		roomsLoaded.value = true;
+
 		// for quicker searching: add tolower name and topic
 		visiblePublicRooms.value = rooms.visiblePublicRooms.map((room) => ({
 			...room,

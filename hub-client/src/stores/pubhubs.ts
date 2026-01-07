@@ -116,7 +116,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		async ensureSingleExecution<T>(func: () => Promise<T>, stateVar: { current: Promise<T> | null }): Promise<T> {
 			// If a promise is already running, return it
+			console.info('ensureSingleExecution',stateVar.current);
 			if (stateVar.current) {
+				console.info('ensureSingleExecution Promise exists, give current');
 				return stateVar.current;
 			}
 
@@ -323,10 +325,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (!this.client.publicRooms) {
 				return [];
 			}
+
 			// Only check again after 1 minute
 			if (Date.now() < this.lastPublicCheck + 60_000) {
 				return this.publicRooms;
 			}
+			this.lastPublicCheck = Date.now();
 
 			let publicRoomsResponse = await this.client.publicRooms({ limit: 1000 }); // because we need all the public rooms, limit is set high to limit the number of calls
 			console.info('performGetAllPublicRooms, first chunk',publicRoomsResponse);
@@ -339,7 +343,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				});
 				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
 			}
-			this.lastPublicCheck = Date.now();
+
 			this.publicRooms = public_rooms;
 			return public_rooms;
 		},
