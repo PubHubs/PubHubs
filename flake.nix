@@ -42,20 +42,21 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              rustc
-              cargo
-              cargo-watch
-              docker
-              mask
-              nodejs
-              nodePackages.sass
-              openssl
-              pkg-config
-              python3
-              sqlite
+              rustc # 1.91.1
+              cargo # 1.91.1
+              cargo-watch # 8.5.3
+              docker # 29.1.3
+              mask # 0.11.6
+              nodejs # 24.12.0
+              nodePackages.sass # 3.7.4
+              openssl # 3.6.0
+              pkg-config # 0.29.2
+              python3 # 3.13.11
+              sqlite # 3.51.1
+              tmux # 3.6a
             ] ++ [
               # Custom packages
-              (pkgs.callPackage ./packages/irmago.nix { })
+              (pkgs.callPackage ./packages/irmago.nix { }) # 0.19.1
             ];
           };
         }
