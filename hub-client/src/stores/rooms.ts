@@ -1,3 +1,5 @@
+import { RoomType } from './../models/rooms/TBaseRoom';
+import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 // Packages
 import { EventType, IStateEvent, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
@@ -381,9 +383,14 @@ const useRooms = defineStore('rooms', {
 			return foundIndex >= 0;
 		},
 
-		roomIsSecure(roomId: string): boolean {
+		publicRoomIsSecure(roomId: string): boolean {
 			const publicRoom = this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 			return publicRoom?.room_type === RoomType.PH_MESSAGES_RESTRICTED;
+		},
+
+		roomIsSecure(roomId: string): boolean {
+			const room = this.fetchRoomById(roomId);
+			return room?.roomType === RoomType.PH_MESSAGES_RESTRICTED;
 		},
 
 		//? Some documentation would be helpful here.

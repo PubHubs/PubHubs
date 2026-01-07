@@ -30,7 +30,7 @@
 						v-for="room in filteredRooms"
 						:key="room.room_id"
 						:room="room"
-						:isSecured="rooms.roomIsSecure(room.room_id)"
+						:isSecured="rooms.publicRoomIsSecure(room.room_id)"
 						:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
 						:timestamp="roomTimestamps[room.room_id] || 0"
 						:isExpanded="expandedCardId === room.room_id"
