@@ -335,9 +335,9 @@ const useRooms = defineStore('rooms', {
 			return this.currentRoom.getRoomUnreadNotificationCount(NotificationCountType.Highlight);
 		},
 
-		async fetchPublicRooms() {
+		async fetchPublicRooms(force: boolean = false) {
 			const pubhubs = usePubhubsStore();
-			const rooms = await pubhubs.getAllPublicRooms();
+			const rooms = await pubhubs.getAllPublicRooms(force);
 			this.publicRooms = rooms.toSorted(propCompare('name'));
 		},
 

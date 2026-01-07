@@ -22,6 +22,7 @@ import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
+import { SystemDefaults } from '@hub-client/models/constants';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
 import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
@@ -316,18 +317,18 @@ const usePubhubsStore = defineStore('pubhubs', {
 			});
 		},
 
-		async getAllPublicRooms() {
-			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(), { current: publicRoomsLoading });
+		async getAllPublicRooms(force: boolean = false) {
+			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(force), { current: publicRoomsLoading });
 		},
 
 		// actual performing of publicRooms API call
-		async performGetAllPublicRooms(): Promise<TPublicRoom[]> {
+		async performGetAllPublicRooms(force: boolean = false): Promise<TPublicRoom[]> {
 			if (!this.client.publicRooms) {
 				return [];
 			}
 
-			// Only check again after 1 minute
-			if (Date.now() < this.lastPublicCheck + 60_000) {
+			// Only check again after certain time. Can be long. See SystemDefaults.
+			if (Date.now() < this.lastPublicCheck + SystemDefaults.publicRoomsReload && !force) {
 				return this.publicRooms;
 			}
 			this.lastPublicCheck = Date.now();
