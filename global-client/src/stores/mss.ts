@@ -87,7 +87,7 @@ const useMSS = defineStore('mss', {
 			this.validateAttributes(authSuccess, isRegistering || !cardFeature, loginMethod);
 
 			// 7. Decode attributes
-			const { identifying, additional } = this.decodeSignedAttributes(authSuccess.attrs, identifyingAttrs);
+			const { identifying, additional, attributeValues } = this.decodeSignedAttributes(authSuccess.attrs, identifyingAttrs);
 
 			// 8. Enter PubHubs
 			// ? If there are several identifying attributes pick the first one
@@ -105,8 +105,7 @@ const useMSS = defineStore('mss', {
 
 			// 9. Issue a Pubhubs card if registering a new account
 			if (isRegistering && cardFeature) {
-				const allDecodedAttrs = Object.entries(authSuccess.attrs).map(([handle, signedAttr]) => ({ handle, attr: decodeJWT(signedAttr) as Attr }));
-				const comment = `\n${phCardTranslation}\n` + allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
+				const comment = 'via\n' + attributeValues.join('\n');
 				const { cardAttr, errorMessage } = await this.issueCard(true, comment);
 				if (!cardAttr) return errorMessage;
 				identifying['ph_card'] = cardAttr;
@@ -161,7 +160,7 @@ const useMSS = defineStore('mss', {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
-			const pseudoRespSuccess = await this.phcServer.cardPseudePackage();
+			const pseudoRespSuccess = await this.phcServer.cardPseudoPackage();
 			const cardReq: CardReq = {
 				card_pseud_package: pseudoRespSuccess,
 				comment: comment,
@@ -272,6 +271,7 @@ const useMSS = defineStore('mss', {
 		decodeSignedAttributes(attributes: Record<string, string>, identifyingAttrs: Set<string>): DecodedAttributes {
 			const identifying: Record<string, { signedAttr: string; id: string; value: string }> = {};
 			const additional: string[] = [];
+			const attributeValues: string[] = [];
 
 			for (const [handle, signedAttr] of Object.entries(attributes)) {
 				const decoded = decodeJWT(signedAttr) as Attr;
@@ -285,13 +285,14 @@ const useMSS = defineStore('mss', {
 				} else {
 					additional.push(signedAttr);
 				}
+				attributeValues.push(decoded.value);
 			}
 
 			if (Object.keys(identifying).length === 0) {
 				throw new Error('Identifying attribute missing in authentication response.');
 			}
 
-			return { identifying, additional };
+			return { identifying, additional, attributeValues };
 		},
 		validateAttributes(authSuccess: { attrs: {} }, isRegisteringOrNoCard: boolean, loginMethod: LoginMethod): void {
 			const keys = Object.keys(authSuccess.attrs);

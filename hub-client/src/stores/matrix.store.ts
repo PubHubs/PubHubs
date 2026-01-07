@@ -42,7 +42,7 @@ const useMatrixStore = defineStore('matrix', {
 		async stopSync() {
 			try {
 				const matrixService = useMatrixService();
-				await matrixService.stopSync();
+				matrixService.stopSync();
 			} finally {
 				this.hasActiveSync = false;
 			}

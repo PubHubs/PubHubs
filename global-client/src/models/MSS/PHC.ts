@@ -88,7 +88,7 @@ export default class PHCServer {
 	async welcome() {
 		return await handleErrors<TPHC.WelcomeRespPHC>(() => this._phcAPI.apiGET<TPHC.PHCWelcomeResp>(this._phcAPI.apiURLS.welcome));
 	}
-	async cardPseudePackage(): Promise<TPHC.CardPseudRespSucces> {
+	async cardPseudoPackage(): Promise<TPHC.CardPseudRespSucces> {
 		const options = {
 			headers: {
 				'Content-Type': 'application/json',

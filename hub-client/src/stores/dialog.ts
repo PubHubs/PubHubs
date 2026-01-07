@@ -57,10 +57,10 @@ class DialogProperties {
 	title: string;
 	content: string;
 	buttons: Array<DialogButton>;
-	modal: Boolean;
-	modalonly: Boolean;
-	close: Boolean;
-	message: Boolean;
+	modal: boolean;
+	modalonly: boolean;
+	close: boolean;
+	message: boolean;
 
 	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true) {
 		this.title = title;
@@ -83,15 +83,13 @@ class DialogProperties {
 const useDialog = defineStore('dialog', {
 	state: () => {
 		return {
-			global: false as Boolean,
-			visible: false as Boolean,
+			global: false,
+			visible: false,
 			properties: new DialogProperties(),
 			resolveDialog: {} as Function,
 			callbacks: {} as { [index: DialogButtonAction]: Function },
 		};
 	},
-
-	getters: {},
 
 	actions: {
 		asGlobal(global = true) {
@@ -137,14 +135,14 @@ const useDialog = defineStore('dialog', {
 		},
 
 		showModal() {
-			if (window.self !== window.top) {
+			if (globalThis.self !== window.top) {
 				const messagebox = useMessageBox();
 				messagebox.sendMessage(new Message(MessageType.DialogShowModal));
 			}
 		},
 
 		hideModal() {
-			if (window.self !== window.top) {
+			if (globalThis.self !== window.top) {
 				const messagebox = useMessageBox();
 				messagebox.sendMessage(new Message(MessageType.DialogHideModal));
 			}

@@ -66,5 +66,6 @@ export type ReturnCard = { cardAttr: null; errorMessage: { key: string; values?:
 export interface DecodedAttributes {
 	identifying: Record<string, { signedAttr: string; id: string; value: string }>;
 	additional: string[];
+	attributeValues: string[];
 }
 // #endregion
