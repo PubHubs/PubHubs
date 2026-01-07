@@ -339,7 +339,6 @@ const useRooms = defineStore('rooms', {
 			const pubhubs = usePubhubsStore();
 			const rooms = await pubhubs.getAllPublicRooms();
 			this.publicRooms = rooms.toSorted(propCompare('name'));
-			console.info('fetchPublicRooms sorted', this.privateRooms);
 		},
 
 		// Filter rooms based on type defined. Synapse public rooms doesn't have a type so they are undefined.
