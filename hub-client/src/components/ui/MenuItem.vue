@@ -12,7 +12,7 @@
 			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
 			<Icon v-else class="" :type="icon" :size="iconSize" />
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
-			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" color="notification" class="ml-auto flex-shrink-0">{{ newMessage }}</Badge>
+			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" color="notification" class="ml-auto shrink-0">{{ newMessage }}</Badge>
 		</router-link>
 	</li>
 </template>

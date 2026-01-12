@@ -20,8 +20,8 @@ const defaultMenu: MenuItems = [
 const useMenu = defineStore('menu', {
 	state: () => {
 		return {
-			menu: defaultMenu as MenuItems,
-			activeMenuItemId: '' as String,
+			menu: defaultMenu,
+			activeMenuItemId: '' as string,
 		};
 	},
 
@@ -42,7 +42,7 @@ const useMenu = defineStore('menu', {
 			this.addMenuItem(item);
 		},
 
-		setActiveMenuItem(id: String) {
+		setActiveMenuItem(id: string) {
 			this.activeMenuItemId = id;
 		},
 
