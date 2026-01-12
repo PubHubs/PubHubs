@@ -44,6 +44,9 @@ export default class RoomMember {
 
 	//#endregion
 
+	/**
+	 * Since this creates a blob of the avatar, do not use it multiple times without revoking the created blob inbetween
+	 */
 	private async updateAvatarUrl(): Promise<void> {
 		const matrixFiles = useMatrixFiles();
 		const avatarMxcUrl = this.matrixRoomMember.getMxcAvatarUrl();

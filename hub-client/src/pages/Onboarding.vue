@@ -40,7 +40,7 @@
 							<P>{{ t('onboarding.message_example') }}</P>
 							<div class="bg-surface-low flex w-full items-center gap-6 rounded-xl p-4 xl:w-1/2">
 								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
-									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
+									<img v-if="avatarPreviewUrl?.url" data-testid="avatar" :src="avatarPreviewUrl.url" class="h-full w-full" />
 									<Icon v-else size="lg" type="user" />
 								</div>
 								<div class="flex flex-col gap-2">
@@ -133,7 +133,7 @@
 							<P>{{ t('onboarding.message_example') }}</P>
 							<div class="bg-background flex w-full items-center gap-6 rounded-xl p-4">
 								<div class="flex aspect-square h-12 w-12 min-w-1/3 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
-									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
+									<img v-if="avatarPreviewUrl?.url" data-testid="avatar" :src="avatarPreviewUrl.url" class="h-full w-full" />
 									<Icon v-else size="lg" type="user" />
 								</div>
 								<div class="flex flex-col gap-2">
@@ -215,6 +215,8 @@
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
+
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -242,7 +244,7 @@
 	// Avatar handling
 	const fileInput = ref<HTMLInputElement | null>(null);
 	const avatarMxcUrl = ref<string | null>(null);
-	const avatarPreviewUrl = ref<string | null>(null);
+	const avatarPreviewUrl = ref<BlobManager | null>(null);
 	const selectedAvatarFile = ref<File | null>(null);
 
 	const { imageTypes, uploadUrl } = useMatrixFiles();
@@ -250,7 +252,8 @@
 	const handleFileUpload = (event: Event) => {
 		const file = (event.target as HTMLInputElement)?.files?.[0];
 		if (file) {
-			avatarPreviewUrl.value = URL.createObjectURL(file);
+			avatarPreviewUrl.value?.revoke();
+			avatarPreviewUrl.value = new BlobManager(file);
 			selectedAvatarFile.value = file;
 		}
 	};
