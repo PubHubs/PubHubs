@@ -12,50 +12,37 @@
 
 				<div>
 					<div class="mt-4 flex flex-wrap gap-2">
-						<Label>{{ t('admin.secured_yivi_attributes') }}</Label>
-
+						<Label :required="true">{{ t('admin.secured_yivi_attributes') }}</Label>
 						<button v-for="(attr, index) in selectedAttributes" :key="index" :class="['rounded-xs px-3 py-1', activeTab === index ? 'bg-surface-high' : 'bg-surface text-on-surface']" @click="activeTab = index" type="button">
 							{{ attr.label ? attr.label : index + 1 }}
 							<span v-if="selectedAttributes.length > 1" @click.stop="removeAttribute(index)" class="text-accent-red hover:text-on-accent-red ml-2 cursor-pointer">&times;</span>
 						</button>
-						<Button
-							v-if="selectedAttributes.length < roomValidations.maxAttributes"
-							type="button"
-							class="bg-surface text-on-surface ml-2 rounded-xs px-2 py-1"
-							@click="selectedAttributes.push({ label: '', attribute: '', accepted: [], profile: false })"
-						>
-							+
-						</Button>
+						<Button v-if="selectedAttributes.length < roomValidations.maxAttributes" icon="plus" size="sm" @click="selectedAttributes.push({ label: '', attribute: '', accepted: [], profile: false })"></Button>
 					</div>
 
 					<div v-if="selectedAttributes.length" class="bg-surface-low border-2 p-4">
-						<FormLine class="mt-4">
-							<Label>{{ t('admin.secured_attribute') }}</Label>
-							<AutoComplete v-model="selectedAttributes[activeTab].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle" />
-							<P class="text-label-small float-end"> {{ selectedAttributes[activeTab].label.length }} / {{ autoCompleteLength }} </P>
-						</FormLine>
+						<TextFieldAutoComplete v-model="selectedAttributes[activeTab].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle">{{
+							t('admin.secured_attribute')
+						}}</TextFieldAutoComplete>
 
-						<FormLine>
-							<Label>{{ t('admin.add_value') }}</Label>
-							<TextArea
-								v-model="valuesString"
-								:maxlength="3000"
-								:placeholder="t('admin.add_tip')"
-								@keydown.enter.prevent="addUniqueValue(activeTab)"
-								class="bg-background text-label placeholder:text-surface-subtle focus:ring-accent-primary p-2 leading-8 focus:ring-1"
-							/>
-							<Button @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
-						</FormLine>
+						<div class="flex gap-100">
+							<div class="grow">
+								<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab)">{{ t('admin.add_value') }}</TextArea>
+							</div>
+							<div class="grow">
+								<Button class="mt-300" @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
+							</div>
+						</div>
 
-						<Checkbox v-model="selectedAttributes[activeTab].profile">{{ t('admin.secured_profile') }}</Checkbox>
-
-						<div class="mt-2 flex flex-wrap gap-2">
+						<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="mb-200 flex flex-wrap gap-2">
 							<Label>{{ t('admin.secured_values') }}</Label>
 							<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="bg-primary text-on-primary bg-surface inline-flex items-center truncate rounded-xl px-2 py-1">
 								{{ value }}
 								<button type="button" class="text-accent-red hover:text-on-accent-red ml-2" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">&times;</button>
 							</span>
 						</div>
+
+						<Checkbox v-model="selectedAttributes[activeTab].profile">{{ t('admin.secured_profile') }}</Checkbox>
 					</div>
 				</div>
 			</div>
@@ -68,14 +55,6 @@
 	import { computed, onBeforeMount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Components
-	import Button from '@hub-client/components/elements/Button.vue';
-	import P from '@hub-client/components/elements/P.vue';
-	import AutoComplete from '@hub-client/components/forms/AutoComplete.vue';
-	import FormLine from '@hub-client/components/forms/FormLine.vue';
-	import Label from '@hub-client/components/forms/Label.vue';
-	import TextArea from '@hub-client/components/forms/TextArea.vue';
-	import TextInput from '@hub-client/components/forms/TextInput.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Composables
@@ -87,7 +66,6 @@
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import type { TEditRoom } from '@hub-client/models/rooms/TEditRoom';
 	import { TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
 	import { ValidationMessage } from '@hub-client/models/validation/TValidate';
@@ -98,8 +76,13 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useYivi } from '@hub-client/stores/yivi';
 
+	import Button from '@hub-client/new-design/components/Button.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
+	// Components
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
+	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
+	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	const { t } = useI18n();
