@@ -1,4 +1,4 @@
-<!-- <template>
+<template>
 	<span class="truncate" :title="displayname" :class="`${textColor(color(user?.userId))}`">{{ displayname }}</span>
 	<span class="text-label-small mt-1 text-nowrap">{{ filters.extractPseudonym(user?.userId) }}</span>
 </template>
@@ -42,4 +42,4 @@
 		if (!user.value) return '';
 		return user.value.displayName as string;
 	}
-</script> -->
+</script>
