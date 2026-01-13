@@ -21,17 +21,13 @@
 	// Models
 	import { TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
-	// Stores
-	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
-
 	const matrixFiles = useMatrixFiles();
-	const settings = useSettings();
 	const showFullImage = ref(false);
 	const authMediaUrl = ref<string | undefined>(undefined);
 
 	const props = defineProps<{ message: TImageMessageEventContent }>();
 
 	onMounted(async () => {
-		authMediaUrl.value = await matrixFiles.useAuthorizedMediaUrl(props.message.url, settings.isFeatureEnabled(FeatureFlag.authenticatedMedia));
+		authMediaUrl.value = await matrixFiles.getAuthorizedMediaUrl(props.message.url);
 	});
 </script>

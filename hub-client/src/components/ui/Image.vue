@@ -15,7 +15,7 @@
 	// Composables
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-	const { isMxcUrl, useAuthorizedMediaUrl } = useMatrixFiles();
+	const { getAuthorizedMediaUrl } = useMatrixFiles();
 	const props = defineProps<{ img: string }>();
 	const image = ref(props.img);
 	const showFullImage = ref(false);
@@ -30,13 +30,7 @@
 	});
 
 	async function getImage() {
-		let url = props.img as string;
-		if (props.img) {
-			if (isMxcUrl(props.img)) {
-				url = await useAuthorizedMediaUrl(props.img, true);
-			}
-		}
-		image.value = url;
+		image.value = await getAuthorizedMediaUrl(props.img);
 	}
 
 	function imgLoaded() {

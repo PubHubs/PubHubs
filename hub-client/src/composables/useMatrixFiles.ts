@@ -3,6 +3,7 @@ import { allTypes, fileTypes, imageTypes, imageTypesExt, mediaTypes } from '@hub
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const useMatrixFiles = () => {
 	const pubhubs = usePubhubsStore();
@@ -46,20 +47,22 @@ const useMatrixFiles = () => {
 	function isImage(img: string) {
 		if (typeof img !== 'string') return false;
 		const ext = img.split('.').pop()?.toLocaleLowerCase();
-		return imageTypesExt.indexOf(ext) >= 0;
+		return ext ? imageTypesExt.indexOf(ext) >= 0 : false;
 	}
 
 	function isAllowed(type: string) {
 		return allTypes.indexOf(type) >= 0;
 	}
 
-	async function useAuthorizedMediaUrl(url: string, useAuthenticatedMediaURL = false): Promise<string> {
-		const matrixURL = formUrlfromMxc(url, useAuthenticatedMediaURL);
+	async function getAuthorizedMediaUrl(url: string): Promise<string> {
+		const settings = useSettings();
+		if (!settings.isFeatureEnabled(FeatureFlag.authenticatedMedia)) {
+			return url;
+		}
 
-		// For legacy unauthenticated media url
-		if (!useAuthenticatedMediaURL) return matrixURL;
-		// For Authenticated media
-		const fetchedAuthorizedUrl = await pubhubs.getAuthorizedMediaUrl(matrixURL);
+		const matrixURL = formUrlfromMxc(url, true);
+
+		const fetchedAuthorizedUrl = await pubhubs.fetchAuthorizedMediaUrl(matrixURL);
 		if (fetchedAuthorizedUrl === null) throw new Error('Could not get authorized media URL');
 		return fetchedAuthorizedUrl;
 	}
@@ -77,7 +80,7 @@ const useMatrixFiles = () => {
 		getTypesAsString,
 		isImage,
 		isAllowed,
-		useAuthorizedMediaUrl,
+		getAuthorizedMediaUrl,
 	};
 };
 

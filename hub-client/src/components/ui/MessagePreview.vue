@@ -9,7 +9,7 @@
 							{{ displayName }}
 						</p>
 						<p v-if="isGroupOrContact" class="flex items-center leading-tight">
-							<span class="mr-2 truncate leading-tight font-bold" v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT">({{ rooms.fetchRoomById(props.room.name.split(',')[0]).name }})</span>
+							<span class="mr-2 truncate leading-tight font-bold" v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT">({{ rooms.fetchRoomById(props.room.name.split(',')[0])?.name ?? '' }})</span>
 							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
 								<span class="text-label-small">{{ props.room.getRoomMembers() }}</span>
 								<Icon type="user" size="sm" class="mr-1" />
@@ -26,7 +26,7 @@
 
 					<!-- Right Section: Message Body -->
 					<div v-if="room.hasMessages()" class="mt-1 min-w-0">
-						<p v-html="event.getContent().ph_body" class="truncate"></p>
+						<p v-html="event?.getContent().ph_body" class="truncate"></p>
 					</div>
 					<div v-if="!room.hasMessages()" class="mt-1 min-w-0">
 						<p>{{ t('rooms.no_messages_yet') }}</p>
@@ -46,7 +46,7 @@
 <script setup lang="ts">
 	// Packages
 	import { EventType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
-	import { computed } from 'vue';
+	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
@@ -61,11 +61,13 @@
 	import Room from '@hub-client/models/rooms/Room';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
+	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
 
 	const router = useRouter();
 	const rooms = useRooms();
 	const { t } = useI18n();
+	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
 	const props = defineProps({
 		room: {
@@ -77,6 +79,19 @@
 			default: false,
 		},
 	});
+
+	// Could also be done in onMounted, but in the future perhaps the avatar of a groupsmessage is editable
+	watch(
+		() => props.room,
+		async (room) => {
+			if (!room) {
+				avatarOverrideUrl.value = undefined;
+				return;
+			}
+			avatarOverrideUrl.value = await props.room.getRoomAvatarAuthorizedUrl();
+		},
+		{ immediate: true },
+	);
 
 	const roomType = computed(() => props.room.getType());
 
@@ -105,13 +120,6 @@
 		return props.room.getMember(sender, true);
 	});
 
-	const avatarOverrideUrl = computed(() => {
-		if (roomType.value === RoomType.PH_MESSAGES_GROUP) {
-			return props.room.getRoomAvatarMxcUrl() ?? undefined;
-		}
-		return undefined;
-	});
-
 	const displayName = computed(() => {
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return props.room.name;
 		if (roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('admin.support');
@@ -119,7 +127,7 @@
 		return getOtherDMUser()?.rawDisplayName;
 	});
 
-	const pseudonym = computed(() => (getOtherDMUser()?.userId ? filters.extractPseudonym(getOtherDMUser()?.userId) : ''));
+	const pseudonym = computed(() => (getOtherDMUser()?.userId ? filters.extractPseudonym(getOtherDMUser()!.userId) : ''));
 
 	const isGroupOrContact = computed(() => roomType.value === RoomType.PH_MESSAGES_GROUP || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT || roomType.value === RoomType.PH_MESSAGE_STEWARD_CONTACT);
 

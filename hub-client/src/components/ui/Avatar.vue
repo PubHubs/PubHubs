@@ -10,11 +10,9 @@
 	import { computed, onMounted, ref, watch } from 'vue';
 
 	// Composables
-	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
 	// Stores
-	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	// Types
@@ -26,7 +24,6 @@
 
 	const user = useUser();
 	const { color, bgColor } = useUserColor();
-	const { isMxcUrl, useAuthorizedMediaUrl } = useMatrixFiles();
 	const image = ref<string | undefined>();
 	const loaded = ref(false);
 	const avatarColor = computed(getAvatarColor);
@@ -41,22 +38,14 @@
 	});
 
 	async function getImage() {
-		let url = props.avatarUrl as string;
-		if (props.avatarUrl) {
-			if (isMxcUrl(props.avatarUrl)) {
-				const settings = useSettings();
-				url = await useAuthorizedMediaUrl(props.avatarUrl, settings.isFeatureEnabled(FeatureFlag.authenticatedMedia));
-			}
-		}
-		image.value = url;
+		image.value = props.avatarUrl;
 	}
 
 	function getAvatarColor(): string {
 		if (!props.userId) return 'bg-surface-high';
-		const currentUser = user.client.getUser(props.userId);
 
-		if (!props.userId && !currentUser?.displayName) return 'bg-surface-high';
-		if (!props.userId && currentUser?.displayName) return bgColor(color(props.userId));
+		if (!props.userId && !user.displayName) return 'bg-surface-high';
+		if (!props.userId && user.displayName) return bgColor(color(props.userId));
 
 		return bgColor(color(props.userId));
 	}

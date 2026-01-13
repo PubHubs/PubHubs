@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
 	<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="avatarColor">
 		<img v-if="img" v-show="loaded" data-testid="avatar" :src="image" class="h-full w-full" @load="imgLoaded()" />
 		<Icon v-if="!img || !loaded" size="lg" type="user" testid="avatar" />
@@ -25,7 +25,7 @@
 	// Stores
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
-	const { isMxcUrl, useAuthorizedMediaUrl } = useMatrixFiles();
+	const { isMxcUrl, getAuthorizedMediaUrl: getAuthorizedMediaUrl } = useMatrixFiles();
 	const { color, bgColor } = useUserColor();
 
 	type Props = {
@@ -52,7 +52,7 @@
 		if (props.img) {
 			if (isMxcUrl(props.img)) {
 				const settings = useSettings();
-				url = await useAuthorizedMediaUrl(props.img, settings.isFeatureEnabled(FeatureFlag.authenticatedMedia));
+				url = await getAuthorizedMediaUrl(props.img, settings.isFeatureEnabled(FeatureFlag.authenticatedMedia));
 			}
 		}
 		image.value = url;
@@ -68,4 +68,4 @@
 	function imgLoaded() {
 		loaded.value = true;
 	}
-</script>
+</script> -->

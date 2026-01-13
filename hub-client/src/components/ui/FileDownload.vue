@@ -1,28 +1,30 @@
 <template>
-	<a v-if="download" target="_blank" :href="download" :download="filename"><slot></slot></a>
+	<a v-if="blobUrl?.url" target="_blank" :href="blobUrl.url" :download="filename"><slot></slot></a>
 	<span v-else><slot></slot></span>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { onMounted, ref, watch } from 'vue';
+	import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 	// Composables
-	import { fileDownload } from '@hub-client/composables/fileDownload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-	// Stores
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 
-	const { formUrlfromMxc } = useMatrixFiles();
-	const pubhubs = usePubhubsStore();
-	const accessToken = pubhubs.Auth.getAccessToken();
+	// Stores
+
+	const matrixFiles = useMatrixFiles();
 
 	const props = defineProps<{ url: string; filename: string }>();
-	const download = ref(props.url);
+	let blobUrl = ref<BlobManager | undefined>(undefined);
 
 	onMounted(async () => {
 		await getUrl();
+	});
+
+	onBeforeUnmount(() => {
+		blobUrl.value?.revoke();
 	});
 
 	watch(props, async () => {
@@ -30,9 +32,12 @@
 	});
 
 	async function getUrl() {
-		const url = formUrlfromMxc(props.url, true);
-		download.value = (await fileDownload(accessToken, url)) || '';
-		if (!download.value) {
+		const url = await matrixFiles.getAuthorizedMediaUrl(props.url);
+		if (url) {
+			blobUrl.value?.revoke();
+			blobUrl.value = new BlobManager(url);
+		}
+		if (!url) {
 			console.error('Failed to load the file');
 		}
 	}
