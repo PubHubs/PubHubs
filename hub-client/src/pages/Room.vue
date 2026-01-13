@@ -213,11 +213,13 @@
 
 		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
+
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
 		if (!userIsMember) {
 			let promise = null;
+
 			await rooms.fetchPublicRooms();
-			const roomIsSecure = rooms.roomIsSecure(props.id);
+			const roomIsSecure = rooms.publicRoomIsSecure(props.id);
 
 			// For secured rooms users first have to authenticate
 			if (roomIsSecure) {
@@ -255,6 +257,8 @@
 				position: ScrollPosition.Start,
 			});
 		}
+
+		await rooms.fetchPublicRooms(); // Needed for mentions (if not loaded allready)
 	}
 
 	async function onScrollToEventId(ev: any) {

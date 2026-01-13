@@ -36,23 +36,3 @@ export function findRoomsToRejoin(joinedRooms: string[], knownRooms: MatrixRoom[
 	const knownIds = new Set(knownRooms.map((r) => r.roomId));
 	return joinedRooms.filter((id) => !knownIds.has(id));
 }
-
-/**
- * Resolves a "public rooms" list using either the provided Matrix client or a
- * server API helper. This is a small shim making the composable code simpler.
- * (Tries api_synapse if available or falls back to MatrixClient.publicRooms())
- */
-export async function fetchAllPublicRooms(client?: MatrixClient): Promise<TPublicRoom[]> {
-	// If your project exposes api_synapse.getPublicRooms use it (common pattern)
-	if (api_synapse && typeof (api_synapse as any).getPublicRooms === 'function') {
-		return (await (api_synapse as any).getPublicRooms()) ?? [];
-	}
-
-	if (client && typeof (client as any).publicRooms === 'function') {
-		// matrix-js-sdk may return { chunk: [...] } or array depending on version
-		const res = await (client as any).publicRooms();
-		return res?.chunk ?? res ?? [];
-	}
-
-	return [];
-}

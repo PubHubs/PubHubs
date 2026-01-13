@@ -2,7 +2,7 @@
 	<!-- Banner -->
 	<HubBanner :banner-url="hubSettings.bannerUrl" />
 
-	<div class="mx-auto mb-8 flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
+	<div class="mx-auto flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
 		<!-- Search bar -->
 		<div class="-mt-[5.5rem] flex flex-col gap-2">
 			<div class="flex items-center gap-2 whitespace-nowrap">
@@ -17,9 +17,14 @@
 					v-model="searchQuery"
 					:placeholder="$t('others.search_rooms')"
 					class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary mb-4 w-full rounded-xs border px-4 py-2"
+					@keyup="startFilter"
 				/>
 				<Icon type="magnifying-glass" class="text-on-surface-variant pointer-events-none absolute top-[20%] right-2 z-10" size="sm" />
 			</div>
+		</div>
+
+		<div class="h-4">
+			<InlineSpinner v-if="!roomsLoaded || isFiltering" class="mx-auto w-full" />
 		</div>
 
 		<!-- Room grid -->
@@ -30,9 +35,9 @@
 						v-for="room in filteredRooms"
 						:key="room.room_id"
 						:room="room"
-						:isSecured="rooms.roomIsSecure(room.room_id)"
+						:isSecured="rooms.publicRoomIsSecure(room.room_id)"
 						:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
-						:timestamp="roomTimestamps[room.room_id] || 0"
+						:timestamp="roomTimestamps[room.room_id]"
 						:isExpanded="expandedCardId === room.room_id"
 						@toggleExpand="handleToggleExpand(room.room_id)"
 					/>
@@ -44,14 +49,11 @@
 				</div>
 			</div>
 		</div>
-		<div>
-			<InlineSpinner v-if="!roomsLoaded" class="mx-auto w-full" />
-		</div>
 	</div>
 </template>
 <script setup lang="ts">
 	// Packages
-	import { computed, onBeforeMount, onMounted, ref, watchEffect } from 'vue';
+	import { onBeforeMount, onMounted, ref, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -80,12 +82,38 @@
 		topicToLower: string;
 	};
 
-	let visiblePublicRooms = ref<TVisiblePublicRoom[]>([]);
+	const visiblePublicRooms = ref<TVisiblePublicRoom[]>([]);
+	const filteredRooms = ref<TVisiblePublicRoom[]>([]);
+	const filterTimer = ref();
+	const isFiltering = ref(false);
+	const filterTimeOut = 400;
 
-	const filteredRooms = computed(() => {
-		const query = searchQuery.value.toLowerCase().trim();
-		return visiblePublicRooms.value.filter((room) => room.nameToLower.includes(query) || room.topicToLower.includes(query));
-	});
+	const startFilter = () => {
+		clearTimeout(filterTimer.value);
+		isFiltering.value = true;
+		filterTimer.value = setTimeout(() => {
+			const query = searchQuery.value.toLowerCase().trim();
+			if (query == '') {
+				filteredRooms.value = visiblePublicRooms.value;
+				isFiltering.value = false;
+			} else {
+				// filteredRooms.value = visiblePublicRooms.value.filter((room) => room.nameToLower.includes(query) || room.topicToLower.includes(query));
+				filteredRooms.value = fastFilterRooms(visiblePublicRooms.value, query);
+				isFiltering.value = false;
+			}
+		}, filterTimeOut);
+	};
+
+	// This is approx twice as fast as ES6 filter
+	const fastFilterRooms = (arr: TVisiblePublicRoom[], query: string): TVisiblePublicRoom[] => {
+		const filtered = [];
+		for (let i = 0; i < arr.length; i++) {
+			if (arr[i].nameToLower.includes(query) || arr[i].topicToLower.includes(query)) {
+				filtered.push(arr[i]);
+			}
+		}
+		return filtered;
+	};
 
 	const handleToggleExpand = (roomId: string) => {
 		expandedCardId.value = expandedCardId.value === roomId ? null : roomId;
@@ -125,11 +153,13 @@
 		roomsLoaded.value = false;
 		await rooms.fetchPublicRooms();
 		roomsLoaded.value = true;
+
 		// for quicker searching: add tolower name and topic
 		visiblePublicRooms.value = rooms.visiblePublicRooms.map((room) => ({
 			...room,
 			nameToLower: room.name?.toLowerCase() ?? '',
 			topicToLower: room.topic?.toLowerCase() ?? '',
 		}));
+		filteredRooms.value = visiblePublicRooms.value;
 	});
 </script>

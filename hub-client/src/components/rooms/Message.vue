@@ -30,15 +30,7 @@
 				>
 					<span class="text-accent-primary cursor-pointer">{{ segment.content }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
-						<RoomLoginDialog
-							v-if="segment.type === 'room'"
-							:secured="isSecured(segment.tokenId)"
-							:dialogOpen="segment.tokenId"
-							title="rooms.join_room"
-							message="rooms.join_sure"
-							:messageValues="[]"
-							@close="activeMentionCard = null"
-						/>
+						<RoomLoginDialog v-if="segment.type === 'room'" :secured="isSecured" :dialogOpen="segment.tokenId" title="rooms.join_room" message="rooms.join_sure" :messageValues="[]" @close="activeMentionCard = null" />
 					</div>
 				</span>
 			</P>
@@ -85,6 +77,7 @@
 	}>();
 	const pubhubs = usePubhubsStore();
 	const activeMentionCard = ref<string | null>(null);
+	const isSecured = ref<boolean>(false);
 	const mentionComposable = useMentions();
 
 	// Regular message content (for non-deleted, non-mention messages)
@@ -108,9 +101,6 @@
 		return messageSegments.value.some((seg) => seg.type !== 'text');
 	});
 
-	function isSecured(id: string) {
-		return roomsStore.roomIsSecure(id);
-	}
 	async function joinIfMember(roomId: string, segmentId: string) {
 		const userId = userStore.userId;
 		if (userId) {
@@ -119,6 +109,8 @@
 				await router.push({ name: 'room', params: { id: roomId } });
 			} else {
 				activeMentionCard.value = segmentId;
+				await roomsStore.fetchPublicRooms();
+				isSecured.value = roomsStore.publicRoomIsSecure(roomId);
 			}
 		}
 	}

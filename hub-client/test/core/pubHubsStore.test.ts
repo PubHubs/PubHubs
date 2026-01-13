@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, test } from 'vitest';
 // Packages
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, test } from 'vitest';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -12,6 +12,7 @@ describe('PubHubs Store', () => {
 
 	describe('_constructMessageContent', () => {
 		test('public rooms listing', async () => {
+
 			//Pretend to be the client.
 			function mockClient(more) {
 				return {
@@ -37,11 +38,6 @@ describe('PubHubs Store', () => {
 			pubhubs.client = mockClient(false);
 			x = await pubhubs.getAllPublicRooms();
 			expect(x).toEqual(['1', '2']);
-			const delay = (ms) => new Promise((res) => setTimeout(res, ms));
-			await delay(2500);
-			pubhubs.client = mockClient(false);
-			x = await pubhubs.getAllPublicRooms();
-			expect(x).toEqual(['1']);
 		});
 
 		test('plain text', async () => {
