@@ -294,6 +294,38 @@ async fn main_integration_test_local(
         .get::<handle::Handle>(&"phone".parse().unwrap())
         .unwrap();
 
+    let attrs = request_attributes(
+        &client,
+        &constellation,
+        &yivi_server_sk,
+        "user3@example.com",
+        "0634567890",
+    )
+    .await;
+
+    let email3 = attrs
+        .get::<handle::Handle>(&"email".parse().unwrap())
+        .unwrap();
+    let _phone3 = attrs
+        .get::<handle::Handle>(&"phone".parse().unwrap())
+        .unwrap();
+
+    let attrs = request_attributes(
+        &client,
+        &constellation,
+        &yivi_server_sk,
+        "user4@example.com",
+        "0645678901",
+    )
+    .await;
+
+    let email4 = attrs
+        .get::<handle::Handle>(&"email".parse().unwrap())
+        .unwrap();
+    let phone4 = attrs
+        .get::<handle::Handle>(&"phone".parse().unwrap())
+        .unwrap();
+
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
         .query_with_retry::<api::auths::AttrKeysEP, _, _>(
@@ -355,7 +387,7 @@ async fn main_integration_test_local(
                 &api::phc::user::EnterReq {
                     identifying_attr: Some(email.clone()),
                     mode: api::phc::user::EnterMode::Register,
-                    add_attrs: vec![],
+                    ..Default::default()
                 },
             )
             .await
@@ -373,6 +405,7 @@ async fn main_integration_test_local(
             identifying_attr: Some(email.clone()),
             mode: api::phc::user::EnterMode::LoginOrRegister,
             add_attrs: vec![phone.clone()],
+            ..Default::default()
         };
 
         for _ in 1..=10 {
@@ -384,7 +417,7 @@ async fn main_integration_test_local(
 
                 match enter_resp {
                     api::phc::user::EnterResp::Entered { new_account, .. } => new_account,
-                    api::phc::user::EnterResp::AttributeAlreadyTaken(..) => {
+                    api::phc::user::EnterResp::AttributeAlreadyTaken { .. } => {
                         log::debug!("one registration failed likely due to parallel registration");
                         false
                     }
@@ -416,11 +449,12 @@ async fn main_integration_test_local(
                     identifying_attr: Some(email.clone()),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![phone.clone()],
+                    ..Default::default()
                 },
             )
             .await
             .unwrap(),
-        api::phc::user::EnterResp::AttributeAlreadyTaken(..)
+        api::phc::user::EnterResp::AttributeAlreadyTaken { .. }
     ));
 
     // Registering a second time with the same phone number, but a different email address works
@@ -432,6 +466,46 @@ async fn main_integration_test_local(
                     identifying_attr: Some(email2.clone()),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![phone.clone()],
+                    ..Default::default()
+                },
+            )
+            .await,
+        Ok(api::phc::user::EnterResp::Entered {
+            new_account: true,
+            auth_token_package: Ok(..),
+            ..
+        })
+    ));
+
+    // Registering a third time with the same phone number, but a different email address fails
+    // when `register_with_unique_attrs` is set
+    assert!(matches!(
+        client
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: Some(email3.clone()),
+                    mode: api::phc::user::EnterMode::Register,
+                    add_attrs: vec![phone.clone()],
+                    register_only_with_unique_attrs: true,
+                    ..Default::default()
+                },
+            )
+            .await,
+        Ok(api::phc::user::EnterResp::AttributeAlreadyTaken { .. })
+    ));
+
+    // Registering with fresh email and phone number works when `register_with_unique_attrs` is set
+    assert!(matches!(
+        client
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: Some(email4.clone()),
+                    mode: api::phc::user::EnterMode::Register,
+                    add_attrs: vec![phone4.clone()],
+                    register_only_with_unique_attrs: true,
+                    ..Default::default()
                 },
             )
             .await,
@@ -450,6 +524,7 @@ async fn main_integration_test_local(
                 identifying_attr: Some(email.clone()),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![],
+                ..Default::default()
             },
         )
         .await
@@ -472,6 +547,7 @@ async fn main_integration_test_local(
                 identifying_attr: Some(email.clone()),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![phone.clone()],
+                ..Default::default()
             },
         )
         .await
@@ -502,6 +578,7 @@ async fn main_integration_test_local(
                 identifying_attr: None,
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![phone2.clone()],
+                ..Default::default()
             },
         )
         .auth_header(auth_token.clone())
@@ -535,6 +612,7 @@ async fn main_integration_test_local(
                     identifying_attr: None,
                     mode: api::phc::user::EnterMode::LoginOrRegister,
                     add_attrs: vec![phone2.clone()],
+                    ..Default::default()
                 },
             )
             .auth_header(auth_token.clone())
@@ -552,6 +630,7 @@ async fn main_integration_test_local(
                     identifying_attr: None,
                     mode: api::phc::user::EnterMode::Login,
                     add_attrs: vec![phone2.clone()],
+                    ..Default::default()
                 },
             )
             .with_retry()
@@ -825,37 +904,46 @@ impl MockHub {
             constellation,
         });
 
+        let mut server_builder = actix_web::HttpServer::new({
+            let context = context.clone();
+            move || {
+                actix_web::App::new()
+                    .app_data(web::Data::new(context.clone()))
+                    .service(
+                        actix_web::web::scope(context.info.url.path().trim_end_matches('/'))
+                            .route(api::hub::InfoEP::PATH, web::get().to(handle_info_url))
+                            .route(
+                                api::hub::EnterStartEP::PATH,
+                                web::post().to(handle_enter_start),
+                            )
+                            .route(
+                                api::hub::EnterCompleteEP::PATH,
+                                web::post().to(handle_enter_complete),
+                            ),
+                    )
+            }
+        });
+
+        let host = context.info.url.host().unwrap();
+
+        let port = context
+            .info
+            .url
+            .port()
+            .expect("testhub info url has no port");
+
+        // NOTE: bind((contect.info.url.host_str().unwrap(), port)) does not work for IPv6
+        // addresses, because for them host_str will include `[` and `]`
+        server_builder = match host {
+            url::Host::Domain(string) => server_builder.bind((string, port)),
+            url::Host::Ipv4(ipv4) => server_builder.bind((ipv4, port)),
+            url::Host::Ipv6(ipv6) => server_builder.bind((ipv6, port)),
+        }
+        .unwrap_or_else(|err| panic!("failed to bind to {host}:{port}: {err:#}"));
+
         Self {
+            actix_server: server_builder.run(),
             context: context.clone(),
-            actix_server: actix_web::HttpServer::new({
-                let context = context.clone();
-                move || {
-                    actix_web::App::new()
-                        .app_data(web::Data::new(context.clone()))
-                        .service(
-                            actix_web::web::scope(context.info.url.path().trim_end_matches('/'))
-                                .route(api::hub::InfoEP::PATH, web::get().to(handle_info_url))
-                                .route(
-                                    api::hub::EnterStartEP::PATH,
-                                    web::post().to(handle_enter_start),
-                                )
-                                .route(
-                                    api::hub::EnterCompleteEP::PATH,
-                                    web::post().to(handle_enter_complete),
-                                ),
-                        )
-                }
-            })
-            .bind((
-                context.info.url.host_str().unwrap(),
-                context
-                    .info
-                    .url
-                    .port()
-                    .expect("testhub info url has no port"),
-            ))
-            .unwrap()
-            .run(),
         }
     }
 }
@@ -959,6 +1047,7 @@ async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_
         verifying_key: Some(vk),
         hub_version: "n/a".to_owned(),
         hub_client_url: "http://example.com".parse().unwrap(),
+        dynamic: None,
     }))
 }
 

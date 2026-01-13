@@ -3,26 +3,8 @@
 import { server } from '../mocks/server';
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 
-
-
 // Logic
 import { api } from '@global-client/logic/core/api';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());

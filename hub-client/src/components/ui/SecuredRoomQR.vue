@@ -9,8 +9,7 @@
 <!-- FIXME: Multiple type errors -->
 <script setup lang="ts">
 	// Packages
-	import { onMounted } from 'vue';
-	import { onWatcherCleanup, useTemplateRef, watch } from 'vue';
+	import { onMounted, onWatcherCleanup, useTemplateRef, watch } from 'vue';
 	import { useRouter } from 'vue-router';
 
 	// Logic

@@ -20,13 +20,14 @@
 					}}</Button>
 					<button @click="dismissNotification(notification)" class="text-accent-red hover:underline">{{ t('notifications.dismiss') }}</button>
 				</div>
-				<SecuredRoomLoginDialog
+				<RoomLoginDialog
 					v-if="notification.room_id && panelOpen === notification.room_id"
 					@click="panelOpen = null"
 					v-model:dialogOpen="panelOpen"
 					title="notifications.rejoin_secured_room"
 					:message="t(`notifications.${notification.type}`, notification.message_values)"
 					:messageValues="notification.message_values"
+					:secured="true"
 				/>
 			</div>
 		</div>
@@ -41,7 +42,7 @@
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
+	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Models
 	import { TNotification, TNotificationType } from '@hub-client/models/users/TNotification';

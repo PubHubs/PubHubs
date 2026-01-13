@@ -3,6 +3,7 @@ import json
 import subprocess
 import base64
 import time
+import math
 from dataclasses import dataclass
 
 import authlib.jose
@@ -22,7 +23,7 @@ import twisted.internet.defer
 from prometheus_client import Gauge
 
 from synapse.module_api import ModuleApi
-from synapse.http.server import respond_with_json
+from synapse.http.server import respond_with_json, respond_with_json_bytes
 import synapse.api.errors
 
 try:
@@ -41,6 +42,7 @@ logger = logging.getLogger("synapse.contrib." + __name__)
 class Config:
     phc_url: str = None
     hub_client_url: str = None
+    hub_info_update_interval: int = 60
 
 class Core:
     def __init__(self, config: dict, api: ModuleApi):
@@ -62,8 +64,11 @@ class Core:
             ).set(1)
 
         # [Endpoints] 
-        hub_info = { 'hub_version': version_string }
-        api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP({ 'Ok': hub_info }))
+        hub_info = { 
+                    'hub_version': version_string,
+                    'dynamic': { 'last_reload': 0 }
+        }
+        api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP({ 'Ok': hub_info }, self._config.hub_info_update_interval))
 
         # new, multi-server setup
         if self._config == None:
@@ -88,7 +93,8 @@ class Core:
 
         return Config(
                 phc_url = config['phc_url'],
-                hub_client_url = config.get('hub_client_url'))
+                hub_client_url = config.get('hub_client_url'),
+                hub_info_update_interval = config.get('hub_info_update_interval', Config.hub_info_update_interval))
 
     def trigger_get_constellation(self):
         now = time.time()
@@ -127,11 +133,27 @@ def get_version_string():
         return "n/a runtime"
 
 class PhInfoEP(Resource):
-    def __init__(self, contents):
+    def __init__(self, contents, update_interval):
         self._contents = contents
+        self._contents_bytes = None
+        self._update_interval = update_interval
+        self.update_contents()
+
+    def update_contents(self):
+        # See HubClientApiConfig.py
+        try: 
+            with open('/data/media/hub_settings', 'rb') as f:
+                self._contents['Ok']['dynamic']['settings'] = json.load(f)
+        except FileNotFoundError:
+            with open('/non-persistent-data/assets/default_hub_settings.json', 'rb') as f:
+                self._contents['Ok']['dynamic']['settings'] = json.load(f)
+        self._contents['Ok']['dynamic']['last_reload'] = math.floor(time.time())
+        self._contents_bytes = json.dumps(self._contents).encode('ascii')
 
     def render_GET(self, request):
-        return respond_with_json(request, 200, self._contents, send_cors=True)
+        if time.time() - self._contents['Ok']['dynamic']['last_reload'] > self._update_interval:
+            self.update_contents()
+        return respond_with_json_bytes(request, 200, self._contents_bytes, send_cors=True)
 
 class PhEnterStartEP(Resource):
     def __init__(self, core):

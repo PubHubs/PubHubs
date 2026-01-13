@@ -84,7 +84,7 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     /// Additional shared state
     type ExtraSharedState;
 
-    /// Type of this server's object store, usually an [`object_store::ObjectStore`], or [`()`].
+    /// Type of this server's object store, usually an [`object_store::ObjectStore`], or `()`.
     type ObjectStoreT: Sync;
 
     fn new(config: &crate::servers::Config) -> Result<Self>;

@@ -28,11 +28,10 @@
 
 	const { color, textColor } = useUserColor();
 	const settings = useSettings();
-	const user = useUser();
 
 	interface Props {
 		userId: string;
-		userDisplayName: string;
+		userDisplayName: string | undefined;
 		showDisplayName?: boolean;
 		showPseudonym?: boolean;
 		chooseColor?: boolean;

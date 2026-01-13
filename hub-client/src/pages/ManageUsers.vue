@@ -23,7 +23,7 @@
 			</Button>
 
 			<!---List all users accounts -->
-			<FilteredList :items="hubUsers" :filterKey="['displayname', 'name']" sortby="displayname" :placeholder="$t('rooms.filter')">
+			<FilteredList :items="hubUsers" :filterKey="['displayname', 'name']" sortby="displayname" :placeholder="$t('others.filter_users')">
 				<template #item="{ item }">
 					<div class="box-border flex w-full justify-between gap-4 md:gap-8" :title="item.room_id">
 						<div class="flex min-w-0 flex-1 items-center gap-4">

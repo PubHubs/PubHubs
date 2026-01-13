@@ -8,7 +8,7 @@ use crate::handle;
 use crate::hub;
 use crate::id::Id;
 use crate::misc::crypto;
-use crate::misc::error::{Opaque, OPAQUE};
+use crate::misc::error::{OPAQUE, Opaque};
 use crate::misc::jwt;
 
 use std::collections::{HashMap, HashSet};
@@ -67,6 +67,7 @@ impl App {
             identifying_attr,
             mode,
             add_attrs,
+            register_only_with_unique_attrs,
         } = req.into_inner();
 
         let auth_token_user_id = if let Some(auth_token) = auth_token {
@@ -87,6 +88,17 @@ impl App {
         if auth_token_user_id.is_none() && identifying_attr.is_none() {
             log::debug!("entry request with neither auth token nor identifying attribute");
             return Err(api::ErrorCode::BadRequest);
+        }
+
+        if register_only_with_unique_attrs {
+            match mode {
+                EnterMode::Login => {
+                    log::debug!(
+                        "entry request with `register_only_with_unique_attrs` set, but mode `Login`"
+                    );
+                }
+                EnterMode::Register | EnterMode::LoginOrRegister => { /* Ok */ }
+            }
         }
 
         // Check attributes are valid
@@ -261,6 +273,7 @@ impl App {
                     &attrs,
                     &mut attr_states,
                     &mut retrieved_attr_states,
+                    register_only_with_unique_attrs,
                 )
                 .await?
             {
@@ -333,16 +346,20 @@ impl App {
                     );
                 })?
             {
-                assert!(attr_states
-                    .insert(
-                        identifying_attr.id,
-                        (identifying_attr_state, identifying_attr_state_version),
-                    )
-                    .is_none());
+                assert!(
+                    attr_states
+                        .insert(
+                            identifying_attr.id,
+                            (identifying_attr_state, identifying_attr_state_version),
+                        )
+                        .is_none()
+                );
 
-                assert!(attr_add_status
-                    .insert(identifying_attr.id, AttrAddStatus::Added)
-                    .is_none());
+                assert!(
+                    attr_add_status
+                        .insert(identifying_attr.id, AttrAddStatus::Added)
+                        .is_none()
+                );
             } else {
                 log::warn!(
                     "possibly orphaned user account {} because identifying \
@@ -350,7 +367,10 @@ impl App {
                     user_state.id,
                     identifying_attr.id
                 );
-                return Ok(EnterResp::AttributeAlreadyTaken(identifying_attr.attr));
+                return Ok(EnterResp::AttributeAlreadyTaken {
+                    attr: identifying_attr.attr,
+                    bans_other_user: false,
+                });
             }
 
             log::debug!("created user account {}", user_state.id);
@@ -390,18 +410,24 @@ impl App {
 
             match app.put_object::<AttrState>(&attr_state, None).await {
                 Ok(Some(attr_state_version)) => {
-                    assert!(attr_states
-                        .insert(attr.id, (attr_state, attr_state_version))
-                        .is_none());
-                    assert!(attr_add_status
-                        .insert(attr.id, AttrAddStatus::Added)
-                        .is_none());
+                    assert!(
+                        attr_states
+                            .insert(attr.id, (attr_state, attr_state_version))
+                            .is_none()
+                    );
+                    assert!(
+                        attr_add_status
+                            .insert(attr.id, AttrAddStatus::Added)
+                            .is_none()
+                    );
                 }
                 problem => {
                     log::warn!("problem adding attribute state {}: {problem:?}", attr.value);
-                    assert!(attr_add_status
-                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                        .is_none());
+                    assert!(
+                        attr_add_status
+                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                            .is_none()
+                    );
                 }
             }
         }
@@ -427,15 +453,19 @@ impl App {
                 .await
             {
                 Ok(Some(attr_state_version)) => {
-                    assert!(attr_states
-                        .insert(attr.id, (attr_state.clone(), attr_state_version))
-                        .is_some());
+                    assert!(
+                        attr_states
+                            .insert(attr.id, (attr_state.clone(), attr_state_version))
+                            .is_some()
+                    );
                     assert!(attr_add_status.contains_key(&attr.id));
                 }
                 _ => {
-                    assert!(attr_add_status
-                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                        .is_none());
+                    assert!(
+                        attr_add_status
+                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                            .is_none()
+                    );
                 }
             }
         }
@@ -520,6 +550,8 @@ impl App {
     ///  1. None of the given attributes is bannable.
     ///  2. One of the attributes is banned
     ///  3. One of the attributes already identifies another user.
+    ///  4. One if the attributes already bans another user (if
+    ///     `register_only_with_unique_attrs` is set
     ///
     /// Might try to retrieve attribute states for attributes not already in `attr_states`,
     /// and will add those to `attr_states`. If it did, will set `retrieved_attr_states`.
@@ -533,6 +565,7 @@ impl App {
         attrs: &HashMap<Id, IdedAttr>,
         attr_states: &mut HashMap<Id, (AttrState, object_store::UpdateVersion)>,
         retrieved_attr_states: &mut bool,
+        register_only_with_unique_attrs: bool,
     ) -> api::Result<Option<EnterResp>> {
         // Before doing potentially expensive queries to the object store, make sure a bannable
         // attribute has been provided by the client
@@ -564,9 +597,17 @@ impl App {
             }
 
             if attr_state.may_identify_user.is_some() {
-                return Ok(Some(EnterResp::AttributeAlreadyTaken(
-                    attrs.get(attr_id).unwrap().attr.clone(),
-                )));
+                return Ok(Some(EnterResp::AttributeAlreadyTaken {
+                    attr: attrs.get(attr_id).unwrap().attr.clone(),
+                    bans_other_user: false,
+                }));
+            }
+
+            if register_only_with_unique_attrs && !attr_state.bans_users.is_empty() {
+                return Ok(Some(EnterResp::AttributeAlreadyTaken {
+                    attr: attrs.get(attr_id).unwrap().attr.clone(),
+                    bans_other_user: true,
+                }));
             }
         }
 

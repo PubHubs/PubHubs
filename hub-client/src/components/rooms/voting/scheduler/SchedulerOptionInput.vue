@@ -56,9 +56,14 @@
 	// Stores
 	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 
+	import { languageLocale } from '@hub-client/i18n';
+
 	const emit = defineEmits(['updateOption', 'removeOption']);
 	const settings = useSettings();
-	const { d, locale } = useI18n();
+	const { d, locale: i18nLocale } = useI18n();
+
+	// Get the locale of the current language
+	const locale = languageLocale[i18nLocale.value];
 
 	const props = defineProps<{
 		option: SchedulerOption;

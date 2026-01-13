@@ -11,6 +11,7 @@ impl ToolsArgs {
     pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
         match self.command {
             Commands::Generate(args) => args.run(),
+            Commands::YiviEpoch(args) => args.run(),
         }
     }
 }
@@ -19,6 +20,42 @@ impl ToolsArgs {
 enum Commands {
     /// Generates identifiers and/or key material
     Generate(generate::Args),
+
+    /// Prints information about the current Yivi epoch
+    YiviEpoch(YiviEpochArgs),
+}
+
+#[derive(clap::Args, Debug)]
+struct YiviEpochArgs {
+    /// Print information about the NUMBERth yivi epoch
+    #[arg(long, value_name = "NUMBER", conflicts_with = "at")]
+    nr: Option<u64>,
+
+    /// Print information about the yivi epoch at the given TIMESTAMP such as '2025-12-17 15:15:15'
+    #[arg(
+        long,
+        value_name = "TIMESTAMP",
+        value_parser = humantime::parse_rfc3339_weak,
+        conflicts_with = "nr"
+    )]
+    at: Option<std::time::SystemTime>,
+}
+
+impl YiviEpochArgs {
+    fn run(self) -> Result<()> {
+        let epoch = if let Some(nr) = self.nr {
+            crate::servers::yivi::Epoch::with_seqnr(nr)
+        } else if let Some(at) = self.at {
+            let nd: crate::api::NumericDate = at.into();
+            crate::servers::yivi::Epoch::from(nd)
+        } else {
+            crate::servers::yivi::Epoch::current()
+        };
+
+        print!("{}", epoch);
+
+        Ok(())
+    }
 }
 
 /// Implementation details of [`Commands::Generate`].

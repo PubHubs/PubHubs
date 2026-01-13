@@ -14,7 +14,7 @@
 					}}</PopoverButton>
 				</div>
 			</Popover>
-			<Mention v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
+			<MentionAutoComplete v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="(item, marker) => insertMention(item, marker)" />
 			<div v-if="messageInput.state.emojiPicker" class="xs:right-4 absolute right-0 bottom-2 z-20 md:right-12">
 				<EmojiPicker @emojiSelected="clickedEmoticon" @close="messageInput.toggleEmojiPicker()" />
 			</div>
@@ -81,7 +81,7 @@
 
 					<!--Steward and above can broadcast only in main time line-->
 					<button
-						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
+						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
@@ -134,7 +134,6 @@
 	import { useRoute } from 'vue-router';
 
 	// Components
-	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Line from '@hub-client/components/elements/Line.vue';
 	import TextArea from '@hub-client/components/forms/TextArea.vue';
@@ -142,7 +141,7 @@
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
-	import Mention from '@hub-client/components/ui/Mention.vue';
+	import MentionAutoComplete from '@hub-client/components/ui/MentionAutoComplete.vue';
 	import Popover from '@hub-client/components/ui/Popover.vue';
 	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
 
@@ -152,20 +151,20 @@
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	// Logic
-	import filters from '@hub-client/logic/core/filters';
 	import { useMessageInput } from '@hub-client/logic/messageInput';
 
 	// Models
 	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-	import { RelationType } from '@hub-client/models/constants';
+	import { RelationType, actions } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import Room from '@hub-client/models/rooms/Room';
 
 	// Stores
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
+	import { TPublicRoom, TRoomMember, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -201,7 +200,6 @@
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, uploadUrl } = useMatrixFiles();
 
-	// const fileInfo = ref<File>();
 	const uri = ref<string>('');
 	const pollObject = ref<Poll>(new Poll());
 	const schedulerObject = ref<Scheduler>(new Scheduler());
@@ -278,12 +276,12 @@
 	);
 
 	onMounted(async () => {
-		window.addEventListener('keydown', handleKeydown);
+		globalThis.addEventListener('keydown', handleKeydown);
 		reset();
 	});
 
 	onUnmounted(() => {
-		window.removeEventListener('keydown', handleKeydown);
+		globalThis.removeEventListener('keydown', handleKeydown);
 	});
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
@@ -298,7 +296,7 @@
 			if (message?.content[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				inReplyTo.value = props.inThread ? message : undefined;
 			} else {
-				inReplyTo.value = !props.inThread ? message : undefined;
+				inReplyTo.value = props.inThread ? undefined : message;
 			}
 		}
 
@@ -332,27 +330,27 @@
 		}
 	}
 
-	//  To autocomplete the mention user in the message.
-	function mentionUser(user: any) {
-		let userMention = user.rawDisplayName;
+	function insertMention(item: TRoomMember | TPublicRoom, marker: '@' | '#') {
+		const isUserMention = marker === '@';
+		const displayName = isUserMention ? (item as TRoomMember).rawDisplayName : (item as TPublicRoom).name;
+		const id = isUserMention ? (item as TRoomMember).userId : (item as TPublicRoom).room_id;
 
-		// Make sure pseudonym is included if it hasn't
-		if (!filters.extractPseudonymFromString(userMention)) {
-			userMention += ' - ' + filters.extractPseudonym(user.userId);
-		}
+		const mention = `${marker}${displayName}~${id}~`;
 
 		let message = value.value?.toString();
-		if (message?.lastIndexOf('@') !== -1) {
-			const lastPosition = message?.lastIndexOf('@');
-			message = message?.substring(0, lastPosition);
-			value.value = message + ' @' + userMention;
+		const lastPosition = message?.lastIndexOf(marker);
+
+		if (lastPosition === -1) {
+			value.value += mention;
 		} else {
-			value.value += ' @' + userMention;
+			message = message?.substring(0, lastPosition);
+			value.value = message + mention;
 		}
+
+		elTextInput.value?.$el.focus();
 	}
 
 	function submitMessage() {
-		// console.log('submit', 'sendButton:', messageInput.sendButtonEnabled, 'valid:', isValidMessage(), 'fileAdded:', messageInput.fileAdded);
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 
@@ -390,7 +388,6 @@
 
 	async function announcementMessage() {
 		const powerLevel = props.room.getPowerLevel(user.userId);
-		// if (value.value?.toLocaleString().length === 0) return;
 		await pubhubs.addAnnouncementMessage(rooms.currentRoomId, value.value!.toString(), powerLevel);
 		value.value = '';
 	}

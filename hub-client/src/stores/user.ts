@@ -1,6 +1,8 @@
 // Packages
+import { usePubhubsStore } from './pubhubs';
 import { assert } from 'chai';
-import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
+import { EventType, MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
+import { MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
 // Logic
@@ -12,7 +14,7 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 // Models
-import { OnboardingType } from '@hub-client/models/constants';
+import { MatrixType, OnboardingType } from '@hub-client/models/constants';
 import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
 
 // Stores
@@ -63,7 +65,7 @@ const useUser = defineStore('user', {
 			try {
 				const clientUser = this.client.getUser(userId!);
 				return clientUser ?? defaultUser;
-			} catch (error) {
+			} catch {
 				return defaultUser;
 			}
 		},
@@ -76,11 +78,11 @@ const useUser = defineStore('user', {
 			return isAdministrator;
 		},
 
-		avatarUrl({ _avatarMxcUrl: _avatarMxcUrl }): string | undefined {
+		avatarUrl({ _avatarMxcUrl }): string | undefined {
 			return _avatarMxcUrl;
 		},
 
-		displayName({ _displayName: _displayName }): string | null | undefined {
+		displayName({ _displayName }): string | null | undefined {
 			return _displayName;
 		},
 
@@ -111,6 +113,22 @@ const useUser = defineStore('user', {
 		// #region Setter method
 		setClient(client: MatrixClient) {
 			this.client = client;
+		},
+
+		loadFromSlidingSync(roomData: MSC3575RoomData): boolean {
+			// profile data of members is in the join content of roommember events, need only update when there is new content
+			const membersOnlyProfileUpdate = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
+			if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
+
+			membersOnlyProfileUpdate.forEach((member) => {
+				const profile = {
+					avatar_url: member.content.avatar_url ?? undefined,
+					displayname: member.content.displayname ?? undefined,
+				};
+				this.setAllProfiles(member.sender, profile);
+			});
+
+			return true;
 		},
 
 		// Storing my  UserId
@@ -169,7 +187,7 @@ const useUser = defineStore('user', {
 				} else {
 					this.isAdministrator = false;
 				}
-			} catch (error) {
+			} catch {
 				this.isAdministrator = false;
 			}
 		},
@@ -178,7 +196,7 @@ const useUser = defineStore('user', {
 			try {
 				const settings = useSettings();
 				if (!settings.isFeatureEnabled(FeatureFlag.consent)) return false;
-				const response = (await api_synapse.apiGET(`${api_synapse.apiURLS.data}?data=consent`)) as ConsentJSONParser;
+				const response = await api_synapse.apiGET<ConsentJSONParser>(`${api_synapse.apiURLS.data}?data=consent`);
 				if (response) {
 					this.needsConsent = response.needs_consent;
 					this.needsOnboarding = response.needs_onboarding;
@@ -193,6 +211,17 @@ const useUser = defineStore('user', {
 				router.push({ name: 'onboarding', query: { type: onboardingType, originalRoute: router.currentRoute.value.path } });
 			}
 			return this.needsConsent;
+		},
+
+		async goToUserRoom(userId: string) {
+			const pubhubs = usePubhubsStore();
+			const otherUser = this.client!.getUser(userId);
+			if (otherUser && this.userId !== otherUser.userId) {
+				const userRoom = await pubhubs.createPrivateRoomWith(otherUser as User);
+				if (userRoom) {
+					await pubhubs.routeToRoomPage(userRoom);
+				}
+			}
 		},
 
 		// #endregion

@@ -5,6 +5,9 @@ const en = {
 		loading: 'Loading ...',
 		or: 'or',
 	},
+	card: {
+		description: 'Card issued with the following attributes:',
+	},
 	state: {
 		button_request: 'Request access',
 		initial: 'Checking whether hub client has access to cookies and local storage...',
@@ -194,6 +197,10 @@ const en = {
 	menu: {
 		calender: 'Calender',
 		contact: 'Contact Admin',
+		copy_hub_url: 'Copy link to hub',
+		copy_room_url: 'Copy link to room',
+		enter_room: 'Enter room',
+		leave_room: 'Leave room',
 		home: 'Hub welcome',
 		directmsg: 'Direct messages',
 		discover: 'Discover rooms',

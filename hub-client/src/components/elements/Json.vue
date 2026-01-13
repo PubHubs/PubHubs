@@ -20,6 +20,5 @@
 
 	function toggleFold() {
 		folded.value = !folded.value;
-		console.info('toggle', folded.value);
 	}
 </script>
