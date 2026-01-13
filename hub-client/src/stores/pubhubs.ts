@@ -1013,9 +1013,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * Makes an authenticated request to get the media and returns a local URL to the retrieved file (which does not need authorization).
 		 * This is useful for usage in <img> tags, where you cannot send an access token.
 		 *
+		 * NB:	The local URL is of a created blob, that needs to be revoked afterwards.
+		 * 		This is the responsibility of the calling method!
+		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async getAuthorizedMediaUrl(url: string): Promise<string | null> {
+		async fetchAuthorizedMediaUrl(url: string): Promise<string | null> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
