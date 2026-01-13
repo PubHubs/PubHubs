@@ -165,7 +165,7 @@
 		secured.value = false;
 		showEditRoom.value = false;
 
-		rooms.fetchPublicRooms();
+		rooms.fetchPublicRooms(true);
 		rooms.fetchSecuredRooms();
 	}
 
