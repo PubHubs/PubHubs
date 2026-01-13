@@ -83,9 +83,9 @@
 			</TabContainer>
 		</Tabs>
 
-		<template #footer>
+		<!-- <template #footer>
 			<EditRoomForm v-if="showEditRoom" :room="editRoom" :secured="secured" @close="closeEdit()" />
-		</template>
+		</template> -->
 	</HeaderFooter>
 </template>
 
@@ -108,6 +108,7 @@
 
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiHubManagement';
+	import { router } from '@hub-client/logic/core/router';
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
@@ -149,6 +150,7 @@
 	}
 
 	function editPublicRoom(room: TPublicRoom) {
+		router.push({ name: 'editroom', params: { id: room.room_id } });
 		editRoom.value = room;
 		secured.value = false;
 		showEditRoom.value = true;

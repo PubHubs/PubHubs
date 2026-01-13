@@ -1,61 +1,62 @@
 <template>
-	<Dialog :title="title" :buttons="dialogButtons" @close="close($event)" width="w-full max-w-[960px]">
-		<ValidatedForm @keydown.enter.stop @validated="isValidated($event)" class="p-025">
-			<TextField v-model="editRoom.name" :validation="{ required: true, maxLength: roomValidations.maxNameLength }" :placeholder="t('admin.name_placeholder')" :show-length="true">{{ t('admin.name') }}</TextField>
-			<TextField v-model="editRoom.topic" :validation="{ maxLength: roomValidations.maxTopicLength }" :placeholder="t('admin.topic_placeholder')" :show-length="true">{{ t('admin.topic') }}</TextField>
-			<TextField v-if="!secured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
+	<ValidatedForm @keydown.enter.stop v-slot="{ isValidated }" class="p-200">
+		<TextField v-model="editRoom.name" :validation="{ required: true, maxLength: roomValidations.maxNameLength }" :placeholder="t('admin.name_placeholder')" :show-length="true">{{ t('admin.name') }}</TextField>
+		<TextField v-model="editRoom.topic" :validation="{ maxLength: roomValidations.maxTopicLength }" :placeholder="t('admin.topic_placeholder')" :show-length="true">{{ t('admin.topic') }}</TextField>
+		<TextField v-if="!secured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
 
-			<div v-if="secured">
-				<TextField v-model="editRoom.user_txt" :validation="{ maxLength: roomValidations.maxDescriptionLength }" :placeholder="t('admin.secured_description_placeholder')" :show-length="true">{{
-					t('admin.secured_description')
-				}}</TextField>
+		<div v-if="secured">
+			<TextField v-model="editRoom.user_txt" :validation="{ maxLength: roomValidations.maxDescriptionLength }" :placeholder="t('admin.secured_description_placeholder')" :show-length="true">{{
+				t('admin.secured_description')
+			}}</TextField>
 
-				<div>
-					<div class="mt-4 flex flex-wrap gap-2">
-						<Label :required="true">{{ t('admin.secured_yivi_attributes') }}</Label>
-						<button v-for="(attr, index) in selectedAttributes" :key="index" :class="['rounded-xs px-3 py-1', activeTab === index ? 'bg-surface-high' : 'bg-surface text-on-surface']" @click="activeTab = index" type="button">
-							{{ attr.label ? attr.label : index + 1 }}
-							<span v-if="selectedAttributes.length > 1" @click.stop="removeAttribute(index)" class="text-accent-red hover:text-on-accent-red ml-2 cursor-pointer">&times;</span>
-						</button>
-						<Button v-if="selectedAttributes.length < roomValidations.maxAttributes" icon="plus" size="sm" @click="selectedAttributes.push({ label: '', attribute: '', accepted: [], profile: false })"></Button>
+			<div>
+				<div class="mt-4 flex flex-wrap gap-2">
+					<Label :required="true">{{ t('admin.secured_yivi_attributes') }}</Label>
+					<button v-for="(attr, index) in selectedAttributes" :key="index" :class="['rounded-xs px-3 py-1', activeTab === index ? 'bg-surface-high' : 'bg-surface text-on-surface']" @click="activeTab = index" type="button">
+						{{ attr.label ? attr.label : index + 1 }}
+						<span v-if="selectedAttributes.length > 1" @click.stop="removeAttribute(index)" class="text-accent-red hover:text-on-accent-red ml-2 cursor-pointer">&times;</span>
+					</button>
+					<Button v-if="selectedAttributes.length < roomValidations.maxAttributes" icon="plus" size="sm" @click="selectedAttributes.push({ label: '', attribute: '', accepted: [], profile: false })"></Button>
+				</div>
+
+				<div v-if="selectedAttributes.length" class="bg-surface-low border-2 p-4">
+					<TextFieldAutoComplete v-model="selectedAttributes[activeTab].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle">{{
+						t('admin.secured_attribute')
+					}}</TextFieldAutoComplete>
+
+					<div class="flex gap-100">
+						<div class="grow">
+							<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab)">{{ t('admin.add_value') }}</TextArea>
+						</div>
+						<div class="grow">
+							<Button class="mt-300" @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
+						</div>
 					</div>
 
-					<div v-if="selectedAttributes.length" class="bg-surface-low border-2 p-4">
-						<TextFieldAutoComplete v-model="selectedAttributes[activeTab].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle">{{
-							t('admin.secured_attribute')
-						}}</TextFieldAutoComplete>
-
-						<div class="flex gap-100">
-							<div class="grow">
-								<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab)">{{ t('admin.add_value') }}</TextArea>
-							</div>
-							<div class="grow">
-								<Button class="mt-300" @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
-							</div>
-						</div>
-
-						<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="mb-200 flex flex-wrap gap-2">
-							<Label>{{ t('admin.secured_values') }}</Label>
-							<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="bg-primary text-on-primary bg-surface inline-flex items-center truncate rounded-xl px-2 py-1">
-								{{ value }}
-								<button type="button" class="text-accent-red hover:text-on-accent-red ml-2" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">&times;</button>
-							</span>
-						</div>
-
-						<Checkbox v-model="selectedAttributes[activeTab].profile">{{ t('admin.secured_profile') }}</Checkbox>
+					<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="mb-200 flex flex-wrap gap-2">
+						<Label>{{ t('admin.secured_values') }}</Label>
+						<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="bg-primary text-on-primary bg-surface inline-flex items-center truncate rounded-xl px-2 py-1">
+							{{ value }}
+							<button type="button" class="text-accent-red hover:text-on-accent-red ml-2" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">&times;</button>
+						</span>
 					</div>
+
+					<Checkbox v-model="selectedAttributes[activeTab].profile">{{ t('admin.secured_profile') }}</Checkbox>
 				</div>
 			</div>
-		</ValidatedForm>
-	</Dialog>
+		</div>
+
+		<ButtonGroup>
+			<Button variant="error" @click.stop.prevent="cancel()">{{ t('dialog.cancel') }}</Button>
+			<Button type="submit" :disabled="!isValidated" @click.stop.prevent="submitRoom()">{{ t('dialog.edit') }}</Button>
+		</ButtonGroup>
+	</ValidatedForm>
 </template>
 
 <script setup lang="ts">
 	// Packages
 	import { computed, onBeforeMount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-
-	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Composables
 	import { useEditRoom } from '@hub-client/composables/useEditRoom';
@@ -71,12 +72,12 @@
 	import { ValidationMessage } from '@hub-client/models/validation/TValidate';
 
 	// Stores
-	import { DialogButtonAction, buttonsSubmitCancel } from '@hub-client/stores/dialog';
-	import { TSecuredRoom } from '@hub-client/stores/rooms';
+	import { SecuredRoomAttributes, TSecuredRoom } from '@hub-client/stores/rooms';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useYivi } from '@hub-client/stores/yivi';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
+	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	// Components
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
@@ -111,6 +112,7 @@
 	// editRoom typed as union; we'll narrow when submitting
 	const editRoom = ref<TEditRoom | TSecuredRoom>({
 		name: '',
+		accepted: {} as SecuredRoomAttributes,
 		topic: '',
 		type: '',
 		user_txt: '',
@@ -139,9 +141,9 @@
 
 	const isNewRoom = computed(() => isEmpty(props.room));
 
-	const title = computed(() => (isNewRoom.value ? (props.secured ? t('admin.add_secured_room') : t('admin.add_room')) : props.secured ? t('admin.edit_secured_room') : t('admin.edit_name')));
+	// const title = computed(() => (isNewRoom.value ? (props.secured ? t('admin.add_secured_room') : t('admin.add_room')) : props.secured ? t('admin.edit_secured_room') : t('admin.edit_name')));
 
-	const dialogButtons = ref(buttonsSubmitCancel);
+	// const dialogButtons = ref(buttonsSubmitCancel);
 
 	onBeforeMount(() => {
 		if (isNewRoom.value) {
@@ -169,15 +171,15 @@
 		}
 	});
 
-	const isValidated = (validated: boolean) => {
-		dialogButtons.value = [
-			{
-				...buttonsSubmitCancel[0],
-				enabled: validated,
-			},
-			buttonsSubmitCancel[1],
-		];
-	};
+	// const isValidated = (validated: boolean) => {
+	// 	// dialogButtons.value = [
+	// 	// 	{
+	// 	// 		...buttonsSubmitCancel[0],
+	// 	// 		enabled: validated,
+	// 	// 	},
+	// 	// 	buttonsSubmitCancel[1],
+	// 	// ];
+	// };
 
 	// function validateRoomForm() {
 	// 	const acceptedLengths = selectedAttributes.value.map((s) => s.accepted.length);
@@ -205,11 +207,16 @@
 	// 	return !hasErrors;
 	// }
 
+	function cancel() {
+		emit('close');
+	}
+
 	async function submitRoom(): Promise<boolean> {
 		// if (!validateRoomForm()) return false;
 
 		if (!props.secured) {
 			const room = editRoom.value as TEditRoom;
+			console.info('submit', room);
 			await editRoomComposable.updatePublicRoom(isNewRoom.value, room, (props.room as any)?.room_id);
 		} else {
 			const room = editRoom.value as TSecuredRoom;
@@ -224,11 +231,11 @@
 		return true;
 	}
 
-	async function close(returnValue: DialogButtonAction): Promise<void> {
-		if (returnValue === 0 || (returnValue === 1 && (await submitRoom()))) {
-			emit('close');
-		}
-	}
+	// async function close(returnValue: DialogButtonAction): Promise<void> {
+	// 	if (returnValue === 0 || (returnValue === 1 && (await submitRoom()))) {
+	// 		emit('close');
+	// 	}
+	// }
 
 	function removeAttribute(index: number) {
 		selectedAttributes.value.splice(index, 1);

@@ -20,10 +20,10 @@
 	const fields = ref([] as fieldType[]);
 
 	const isValidated = computed(() => {
-		let changed = true;
+		let changed = false;
 		let validated = true;
 		fields.value.forEach((field) => {
-			changed = changed && field.changed;
+			changed = changed || field.changed;
 		});
 		fields.value.forEach((field) => {
 			validated = validated && field.validated;

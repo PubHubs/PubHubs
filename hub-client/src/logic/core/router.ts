@@ -25,9 +25,21 @@ const routes = [
 	},
 	{
 		path: '/admin',
-		name: 'admin',
-		component: () => import('@hub-client/pages/Admin.vue'),
-		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		children: [
+			{
+				path: '',
+				name: 'admin',
+				component: () => import('@hub-client/pages/Admin.vue'),
+				meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+			},
+			{
+				path: ':id',
+				props: true,
+				name: 'editroom',
+				component: () => import('@hub-client/pages/EditRoom.vue'),
+				meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+			},
+		],
 	},
 	{
 		path: '/manage-users',
@@ -47,7 +59,12 @@ const routes = [
 		component: () => import('@hub-client/pages/AskDisclosure.vue'),
 		meta: { onlyAdmin: true, onboarding: true },
 	},
-	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@hub-client/pages/DirectMessage.vue'), meta: { hideBar: true, onboarding: true } },
+	{
+		path: '/direct-msg',
+		name: 'direct-msg',
+		component: () => import('@hub-client/pages/DirectMessage.vue'),
+		meta: { hideBar: true, onboarding: true },
+	},
 	{
 		path: '/room/:id',
 		name: 'room',
