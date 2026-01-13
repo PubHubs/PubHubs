@@ -35,6 +35,9 @@
 	});
 
 	const room = computed(() => {
+		if (isSecured.value) {
+			return rooms.securedRoom(props.id);
+		}
 		return rooms.room(props.id)?.matrixRoom;
 	});
 

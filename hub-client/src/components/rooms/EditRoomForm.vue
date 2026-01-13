@@ -153,6 +153,7 @@
 			editRoom.value.topic = roomsStore.getRoomTopic((props.room as any)?.room_id);
 
 			if (props.secured) {
+				console.info('Secured room', props.room);
 				const [labels, attributes] = editRoomComposable.getYiviLabelsAndAttributes((props.room as any)?.accepted, t);
 				selectedAttributes.value = JSON.parse(JSON.stringify(editRoomComposable.fillInEditFormAttributes(labels, attributes, (props.room as any)?.accepted)));
 				OriginalAttributes = JSON.parse(JSON.stringify(selectedAttributes.value));

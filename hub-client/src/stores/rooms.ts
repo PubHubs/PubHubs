@@ -201,6 +201,16 @@ const useRooms = defineStore('rooms', {
 			return state.securedRooms.sort(propCompare('room_name'));
 		},
 
+		securedRoom: (state) => {
+			return (roomId: string): TSecuredRoom | undefined => {
+				const index = state.securedRooms.findIndex((r) => r.room_id === roomId);
+				if (index >= 0) {
+					return state.securedRooms[index];
+				}
+				return undefined;
+			};
+		},
+
 		totalUnreadMessages() {
 			let total = 0;
 			this.roomsArray.forEach((room) => {
