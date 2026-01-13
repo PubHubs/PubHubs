@@ -135,7 +135,7 @@
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
 
 	onMounted(async () => {
-		await rooms.fetchPublicRooms();
+		await rooms.fetchPublicRooms(true);
 		await rooms.fetchSecuredRooms();
 	});
 
