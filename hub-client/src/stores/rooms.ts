@@ -335,9 +335,9 @@ const useRooms = defineStore('rooms', {
 			return this.currentRoom.getRoomUnreadNotificationCount(NotificationCountType.Highlight);
 		},
 
-		async fetchPublicRooms() {
+		async fetchPublicRooms(force: boolean = false) {
 			const pubhubs = usePubhubsStore();
-			const rooms = await pubhubs.getAllPublicRooms();
+			const rooms = await pubhubs.getAllPublicRooms(force);
 			this.publicRooms = rooms.toSorted(propCompare('name'));
 		},
 
@@ -381,9 +381,14 @@ const useRooms = defineStore('rooms', {
 			return foundIndex >= 0;
 		},
 
-		roomIsSecure(roomId: string): boolean {
+		publicRoomIsSecure(roomId: string): boolean {
 			const publicRoom = this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 			return publicRoom?.room_type === RoomType.PH_MESSAGES_RESTRICTED;
+		},
+
+		roomIsSecure(roomId: string): boolean {
+			const room = this.fetchRoomById(roomId);
+			return room?.roomType === RoomType.PH_MESSAGES_RESTRICTED;
 		},
 
 		//? Some documentation would be helpful here.

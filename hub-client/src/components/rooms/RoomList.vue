@@ -134,10 +134,6 @@
 		},
 	});
 
-	onMounted(() => {
-		rooms.fetchPublicRooms();
-	});
-
 	const currentJoinedRooms = computed(() => {
 		return rooms.fetchRoomArrayByAccessibility(props.roomTypes).filter((room: Room) => room.isHidden() === false);
 	});
@@ -158,8 +154,9 @@
 			} else if (await dialog.okcancel(t(leaveMsg))) {
 				// Message should changed based on who (admin) is leaving the room and under which condition.
 				// e.g., Admin leaves the room and he is the only member or when admin leaves the room which makes the room without adminstrator.
+				const isSecure = rooms.roomIsSecure(roomId);
 				await pubhubs.leaveRoom(roomId);
-				if (rooms.roomIsSecure(roomId)) {
+				if (isSecure) {
 					notifications.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
 				}
 				await router.replace({ name: 'home' });
