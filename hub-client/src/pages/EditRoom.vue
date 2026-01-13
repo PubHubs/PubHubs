@@ -7,13 +7,13 @@
 			</div>
 			<div class="flex h-full items-center">
 				<div class="flex w-fit items-center gap-3">
-					<Icon type="caret-left" data-testid="back" class="cursor-pointer" @click="cancel()" />
+					<Icon type="caret-left" data-testid="back" class="cursor-pointer" @click="close()" />
 					<H3 class="font-headings text-on-surface font-semibold">{{ $t('menu.admin_tools_room', [roomName]) }}</H3>
 				</div>
 			</div>
 		</template>
 
-		<EditRoomForm :room="room" :secured="isSecured" @close="cancel()" />
+		<EditRoomForm :room="room" :secured="isSecured" @close="close()" />
 	</HeaderFooter>
 </template>
 
@@ -46,7 +46,7 @@
 		return rooms.roomIsSecure(props.id);
 	});
 
-	function cancel() {
+	function close() {
 		router.push({ name: 'admin' });
 	}
 </script>

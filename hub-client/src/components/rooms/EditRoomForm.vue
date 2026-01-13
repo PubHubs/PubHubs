@@ -216,18 +216,18 @@
 
 		if (!props.secured) {
 			const room = editRoom.value as TEditRoom;
-			console.info('submit', room);
-			await editRoomComposable.updatePublicRoom(isNewRoom.value, room, (props.room as any)?.room_id);
+			await editRoomComposable.updatePublicRoom(isNewRoom.value, room, props.room.roomId);
 		} else {
 			const room = editRoom.value as TSecuredRoom;
 			selectedAttributes.value = editRoomComposable.translateYiviLabelsToAttributes(selectedAttributes.value, t);
 			try {
-				await editRoomComposable.updateSecuredRoom(isNewRoom.value, room, selectedAttributes.value, attributeChanged.value, (props.room as any)?.room_id);
+				await editRoomComposable.updateSecuredRoom(isNewRoom.value, room, selectedAttributes.value, attributeChanged.value, props.room.roomId);
 			} catch (error) {
 				errorMessage.value = t((error as Error).message);
 				return false;
 			}
 		}
+		emit('close');
 		return true;
 	}
 
