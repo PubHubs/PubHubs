@@ -151,25 +151,26 @@
 
 	function editPublicRoom(room: TPublicRoom) {
 		router.push({ name: 'editroom', params: { id: room.room_id } });
-		editRoom.value = room;
-		secured.value = false;
-		showEditRoom.value = true;
+		// editRoom.value = room;
+		// secured.value = false;
+		// showEditRoom.value = true;
 	}
 
 	function EditSecuredRoom(room: TSecuredRoom) {
-		editRoom.value = room;
-		secured.value = true;
-		showEditRoom.value = true;
+		router.push({ name: 'editroom', params: { id: room.room_id } });
+		// editRoom.value = room;
+		// secured.value = true;
+		// showEditRoom.value = true;
 	}
 
-	function closeEdit() {
-		editRoom.value = {} as TSecuredRoom;
-		secured.value = false;
-		showEditRoom.value = false;
+	// function closeEdit() {
+	// 	editRoom.value = {} as TSecuredRoom;
+	// 	secured.value = false;
+	// 	showEditRoom.value = false;
 
-		rooms.fetchPublicRooms();
-		rooms.fetchSecuredRooms();
-	}
+	// 	rooms.fetchPublicRooms();
+	// 	rooms.fetchSecuredRooms();
+	// }
 
 	async function removePublicRoom(room: TPublicRoom) {
 		const dialog = useDialog();

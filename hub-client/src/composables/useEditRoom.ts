@@ -1,13 +1,13 @@
+// Model
 // Logic
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
-// Model
 import { TEditRoom, TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
 import { SecuredRoomAttributes } from '@hub-client/models/rooms/TSecuredRoom';
 import { Attribute } from '@hub-client/models/yivi/Tyivi';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { useRooms } from '@hub-client/stores/rooms';
 import { TSecuredRoom } from '@hub-client/stores/rooms';
+import { useRooms } from '@hub-client/stores/rooms';
 import { useYivi } from '@hub-client/stores/yivi';
 
 function useEditRoom() {
@@ -68,7 +68,7 @@ function useEditRoom() {
 	 * Returns two values as a tuple: the found yivi labels and the yivi secured attribute keys.
 	 */
 	function getYiviLabelsAndAttributes(accepted: SecuredRoomAttributes, t: (key: string, ...args: any[]) => string): [string[], string[]] {
-		const attributes = Object.keys(accepted);
+		const attributes = accepted ? Object.keys(accepted) : [];
 		const yiviAttributes = yiviStore.getAttributes(t);
 		const labels = attributes.map((attrKey) => {
 			const found = yiviAttributes.find((attribute: Attribute) => attribute.attribute === attrKey);

@@ -143,8 +143,6 @@
 
 	// const title = computed(() => (isNewRoom.value ? (props.secured ? t('admin.add_secured_room') : t('admin.add_room')) : props.secured ? t('admin.edit_secured_room') : t('admin.edit_name')));
 
-	// const dialogButtons = ref(buttonsSubmitCancel);
-
 	onBeforeMount(() => {
 		if (isNewRoom.value) {
 			// New Room
@@ -230,12 +228,6 @@
 		emit('close');
 		return true;
 	}
-
-	// async function close(returnValue: DialogButtonAction): Promise<void> {
-	// 	if (returnValue === 0 || (returnValue === 1 && (await submitRoom()))) {
-	// 		emit('close');
-	// 	}
-	// }
 
 	function removeAttribute(index: number) {
 		selectedAttributes.value.splice(index, 1);
