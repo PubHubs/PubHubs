@@ -63,7 +63,7 @@
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Inputs</h2>
 				<TextField placeholder="Type voornaam">Voornaam</TextField>
-				<TextField placeholder="Type achternaam" :validation="{ required: true, maxLength: 10 }" :show-length="true" help="Hier dus je achternaam">Achternaam</TextField>
+				<TextField placeholder="Type achternaam" :validation="{ required: true, maxLength: 10 }" help="Hier dus je achternaam">Achternaam</TextField>
 				<TextField placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField>
 
 				<h2 class="my-200">TextArea</h2>

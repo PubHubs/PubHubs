@@ -1,6 +1,6 @@
 <template>
 	<Dialog :title="title" :buttons="dialogButtons" @close="close($event)" width="w-full max-w-[960px]">
-		<ValidatedForm @keydown.enter.stop @validated="isValidated($event)">
+		<ValidatedForm @keydown.enter.stop @validated="isValidated($event)" class="p-025">
 			<TextField v-model="editRoom.name" :validation="{ required: true, maxLength: roomValidations.maxNameLength }" :placeholder="t('admin.name_placeholder')" :show-length="true">{{ t('admin.name') }}</TextField>
 			<TextField v-model="editRoom.topic" :validation="{ maxLength: roomValidations.maxTopicLength }" :placeholder="t('admin.topic_placeholder')" :show-length="true">{{ t('admin.topic') }}</TextField>
 			<TextField v-if="!secured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
