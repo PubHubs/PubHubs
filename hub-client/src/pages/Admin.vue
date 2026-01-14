@@ -10,10 +10,14 @@
 				<H3 class="font-headings text-on-surface font-semibold">{{ t('menu.admin_tools_rooms') }}</H3>
 			</div>
 		</template>
-		<Tabs class="p-3 md:p-4" :open-tab="tab">
+		<Tabs class="p-3 md:p-4" :open-tab="tab ? tab : 1">
 			<TabHeader>
-				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
-				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
+				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(1)"
+					>{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click.stop="newPublicRoom()"
+				/></TabPill>
+				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(2)"
+					>{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click.stop="newSecuredRoom()"
+				/></TabPill>
 			</TabHeader>
 			<TabContainer>
 				<TabContent>
@@ -128,18 +132,12 @@
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
 
 	// Passed by the router
-	const props = withDefaults(
-		defineProps<{
-			tab: number;
-		}>(),
-		{
-			tab: 1,
-		},
-	);
+	const props = defineProps({ tab: Number });
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms(true);
 		await rooms.fetchSecuredRooms();
+		console.info('TAB', props.tab);
 	});
 
 	function newPublicRoom() {
@@ -215,6 +213,10 @@
 			}
 		}
 		await pubhubs.joinRoom(roomId);
+	}
+
+	function updateTabInUrl(tab: number) {
+		router.replace({ name: 'admin', params: { tab: tab } });
 	}
 
 	function closeForm() {

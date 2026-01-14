@@ -58,10 +58,6 @@
 				</RoomThread>
 				<RoomMemberList v-if="showMembers" :room="room!" @close="toggleMembersList"></RoomMemberList>
 			</div>
-
-			<template #footer>
-				<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()" />
-			</template>
 		</HeaderFooter>
 	</template>
 	<!-- Secure room join dialog -->
@@ -80,7 +76,6 @@
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import SearchInput from '@hub-client/components/forms/SearchInput.vue';
 	import AdminContactRoomHeader from '@hub-client/components/rooms/AdminContactRoomHeader.vue';
-	import EditRoomForm from '@hub-client/components/rooms/EditRoomForm.vue';
 	import GroupRoomHeader from '@hub-client/components/rooms/GroupRoomHeader.vue';
 	import PrivateRoomHeader from '@hub-client/components/rooms/PrivateRoomHeader.vue';
 	import RoomHeaderButtons from '@hub-client/components/rooms/RoomHeaderButtons.vue';
@@ -122,11 +117,8 @@
 	const router = useRouter();
 	const hubSettings = useHubSettings();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
-	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | undefined>(undefined);
-	const showEditRoom = ref(false);
 	const showMembers = ref(false);
 	const showLibrary = ref(false);
-	const secured = ref(false);
 	const isSearchBarExpanded = ref<boolean>(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
@@ -281,28 +273,7 @@
 	}
 
 	async function stewardCanEdit() {
-		// We need to fetch latest public created rooms.
-		const currentPublicRooms = await pubhubs.getAllPublicRooms();
-
-		currentRoomToEdit.value = currentPublicRooms.find((room) => room.room_id === props.id);
-
-		// If room is not there then don't show dialog box. Throw an error.
-		if (currentRoomToEdit.value) {
-			if (currentRoomToEdit.value?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
-				secured.value = true;
-			}
-			showEditRoom.value = true;
-		} else {
-			router.push({
-				name: 'error-page',
-				query: { errorKey: 'errors.cant_find_room' },
-			});
-		}
-	}
-
-	function closeEdit() {
-		showEditRoom.value = false;
-		secured.value = false;
+		router.push({ name: 'editroom', params: { id: props.id } });
 	}
 
 	function notPrivateRoom() {

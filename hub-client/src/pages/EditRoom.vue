@@ -7,7 +7,7 @@
 			</div>
 			<div class="flex h-full items-center">
 				<div class="flex w-fit items-center gap-3">
-					<Icon type="caret-left" data-testid="back" class="cursor-pointer" @click="close()" />
+					<Icon type="caret-left" data-testid="back" class="cursor-pointer" @click.stop="back()" />
 					<H3 class="font-headings text-on-surface font-semibold">{{ title }}</H3>
 				</div>
 			</div>
@@ -61,7 +61,7 @@
 			</div>
 
 			<ButtonGroup>
-				<Button variant="error" @click.stop.prevent="close()">{{ t('dialog.cancel') }}</Button>
+				<Button variant="error" @click.stop.prevent="back()">{{ t('dialog.cancel') }}</Button>
 				<Button type="submit" :disabled="!isValidated" @click.stop.prevent="submitRoom()">{{ t('dialog.edit') }}</Button>
 			</ButtonGroup>
 		</ValidatedForm>
@@ -235,13 +235,13 @@
 		if (!isSecured.value) {
 			waitForServer.value = true;
 			await editRoomComposable.updatePublicRoom(isNewRoom.value, editRoom.value as TEditRoom, props.id);
-			close();
+			back();
 		} else {
 			selectedAttributes.value = editRoomComposable.translateYiviLabelsToAttributes(selectedAttributes.value, t);
 			try {
 				waitForServer.value = true;
 				await editRoomComposable.updateSecuredRoom(isNewRoom.value, editRoom.value as TEditRoom, selectedAttributes.value, attributeChanged.value, props.id);
-				close();
+				back();
 			} catch (error) {
 				errorMessage.value = t((error as Error).message);
 			}
@@ -265,11 +265,7 @@
 		valuesString.value = '';
 	}
 
-	function close() {
-		if (isSecured.value) {
-			router.replace({ name: 'admin', params: { tab: 2 } });
-		} else {
-			router.replace({ name: 'admin' });
-		}
+	function back() {
+		router.back();
 	}
 </script>
