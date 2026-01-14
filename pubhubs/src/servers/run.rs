@@ -9,6 +9,7 @@ use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::api;
+use crate::misc::defer;
 use crate::servers::{
     for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, DiscoverVerdict,
     Name, Server,
@@ -790,13 +791,15 @@ impl<S: Server> Runner<S> {
                                     thread.id()
                                 );
 
-                                S::AppT::local_task(weak).await;
+                                let _deferred = defer(|| {
+                                    log::debug!(
+                                        "{}: local task on thread {:?} stopped",
+                                        S::NAME,
+                                        thread.id()
+                                    );
+                                });
 
-                                log::debug!(
-                                    "{}: local task on thread {:?} stopped",
-                                    S::NAME,
-                                    thread.id()
-                                );
+                                S::AppT::local_task(weak).await;
                             });
                         },
                     )
