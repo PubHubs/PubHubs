@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
-
 # Only run hooks in local development
 if [ -n "$CI" ] || [ -n "$GITLAB_CI" ]; then
   exit 0
@@ -20,26 +19,28 @@ GLOBAL_CLIENT_FILES=$(echo "$STAGED_FILES" | grep -E '^global-client/src/.*\.(ts
 if [ -n "$HUB_CLIENT_FILES" ]; then
   echo "Formatting hub-client files..."
   cd hub-client
+  npx vite build
   echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx prettier --write --ignore-unknown --config ./.prettierrc
-  # echo "$HUB_CLIENT_FILES" | sed 's|^hub-client/||' | xargs npx eslint --ext .js,.vue,.ts --fix
+  
   cd ..
   echo "$HUB_CLIENT_FILES" | xargs git add
-  echo "Hub-client formatted"
+  echo "✅ Hub-client formatted"
 fi
 
 # Process global-client
 if [ -n "$GLOBAL_CLIENT_FILES" ]; then
   echo "Formatting global-client files..."
   cd global-client
+  npx vite build
   echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx prettier --write --ignore-unknown --config ./.prettierrc
-  # echo "$GLOBAL_CLIENT_FILES" | sed 's|^global-client/||' | xargs npx eslint --ext .js,.vue,.ts --fix
+  
   cd ..
   echo "$GLOBAL_CLIENT_FILES" | xargs git add
-  echo "Global-client formatted"
+  echo "✅ Global-client formatted"
 fi
 
 if [ -z "$HUB_CLIENT_FILES" ] && [ -z "$GLOBAL_CLIENT_FILES" ]; then
   echo "No client files to format"
 fi
 
-echo "Pre-commit checks complete!"
+echo "✅ Pre-commit checks complete!"
