@@ -74,13 +74,14 @@ class MatrixService {
 
 		try {
 			// debug only
-			(window as any).SYNC_TRACE = 1;
+			// (window as any).SYNC_TRACE = 1;
 
 			await this.client.startClient({
-				threadSupport: true,
 				includeArchivedRooms: false,
-				slidingSync: this.slidingSync,
+				threadSupport: true,
 			});
+			await this.slidingSync.start();
+
 			// await this.slidingSync.start();
 			LOGGER.log(SMI.SYNC, 'Sliding Sync started');
 		} catch (err) {

@@ -376,7 +376,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			try {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				let roomType: string = getRoomType(matrixRoom);
+				const roomType: string = getRoomType(matrixRoom);
 				rooms.initRoomsWithMatrixRoom(matrixRoom, matrixRoom?.name ?? undefined, roomType, []);
 			} catch (err) {
 				throw err;
