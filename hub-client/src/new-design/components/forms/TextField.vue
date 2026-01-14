@@ -36,7 +36,7 @@
 				/>
 			</div>
 			<div v-if="showLength" class="pl-2">
-				<span>{{ model?.length }}</span>
+				<span>{{ modelLen }}</span>
 				<template v-if="maxLen"> / {{ maxLen }} </template>
 			</div>
 		</div>
@@ -55,16 +55,15 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, inject, onMounted, useAttrs } from 'vue';
+	import { computed, inject, onMounted, ref, useAttrs, watch } from 'vue';
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	// Components
-
 	const model = defineModel<string | number>();
 	const attrs = useAttrs();
+	const modelLen = ref(0);
 
 	// Props
 	const props = withDefaults(
@@ -88,6 +87,10 @@
 		},
 	);
 
+	watch(model, () => {
+		calculateLen();
+	});
+
 	// Validation etc.
 	const { id, slotDefault, fieldName, update, changed } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
@@ -109,6 +112,8 @@
 				addField(fieldName.value, model, changed, validated);
 			}
 		}
+
+		calculateLen();
 	});
 
 	const maxLen = computed(() => {
@@ -116,4 +121,14 @@
 		if (!props.validation.maxLength) return false;
 		return props.validation.maxLength;
 	});
+
+	const calculateLen = () => {
+		if (typeof model.value === 'string') {
+			modelLen.value = model.value.length;
+		} else if (typeof model.value === 'number') {
+			modelLen.value = model.value.toFixed().length;
+		} else {
+			modelLen.value = 0;
+		}
+	};
 </script>
