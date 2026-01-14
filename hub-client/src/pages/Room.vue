@@ -45,7 +45,8 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :room="room!" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
+					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="getLastReadMessage(props.id)" @scrolled-to-event-id="room.setCurrentEvent(undefined)">
+					</RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room!.getCurrentThreadId()"
@@ -95,13 +96,15 @@
 
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
+	import { useLastReadMessages } from '@hub-client/composables/useLastReadMessages';
+	import { useVisibleEvents } from '@hub-client/composables/useVisibleEvents';
 
 	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { ScrollPosition, actions } from '@hub-client/models/constants';
+	import { actions } from '@hub-client/models/constants';
 	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
@@ -134,6 +137,8 @@
 	const joinSecuredRoom = ref<string | null>(null);
 	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 	const scrollToEventId = ref<string>();
+	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
+	const { getLastVisibleEventId } = useVisibleEvents(computed(() => roomTimeLineComponent.value?.elRoomTimeline ?? null));
 
 	// Passed by the router
 	const props = defineProps({
@@ -167,42 +172,40 @@
 
 	onMounted(() => {
 		update();
-		// Update might not have rooms loaded in the store, therefore, scrollToEventId is explicitly set here.
-		scrollToEventId.value = rooms.scrollPositions[props.id];
+		// Handle explicit scroll requests from URL/message bus
+		// (scrollPositions is only set by App.vue for explicit navigation)
+		if (rooms.scrollPositions[props.id]) {
+			scrollToEventId.value = rooms.scrollPositions[props.id];
+			// Clear it after reading so it doesn't persist
+			delete rooms.scrollPositions[props.id];
+		}
 		LOGGER.log(SMI.ROOM, `Room mounted `);
 	});
 
 	watch(route, () => {
 		if (rooms.currentRoom) {
-			// for scrolling back to this room: save the id of the first visible event
-			const firstEventId = getFirstVisibleEventId();
-			if (firstEventId) {
-				rooms.scrollPositions[rooms.currentRoom.roomId] = firstEventId ?? '';
+			console.warn('[Room] Leaving room, saving last visible event', { roomId: rooms.currentRoom.roomId });
+			// Save last visible (read) event to localStorage
+			const lastEventId = getLastVisibleEventId();
+			console.warn('[Room] Last visible event ID:', lastEventId);
+			if (lastEventId) {
+				// Get the timestamp of the event to ensure we only move forward
+				const event = rooms.currentRoom.findEventById(lastEventId);
+				if (event) {
+					const timestamp = event.localTimestamp || event.getTs() || Date.now();
+					console.warn('[Room] Found event, saving to localStorage', { lastEventId, timestamp });
+					setLastReadMessage(rooms.currentRoom.roomId, lastEventId, timestamp);
+				} else {
+					console.warn('[Room] Event not found by ID', { lastEventId });
+				}
+			} else {
+				console.warn('[Room] No last visible event ID found');
 			}
 			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
 			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
 		}
 		update();
 	});
-
-	/**
-	 * Gets the Event Id of the first visible event in the roomtimeline
-	 * Needed to save the current scrollposition
-	 */
-	function getFirstVisibleEventId(): string | null {
-		const container = roomTimeLineComponent.value?.elRoomTimeline;
-		if (!container) return null;
-
-		const containerRect = container.getBoundingClientRect();
-
-		for (const child of Array.from(container.querySelectorAll('[id]'))) {
-			const rect = (child as HTMLElement).getBoundingClientRect();
-			if (rect.bottom > containerRect.top) {
-				return (child as HTMLElement).id;
-			}
-		}
-		return null;
-	}
 
 	function currentThreadLengthChanged(newLength: number) {
 		room.value!.setCurrentThreadLength(newLength);
@@ -243,18 +246,8 @@
 
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 
-		// If there is a position saved in scrollPositions for this room: go there
-		// otherwise it goes to the newest event in the timeline
-		const timeline = roomTimeLineComponent.value?.elRoomTimeline;
-
-		const savedPosition = rooms.scrollPositions[rooms.currentRoom.roomId];
-		scrollToEventId.value = savedPosition;
-		if (timeline && savedPosition) {
-			rooms.currentRoom.setCurrentEvent({
-				eventId: savedPosition,
-				position: ScrollPosition.Start,
-			});
-		}
+		// Note: Scroll behavior is now handled by RoomTimeline.vue
+		// using lastReadEventId prop for smart scrolling
 	}
 
 	async function onScrollToEventId(ev: any) {

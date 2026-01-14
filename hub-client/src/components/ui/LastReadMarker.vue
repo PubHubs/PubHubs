@@ -1,7 +1,7 @@
 <template>
 	<div v-if="showMarker" class="text-center">
-		<div class="text-label m-auto inline-block rounded-full text-center font-medium">{{ $t('rooms.last_read_message') }}</div>
-		<div class="bg-accent-secondary -mt-4 h-[2px]"></div>
+		<div class="text-label bg-background m-auto inline-block rounded-full px-2 text-center font-medium">{{ $t('rooms.last_read_message') }}</div>
+		<div class="bg-on-surface-disabled -mt-[12px] h-[1px]"></div>
 	</div>
 </template>
 
@@ -32,15 +32,13 @@
 		const lastReadEventId = getLastReadMessage(props.room.roomId);
 
 		// Don't show marker if:
-		// 1. This is not the last read message, OR
-		// 2. This IS the last read message BUT it's also the newest message (user is caught up)
 		if (lastReadEventId !== props.currentEventId) {
-			return false;
+			return false; // This is not the last read message
 		}
 
 		const newestEventId = props.room.getTimelineNewestMessageEventId();
 		if (lastReadEventId === newestEventId) {
-			return false; // Don't show marker if user is caught up
+			return false; // The user is caught up
 		}
 
 		return true;
