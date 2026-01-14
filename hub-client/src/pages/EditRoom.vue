@@ -266,6 +266,10 @@
 	}
 
 	function close() {
-		router.replace({ name: 'admin' });
+		if (isSecured.value) {
+			router.replace({ name: 'admin', params: { tab: 2 } });
+		} else {
+			router.replace({ name: 'admin' });
+		}
 	}
 </script>

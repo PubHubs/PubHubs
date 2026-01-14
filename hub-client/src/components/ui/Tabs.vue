@@ -7,7 +7,17 @@
 	// Packages
 	import { provide, ref } from 'vue';
 
-	const activeTab = ref(1);
+	// Props
+	const props = withDefaults(
+		defineProps<{
+			openTab?: number | string;
+		}>(),
+		{
+			openTab: 1,
+		},
+	);
+
+	const activeTab = ref<number>(typeof props.openTab === 'string' ? parseInt(props.openTab) : props.openTab);
 	const numberOfTabs = ref(0);
 	const numberOfTabHeaders = ref(0);
 

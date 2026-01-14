@@ -27,13 +27,14 @@ const routes = [
 		path: '/admin',
 		children: [
 			{
-				path: '',
+				path: ':tab?',
+				props: true,
 				name: 'admin',
 				component: () => import('@hub-client/pages/Admin.vue'),
 				meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 			},
 			{
-				path: ':id',
+				path: 'edit/:id',
 				props: true,
 				name: 'editroom',
 				component: () => import('@hub-client/pages/EditRoom.vue'),

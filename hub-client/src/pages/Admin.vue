@@ -10,7 +10,7 @@
 				<H3 class="font-headings text-on-surface font-semibold">{{ t('menu.admin_tools_rooms') }}</H3>
 			</div>
 		</template>
-		<Tabs class="p-3 md:p-4">
+		<Tabs class="p-3 md:p-4" :open-tab="tab">
 			<TabHeader>
 				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
 				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
@@ -82,10 +82,6 @@
 				</TabContent>
 			</TabContainer>
 		</Tabs>
-
-		<!-- <template #footer>
-			<EditRoomForm v-if="showEditRoom" :room="editRoom" :secured="secured" @close="closeEdit()" />
-		</template> -->
 	</HeaderFooter>
 </template>
 
@@ -123,7 +119,6 @@
 	const user = useUser();
 	const rooms = useRooms();
 	const secured = ref(false);
-	const showEditRoom = ref(false);
 	const showPastMemberPanel = ref(false);
 	const currentRoomId = ref('');
 	const settings = useSettings();
@@ -131,6 +126,16 @@
 
 	const nonSecuredPublicRooms = computed(() => rooms.nonSecuredPublicRooms);
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
+
+	// Passed by the router
+	const props = withDefaults(
+		defineProps<{
+			tab: number;
+		}>(),
+		{
+			tab: 1,
+		},
+	);
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms(true);
@@ -143,8 +148,6 @@
 
 	function newSecuredRoom() {
 		router.push({ name: 'editroom', params: { id: 'new_secured_room' } });
-		// secured.value = true;
-		// showEditRoom.value = true;
 	}
 
 	function editPublicRoom(room: TPublicRoom) {
