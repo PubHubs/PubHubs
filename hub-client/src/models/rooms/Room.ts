@@ -778,7 +778,7 @@ export default class Room {
 
 	public getThread(eventId: string | undefined): TRoomThread | undefined {
 		if (eventId) {
-			let thread = this.matrixRoom.getThread(eventId);
+			const thread = this.matrixRoom.getThread(eventId);
 			if (thread) {
 				return new TRoomThread(thread);
 			}
@@ -788,11 +788,11 @@ export default class Room {
 
 	public getOrCreateThread(eventId: string | undefined): TRoomThread | undefined {
 		if (eventId) {
-			let thread = this.getThread(eventId);
+			const thread = this.getThread(eventId);
 			if (thread) {
 				return thread;
 			} else {
-				let createdThread = this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
+				const createdThread = this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
 				if (createdThread) {
 					return new TRoomThread(createdThread);
 				}

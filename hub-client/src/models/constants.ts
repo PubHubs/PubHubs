@@ -82,6 +82,7 @@ enum ScrollSelect {
 
 enum ScrollBehavior {
 	Smooth = 'smooth',
+	Auto = 'auto',
 }
 
 enum OnboardingType {
