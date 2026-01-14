@@ -13,7 +13,7 @@
 			</div>
 		</template>
 
-		<ValidatedForm @keydown.enter.stop v-slot="{ isValidated }" class="p-200">
+		<ValidatedForm @keydown.enter.stop v-slot="{ isValidated }" :disabled="waitForServer" class="p-200">
 			<TextField v-model="editRoom.name" :validation="{ required: true, maxLength: roomValidations.maxNameLength }" :placeholder="t('admin.name_placeholder')" :show-length="true">{{ t('admin.name') }}</TextField>
 			<TextField v-model="editRoom.topic" :validation="{ maxLength: roomValidations.maxTopicLength }" :placeholder="t('admin.topic_placeholder')" :show-length="true">{{ t('admin.topic') }}</TextField>
 			<TextField v-if="!isSecured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
@@ -65,6 +65,12 @@
 				<Button type="submit" :disabled="!isValidated" @click.stop.prevent="submitRoom()">{{ t('dialog.edit') }}</Button>
 			</ButtonGroup>
 		</ValidatedForm>
+
+		<div v-if="waitForServer" class="mt-200 flex w-full">
+			<div class="mx-auto">
+				<InlineSpinner></InlineSpinner>
+			</div>
+		</div>
 	</HeaderFooter>
 </template>
 
@@ -75,6 +81,7 @@
 
 	// Components
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Composables
 	import { useEditRoom } from '@hub-client/composables/useEditRoom';
@@ -124,6 +131,7 @@
 	let OriginalAttributes: Array<TEditRoomFormAttributes> = [{ label: '', attribute: '', accepted: [], profile: false }];
 	const errorMessage = ref<string | undefined>(undefined);
 	const autoCompleteLength = 80;
+	const waitForServer = ref(false);
 
 	// editRoom typed as union; we'll narrow when submitting
 	const editRoom = ref<TEditRoom | TSecuredRoom>({
@@ -159,12 +167,12 @@
 	});
 
 	onBeforeMount(() => {
-		editRoom.value = { ...emptyNewRoom } as TEditRoom;
+		editRoom.value = emptyNewRoom as TEditRoom;
 		if (!isNewRoom.value) {
 			if (isSecured.value) {
-				editRoom.value = rooms.securedRoom(props.id) as TEditRoom;
+				editRoom.value = Object.assign({}, rooms.securedRoom(props.id)) as TEditRoom;
 			} else {
-				editRoom.value = rooms.room(props.id)?.matrixRoom as unknown as TEditRoom;
+				editRoom.value = Object.assign({}, rooms.room(props.id)?.matrixRoom) as unknown as TEditRoom;
 			}
 
 			editRoom.value.topic = rooms.getRoomTopic(props.id);
@@ -225,11 +233,13 @@
 		// if (!validateRoomForm()) return false;
 
 		if (!isSecured.value) {
+			waitForServer.value = true;
 			await editRoomComposable.updatePublicRoom(isNewRoom.value, editRoom.value as TEditRoom, props.id);
 			close();
 		} else {
 			selectedAttributes.value = editRoomComposable.translateYiviLabelsToAttributes(selectedAttributes.value, t);
 			try {
+				waitForServer.value = true;
 				await editRoomComposable.updateSecuredRoom(isNewRoom.value, editRoom.value as TEditRoom, selectedAttributes.value, attributeChanged.value, props.id);
 				close();
 			} catch (error) {
@@ -256,6 +266,6 @@
 	}
 
 	function close() {
-		router.push({ name: 'admin' });
+		router.replace({ name: 'admin' });
 	}
 </script>

@@ -1,6 +1,7 @@
 <template>
-	<form class="flex flex-col gap-200">
-		<slot :isValidated="isValidated"></slot>
+	<form class="relative flex flex-col gap-200">
+		<div v-if="disabled" class="absolute z-50 h-full w-full cursor-not-allowed"></div>
+		<slot :isValidated="isValidated" :isDisabled="disabled"></slot>
 	</form>
 </template>
 
@@ -9,6 +10,16 @@
 	import { computed, provide, ref } from 'vue';
 
 	const emit = defineEmits(['validated']);
+
+	// Props
+	const props = withDefaults(
+		defineProps<{
+			disabled?: boolean;
+		}>(),
+		{
+			disabled: false,
+		},
+	);
 
 	type fieldType = {
 		name: string;
