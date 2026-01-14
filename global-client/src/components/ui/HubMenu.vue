@@ -7,11 +7,11 @@
 			:list="global.pinnedHubs"
 			:item-key="'hubId'"
 			handle=".handle"
-			class="list-group flex w-full flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto px-2 md:px-4"
+			class="list-group flex w-full flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto"
 			group="hubs"
 		>
 			<template #item="{ element }">
-				<div v-if="hubs.hub(element.hubId)" class="flex h-auto justify-center gap-1 p-1" :class="{ handle: hubOrderingIsActive }">
+				<div v-if="hubs.hub(element.hubId)" class="flex h-auto justify-center p-4" :class="{ handle: hubOrderingIsActive }">
 					<router-link :to="{ name: 'hub', params: { name: element.hubName } }" v-slot="{ isActive }" class="w-full">
 						<HubMenuHubIcon
 							class="text-on-surface"

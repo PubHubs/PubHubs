@@ -1,25 +1,22 @@
 <template>
-	<div class="bg-surface relative flex h-full w-[80px] shrink-0 snap-start snap-always flex-col">
+	<div class="border-on-surface-disabled relative flex h-full w-[80px] shrink-0 snap-start snap-always flex-col border-r">
 		<Modal :show="global.isModalVisible">
 			<div class="flex h-full w-full max-w-[100svh] flex-col overflow-y-hidden">
-				<div class="bg-surface-high flex aspect-square w-full items-center justify-center">
-					<router-link to="/">
-						<Icon type="compass" @click="toggleMenu.hideMenuAndSendToHub()" size="3xl"></Icon>
+				<div class="border-on-surface-disabled flex aspect-square h-[80px] items-center justify-center border-b p-2">
+					<router-link to="/" class="h-full">
+						<img alt="PubHubs logo" :src="logoUrl" class="h-full w-full object-contain" />
 					</router-link>
 				</div>
 
-				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden py-3 md:gap-4 md:py-6">
+				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden">
 					<HubMenu :hubOrderingIsActive="hubOrdering && global.loggedIn" />
 
-					<div class="flex h-fit w-full flex-col gap-8 self-end px-4">
+					<div class="flex h-fit w-full flex-col gap-8 self-end p-4">
 						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
-							<GlobalbarButton type="dots-three-vertical" size="xl" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
-							<GlobalbarButton type="sliders-horizontal" size="xl" @click="settingsDialog = true" />
-							<GlobalbarButton type="sign-out" size="xl" @click="logout" />
+							<GlobalbarButton type="dots-three-vertical" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
+							<GlobalbarButton type="sliders-horizontal" @click="settingsDialog = true" />
+							<GlobalbarButton type="sign-out" @click="logout" />
 						</div>
-						<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer">
-							<Logo />
-						</a>
 					</div>
 				</div>
 			</div>
@@ -47,6 +44,7 @@
 
 	import { useDialog } from '@hub-client/stores/dialog';
 
+	const logoUrl = '/client/img/logo.svg';
 	const dialog = useDialog();
 	const { t } = useI18n();
 	const global = useGlobal();

@@ -1,11 +1,7 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+		<HeaderFooter>
 			<template #header>
-				<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
-					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
-					<hr class="bg-on-surface-dim h-025 grow" />
-				</div>
 				<div class="flex h-full w-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="relative flex w-fit items-center gap-3" data-testid="roomtype">
 						<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />

@@ -1,12 +1,11 @@
 <template>
-	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+	<HeaderFooter>
 		<template #header>
-			<div class="hidden items-center gap-4 md:flex">
-				<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
-				<hr class="bg-accent-secondary h-[2px] grow" />
-			</div>
-			<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-12' : 'pl-0'">
-				<H3 class="text-on-surface">{{ $t('settings.title') }}</H3>
+			<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-4' : 'pl-0'">
+				<div class="flex w-fit items-center gap-3 overflow-hidden">
+					<Icon type="sliders-horizontal" />
+					<H3 class="font-headings text-h2 text-on-surface font-semibold">{{ $t('settings.title') }}</H3>
+				</div>
 			</div>
 		</template>
 

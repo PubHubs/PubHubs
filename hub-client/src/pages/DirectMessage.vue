@@ -1,11 +1,7 @@
 <template>
-	<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+	<HeaderFooter>
 		<template #header>
-			<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
-				<span class="font-semibold uppercase">{{ t('menu.directmsg') }}</span>
-				<hr class="bg-on-surface-dim h-[2px] grow" />
-			</div>
-			<div class="relative flex h-full items-center justify-between gap-6" :class="isMobile ? 'pl-12' : 'pl-0'">
+			<div class="relative flex h-full items-center justify-between gap-6" :class="isMobile ? 'pl-4' : 'pl-0'">
 				<div class="flex w-fit items-center gap-3 overflow-hidden">
 					<Icon type="chat-circle-text"></Icon>
 					<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">

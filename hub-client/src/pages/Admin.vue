@@ -1,13 +1,12 @@
 <template>
 	<AdminMembers v-if="showPastMemberPanel" :roomId="currentRoomId" @close="closeForm()"> </AdminMembers>
-	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+	<HeaderFooter>
 		<template #header>
-			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
-				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
-				<hr class="bg-on-surface-dim h-[2px] grow" />
-			</div>
-			<div class="flex h-full items-center" :class="isMobile ? 'pl-12' : 'pl-0'">
-				<H3 class="font-headings text-on-surface font-semibold">{{ t('menu.admin_tools_rooms') }}</H3>
+			<div class="flex h-full items-center" :class="isMobile ? 'pl-4' : 'pl-0'">
+				<div class="flex w-fit items-center gap-3 overflow-hidden">
+					<Icon type="chats-circle" />
+					<H3 class="font-headings text-h2 text-on-surface font-semibold">{{ t('menu.admin_tools_rooms') }}</H3>
+				</div>
 			</div>
 		</template>
 		<Tabs class="p-3 md:p-4">

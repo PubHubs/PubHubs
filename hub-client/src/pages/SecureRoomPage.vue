@@ -1,5 +1,5 @@
 <template>
-	<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true">
+	<HeaderFooter>
 		<template #header>
 			<div class="flex gap-x-2 overflow-hidden">
 				<Icon type="shield" size="lg" />

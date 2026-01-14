@@ -1,11 +1,11 @@
 <template>
 	<div v-if="user.isLoggedIn && setupReady" class="font-body text-on-surface text-body flex w-full shrink-0">
-		<HeaderFooter class="bg-surface-low relative shrink-0" :class="isMobile ? 'w-[calc(50%-40px)]!' : 'flex max-w-[320px]'">
+		<HeaderFooter class="relative shrink-0" :class="isMobile ? 'w-[calc(50%-40px)]!' : 'flex max-w-[320px]'">
 			<template #header>
 				<div class="flex h-full w-full justify-between py-2">
-					<div class="flex items-center justify-between gap-2">
+					<div class="mt-1 flex items-center justify-between gap-2">
 						<div class="group hover:border-on-surface-dim hover:mt-025 relative flex cursor-pointer items-center gap-2 hover:border-b-2 hover:border-dotted" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
-							<H3 class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
+							<H3 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
 							<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
 						</div>
 						<Notification class="absolute right-4" />
@@ -18,7 +18,7 @@
 
 			<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
 				<section class="flex flex-col gap-2">
-					<div class="text-hub-text group bg-surface flex items-center justify-between overflow-hidden rounded-xl py-2 pr-4 pl-2" role="complementary">
+					<div class="bg-surface text-hub-text group flex items-center justify-between overflow-hidden rounded-lg py-2 pr-4 pl-2" role="complementary">
 						<div class="flex w-full items-center gap-2 truncate">
 							<Avatar :avatarUrl="user.userAvatar(user.userId!) ?? user.avatarUrl" :userId="user.userId!" />
 							<div class="flex h-fit w-full flex-col overflow-hidden">

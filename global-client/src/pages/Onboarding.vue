@@ -14,7 +14,7 @@
 			</div>
 		</div>
 
-		<div class="overflow-y-auto" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
+		<div class="h-[calc(100svh_-_80px)] overflow-y-auto">
 			<!-- Registration section -->
 			<section class="bg-background flex flex-col gap-8 overflow-x-hidden" :class="isMobile ? 'py-8' : 'py-16'">
 				<div class="flex shrink-0 flex-col gap-8" :class="isMobile && 'h-full'">
@@ -27,7 +27,7 @@
 					</div>
 
 					<!-- Carousel -->
-					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
+					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_80px)]'">
 						<!-- Mobile -->
 						<div v-if="isMobile" ref="carouselMobile" class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4">
 							<!-- Card 1 -->
