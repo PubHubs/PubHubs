@@ -44,7 +44,7 @@
 
 	import { useDialog } from '@hub-client/stores/dialog';
 
-	const logoUrl = '/client/img/logo.svg';
+	const logoUrl = '/client/img/icons/512x512.svg';
 	const dialog = useDialog();
 	const { t } = useI18n();
 	const global = useGlobal();
