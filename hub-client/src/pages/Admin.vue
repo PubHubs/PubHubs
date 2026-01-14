@@ -97,7 +97,6 @@
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import EditRoomForm from '@hub-client/components/rooms/EditRoomForm.vue';
 	import FilteredList from '@hub-client/components/ui/FilteredList.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import TabContainer from '@hub-client/components/ui/TabContainer.vue';
@@ -123,7 +122,6 @@
 	const { t } = useI18n();
 	const user = useUser();
 	const rooms = useRooms();
-	const editRoom = ref({} as TSecuredRoom | TPublicRoom);
 	const secured = ref(false);
 	const showEditRoom = ref(false);
 	const showPastMemberPanel = ref(false);
@@ -140,37 +138,22 @@
 	});
 
 	function newPublicRoom() {
-		secured.value = false;
-		showEditRoom.value = true;
+		router.push({ name: 'editroom', params: { id: 'new_room' } });
 	}
 
 	function newSecuredRoom() {
-		secured.value = true;
-		showEditRoom.value = true;
-	}
-
-	function editPublicRoom(room: TPublicRoom) {
-		router.push({ name: 'editroom', params: { id: room.room_id } });
-		// editRoom.value = room;
-		// secured.value = false;
-		// showEditRoom.value = true;
-	}
-
-	function EditSecuredRoom(room: TSecuredRoom) {
-		router.push({ name: 'editroom', params: { id: room.room_id } });
-		// editRoom.value = room;
+		router.push({ name: 'editroom', params: { id: 'new_secured_room' } });
 		// secured.value = true;
 		// showEditRoom.value = true;
 	}
 
-	// function closeEdit() {
-	// 	editRoom.value = {} as TSecuredRoom;
-	// 	secured.value = false;
-	// 	showEditRoom.value = false;
+	function editPublicRoom(room: TPublicRoom) {
+		router.push({ name: 'editroom', params: { id: room.room_id } });
+	}
 
-	// 	rooms.fetchPublicRooms();
-	// 	rooms.fetchSecuredRooms();
-	// }
+	function EditSecuredRoom(room: TSecuredRoom) {
+		router.push({ name: 'editroom', params: { id: room.room_id } });
+	}
 
 	async function removePublicRoom(room: TPublicRoom) {
 		const dialog = useDialog();
