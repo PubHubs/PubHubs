@@ -181,6 +181,7 @@
 				const [labels, attributes] = editRoomComposable.getYiviLabelsAndAttributes((editRoom.value as any)?.accepted, t);
 				selectedAttributes.value = JSON.parse(JSON.stringify(editRoomComposable.fillInEditFormAttributes(labels, attributes, (editRoom.value as any)?.accepted)));
 				OriginalAttributes = JSON.parse(JSON.stringify(selectedAttributes.value));
+				console.info('SECURED', labels, attributes, selectedAttributes.value);
 			}
 		}
 		// 		watch(
