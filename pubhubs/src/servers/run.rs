@@ -252,6 +252,9 @@ struct Runner<ServerT: Server> {
     pubhubs_server: Rc<ServerT>,
     shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
     worker_count: Option<NonZero<usize>>,
+
+    /// Number of restarts (i.e. modifications applied)
+    generation: usize,
 }
 
 /// The handles to control an [actix_web::dev::Server] running a pubhubs [Server].
@@ -583,7 +586,7 @@ impl DiscoveryLimiter {
     }
 }
 
-/// Handle to a [Server] passed to [App]s.
+/// Handle to a [`Server`] passed to [`App`]s.
 ///
 /// Used to issue commands to the server.  Since discovery is requested a often a separate struct
 /// is used to deal with discovery requests.
@@ -722,6 +725,7 @@ impl<S: Server> Runner<S> {
             pubhubs_server,
             shutdown_receiver,
             worker_count,
+            generation: 0,
         })
     }
 
@@ -734,6 +738,8 @@ impl<S: Server> Runner<S> {
             sender: command_sender,
             discovery_limiter: DiscoveryLimiter::new(),
         };
+
+        let ac_context: <S::AppCreatorT as AppCreator<S>>::ContextT = Default::default();
 
         let server_config = self.pubhubs_server.server_config();
 
@@ -752,12 +758,18 @@ impl<S: Server> Runner<S> {
 
         let app_creator2 = app_creator.clone();
         let handle2 = handle.clone();
+        let ac_context2 = ac_context.clone();
+        let generation: usize = self.generation;
 
         let actual_actix_server: actix_web::dev::Server = {
             // Build actix server
             let mut builder: actix_web::HttpServer<_, _, _, _> =
                 actix_web::HttpServer::new(move || {
-                    let app: Rc<S::AppT> = Rc::new(app_creator2.clone().into_app(&handle2));
+                    let app: Rc<S::AppT> = Rc::new(app_creator2.clone().into_app(
+                        &handle2,
+                        &ac_context2,
+                        generation,
+                    ));
 
                     actix_web::App::new().wrap(S::cors()).configure(
                         |sc: &mut web::ServiceConfig| {
@@ -805,11 +817,11 @@ impl<S: Server> Runner<S> {
 
         // start PH server task (doing discovery)
         let (ph_shutdown_sender, ph_shutdown_receiver) = tokio::sync::oneshot::channel();
-        let ph_join_handle = tokio::task::spawn_local(
-            self.pubhubs_server
-                .clone()
-                .run_until_modifier(ph_shutdown_receiver, Rc::new(app_creator.into_app(&handle))),
-        );
+        let ph_join_handle =
+            tokio::task::spawn_local(self.pubhubs_server.clone().run_until_modifier(
+                ph_shutdown_receiver,
+                Rc::new(app_creator.into_app(&handle, &ac_context, generation)),
+            ));
 
         Ok(Handles {
             actix_server_handle,
@@ -843,6 +855,7 @@ impl<S: Server> Runner<S> {
                 return Ok(());
             }
 
+            self.generation += 1;
             log::info!("{}: restarting...", S::NAME);
         }
     }

@@ -69,7 +69,7 @@ pub struct App {
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
-
+    
     // channel for sending messages between apps
     pub broadcast : tokio::sync::broadcast::Sender<InterAppMsg>,
 }
@@ -332,28 +332,19 @@ impl crate::servers::App<Server> for App {
         }
 
         loop {
-            tokio::select! {
-                recv_result = receiver.recv() => {
-                    let Ok(msg) = recv_result else {
-                        match recv_result.unwrap_err() {
-                            RecvError::Closed => {
-                                return;
-                            }
-                            RecvError::Lagged(skipped) => {
-                                log::error!("PHC local task on {:?} is lagging behind, and has skipped processing {skipped} messages!", std::thread::current().id());
-                                continue;
-                            }
-                       }
-                    };
-                },
-                _ = tokio::time::sleep(core::time::Duration::from_secs(5)) => {
-                    log::debug!("phc local task still alive on thread {:?} receiver (w:{}, s:{}) app (w:{}, s: {})", 
-                        // TODO: MYSTERY:  why is the number of strong references to the sender 6?
-                        std::thread::current().id(), 
-                            receiver.sender_weak_count(), receiver.sender_strong_count(),
-                            weak.weak_count(), weak.strong_count());
-                }
-            }
+            let recv_result = receiver.recv().await;
+            let Ok(_msg) = recv_result else {
+                match recv_result.unwrap_err() {
+                    RecvError::Closed => {
+                        return;
+                    }
+                    RecvError::Lagged(skipped) => {
+                        log::error!("PHC local task on {:?} is lagging behind, \
+                            and has skipped processing {skipped} messages!", std::thread::current().id());
+                        continue;
+                    }
+               }
+            };
         }
     }
 }
@@ -398,9 +389,6 @@ pub struct AppCreator {
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
-    
-    // channel for sending messages between apps
-    pub broadcast : tokio::sync::broadcast::Sender<InterAppMsg>,
 }
 
 impl Deref for AppCreator {
@@ -417,10 +405,26 @@ impl DerefMut for AppCreator {
     }
 }
 
+#[derive(Clone)]
+pub struct AppCreatorContext {
+    broadcast : tokio::sync::broadcast::Sender<InterAppMsg>
+}
+
+impl Default for AppCreatorContext {
+    fn default() -> Self {
+        Self {
+            broadcast: tokio::sync::broadcast::Sender::<InterAppMsg>::new(10)
+        }
+    }
+}
+
+
 impl crate::servers::AppCreator<Server> for AppCreator {
-    fn into_app(self, handle: &Handle<Server>) -> App {
+    type ContextT = AppCreatorContext;
+
+    fn into_app(self, handle: &Handle<Server>, context : &Self::ContextT, generation: usize) -> App {
         App {
-            base: AppBase::new(self.base, handle),
+            base: AppBase::new(self.base, handle, generation),
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             global_client_url: self.global_client_url,
@@ -434,7 +438,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             user_object_hmac_secret: self.user_object_hmac_secret,
             quota: self.quota,
             card_pseud_validity: self.card_pseud_validity,
-            broadcast: self.broadcast,
+            broadcast: context.broadcast.clone()
         }
     }
 
@@ -493,7 +497,6 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_boxed_slice(),
             quota: xconf.user_quota.clone(),
             card_pseud_validity: xconf.card_pseud_validity,
-            broadcast: tokio::sync::broadcast::Sender::new(10),
         })
     }
 }

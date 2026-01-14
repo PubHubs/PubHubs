@@ -8,8 +8,8 @@ use crate::misc::crypto;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::phcrypto;
 use crate::{
-    api::{self, EndpointDetails as _, OpenError, phc::hub::TicketOpenError},
-    servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation},
+    api::{self, phc::hub::TicketOpenError, EndpointDetails as _, OpenError},
+    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
 };
 
 use api::tr::*;
@@ -217,6 +217,8 @@ impl DerefMut for AppCreator {
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
+    type ContextT = ();
+
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let xconf = &config.transcryptor.as_ref().unwrap();
 
@@ -238,9 +240,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn into_app(self, handle: &Handle<Server>) -> App {
+    fn into_app(
+        self,
+        handle: &Handle<Server>,
+        _context: &Self::ContextT,
+        generation: usize,
+    ) -> App {
         App {
-            base: AppBase::new(self.base, handle),
+            base: AppBase::new(self.base, handle, generation),
             master_enc_key_part: self.master_enc_key_part,
             master_enc_key_part_inv: self.master_enc_key_part_inv,
             pseud_factor_secret: self.pseud_factor_secret,
