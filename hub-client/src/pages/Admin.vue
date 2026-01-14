@@ -137,7 +137,6 @@
 	onMounted(async () => {
 		await rooms.fetchPublicRooms(true);
 		await rooms.fetchSecuredRooms();
-		console.info('TAB', props.tab);
 	});
 
 	function newPublicRoom() {
