@@ -139,6 +139,7 @@
 
 					<VotingWidget
 						v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
+						:room="room"
 						:event="event"
 						@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
 						@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"

@@ -22,6 +22,7 @@ import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
+import { SystemDefaults } from '@hub-client/models/constants';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
 import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
@@ -316,31 +317,35 @@ const usePubhubsStore = defineStore('pubhubs', {
 			});
 		},
 
-		async getAllPublicRooms() {
-			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(), { current: publicRoomsLoading });
+		async getAllPublicRooms(force: boolean = false) {
+			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(force), { current: publicRoomsLoading });
 		},
 
 		// actual performing of publicRooms API call
-		async performGetAllPublicRooms(): Promise<TPublicRoom[]> {
+		async performGetAllPublicRooms(force: boolean = false): Promise<TPublicRoom[]> {
 			if (!this.client.publicRooms) {
 				return [];
 			}
-			if (Date.now() < this.lastPublicCheck + 2_500) {
-				//Only check again after 4 seconds.
+
+			// Only check again after certain time. Can be long. See SystemDefaults.
+			if (Date.now() < this.lastPublicCheck + SystemDefaults.publicRoomsReload && !force) {
 				return this.publicRooms;
 			}
+			this.lastPublicCheck = Date.now();
 
-			let publicRoomsResponse = await this.client.publicRooms({ limit: 1000 }); // because we need all the public rooms, limit is set high to limit the number of calls
+			const limit = 100; // because we need all the public rooms, limit is set high to limit the number of calls, 100 seems to be the internal matrix API max
+			let publicRoomsResponse = await this.client.publicRooms({ limit: limit });
 			let public_rooms = publicRoomsResponse.chunk;
 
 			// Previous versions had a problem, but I cannot reproduce it anymore: DANGER this while loop turns infinite when the generated public rooms request is a POST request. This happens when the optional 'options' parameter is supplied to 'this.client.publicRooms'. Then the pagination doesn't work anymore and the loop becomes infinite.
 			while (publicRoomsResponse.next_batch) {
 				publicRoomsResponse = await this.client.publicRooms({
 					since: publicRoomsResponse.next_batch,
+					limit: limit,
 				});
 				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
 			}
-			this.lastPublicCheck = Date.now();
+
 			this.publicRooms = public_rooms;
 			return public_rooms;
 		},
@@ -1008,9 +1013,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * Makes an authenticated request to get the media and returns a local URL to the retrieved file (which does not need authorization).
 		 * This is useful for usage in <img> tags, where you cannot send an access token.
 		 *
+		 * NB:	The local URL is of a created blob, that needs to be revoked afterwards.
+		 * 		This is the responsibility of the calling method!
+		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async getAuthorizedMediaUrl(url: string): Promise<string | null> {
+		async fetchAuthorizedMediaUrl(url: string): Promise<string | null> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
