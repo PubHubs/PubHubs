@@ -12,10 +12,11 @@
 
 <script setup lang="ts">
 	// Packages
-	import { inject, onMounted } from 'vue';
+	import { inject, onMounted, ref, watch } from 'vue';
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
+	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
@@ -32,11 +33,17 @@
 		},
 	);
 
+	const originalValue = ref<any>(undefined);
+	const changed = ref(false);
+
 	// Validation etc.
-	const { id, fieldName, changed } = useFormInput(props, model);
+	const { id, fieldName } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(props.label, model, props.validation);
 
 	onMounted(() => {
+		// Keep original value
+		originalValue.value = model;
+
 		// Add field for form validation
 		if (props.validation) {
 			const addField = inject('addField') as Function;
@@ -44,5 +51,9 @@
 				addField(fieldName.value, model, changed, validated);
 			}
 		}
+	});
+
+	watch(model, () => {
+		changed.value = originalValue.value !== model;
 	});
 </script>

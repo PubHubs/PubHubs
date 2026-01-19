@@ -37,7 +37,7 @@
 			</div>
 		</div>
 
-		<FieldHelperText v-if="props.help && validated">{{ help }}</FieldHelperText>
+		<FieldHelperText v-if="(props.help && !changed) || validated">{{ help }}</FieldHelperText>
 
 		<FieldValidationError v-else-if="!validated && changed">
 			{{ $t(validateField!.translationKey, validateField!.parameters) }}
@@ -51,6 +51,8 @@
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
+	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
+	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
