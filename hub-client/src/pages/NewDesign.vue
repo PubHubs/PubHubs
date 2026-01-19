@@ -106,10 +106,12 @@
 				<TextField v-model="formValues.firstname" placeholder="Type voornaam">Voornaam</TextField>
 				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, maxLength: 20 }" help="Hier dus je achternaam">{{ $t('roomlibrary.info.name') }}</TextField>
 				<TextField v-model="formValues.age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
+				<TextField v-model="formValues.specific" placeholder="Type Yes or No" :validation="{ custom: mustBeYesOrNo() }">Yes or No</TextField>
 
 				<TextArea placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 
 				<div class="mb-200">
+					<Label>Keuze:</Label>
 					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
 					<Radio v-model="formValues.radio" value="second">Tweede</Radio>
 					<Radio v-model="formValues.radio" value="third">Derde</Radio>
@@ -138,11 +140,14 @@
 	// Packages
 	import { onMounted, reactive } from 'vue';
 
+	import { ValidationRule, ValidatorFn } from '@hub-client/models/validation/TValidate';
+
 	// New design
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
@@ -156,6 +161,7 @@
 		firstname: string;
 		lastname: string;
 		age: number;
+		specific: string;
 		radio: string;
 		option1: boolean;
 		option2: boolean;
@@ -181,6 +187,26 @@
 		{ label: 'Rename2', disabled: true },
 		{ label: 'Delete2', isDelicate: true },
 	];
+
+	// Custom validator Example
+	function mustBeYesOrNo() {
+		let rule = {
+			validator: (value: any) => {
+				if (!value) {
+					return false;
+				}
+				const low = (value as string).toLocaleLowerCase();
+				const result = (low === 'yes' || low === 'no') as boolean;
+				return result;
+			},
+			args: [] as any[],
+			message: {
+				translationKey: 'Must be YES or NO',
+				parameters: [],
+			},
+		} as ValidationRule;
+		return rule;
+	}
 
 	onMounted(() => {
 		document.addEventListener('context-menu-select', (e: any) => {

@@ -77,13 +77,18 @@ function useFieldValidation(name: string, model: any, validation?: Object) {
 		required.value = keys.includes('required');
 		if (keys.length > 0) {
 			keys.forEach((key) => {
-				let rule = {
-					validator: validateFunctions[key],
-					args: [] as any[],
-					message: validateMessageFunctions[key],
-				} as ValidationRule;
-				if (validation[key] && typeof validation[key] !== 'boolean') {
-					rule.args = [validation[key]];
+				let rule = undefined;
+				if (key === 'custom') {
+					rule = validation[key] as ValidationRule;
+				} else {
+					rule = {
+						validator: validateFunctions[key],
+						args: [] as any[],
+						message: validateMessageFunctions[key],
+					} as ValidationRule;
+					if (validation[key] && typeof validation[key] !== 'boolean') {
+						rule.args = [validation[key]];
+					}
 				}
 				rules.push(rule);
 			});
