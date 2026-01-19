@@ -102,19 +102,19 @@
 		<div class="my-200 border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 			<h2 class="mb-200">Form Test with valdation attributes</h2>
 
-			<ValidatedForm v-slot="{ isValidated }" :values="formValues" :validation="[{ field: 'radio', validation: customRadioValidation() }]">
+			<ValidatedForm v-slot="{ isValidated }">
 				<TextField v-model="formValues.firstname" placeholder="Type voornaam">Voornaam</TextField>
 				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, maxLength: 20 }" help="Hier dus je achternaam">{{ $t('roomlibrary.info.name') }}</TextField>
 				<TextField v-model="formValues.age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
 				<TextField v-model="formValues.specific" placeholder="Type Yes or No" :validation="{ custom: mustBeYesOrNo() }">Yes or No</TextField>
-
-				<TextArea placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
+				<TextArea v-model="formValues.text" placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 
 				<div class="mb-200">
-					<Label>Keuze:</Label>
-					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
-					<Radio v-model="formValues.radio" value="second">Tweede</Radio>
-					<Radio v-model="formValues.radio" value="third">Derde</Radio>
+					<ValidateField v-model="formValues.radio" :validation="{ required: true, custom: customRadioValidation() }" label="Keuze:">
+						<Radio v-model="formValues.radio" value="first">Eerste</Radio>
+						<Radio v-model="formValues.radio" value="second">Tweede</Radio>
+						<Radio v-model="formValues.radio" value="third">Derde</Radio>
+					</ValidateField>
 				</div>
 
 				<div class="flex gap-12">
@@ -140,9 +140,7 @@
 	// Packages
 	import { onMounted, reactive } from 'vue';
 
-	import { validateFunctions, validateMessageFunctions } from '@hub-client/composables/useValidation';
-
-	import { ValidationRule, ValidationSchema, ValidatorFn } from '@hub-client/models/validation/TValidate';
+	import { ValidationRule, ValidatorFn } from '@hub-client/models/validation/TValidate';
 
 	// New design
 	import Button from '@hub-client/new-design/components/Button.vue';
@@ -154,6 +152,7 @@
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
+	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import { MenuItem } from '@hub-client/new-design/stores/contextMenu.store';
@@ -164,6 +163,7 @@
 		lastname: string;
 		age: number | undefined;
 		specific: string;
+		text: string;
 		radio: string;
 		option1: boolean;
 		option2: boolean;
@@ -174,6 +174,7 @@
 		lastname: '',
 		age: undefined,
 		specific: '',
+		text: '',
 		radio: '',
 		option1: false,
 		option2: true,
@@ -193,31 +194,6 @@
 		{ label: 'Rename2', disabled: true },
 		{ label: 'Delete2', isDelicate: true },
 	];
-
-	const schema = {
-		lastname: { required: true, maxLength: 20 },
-		age: { required: true, isNumber: true, minValue: 2, maxValue: 20 },
-		specific: { custom: mustBeYesOrNo() },
-	};
-
-	// const schema = {
-	// 	// firstname: [],
-	// 	lastname: [{ validator: 'required' }, { validator: 'maxLength', args: [20] }],
-	// 	age: [{ validator: 'required' }, { validator: 'isNumber' }, { validator: 'minValue', args: [2] }, { validator: 'maxValue', args: [20] }],
-	// 	specific: [
-	// 		{
-	// 			validator: mustBeYesOrNoFn(),
-	// 			args: [],
-	// 			message: {
-	// 				translationKey: 'Must be YES or NO',
-	// 				parameters: [],
-	// 			},
-	// 		},
-	// 	],
-	// 	// radio: [],
-	// 	// option1: [],
-	// 	// option2: [],
-	// };
 
 	// Custom validator Example
 	function mustBeYesOrNoFn() {
@@ -246,12 +222,12 @@
 	function customRadioValidation() {
 		let rule = {
 			validator: (value: any) => {
-				console.info('CUSTOM radio', value);
+				if (value == 'second') return true;
 				return false;
 			},
 			args: [] as any[],
 			message: {
-				translationKey: 'Custom Radio',
+				translationKey: 'Must be second option',
 				parameters: [],
 			},
 		} as ValidationRule;

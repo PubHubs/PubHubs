@@ -7,7 +7,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, provide, ref } from 'vue';
+	import { computed, provide, ref } from 'vue';
 
 	const emit = defineEmits(['validated']);
 
@@ -15,13 +15,13 @@
 	const props = withDefaults(
 		defineProps<{
 			disabled?: boolean;
-			validation?: any;
-			values?: any;
+			// validation?: any;
+			// values?: any;
 		}>(),
 		{
 			disabled: false,
-			validation: undefined,
-			values: undefined,
+			// validation: undefined,
+			// values: undefined,
 		},
 	);
 
@@ -33,22 +33,6 @@
 	};
 
 	const fields = ref([] as fieldType[]);
-	const originalValues = ref([]);
-	const schema = ref([]);
-
-	onMounted(() => {
-		// extra validation??
-		if (props.validation) {
-			console.info('FORM validation:');
-			props.validation.forEach((item) => {
-				console.info('FORM validation item', item);
-			});
-		}
-		if (props.values) {
-			originalValues.value = props.values;
-			console.info('FORM values', originalValues.value);
-		}
-	});
 
 	const isValidated = computed(() => {
 		let changed = false;
