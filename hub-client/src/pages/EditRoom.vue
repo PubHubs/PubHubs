@@ -38,21 +38,23 @@
 							t('admin.secured_attribute')
 						}}</TextFieldAutoComplete>
 
-						<div class="flex gap-100">
-							<div class="grow">
-								<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab)">{{ t('admin.add_value') }}</TextArea>
+						<Label>{{ t('admin.secured_values') }}</Label>
+						<div class="bg-on-surface-disabled mb-100 rounded p-100">
+							<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 flex w-full justify-start gap-100 rounded outline">
+								<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center truncate rounded-xl px-2 py-1">
+									{{ value }}
+									<IconButton size="sm" type="trash" class="text-accent-red hover:text-on-accent-red ml-025" @click="selectedAttributes[activeTab].accepted.splice(index, 1)"></IconButton>
+								</span>
 							</div>
-							<div class="grow">
-								<Button class="mt-300" @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
-							</div>
-						</div>
 
-						<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="mb-200 flex flex-wrap gap-2">
-							<Label>{{ t('admin.secured_values') }}</Label>
-							<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="bg-primary text-on-primary bg-surface inline-flex items-center truncate rounded-xl px-2 py-1">
-								{{ value }}
-								<button type="button" class="text-accent-red hover:text-on-accent-red ml-2" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">&times;</button>
-							</span>
+							<div class="mt-100 flex gap-100">
+								<div class="grow">
+									<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab)">{{ t('admin.add_value') }}</TextArea>
+								</div>
+								<div>
+									<Button class="mt-300" @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
+								</div>
+							</div>
 						</div>
 
 						<Checkbox v-model="selectedAttributes[activeTab].profile">{{ t('admin.secured_profile') }}</Checkbox>
