@@ -1,5 +1,5 @@
 <template>
-	<Button :variant="computedVariant" :icon="icon" :disabled="disabled" :title="title" :size="size" :ariaLabel="ariaLabel"></Button>
+	<Button :variant="computedVariant" :icon="icon" :disabled="disabled" :title="title" :size="size" :ariaLabel="ariaLabel" :nofocus="nofocus"></Button>
 </template>
 
 <script setup lang="ts">
@@ -16,11 +16,13 @@
 			title?: string;
 			size?: 'base' | 'sm';
 			ariaLabel?: string;
+			nofocus?: boolean;
 		}>(),
 		{
 			variant: 'primary',
 			disabled: false,
 			size: 'base',
+			nofocus: false,
 		},
 	);
 

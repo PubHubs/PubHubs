@@ -26,38 +26,65 @@
 				<div>
 					<div class="mt-4 flex flex-wrap gap-2">
 						<Label :required="true">{{ t('admin.secured_yivi_attributes') }}</Label>
-						<button v-for="(attr, index) in selectedAttributes" :key="index" :class="['rounded-xs px-3 py-1', activeTab === index ? 'bg-surface-high' : 'bg-surface text-on-surface']" @click="activeTab = index" type="button">
-							{{ attr.label ? attr.label : index + 1 }}
-							<span v-if="selectedAttributes.length > 1" @click.stop="removeAttribute(index)" class="text-accent-red hover:text-on-accent-red ml-2 cursor-pointer">&times;</span>
-						</button>
-						<Button v-if="selectedAttributes.length < roomValidations.maxAttributes" icon="plus" size="sm" @click="selectedAttributes.push({ label: '', attribute: '', accepted: [], profile: false })"></Button>
-					</div>
 
-					<div v-if="selectedAttributes.length" class="bg-surface-low border-2 p-4">
-						<TextFieldAutoComplete v-model="selectedAttributes[activeTab].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle">{{
-							t('admin.secured_attribute')
-						}}</TextFieldAutoComplete>
+						<Tabs v-slot="{ activeTab, setActiveTab }">
+							<TabHeader>
+								<TabPill v-for="(attr, index) in selectedAttributes">
+									{{ attr.label ? attr.label : index + 1 }}
+									<IconButton
+										v-if="selectedAttributes.length > 1 && index > 0"
+										size="sm"
+										icon="trash"
+										class="text-on-accent-red -mr-200 ml-100"
+										@click.stop="
+											removeAttribute(index);
+											setActiveTab(1);
+										"
+										:nofocus="true"
+									></IconButton>
+								</TabPill>
+								<IconButton
+									v-if="selectedAttributes.length < roomValidations.maxAttributes"
+									variant="tertiary"
+									icon="plus"
+									size="sm"
+									class="cursor-pointer"
+									:nofocus="true"
+									@click.stop="
+										addAttribute();
+										setActiveTab(activeTab + 1);
+									"
+								></IconButton>
+							</TabHeader>
+							<TabContainer>
+								<div class="pt-2" role="tabpanel" v-if="selectedAttributes.length >= activeTab">
+									<TextFieldAutoComplete v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle">{{
+										t('admin.secured_attribute')
+									}}</TextFieldAutoComplete>
 
-						<Label>{{ t('admin.secured_values') }}</Label>
-						<div class="bg-on-surface-disabled mb-100 rounded p-100">
-							<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 flex w-full justify-start gap-100 rounded outline">
-								<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center truncate rounded-xl px-2 py-1">
-									{{ value }}
-									<IconButton size="sm" type="trash" class="text-accent-red hover:text-on-accent-red ml-025" @click="selectedAttributes[activeTab].accepted.splice(index, 1)"></IconButton>
-								</span>
-							</div>
+									<Label>{{ t('admin.secured_values') }}</Label>
+									<div class="bg-on-surface-disabled mb-100 rounded p-100">
+										<div v-if="selectedAttributes[activeTab - 1].accepted.length > 0" class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 flex w-full justify-start gap-100 rounded outline">
+											<span v-for="(value, index) in selectedAttributes[activeTab - 1].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center truncate rounded-xl px-2 py-1">
+												{{ value }}
+												<IconButton size="sm" icon="trash" class="text-on-accent-red ml-025" @click="selectedAttributes[activeTab - 1].accepted.splice(index, 1)"></IconButton>
+											</span>
+										</div>
 
-							<div class="mt-100 flex gap-100">
-								<div class="grow">
-									<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab)">{{ t('admin.add_value') }}</TextArea>
+										<div class="mt-100 flex gap-100">
+											<div class="grow">
+												<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab - 1)">{{ t('admin.add_value') }}</TextArea>
+											</div>
+											<div>
+												<Button class="mt-300" @click="addUniqueValue(activeTab - 1)">{{ t('admin.add') }}</Button>
+											</div>
+										</div>
+									</div>
+
+									<Checkbox v-model="selectedAttributes[activeTab - 1].profile">{{ t('admin.secured_profile') }}</Checkbox>
 								</div>
-								<div>
-									<Button class="mt-300" @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
-								</div>
-							</div>
-						</div>
-
-						<Checkbox v-model="selectedAttributes[activeTab].profile">{{ t('admin.secured_profile') }}</Checkbox>
+							</TabContainer>
+						</Tabs>
 					</div>
 				</div>
 			</div>
@@ -84,6 +111,10 @@
 	// Components
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+	import TabContainer from '@hub-client/components/ui/TabContainer.vue';
+	import TabHeader from '@hub-client/components/ui/TabHeader.vue';
+	import TabPill from '@hub-client/components/ui/TabPill.vue';
+	import Tabs from '@hub-client/components/ui/Tabs.vue';
 
 	// Composables
 	import { useEditRoom } from '@hub-client/composables/useEditRoom';
@@ -106,6 +137,7 @@
 
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
+	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
@@ -126,7 +158,7 @@
 
 	// reactive state
 	const attributeChanged = ref(false);
-	const activeTab = ref(0);
+	// const activeTab = ref(0);
 	const valuesString = ref<string>('');
 	const formErrors = ref<Record<string, ValidationMessage> | null>(null);
 	const selectedAttributes = ref<Array<TEditRoomFormAttributes>>([{ label: '', attribute: '', accepted: [], profile: false }]);
@@ -251,11 +283,12 @@
 		}
 	}
 
+	function addAttribute() {
+		selectedAttributes.value.push({ label: '', attribute: '', accepted: [], profile: false });
+	}
+
 	function removeAttribute(index: number) {
 		selectedAttributes.value.splice(index, 1);
-		if (activeTab.value >= selectedAttributes.value.length) {
-			activeTab.value = Math.max(0, selectedAttributes.value.length - 1);
-		}
 	}
 
 	function addUniqueValue(tabIndex: number) {

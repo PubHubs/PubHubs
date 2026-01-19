@@ -12,11 +12,9 @@
 		</template>
 		<Tabs class="p-3 md:p-4" :open-tab="tab ? tab : 1">
 			<TabHeader>
-				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(1)"
-					>{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click.stop="newPublicRoom()"
-				/></TabPill>
+				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(1)">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newPublicRoom()" /></TabPill>
 				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(2)"
-					>{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click.stop="newSecuredRoom()"
+					>{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newSecuredRoom()"
 				/></TabPill>
 			</TabHeader>
 			<TabContainer>

@@ -1,6 +1,6 @@
 <template>
-	<div>
-		<slot></slot>
+	<div class="w-full">
+		<slot :activeTab="activeTab" :setActiveTab="setActiveTab"></slot>
 	</div>
 </template>
 <script setup lang="ts">

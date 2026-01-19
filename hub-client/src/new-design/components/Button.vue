@@ -1,7 +1,7 @@
 <template>
 	<button
 		v-bind="attrs"
-		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-4000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-4000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:aria-busy="loading ? 'true' : undefined"
 		:aria-disabled="disabled || loading ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
@@ -76,6 +76,7 @@
 			type?: 'button' | 'submit' | 'reset';
 			ariaLabel?: string;
 			loading?: boolean;
+			nofocus?: boolean;
 		}>(),
 		{
 			variant: 'primary',
@@ -83,6 +84,7 @@
 			type: 'button',
 			size: '',
 			loading: false,
+			nofocus: false,
 		},
 	);
 
@@ -113,8 +115,9 @@
 
 	const computedClasses = computed(() => {
 		const variantClass = buttonVariants[props.variant ?? 'primary'];
+		const focusClass = props.nofocus ? '' : 'focus:ring-3 focus:outline-none';
 		const iconClass = isIconOnly.value ? 'min-w-550 w-550 px-100' : 'min-w-1000 px-150'; // Required to make the icon-only button look square
-		return [variantClass, iconClass];
+		return [variantClass, iconClass, focusClass];
 	});
 
 	//  Lifecycle
