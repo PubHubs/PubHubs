@@ -195,46 +195,46 @@ function useValidation() {
 
 	// Constants for Rooms
 
-	const roomSchemaConstants = {
-		maxNameLength: 100,
-		maxTopicLength: 100,
-		maxDescriptionLength: 100,
-		maxAttributes: 12,
-		maxValues: 400,
-		maxTypeLength: 100,
-	};
+	// const roomSchemaConstants = {
+	// 	maxNameLength: 100,
+	// 	maxTopicLength: 100,
+	// 	maxDescriptionLength: 100,
+	// 	maxAttributes: 12,
+	// 	maxValues: 400,
+	// 	maxTypeLength: 100,
+	// };
 
 	// Customizable validation schema for each form that needs validation
 
-	const editSecuredRoomSchema: ValidationSchema = {
-		name: [
-			{ validator: validateRequired, args: ['admin.name'], message: requiredMessage },
-			{ validator: validateMaxLength, args: [roomSchemaConstants.maxNameLength, 'admin.name'], message: maxLengthMessage },
-		],
-		topic: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTopicLength, 'admin.topic'], message: maxLengthMessage }],
-		description: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxDescriptionLength, 'admin.description'], message: maxLengthMessage }],
-		attributes: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxAttributes, 'admin.secured_yivi_attributes'], message: maxItemsMessage }],
-		acceptedMax: [{ validator: validateMaxValue, args: [roomSchemaConstants.maxValues, 'admin.value'], message: maxValueMessage }],
+	// const editSecuredRoomSchema: ValidationSchema = {
+	// 	name: [
+	// 		{ validator: validateRequired, args: ['admin.name'], message: requiredMessage },
+	// 		{ validator: validateMaxLength, args: [roomSchemaConstants.maxNameLength, 'admin.name'], message: maxLengthMessage },
+	// 	],
+	// 	topic: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTopicLength, 'admin.topic'], message: maxLengthMessage }],
+	// 	description: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxDescriptionLength, 'admin.description'], message: maxLengthMessage }],
+	// 	attributes: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxAttributes, 'admin.secured_yivi_attributes'], message: maxItemsMessage }],
+	// 	acceptedMax: [{ validator: validateMaxValue, args: [roomSchemaConstants.maxValues, 'admin.value'], message: maxValueMessage }],
 
-		acceptedMin: [{ validator: validateRequired, args: ['admin.value'], message: requiredMessage }],
-		labelMin: [{ validator: validateRequired, args: ['admin.secured_attribute'], message: requiredMessage }],
-	};
+	// 	acceptedMin: [{ validator: validateRequired, args: ['admin.value'], message: requiredMessage }],
+	// 	labelMin: [{ validator: validateRequired, args: ['admin.secured_attribute'], message: requiredMessage }],
+	// };
 
-	const editPublicRoomSchema: ValidationSchema = {
-		name: [
-			{ validator: validateRequired, args: ['admin.name'], message: requiredMessage },
-			{ validator: validateMaxLength, args: [roomSchemaConstants.maxNameLength, 'admin.name'], message: maxLengthMessage },
-		],
-		topic: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTopicLength, 'admin.topic'], message: maxLengthMessage }],
-		type: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTypeLength, 'admin.room_type'], message: maxLengthMessage }],
-	};
+	// const editPublicRoomSchema: ValidationSchema = {
+	// 	name: [
+	// 		{ validator: validateRequired, args: ['admin.name'], message: requiredMessage },
+	// 		{ validator: validateMaxLength, args: [roomSchemaConstants.maxNameLength, 'admin.name'], message: maxLengthMessage },
+	// 	],
+	// 	topic: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTopicLength, 'admin.topic'], message: maxLengthMessage }],
+	// 	type: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTypeLength, 'admin.room_type'], message: maxLengthMessage }],
+	// };
 
 	return {
 		validateField,
 		validateBySchema,
-		roomSchemaConstants,
-		editSecuredRoomSchema,
-		editPublicRoomSchema,
+		// roomSchemaConstants,
+		// editSecuredRoomSchema,
+		// editPublicRoomSchema,
 	};
 }
-export { useFieldValidation, useValidation };
+export { useFieldValidation, useValidation, validateFunctions, validateMessageFunctions };

@@ -8,10 +8,11 @@ type ValidationMessage = {
 type ValidationMessageFn = ValidationMessage | ((value: any, ...args: any[]) => ValidationMessage);
 
 type ValidationRule = {
-	validator: ValidatorFn;
+	// validator can both a standard validation type (string) or a ValidatorFn function
+	validator: ValidatorFn | string;
 	args?: any[];
-	// message can both be a  ValidationMessage or fuction that returns a ValidationMessage
-	message: ValidationMessageFn;
+	// message can be undefined (in case of a standard validation type), a ValidationMessage or fuction that returns a ValidationMessage
+	message?: ValidationMessageFn;
 };
 
 type ValidationSchema = Record<string, ValidationRule[]>;
