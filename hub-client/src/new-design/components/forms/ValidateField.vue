@@ -1,17 +1,12 @@
 <template>
 	<div class="gap-075 mb-2 flex w-full flex-col items-start justify-start">
-		<!-- Label -->
-		<label v-if="label" :for="id" class="text-label-small gap-050 text-on-surface inline-flex w-full items-start justify-start">
-			{{ label }}
-			<span v-if="required" class="text-accent-red" aria-hidden="true">*</span>
-		</label>
+		<Label v-if="label" :for="id" :required="required">{{ label }}</Label>
 
 		<slot></slot>
 
-		<!-- Validation error -->
-		<p v-if="!validated" class="text-accent-red text-label-small flex items-center gap-100 text-pretty" role="alert" aria-live="assertive">
-			<span class="ml-075">{{ $t(validateField!.translationKey, validateField!.parameters) }}</span>
-		</p>
+		<FieldValidationError v-if="!validated && changed">
+			{{ $t(validateField!.translationKey, validateField!.parameters) }}
+		</FieldValidationError>
 	</div>
 </template>
 
@@ -21,6 +16,7 @@
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	const model = defineModel<string | number>();

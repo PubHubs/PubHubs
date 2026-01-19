@@ -1,10 +1,6 @@
 <template>
 	<div class="gap-075 mb-2 flex w-full flex-col items-start justify-start">
-		<!-- Label -->
-		<label :for="id" class="text-label-small gap-050 text-on-surface inline-flex w-full items-start justify-start">
-			<slot></slot>
-			<span v-if="required" class="text-accent-red" aria-hidden="true">*</span>
-		</label>
+		<Label :for="id" :required="required"><slot></slot></Label>
 
 		<!-- Input element -->
 		<div class="flex w-full items-center">
@@ -41,15 +37,11 @@
 			</div>
 		</div>
 
-		<!-- Helper text -->
-		<p v-if="props.help && validated" class="text-on-surface-dim text-label-small justify-end" aria-live="polite">
-			{{ help }}
-		</p>
+		<FieldHelperText v-if="props.help && validated">{{ help }}</FieldHelperText>
 
-		<!-- Validation error -->
-		<p v-else-if="!validated" class="text-accent-red text-label-small flex items-center gap-100 text-pretty" role="alert" aria-live="assertive">
-			<span class="ml-075">{{ $t(validateField!.translationKey, validateField!.parameters) }}</span>
-		</p>
+		<FieldValidationError v-else-if="!validated && changed">
+			{{ $t(validateField!.translationKey, validateField!.parameters) }}
+		</FieldValidationError>
 	</div>
 </template>
 
@@ -59,6 +51,7 @@
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	const model = defineModel<string | number>();
