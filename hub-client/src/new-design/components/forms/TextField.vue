@@ -11,7 +11,7 @@
 			<div class="flex-grow" :class="{ 'w-full': !showLength }">
 				<textarea
 					v-if="type === 'textarea'"
-					class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
+					class="bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
@@ -23,7 +23,7 @@
 				/>
 				<input
 					v-else
-					class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
+					class="bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
