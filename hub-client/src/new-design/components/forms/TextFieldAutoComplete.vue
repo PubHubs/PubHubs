@@ -36,23 +36,21 @@
 	// Types
 	type Props = {
 		options: Array<String>;
-		value: string | Object;
 		disabled?: Boolean;
 		maxlength?: number;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
-		value: undefined,
 		disabled: undefined,
 	});
 
 	const emit = defineEmits(usedEvents);
-	// const { value: search, setValue, update } = useFormInputEvents(emit);
+	const { setValue, update } = useFormInputEvents(emit);
 	const { setItems, cursor, cursorDown, cursorUp, reset, selectItem, selectItemByEnter } = useKeyStrokes();
 
-	// onMounted(() => {
-	// 	setValue(props.value as InputType);
-	// });
+	onMounted(() => {
+		setValue(search.value as InputType);
+	});
 
 	const result = computed(() => {
 		if (search.value === '' || search.value === undefined || props.options.find((attribute) => search.value?.toString().toLowerCase() === attribute?.toLowerCase())) {
@@ -80,13 +78,13 @@
 
 	const select = (item: any) => {
 		selectItem(item);
-		// setValue(item);
-		// update(item);
+		setValue(item);
+		update(item);
 	};
 
 	const click = (item: any) => {
-		// setValue(item);
-		// update(item);
+		setValue(item);
+		update(item);
 	};
 
 	// Watch for manual input and update output value even if not in the list
@@ -95,10 +93,4 @@
 			update(newValue);
 		}
 	});
-	watch(
-		() => props.value,
-		(newValue) => {
-			setValue(newValue as InputType);
-		},
-	);
 </script>
