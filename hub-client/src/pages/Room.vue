@@ -48,8 +48,7 @@
 					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
 				</div>
 				<RoomThread
-					v-if="room!.getCurrentThreadId()"
-					:class="{ hidden: showLibrary }"
+					v-if="room!.getCurrentThreadId() && !showLibrary"
 					:room="room!"
 					:scroll-to-event-id="room!.getCurrentEvent()?.eventId"
 					@scrolled-to-event-id="room!.setCurrentEvent(undefined)"
