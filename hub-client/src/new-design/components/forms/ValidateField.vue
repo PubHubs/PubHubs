@@ -20,7 +20,7 @@
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const model = defineModel<string | number>();
+	const model = defineModel<string | number | boolean>();
 
 	// Props
 	const props = withDefaults(
