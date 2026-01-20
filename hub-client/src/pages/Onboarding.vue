@@ -185,7 +185,7 @@
 				</div>
 
 				<!-- Mascot -->
-				<figure class="absolute -right-16 -bottom-4 hidden w-64 lg:block xl:-right-32 xl:w-auto">
+				<figure class="absolute -right-16 -bottom-12 hidden w-64 md:w-48 lg:block xl:-right-24 xl:w-auto">
 					<img alt="PubHubs mascotte" src="../assets/mascotte.svg" />
 				</figure>
 			</div>
