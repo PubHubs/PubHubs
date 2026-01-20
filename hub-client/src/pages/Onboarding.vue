@@ -28,7 +28,7 @@
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square"></Icon>
 								</Button>
-								<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
+								<input ref="fileInput" type="file" accept="image/png, image/jpeg, image/svg" class="hidden" @change="handleFileUpload" />
 							</div>
 							<p class="text-on-surface-variant italic">
 								{{ t('onboarding.username_disclaimer') }}
@@ -121,7 +121,7 @@
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square" />
 								</Button>
-								<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
+								<input ref="fileInput" type="file" accept="image/png, image/jpeg, image/svg" class="hidden" @change="handleFileUpload" />
 							</div>
 							<p class="text-on-surface-variant italic">
 								{{ t('onboarding.username_disclaimer') }}
