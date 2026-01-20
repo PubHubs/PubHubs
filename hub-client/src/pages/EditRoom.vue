@@ -25,7 +25,7 @@
 
 				<div>
 					<ValidateField v-model="selectedAttributes" :validation="{ required: true, custom: validateAttributes() }" :label="t('admin.secured_yivi_attributes')">
-						<div class="mt-4 flex flex-wrap gap-2">
+						<div class="flex flex-wrap gap-2">
 							<Tabs v-slot="{ activeTab, setActiveTab }">
 								<TabHeader>
 									<TabPill v-for="(attr, index) in selectedAttributes">
@@ -118,7 +118,6 @@
 
 	// Composables
 	import { useEditRoom } from '@hub-client/composables/useEditRoom';
-	import { useValidation } from '@hub-client/composables/useValidation';
 
 	// Logic
 	import { trimSplit } from '@hub-client/logic/core/extensions';
@@ -127,7 +126,7 @@
 	// Models
 	import type { TEditRoom } from '@hub-client/models/rooms/TEditRoom';
 	import { TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
-	import { ValidationMessage, ValidationRule } from '@hub-client/models/validation/TValidate';
+	import { ValidationRule } from '@hub-client/models/validation/TValidate';
 
 	// Stores
 	import { SecuredRoomAttributes, TSecuredRoom } from '@hub-client/stores/rooms';

@@ -15,13 +15,9 @@
 	const props = withDefaults(
 		defineProps<{
 			disabled?: boolean;
-			// validation?: any;
-			// values?: any;
 		}>(),
 		{
 			disabled: false,
-			// validation: undefined,
-			// values: undefined,
 		},
 	);
 
@@ -46,8 +42,6 @@
 		if (!changed || fields.value.length === 0) {
 			validated = false;
 		}
-
-		console.info('ValidationForm.isValidated', validated);
 		emit('validated', validated);
 		return validated;
 	});

@@ -1,7 +1,7 @@
 // Models
 import { computed, ref } from 'vue';
 
-import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn } from '@hub-client/models/validation/TValidate';
+import { ValidationMessage, ValidationRule } from '@hub-client/models/validation/TValidate';
 
 /**
  * useValidation provides a framework for form validation.
@@ -119,83 +119,4 @@ function useFieldValidation(name: string, model: any, validation?: Object) {
 	return { validateField, validated, required };
 }
 
-function useValidation() {
-	// Validation Core
-
-	function validateField(value: any, rules: ValidationRule[]): ValidationMessage | null {
-		for (const rule of rules) {
-			if (!rule.validator(value, ...(rule.args || []))) {
-				// If message is a function we get the returned ValidationMessage from the function
-				if (typeof rule.message === 'function') {
-					return rule.message(value, ...(rule.args || []));
-				}
-				// The ValidationMessage is returned directly if message is not a function
-				return rule.message;
-			}
-		}
-		return null;
-	}
-
-	function validateBySchema(values: Record<string, any>, schema: ValidationSchema): Record<string, ValidationMessage> | null {
-		const errors: Record<string, ValidationMessage> = {};
-		for (const key in schema) {
-			const msg = validateField(values[key], schema[key]);
-			if (msg) errors[key] = msg;
-		}
-		return Object.keys(errors).length ? errors : null;
-	}
-
-	// Validation rules
-
-	function validateRequired(value: string | any[]): boolean {
-		return Array.isArray(value) ? value.length > 0 : !!value;
-	}
-
-	function validateMinValue(value: number, min: number): boolean {
-		return value >= min;
-	}
-
-	function validateMaxValue(value: number, max: number): boolean {
-		return value <= max;
-	}
-
-	function validateMinLength(value: string | any[], min: number): boolean {
-		return value.length >= min;
-	}
-
-	function validateMaxLength(value: string | any[], max: number): boolean {
-		return value.length <= max;
-	}
-
-	// Error messages
-
-	function minLengthMessage(value: string, min: number, keyTranslation: string): ValidationMessage {
-		return { translationKey: 'validation.min_length', parameters: [keyTranslation, min, value.length] };
-	}
-
-	function maxLengthMessage(value: string, max: number, keyTranslation: string): ValidationMessage {
-		return { translationKey: 'validation.max_length', parameters: [keyTranslation, max, value.length] };
-	}
-
-	function requiredMessage(_: string, keyTranslation: string): ValidationMessage {
-		return { translationKey: 'validation.required', parameters: [keyTranslation] };
-	}
-
-	function maxItemsMessage(value: any[], max: number, keyTranslation: string): ValidationMessage {
-		return { translationKey: 'validation.max_items', parameters: [keyTranslation, max, value.length] };
-	}
-
-	function minValueMessage(value: number, min: number, keyTranslation: string): ValidationMessage {
-		return { translationKey: 'validation.min_value', parameters: [keyTranslation, min, value] };
-	}
-
-	function maxValueMessage(value: number, max: number, keyTranslation: string): ValidationMessage {
-		return { translationKey: 'validation.max_value', parameters: [keyTranslation, max, value] };
-	}
-
-	return {
-		validateField,
-		validateBySchema,
-	};
-}
-export { useFieldValidation, useValidation, validateFunctions, validateMessageFunctions };
+export { useFieldValidation, validateFunctions, validateMessageFunctions };
