@@ -1,5 +1,5 @@
 <template>
-	<div class="gap-075 mb-2 flex w-full flex-col items-start justify-start">
+	<div>
 		<Label v-if="label" :for="id" :required="required">{{ label }}</Label>
 
 		<slot></slot>
@@ -20,7 +20,7 @@
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const model = defineModel<string | number | boolean>();
+	const model = defineModel<any>();
 
 	// Props
 	const props = withDefaults(
@@ -42,7 +42,7 @@
 
 	onMounted(() => {
 		// Keep original value
-		originalValue.value = model;
+		originalValue.value = Object.assign({}, model);
 
 		// Add field for form validation
 		if (props.validation) {
@@ -53,7 +53,11 @@
 		}
 	});
 
-	watch(model, () => {
-		changed.value = originalValue.value !== model;
-	});
+	watch(
+		() => model,
+		() => {
+			changed.value = originalValue.value !== model;
+		},
+		{ deep: true },
+	);
 </script>

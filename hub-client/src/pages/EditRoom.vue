@@ -24,68 +24,68 @@
 				}}</TextField>
 
 				<div>
-					<div class="mt-4 flex flex-wrap gap-2">
-						<Label :required="true">{{ t('admin.secured_yivi_attributes') }}</Label>
-
-						<Tabs v-slot="{ activeTab, setActiveTab }">
-							<TabHeader>
-								<TabPill v-for="(attr, index) in selectedAttributes">
-									{{ attr.label ? attr.label : index + 1 }}
+					<ValidateField v-model="selectedAttributes" :validation="{ required: true, custom: validateAttributes() }" :label="t('admin.secured_yivi_attributes')">
+						<div class="mt-4 flex flex-wrap gap-2">
+							<Tabs v-slot="{ activeTab, setActiveTab }">
+								<TabHeader>
+									<TabPill v-for="(attr, index) in selectedAttributes">
+										{{ attr.label ? attr.label : index + 1 }}
+										<IconButton
+											v-if="selectedAttributes.length > 1 && index > 0"
+											size="sm"
+											icon="trash"
+											class="text-on-accent-red -mr-200 ml-100"
+											@click.stop="
+												removeAttribute(index);
+												setActiveTab(1);
+											"
+											:nofocus="true"
+										></IconButton>
+									</TabPill>
 									<IconButton
-										v-if="selectedAttributes.length > 1 && index > 0"
+										v-if="selectedAttributes.length < roomValidations.maxAttributes"
+										variant="tertiary"
+										icon="plus"
 										size="sm"
-										icon="trash"
-										class="text-on-accent-red -mr-200 ml-100"
-										@click.stop="
-											removeAttribute(index);
-											setActiveTab(1);
-										"
+										class="cursor-pointer"
 										:nofocus="true"
+										@click.stop="
+											addAttribute();
+											setActiveTab(activeTab + 1);
+										"
 									></IconButton>
-								</TabPill>
-								<IconButton
-									v-if="selectedAttributes.length < roomValidations.maxAttributes"
-									variant="tertiary"
-									icon="plus"
-									size="sm"
-									class="cursor-pointer"
-									:nofocus="true"
-									@click.stop="
-										addAttribute();
-										setActiveTab(activeTab + 1);
-									"
-								></IconButton>
-							</TabHeader>
-							<TabContainer>
-								<div class="pt-2" role="tabpanel" v-if="selectedAttributes.length >= activeTab">
-									<TextFieldAutoComplete v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle">{{
-										t('admin.secured_attribute')
-									}}</TextFieldAutoComplete>
+								</TabHeader>
+								<TabContainer>
+									<div class="pt-2" role="tabpanel" v-if="selectedAttributes.length >= activeTab">
+										<TextFieldAutoComplete v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle">{{
+											t('admin.secured_attribute')
+										}}</TextFieldAutoComplete>
 
-									<Label>{{ t('admin.secured_values') }}</Label>
-									<div class="bg-on-surface-disabled mb-100 rounded p-100">
-										<div v-if="selectedAttributes[activeTab - 1].accepted.length > 0" class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 flex w-full justify-start gap-100 rounded outline">
-											<span v-for="(value, index) in selectedAttributes[activeTab - 1].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center truncate rounded-xl px-2 py-1">
-												{{ value }}
-												<IconButton size="sm" icon="trash" class="text-on-accent-red ml-025" @click="selectedAttributes[activeTab - 1].accepted.splice(index, 1)"></IconButton>
-											</span>
-										</div>
-
-										<div class="mt-100 flex gap-100">
-											<div class="grow">
-												<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab - 1)">{{ t('admin.add_value') }}</TextArea>
+										<Label>{{ t('admin.secured_values') }}</Label>
+										<div class="bg-on-surface-disabled mb-100 rounded p-100">
+											<div v-if="selectedAttributes[activeTab - 1].accepted.length > 0" class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 flex w-full justify-start gap-100 rounded outline">
+												<span v-for="(value, index) in selectedAttributes[activeTab - 1].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center truncate rounded-xl px-2 py-1">
+													{{ value }}
+													<IconButton size="sm" icon="trash" class="text-on-accent-red ml-025" @click="selectedAttributes[activeTab - 1].accepted.splice(index, 1)"></IconButton>
+												</span>
 											</div>
-											<div>
-												<Button class="mt-300" @click="addUniqueValue(activeTab - 1)">{{ t('admin.add') }}</Button>
+
+											<div class="mt-100 flex gap-100">
+												<div class="grow">
+													<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab - 1)">{{ t('admin.add_value') }}</TextArea>
+												</div>
+												<div>
+													<Button class="mt-300" :title="t('admin.add')" @click="addUniqueValue(activeTab - 1)">{{ t('admin.add') }}</Button>
+												</div>
 											</div>
 										</div>
+
+										<Checkbox v-model="selectedAttributes[activeTab - 1].profile">{{ t('admin.secured_profile') }}</Checkbox>
 									</div>
-
-									<Checkbox v-model="selectedAttributes[activeTab - 1].profile">{{ t('admin.secured_profile') }}</Checkbox>
-								</div>
-							</TabContainer>
-						</Tabs>
-					</div>
+								</TabContainer>
+							</Tabs>
+						</div>
+					</ValidateField>
 				</div>
 			</div>
 
@@ -105,7 +105,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onBeforeMount, ref, watch } from 'vue';
+	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -125,10 +125,9 @@
 	import { router } from '@hub-client/logic/core/router';
 
 	// Models
-	import Room from '@hub-client/models/rooms/Room';
 	import type { TEditRoom } from '@hub-client/models/rooms/TEditRoom';
 	import { TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
-	import { ValidationMessage } from '@hub-client/models/validation/TValidate';
+	import { ValidationMessage, ValidationRule } from '@hub-client/models/validation/TValidate';
 
 	// Stores
 	import { SecuredRoomAttributes, TSecuredRoom } from '@hub-client/stores/rooms';
@@ -143,12 +142,12 @@
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
+	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const editRoomComposable = useEditRoom();
-	const validationComposable = useValidation();
 	const emptyNewRoom = editRoomComposable.emptyNewRoom;
 
 	// stores / data
@@ -158,9 +157,7 @@
 
 	// reactive state
 	const attributeChanged = ref(false);
-	// const activeTab = ref(0);
 	const valuesString = ref<string>('');
-	const formErrors = ref<Record<string, ValidationMessage> | null>(null);
 	const selectedAttributes = ref<Array<TEditRoomFormAttributes>>([{ label: '', attribute: '', accepted: [], profile: false }]);
 	let OriginalAttributes: Array<TEditRoomFormAttributes> = [{ label: '', attribute: '', accepted: [], profile: false }];
 	const errorMessage = ref<string | undefined>(undefined);
@@ -215,58 +212,11 @@
 				const [labels, attributes] = editRoomComposable.getYiviLabelsAndAttributes((editRoom.value as any)?.accepted, t);
 				selectedAttributes.value = JSON.parse(JSON.stringify(editRoomComposable.fillInEditFormAttributes(labels, attributes, (editRoom.value as any)?.accepted)));
 				OriginalAttributes = JSON.parse(JSON.stringify(selectedAttributes.value));
-				console.info('SECURED', labels, attributes, selectedAttributes.value);
 			}
 		}
-		// 		watch(
-		// 			() => selectedAttributes.value,
-		// 			() => {
-		// 				errorMessage.value = t(editRoomComposable.attributesChanged(selectedAttributes.value, OriginalAttributes));
-		// 				attributeChanged.value = !isEmpty(errorMessage.value);
-		// 			},
-		// 			{ immediate: true, deep: true },
-		// 		);
 	});
 
-	// const isValidated = (validated: boolean) => {
-	// 	// dialogButtons.value = [
-	// 	// 	{
-	// 	// 		...buttonsSubmitCancel[0],
-	// 	// 		enabled: validated,
-	// 	// 	},
-	// 	// 	buttonsSubmitCancel[1],
-	// 	// ];
-	// };
-
-	// function validateRoomForm() {
-	// 	const acceptedLengths = selectedAttributes.value.map((s) => s.accepted.length);
-	// 	const labelLengths = selectedAttributes.value.map((s) => (s.label ? s.label.length : 0));
-
-	// 	const acceptedMax = acceptedLengths.length ? Math.max(...acceptedLengths) : 0;
-	// 	const acceptedMin = acceptedLengths.length ? Math.min(...acceptedLengths) : 0;
-	// 	const labelMin = labelLengths.length ? Math.min(...labelLengths) : 0;
-
-	// 	const values = {
-	// 		name: editRoom.value.name,
-	// 		topic: editRoom.value.topic,
-	// 		type: editRoom.value.type ? editRoom.value.type : RoomType.PH_MESSAGES_DEFAULT,
-	// 		description: props.secured ? editRoom.value.user_txt : undefined,
-	// 		attributes: selectedAttributes.value,
-	// 		acceptedMax,
-	// 		acceptedMin,
-	// 		labelMin,
-	// 	};
-
-	// 	if (props.secured) formErrors.value = validationComposable.validateBySchema(values, validationComposable.editSecuredRoomSchema);
-	// 	else formErrors.value = validationComposable.validateBySchema(values, validationComposable.editPublicRoomSchema);
-
-	// 	const hasErrors = !!formErrors.value && Object.keys(formErrors.value).length > 0;
-	// 	return !hasErrors;
-	// }
-
 	async function submitRoom() {
-		// if (!validateRoomForm()) return false;
-
 		if (!isSecured.value) {
 			waitForServer.value = true;
 			await editRoomComposable.updatePublicRoom(isNewRoom.value, editRoom.value as TEditRoom, props.id);
@@ -281,6 +231,31 @@
 				errorMessage.value = t((error as Error).message);
 			}
 		}
+	}
+
+	function validateAttributes() {
+		let rule = {
+			validator: (value: any) => {
+				// Should be an array (object)
+				if (typeof value !== 'object') return false;
+				// Should have at least one attribute
+				if (value.length < 1) return false;
+				const first = value[0];
+				if (!first.label || !first.accepted) return false;
+				// Attribute should be an existing Yivi attribute
+				if (!yiviAttributes.includes(first.label)) return false;
+				// At least one accepted value for the attribute
+				if (first.accepted.length < 1) return false;
+				// Yes all good!
+				return true;
+			},
+			args: [] as any[],
+			message: {
+				translationKey: 'rooms.incorrect_attributes',
+				parameters: [],
+			},
+		} as ValidationRule;
+		return rule;
 	}
 
 	function addAttribute() {
