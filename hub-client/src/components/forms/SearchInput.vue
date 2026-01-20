@@ -1,7 +1,7 @@
 <template>
 	<!-- Desktop search component -->
 	<div class="bg-background hidden items-center justify-end rounded-md md:flex" v-click-outside="reset">
-		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
+		<div class="relative flex max-w-full items-center justify-end pl-100 transition-all duration-200">
 			<input
 				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				type="text"
