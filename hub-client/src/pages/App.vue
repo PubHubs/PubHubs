@@ -14,11 +14,11 @@
 									<H3 class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
 									<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
 								</div>
-								<Notification class="absolute right-4" />
-								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
-								<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
 							</div>
-							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
+							<div class="flex items-center justify-end gap-2">
+								<Notification />
+								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0">{{ rooms.totalUnreadMessages }}</Badge>
+							</div>
 						</div>
 					</template>
 
