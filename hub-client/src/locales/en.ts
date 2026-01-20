@@ -315,6 +315,7 @@ const en = {
 		one_new_message: '1 new message',
 		new_messages: '{count} new messages',
 		scroll_to_new_messages: 'Scroll to {count} new messages',
+		jump_to_bottom: 'Jump to bottom',
 		loading_older_messages: 'Loading older messages...',
 		loading_newer_messages: 'Loading newer messages...',
 		no_messages_yet: 'There are no messages yet in this room',

@@ -192,11 +192,10 @@ export function useInitialScroll(roomId: string, room: Room, scrollToEvent: Scro
 			});
 		} else {
 			// User has many unread messages
-			// Scroll to last read (centered) so they can see unread messages below
-			console.warn('[Timeline-InitialScroll] scrollToLastRead: far from end, scrolling to last read');
-			LOGGER.log(SMI.ROOM_TIMELINE, 'Last read far from end, scrolling to last read');
+			console.warn('[Timeline-InitialScroll] scrollToLastRead: far from end, scrolling to last read at top');
+			LOGGER.log(SMI.ROOM_TIMELINE, 'Last read far from end, scrolling to last read at top');
 			await scrollToEvent(lastReadEventId, {
-				position: ScrollPosition.Center,
+				position: ScrollPosition.TopWithPadding,
 				behavior: ScrollBehavior.Auto,
 			});
 		}

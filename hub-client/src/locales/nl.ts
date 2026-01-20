@@ -314,6 +314,7 @@ const nl = {
 		one_new_message: '1 nieuw bericht',
 		new_messages: '{count} nieuwe berichten',
 		scroll_to_new_messages: 'Scroll naar {count} nieuwe berichten',
+		jump_to_bottom: 'Ga naar beneden',
 		loading_older_messages: 'Oudere berichten laden...',
 		loading_newer_messages: 'Nieuwere berichten laden...',
 		no_messages_yet: 'Er zijn nog geen berichten in deze kamer',

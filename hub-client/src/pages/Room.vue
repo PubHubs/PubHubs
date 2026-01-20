@@ -45,8 +45,7 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :room="room!" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="getLastReadMessage(props.id)" @scrolled-to-event-id="room.setCurrentEvent(undefined)">
-					</RoomTimeline>
+					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="getLastReadMessage(props.id)"> </RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room!.getCurrentThreadId()"
@@ -186,7 +185,8 @@
 		if (rooms.currentRoom) {
 			console.warn('[Room] Leaving room, saving last visible event', { roomId: rooms.currentRoom.roomId });
 			// Save last visible (read) event to localStorage
-			const lastEventId = getLastVisibleEventId();
+			// Use the Room model's cached value instead of querying DOM (which might be unmounted)
+			const lastEventId = rooms.currentRoom.getLastVisibleEventId() || getLastVisibleEventId();
 			console.warn('[Room] Last visible event ID:', lastEventId);
 			if (lastEventId) {
 				// Get the timestamp of the event to ensure we only move forward

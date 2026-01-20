@@ -9,9 +9,6 @@
 	// Packages
 	import { computed } from 'vue';
 
-	// Composables
-	import { useLastReadMessages } from '@hub-client/composables/useLastReadMessages';
-
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 
@@ -20,24 +17,24 @@
 			type: String,
 			required: true,
 		},
+		lastReadEventId: {
+			type: String,
+			default: null,
+		},
 		room: {
 			type: Room,
 			required: true,
 		},
 	});
 
-	const { getLastReadMessage } = useLastReadMessages();
-
 	const showMarker = computed(() => {
-		const lastReadEventId = getLastReadMessage(props.room.roomId);
-
 		// Don't show marker if:
-		if (lastReadEventId !== props.currentEventId) {
+		if (!props.lastReadEventId || props.lastReadEventId !== props.currentEventId) {
 			return false; // This is not the last read message
 		}
 
 		const newestEventId = props.room.getTimelineNewestMessageEventId();
-		if (lastReadEventId === newestEventId) {
+		if (props.lastReadEventId === newestEventId) {
 			return false; // The user is caught up
 		}
 

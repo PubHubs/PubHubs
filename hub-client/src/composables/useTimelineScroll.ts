@@ -1,27 +1,36 @@
-// Packages
+/**
+ * Timeline Scroll Composable
+ *
+ * Manages scroll behavior for a column-reverse timeline container.
+ *
+ * IMPORTANT: This uses flex-direction: column-reverse, which means:
+ * - scrollTop = 0 → visual bottom (newest messages)
+ * - scrollTop = max → visual top (oldest messages)
+ * - Content added at DOM start appears at visual bottom (no viewport shift)
+ * - Content added at DOM end appears at visual top (may need scroll adjustment)
+ */
 import { type Ref, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-// Logic
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-// Models
 import { ScrollBehavior, ScrollPosition } from '@hub-client/models/constants';
 import type { TCurrentEvent } from '@hub-client/models/events/types';
 import type Room from '@hub-client/models/rooms/Room';
 
 export interface ScrollOptions {
-	position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End;
+	position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End | ScrollPosition.TopWithPadding;
 	behavior?: ScrollBehavior.Smooth | ScrollBehavior.Auto;
 	highlight?: boolean;
 }
 
-// Responsive threshold
-const BOTTOM_THRESHOLD = 0;
+// How close to scrollTop=0 counts as "at bottom" (in pixels)
+const BOTTOM_THRESHOLD = 50;
 const SCROLL_TIMEOUT = 200;
+// Padding from top edge when using TopWithPadding scroll position
+const TOP_PADDING = 80;
 
 export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room, currentUserId: string) {
-	// Scroll state
 	const isScrolling = ref(false);
 	const scrollDirection = ref<'up' | 'down' | null>(null);
 
@@ -34,15 +43,15 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	let lastScrollTop = 0;
 
 	/**
-	 * Checks if user is scrolled near the bottom
+	 * Checks if user is at the bottom (newest messages visible)
+	 *
+	 * With column-reverse: scrollTop = 0 means at the visual bottom
 	 */
 	function checkIfAtBottom(): boolean {
 		if (!container.value) return true;
-		const { scrollTop, scrollHeight, clientHeight } = container.value;
-		const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-		const result = distanceFromBottom <= BOTTOM_THRESHOLD;
-		console.warn('[Timeline-Scroll] checkIfAtBottom:', { distanceFromBottom, BOTTOM_THRESHOLD, isAtBottom: result, scrollTop, scrollHeight, clientHeight });
-		return result;
+		const { scrollTop } = container.value;
+		// In column-reverse, scrollTop near 0 = at the bottom
+		return scrollTop <= BOTTOM_THRESHOLD;
 	}
 
 	/**
@@ -58,34 +67,23 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 
 	/**
 	 * Handles scroll events
-	 *
-	 * TODO: wait for initial scroll
 	 */
 	const handleScroll = () => {
 		if (!container.value) return;
 
-		// Detect scroll direction
 		const currentScrollTop = container.value.scrollTop;
-		scrollDirection.value = currentScrollTop > lastScrollTop ? 'down' : 'up';
+
+		// In column-reverse: scrollTop increasing = scrolling towards older (visual up)
+		scrollDirection.value = currentScrollTop > lastScrollTop ? 'up' : 'down';
 		lastScrollTop = currentScrollTop;
 
 		isScrolling.value = true;
 
-		// Check if at bottom
 		const wasAtBottom = isAtBottom.value;
 		isAtBottom.value = checkIfAtBottom();
 
-		console.warn('[Timeline-Scroll] handleScroll:', {
-			direction: scrollDirection.value,
-			scrollTop: currentScrollTop,
-			wasAtBottom,
-			isAtBottom: isAtBottom.value,
-			newMessageCount: newMessageCount.value,
-		});
-
 		// If user just scrolled to bottom, reset count
 		if (!wasAtBottom && isAtBottom.value) {
-			console.warn('[Timeline-Scroll] User scrolled to bottom, resetting count');
 			resetCount();
 		}
 
@@ -94,7 +92,6 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 			const newestEventId = room.getTimelineNewestMessageEventId();
 			if (newestEventId) {
 				lastSeenEventId.value = newestEventId;
-				console.warn('[Timeline-Scroll] At bottom, updated lastSeenEventId:', newestEventId);
 			}
 		}
 
@@ -105,7 +102,6 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 
 		// Set new timeout to detect when scrolling stops
 		scrollTimeoutId = window.setTimeout(() => {
-			console.warn('[Timeline-Scroll] Scrolling stopped');
 			isScrolling.value = false;
 			scrollDirection.value = null;
 			scrollTimeoutId = null;
@@ -127,99 +123,98 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 
 	/**
 	 * Scrolls to a specific event
+	 *
+	 * With column-reverse coordinate system:
+	 * - ScrollPosition.End → scrollTo({ top: 0 }) to show newest/bottom
+	 * - ScrollPosition.Start → scrollTo({ top: maxScroll }) to show oldest/top
+	 * - ScrollPosition.Center → calculate to center the element
 	 */
 	async function scrollToEvent(eventId: string, options: ScrollOptions = { position: ScrollPosition.Center }): Promise<void> {
-		console.warn('[Timeline-Scroll] scrollToEvent called:', { eventId, options });
 		LOGGER.log(SMI.ROOM_TIMELINE, `Scrolling to event: ${eventId}`, { eventId, position: options.position });
 
 		if (!container.value) {
-			console.error('[Timeline-Scroll] Container not mounted');
 			throw new Error('Container not mounted');
 		}
 
 		// Try to find element in current timeline
 		let element = container.value.querySelector(`[id="${eventId}"]`) as HTMLElement | null;
-		console.warn('[Timeline-Scroll] Element found in DOM:', !!element);
 
 		// If not found, try to load it
 		if (!element) {
-			console.warn('[Timeline-Scroll] Element not found, attempting to load event');
 			try {
 				const currentEvent: TCurrentEvent = { eventId };
 				await room.loadToEvent(currentEvent);
 				element = container.value.querySelector(`[id="${eventId}"]`) as HTMLElement | null;
-				console.warn('[Timeline-Scroll] After loadToEvent, element found:', !!element);
 			} catch (error) {
-				console.error('[Timeline-Scroll] Failed to load event:', error);
 				LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${eventId}`, { error });
 				throw error;
 			}
 		}
 
 		if (!element) {
-			console.warn('[Timeline-Scroll] Event not found after loading');
 			LOGGER.warn(SMI.ROOM_TIMELINE, `Event ${eventId} not found after loading`);
 			return;
 		}
 
 		const behavior = options.behavior ?? ScrollBehavior.Smooth;
-		console.warn('[Timeline-Scroll] Initiating scroll with behavior:', behavior);
 
-		// Scroll, then wait a bit for it to complete
 		if (options.position === ScrollPosition.End) {
-			// For 'end' position, scroll to absolute bottom of container
-			const scrollTarget = container.value.scrollHeight;
-			console.warn('[Timeline-Scroll] Scrolling to absolute bottom:', scrollTarget);
+			// Scroll to bottom (newest) - in column-reverse, this is scrollTop = 0
+			container.value.scrollTo({ top: 0, behavior });
+		} else if (options.position === ScrollPosition.Start) {
+			// Scroll to top (oldest) - in column-reverse, this is scrollTop = max
+			const maxScroll = container.value.scrollHeight - container.value.clientHeight;
+			container.value.scrollTo({ top: maxScroll, behavior });
+		} else if (options.position === ScrollPosition.TopWithPadding) {
+			// Position element near top of viewport with padding
+			// Used for last read message so unread messages are visible below
+			const containerRect = container.value.getBoundingClientRect();
+			const elementRect = element.getBoundingClientRect();
+			const currentScrollTop = container.value.scrollTop;
+
+			// Calculate scroll to position element at top + padding
+			const scrollTarget = currentScrollTop + (elementRect.top - containerRect.top - TOP_PADDING);
+
+			// Clamp to valid range
+			const maxScroll = container.value.scrollHeight - container.value.clientHeight;
 			container.value.scrollTo({
-				top: scrollTarget,
-				behavior: behavior,
+				top: Math.max(0, Math.min(scrollTarget, maxScroll)),
+				behavior,
 			});
 		} else {
-			// For other positions, use scrollIntoView
-			console.warn('[Timeline-Scroll] Scrolling element into view, position:', options.position);
-			element.scrollIntoView({
-				block: options.position,
-				behavior: behavior,
-			});
+			// ScrollPosition.Center - center the element in viewport
+			const containerRect = container.value.getBoundingClientRect();
+			const elementRect = element.getBoundingClientRect();
+			const currentScrollTop = container.value.scrollTop;
+
+			const elementCenter = elementRect.top + elementRect.height / 2;
+			const containerCenter = containerRect.top + containerRect.height / 2;
+			let scrollTarget = currentScrollTop + elementCenter - containerCenter;
+
+			// Clamp to valid range
+			const maxScroll = container.value.scrollHeight - container.value.clientHeight;
+			scrollTarget = Math.max(0, Math.min(scrollTarget, maxScroll));
+
+			container.value.scrollTo({ top: scrollTarget, behavior });
 		}
 
 		// Wait for scroll to complete
-		const waitTime = behavior === ScrollBehavior.Smooth ? 300 : 0;
-		console.warn('[Timeline-Scroll] Waiting for scroll to complete:', waitTime, 'ms');
+		const waitTime = behavior === ScrollBehavior.Smooth ? 300 : 50;
 		await new Promise((resolve) => setTimeout(resolve, waitTime));
-
-		console.warn('[Timeline-Scroll] Scroll completed, final position:', container.value.scrollTop);
 
 		// Apply highlight if requested
 		if (options.highlight && element) {
-			console.warn('[Timeline-Scroll] Applying highlight to element');
 			applyHighlight(element);
 		}
 	}
 
 	/**
-	 * Scrolls to a position without targeting a specific event
+	 * Scrolls to bottom (newest messages)
 	 */
-	function scrollToPosition(position: ScrollPosition) {
+	function scrollToBottom() {
 		if (!container.value) return;
-
-		const scrollOptions: ScrollToOptions = {
-			behavior: 'smooth',
-		};
-
-		switch (position) {
-			case ScrollPosition.Start:
-				scrollOptions.top = 0;
-				break;
-			case ScrollPosition.End:
-				scrollOptions.top = container.value.scrollHeight;
-				break;
-			case ScrollPosition.Center:
-				scrollOptions.top = container.value.scrollHeight / 2;
-				break;
-		}
-
-		container.value.scrollTo(scrollOptions);
+		// In column-reverse, bottom is scrollTop = 0
+		container.value.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
 	/**
@@ -241,50 +236,20 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	 * Handles new messages arriving in the timeline
 	 */
 	function handleNewMessage(eventId: string, senderId: string) {
-		console.log('[Timeline-Scroll] handleNewMessage:', { eventId, senderId, isAtBottom: isAtBottom.value, currentUserId });
-
 		// Don't count if user is at bottom
 		if (isAtBottom.value) {
 			lastSeenEventId.value = eventId;
-			console.log('[Timeline-Scroll] User at bottom, not counting new message');
 			return;
 		}
 
 		// Don't count user's own messages
 		if (senderId === currentUserId) {
-			console.log('[Timeline-Scroll] Own message, not counting');
 			return;
 		}
 
 		// Increment count
 		newMessageCount.value++;
-		console.log('[Timeline-Scroll] New message count incremented to:', newMessageCount.value);
 	}
-
-	/**
-	 * Watch for timeline changes (new messages)
-	 */
-	const timelineLength = computed(() => room.getTimeline().length);
-
-	watch(timelineLength, (newLength, oldLength) => {
-		console.log('[Timeline-Scroll] Timeline length changed:', { newLength, oldLength });
-		if (newLength > oldLength && oldLength > 0) {
-			// New message(s) arrived
-			const timeline = room.getTimeline();
-			const newMessages = timeline.slice(oldLength);
-			console.log('[Timeline-Scroll] New messages detected:', newMessages.length);
-
-			// Process each new message
-			newMessages.forEach((item) => {
-				const eventId = item.matrixEvent.event.event_id;
-				const senderId = item.matrixEvent.event.sender;
-
-				if (eventId && senderId) {
-					handleNewMessage(eventId, senderId);
-				}
-			});
-		}
-	});
 
 	/**
 	 * Set up scroll listener on mount
@@ -293,7 +258,8 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 		if (container.value) {
 			container.value.addEventListener('scroll', handleScroll, { passive: true });
 			lastScrollTop = container.value.scrollTop;
-			handleScroll();
+			// Initial check
+			isAtBottom.value = checkIfAtBottom();
 		}
 	});
 
@@ -317,12 +283,20 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 		return !isAtBottom.value && newMessageCount.value > 0;
 	});
 
+	/**
+	 * Whether to show the jump to bottom button (when scrolled up but no new messages)
+	 */
+	const showJumpToBottom = computed(() => {
+		return !isAtBottom.value && newMessageCount.value === 0;
+	});
+
 	return {
 		// Operations
 		scrollToEvent,
-		scrollToPosition,
+		scrollToBottom,
 		isEventVisible,
 		resetCount,
+		handleNewMessage,
 
 		// State
 		isScrolling: computed(() => isScrolling.value),
@@ -332,6 +306,9 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 		showIndicator,
 		newMessageCount: computed(() => newMessageCount.value),
 		isAtBottom: computed(() => isAtBottom.value),
+
+		// Jump to bottom (when scrolled up but no new messages)
+		showJumpToBottom,
 
 		// Lifecycle
 		cleanup,

@@ -34,6 +34,7 @@
 	watch(
 		() => rooms.totalUnreadMessages,
 		(value: number, oldValue: number) => {
+			console.warn('[Miniclient] totalUnreadMessages changed:', { oldValue, value });
 			unreadMessages.value = rooms.totalUnreadMessages;
 			// A notification should only be sent when the unread message counter increases, not when it decreases due to reading messages.
 			if (oldValue < value) {

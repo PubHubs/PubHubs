@@ -73,6 +73,7 @@ enum ScrollPosition {
 	Start = 'start',
 	Center = 'center',
 	End = 'end',
+	TopWithPadding = 'topWithPadding',
 }
 
 enum ScrollSelect {

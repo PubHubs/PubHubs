@@ -876,20 +876,34 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async sendPrivateReceipt(event: MatrixEvent) {
 			if (!event) return;
 			const rooms = useRooms();
-			if (event.getRoomId() && rooms.roomsSeen[event.getRoomId()!] && rooms.roomsSeen[event.getRoomId()!] >= event.localTimestamp) {
+			const roomId = event.getRoomId();
+			const timestamp = event.localTimestamp;
+
+			console.warn('[sendPrivateReceipt] Called', {
+				eventId: event.getId(),
+				roomId,
+				timestamp,
+				existingSeen: rooms.roomsSeen[roomId!],
+				totalUnreadBefore: rooms.totalUnreadMessages,
+			});
+
+			if (roomId && rooms.roomsSeen[roomId] && rooms.roomsSeen[roomId] >= timestamp) {
+				console.warn('[sendPrivateReceipt] Skipped - already seen');
 				return;
 			}
 			const loggedInUser = useUser();
 			const content = {
 				'm.read.private': {
 					[loggedInUser.userId!]: {
-						ts: event.localTimestamp,
+						ts: timestamp,
 						thread_id: 'main',
 					},
 				},
 			};
-			rooms.roomsSeen[event.getRoomId()!] = event.localTimestamp;
+			rooms.roomsSeen[roomId!] = timestamp;
+			console.warn('[sendPrivateReceipt] Sending receipt...');
 			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
+			console.warn('[sendPrivateReceipt] Receipt sent, totalUnreadAfter:', rooms.totalUnreadMessages);
 		},
 
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
