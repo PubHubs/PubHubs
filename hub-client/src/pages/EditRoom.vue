@@ -39,6 +39,7 @@
 												removeAttribute(index);
 												setActiveTab(1);
 											"
+											title="remove attribute"
 											:nofocus="true"
 										></IconButton>
 									</TabPill>
@@ -49,6 +50,7 @@
 										size="sm"
 										class="cursor-pointer"
 										:nofocus="true"
+										title="add attribute"
 										@click.stop="
 											addAttribute();
 											setActiveTab(activeTab + 1);
@@ -66,7 +68,7 @@
 											<div v-if="selectedAttributes[activeTab - 1].accepted.length > 0" class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 flex w-full justify-start gap-100 rounded outline">
 												<span v-for="(value, index) in selectedAttributes[activeTab - 1].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center truncate rounded-xl px-2 py-1">
 													{{ value }}
-													<IconButton size="sm" icon="trash" class="text-on-accent-red ml-025" @click="selectedAttributes[activeTab - 1].accepted.splice(index, 1)"></IconButton>
+													<IconButton size="sm" icon="trash" class="text-on-accent-red ml-025" @click="selectedAttributes[activeTab - 1].accepted.splice(index, 1)" title="remove value"></IconButton>
 												</span>
 											</div>
 

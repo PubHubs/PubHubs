@@ -130,7 +130,7 @@
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
 
 	// Passed by the router
-	const props = defineProps({ tab: Number });
+	const props = defineProps({ tab: String });
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms(true);

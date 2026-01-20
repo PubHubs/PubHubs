@@ -138,7 +138,7 @@
 	onMounted(() => {
 		if (process.env.NODE_ENV !== 'production') {
 			if (isIconOnly.value && !props.ariaLabel && !props.title) {
-				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot.');
+				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot. [', props.type, props.variant, props.icon, ']');
 			}
 		}
 	});
