@@ -59,7 +59,7 @@
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="bg-surface-low absolute top-16 right-0 z-50 w-full overflow-y-auto rounded-md md:top-20 md:w-[20vw]" data-testid="search-result">
+	<div v-if="searched" class="bg-surface-low absolute top-24 right-0 z-50 h-full w-full overflow-y-auto rounded-md pb-24 md:w-[20vw]" data-testid="search-result">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group" role="listitem">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
