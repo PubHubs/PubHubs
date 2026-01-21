@@ -47,7 +47,7 @@
 									<span class="text-label-small">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="true" />
 								</span>
-								<RoomBadge v-if="hasBeenVisible && !room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id" />
+								<RoomBadge v-if="hasBeenVisible && !room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id ?? room.roomId" />
 							</div>
 
 							<!-- Message Action Buttons -->

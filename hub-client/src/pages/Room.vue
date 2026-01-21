@@ -45,7 +45,7 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :room="room!" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="getLastReadMessage(props.id)"> </RoomTimeline>
+					<RoomTimeline v-if="room" :key="props.id" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="getLastReadMessage(props.id) ?? undefined"> </RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room!.getCurrentThreadId()"
@@ -96,7 +96,6 @@
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import { useLastReadMessages } from '@hub-client/composables/useLastReadMessages';
-	import { useVisibleEvents } from '@hub-client/composables/useVisibleEvents';
 
 	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
@@ -137,7 +136,6 @@
 	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 	const scrollToEventId = ref<string>();
 	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
-	const { getLastVisibleEventId } = useVisibleEvents(computed(() => roomTimeLineComponent.value?.elRoomTimeline ?? null));
 
 	// Passed by the router
 	const props = defineProps({
@@ -183,26 +181,21 @@
 
 	watch(route, () => {
 		if (rooms.currentRoom) {
-			console.warn('[Room] Leaving room, saving last visible event', { roomId: rooms.currentRoom.roomId });
 			// Save last visible (read) event to localStorage
-			// Use the Room model's cached value instead of querying DOM (which might be unmounted)
-			const lastEventId = rooms.currentRoom.getLastVisibleEventId() || getLastVisibleEventId();
-			console.warn('[Room] Last visible event ID:', lastEventId);
+			// Use the Room model's cached value (set by RoomTimeline's read tracking)
+			const lastEventId = rooms.currentRoom.getLastVisibleEventId();
 			if (lastEventId) {
-				// Get the timestamp of the event to ensure we only move forward
 				const event = rooms.currentRoom.findEventById(lastEventId);
 				if (event) {
-					const timestamp = event.localTimestamp || event.getTs() || Date.now();
-					console.warn('[Room] Found event, saving to localStorage', { lastEventId, timestamp });
-					setLastReadMessage(rooms.currentRoom.roomId, lastEventId, timestamp);
-				} else {
-					console.warn('[Room] Event not found by ID', { lastEventId });
+					// Use the message's timestamp (not current time) - marker can only advance to newer messages
+					const messageTimestamp = event.localTimestamp || event.getTs();
+					if (messageTimestamp) {
+						setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
+					}
 				}
-			} else {
-				console.warn('[Room] No last visible event ID found');
 			}
-			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
-			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
+			rooms.currentRoom.setCurrentThreadId(undefined);
+			rooms.currentRoom.setCurrentEvent(undefined);
 		}
 		update();
 	});

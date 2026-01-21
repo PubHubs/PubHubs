@@ -86,6 +86,29 @@ enum ScrollBehavior {
 	Auto = 'auto',
 }
 
+/**
+ * Timeline scroll constants
+ *
+ * Used by useTimelineScroll, useReadMarker, and useTimelinePagination composables.
+ * All values tuned for column-reverse flex layout where scrollTop=0 is visual bottom.
+ */
+const TimelineScrollConstants = {
+	/** Pixels from scrollTop=0 to be considered "at newest" */
+	SCROLL_THRESHOLD: 50,
+	/** Milliseconds to debounce scroll events */
+	SCROLL_DEBOUNCE: 100,
+	/** Milliseconds for smooth scroll animation */
+	SCROLL_DURATION: 300,
+	/** Milliseconds message must be visible to mark as read */
+	READ_DELAY_MS: 1000,
+	/** Messages from end to skip scroll-to-read (use newest instead) */
+	NEAR_END_THRESHOLD: 3,
+	/** Milliseconds before re-enabling pagination observer after load */
+	PAGINATION_COOLDOWN: 100,
+	/** Padding from visual top when using TopWithPadding scroll position */
+	TOP_PADDING: 80,
+} as const;
+
 enum OnboardingType {
 	consent = 'consent',
 	full = 'full',
@@ -154,6 +177,7 @@ export {
 	ScrollPosition,
 	ScrollSelect,
 	ScrollBehavior,
+	TimelineScrollConstants,
 	OnboardingType,
 	imageTypes,
 	mediaTypes,

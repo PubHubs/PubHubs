@@ -1,13 +1,29 @@
-// Packages
+/**
+ * Timeline Pagination Composable
+ *
+ * Handles loading older/newer messages with scroll position preservation.
+ *
+ * COORDINATE SYSTEM (column-reverse):
+ * - Loading older messages adds content at visual top (DOM end)
+ * - Need to adjust scrollTop to maintain visual position
+ * - Loading newer messages adds at visual bottom (no adjustment needed)
+ */
 import { Direction } from 'matrix-js-sdk';
-import { type Ref, computed, nextTick, ref } from 'vue';
+import { type Ref, computed, nextTick, onBeforeUnmount, ref } from 'vue';
 
-import { SystemDefaults } from '@hub-client/models/constants';
+import { SystemDefaults, TimelineScrollConstants } from '@hub-client/models/constants';
 import type Room from '@hub-client/models/rooms/Room';
+
+const { PAGINATION_COOLDOWN } = TimelineScrollConstants;
 
 export function useTimelinePagination(container: Ref<HTMLElement | null>, room: Room) {
 	const isLoadingPrevious = ref(false);
 	const isLoadingNext = ref(false);
+
+	// Pagination observer
+	let paginationObserver: IntersectionObserver | null = null;
+	const suppressionActive = ref(false);
+	let suppressionTimeoutId: number | null = null;
 
 	/**
 	 * Check if the oldest message in the timeline is loaded
@@ -24,12 +40,14 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 	});
 
 	/**
-	 * Loads previous
+	 * Loads older messages (backward pagination)
+	 * Preserves scroll position so user doesn't lose their place
 	 */
 	async function loadPrevious(): Promise<void> {
-		if (isLoadingPrevious.value) return;
+		if (isLoadingPrevious.value || oldestEventIsLoaded.value) return;
 
 		isLoadingPrevious.value = true;
+		suppressObserverTriggers();
 
 		const cont = container.value;
 		if (!cont) {
@@ -39,7 +57,7 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 
 		const prevOldestEventId = room.getTimelineOldestMessageId();
 
-		if (prevOldestEventId && !oldestEventIsLoaded.value) {
+		if (prevOldestEventId) {
 			// Store scroll position before loading
 			const prevScrollHeight = cont.scrollHeight;
 			const prevScrollTop = cont.scrollTop;
@@ -53,7 +71,6 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 
 			// Restore scroll position
 			// In column-reverse, new content at visual top increases scrollHeight
-			// Adjust scrollTop to maintain the same view
 			const heightDiff = cont.scrollHeight - prevScrollHeight;
 			cont.scrollTop = prevScrollTop + heightDiff;
 		}
@@ -62,16 +79,18 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 	}
 
 	/**
-	 * Loads next
+	 * Loads newer messages (forward pagination)
+	 * No scroll adjustment needed in column-reverse
 	 */
 	async function loadNext(): Promise<void> {
-		if (isLoadingNext.value) return;
+		if (isLoadingNext.value || newestEventIsLoaded.value) return;
 
 		isLoadingNext.value = true;
+		suppressObserverTriggers();
 
 		const prevNewestEventId = room.getTimelineNewestMessageEventId();
 
-		if (prevNewestEventId && !newestEventIsLoaded.value) {
+		if (prevNewestEventId) {
 			// Load newer messages
 			await room.paginate(Direction.Forward, SystemDefaults.roomTimelineLimit, prevNewestEventId);
 
@@ -83,9 +102,89 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		isLoadingNext.value = false;
 	}
 
+	/**
+	 * Sets up the pagination observer
+	 * Observes sentinel elements at top/bottom of timeline
+	 */
+	function setupPaginationObserver(topSentinel: Ref<HTMLElement | null>, bottomSentinel: Ref<HTMLElement | null>) {
+		if (!container.value) return;
+
+		// Disconnect existing observer
+		if (paginationObserver) {
+			paginationObserver.disconnect();
+		}
+
+		paginationObserver = new IntersectionObserver(
+			(entries) => {
+				// Don't trigger during pagination
+				if (suppressionActive.value) return;
+
+				entries.forEach((entry) => {
+					if (!entry.isIntersecting) return;
+
+					if (entry.target === topSentinel.value) {
+						loadPrevious();
+					} else if (entry.target === bottomSentinel.value) {
+						loadNext();
+					}
+				});
+			},
+			{
+				root: container.value,
+				threshold: 0.001,
+			},
+		);
+
+		// Observe sentinels
+		if (topSentinel.value) {
+			paginationObserver.observe(topSentinel.value);
+		}
+		if (bottomSentinel.value) {
+			paginationObserver.observe(bottomSentinel.value);
+		}
+	}
+
+	/**
+	 * Suppresses observer triggers during pagination
+	 * Prevents cascading loads
+	 */
+	function suppressObserverTriggers() {
+		suppressionActive.value = true;
+
+		if (suppressionTimeoutId !== null) {
+			clearTimeout(suppressionTimeoutId);
+		}
+
+		suppressionTimeoutId = window.setTimeout(() => {
+			suppressionActive.value = false;
+			suppressionTimeoutId = null;
+		}, PAGINATION_COOLDOWN);
+	}
+
+	/**
+	 * Cleanup observers and timers
+	 */
+	function cleanup() {
+		if (paginationObserver) {
+			paginationObserver.disconnect();
+			paginationObserver = null;
+		}
+		if (suppressionTimeoutId !== null) {
+			clearTimeout(suppressionTimeoutId);
+			suppressionTimeoutId = null;
+		}
+	}
+
+	onBeforeUnmount(cleanup);
+
 	return {
+		// Operations
 		loadPrevious,
 		loadNext,
+		setupPaginationObserver,
+		cleanup,
+
+		// State
 		isLoadingPrevious: computed(() => isLoadingPrevious.value),
 		isLoadingNext: computed(() => isLoadingNext.value),
 		oldestEventIsLoaded,

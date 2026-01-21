@@ -28,16 +28,12 @@
 	});
 
 	const showMarker = computed(() => {
-		// Don't show marker if:
+		// Only show marker on the matching event
 		if (!props.lastReadEventId || props.lastReadEventId !== props.currentEventId) {
-			return false; // This is not the last read message
+			return false;
 		}
 
-		const newestEventId = props.room.getTimelineNewestMessageEventId();
-		if (props.lastReadEventId === newestEventId) {
-			return false; // The user is caught up
-		}
-
+		// Always show marker, even when caught up (user preference)
 		return true;
 	});
 </script>
