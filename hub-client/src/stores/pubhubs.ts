@@ -683,6 +683,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const threadId = threadRoot?.event_id ?? null;
 			await this.client.sendMessage(roomId, threadId, content);
 		},
+		async addDisclosedMessage(roomId: string, signedMessage: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
+			const content = {
+				msgtype: PubHubsMgType.DisclosedMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
+				body: 'signed message',
+				signed_message: signedMessage,
+				ph_body: '',
+				'm.relates_to': threadRoot
+					? {
+							event_id: threadRoot.event_id,
+							rel_type: 'm.thread',
+							'm.in_reply_to': undefined,
+						}
+					: undefined,
+				// satisfy the sdk's type checking
+				'm.new_content': undefined,
+			};
+			const threadId = threadRoot?.event_id ?? null;
+			await this.client.sendMessage(roomId, threadId, content);
+		},
 
 		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {
 			const content = {
