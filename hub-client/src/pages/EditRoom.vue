@@ -13,7 +13,7 @@
 			</div>
 		</template>
 
-		<ValidatedForm @keydown.enter.stop v-slot="{ isValidated }" :disabled="waitForServer" class="p-200">
+		<ValidatedForm v-if="roomLoaded" @keydown.enter.stop v-slot="{ isValidated }" :disabled="waitForServer" class="p-200">
 			<TextField v-model="editRoom.name" :validation="{ required: true, maxLength: roomValidations.maxNameLength }" :placeholder="t('admin.name_placeholder')" :show-length="true">{{ t('admin.name') }}</TextField>
 			<TextField v-model="editRoom.topic" :validation="{ maxLength: roomValidations.maxTopicLength }" :placeholder="t('admin.topic_placeholder')" :show-length="true">{{ t('admin.topic') }}</TextField>
 			<TextField v-if="!isSecured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
@@ -163,6 +163,7 @@
 	let OriginalAttributes: Array<TEditRoomFormAttributes> = [{ label: '', attribute: '', accepted: [], profile: false }];
 	const errorMessage = ref<string | undefined>(undefined);
 	const autoCompleteLength = 80;
+	const roomLoaded = ref(false);
 	const waitForServer = ref(false);
 
 	// editRoom typed as union; we'll narrow when submitting
@@ -198,7 +199,16 @@
 		return rooms.roomIsSecure(props.id) || props.id === 'new_secured_room';
 	});
 
-	onBeforeMount(() => {
+	onBeforeMount(async () => {
+		// Make sure rooms are loaded, probably they are, but not if a stewards edits
+		waitForServer.value = true;
+		await rooms.fetchPublicRooms();
+		if (isSecured.value) {
+			await rooms.fetchSecuredRooms();
+		}
+		waitForServer.value = false;
+		roomLoaded.value = true;
+
 		editRoom.value = emptyNewRoom as TEditRoom;
 		if (!isNewRoom.value) {
 			if (isSecured.value) {

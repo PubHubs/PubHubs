@@ -38,7 +38,7 @@ const routes = [
 				props: true,
 				name: 'editroom',
 				component: () => import('@hub-client/pages/EditRoom.vue'),
-				meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+				meta: { onlyAdmin: false, hideBar: true, onboarding: true },
 			},
 		],
 	},
