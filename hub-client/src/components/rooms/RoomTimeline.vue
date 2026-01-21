@@ -1,8 +1,8 @@
 <template>
 	<div class="flex h-full flex-col">
 		<!-- Loading indicator at top when loading older messages -->
-		<div v-if="isLoadingPrevious" class="bg-surface flex w-full items-center justify-center py-3">
-			<InlineSpinner class="mr-2" />
+		<div v-if="isLoadingPrevious" class="bg-surface flex w-full items-center justify-center gap-2 py-3">
+			<InlineSpinner />
 			<span class="text-on-surface-variant text-label-small">
 				{{ $t('rooms.loading_older_messages') }}
 			</span>
@@ -13,10 +13,10 @@
 		</div>
 
 		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll pb-2">
-			<!-- Bottom sentinel (for loading newer) - appears at visual bottom / DOM start -->
-			<div ref="bottomSentinel" class="pointer-events-none !mb-0 h-[1px]" style="content-visibility: hidden"></div>
+			<!-- Bottom sentinel (appears at visual bottom) -->
+			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px]" style="content-visibility: hidden"></div>
 
-			<!-- Expands if the timeline length < the vieport, to top-align the content -->
+			<!-- Expands if the timeline height < the vieport, to top-align the content -->
 			<div class="h-full" />
 
 			<template v-if="reversedTimeline.length > 0">
@@ -53,18 +53,18 @@
 				</div>
 			</template>
 
-			<!-- Room created indicator - appears at visual top / DOM end -->
+			<!-- Room created indicator-->
 			<div v-if="oldestEventIsLoaded" class="border-on-surface-variant text-on-surface-variant text-label-small mx-auto my-4 flex w-60 items-center justify-center rounded-xl border px-4">
 				{{ $t('rooms.roomCreated') }}
 			</div>
 
-			<!-- Top sentinel (for loading older) - appears at visual top / DOM end -->
-			<div ref="topSentinel" class="pointer-events-none !mt-0 h-[1px]" style="content-visibility: hidden"></div>
+			<!-- Top sentinel (appears at visual top) -->
+			<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px]" style="content-visibility: hidden"></div>
 		</div>
 
 		<!-- Loading indicator at bottom when loading newer messages -->
-		<div v-if="isLoadingNext" class="bg-surface flex w-full items-center justify-center py-3">
-			<InlineSpinner class="mr-2" />
+		<div v-if="isLoadingNext" class="bg-surface flex w-full items-center justify-center gap-2 py-3">
+			<InlineSpinner />
 			<span class="text-on-surface-variant text-label-small">
 				{{ $t('rooms.loading_newer_messages') }}
 			</span>
