@@ -16,6 +16,9 @@
 			<!-- Bottom sentinel (for loading newer) - appears at visual bottom / DOM start -->
 			<div ref="bottomSentinel" class="pointer-events-none !mb-0 h-[1px]" style="content-visibility: hidden"></div>
 
+			<!-- Expands if the timeline length < the vieport, to top-align the content -->
+			<div class="h-full" />
+
 			<template v-if="reversedTimeline.length > 0">
 				<div v-for="item in reversedTimeline" :key="item.matrixEvent.event.event_id">
 					<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
@@ -67,9 +70,7 @@
 			</span>
 		</div>
 
-		<!-- Priority: New messages button > Jump to bottom button (mutually exclusive) -->
-		<NewMessagesButton v-if="showNewMessagesButton" :count="newMessageCount" @click="onClickNewMessages" />
-		<JumpToBottomButton v-else-if="showJumpToBottomButton" @click="scrollToNewest" />
+		<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
 		<MessageInput class="z-10" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler"></MessageInput>
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage" />
@@ -87,7 +88,6 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import JumpToBottomButton from '@hub-client/components/ui/JumpToBottomButton.vue';
 	import LastReadMarker from '@hub-client/components/ui/LastReadMarker.vue';
-	import NewMessagesButton from '@hub-client/components/ui/NewMessagesButton.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 
 	// Composables
@@ -152,7 +152,7 @@
 	});
 
 	// Initialize composables
-	const { scrollToEvent, scrollToNewest, performInitialScroll, handleNewMessage, isInitialScrollComplete, showNewMessagesButton, showJumpToBottomButton, newMessageCount } = useTimelineScroll(elRoomTimeline, props.room, user.userId || '');
+	const { scrollToEvent, scrollToNewest, performInitialScroll, handleNewMessage, isInitialScrollComplete, showJumpToBottomButton, newMessageCount } = useTimelineScroll(elRoomTimeline, props.room, user.userId || '');
 	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded } = useTimelinePagination(elRoomTimeline, props.room);
 	const { displayedReadMarker, initialize: initializeReadMarker, persist: persistReadMarker } = useReadMarker(props.room);
 

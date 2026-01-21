@@ -33,7 +33,12 @@
 			return false;
 		}
 
-		// Always show marker, even when caught up (user preference)
+		// Don't show marker if user is caught up
+		const newestEventId = props.room.getTimelineNewestMessageEventId();
+		if (newestEventId === props.lastReadEventId) {
+			return false;
+		}
+
 		return true;
 	});
 </script>

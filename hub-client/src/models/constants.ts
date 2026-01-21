@@ -101,8 +101,6 @@ const TimelineScrollConstants = {
 	SCROLL_DURATION: 300,
 	/** Milliseconds message must be visible to mark as read */
 	READ_DELAY_MS: 1000,
-	/** Messages from end to skip scroll-to-read (use newest instead) */
-	NEAR_END_THRESHOLD: 3,
 	/** Milliseconds before re-enabling pagination observer after load */
 	PAGINATION_COOLDOWN: 100,
 	/** Padding from visual top when using TopWithPadding scroll position */

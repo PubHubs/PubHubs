@@ -32,7 +32,7 @@ export interface InitialScrollParams {
 	lastReadEventId?: string;
 }
 
-const { SCROLL_THRESHOLD, SCROLL_DEBOUNCE, TOP_PADDING } = TimelineScrollConstants;
+const { SCROLL_THRESHOLD, SCROLL_DEBOUNCE } = TimelineScrollConstants;
 
 export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room, currentUserId: string) {
 	// Core state
@@ -42,15 +42,13 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 
 	// Scroll tracking
 	let scrollTimeoutId: number | null = null;
-	let lastScrollTop = 0;
 
 	/**
 	 * Checks if user is at newest messages (visual bottom)
-	 * In column-reverse: scrollTop near 0 = at newest
 	 */
 	function checkIsAtNewest(): boolean {
 		if (!container.value) return true;
-		return container.value.scrollTop <= SCROLL_THRESHOLD;
+		return container.value.scrollTop >= -SCROLL_THRESHOLD; // Because of column-reversed, scrollTop values are negative
 	}
 
 	/**
@@ -58,8 +56,6 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	 */
 	function handleScroll() {
 		if (!container.value) return;
-
-		lastScrollTop = container.value.scrollTop;
 
 		// Clear existing timeout
 		if (scrollTimeoutId !== null) {
@@ -109,18 +105,24 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	 * Scrolls to a specific event
 	 */
 	async function scrollToEvent(eventId: string, options: ScrollOptions = { position: ScrollPosition.Center }): Promise<void> {
+		console.error('[scrollToEvent] Called', { eventId, options });
+
 		if (!container.value) {
+			console.error('[scrollToEvent] Container not mounted');
 			throw new Error('Container not mounted');
 		}
 
 		// Try to find element in current timeline
 		let element = container.value.querySelector(`[id="${eventId}"]`) as HTMLElement | null;
+		console.error('[scrollToEvent] Initial element search', { found: !!element });
 
 		// If not found, try to load it
 		if (!element) {
+			console.error('[scrollToEvent] Element not found, loading event from server');
 			try {
 				const currentEvent: TCurrentEvent = { eventId };
 				await room.loadToEvent(currentEvent);
+				console.error('[scrollToEvent] loadToEvent completed');
 
 				// Wait for Vue to render the DOM after loading
 				await nextTick();
@@ -129,20 +131,25 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 				// Retry finding the element a few times
 				for (let i = 0; i < 5 && !element; i++) {
 					element = container.value.querySelector(`[id="${eventId}"]`) as HTMLElement | null;
+					console.error('[scrollToEvent] Retry attempt', { attempt: i + 1, found: !!element });
 					if (!element) {
 						await new Promise((resolve) => setTimeout(resolve, 100));
 					}
 				}
 			} catch (error) {
+				console.error('[scrollToEvent] loadToEvent failed', error);
 				LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${eventId}`, { error });
 				throw error;
 			}
 		}
 
 		if (!element) {
+			console.error('[scrollToEvent] Element not found after all attempts');
 			LOGGER.warn(SMI.ROOM_TIMELINE, `Event ${eventId} not found after loading`);
 			throw new Error(`Event ${eventId} not found`);
 		}
+
+		console.error('[scrollToEvent] Element found, proceeding with scroll');
 
 		const behavior = options.behavior ?? ScrollBehavior.Smooth;
 
@@ -157,27 +164,38 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 			isAtNewest.value = false;
 		} else if (options.position === ScrollPosition.TopWithPadding) {
 			// Position element near visual top with padding (for last read marker)
-			const containerRect = container.value.getBoundingClientRect();
-			const elementRect = element.getBoundingClientRect();
-			const currentScrollTop = container.value.scrollTop;
+			// scrollIntoView block:'start' puts element at top of viewport in column-reverse
 
-			const scrollTarget = currentScrollTop + (elementRect.top - containerRect.top - TOP_PADDING);
-			const maxScroll = container.value.scrollHeight - container.value.clientHeight;
+			element.scrollIntoView({ block: 'start', behavior });
 
-			container.value.scrollTo({
-				top: Math.max(0, Math.min(scrollTarget, maxScroll)),
-				behavior,
-			});
+			// Wait for scroll to complete
+			await new Promise((resolve) => setTimeout(resolve, behavior === 'smooth' ? 300 : 50));
+
+			// Adjust if element is slightly above the visible container
+			// We want element at containerTop + small padding (e.g., 10px)
+			const elementTop = element.getBoundingClientRect().top;
+			const containerTop = container.value.getBoundingClientRect().top;
+			const targetTop = containerTop + 10; // Small padding from top edge
+
+			if (elementTop < targetTop) {
+				// Element is above where we want it - need to scroll less (toward newest)
+				// In column-reverse with negative scrollTop, making it less negative scrolls toward newest
+				const adjustment = targetTop - elementTop;
+				container.value.scrollTop += adjustment;
+			}
+
 			isAtNewest.value = checkIsAtNewest();
 		} else {
 			// ScrollPosition.Center - center the element in viewport
+			// In column-reverse: SUBTRACT offset to move element to center
 			const containerRect = container.value.getBoundingClientRect();
 			const elementRect = element.getBoundingClientRect();
 			const currentScrollTop = container.value.scrollTop;
 
 			const elementCenter = elementRect.top + elementRect.height / 2;
 			const containerCenter = containerRect.top + containerRect.height / 2;
-			let scrollTarget = currentScrollTop + elementCenter - containerCenter;
+			const offset = elementCenter - containerCenter;
+			let scrollTarget = currentScrollTop - offset;
 
 			const maxScroll = container.value.scrollHeight - container.value.clientHeight;
 			scrollTarget = Math.max(0, Math.min(scrollTarget, maxScroll));
@@ -199,7 +217,15 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	/**
 	 * Handles new messages arriving in the timeline
 	 */
-	function handleNewMessage(eventId: string, senderId: string) {
+	function handleNewMessage(_eventId: string, senderId: string) {
+		console.error('[handleNewMessage]', {
+			senderId,
+			currentUserId,
+			isOwnMessage: senderId === currentUserId,
+			isAtNewest: isAtNewest.value,
+			currentCount: newMessageCount.value,
+		});
+
 		// Own messages always scroll to newest
 		if (senderId === currentUserId) {
 			scrollToNewest();
@@ -213,6 +239,7 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 
 		// Not at newest - increment counter for "new messages" button
 		newMessageCount.value++;
+		console.error('[handleNewMessage] Incremented count to', newMessageCount.value);
 	}
 
 	/**
@@ -223,16 +250,24 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	 * Priority 3: Default to newest (first visit)
 	 */
 	async function performInitialScroll(params: InitialScrollParams = {}): Promise<void> {
+		console.error('[InitialScroll] Starting', {
+			explicitEventId: params.explicitEventId,
+			lastReadEventId: params.lastReadEventId,
+		});
+
 		try {
 			// Priority 1: Explicit eventId (from search, navigation)
 			if (params.explicitEventId) {
+				console.error('[InitialScroll] Priority 1: Explicit eventId', params.explicitEventId);
 				try {
 					await scrollToEvent(params.explicitEventId, {
 						position: ScrollPosition.Center,
 						behavior: ScrollBehavior.Smooth,
 						highlight: true,
 					});
-				} catch {
+					console.error('[InitialScroll] Scrolled to explicit event');
+				} catch (error) {
+					console.error('[InitialScroll] Failed to scroll to explicit event, falling back to newest', error);
 					// Event not found - fall back to newest
 					const newestEventId = room.getTimelineNewestMessageEventId();
 					if (newestEventId) {
@@ -248,30 +283,36 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 
 			// Priority 2: Last read message (returning to room)
 			if (params.lastReadEventId) {
-				const newestEventId = room.getTimelineNewestMessageEventId();
-				const isNearEnd = newestEventId ? isEventNearNewest(params.lastReadEventId, newestEventId) : false;
+				console.error('[InitialScroll] Priority 2: Last read', { lastReadEventId: params.lastReadEventId });
 
-				if (newestEventId) {
-					if (isNearEnd) {
-						// Near end - just scroll to newest
+				// Calculate unread count (messages between last read and newest)
+				const timeline = room.getTimeline();
+				const lastReadIndex = timeline.findIndex((e) => e.matrixEvent.event.event_id === params.lastReadEventId);
+				const newestIndex = timeline.length - 1;
+
+				if (lastReadIndex !== -1 && newestIndex > lastReadIndex) {
+					const unreadCount = newestIndex - lastReadIndex;
+					newMessageCount.value = unreadCount;
+					console.error('[InitialScroll] Set initial unread count', { unreadCount, lastReadIndex, newestIndex });
+				}
+
+				try {
+					// Always scroll to last read at top - scroll bounds naturally handle "not enough messages" case
+					await scrollToEvent(params.lastReadEventId, {
+						position: ScrollPosition.TopWithPadding,
+						behavior: ScrollBehavior.Auto,
+					});
+					console.error('[InitialScroll] Scrolled to last read event');
+				} catch (error) {
+					console.error('[InitialScroll] Failed to scroll to last read, falling back to newest', error);
+					// Last read event not found - fall back to newest
+					newMessageCount.value = 0; // Reset count if we couldn't scroll to last read
+					const newestEventId = room.getTimelineNewestMessageEventId();
+					if (newestEventId) {
 						await scrollToEvent(newestEventId, {
 							position: ScrollPosition.End,
 							behavior: ScrollBehavior.Auto,
 						});
-					} else {
-						// Far from end - try to scroll to last read with padding
-						try {
-							await scrollToEvent(params.lastReadEventId, {
-								position: ScrollPosition.TopWithPadding,
-								behavior: ScrollBehavior.Auto,
-							});
-						} catch {
-							// Last read event not found - fall back to newest
-							await scrollToEvent(newestEventId, {
-								position: ScrollPosition.End,
-								behavior: ScrollBehavior.Auto,
-							});
-						}
 					}
 				}
 				isInitialScrollComplete.value = true;
@@ -279,6 +320,7 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 			}
 
 			// Priority 3: Default to newest (first visit)
+			console.error('[InitialScroll] Priority 3: No last read, scrolling to newest');
 			const newestEventId = room.getTimelineNewestMessageEventId();
 			if (newestEventId) {
 				await scrollToEvent(newestEventId, {
@@ -287,26 +329,10 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 				});
 			}
 			isInitialScrollComplete.value = true;
-		} catch {
+		} catch (error) {
+			console.error('[InitialScroll] Unexpected error', error);
 			isInitialScrollComplete.value = true;
 		}
-	}
-
-	/**
-	 * Checks if an event is near the newest message
-	 * Used to decide whether to scroll to last read or just go to newest
-	 */
-	function isEventNearNewest(eventId: string, newestEventId: string): boolean {
-		const timeline = room.getTimeline();
-		const eventIndex = timeline.findIndex((e) => e.matrixEvent.event.event_id === eventId);
-		const newestIndex = timeline.findIndex((e) => e.matrixEvent.event.event_id === newestEventId);
-
-		if (eventIndex === -1 || newestIndex === -1) {
-			return false;
-		}
-
-		const messagesBetween = newestIndex - eventIndex;
-		return messagesBetween <= TimelineScrollConstants.NEAR_END_THRESHOLD;
 	}
 
 	/**
@@ -322,7 +348,6 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	onMounted(() => {
 		if (container.value) {
 			container.value.addEventListener('scroll', handleScroll, { passive: true });
-			lastScrollTop = container.value.scrollTop;
 			isAtNewest.value = checkIsAtNewest();
 		}
 	});
@@ -353,7 +378,7 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	 * Shows when not at newest AND no new messages (mutually exclusive with new messages button)
 	 */
 	const showJumpToBottomButton = computed(() => {
-		return !isAtNewest.value && newMessageCount.value === 0;
+		return !isAtNewest.value;
 	});
 
 	return {
