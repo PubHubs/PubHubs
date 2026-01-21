@@ -48,8 +48,7 @@
 					<RoomTimeline v-if="room" :key="props.id" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="getLastReadMessage(props.id) ?? undefined"> </RoomTimeline>
 				</div>
 				<RoomThread
-					v-if="room!.getCurrentThreadId()"
-					:class="{ hidden: showLibrary }"
+					v-if="room!.getCurrentThreadId() && !showLibrary"
 					:room="room!"
 					:scroll-to-event-id="room!.getCurrentEvent()?.eventId"
 					@scrolled-to-event-id="room!.setCurrentEvent(undefined)"
@@ -209,11 +208,13 @@
 
 		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
+
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
 		if (!userIsMember) {
 			let promise = null;
+
 			await rooms.fetchPublicRooms();
-			const roomIsSecure = rooms.roomIsSecure(props.id);
+			const roomIsSecure = rooms.publicRoomIsSecure(props.id);
 
 			// For secured rooms users first have to authenticate
 			if (roomIsSecure) {
@@ -239,8 +240,7 @@
 
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 
-		// Note: Scroll behavior is now handled by RoomTimeline.vue
-		// using lastReadEventId prop for smart scrolling
+		await rooms.fetchPublicRooms(); // Needed for mentions (if not loaded allready)
 	}
 
 	async function onScrollToEventId(ev: any) {

@@ -200,6 +200,11 @@ function useValidation() {
 	};
 
 	// Customizable validation schema for each form that needs validation
+	const disclosureConstants = {
+		maxAttributesLength: 5,
+	};
+
+	// Customizable validation schema for each form that needs validation
 
 	const editSecuredRoomSchema: ValidationSchema = {
 		name: [
@@ -210,11 +215,9 @@ function useValidation() {
 		description: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxDescriptionLength, 'admin.description'], message: maxLengthMessage }],
 		attributes: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxAttributes, 'admin.secured_yivi_attributes'], message: maxItemsMessage }],
 		acceptedMax: [{ validator: validateMaxValue, args: [roomSchemaConstants.maxValues, 'admin.value'], message: maxValueMessage }],
-
 		acceptedMin: [{ validator: validateRequired, args: ['admin.value'], message: requiredMessage }],
 		labelMin: [{ validator: validateRequired, args: ['admin.secured_attribute'], message: requiredMessage }],
 	};
-
 	const editPublicRoomSchema: ValidationSchema = {
 		name: [
 			{ validator: validateRequired, args: ['admin.name'], message: requiredMessage },
@@ -223,13 +226,19 @@ function useValidation() {
 		topic: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTopicLength, 'admin.topic'], message: maxLengthMessage }],
 		type: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTypeLength, 'admin.room_type'], message: maxLengthMessage }],
 	};
-
+	const askDisclosureSchema: ValidationSchema = {
+		attributes: [
+			{ validator: validateRequired, args: ['admin.secured_yivi_attributes'], message: requiredMessage },
+			{ validator: validateMaxLength, args: [disclosureConstants.maxAttributesLength, 'admin.secured_yivi_attributes'], message: maxItemsMessage },
+		],
+	};
 	return {
 		validateField,
 		validateBySchema,
 		roomSchemaConstants,
 		editSecuredRoomSchema,
 		editPublicRoomSchema,
+		askDisclosureSchema,
 	};
 }
 export { useFieldValidation, useValidation };

@@ -11,27 +11,27 @@
 			<div class="relative flex w-full gap-2 px-6" :class="getMessageContainerClasses">
 				<!-- Reaction Panel -->
 				<div v-if="showReactionPanel && hasBeenVisible" :class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
-					<ReactionMiniPopUp :eventId="event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, event.event_id)" @close-panel="emit('reactionPanelClose')" />
+					<ReactionMiniPopUp :eventId="props.event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, props.event.event_id)" @close-panel="emit('reactionPanelClose')" />
 				</div>
 
 				<!-- Avatar-->
 				<Avatar
 					v-if="hasBeenVisible"
-					:avatar-url="user.userAvatar(event.sender)"
-					:user-id="event.sender"
-					@click.stop="emit('profileCardToggle', event.event_id)"
+					:avatar-url="user.userAvatar(props.event.sender)"
+					:user-id="props.event.sender"
+					@click.stop="emit('profileCardToggle', props.event.event_id)"
 					:class="['transition-all duration-500 ease-in-out', { 'ring-on-surface-dim cursor-pointer ring-1 ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
-					@contextmenu="openMenu($event, event.sender !== user.userId ? [{ label: 'Direct message', icon: 'chat-circle', onClick: () => user.goToUserRoom(event.sender) }] : [])"
+					@contextmenu="openMenu($event, props.event.sender !== user.userId ? [{ label: 'Direct message', icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])"
 				/>
 				<!-- Avatar placeholder -->
 				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
 
 				<!-- Profile Card -->
 				<div v-if="hasBeenVisible" class="relative">
-					<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(event) ? 'bottom-4' : '']">
-						<ProfileCard :event="event" :room="room" :room-member="roomMember" />
+					<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(props.event) ? 'bottom-4' : '']">
+						<ProfileCard :event="props.event" :room="room" :room-member="roomMember" />
 					</Popover>
 				</div>
 
@@ -40,14 +40,14 @@
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
 							<div class="flex w-full min-w-0 grow flex-wrap items-center gap-2">
-								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
+								<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
 								<span class="flex gap-2">
 									<span class="text-label-small">|</span>
-									<EventTime :timestamp="event.origin_server_ts" :showDate="false" />
+									<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
 									<span class="text-label-small">|</span>
-									<EventTime :timestamp="event.origin_server_ts" :showDate="true" />
+									<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
 								</span>
-								<RoomBadge v-if="hasBeenVisible && !room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id ?? room.roomId" />
+								<RoomBadge v-if="hasBeenVisible && !room.directMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
 							</div>
 
 							<!-- Message Action Buttons -->
@@ -62,7 +62,7 @@
 								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
 									<div v-if="isSupported">
 										<button
-											@click="copy(`${source}?eventid=${event.event_id}`)"
+											@click="copy(`${source}?eventid=${props.event.event_id}`)"
 											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										>
 											<!-- by default, `copied` will be reset in 1.5s -->
@@ -100,21 +100,10 @@
 										<Icon type="chat-circle" size="sm"></Icon>
 									</button>
 
-									<!-- Disclosure Button -->
-									<button
-										v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
-										@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
-										:title="t('menu.moderation_tools_disclosure')"
-									>
-										xp
-										<Icon type="warning" size="sm" />
-									</button>
-
 									<!-- Delete Button -->
 									<button
-										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
-										@click="onDeleteMessage(event)"
+										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && props.event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
+										@click="onDeleteMessage(props.event)"
 										class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										:title="t('menu.delete_message')"
 									>
@@ -127,7 +116,7 @@
 
 					<!-- Message Snippet -->
 					<Suspense v-if="hasBeenVisible">
-						<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
+						<MessageSnippet v-if="showReplySnippet(props.event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
 						<template #fallback>
 							<div class="flex items-center gap-3 rounded-md px-2">
 								<p>{{ t('state.loading_message') }}</p>
@@ -135,18 +124,20 @@
 						</template>
 					</Suspense>
 
-					<Message :event="event" :deleted="redactedMessage" />
+					<Message :event="props.event" :deleted="redactedMessage" />
 
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
-						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
-						<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
-						<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
-						<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" />
-
+						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="props.event.content" />
+						<MessageSigned v-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
+						<MessageFile v-if="props.event.content.msgtype === MsgType.File && !redactedMessage" :message="props.event.content" />
+						<MessageImage v-if="props.event.content.msgtype === MsgType.Image && !redactedMessage" :message="props.event.content" />
+						<MessageDisclosureRequest v-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage" :event="props.event" class="flex flex-col" />
+						<MessageDisclosed v-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
 						<VotingWidget
-							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
-							:event="event"
+							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
+							:room="room"
+							:event="props.event"
 							@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
 							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
 						/>
@@ -175,6 +166,8 @@
 
 <script setup lang="ts">
 	// Packages
+	import MessageDisclosed from './MessageDisclosed.vue';
+	import MessageDisclosureRequest from './MessageDisclosureRequest.vue';
 	import { useClipboard } from '@vueuse/core';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -500,15 +493,6 @@
 				label: 'Reply in thread',
 				icon: 'chat-circle',
 				onClick: () => replyInThread(),
-			});
-		}
-
-		// Disclosure (moderator/admin action)
-		if (props.event.msgIsNotSend && user.isAdmin && props.event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)) {
-			menu.push({
-				label: 'Disclosure',
-				icon: 'warning',
-				onClick: () => router.push({ name: 'ask-disclosure', query: { user: props.event.sender } }),
 			});
 		}
 

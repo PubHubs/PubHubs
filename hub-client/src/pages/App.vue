@@ -14,11 +14,11 @@
 									<H3 class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
 									<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
 								</div>
-								<Notification class="absolute right-4" />
-								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
-								<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
 							</div>
-							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
+							<div class="flex items-center justify-end gap-2">
+								<Notification />
+								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0">{{ rooms.totalUnreadMessages }}</Badge>
+							</div>
 						</div>
 					</template>
 
@@ -66,13 +66,6 @@
 							</template>
 						</RoomListHeader>
 
-						<!-- When user is admin, show the moderation tools menu -->
-						<RoomListHeader v-if="disclosureEnabled && user.isAdmin" label="menu.moderation_tools">
-							<Menu>
-								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ t('menu.moderation_tools_disclosure') }} </MenuItem>
-							</Menu>
-						</RoomListHeader>
-
 						<!-- When user is admin, show the admin tools menu -->
 						<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
 							<template #roomlist>
@@ -114,7 +107,6 @@
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
-	import Disclosure from '@hub-client/components/rooms/Disclosure.vue';
 	import RoomList from '@hub-client/components/rooms/RoomList.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
@@ -129,7 +121,6 @@
 
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
-	import { routes } from '@hub-client/logic/core/router';
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 

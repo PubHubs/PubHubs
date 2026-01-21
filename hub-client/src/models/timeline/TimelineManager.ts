@@ -163,22 +163,31 @@ class TimelineManager {
 				return;
 			}
 
-			this.client.relations(this.roomId, eventId, null, null).then((relations) => {
-				// add or replace relations and set isFetched to true, so the API call will be once per event
-				if (currentrelatedEvents) {
-					currentrelatedEvents.isFetched = true;
-					for (const relation of relations.events) {
-						const i = currentrelatedEvents.relatedEvents.findIndex((x) => x.event.event_id === relation.event.event_id);
-						if (i >= 0) {
-							currentrelatedEvents.relatedEvents[i] = relation;
-						} else {
-							currentrelatedEvents.relatedEvents.push(relation);
+			// check if eventId is a valid event, to remove API errors from client.relations
+			const room = this.client?.getRoom(this.roomId ?? undefined);
+			if (!room?.findEventById(eventId)) {
+				return;
+			}
+
+			this.client
+				.relations(this.roomId, eventId, null, null)
+				.then((relations) => {
+					// add or replace relations and set isFetched to true, so the API call will be once per event
+					if (currentrelatedEvents) {
+						currentrelatedEvents.isFetched = true;
+						for (const relation of relations.events) {
+							const i = currentrelatedEvents.relatedEvents.findIndex((x) => x.event.event_id === relation.event.event_id);
+							if (i >= 0) {
+								currentrelatedEvents.relatedEvents[i] = relation;
+							} else {
+								currentrelatedEvents.relatedEvents.push(relation);
+							}
 						}
+					} else {
+						this.relatedEvents.push({ eventId: eventId, isFetched: true, relatedEvents: relations.events });
 					}
-				} else {
-					this.relatedEvents.push({ eventId: eventId, isFetched: true, relatedEvents: relations.events });
-				}
-			});
+				})
+				.catch((error) => {}); // do nothing, but remove error
 		});
 	}
 

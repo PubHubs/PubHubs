@@ -4,10 +4,6 @@ import { RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-// Stores
-import { PubHubsStore, usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
-
 export type RoomMemberStateEvent = {
 	type: string;
 	sender: string;
@@ -26,16 +22,10 @@ export type RoomMemberStateEvent = {
 export default class RoomMember {
 	private matrixRoomMember: MatrixRoomMember;
 
-	// Stores
-	private pubhubsStore: PubHubsStore;
-
 	public _avatarUrl?: string | null;
 
 	constructor(matrixRoomMember: MatrixRoomMember) {
 		this.matrixRoomMember = matrixRoomMember;
-
-		this.pubhubsStore = usePubhubsStore();
-
 		this.updateAvatarUrl();
 	}
 
@@ -54,9 +44,11 @@ export default class RoomMember {
 
 	//#endregion
 
+	/**
+	 * Since this creates a blob of the avatar, do not use it multiple times without revoking the created blob inbetween
+	 */
 	private async updateAvatarUrl(): Promise<void> {
 		const matrixFiles = useMatrixFiles();
-		const settings = useSettings();
 		const avatarMxcUrl = this.matrixRoomMember.getMxcAvatarUrl();
 
 		if (!avatarMxcUrl) {
@@ -64,9 +56,7 @@ export default class RoomMember {
 			return;
 		}
 
-		const useAuthMedia = settings.isFeatureEnabled(FeatureFlag.authenticatedMedia);
-		const url = matrixFiles.formUrlfromMxc(avatarMxcUrl, useAuthMedia);
-		const avatarUrl = useAuthMedia ? await this.pubhubsStore.getAuthorizedMediaUrl(url) : url;
+		const avatarUrl = await matrixFiles.getAuthorizedMediaUrl(avatarMxcUrl);
 
 		if (!avatarUrl) {
 			throw new Error('Failed to retrieve avatar URL.');

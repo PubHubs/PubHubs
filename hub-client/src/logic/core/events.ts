@@ -15,6 +15,7 @@ enum PubHubsMsgType {
 	Default = '',
 	SignedMessage = 'pubhubs.signed_message',
 	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
+	DisclosedMessage = 'pubhubs.disclosed_message',
 	AnnouncementMessage = 'pubhubs.announcement_message',
 	VotingWidget = 'pubhubs.voting_widget.widget',
 	VotingWidgetEdit = 'pubhubs.voting_widget.edit',
@@ -59,11 +60,11 @@ class Events {
 			rooms.addProfileNotice(event.getRoomId()!, event.getContent().body);
 		}
 
-		if (!toStartOfTimeline) {
-			if (event.event.type !== EventType.RoomMessage) return;
-			const rooms = useRooms();
-			rooms.onModRoomMessage(event);
-		}
+		// if (!toStartOfTimeline) {
+		// 	if (event.event.type !== EventType.RoomMessage) return;
+		// 	const rooms = useRooms();
+		// 	rooms.onModRoomMessage(event);
+		// }
 	}
 
 	eventRoomMemberMembership(client: MatrixClient) {

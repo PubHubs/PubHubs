@@ -8,6 +8,7 @@ enum SystemDefaults {
 	initialRoomTimelineLimit = 100, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
 	roomTimelineLimit = 500, // Subsequent pagination: can be relatively high
 	initialRoomListRange = 99999, // Initial number of rooms to fetch, in the future perhaps paginate this?
+	publicRoomsReload = 86_400_000, // Time to cache public rooms. Reload will be forced after creating.editing new rooms, so this can be long. Now set to one day.
 	MaxNumberFileUploads = 50, // Maximum number of files that can be dropped/uploaded
 	mainRoomListRange = 40, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
 }
@@ -131,6 +132,10 @@ enum actions {
 	RoomAnnouncement = 'RoomAnnouncement',
 }
 
+enum notice {
+	NoticesUser = 'notices_user',
+}
+
 enum QueryParameterKey {
 	EventId = 'eventid',
 }
@@ -186,4 +191,5 @@ export {
 	roles,
 	actions,
 	QueryParameterKey,
+	notice,
 };

@@ -1,13 +1,12 @@
-// Logic
-import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 // Model
+import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TEditRoom, TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
 import { SecuredRoomAttributes } from '@hub-client/models/rooms/TSecuredRoom';
 import { Attribute } from '@hub-client/models/yivi/Tyivi';
 
+// Logic
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { useRooms } from '@hub-client/stores/rooms';
-import { TSecuredRoom } from '@hub-client/stores/rooms';
+import { TSecuredRoom, useRooms } from '@hub-client/stores/rooms';
 import { useYivi } from '@hub-client/stores/yivi';
 
 function useEditRoom() {
@@ -20,7 +19,7 @@ function useEditRoom() {
 		accepted: [],
 		user_txt: '',
 		type: '',
-	} as TSecuredRoom;
+	} as unknown as TSecuredRoom;
 
 	/**
 	 * Updates or creates a public room with the given attributes.
@@ -44,7 +43,7 @@ function useEditRoom() {
 	/**
 	 * Updates or creates a secured room with the given attributes.
 	 */
-	async function updateSecuredRoom(isNewRoom: boolean, room: TEditRoom, selectedAttributes: Array<TEditRoomFormAttributes>, attributeRemoved: boolean, room_id?: string) {
+	async function updateSecuredRoom(isNewRoom: boolean, room: TSecuredRoom, selectedAttributes: Array<TEditRoomFormAttributes>, attributeRemoved: boolean, room_id?: string) {
 		const accepted = {} as SecuredRoomAttributes;
 
 		for (const attribute of selectedAttributes) {
@@ -67,7 +66,7 @@ function useEditRoom() {
 	/**
 	 * Returns two values as a tuple: the found yivi labels and the yivi secured attribute keys.
 	 */
-	function getYiviLabelsAndAttributes(accepted: SecuredRoomAttributes, t: (key: string, ...args: any[]) => string): [string[], string[]] {
+	function getYiviLabelsAndAttributes(accepted: SecuredRoomAttributes, t: (key: string, ...args: Attribute[]) => string): [string[], string[]] {
 		const attributes = Object.keys(accepted);
 		const yiviAttributes = yiviStore.getAttributes(t);
 		const labels = attributes.map((attrKey) => {
@@ -80,9 +79,9 @@ function useEditRoom() {
 	 * Translates the selected attributes from labels to yivi attributes.
 	 * If a label is not found in the yivi attributes, it will set the attribute to the label itself.
 	 */
-	function translateYiviLabelsToAttributes(selectedAttributes: Array<TEditRoomFormAttributes>, t: (key: string, ...args: any[]) => string): Array<TEditRoomFormAttributes> {
+	function translateYiviLabelsToAttributes(selectedAttributes: Array<TEditRoomFormAttributes>, t: (key: string, ...args: Attribute[]) => string): Array<TEditRoomFormAttributes> {
 		for (const item of selectedAttributes) {
-			const found = yiviStore.getAttributes(t).find((attr: any) => attr.label === item.label);
+			const found = yiviStore.getAttributes(t).find((attr: Attribute) => attr.label === item.label);
 			if (!found) item.attribute = item.label;
 			else item.attribute = found.attribute;
 		}

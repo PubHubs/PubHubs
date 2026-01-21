@@ -1,7 +1,7 @@
 <template>
 	<!-- Desktop search component -->
 	<div class="bg-background hidden items-center justify-end rounded-md md:flex" v-click-outside="reset">
-		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
+		<div class="relative flex max-w-full items-center justify-end pl-100 transition-all duration-200">
 			<input
 				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				type="text"
@@ -59,7 +59,7 @@
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="bg-surface-low absolute top-16 right-0 z-50 w-full overflow-y-auto rounded-md md:top-20 md:w-[20vw]" data-testid="search-result">
+	<div v-if="searched" class="bg-surface-low absolute top-24 right-0 z-50 h-full w-full overflow-y-auto rounded-md pb-24 md:w-[20vw]" data-testid="search-result">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group" role="listitem">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
