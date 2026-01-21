@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    Deserialize, Serialize,
     de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
 };
 
 use anyhow::Context as _;
@@ -18,29 +18,22 @@ use crate::servers::server;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
-/// The [`actix_web::Responder`] used for all API endpoints, [`EndpointDetails`] together with an
+/// The [`actix_web::Responder`] used for almost all API endpoints, [`EndpointDetails`] together with an
 /// instance of [`Result<EndpointDetails::ResponseType>`].
 pub struct Responder<EP: EndpointDetails>(pub EP::ResponseType);
 
 impl<EP: EndpointDetails> actix_web::Responder for Responder<EP> {
-    type Body = actix_web::body::BoxBody;
+    type Body = <CachedResponse<EP> as actix_web::Responder>::Body;
 
-    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        let (body, mut rb) = self.into_cached()();
-
-        match body {
-            Some(bytes) => rb.body(bytes),
-            None => rb.finish(),
-        }
+    fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        self.into_cached().respond_to(&req)
     }
 }
 
 impl<EP: EndpointDetails> Responder<EP> {
-    pub fn into_cached(
-        self,
-    ) -> impl Fn() -> (Option<bytes::Bytes>, actix_web::HttpResponseBuilder) + Clone {
+    pub fn into_cached(self) -> CachedResponse<EP> {
         let payload = self.0.into_payload();
-        let mut ct = payload.content_type();
+        let mut content_type = payload.content_type();
 
         let body = payload.into_body().unwrap_or_else(|err| {
             log::error!(
@@ -49,7 +42,7 @@ impl<EP: EndpointDetails> Responder<EP> {
                 url = EP::PATH
             );
 
-            ct = Some(header::ContentType::json());
+            content_type = Some(header::ContentType::json());
             Some(
                 serde_json::to_vec_pretty(&Result::<()>::Err(ErrorCode::InternalError))
                     .unwrap()
@@ -57,22 +50,62 @@ impl<EP: EndpointDetails> Responder<EP> {
             )
         });
 
-        move || {
-            let mut rb = actix_web::HttpResponse::Ok();
+        CachedResponse {
+            body,
+            content_type,
+            ep: std::marker::PhantomData,
+        }
+    }
+}
 
-            if let Some(ct) = &ct {
-                rb.content_type(ct.clone());
-            }
+/// Cached response
+#[derive(Debug)]
+pub struct CachedResponse<EP: EndpointDetails> {
+    content_type: Option<header::ContentType>,
+    body: Option<bytes::Bytes>,
+    ep: std::marker::PhantomData<EP>,
+}
 
-            if EP::immutable_response() {
-                rb.insert_header(header::CacheControl(vec![
-                    header::CacheDirective::MaxAge(i32::MAX as u32),
-                    // https://github.com/actix/actix-web/issues/2666
-                    header::CacheDirective::Extension("immutable".to_string(), None),
-                ]));
-            }
+impl<EP: EndpointDetails> Clone for CachedResponse<EP> {
+    fn clone(&self) -> Self {
+        Self {
+            content_type: self.content_type.clone(),
+            body: self.body.clone(),
+            ep: std::marker::PhantomData::<EP>,
+        }
+    }
+}
 
-            (body.clone(), rb)
+impl<EP: EndpointDetails> CachedResponse<EP> {
+    /// Returns a response builder appropriate for this response
+    pub fn response_builder(&self) -> actix_web::HttpResponseBuilder {
+        let mut rb = actix_web::HttpResponse::Ok();
+
+        if let Some(ct) = &self.content_type {
+            rb.content_type(ct.clone());
+        }
+
+        if EP::immutable_response() {
+            rb.insert_header(header::CacheControl(vec![
+                header::CacheDirective::MaxAge(i32::MAX as u32),
+                // https://github.com/actix/actix-web/issues/2666
+                header::CacheDirective::Extension("immutable".to_string(), None),
+            ]));
+        }
+
+        rb
+    }
+}
+
+impl<EP: EndpointDetails> actix_web::Responder for CachedResponse<EP> {
+    type Body = actix_web::body::BoxBody;
+
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        let mut rb = self.response_builder();
+
+        match self.body {
+            Some(bytes) => rb.body(bytes),
+            None => rb.finish(),
         }
     }
 }
@@ -264,8 +297,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-            >,
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {
@@ -499,18 +532,12 @@ pub trait EndpointDetails {
     {
         let cached = Responder::<Self>(handler(app)).into_cached();
 
+        // TODO: etag
         sc.route(
             Self::PATH,
             web::method(Self::METHOD).to(move || {
-                // TODO: etag ?
-                let (body, mut rb) = cached();
-
-                let http_resp = match body {
-                    None => rb.finish(),
-                    Some(bytes) => rb.body(bytes),
-                };
-
-                async { http_resp }
+                let cached = cached.clone();
+                async { cached }
             }),
         );
     }

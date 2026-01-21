@@ -103,6 +103,10 @@ global_client_url = 'http://localhost:8080'
 master_enc_key_part = "633a4aa3993eccdd7eed8849db707f047578211ade799a410ab97738a3deef02"
 attr_id_secret = "85b6f0da150d7f07343c258d93d7c6d8c0782f3fa8bcaa267d8f870a149b654e"
 
+[phc.hub_cache]
+request_interval = "1s"
+request_timeout = "100ms"
+
 [phc.object_store]
 url = "s3://phc"
 ## If you cannot get garage to work, you can use this memory store instead:

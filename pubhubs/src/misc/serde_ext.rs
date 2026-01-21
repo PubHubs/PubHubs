@@ -1,6 +1,6 @@
 //! Tools for (de)serialization
 use serde::{
-    Deserialize, Deserializer, Serialize, Serializer, de::IntoDeserializer as _, ser::Error as _,
+    de::IntoDeserializer as _, ser::Error as _, Deserialize, Deserializer, Serialize, Serializer,
 };
 
 use core::fmt;
@@ -18,6 +18,11 @@ impl<'de> Deserialize<'de> for Skip {
     {
         Ok(Self {})
     }
+}
+
+/// Deserializes an empty (json) object to a type `T`.  Panics if this is not possible.
+pub fn default_object<T: serde::de::DeserializeOwned>() -> T {
+    serde_json::from_value(serde_json::Value::Object(Default::default())).unwrap()
 }
 
 pub mod bytes_wrapper {

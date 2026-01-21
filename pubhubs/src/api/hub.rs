@@ -23,6 +23,7 @@ pub struct InfoResp {
     ///
     /// (Not currently returned by actual hubs.)
     #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub verifying_key: Option<VerifyingKey>,
 
     /// String describing the hub version, likely the result of `git describe --tags`
@@ -42,7 +43,8 @@ pub struct InfoResp {
 #[serde(deny_unknown_fields)]
 #[must_use]
 pub struct DynamicHubInfo {
-    /// The last time these settings were reloaded
+    /// The last time these settings were reloaded by the hub
+    #[serde(skip_serializing)]
     pub last_reload: NumericDate,
 
     /// Hub settings set by admin

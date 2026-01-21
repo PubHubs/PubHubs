@@ -252,10 +252,9 @@ where
     D::ObjectStoreT: Sync,
 {
     async fn run_discovery_and_then_wait_forever(&self, app: Rc<D::AppT>) -> Result<Infallible> {
-        self.run_discovery(app).await?;
+        self.run_discovery(app.clone()).await?;
 
-        std::future::pending::<Infallible>().await; // wait forever
-        unreachable!();
+        D::AppT::global_task(app).await  // waits forever
     }
 
     async fn run_discovery(&self, app: Rc<D::AppT>) -> Result<()> {
@@ -579,6 +578,11 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
 
     /// Will be invoked for each instance of [`App`] that is created.
     async fn local_task(_weak: std::rc::Weak<Self>) {}
+
+    /// Will be invoked once for each server, after discovery
+    async fn global_task(_app: std::rc::Rc<Self>) -> Result<Infallible> {
+        Ok(std::future::pending::<Infallible>().await)
+    }
 }
 
 /// What's internally common between PubHubs [`AppCreator`]s.
