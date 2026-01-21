@@ -1,13 +1,14 @@
 <template>
-	<span v-if="userHasBadge" class="flex flex-wrap gap-x-1 gap-y-1 px-4" data-testid="event-badges">
-		<span v-if="hasPowerPrivileges || isHubAdmin" class="text-label-small flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white lowercase">
-			<Icon type="user" size="sm"></Icon>
-			<span v-if="isHubAdmin">{{ hubAdminLabel }}</span>
-			<span v-else>{{ powerLevelLabel }}</span>
-		</span>
-		<span v-else v-for="value in roomAttributes" :key="value" class="text-label-small flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white lowercase">
-			<Icon type="check-circle" size="sm"></Icon>
-			<span>{{ value }}</span>
+	<span v-if="userHasBadge" class="flex flex-wrap text-nowrap" data-testid="event-badges" :title="label">
+		<span class="text-label-small flex h-4 items-center gap-1 rounded-xl bg-black p-2 text-white lowercase">
+			<template v-if="hasPowerPrivileges || isHubAdmin">
+				<Icon type="user" size="sm"></Icon>
+				<span>{{ label }}</span>
+			</template>
+			<template v-else v-for="value in roomAttributes" :key="value">
+				<Icon type="check-circle" size="sm"></Icon>
+				<span>{{ value }}</span>
+			</template>
 		</span>
 	</span>
 </template>
@@ -40,8 +41,13 @@
 	const userHasBadge = computed(() => roomAttributes.value.length > 0 || hasPowerPrivileges.value || props.isHubAdmin);
 
 	const powerLevelLabel = computed(() => (rooms.currentRoom?.getPowerLevel(props.user) === 100 ? t('admin.title_room_administrator') : t('admin.title_room_steward')));
-
 	const hubAdminLabel = computed(() => (props.isHubAdmin ? t('admin.title_hub_administrator') : ''));
+	const label = computed(() => {
+		if (props.isHubAdmin) return hubAdminLabel.value;
+		if (hasPowerPrivileges.value) return powerLevelLabel.value;
+		if (roomAttributes.value[0]) return roomAttributes.value[0];
+		return '';
+	});
 
 	function update_attributes() {
 		if (rooms.roomNotices[props.room_id] && rooms.roomNotices[props.room_id][props.user]) {
