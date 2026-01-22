@@ -1,6 +1,6 @@
 //! Tools for (de)serialization
 use serde::{
-    de::IntoDeserializer as _, ser::Error as _, Deserialize, Deserializer, Serialize, Serializer,
+    Deserialize, Deserializer, Serialize, Serializer, de::IntoDeserializer as _, ser::Error as _,
 };
 
 use core::fmt;

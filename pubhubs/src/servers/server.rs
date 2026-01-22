@@ -254,7 +254,7 @@ where
     async fn run_discovery_and_then_wait_forever(&self, app: Rc<D::AppT>) -> Result<Infallible> {
         self.run_discovery(app.clone()).await?;
 
-        D::AppT::global_task(app).await  // waits forever
+        D::AppT::global_task(app).await // waits forever
     }
 
     async fn run_discovery(&self, app: Rc<D::AppT>) -> Result<()> {
@@ -277,7 +277,7 @@ pub trait AppCreator<ServerT: Server>:
 {
     /// When [`App`]s are created a new [`AppCreator::Context`]  is created,
     /// and a reference to it is passed to [`AppCreator::into_app`].
-    type ContextT : Default + Send + Clone + 'static;
+    type ContextT: Default + Send + Clone + 'static;
 
     /// Creates a new instance of this [`AppCreator`] based on the given configuration.
     fn new(config: &servers::Config) -> Result<Self>;
@@ -289,7 +289,12 @@ pub trait AppCreator<ServerT: Server>:
     ///
     /// `generation` indicates how many times the server has been restarted while running this
     /// binary
-    fn into_app(self, handle: &Handle<ServerT>, context : &Self::ContextT, generation: usize) -> ServerT::AppT;
+    fn into_app(
+        self,
+        handle: &Handle<ServerT>,
+        context: &Self::ContextT,
+        generation: usize,
+    ) -> ServerT::AppT;
 }
 
 /// What modifies a [Server] via [Command::Modify].
@@ -669,13 +674,18 @@ pub struct AppBase<S: Server> {
     pub shared: SharedState<S>,
     pub client: client::Client,
     pub version: Option<String>,
-    pub thread_id : std::thread::ThreadId,
-    pub generation : usize,
+    pub thread_id: std::thread::ThreadId,
+    pub generation: usize,
 }
 
-impl<S:Server> Drop for AppBase<S> {
+impl<S: Server> Drop for AppBase<S> {
     fn drop(&mut self) {
-        log::trace!("{}: app for generation {} that started on {:?} dropped", S::NAME, self.generation, self.thread_id);
+        log::trace!(
+            "{}: app for generation {} that started on {:?} dropped",
+            S::NAME,
+            self.generation,
+            self.thread_id
+        );
     }
 }
 
@@ -683,7 +693,12 @@ impl<S: Server> AppBase<S> {
     pub fn new(creator_base: AppCreatorBase<S>, handle: &Handle<S>, generation: usize) -> Self {
         let thread_id = std::thread::current().id();
 
-        log::trace!("{}: app for generation {} started on {:?}", S::NAME, generation, thread_id);
+        log::trace!(
+            "{}: app for generation {} started on {:?}",
+            S::NAME,
+            generation,
+            thread_id
+        );
 
         Self {
             running_state: creator_base.running_state,
@@ -699,7 +714,7 @@ impl<S: Server> AppBase<S> {
                 .finish(),
             version: creator_base.version,
             thread_id,
-            generation
+            generation,
         }
     }
 

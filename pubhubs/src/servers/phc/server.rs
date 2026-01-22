@@ -1,9 +1,9 @@
 //! Basic server [`Details`]: [`Server`], [`App`], etc.
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::convert::Infallible;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-use std::convert::Infallible;
-use std::cell::{RefCell,Cell};
-use std::collections::HashMap;
 
 use actix_web::web;
 use digest::Digest as _;
@@ -11,16 +11,16 @@ use digest::Digest as _;
 use crate::api::{self, ApiResultExt as _, EndpointDetails as _, NoPayload};
 use crate::client;
 use crate::common::secret::DigestibleSecret as _;
+use crate::handle;
 use crate::misc::crypto;
 use crate::misc::jwt;
-use crate::phcrypto;
-use crate::handle;
 use crate::misc::serde_ext;
+use crate::misc::time_ext;
+use crate::phcrypto;
 use crate::servers::{
     self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
     constellation,
 };
-use crate::misc::time_ext;
 
 use crate::{elgamal, hub};
 
@@ -75,12 +75,12 @@ pub struct App {
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
-    
-    /// channel for sending messages between apps
-    pub broadcast : tokio::sync::broadcast::Sender<InterAppMsg>,
 
-    pub cached_hub_info : std::cell::RefCell<api::CachedResponse<api::phc::user::CachedHubInfoEP>>,
-    pub hub_cache_config : HubCacheConfig,
+    /// channel for sending messages between apps
+    pub broadcast: tokio::sync::broadcast::Sender<InterAppMsg>,
+
+    pub cached_hub_info: std::cell::RefCell<api::CachedResponse<api::phc::user::CachedHubInfoEP>>,
+    pub hub_cache_config: HubCacheConfig,
 }
 
 impl Deref for App {
@@ -332,15 +332,15 @@ impl crate::servers::App<Server> for App {
         Some(&self.master_enc_key_part)
     }
 
-    async fn local_task(weak : std::rc::Weak<Self>) {
+    async fn local_task(weak: std::rc::Weak<Self>) {
         use tokio::sync::broadcast::error::RecvError;
 
-        let mut receiver : tokio::sync::broadcast::Receiver<InterAppMsg>;
-        
+        let mut receiver: tokio::sync::broadcast::Receiver<InterAppMsg>;
+
         {
             let Some(app) = weak.upgrade() else {
                 log::debug!("App is gone before local task started");
-                return 
+                return;
             };
 
             receiver = app.broadcast.subscribe();
@@ -354,11 +354,14 @@ impl crate::servers::App<Server> for App {
                         return;
                     }
                     RecvError::Lagged(skipped) => {
-                        log::error!("PHC local task on {:?} is lagging behind, \
-                            and has skipped processing {skipped} messages!", std::thread::current().id());
+                        log::error!(
+                            "PHC local task on {:?} is lagging behind, \
+                            and has skipped processing {skipped} messages!",
+                            std::thread::current().id()
+                        );
                         continue;
                     }
-               }
+                }
             };
 
             let Some(app) = weak.upgrade() else {
@@ -374,7 +377,7 @@ impl crate::servers::App<Server> for App {
         }
     }
 
-    async fn global_task(app : Rc<Self>) -> anyhow::Result<Infallible> {
+    async fn global_task(app: Rc<Self>) -> anyhow::Result<Infallible> {
         let localset = tokio::task::LocalSet::new();
         let _hcu = HubCacheUpdater::new(app, &localset);
 
@@ -383,7 +386,6 @@ impl crate::servers::App<Server> for App {
         log::error!("bug: PHC global task  exits prematurely");
         anyhow::bail!("bug: PHC global task exits prematurely")
     }
-
 }
 
 /// Configures [`HubCacheUpdater`].
@@ -402,7 +404,7 @@ pub struct HubCacheConfig {
     /// Push a new version of the cache to [`App`] instances this often
     #[serde(with = "time_ext::human_duration")]
     #[serde(default = "default_hub_cache_push_interval")]
-    push_interval: core::time::Duration
+    push_interval: core::time::Duration,
 }
 
 fn default_hub_cache_request_interval() -> core::time::Duration {
@@ -424,18 +426,17 @@ impl Default for HubCacheConfig {
 }
 
 struct HubCacheUpdater {
-    app : Rc<App>,
-    hub_info : RefCell<HashMap<handle::Handle, Option<api::hub::InfoResp>>>,
-    unpublished_updates : Cell<bool>
+    app: Rc<App>,
+    hub_info: RefCell<HashMap<handle::Handle, Option<api::hub::InfoResp>>>,
+    unpublished_updates: Cell<bool>,
 }
 
 impl HubCacheUpdater {
-    fn new(app : Rc<App>, localset : &tokio::task::LocalSet) -> Rc<Self> {
-
+    fn new(app: Rc<App>, localset: &tokio::task::LocalSet) -> Rc<Self> {
         let hcu = Rc::new(Self {
             app: app.clone(),
             hub_info: RefCell::new(Default::default()),
-            unpublished_updates : Cell::new(false),
+            unpublished_updates: Cell::new(false),
         });
 
         for basic_hub_info in app.hubs.values() {
@@ -446,33 +447,68 @@ impl HubCacheUpdater {
 
         hcu
     }
-    
-    async fn handle_hub(self : Rc<Self>, basic_hub_info : hub::BasicInfo) {
+
+    async fn handle_hub(self: Rc<Self>, basic_hub_info: hub::BasicInfo) {
         let hub_handle = basic_hub_info.handles.preferred();
 
         self.hub_info.borrow_mut().insert(hub_handle.clone(), None);
 
         let mut interval = tokio::time::interval(self.app.hub_cache_config.request_interval);
+        let mut failure_since: Option<std::time::SystemTime> = None;
 
         loop {
             interval.tick().await;
 
-            let hir = self.app.client.query::<api::hub::InfoEP>(&basic_hub_info.url, api::NoPayload)
-                .timeout(self.app.hub_cache_config.request_timeout).await;
+            let hir = self
+                .app
+                .client
+                .query::<api::hub::InfoEP>(&basic_hub_info.url, api::NoPayload)
+                .quiet()
+                .timeout(self.app.hub_cache_config.request_timeout)
+                .await;
 
             let Ok(hi) = hir else {
+                if failure_since.is_none() {
+                    log::warn!("hub {hub_handle} not reachable");
+                    failure_since = Some(std::time::SystemTime::now());
+                }
+
                 continue;
             };
 
-            self.hub_info.borrow_mut().insert(hub_handle.clone(), Some(hi));
-            self.unpublished_updates.set(true);
+            if let Some(time) = failure_since.take() {
+                log::info!(
+                    "hub {hub_handle} is reachable again;  it was unreachable since {}.)",
+                    time_ext::format_time(time)
+                );
+            }
+
+            use std::collections::hash_map::Entry;
+
+            {
+                let mut hub_info = self.hub_info.borrow_mut();
+
+                let Entry::Occupied(mut oe) = hub_info.entry(hub_handle.clone()) else {
+                    panic!("bug: hub info cache entry for hub {hub_handle} disappeared");
+                };
+
+                if oe.get().as_ref() == Some(&hi) {
+                    continue;
+                }
+
+                oe.insert(Some(hi));
+            }
+
+            if !self.unpublished_updates.replace(true) {
+                log::trace!("new hub info on {hub_handle} will be pushed to app soon");
+            }
         }
     }
 
-    async fn push_updates(self : Rc<Self>) {
+    async fn push_updates(self: Rc<Self>) {
         let mut interval = tokio::time::interval(self.app.hub_cache_config.push_interval);
-        
-        loop{
+
+        loop {
             interval.tick().await;
 
             if !self.unpublished_updates.get() {
@@ -480,13 +516,19 @@ impl HubCacheUpdater {
             }
 
             let chir = api::phc::user::CachedHubInfoResp {
-                hubs : self.hub_info.borrow().clone()
+                hubs: self.hub_info.borrow().clone(),
             };
 
             let cr = api::Responder(Ok(chir)).into_cached();
 
-            if self.app.broadcast.send(InterAppMsg::UpdatedHubInfo(cr)).is_err() {
-                log::error!("{}: failed to internally broadcast updated hub information", Server::NAME);
+            log::trace!("pushing updated cached hub info to apps");
+            if self
+                .app
+                .broadcast
+                .send(InterAppMsg::UpdatedHubInfo(cr))
+                .is_err()
+            {
+                log::error!("failed to internally broadcast updated hub information");
                 continue;
             };
 
@@ -516,7 +558,6 @@ impl App {
         }
         .check(tdi, url)
     }
-
 }
 
 #[derive(Clone)]
@@ -535,7 +576,7 @@ pub struct AppCreator {
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
-    pub hub_cache_config : HubCacheConfig
+    pub hub_cache_config: HubCacheConfig,
 }
 
 impl Deref for AppCreator {
@@ -554,22 +595,21 @@ impl DerefMut for AppCreator {
 
 #[derive(Clone)]
 pub struct AppCreatorContext {
-    broadcast : tokio::sync::broadcast::Sender<InterAppMsg>
+    broadcast: tokio::sync::broadcast::Sender<InterAppMsg>,
 }
 
 impl Default for AppCreatorContext {
     fn default() -> Self {
         Self {
-            broadcast: tokio::sync::broadcast::Sender::<InterAppMsg>::new(10)
+            broadcast: tokio::sync::broadcast::Sender::<InterAppMsg>::new(10),
         }
     }
 }
 
-
 impl crate::servers::AppCreator<Server> for AppCreator {
     type ContextT = AppCreatorContext;
 
-    fn into_app(self, handle: &Handle<Server>, context : &Self::ContextT, generation: usize) -> App {
+    fn into_app(self, handle: &Handle<Server>, context: &Self::ContextT, generation: usize) -> App {
         App {
             base: AppBase::new(self.base, handle, generation),
             transcryptor_url: self.transcryptor_url,
@@ -587,8 +627,10 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             card_pseud_validity: self.card_pseud_validity,
             broadcast: context.broadcast.clone(),
             // cached_hub_info will be set later
-            cached_hub_info: std::cell::RefCell::new(api::Responder(Err(api::ErrorCode::PleaseRetry)).into_cached()),
-            hub_cache_config : self.hub_cache_config,
+            cached_hub_info: std::cell::RefCell::new(
+                api::Responder(Err(api::ErrorCode::PleaseRetry)).into_cached(),
+            ),
+            hub_cache_config: self.hub_cache_config,
         }
     }
 
@@ -647,7 +689,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_boxed_slice(),
             quota: xconf.user_quota.clone(),
             card_pseud_validity: xconf.card_pseud_validity,
-            hub_cache_config: xconf.hub_cache.clone()
+            hub_cache_config: xconf.hub_cache.clone(),
         })
     }
 }
