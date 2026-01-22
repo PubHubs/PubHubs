@@ -1,8 +1,3 @@
-/**
- * Timeline Pagination Composable
- *
- * Handles loading older/newer messages with scroll position preservation.
- */
 // Packages
 import { Direction } from 'matrix-js-sdk';
 import { type Ref, computed, nextTick, onBeforeUnmount, ref } from 'vue';
@@ -48,20 +43,12 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		const prevOldestEventId = room.getTimelineOldestMessageId();
 
 		if (prevOldestEventId) {
-			// Store scroll position before loading
-			const prevScrollHeight = cont.scrollHeight;
-			const prevScrollTop = cont.scrollTop;
-
 			// Load older messages
 			await room.paginate(Direction.Backward, SystemDefaults.roomTimelineLimit, prevOldestEventId);
 
 			// Wait for DOM update
 			await nextTick();
 			await new Promise((resolve) => requestAnimationFrame(resolve));
-
-			// Restore scroll position
-			const heightDiff = cont.scrollHeight - prevScrollHeight;
-			cont.scrollTop = prevScrollTop + heightDiff;
 		}
 
 		isLoadingPrevious.value = false;

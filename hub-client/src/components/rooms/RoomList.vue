@@ -130,7 +130,7 @@
 		roomTypes: {
 			type: Array as PropType<RoomType[]>,
 			required: true,
-			default: () => [RoomType.PH_MESSAGES_DEFAULT], // To make sure vue recognizes it, this needs a real array as default
+			default: () => [RoomType.PH_MESSAGES_DEFAULT],
 		},
 	});
 
@@ -144,7 +144,6 @@
 
 	// Wrapper that creates reactive dependency on unreadCountVersion for badge updates
 	function getUnreadCount(room: Room, type: NotificationCountType): number {
-		// Reading this creates reactive dependency - Vue re-renders when it changes
 		void rooms.unreadCountVersion;
 		return room.getRoomUnreadNotificationCount(type);
 	}

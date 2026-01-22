@@ -1,7 +1,7 @@
 <template>
-	<div class="flex h-full flex-col">
-		<!-- Loading indicator at top when loading older messages -->
-		<div v-if="isLoadingPrevious" class="bg-surface flex w-full items-center justify-center gap-2 py-3">
+	<div class="relative flex h-full flex-col">
+		<!-- Loading indicator at top when loading older messages (absolute to prevent layout shift) -->
+		<div v-if="isLoadingPrevious" class="bg-surface/90 absolute top-0 right-0 left-0 z-10 flex w-full items-center justify-center gap-2 py-3">
 			<InlineSpinner />
 			<span class="text-on-surface-variant text-label-small">
 				{{ $t('rooms.loading_older_messages') }}
@@ -14,7 +14,7 @@
 
 		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll pb-2">
 			<!-- Bottom sentinel (appears at visual bottom) -->
-			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px]" style="content-visibility: hidden"></div>
+			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
 
 			<!-- Expands if the timeline height < the vieport, to top-align the content -->
 			<div class="h-full" />
@@ -59,7 +59,7 @@
 			</div>
 
 			<!-- Top sentinel (appears at visual top) -->
-			<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px]" style="content-visibility: hidden"></div>
+			<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"></div>
 		</div>
 
 		<!-- Loading indicator at bottom when loading newer messages -->
@@ -209,6 +209,7 @@
 		}
 
 		// Perform initial scroll
+		LOGGER.log(SMI.ROOM_TIMELINE, `performInitialScroll called with explicitEventId: ${props.eventIdToScroll}, lastReadEventId: ${displayedReadMarker.value ?? props.lastReadEventId}`);
 		await performInitialScroll({
 			explicitEventId: props.eventIdToScroll,
 			lastReadEventId: displayedReadMarker.value ?? props.lastReadEventId,
@@ -221,10 +222,18 @@
 
 	watch(
 		() => props.eventIdToScroll,
-		(eventId) => {
+		async (eventId, oldEventId) => {
+			console.error(`[RoomTimeline] eventIdToScroll watch triggered - new: ${eventId}, old: ${oldEventId}`);
 			if (!eventId) return;
+			// Wait for container to be ready
+			if (!elRoomTimeline.value) {
+				console.error(`[RoomTimeline] eventIdToScroll watch: waiting for container`);
+				await nextTick();
+			}
+			console.error(`[RoomTimeline] eventIdToScroll watch: calling scrollToEvent for ${eventId}`);
 			scrollToEvent(eventId, { position: ScrollPosition.Center, highlight: true });
 		},
+		{ immediate: true },
 	);
 
 	watch(
@@ -373,7 +382,8 @@
 		if (!newestEventIsLoaded.value) return;
 
 		// Notify scroll composable about new messages (for indicator)
-		if (newTimelineLength > oldTimelineLength && oldTimelineLength > 0) {
+		// Skip during pagination - these are old messages being loaded, not new ones
+		if (newTimelineLength > oldTimelineLength && oldTimelineLength > 0 && !isLoadingPrevious.value && !isLoadingNext.value) {
 			const timeline = props.room.getTimeline();
 			const newMessages = timeline.slice(oldTimelineLength);
 
