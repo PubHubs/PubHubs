@@ -91,21 +91,14 @@ enum ScrollBehavior {
  * Timeline scroll constants
  *
  * Used by useTimelineScroll, useReadMarker, and useTimelinePagination composables.
- * All values tuned for column-reverse flex layout where scrollTop=0 is visual bottom.
  */
 const TimelineScrollConstants = {
-	/** Pixels from scrollTop=0 to be considered "at newest" */
-	SCROLL_THRESHOLD: 50,
-	/** Milliseconds to debounce scroll events */
-	SCROLL_DEBOUNCE: 100,
-	/** Milliseconds for smooth scroll animation */
-	SCROLL_DURATION: 300,
-	/** Milliseconds message must be visible to mark as read */
-	READ_DELAY_MS: 1000,
-	/** Milliseconds before re-enabling pagination observer after load */
-	PAGINATION_COOLDOWN: 100,
-	/** Padding from visual top when using TopWithPadding scroll position */
-	TOP_PADDING: 80,
+	SCROLL_THRESHOLD: 50, // Pixels from scrollTop=0 to be considered "at newest"
+	SCROLL_DEBOUNCE: 100, // Milliseconds to debounce scroll events
+	SCROLL_DURATION: 300, // Milliseconds for smooth scroll animation duration
+	READ_DELAY_MS: 1000, // Milliseconds message must be visible to mark as read
+	PAGINATION_COOLDOWN: 100, // Milliseconds before re-enabling pagination observer after load
+	TOP_PADDING: 80, // Padding from visual top when using TopWithPadding scroll position
 } as const;
 
 enum OnboardingType {

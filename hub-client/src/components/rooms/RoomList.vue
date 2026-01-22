@@ -36,9 +36,9 @@
 						@click.prevent="leaveRoom(room.roomId)"
 					/>
 					<span class="flex gap-2 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
-						<Badge class="text-label-small" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
-						<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
-						<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="at" size="sm" class="shrink-0" /></Badge>
+						<Badge class="text-label-small" color="hub" v-if="getUnreadCount(room, NotificationCountType.Total) > 99">99+</Badge>
+						<Badge v-else-if="getUnreadCount(room, NotificationCountType.Total) > 0" color="hub">{{ getUnreadCount(room, NotificationCountType.Total) }}</Badge>
+						<Badge color="hub" v-if="getUnreadCount(room, NotificationCountType.Highlight) > 0"><Icon type="at" size="sm" class="shrink-0" /></Badge>
 					</span>
 				</span>
 			</MenuItem>
@@ -141,6 +141,13 @@
 	const roomsLoaded = computed(() => {
 		return rooms.roomsLoaded;
 	});
+
+	// Wrapper that creates reactive dependency on unreadCountVersion for badge updates
+	function getUnreadCount(room: Room, type: NotificationCountType): number {
+		// Reading this creates reactive dependency - Vue re-renders when it changes
+		void rooms.unreadCountVersion;
+		return room.getRoomUnreadNotificationCount(type);
+	}
 
 	async function leaveRoom(roomId: string) {
 		const room = rooms.room(roomId);

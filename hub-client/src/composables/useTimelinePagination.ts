@@ -2,15 +2,12 @@
  * Timeline Pagination Composable
  *
  * Handles loading older/newer messages with scroll position preservation.
- *
- * COORDINATE SYSTEM (column-reverse):
- * - Loading older messages adds content at visual top (DOM end)
- * - Need to adjust scrollTop to maintain visual position
- * - Loading newer messages adds at visual bottom (no adjustment needed)
  */
+// Packages
 import { Direction } from 'matrix-js-sdk';
 import { type Ref, computed, nextTick, onBeforeUnmount, ref } from 'vue';
 
+// Models
 import { SystemDefaults, TimelineScrollConstants } from '@hub-client/models/constants';
 import type Room from '@hub-client/models/rooms/Room';
 
@@ -25,24 +22,17 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 	const suppressionActive = ref(false);
 	let suppressionTimeoutId: number | null = null;
 
-	/**
-	 * Check if the oldest message in the timeline is loaded
-	 */
+	// Check if the oldest message in the timeline is loaded
 	const oldestEventIsLoaded = computed(() => {
 		return room.isOldestMessageLoaded();
 	});
 
-	/**
-	 * Check if the newest message in the timeline is loaded
-	 */
+	// Check if the newest message in the timeline is loaded
 	const newestEventIsLoaded = computed(() => {
 		return room.isNewestMessageLoaded();
 	});
 
-	/**
-	 * Loads older messages (backward pagination)
-	 * Preserves scroll position so user doesn't lose their place
-	 */
+	// Loads older messages (backward pagination)
 	async function loadPrevious(): Promise<void> {
 		if (isLoadingPrevious.value || oldestEventIsLoaded.value) return;
 
@@ -70,7 +60,6 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 			await new Promise((resolve) => requestAnimationFrame(resolve));
 
 			// Restore scroll position
-			// In column-reverse, new content at visual top increases scrollHeight
 			const heightDiff = cont.scrollHeight - prevScrollHeight;
 			cont.scrollTop = prevScrollTop + heightDiff;
 		}
@@ -78,10 +67,7 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		isLoadingPrevious.value = false;
 	}
 
-	/**
-	 * Loads newer messages (forward pagination)
-	 * No scroll adjustment needed in column-reverse
-	 */
+	// Loads newer messages (forward pagination)
 	async function loadNext(): Promise<void> {
 		if (isLoadingNext.value || newestEventIsLoaded.value) return;
 
@@ -102,10 +88,7 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		isLoadingNext.value = false;
 	}
 
-	/**
-	 * Sets up the pagination observer
-	 * Observes sentinel elements at top/bottom of timeline
-	 */
+	// Sets up the pagination observer
 	function setupPaginationObserver(topSentinel: Ref<HTMLElement | null>, bottomSentinel: Ref<HTMLElement | null>) {
 		if (!container.value) return;
 
@@ -146,7 +129,6 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 
 	/**
 	 * Suppresses observer triggers during pagination
-	 * Prevents cascading loads
 	 */
 	function suppressObserverTriggers() {
 		suppressionActive.value = true;
@@ -161,9 +143,7 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		}, PAGINATION_COOLDOWN);
 	}
 
-	/**
-	 * Cleanup observers and timers
-	 */
+	// Cleanup observers and timers
 	function cleanup() {
 		if (paginationObserver) {
 			paginationObserver.disconnect();

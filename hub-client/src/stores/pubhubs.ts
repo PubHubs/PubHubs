@@ -897,28 +897,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
-		async sendPrivateReceipt(event: MatrixEvent) {
-			if (!event) return;
-			const roomId = event.getRoomId();
-			// Guard against invalid room IDs (e.g., local events without roomId)
-			if (!roomId || !roomId.startsWith('!')) {
+		async sendPrivateReceipt(event: MatrixEvent, roomId: string) {
+			const eventId = event?.getId();
+			if (!eventId || !roomId || !roomId.startsWith('!')) {
 				return;
 			}
-			const rooms = useRooms();
-			if (rooms.roomsSeen[roomId] && rooms.roomsSeen[roomId] >= event.localTimestamp) {
-				return;
+
+			try {
+				// Direct API call since SDK's sendReceipt uses event.getRoomId() which may be undefined
+				const path = `/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(ReceiptType.ReadPrivate)}/${encodeURIComponent(eventId)}`;
+				// @ts-ignore - using internal http client for direct API call
+				await this.client.http.authedRequest('POST', path, undefined, { thread_id: 'main' });
+
+				const rooms = useRooms();
+				setTimeout(() => {
+					rooms.notifyUnreadCountChanged();
+				}, 100);
+			} catch {
+				// Silently fail - receipt sending is not critical
 			}
-			const loggedInUser = useUser();
-			const content = {
-				'm.read.private': {
-					[loggedInUser.userId!]: {
-						ts: event.localTimestamp,
-						thread_id: 'main',
-					},
-				},
-			};
-			rooms.roomsSeen[roomId] = event.localTimestamp;
-			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
 		},
 
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
