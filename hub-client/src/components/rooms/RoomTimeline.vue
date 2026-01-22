@@ -223,17 +223,14 @@
 	watch(
 		() => props.eventIdToScroll,
 		async (eventId, oldEventId) => {
-			console.error(`[RoomTimeline] eventIdToScroll watch triggered - new: ${eventId}, old: ${oldEventId}`);
 			if (!eventId) return;
-			// Wait for container to be ready
-			if (!elRoomTimeline.value) {
-				console.error(`[RoomTimeline] eventIdToScroll watch: waiting for container`);
-				await nextTick();
+			// Only handle changes after initial scroll is complete
+			if (!isInitialScrollComplete.value) {
+				return;
 			}
 			console.error(`[RoomTimeline] eventIdToScroll watch: calling scrollToEvent for ${eventId}`);
 			scrollToEvent(eventId, { position: ScrollPosition.Center, highlight: true });
 		},
-		{ immediate: true },
 	);
 
 	watch(

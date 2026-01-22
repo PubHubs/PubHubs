@@ -4,7 +4,7 @@
 			<template #header>
 				<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
-					<hr class="bg-on-surface-dim h-[2px] grow" />
+					<hr class="bg-on-surface-dim h-025 grow" />
 				</div>
 				<div class="flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="relative flex w-fit items-center gap-3" data-testid="roomtype">
@@ -12,7 +12,7 @@
 						<Icon v-if="showLibrary" type="caret-left" size="base" @click.stop="toggleLibrary" class="cursor-pointer" />
 						<Icon v-if="showLibrary" type="folder-simple" size="base" data-testid="roomlibrary-icon" />
 						<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
-						<div class="group relative hover:mt-[2px] hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
+						<div class="group hover:mt-025 relative hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
 							<div class="flex flex-col group-hover:border-b-2 group-hover:border-dotted">
 								<H3 class="text-on-surface flex">
 									<TruncatedText class="font-headings font-semibold">
@@ -101,7 +101,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { actions } from '@hub-client/models/constants';
+	import { QueryParameterKey, actions } from '@hub-client/models/constants';
 	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
@@ -168,36 +168,47 @@
 
 	onMounted(() => {
 		update();
-		// Handle explicit scroll requests from URL/message bus
-		// (scrollPositions is only set by App.vue for explicit navigation)
-		if (rooms.scrollPositions[props.id]) {
+		// Handle explicit scroll requests from URL query parameter or message bus
+		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
+		if (eventIdFromQuery) {
+			scrollToEventId.value = eventIdFromQuery;
+		} else if (rooms.scrollPositions[props.id]) {
+			// Fallback to scrollPositions (set by App.vue for iframe navigation)
 			scrollToEventId.value = rooms.scrollPositions[props.id];
 			// Clear it after reading so it doesn't persist
 			delete rooms.scrollPositions[props.id];
 		}
-		LOGGER.log(SMI.ROOM, `Room mounted `);
 	});
 
-	watch(route, () => {
-		if (rooms.currentRoom) {
-			// Save last visible (read) event to localStorage
-			// Use the Room model's cached value (set by RoomTimeline's read tracking)
-			const lastEventId = rooms.currentRoom.getLastVisibleEventId();
-			if (lastEventId) {
-				const event = rooms.currentRoom.findEventById(lastEventId);
-				if (event) {
-					// Use the message's timestamp (not current time) - marker can only advance to newer messages
-					const messageTimestamp = event.localTimestamp || event.getTs();
-					if (messageTimestamp) {
-						setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
+	watch(
+		route,
+		() => {
+			// Check for eventId in query param on route change
+			const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
+			if (eventIdFromQuery) {
+				scrollToEventId.value = eventIdFromQuery;
+			}
+
+			if (rooms.currentRoom) {
+				// Save last visible (read) event to localStorage
+				const lastEventId = rooms.currentRoom.getLastVisibleEventId();
+				if (lastEventId) {
+					const event = rooms.currentRoom.findEventById(lastEventId);
+					if (event) {
+						// Use the message's timestamp (not current time) - marker can only advance to newer messages
+						const messageTimestamp = event.localTimestamp || event.getTs();
+						if (messageTimestamp) {
+							setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
+						}
 					}
 				}
+				rooms.currentRoom.setCurrentThreadId(undefined);
+				rooms.currentRoom.setCurrentEvent(undefined);
 			}
-			rooms.currentRoom.setCurrentThreadId(undefined);
-			rooms.currentRoom.setCurrentEvent(undefined);
-		}
-		update();
-	});
+			update();
+		},
+		{ immediate: true },
+	);
 
 	function currentThreadLengthChanged(newLength: number) {
 		room.value!.setCurrentThreadLength(newLength);

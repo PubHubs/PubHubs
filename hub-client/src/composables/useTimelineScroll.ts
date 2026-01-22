@@ -124,20 +124,8 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 
 			isAtNewest.value = checkIsAtNewest();
 		} else {
-			// ScrollPosition.Center
-			const containerRect = container.value.getBoundingClientRect();
-			const elementRect = element.getBoundingClientRect();
-			const currentScrollTop = container.value.scrollTop;
-
-			const elementCenter = elementRect.top + elementRect.height / 2;
-			const containerCenter = containerRect.top + containerRect.height / 2;
-			const offset = elementCenter - containerCenter;
-			let scrollTarget = currentScrollTop - offset;
-
-			const maxScroll = container.value.scrollHeight - container.value.clientHeight;
-			scrollTarget = Math.max(0, Math.min(scrollTarget, maxScroll));
-
-			container.value.scrollTo({ top: scrollTarget, behavior });
+			// ScrollPosition.Center - use scrollIntoView which handles flex-col-reverse correctly
+			element.scrollIntoView({ block: 'center', behavior });
 			isAtNewest.value = checkIsAtNewest();
 		}
 
