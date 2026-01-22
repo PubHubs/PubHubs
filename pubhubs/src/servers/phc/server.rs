@@ -198,7 +198,7 @@ impl crate::servers::App<Server> for App {
         let transcryptor_master_enc_key_part = tdi
             .master_enc_key_part
             .expect("should already have been checked to be some by discovery_info_of");
-        let new_constellation_inner = crate::servers::constellation::Inner {
+        let new_constellation_inner = constellation::Inner {
             // The public master encryption key is `x_PHC * ( x_T * B )`
             master_enc_key: phcrypto::combine_master_enc_key_parts(
                 &transcryptor_master_enc_key_part,
@@ -251,9 +251,9 @@ impl crate::servers::App<Server> for App {
         let mut js = tokio::task::JoinSet::new();
 
         if tdi
-            .constellation
+            .constellation_or_id
             .as_ref()
-            .is_some_and(|c| c.id != constellation.id)
+            .is_some_and(|c| *c.id() != constellation.id)
         {
             // transcryptor's constellation is out of date; invoke discovery
             log::info!(
@@ -270,9 +270,9 @@ impl crate::servers::App<Server> for App {
         }
 
         if asdi
-            .constellation
+            .constellation_or_id
             .as_ref()
-            .is_some_and(|c| c.id != constellation.id)
+            .is_some_and(|c| *c.id() != constellation.id)
         {
             // authentication server's constellation is out of date; invoke discovery
             log::info!(
@@ -297,7 +297,7 @@ impl crate::servers::App<Server> for App {
         match result_maybe {
             // joinset was empty, no discovery was ran
             None => {
-                if tdi.constellation.is_some() && asdi.constellation.is_some() {
+                if tdi.constellation_or_id.is_some() && asdi.constellation_or_id.is_some() {
                     log::info!("Constellation of all servers up to date!");
                     Ok(DiscoverVerdict::Alright)
                 } else {

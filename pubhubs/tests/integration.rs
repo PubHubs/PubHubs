@@ -146,6 +146,8 @@ async fn main_integration_test_local(
     let constellation: servers::Constellation = client
         .get_constellation(&config.phc_url.as_ref())
         .await
+        .unwrap()
+        .into_constellation()
         .unwrap();
 
     // To test discovery, change transcryptor's and phc's encryption key
@@ -238,6 +240,8 @@ async fn main_integration_test_local(
     let constellation: servers::Constellation = client
         .get_constellation(&config.phc_url.as_ref())
         .await
+        .unwrap()
+        .into_constellation()
         .unwrap();
 
     let welcome_resp = client

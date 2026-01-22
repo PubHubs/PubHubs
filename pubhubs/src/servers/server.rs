@@ -492,12 +492,19 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         }
 
         assert!(
-            phc_inf.constellation.is_some(),
+            phc_inf.constellation_or_id.is_some(),
             "this `discover` method should only be run when phc_inf.constellation is some"
         );
 
+        let Some(phc_inf_constellation) = phc_inf.constellation_or_id.unwrap().into_constellation() else {
+            log::warn!("{server_name}: {phc} returned only its contellation id",
+                phc = Name::PubhubsCentral,
+                server_name = S::NAME);
+            return Err(api::ErrorCode::InternalError);
+        };
+
         if let Some(rs) = self.running_state.as_ref() {
-            if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
+            if !self.check_constellation(&phc_inf_constellation) {
                 log::warn!(
                     "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
                     server_name = S::NAME,
@@ -523,7 +530,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
                 phc = Name::PubhubsCentral
             );
 
-            if phc_inf.constellation.as_ref().unwrap().id == rs.constellation.id {
+            if phc_inf_constellation.id == rs.constellation.id {
                 log::info!(
                     "{server_name}: my constellation is up-to-date!",
                     server_name = S::NAME,
@@ -544,12 +551,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         );
 
         // NOTE: phc_inf has already been (partially) checked
-        let c = phc_inf
-            .constellation
-            .as_ref()
-            .expect("that constellation is not none should already have been checked");
-
-        let url = c.url(S::NAME);
+        let url = phc_inf_constellation.url(S::NAME);
 
         // obtain DiscoveryInfo from oneself
         let di = self
@@ -569,7 +571,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         .check(di, url)?;
 
         Ok(DiscoverVerdict::ConstellationOutdated {
-            new_constellation: Box::new(phc_inf.constellation.unwrap()),
+            new_constellation: Box::new(phc_inf_constellation),
         })
     }
 
@@ -908,6 +910,22 @@ impl<S: Server> AppBase<S> {
     }
 
     fn cached_handle_discovery_info(app: &S::AppT) -> api::Result<api::DiscoveryInfoResp> {
+        use super::constellation::ConstellationOrId;
+
+        // Return our constellation (if we have one), but only its id if we're not PHC.
+        let constellation_or_id = 
+                app
+                .running_state
+                .as_ref()
+                .map(|rs| {
+                    match S::NAME {
+                        Name::PubhubsCentral => ConstellationOrId::Constellation(
+                            AsRef::<Constellation>::as_ref(&rs.constellation).clone()),
+                        _ => ConstellationOrId::Id{id: rs.constellation.id }
+                    }
+                });
+
+
         Ok(api::DiscoveryInfoResp {
             name: S::NAME,
             version: app.version.clone(),
@@ -922,11 +940,9 @@ impl<S: Server> AppBase<S> {
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
-            constellation: app
-                .running_state
-                .as_ref()
-                .map(|rs| AsRef::<Constellation>::as_ref(&rs.constellation).clone()),
+            constellation_or_id
         })
+        
     }
 }
 
