@@ -101,7 +101,9 @@ async fn main_integration_test() {
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
 
-    let yivi_server_sk = yivi::SigningKey::RS256(Box::new(jwt::RS256Sk::random(512).unwrap()));
+    // Generating an RSA key, even a small 512-bit one, is quite expensive, so we use a
+    // hardcoded key (for this test) instead.
+    let yivi_server_sk : yivi::SigningKey = serde_json::from_str(r#"{"rs256":"-----BEGIN PRIVATE KEY-----\nMIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAy80kqWqcEe95noNs\nD51BJOcHpMWq0qXHAm8cF7QTlToj+IaXOzFy1yBTY7aZ8gV5x/YbNdl/rqhgYsjT\nHrjZ9QIDAQABAkBZ3IV60hAo9F+63hXquJr9y4SaSbItmX0rfJR1eyhbVnMBQWdH\nBQPoA+yWYARC2VDuuP0hZL3V+yuvYWtILtFtAiEA6jsLrssA6TLqfCJQfCOPIj4e\n565nQl707tsbZcsHqr8CIQDevhsBBvfSmrTAEZTMSWTrCpJ7oSgGcx6PrCY0mx8s\nSwIgDaVG9vXopa1Lr9On8LN5oTsRPdoRNfKmPkwReoqrda0CIQCyFjCk+5s8qTCG\nuAfN5YhoW8WOTuUfcv8mQ68wNC4STQIgAa3PPfSKP8v4kGom1UIrOT6BShf735jQ\n6XWkFMj0gfk=\n-----END PRIVATE KEY-----\n"}"#).unwrap();
 
     config
         .auths
