@@ -275,7 +275,7 @@ where
 pub trait AppCreator<ServerT: Server>:
     DerefMut<Target = AppCreatorBase<ServerT>> + Send + Clone + 'static
 {
-    /// When [`App`]s are created a new [`AppCreator::Context`]  is created,
+    /// When [`App`]s are created a new [`AppCreator::ContextT`]  is created,
     /// and a reference to it is passed to [`AppCreator::into_app`].
     type ContextT: Default + Send + Clone + 'static;
 

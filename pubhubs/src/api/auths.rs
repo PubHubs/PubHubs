@@ -33,7 +33,7 @@ pub struct WelcomeResp {
     /// A list of historic values for the duration of the validity of pubhubs cards.
     ///
     /// This field is only set when yivi and historic values for
-    /// [`servers::auths::card::CardConfig::valid_for`] are configured.
+    /// [`crate::servers::auths::card::CardConfig::valid_for`] are configured.
     ///
     /// The list is guaranteed to be ordered by [`HistoricCardValidity::starting_at_timestamp`],
     /// and is gauranteed to contain an entry with `starting_at_timestamp = 0`.
