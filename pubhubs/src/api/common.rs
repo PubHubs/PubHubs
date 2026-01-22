@@ -246,6 +246,10 @@ impl ErrorCode {
 pub trait PayloadTrait: Clone {
     type JsonType: Serialize + DeserializeOwned + core::fmt::Debug;
 
+    /// Used when creating requests
+    fn to_payload(&self) -> Payload<&Self::JsonType>;
+
+    /// Used when forming responses
     fn into_payload(self) -> Payload<Self::JsonType>;
 
     fn from_payload(payload: Payload<Self::JsonType>) -> anyhow::Result<Self>;
@@ -360,6 +364,14 @@ where
 {
     type JsonType = T;
 
+    fn to_payload(&self) -> Payload<&T> {
+        match self {
+            Payload::None => Payload::None,
+            Payload::Json(t) => Payload::Json(t),
+            Payload::Octets(b) => Payload::Octets(b.clone()), // cheap clone
+        }
+    }
+
     fn into_payload(self) -> Payload<T> {
         self
     }
@@ -374,6 +386,10 @@ where
     T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
 {
     type JsonType = T;
+
+    fn to_payload(&self) -> Payload<&T> {
+        Payload::Json(self)
+    }
 
     fn into_payload(self) -> Payload<T> {
         Payload::Json(self)
@@ -395,6 +411,10 @@ pub struct NoPayload;
 impl PayloadTrait for NoPayload {
     type JsonType = ();
 
+    fn to_payload(&self) -> Payload<&()> {
+        Payload::None
+    }
+
     fn into_payload(self) -> Payload<()> {
         Payload::None
     }
@@ -415,6 +435,10 @@ pub struct BytesPayload(pub bytes::Bytes);
 
 impl PayloadTrait for BytesPayload {
     type JsonType = ();
+
+    fn to_payload(&self) -> Payload<&()> {
+        Payload::Octets(self.0.clone()) // cheap clone
+    }
 
     fn into_payload(self) -> Payload<()> {
         Payload::Octets(self.0)

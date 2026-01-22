@@ -242,7 +242,7 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             result.unwrap()
         };
 
-        let payload = self.request.clone().into_payload(); // TODO: remove clone
+        let payload = self.request.to_payload();
 
         if !self.quiet {
             log::debug!(
