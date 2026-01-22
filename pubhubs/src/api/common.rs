@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    Deserialize, Serialize,
     de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
 };
 
 use anyhow::Context as _;
@@ -241,9 +241,8 @@ impl ErrorCode {
     }
 }
 
-// TODO: remove Clone, needed for current query impl
 /// What's expected from a [`EndpointDetails::RequestType`].
-pub trait PayloadTrait: Clone {
+pub trait PayloadTrait: Sized {
     type JsonType: Serialize + DeserializeOwned + core::fmt::Debug;
 
     /// Used when creating requests
@@ -256,7 +255,7 @@ pub trait PayloadTrait: Clone {
 }
 
 /// Payload of a request or response to an api endpoint.
-#[derive(Debug, Clone)] // TODO: remove Clone
+#[derive(Debug)]
 pub enum Payload<JsonType> {
     None,
 
@@ -301,8 +300,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-            >,
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {
@@ -360,7 +359,7 @@ where
 
 impl<T> PayloadTrait for Payload<T>
 where
-    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone, // TODO: remove Clone
+    T: Serialize + DeserializeOwned + core::fmt::Debug,
 {
     type JsonType = T;
 
@@ -383,7 +382,7 @@ where
 
 impl<T> PayloadTrait for T
 where
-    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+    T: Serialize + DeserializeOwned + core::fmt::Debug,
 {
     type JsonType = T;
 
@@ -405,7 +404,6 @@ where
 }
 
 /// Use [`NoPayload`] as [`EndpointDetails::RequestType`] to indicate no payload is expected.
-#[derive(Clone, Copy)]
 pub struct NoPayload;
 
 impl PayloadTrait for NoPayload {
@@ -430,7 +428,6 @@ impl PayloadTrait for NoPayload {
 
 /// A payload (see [`PayloadTrait`]) that can only hold bytes. Probably only useful for as
 /// [`EndpointDetails::RequestType`].
-#[derive(Clone)]
 pub struct BytesPayload(pub bytes::Bytes);
 
 impl PayloadTrait for BytesPayload {
@@ -459,7 +456,7 @@ impl PayloadTrait for BytesPayload {
 /// `Result<T>`, and for which `Self::from_payload(Payload::Json(Err(..)))`
 /// and `Self::from_payload(Self::into_payload())` never fail.
 pub trait ResultPayloadTrait: PayloadTrait<JsonType = Result<Self::OkType>> {
-    type OkType: Serialize + DeserializeOwned + core::fmt::Debug + Clone;
+    type OkType: Serialize + DeserializeOwned + core::fmt::Debug;
 
     /// Create an instance of this result payload type from the given [`ErrorCode`] infallibly.
     fn from_ec(ec: ErrorCode) -> Self {
@@ -481,14 +478,14 @@ pub trait ResultPayloadTrait: PayloadTrait<JsonType = Result<Self::OkType>> {
 
 impl<T> ResultPayloadTrait for Result<T>
 where
-    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+    T: Serialize + DeserializeOwned + core::fmt::Debug,
 {
     type OkType = T;
 }
 
 impl<T> ResultPayloadTrait for Payload<Result<T>>
 where
-    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+    T: Serialize + DeserializeOwned + core::fmt::Debug,
 {
     type OkType = T;
 }
@@ -560,7 +557,7 @@ pub trait EndpointDetails {
         sc.route(
             Self::PATH,
             web::method(Self::METHOD).to(move || {
-                let cached = cached.clone();
+                let cached = cached.clone(); // cheap clone
                 async { cached }
             }),
         );
