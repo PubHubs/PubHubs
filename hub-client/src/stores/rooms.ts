@@ -1,19 +1,14 @@
 // Packages
-import { EventType, IStateEvent, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember } from 'matrix-js-sdk';
+import { EventType, IStateEvent, Room as MatrixRoom, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
-import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { propCompare } from '@hub-client/logic/core/extensions';
 import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
-import { CONFIG } from '@hub-client/logic/logging/Config';
-import { SecuredRoomAttributeResult } from '@hub-client/logic/logging/statusTypes';
 
 // Models
-import { AskDisclosure, AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 import Room from '@hub-client/models/rooms/Room';
 import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
@@ -23,7 +18,6 @@ import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { useSettings } from '@hub-client/stores/settings';
 import { useUser } from '@hub-client/stores/user';
 
 // Types
@@ -84,9 +78,6 @@ const useRooms = defineStore('rooms', {
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },
 			securedRoom: {} as TSecuredRoom,
-			askDisclosure: null as AskDisclosure | null,
-			askDisclosureMessage: null as AskDisclosureMessage | null,
-			newAskDisclosureMessage: false,
 			initialRoomsLoaded: false,
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },

@@ -40,7 +40,9 @@
 
 	function resultOfEntry(result: SecuredRoomAttributeResult) {
 		if (result.goto) {
-			pubhubs.updateRoom(props.securedRoomId).then(() => router.push({ name: 'room', params: { id: props.securedRoomId } }));
+			pubhubs.joinRoom(props.securedRoomId).then(() => {
+				router.push({ name: 'room', params: { id: props.securedRoomId } });
+			});
 			notificationsStore.removeNotification(props.securedRoomId);
 			emit('success');
 		} else if (result && result.not_correct) {

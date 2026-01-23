@@ -64,7 +64,7 @@
 		</HeaderFooter>
 	</template>
 	<!-- Secure room join dialog -->
-	<RoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" @close="router.push({ name: 'home' })" />
+	<RoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" />
 </template>
 
 <script setup lang="ts">
@@ -91,6 +91,7 @@
 	import StewardContactRoomHeader from '@hub-client/components/rooms/StewardContactRoomHeader.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
@@ -223,6 +224,7 @@
 			// For secured rooms users first have to authenticate
 			if (roomIsSecure) {
 				joinSecuredRoom.value = props.id;
+				return;
 			}
 			// Non-secured rooms can be joined immediately
 			else {

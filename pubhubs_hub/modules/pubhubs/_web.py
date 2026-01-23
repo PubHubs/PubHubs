@@ -216,7 +216,6 @@ class YiviResult(DirectServeJsonResource):
         allowed = await self.check_allowed(result, room_id)
         if allowed:
             await self.store.allow(user_id, room_id, time.time())
-            await self.module_api.update_room_membership(user_id, user_id, room_id, "join")
 
             answer = {
                     "goto": f"{self.config[CLIENT_URL]}#/room/{room_id}"
