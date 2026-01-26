@@ -50,7 +50,7 @@
 		</template>
 
 		<!-- Room sidebar -->
-		<RoomSidebar :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value" @close="sidebar.close()" @tab-change="sidebar.setTab($event)">
+		<RoomSidebar :key="route.fullPath" :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value" @close="sidebar.close()" @tab-change="sidebar.setTab($event)">
 			<RoomLibrary v-if="sidebar.activeTab.value === SidebarTab.Library" :room="room!" />
 			<RoomThread
 				v-if="sidebar.activeTab.value === SidebarTab.Thread && room?.getCurrentThreadId()"

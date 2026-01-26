@@ -46,79 +46,6 @@
 								</span>
 								<RoomBadge v-if="!room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id" />
 							</div>
-
-							<!-- Message Action Buttons -->
-							<div class="absolute top-0 right-0 h-fit w-fit">
-								<template v-if="timerReady && !deleteMessageDialog">
-									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
-										<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
-									</button>
-									<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
-								</template>
-
-								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
-									<!-- Uncomment once issue is resolved -->
-									<!-- <div v-if="isSupported">
-										<button
-											@click="copy(`${source}?eventid=${event.event_id}`)"
-											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out w-fit h-fit"
-										>
-											<Icon type="link" size="sm" v-if="!copied"></Icon>
-											<Icon type="check" size="sm" v-else>Copied!</Icon>
-										</button>
-									</div> -->
-									<!-- Reaction Button -->
-									<button
-										v-if="!redactedMessage"
-										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
-										:title="t('message.reply_emoji')"
-									>
-										<Icon type="smiley" size="sm"></Icon>
-									</button>
-
-									<!-- Reply Button -->
-									<button
-										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
-										@click="reply"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
-										:title="t('message.reply')"
-									>
-										<Icon type="arrow-bend-up-left" size="sm" />
-									</button>
-
-									<!-- Thread Reply Button -->
-									<button
-										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-										@click="replyInThread"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
-										:title="t('message.reply_in_thread')"
-									>
-										<Icon type="chat-circle" size="sm"></Icon>
-									</button>
-
-									<!-- Disclosure Button -->
-									<button
-										v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
-										@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
-										:title="t('menu.moderation_tools_disclosure')"
-									>
-										xp
-										<Icon type="warning" size="sm" />
-									</button>
-
-									<!-- Delete Button -->
-									<button
-										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
-										@click="onDeleteMessage(event)"
-										class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
-										:title="t('menu.delete_message')"
-									>
-										<Icon type="trash" size="sm" />
-									</button>
-								</RoomEventActionsPopup>
-							</div>
 						</div>
 					</div>
 
@@ -145,16 +72,90 @@
 						@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
 					/>
 
-					<!-- Thread View Button -->
-					<button
-						@click="replyInThread"
-						class="bg-hub-background-3 text-label-tiny inline-flex rounded-md px-2 py-1 hover:opacity-80"
-						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-					>
-						<Icon type="chat-circle" size="xs"></Icon>
-						<!-- &nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }}) -->
-						&nbsp; {{ t('message.threads.view_thread') }}
-					</button>
+					<div class="mt-4 flex h-4 items-center justify-end gap-4">
+						<!-- Thread View Button -->
+						<button
+							@click="replyInThread"
+							class="text-label-tiny inline-flex gap-1 rounded-md hover:cursor-pointer hover:opacity-80"
+							v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
+						>
+							{{ t('message.threads.view_thread') }}
+							<Icon type="chat-circle" size="sm" />
+						</button>
+
+						<!-- Message Action Buttons -->
+						<div class="h-fit w-fit">
+							<template v-if="timerReady && !deleteMessageDialog">
+								<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
+									<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
+								</button>
+								<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
+							</template>
+
+							<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel" :class="!isMobile ? 'hidden group-hover:block' : 'block'">
+								<!-- Uncomment once issue is resolved -->
+								<!-- <div v-if="isSupported">
+										<button
+											@click="copy(`${source}?eventid=${event.event_id}`)"
+											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out w-fit h-fit"
+										>
+											<Icon type="link" size="sm" v-if="!copied"></Icon>
+											<Icon type="check" size="sm" v-else>Copied!</Icon>
+										</button>
+									</div> -->
+								<!-- Reaction Button -->
+								<button
+									v-if="!redactedMessage"
+									@click.stop="emit('reactionPanelToggle', props.event.event_id)"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									:title="t('message.reply_emoji')"
+								>
+									<Icon type="smiley" size="sm"></Icon>
+								</button>
+
+								<!-- Reply Button -->
+								<button
+									v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
+									@click="reply"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									:title="t('message.reply')"
+								>
+									<Icon type="arrow-bend-up-left" size="sm" />
+								</button>
+
+								<!-- Thread Reply Button -->
+								<button
+									v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
+									@click="replyInThread"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									:title="t('message.reply_in_thread')"
+								>
+									<Icon type="chat-circle" size="sm"></Icon>
+								</button>
+
+								<!-- Disclosure Button -->
+								<button
+									v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
+									@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									:title="t('menu.moderation_tools_disclosure')"
+								>
+									xp
+									<Icon type="warning" size="sm" />
+								</button>
+
+								<!-- Delete Button -->
+								<button
+									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
+									@click="onDeleteMessage(event)"
+									class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									:title="t('menu.delete_message')"
+								>
+									<Icon type="trash" size="sm" />
+								</button>
+							</RoomEventActionsPopup>
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -228,7 +229,7 @@
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const source = ref('');
 	const { text, copy, copied, isSupported } = useClipboard({ source });
-	//
+	const isMobile = computed(() => settings.isMobileState);
 
 	let roomMember = ref();
 	let threadLength = ref(0);

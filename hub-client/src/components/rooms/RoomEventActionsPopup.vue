@@ -2,8 +2,8 @@
 	<div
 		class="bg-surface rounded-md"
 		:class="{
-			block: isTouchDevice || remainActive,
 			'hidden group-hover:block': !isTouchDevice && !remainActive,
+			'bg-surface-base block': isTouchDevice || remainActive,
 		}"
 	>
 		<div class="flex">

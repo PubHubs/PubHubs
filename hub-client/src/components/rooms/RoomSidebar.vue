@@ -14,10 +14,13 @@
 </template>
 
 <script setup lang="ts">
+	//  Packages
 	import { computed } from 'vue';
 
+	// Components
 	import RoomSidebarHeader from '@hub-client/components/rooms/RoomSidebarHeader.vue';
 
+	// Composables
 	import { SidebarTab } from '@hub-client/composables/useSidebar';
 
 	const props = defineProps<{
