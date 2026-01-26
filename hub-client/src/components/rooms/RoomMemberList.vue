@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-col gap-4 p-3">
+	<div class="flex h-full flex-col gap-4 overflow-y-auto p-3">
 		<div v-if="stewardIds && stewardIds.length > 0" class="flex-1">
 			<SideKickSubHeader>
 				<div class="flex justify-between">

@@ -120,6 +120,7 @@
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';

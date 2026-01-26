@@ -13,7 +13,7 @@
 
 					<div class="flex h-fit w-full flex-col gap-8 self-end p-4">
 						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
-							<GlobalbarButton type="dots-three-vertical" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
+							<GlobalbarButton type="dots-three-vertical" @click="toggleHubOrdering" />
 							<GlobalbarButton type="sliders-horizontal" @click="settingsDialog = true" />
 							<GlobalbarButton type="sign-out" @click="logout" />
 						</div>

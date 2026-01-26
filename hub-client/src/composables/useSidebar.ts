@@ -26,7 +26,7 @@ export function useSidebar() {
 	// Sidebar visibility
 	const isOpen = computed(() => activeTab.value !== SidebarTab.None);
 
-	// Open sidebar with specific tab
+	// Open room specific tab
 	function openTab(tab: SidebarTab) {
 		activeTab.value = tab;
 	}

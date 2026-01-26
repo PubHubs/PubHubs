@@ -234,7 +234,7 @@
 			messageActions.replyingTo = undefined;
 
 			if (props.room.getCurrentThreadId()) {
-				threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
+				threadRoot = (await pubhubs.getEvent(props.room.roomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 			} else {
 				threadRoot = undefined;
 			}
@@ -247,7 +247,7 @@
 		async () => {
 			if (props.inThread) {
 				if (props.room.getCurrentThreadId()) {
-					threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
+					threadRoot = (await pubhubs.getEvent(props.room.roomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 				} else {
 					threadRoot = undefined;
 				}
@@ -292,7 +292,7 @@
 		// if the message is in a thread we can only set inReplyTo if we are in a thread
 		// if the message is not in a thread we can only set inReplyTo if we are not in a thread
 		if (messageActions.replyingTo) {
-			const message = ((await pubhubs.getEvent(rooms.currentRoomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
+			const message = ((await pubhubs.getEvent(props.room.roomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
 			if (message?.content[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				inReplyTo.value = props.inThread ? message : undefined;
 			} else {
@@ -358,7 +358,7 @@
 			messageInput.state.showYiviQR = true;
 			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot);
 		} else if (messageActions.replyingTo && inReplyTo.value) {
-			pubhubs.addMessage(rooms.currentRoomId, value.value!.toString(), threadRoot, inReplyTo.value);
+			pubhubs.addMessage(props.room.roomId, value.value!.toString(), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
 			value.value = '';
 		} else if (messageInput.state.poll) {
@@ -375,40 +375,40 @@
 				},
 			} as unknown as Event;
 			fileUpload(t('errors.file_upload'), pubhubs.Auth.getAccessToken(), uploadUrl, allTypes, syntheticEvent, (url) => {
-				pubhubs.addFile(rooms.currentRoomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string);
+				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string);
 				URL.revokeObjectURL(uri.value);
 				value.value = '';
 				messageInput.cancelFileUpload();
 			});
 		} else {
-			pubhubs.submitMessage(value.value!.toString(), rooms.currentRoomId, threadRoot, inReplyTo.value);
+			pubhubs.submitMessage(value.value!.toString(), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';
 		}
 	}
 
 	async function announcementMessage() {
 		const powerLevel = props.room.getPowerLevel(user.userId);
-		await pubhubs.addAnnouncementMessage(rooms.currentRoomId, value.value!.toString(), powerLevel);
+		await pubhubs.addAnnouncementMessage(props.room.roomId, value.value!.toString(), powerLevel);
 		value.value = '';
 	}
 
 	function editMessage() {
 		if (messageInput.state.poll && pollObject.value.canSend()) {
 			pollObject.value.removeEmptyOptions();
-			pubhubs.editPoll(rooms.currentRoomId, messageInput.state.editEventId as string, pollObject.value as Poll);
+			pubhubs.editPoll(props.room.roomId, messageInput.state.editEventId as string, pollObject.value as Poll);
 			messageInput.openTextArea();
 		} else if (messageInput.state.scheduler && schedulerObject.value.canSend()) {
-			pubhubs.editScheduler(rooms.currentRoomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
+			pubhubs.editScheduler(props.room.roomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
 			messageInput.openTextArea();
 		}
 	}
 
 	function signMessage(message: string, attributes: string[], threadRoot: TMessageEvent | undefined) {
-		rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, threadRoot, finishedSigningMessage);
+		rooms.yiviSignMessage(message, attributes, props.room.roomId, threadRoot, finishedSigningMessage);
 	}
 
 	function finishedSigningMessage(result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
-		pubhubs.addSignedMessage(rooms.currentRoomId, result, threadRoot);
+		pubhubs.addSignedMessage(props.room.roomId, result, threadRoot);
 		messageInput.state.showYiviQR = false;
 		messageInput.state.signMessage = false;
 		value.value = '';
@@ -420,7 +420,7 @@
 	};
 
 	function sendScheduler() {
-		pubhubs.addScheduler(rooms.currentRoomId, schedulerObject.value as Scheduler);
+		pubhubs.addScheduler(props.room.roomId, schedulerObject.value as Scheduler);
 		messageInput.openTextArea();
 	}
 
@@ -431,7 +431,7 @@
 
 	function sendPoll() {
 		pollObject.value.removeEmptyOptions();
-		pubhubs.addPoll(rooms.currentRoomId, pollObject.value as Poll);
+		pubhubs.addPoll(props.room.roomId, pollObject.value as Poll);
 		messageInput.openTextArea();
 	}
 

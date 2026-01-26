@@ -18,7 +18,7 @@
 		</div>
 
 		<!-- Search results -->
-		<div class="mt-4 flex-1 overflow-y-auto">
+		<div class="mt-4 h-full flex-1 overflow-y-auto">
 			<template v-if="isSearching">
 				<div class="flex items-center gap-2 p-2">
 					<InlineSpinner />

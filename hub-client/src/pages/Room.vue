@@ -6,8 +6,6 @@
 					<div class="flex h-full w-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
 						<div v-if="rooms.currentRoom" class="relative flex w-fit items-center gap-3" data-testid="roomtype">
 							<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
-							<Icon v-if="sidebar.activeTab.value === SidebarTab.Library" type="caret-left" size="base" @click.stop="sidebar.close()" class="cursor-pointer" />
-							<Icon v-if="sidebar.activeTab.value === SidebarTab.Library" type="folder-simple" size="base" data-testid="roomlibrary-icon" />
 							<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
 							<div class="group hover:mt-025 relative hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
 								<div class="flex flex-col group-hover:border-b-2 group-hover:border-dotted">
