@@ -25,9 +25,22 @@ const routes = [
 	},
 	{
 		path: '/admin',
-		name: 'admin',
-		component: () => import('@hub-client/pages/Admin.vue'),
-		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		children: [
+			{
+				path: ':tab?',
+				props: true,
+				name: 'admin',
+				component: () => import('@hub-client/pages/Admin.vue'),
+				meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+			},
+			// {
+			// 	path: 'edit/:id',
+			// 	props: true,
+			// 	name: 'editroom',
+			// 	component: () => import('@hub-client/pages/EditRoom.vue'),
+			// 	meta: { onlySteward: true, hideBar: true, onboarding: true },
+			// },
+		],
 	},
 	{
 		path: '/manage-users',
@@ -41,7 +54,18 @@ const routes = [
 		component: () => import('@hub-client/pages/HubSettings.vue'),
 		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
-	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@hub-client/pages/DirectMessage.vue'), meta: { hideBar: true, onboarding: true } },
+	{
+		path: '/ask-disclosure',
+		name: 'ask-disclosure',
+		component: () => import('@hub-client/pages/AskDisclosure.vue'),
+		meta: { onlyAdmin: true, onboarding: true },
+	},
+	{
+		path: '/direct-msg',
+		name: 'direct-msg',
+		component: () => import('@hub-client/pages/DirectMessage.vue'),
+		meta: { hideBar: true, onboarding: true },
+	},
 	{
 		path: '/room/:id',
 		name: 'room',
@@ -124,10 +148,24 @@ router.beforeEach((to, from) => {
 		console.log('ONLY FOR ADMINS', isAdmin);
 		return { name: 'home' };
 	}
+
+	// Restrict access to stewards (with id as roomId) routes
+	if (to.meta.onlySteward) {
+		const { isStewardOfRoom } = useUser();
+		const roomId = to.params.id as string;
+		const isSteward = isStewardOfRoom(roomId);
+		if (isSteward) {
+			return true;
+		}
+		console.log('ONLY FOR STEWARDS');
+		return from;
+	}
+
+	// Redirect to home if coming from a browser refresh (undefined)
 	if (to.name === 'error-page' && from.name === undefined) {
-		// Redirect to home if coming from a browser refresh (undefined)
 		return { name: 'home' };
 	}
+
 	// Default allow navigation
 	return true;
 });
