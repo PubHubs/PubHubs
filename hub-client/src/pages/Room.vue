@@ -168,12 +168,12 @@
 
 	onMounted(() => {
 		update();
-		// Handle explicit scroll requests from URL query parameter or message bus
+		// Handle explicit scroll requests from URL parameter
 		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
 		if (eventIdFromQuery) {
 			scrollToEventId.value = eventIdFromQuery;
 		} else if (rooms.scrollPositions[props.id]) {
-			// Fallback to scrollPositions (set by App.vue for iframe navigation)
+			// Fallback to scrollPositions
 			scrollToEventId.value = rooms.scrollPositions[props.id];
 			// Clear it after reading so it doesn't persist
 			delete rooms.scrollPositions[props.id];
@@ -195,7 +195,7 @@
 				if (lastEventId) {
 					const event = rooms.currentRoom.findEventById(lastEventId);
 					if (event) {
-						// Use the message's timestamp (not current time) - marker can only advance to newer messages
+						// Use the message's timestamp; marker can only advance to newer messages
 						const messageTimestamp = event.localTimestamp || event.getTs();
 						if (messageTimestamp) {
 							setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
@@ -235,7 +235,7 @@
 			else {
 				promise = pubhubs.joinRoom(props.id);
 			}
-			// need this extra check
+			// Need this extra check
 			if (promise) {
 				// Room does not exist or user failed to join room
 				promise.catch(() => {

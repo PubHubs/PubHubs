@@ -12,6 +12,11 @@
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 
+	// Stores
+	import { useUser } from '@hub-client/stores/user';
+
+	const user = useUser();
+
 	const props = defineProps({
 		currentEventId: {
 			type: String,

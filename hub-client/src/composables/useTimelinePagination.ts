@@ -27,7 +27,7 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		return room.isNewestMessageLoaded();
 	});
 
-	// Loads older messages (backward pagination)
+	// Loads older messages
 	async function loadPrevious(): Promise<void> {
 		if (isLoadingPrevious.value || oldestEventIsLoaded.value) return;
 
@@ -54,7 +54,7 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		isLoadingPrevious.value = false;
 	}
 
-	// Loads newer messages (forward pagination)
+	// Loads newer messages
 	async function loadNext(): Promise<void> {
 		if (isLoadingNext.value || newestEventIsLoaded.value) return;
 
@@ -114,9 +114,7 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		}
 	}
 
-	/**
-	 * Suppresses observer triggers during pagination
-	 */
+	// Suppresses observer triggers during pagination
 	function suppressObserverTriggers() {
 		suppressionActive.value = true;
 

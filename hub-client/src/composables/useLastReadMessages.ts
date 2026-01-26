@@ -27,7 +27,7 @@ export const useLastReadMessages = () => {
 			messages[roomId] = { eventId, timestamp };
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
 		} catch {
-			// Silently fail - localStorage might be unavailable
+			// Silently fail; localStorage might be unavailable
 		}
 	};
 

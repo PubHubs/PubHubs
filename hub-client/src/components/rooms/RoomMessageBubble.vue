@@ -14,7 +14,7 @@
 					<ReactionMiniPopUp :eventId="props.event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, props.event.event_id)" @close-panel="emit('reactionPanelClose')" />
 				</div>
 
-				<!-- Avatar-->
+				<!-- Avatar -->
 				<Avatar
 					v-if="hasBeenVisible"
 					:avatar-url="user.userAvatar(props.event.sender)"
@@ -229,7 +229,7 @@
 	const source = ref('');
 	const { copy, copied, isSupported } = useClipboard({ source });
 
-	// Intersection Observer for lazy rendering
+	// Intersection observer
 	const messageRoot = ref<HTMLElement | null>(null);
 	const isVisible = ref(false);
 	const hasBeenVisible = ref(false);
@@ -280,7 +280,7 @@
 		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
 		threadLength.value = props.eventThreadLength;
 
-		// Set up Intersection Observer for lazy rendering
+		// Set up intersection observer for lazy rendering
 		if (messageRoot.value) {
 			observer = new IntersectionObserver(
 				(entries) => {
@@ -293,7 +293,7 @@
 				},
 				{
 					root: null, // viewport
-					rootMargin: '200px', // Start loading 200px before entering viewport
+					rootMargin: '500px', // Start loading 500px before entering viewport
 					threshold: 0,
 				},
 			);
@@ -302,7 +302,7 @@
 	});
 
 	onBeforeUnmount(() => {
-		// Clean up Intersection Observer
+		// Clean up intersection observer
 		if (observer && messageRoot.value) {
 			observer.unobserve(messageRoot.value);
 			observer.disconnect();

@@ -82,7 +82,6 @@ class MatrixService {
 			});
 			await this.slidingSync.start();
 
-			// await this.slidingSync.start();
 			LOGGER.log(SMI.SYNC, 'Sliding Sync started');
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'Failed to start the Sliding Sync', { err });
