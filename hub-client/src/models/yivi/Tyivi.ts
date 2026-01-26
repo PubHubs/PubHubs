@@ -3,4 +3,10 @@ type Attribute = {
 	label?: string;
 };
 
-export { Attribute };
+enum EYiviFlow {
+	Disclosure = 'disclosure',
+	SecuredRoom = 'secured',
+	Sign = 'sign',
+}
+
+export { Attribute, EYiviFlow };

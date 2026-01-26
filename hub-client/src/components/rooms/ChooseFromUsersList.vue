@@ -1,19 +1,15 @@
 <template>
-	<!-- factored out from AddPrivateRoom and AskDisclosure -->
-
-	<Dialog :buttons="buttonsCancel" width="w-3/6">
-		<template #header>
-			{{ header }}
-		</template>
-		<FilteredList :items="usersList" :filterKey="['displayName']" :placeholder="$t('rooms.private_search_user')" @click="onUser($event)" @filter="filter($event)">
+	<div class="bg-surface-high absolute z-50 h-[400px] overflow-auto p-2">
+		<FilteredList :sortby="''" :items="usersList" :filterKey="['displayName']" :placeholder="$t('rooms.private_search_user')" @click="onUser($event)" @filter="filter($event)">
 			<template #item="{ item }">
-				<div class="flex justify-between">
+				<div class="hover:bg-surface-low flex items-center justify-between gap-x-2 p-1">
+					<Avatar :avatar-url="user.userAvatar(item.userId)" :user-id="item.userId"></Avatar>
 					<span :title="item.userId" class="w-100 grow truncate">{{ item.displayName }}</span>
-					<Icon type="plus" class="flex-none" />
+					<Icon type="plus-square" class="flex-none" />
 				</div>
 			</template>
 		</FilteredList>
-	</Dialog>
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -23,14 +19,13 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import FilteredList from '@hub-client/components/ui/FilteredList.vue';
 
 	// Models
 	import { FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
+	import { notice } from '@hub-client/models/constants';
 
 	// Stores
-	import { buttonsCancel } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -45,7 +40,7 @@
 	const users = ref([] as Array<MatrixUser>);
 
 	onMounted(async () => {
-		users.value = await pubhubs.getUsers();
+		users.value = (await pubhubs.getUsers()).filter((user) => user.displayName !== notice.NoticesUser);
 	});
 
 	const usersList = computed(() => {

@@ -1,7 +1,6 @@
 // Packages
 import { assert } from 'chai';
 import { defineStore } from 'pinia';
-import { useI18n } from 'vue-i18n';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
