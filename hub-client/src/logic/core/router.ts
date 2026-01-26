@@ -25,22 +25,9 @@ const routes = [
 	},
 	{
 		path: '/admin',
-		children: [
-			{
-				path: ':tab?',
-				props: true,
-				name: 'admin',
-				component: () => import('@hub-client/pages/Admin.vue'),
-				meta: { onlyAdmin: true, hideBar: true, onboarding: true },
-			},
-			// {
-			// 	path: 'edit/:id',
-			// 	props: true,
-			// 	name: 'editroom',
-			// 	component: () => import('@hub-client/pages/EditRoom.vue'),
-			// 	meta: { onlySteward: true, hideBar: true, onboarding: true },
-			// },
-		],
+		name: 'admin',
+		component: () => import('@hub-client/pages/Admin.vue'),
+		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
 		path: '/manage-users',
