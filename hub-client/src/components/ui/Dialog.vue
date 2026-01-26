@@ -24,8 +24,8 @@
 					<slot></slot>
 					<div v-if="dialog.properties.content !== ''" v-html="dialog.properties.content"></div>
 				</div>
-				<Line class="z-0" />
-				<div class="flex w-full flex-row-reverse justify-start gap-2">
+				<div v-if="dialog.properties.buttons" class="flex w-full flex-row-reverse justify-start gap-2">
+					<Line class="z-0" />
 					<div v-for="(button, index) in dialog.properties.buttons" :key="index" class="w-fit">
 						<Button :color="button.color" @click="doAction(button.action)" :disabled="!button.enabled">{{ $t('dialog.' + button.label) }}</Button>
 					</div>

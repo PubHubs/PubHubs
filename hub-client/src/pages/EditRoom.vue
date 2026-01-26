@@ -59,7 +59,7 @@
 								</TabHeader>
 								<TabContainer>
 									<div class="pt-2" role="tabpanel" v-if="selectedAttributes.length >= activeTab">
-										<TextFieldAutoComplete v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle">{{
+										<TextFieldAutoComplete v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" class="text-label placeholder:text-surface-subtle">{{
 											t('admin.secured_attribute')
 										}}</TextFieldAutoComplete>
 
@@ -162,7 +162,6 @@
 	const selectedAttributes = ref<Array<TEditRoomFormAttributes>>([{ label: '', attribute: '', accepted: [], profile: false }]);
 	let OriginalAttributes: Array<TEditRoomFormAttributes> = [{ label: '', attribute: '', accepted: [], profile: false }];
 	const errorMessage = ref<string | undefined>(undefined);
-	const autoCompleteLength = 80;
 	const roomLoaded = ref(false);
 	const waitForServer = ref(false);
 
