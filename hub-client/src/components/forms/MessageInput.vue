@@ -117,11 +117,10 @@
 					<IconButton type="x" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
 				</div>
 			</div>
-
 			<!-- Yivi signing qr popup -->
-			<div class="absolute bottom-[10%] left-1/2 w-min -translate-x-1/2" v-show="messageInput.state.showYiviQR">
+			<div class="absolute bottom-[10%] left-1/2 min-w-64 -translate-x-1/2" v-show="messageInput.state.showYiviQR">
 				<Icon type="x" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
-				<div v-if="messageInput.state.signMessage" id="yivi-web-form"></div>
+				<div v-if="messageInput.state.signMessage" :id="EYiviFlow.Sign"></div>
 			</div>
 		</div>
 	</div>
@@ -152,6 +151,7 @@
 
 	// Logic
 	import { useMessageInput } from '@hub-client/logic/messageInput';
+	import { yiviFlow, yiviSignMessage } from '@hub-client/logic/yiviHandler';
 
 	// Models
 	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
@@ -160,6 +160,7 @@
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import Room from '@hub-client/models/rooms/Room';
+	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
 	import { useMessageActions } from '@hub-client/stores/message-actions';
@@ -404,7 +405,7 @@
 	}
 
 	function signMessage(message: string, attributes: string[], threadRoot: TMessageEvent | undefined) {
-		rooms.yiviSignMessage(message, attributes, props.room.roomId, threadRoot, finishedSigningMessage);
+		yiviFlow(EYiviFlow.Sign, finishedSigningMessage, rooms.currentRoomId, '#' + EYiviFlow.Sign, attributes, message, threadRoot);
 	}
 
 	function finishedSigningMessage(result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {

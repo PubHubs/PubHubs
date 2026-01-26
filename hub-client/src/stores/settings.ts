@@ -135,7 +135,7 @@ const defaultSettings: Settings = {
 		local: {
 			signedMessages: true,
 			dateSplitter: true,
-			disclosure: false,
+			disclosure: true,
 			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: true,

@@ -119,7 +119,7 @@
 	<template v-for="item in roomTimeLine" :key="item.matrixEvent.event.event_id">
 		<Dialog v-if="signingMessage && activeEventId === item.matrixEvent.event.event_id" :buttons="buttonsCancel" :title="$t('roomlibrary.sign_file_hash')" @close="signingMessage = false">
 			<div class="flex flex-col items-center gap-4">
-				<div class="text-center" id="yivi-web-form"></div>
+				<div class="text-center" :id="EYiviFlow.Sign"></div>
 				<div class="text-center">
 					{{ $t('roomlibrary.sign_file_hash') }} `{{ item.matrixEvent.event.content?.filename }}` : <span class="font-bold">{{ showFileHash }}</span> <br />
 					{{ $t('roomlibrary.check_file_hash') }}
@@ -146,11 +146,13 @@
 
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import filters from '@hub-client/logic/core/filters';
+	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	import { SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
 	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { TFileMessageEventContent, TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import Room from '@hub-client/models/rooms/Room';
+	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
 
 	import { buttonsCancel } from '@hub-client/stores/dialog';
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -312,7 +314,7 @@
 			const url = formUrlfromMxc(mxc, true);
 			const hashedFile = await makeHash(accessToken, url, props.room);
 			showFileHash.value = hashedFile;
-			rooms.yiviSignMessage(hashedFile, selectedAttributes.value, rooms.currentRoomId, undefined, finishedSigningMessage);
+			yiviFlow(EYiviFlow.Sign, finishedSigningMessage, rooms.currentRoomId, '#' + EYiviFlow.Sign, selectedAttributes.value, hashedFile);
 		}
 	}
 

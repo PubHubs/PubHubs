@@ -13,7 +13,7 @@
 
 		<!-- Dialog -->
 		<div role="dialog" v-if="!dialog.properties.modalonly" class="text-on-surface relative top-0 left-0 flex h-full w-full items-center" :class="isMobile ? 'justify-end' : 'justify-center'" @click="doAction(DialogCancel)">
-			<div class="flex justify-center" :class="isMobile && dialog.properties.type != 'global' ? 'w-[calc(50vw_+_40px)]' : 'w-full'">
+			<div class="flex justify-center" :class="isMobile && dialog.properties.type != 'global' ? 'w-[calc(50vw+40px)]' : 'w-full'">
 				<div class="bg-surface-low shadow-surface-high flex max-h-full flex-col justify-between gap-1 rounded-md p-4 shadow-xl md:m-4" :class="width" @click.stop>
 					<div class="flex w-full items-center justify-between">
 						<H2 v-if="dialog.properties.title !== ''">{{ dialog.properties.title }}</H2>

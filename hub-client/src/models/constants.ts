@@ -109,6 +109,10 @@ enum actions {
 	RoomAnnouncement = 'RoomAnnouncement',
 }
 
+enum notice {
+	NoticesUser = 'notices_user',
+}
+
 enum QueryParameterKey {
 	EventId = 'eventid',
 }
@@ -163,4 +167,5 @@ export {
 	roles,
 	actions,
 	QueryParameterKey,
+	notice,
 };
