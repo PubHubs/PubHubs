@@ -1,16 +1,6 @@
 <template>
-	<Dialog
-		v-if="ask"
-		:title="$t('admin.ask_disclosure_title')"
-		:buttons="buttonsSubmitCancel"
-		:width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'"
-		@close="close($event)"
-		@click="
-			selectUser = false;
-			dropdown = null;
-		"
-	>
-		<form @submit.prevent class="flex flex-col" :class="isMobile ? 'w-full' : 'w-[450px]'">
+	<Dialog :title="$t('admin.ask_disclosure_title')" :buttons="[]" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close($event)">
+		<ValidatedForm @submit.prevent class="flex flex-col" :class="isMobile ? 'w-full' : 'w-[450px]'" v-slot="{ isValidated }">
 			<div
 				class="mb-2 flex w-full flex-col gap-x-2 gap-y-1"
 				@click.stop="
@@ -31,21 +21,9 @@
 			<ChooseFromUsersList v-if="selectUser" :header="$t('admin.ask_disclosure_choose_user')" @chosen-user="onChosenUser" @click.stop @keydown.esc.stop="selectUser = false" />
 
 			<div class="mb-2 flex w-full flex-col gap-x-2 gap-y-1">
-				<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
 				<div class="flex flex-col">
 					<div>
-						<AutoComplete
-							v-model="attribute"
-							:options="yiviAttributes"
-							:dropdown="dropdown"
-							class="~text-label-min/label-maxflex-1 bg-background rounded-2xl"
-							@keydown.enter.prevent="addAttribute"
-							@click.stop="
-								addAttribute();
-								dropdown = 'others.select_value';
-								selectUser = false;
-							"
-						/>
+						<TextFieldAutoComplete v-model="attribute" :options="yiviAttributes">{{ $t('admin.secured_yivi_attributes') }}</TextFieldAutoComplete>
 					</div>
 					<!-- Tags display -->
 					<div v-if="ask.attributes.length > 0" class="mt-2 flex flex-wrap gap-2">
@@ -56,26 +34,11 @@
 					</div>
 				</div>
 			</div>
-			<div class="mb-2 flex w-full flex-col gap-x-2 gap-y-1">
-				<Label>{{ $t('rooms.room') }}</Label>
-				<AutoComplete
-					v-model="ask.where_room"
-					default="admin.private_room"
-					:options="roomOptions"
-					:dropdown="dropdown"
-					@click.stop="
-						dropdown = 'admin.private_room';
-						selectUser = false;
-					"
-					class="~text-label-min/label-max bg-background flex-1 rounded-2xl"
-				/>
-			</div>
-			<div class="mb-2 flex w-full flex-col gap-x-2 gap-y-1">
-				<Label>{{ $t('admin.ask_disclosure_message_title') }}</Label>
-				<TextArea :placeholder="'Add a message to your disclosure request'" :max-length="100" v-model="ask.message" class="bg-background flex min-h-20" @keydown.esc.stop />
-			</div>
+			<TextFieldAutoComplete v-model="ask.where_room" :options="roomOptions" :validation="{ required: true }">{{ $t('rooms.room') }}</TextFieldAutoComplete>
 
-			<div v-if="formErrors && Object.keys(formErrors).length" class="mt-4">
+			<TextArea placeholder="Add a message to your disclosure request" :validation="{ required: true, maxLength: 100 }" v-model="ask.message" @keydown.esc.stop>{{ $t('admin.ask_disclosure_message_title') }}</TextArea>
+
+			<!-- <div v-if="formErrors && Object.keys(formErrors).length" class="mt-4">
 				<P class="text-accent-red">
 					{{
 						Object.values(formErrors)
@@ -88,8 +51,13 @@
 							.join(', ')
 					}}
 				</P>
-			</div>
-		</form>
+			</div> -->
+
+			<ButtonGroup>
+				<Button variant="error" @click.stop.prevent="close()">{{ t('dialog.cancel') }}</Button>
+				<Button type="submit" :disabled="!isValidated" @click.stop.prevent="onSubmit()">{{ t('dialog.edit') }}</Button>
+			</ButtonGroup>
+		</ValidatedForm>
 	</Dialog>
 </template>
 
@@ -100,14 +68,11 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import AutoComplete from '@hub-client/components/forms/AutoComplete.vue';
-	import Label from '@hub-client/components/forms/Label.vue';
-	import TextArea from '@hub-client/components/forms/TextArea.vue';
 	import ChooseFromUsersList from '@hub-client/components/rooms/ChooseFromUsersList.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
-	import { useValidation } from '@hub-client/composables/useValidation';
+	// import { useValidation } from '@hub-client/composables/useValidation';
 
 	// Models
 	import { AskDisclosure, AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
@@ -123,6 +88,13 @@
 	import { User, useUser } from '@hub-client/stores/user';
 	import { useYivi } from '@hub-client/stores/yivi';
 
+	import Button from '@hub-client/new-design/components/Button.vue';
+	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
+	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
+	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
+	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
+
 	const yiviStore = useYivi();
 	const userStore = useUser();
 	const roomsStore = useRooms();
@@ -135,17 +107,32 @@
 	const dropdown = ref<string | null>('notNull');
 	const yiviAttributes = yiviStore.getAttributes(t).map((item) => item.label);
 	const settings = useSettings();
-
-	// Validation
-	const validationComposable = useValidation();
-	const formErrors = ref<Record<string, ValidationMessage> | null>(null);
 	const isMobile = computed(() => settings.isMobileState);
+
+	const props = defineProps<{
+		user: TUserAccount;
+	}>();
+
+	// // Validation
+	// const validationComposable = useValidation();
+	// const formErrors = ref<Record<string, ValidationMessage> | null>(null);
+
+	// // Customizable validation schema for each form that needs validation
+	// const disclosureConstants = {
+	// 	maxAttributesLength: 5,
+	// };
+	// const askDisclosureSchema: ValidationSchema = {
+	// 	attributes: [
+	// 		{ validator: validateRequired, args: ['admin.secured_yivi_attributes'], message: requiredMessage },
+	// 		{ validator: validateMaxLength, args: [disclosureConstants.maxAttributesLength, 'admin.secured_yivi_attributes'], message: maxItemsMessage },
+	// 	],
+	// };
 
 	const ask = ref<AskDisclosure>({
 		user: { userId: '' },
 		message: '',
 		attributes: [t('attribute.pbdf.sidn-pbdf.email.email')],
-		where_room: '',
+		where_room: '', //t('admin.private_room'),
 	});
 
 	const roomOptions = computed(() => {
@@ -160,11 +147,8 @@
 			attributes: ask.value?.attributes,
 		};
 
-		formErrors.value = validationComposable.validateBySchema(values, validationComposable.askDisclosureSchema);
+		// formErrors.value = validationComposable.validateBySchema(values, validationComposable.askDisclosureSchema);
 	}
-	const props = defineProps<{
-		user: TUserAccount;
-	}>();
 
 	function addAttribute() {
 		if (attribute.value && ask.value && !ask.value.attributes.includes(attribute.value)) {
@@ -173,13 +157,13 @@
 
 				validateRoomForm();
 			} else {
-				if (!formErrors.value) {
-					formErrors.value = {};
-				}
-				formErrors.value['invalidAttribute'] = {
-					translationKey: 'admin.error_invalid_attribute',
-					parameters: [attribute.value],
-				};
+				// if (!formErrors.value) {
+				// 	formErrors.value = {};
+				// }
+				// formErrors.value['invalidAttribute'] = {
+				// 	translationKey: 'admin.error_invalid_attribute',
+				// 	parameters: [attribute.value],
+				// };
 			}
 		}
 		attribute.value = '';
@@ -199,7 +183,7 @@
 		await roomsStore.fetchPublicRooms();
 	});
 
-	async function close(returnValue: DialogButtonAction) {
+	async function close(returnValue: DialogButtonAction = 0) {
 		const result = ask.value;
 		selectUser.value = false;
 		if (returnValue === 1 && result) {
