@@ -4,7 +4,7 @@
 
 		<!-- Input element -->
 		<div class="flex w-full items-center">
-			<div class="flex-grow" :class="{ 'w-full': !showLength }">
+			<div class="grow" :class="{ 'w-full': !showLength }">
 				<textarea
 					v-if="type === 'textarea'"
 					class="bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
@@ -49,16 +49,14 @@
 	// Packages
 	import { computed, inject, onMounted, ref, useAttrs, watch } from 'vue';
 
+	// Composables
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
+	// New design
 	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
 	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
-
-	const model = defineModel<string | number>();
-	const attrs = useAttrs();
-	const modelLen = ref(0);
 
 	// Props
 	const props = withDefaults(
@@ -81,6 +79,10 @@
 			showLength: false,
 		},
 	);
+
+	const attrs = useAttrs();
+	const model = defineModel<string | number>();
+	const modelLen = ref(0);
 
 	watch(model, () => {
 		calculateLen();

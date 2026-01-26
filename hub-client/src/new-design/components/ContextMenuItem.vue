@@ -33,12 +33,13 @@
 		title?: string;
 	};
 
-	const attrs = useAttrs();
-
+	// Props
 	const props = withDefaults(defineProps<ContextMenuItemProps>(), {
 		disabled: false,
 		isDelicate: false,
 	});
+
+	const attrs = useAttrs();
 
 	const { ariaLabel, disabled, icon, isDelicate, label, title } = props;
 

@@ -5,6 +5,7 @@
 </template>
 
 <script setup lang="ts">
+	// Props
 	const props = withDefaults(
 		defineProps<{
 			direction: 'horizontal' | 'vertical';

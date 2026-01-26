@@ -8,11 +8,13 @@
 </template>
 
 <script lang="ts">
+	// Types
+	export type sVariant = keyof typeof iconSizeVariant;
+
 	export enum iconSizeVariant {
 		Small = 'sm',
 		Base = 'base',
 	}
-	export type sVariant = keyof typeof iconSizeVariant;
 
 	export const iconSize: { [key: string]: string } = {
 		[iconSizeVariant.Small]: '16',
@@ -24,8 +26,10 @@
 	// Packages
 	import { PropType, computed } from 'vue';
 
+	// Assets
 	import { iconTypes, icons } from '@hub-client/assets/icons';
 
+	// Props
 	const props = defineProps({
 		type: {
 			type: String,
@@ -60,7 +64,7 @@
 			return props.type;
 		}
 		console.log('fallback icon', props.type);
-		return 'selection'; // dotted square
+		return 'selection'; // Dotted square
 	});
 
 	const weightType = computed(() => {

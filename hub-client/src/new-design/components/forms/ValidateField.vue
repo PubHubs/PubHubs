@@ -14,13 +14,13 @@
 	// Packages
 	import { inject, onMounted, ref, watch } from 'vue';
 
+	// Composables
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
+	// New design
 	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
-
-	const model = defineModel<any>();
 
 	// Props
 	const props = withDefaults(
@@ -33,8 +33,9 @@
 		},
 	);
 
-	const originalValue = ref<any>(undefined);
 	const changed = ref(false);
+	const model = defineModel<any>();
+	const originalValue = ref<any>(undefined);
 
 	// Validation etc.
 	const { id, fieldName } = useFormInput(props, model);

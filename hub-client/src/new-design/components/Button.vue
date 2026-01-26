@@ -61,9 +61,6 @@
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 
-	const attrs = useAttrs();
-	const slots = useSlots();
-
 	// Props
 	const props = withDefaults(
 		defineProps<{
@@ -88,7 +85,9 @@
 		},
 	);
 
-	// Computed props
+	const attrs = useAttrs();
+	const slots = useSlots();
+
 	const isIconOnly = computed(() => !slots.default && props.icon);
 
 	const iconSize = computed(() => {
