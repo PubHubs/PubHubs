@@ -1,11 +1,12 @@
 <template>
 	<div
+		class="bg-surface rounded-md"
 		:class="{
 			block: isTouchDevice || remainActive,
 			'hidden group-hover:block': !isTouchDevice && !remainActive,
 		}"
 	>
-		<div class="flex gap-1">
+		<div class="flex">
 			<slot></slot>
 		</div>
 	</div>
@@ -15,12 +16,12 @@
 	// Logic
 	import device from '@hub-client/logic/core/device';
 
+	const isTouchDevice = device.isTouchDevice();
+
 	const props = defineProps({
 		remainActive: {
 			type: Boolean,
 			default: false,
 		},
 	});
-
-	const isTouchDevice = device.isTouchDevice();
 </script>

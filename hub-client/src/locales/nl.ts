@@ -228,6 +228,7 @@ const nl = {
 		search_hubs_not_found: 'Geen hubs gevonden',
 		search_rooms_not_found: 'Geen kamers gevonden',
 		search_room: 'Zoek in deze kamer',
+		search_room_hint: 'Voer een zoekterm in en druk op Enter om berichten in deze kamer te zoeken.',
 		searching: 'Bezig met zoeken...',
 		search_nothing_found: 'Niets gevonden',
 		read_receipt: 'Gelezen door',

@@ -1,6 +1,12 @@
 <template>
-	<div v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" class="flex h-full w-full gap-8 overflow-auto p-4 max-md:max-h-full max-md:flex-col max-md:gap-2">
-		<div class="max-h-full w-full md:w-2/3">
+	<div class="flex h-full w-full flex-col gap-4 overflow-auto p-3">
+		<!-- Upload area -->
+		<div class="w-full">
+			<DropFiles></DropFiles>
+		</div>
+
+		<!-- Search and sort -->
+		<div class="w-full">
 			<div class="mb-4 flex w-full gap-4">
 				<div class="bg-surface-low flex w-1/2 items-center justify-end rounded-md sm:w-3/4">
 					<input
@@ -108,10 +114,6 @@
 				</BarListItem>
 			</BarList>
 		</div>
-
-		<div class="w-full max-md:order-first md:w-1/3">
-			<DropFiles></DropFiles>
-		</div>
 	</div>
 
 	<template v-for="item in roomTimeLine" :key="item.matrixEvent.event.event_id">
@@ -158,8 +160,6 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	const dialog = useDialog();
-
-	const emit = defineEmits(['close']);
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const user = useUser();

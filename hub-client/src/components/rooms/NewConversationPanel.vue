@@ -1,14 +1,14 @@
 <template>
 	<div class="absolute inset-y-0 right-0 z-40 flex h-full w-[33%] shrink-0 flex-col px-4 py-4" :class="isMobile ? 'bg-background w-full' : 'bg-surface w-[33%]'" data-testid="sidekick">
 		<div class="flex h-full flex-col">
-			<div v-if="!groupPanel" class="flex flex-shrink-0 flex-col">
+			<div v-if="!groupPanel" class="flex shrink-0 flex-col">
 				<div class="group flex items-center justify-between gap-4 px-8 py-2 font-bold">
 					<span role="heading">{{ t('others.new_message') }}</span>
 					<Icon type="x" size="md" @click="$emit('close')" class="cursor-pointer" />
 				</div>
 				<hr class="my-4 border-t border-white" />
 				<div class="relative flex items-center px-8 py-2">
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="bg-background text-label h-8 w-full min-w-0 flex-grow rounded-lg border px-4 py-1" />
+					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="bg-background text-label h-8 w-full min-w-0 grow rounded-lg border px-4 py-1" />
 					<Icon class="absolute right-0 mr-5" type="magnifying-glass" size="sm" />
 				</div>
 				<div class="px-8 py-2">
@@ -26,7 +26,7 @@
 					<Icon type="x" class="cursor-pointer" @click="$emit('close')" />
 				</div>
 				<div class="relative flex items-center pt-2">
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="bg-background text-label h-8 w-full min-w-0 flex-grow rounded-lg border px-4 py-1" />
+					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="bg-background text-label h-8 w-full min-w-0 grow rounded-lg border px-4 py-1" />
 					<Icon class="absolute right-1" type="magnifying-glass" />
 				</div>
 				<div v-if="groupProfile">
@@ -35,12 +35,12 @@
 						<div class="bg-surface-high h-10 w-10 cursor-pointer rounded-full">
 							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl.url" @click="fileInput!.click()"></Avatar>
 							<Button v-else color="" @click="fileInput!.click()">
-								<Icon type="image-square" class="mt-[2px] -ml-[5px]" />
+								<Icon type="image-square" class="mt-025 -ml-[5px]" />
 							</Button>
 						</div>
 						<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 
-						<input type="text" v-model="groupName" class="bg-background h-8 min-w-0 flex-grow rounded-lg border px-4 py-1" :placeholder="t('others.select_group_name')" />
+						<input type="text" v-model="groupName" class="bg-background h-8 min-w-0 grow rounded-lg border px-4 py-1" :placeholder="t('others.select_group_name')" />
 					</div>
 					<span class="mx-auto w-1/2"> {{ selectedUsers.length + ' ' + t('others.group_members') }} </span>
 				</div>
@@ -69,7 +69,7 @@
 				</Button>
 			</div>
 
-			<div v-if="!groupProfile" class="flex-grow overflow-y-auto px-8 py-2">
+			<div v-if="!groupProfile" class="grow overflow-y-auto px-8 py-2">
 				<template v-if="Object.keys(categorizedUsers).length">
 					<div v-for="(usersInLetter, letter) in categorizedUsers" :key="letter" class="mb-4">
 						<h3 class="text-md text-on-surface-dim sticky top-0 z-10 py-1 font-bold uppercase">{{ letter }}</h3>
@@ -108,8 +108,8 @@
 	import { fileUpload } from '@hub-client/composables/fileUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import filters from '@hub-client/logic/core/filters';
 
 	// Stores

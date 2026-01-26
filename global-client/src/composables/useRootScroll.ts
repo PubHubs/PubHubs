@@ -9,8 +9,6 @@ const useRootScroll = () => {
 		const layoutRoot = document.getElementById('layout-root');
 		if (layoutRoot) {
 			layoutRoot.scrollTo({ left: 0, behavior: 'smooth' });
-		} else {
-			console.error('Element with ID "layout-root" not found.');
 		}
 	};
 
@@ -20,10 +18,7 @@ const useRootScroll = () => {
 	const scrollToEnd = () => {
 		const layoutRoot = document.getElementById('layout-root');
 		if (layoutRoot) {
-			console.log('scrollToEnd');
 			layoutRoot.scrollTo({ left: layoutRoot.scrollWidth, behavior: 'smooth' });
-		} else {
-			console.error('Element with ID "layout-root" not found.');
 		}
 	};
 

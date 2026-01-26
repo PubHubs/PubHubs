@@ -1,13 +1,5 @@
 <template>
-	<div ref="elThreadTimeline" class="border-surface-high bg-background relative flex h-full w-full shrink-0 flex-col border-l md:w-[33%]" data-testid="thread-sidekick">
-		<!-- Thread header -->
-		<div class="bg-surface-low m-3 mb-0 flex items-center gap-2 rounded-md p-2">
-			<button @click="closeThread" class="rounded-md p-1">
-				<Icon type="arrow-left" :size="'sm'"></Icon>
-			</button>
-			<p class="text-label-tiny truncate text-nowrap">Thread ({{ numberOfThreadEvents }})</p>
-		</div>
-
+	<div ref="elThreadTimeline" class="flex h-full w-full flex-col" data-testid="thread-sidekick">
 		<!-- Thread message list -->
 		<div class="h-full flex-1 overflow-y-scroll pt-4 pb-8">
 			<!-- Root event -->

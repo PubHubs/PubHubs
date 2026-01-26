@@ -24,7 +24,7 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="!placeholder-on-surface-dim text-label h-10" maxlength="24" />
+								<TextInput v-model="inputValue" :placeholder="pseudonym" class="placeholder-on-surface-dim! text-label h-10" maxlength="24" />
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square"></Icon>
 								</Button>

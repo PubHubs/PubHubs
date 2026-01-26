@@ -1,6 +1,6 @@
 <template>
-	<RoomSideKick @close="close()" :title="$t('rooms.memberlist')">
-		<div v-if="stewardIds" class="h-full flex-1">
+	<div class="flex flex-col gap-4 p-3">
+		<div v-if="stewardIds && stewardIds.length > 0" class="flex-1">
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.stewards') }}</div>
@@ -16,7 +16,7 @@
 			</div>
 		</div>
 
-		<div v-if="memberIds" class="h-full flex-1">
+		<div v-if="memberIds && memberIds.length > 0" class="flex-1">
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.members') }}</div>
@@ -31,7 +31,7 @@
 				<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)"></UserDisplayName>
 			</div>
 		</div>
-	</RoomSideKick>
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -40,7 +40,6 @@
 	import { useRoute } from 'vue-router';
 
 	// Components
-	import RoomSideKick from '@hub-client/components/rooms/RoomSideKick.vue';
 	import SideKickSubHeader from '@hub-client/components/rooms/SideKickSubHeader.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
@@ -53,8 +52,6 @@
 
 	const route = useRoute();
 	const user = useUser();
-
-	const emit = defineEmits(['close']);
 
 	const props = defineProps({
 		room: {
@@ -94,9 +91,5 @@
 			stewardIds.value = filterMembersByPowerLevel(50, 99);
 			memberIds.value = [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])]; // only steards matter as distinction, so the admin is treated as common member
 		}
-	}
-
-	function close() {
-		emit('close');
 	}
 </script>

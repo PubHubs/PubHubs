@@ -1,8 +1,8 @@
 <template>
-	<div class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'" @click="goToRoom">
+	<div class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'">
 		<div class="flex min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
-			<Avatar :class="'flex-shrink-0'" :avatar-url="avatarOverrideUrl" icon="users" />
-			<div class="min-w-0 flex-grow overflow-hidden">
+			<Avatar :class="'shrink-0'" :avatar-url="avatarOverrideUrl" icon="users" />
+			<div class="min-w-0 grow overflow-hidden">
 				<div class="flex flex-col gap-1">
 					<div class="flex flex-row items-center gap-2">
 						<p class="truncate leading-tight font-bold" :class="{ truncate: !isMobile }">
@@ -48,7 +48,6 @@
 	import { EventType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRouter } from 'vue-router';
 
 	// Components
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
@@ -64,7 +63,6 @@
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
 
-	const router = useRouter();
 	const rooms = useRooms();
 	const { t } = useI18n();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
@@ -130,10 +128,6 @@
 	const pseudonym = computed(() => (getOtherDMUser()?.userId ? filters.extractPseudonym(getOtherDMUser()!.userId) : ''));
 
 	const isGroupOrContact = computed(() => roomType.value === RoomType.PH_MESSAGES_GROUP || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT || roomType.value === RoomType.PH_MESSAGE_STEWARD_CONTACT);
-
-	function goToRoom() {
-		router.push({ name: 'room', params: { id: props.room.roomId } });
-	}
 
 	function getOtherDMUser(): RoomMember | null | undefined {
 		// Due to how avatar is implemented  this is a quick fix for group avatar.

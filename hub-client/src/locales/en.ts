@@ -229,6 +229,7 @@ const en = {
 		search_hubs_not_found: 'No hubs were found',
 		search_rooms_not_found: 'No rooms were found',
 		search_room: 'Search this room',
+		search_room_hint: 'Enter a search term and press Enter to search messages in this room.',
 		searching: 'Searching...',
 		search_nothing_found: 'Nothing found',
 		read_receipt: 'Read by',
