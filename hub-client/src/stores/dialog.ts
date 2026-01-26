@@ -65,11 +65,7 @@ class DialogProperties {
 	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true) {
 		this.title = title;
 		this.content = content;
-		if (buttons.length === 0) {
-			this.buttons = buttonsOkCancel;
-		} else {
-			this.buttons = buttons;
-		}
+		this.buttons = buttons;
 		this.modal = modal;
 		this.modalonly = false;
 		this.close = close;

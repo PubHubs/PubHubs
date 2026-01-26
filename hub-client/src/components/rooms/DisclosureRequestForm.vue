@@ -1,5 +1,5 @@
 <template>
-	<Dialog :title="$t('admin.ask_disclosure_title')" :buttons="[]" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close($event)">
+	<Dialog :title="$t('admin.ask_disclosure_title')" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close($event)">
 		<ValidatedForm @submit.prevent class="flex flex-col" :class="isMobile ? 'w-full' : 'w-[450px]'" v-slot="{ isValidated }">
 			<div
 				class="mb-2 flex w-full flex-col gap-x-2 gap-y-1"
@@ -34,24 +34,10 @@
 					</div>
 				</div>
 			</div>
+
 			<TextFieldAutoComplete v-model="ask.where_room" :options="roomOptions" :validation="{ required: true }">{{ $t('rooms.room') }}</TextFieldAutoComplete>
 
 			<TextArea placeholder="Add a message to your disclosure request" :validation="{ required: true, maxLength: 100 }" v-model="ask.message" @keydown.esc.stop>{{ $t('admin.ask_disclosure_message_title') }}</TextArea>
-
-			<!-- <div v-if="formErrors && Object.keys(formErrors).length" class="mt-4">
-				<P class="text-accent-red">
-					{{
-						Object.values(formErrors)
-							.map((error) =>
-								t(
-									error.translationKey,
-									error.parameters.map((param) => t(param)),
-								),
-							)
-							.join(', ')
-					}}
-				</P>
-			</div> -->
 
 			<ButtonGroup>
 				<Button variant="error" @click.stop.prevent="close()">{{ t('dialog.cancel') }}</Button>
@@ -72,16 +58,13 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
-	// import { useValidation } from '@hub-client/composables/useValidation';
-
 	// Models
 	import { AskDisclosure, AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
 	import { TUserAccount } from '@hub-client/models/users/TUser';
-	import { ValidationMessage } from '@hub-client/models/validation/TValidate';
 	import { Attribute } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
-	import { DialogButtonAction, buttonsSubmitCancel } from '@hub-client/stores/dialog';
+	// import { DialogButtonAction, buttonsSubmitCancel } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
@@ -142,20 +125,20 @@
 		}));
 	});
 
-	function validateRoomForm() {
-		const values = {
-			attributes: ask.value?.attributes,
-		};
+	// function validateRoomForm() {
+	// 	const values = {
+	// 		attributes: ask.value?.attributes,
+	// 	};
 
-		// formErrors.value = validationComposable.validateBySchema(values, validationComposable.askDisclosureSchema);
-	}
+	// 	// formErrors.value = validationComposable.validateBySchema(values, validationComposable.askDisclosureSchema);
+	// }
 
 	function addAttribute() {
 		if (attribute.value && ask.value && !ask.value.attributes.includes(attribute.value)) {
 			if (yiviStore.getAttributes(t).find((attr: Attribute) => attr.label === attribute.value.trim())) {
 				ask.value.attributes.push(attribute.value);
 
-				validateRoomForm();
+				// validateRoomForm();
 			} else {
 				// if (!formErrors.value) {
 				// 	formErrors.value = {};
@@ -172,7 +155,7 @@
 	function removeAttribute(index: number) {
 		if (ask.value) {
 			ask.value.attributes.splice(index, 1);
-			validateRoomForm();
+			// validateRoomForm();
 		}
 	}
 	onBeforeMount(async () => {
@@ -183,16 +166,7 @@
 		await roomsStore.fetchPublicRooms();
 	});
 
-	async function close(returnValue: DialogButtonAction = 0) {
-		const result = ask.value;
-		selectUser.value = false;
-		if (returnValue === 1 && result) {
-			result.attributes = result.attributes.map((attribute) => {
-				const found = yiviStore.getAttributes(t).find((attr: Attribute) => attr.label === attribute);
-				return found ? found.attribute : attribute;
-			});
-			onSubmit(result);
-		}
+	async function close() {
 		emit('close');
 	}
 	function onChosenUser(other: User) {
@@ -202,17 +176,17 @@
 			displayName: other.displayName,
 		};
 	}
-	async function onSubmit(result: AskDisclosure) {
-		// Get a private room with recipient
-		const privateRoom = await pubhubsStore.createPrivateRoomWith(result.user as User);
+
+	async function onSubmit() {
+		const privateRoom = await pubhubsStore.createPrivateRoomWith(ask.value.user as User);
 		const privateRoomId = privateRoom!.room_id;
-		const ask: AskDisclosureMessage = {
-			userId: result.user?.userId,
-			replyToRoomId: result.where_room || privateRoomId,
-			message: result.message,
-			attributes: result.attributes,
+		const result: AskDisclosureMessage = {
+			userId: ask.value.user?.userId,
+			replyToRoomId: ask.value.where_room || privateRoomId,
+			message: ask.value.message,
+			attributes: ask.value.attributes,
 		};
 		// Message is duplicated in body and in 'ask' object.
-		await pubhubsStore.addAskDisclosureMessage(privateRoomId, result.message, ask);
+		await pubhubsStore.addAskDisclosureMessage(privateRoomId, result.message, result);
 	}
 </script>
