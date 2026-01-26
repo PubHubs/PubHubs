@@ -55,12 +55,6 @@ const routes = [
 		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
-		path: '/ask-disclosure',
-		name: 'ask-disclosure',
-		component: () => import('@hub-client/pages/AskDisclosure.vue'),
-		meta: { onlyAdmin: true, onboarding: true },
-	},
-	{
 		path: '/direct-msg',
 		name: 'direct-msg',
 		component: () => import('@hub-client/pages/DirectMessage.vue'),
