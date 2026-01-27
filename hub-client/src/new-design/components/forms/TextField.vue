@@ -31,17 +31,22 @@
 					@keypress="update()"
 				/>
 			</div>
-			<div v-if="showLength" class="pl-2">
-				<span>{{ modelLen }}</span>
-				<template v-if="maxLen"> / {{ maxLen }} </template>
-			</div>
 		</div>
 
-		<FieldHelperText v-if="(props.help && !changed) || validated">{{ help }}</FieldHelperText>
+		<FieldHelperText v-if="props.help && !(!validated && changed)">{{ help }}</FieldHelperText>
 
-		<FieldValidationError v-else-if="!validated && changed">
-			{{ $t(validateField!.translationKey, validateField!.parameters) }}
-		</FieldValidationError>
+		<div class="flex w-full gap-100">
+			<div class="grow">
+				<FieldValidationError v-if="!validated && changed">
+					{{ $t(validateField!.translationKey, validateField!.parameters) }}
+				</FieldValidationError>
+				&nbsp;
+			</div>
+			<div v-if="showLength" class="text-label-small flex-none whitespace-nowrap">
+				<span>{{ modelLen }}</span>
+				<template v-if="maxLen">/{{ maxLen }} </template>
+			</div>
+		</div>
 	</div>
 </template>
 
