@@ -58,6 +58,9 @@
 				<Toggle :model-value="true">Toggle 1</Toggle>
 				<Toggle :disabled="true">Disabled</Toggle>
 				<Toggle :disabled="true" :model-value="true">Disabled</Toggle>
+
+				<h2 class="my-200">DropDown</h2>
+				<DropDown :options="options">Toggle 0</DropDown>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -138,7 +141,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { onMounted, reactive } from 'vue';
+	import { PropType, onMounted, reactive } from 'vue';
 
 	import { ValidationRule, ValidatorFn } from '@hub-client/models/validation/TValidate';
 
@@ -147,7 +150,7 @@
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
+	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
@@ -179,6 +182,8 @@
 		option1: false,
 		option2: true,
 	} as formType);
+
+	const options = ['Optie 1', 'Mogelijkheid 2', 'Derde kans', 'Quattro', 'Meer dan vijf is niet nodig'];
 
 	const clicked = () => {
 		alert('clicked!');
