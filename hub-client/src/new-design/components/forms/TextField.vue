@@ -1,5 +1,5 @@
 <template>
-	<div class="gap-075 mb-2 flex w-full flex-col items-start justify-start">
+	<div class="gap-075 mb-100 flex w-full flex-col items-start justify-start">
 		<Label :for="id" :required="required"><slot></slot></Label>
 
 		<!-- Input element -->

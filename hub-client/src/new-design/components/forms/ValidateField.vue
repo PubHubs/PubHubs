@@ -4,7 +4,7 @@
 
 		<slot></slot>
 
-		<FieldValidationError v-if="!validated && changed">
+		<FieldValidationError v-if="!validated && changed" class="mt-100">
 			{{ $t(validateField!.translationKey, validateField!.parameters) }}
 		</FieldValidationError>
 	</div>
