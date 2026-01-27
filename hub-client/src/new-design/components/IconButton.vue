@@ -3,11 +3,14 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
 
+	// New design
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import { TVariant } from '@hub-client/new-design/components/Button.vue';
 
+	// Props
 	const props = withDefaults(
 		defineProps<{
 			variant?: TVariant;

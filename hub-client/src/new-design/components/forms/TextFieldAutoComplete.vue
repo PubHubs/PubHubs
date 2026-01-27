@@ -30,10 +30,9 @@
 	import { InputType, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
+	// New design
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
-
-	const search = defineModel<string | number>();
 
 	// Types
 	type Props = {
@@ -44,6 +43,7 @@
 		disabled?: Boolean;
 	};
 
+	// Props
 	const props = withDefaults(defineProps<Props>(), {
 		name: '',
 		placeholder: '',
@@ -52,6 +52,7 @@
 	});
 
 	const emit = defineEmits(usedEvents);
+	const search = defineModel<string | number>();
 	const { slotDefault } = useFormInput(props, search);
 	const { setValue, update } = useFormInputEvents(emit);
 	const { setItems, cursor, cursorDown, cursorUp, reset, selectItem, selectItemByEnter } = useKeyStrokes();

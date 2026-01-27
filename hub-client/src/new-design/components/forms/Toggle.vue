@@ -26,16 +26,18 @@
 </template>
 
 <script setup lang="ts">
+	// new design
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const model = defineModel();
-
+	// Props
 	const props = defineProps({
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
 	});
+
+	const model = defineModel();
 
 	const { setFocus, hasFocus, toggle } = useFormInput(props, model);
 </script>

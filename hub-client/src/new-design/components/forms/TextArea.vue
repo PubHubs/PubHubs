@@ -3,12 +3,9 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import TextField from './TextField.vue';
-
+	// New design
+	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
-
-	const model = defineModel<string>();
 
 	// Props
 	const props = withDefaults(
@@ -27,6 +24,8 @@
 			disabled: false,
 		},
 	);
+
+	const model = defineModel<string>();
 
 	const { slotDefault } = useFormInput(props, model);
 </script>

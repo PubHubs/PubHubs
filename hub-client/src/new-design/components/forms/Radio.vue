@@ -18,10 +18,10 @@
 </template>
 
 <script setup lang="ts">
+	// New design
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const model = defineModel();
-
+	// Props
 	const props = defineProps({
 		value: {
 			type: String,
@@ -32,6 +32,8 @@
 			default: '',
 		},
 	});
+
+	const model = defineModel();
 
 	const { id, setFocus, hasFocus, select } = useFormInput(props, model);
 </script>

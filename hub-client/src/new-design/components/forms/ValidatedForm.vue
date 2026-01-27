@@ -9,7 +9,13 @@
 	// Packages
 	import { computed, provide, ref } from 'vue';
 
-	const emit = defineEmits(['validated']);
+	// Types
+	type fieldType = {
+		name: string;
+		model: any;
+		changed: boolean;
+		validated: boolean;
+	};
 
 	// Props
 	const props = withDefaults(
@@ -21,14 +27,8 @@
 		},
 	);
 
-	type fieldType = {
-		name: string;
-		model: any;
-		changed: boolean;
-		validated: boolean;
-	};
-
 	const fields = ref([] as fieldType[]);
+	const emit = defineEmits(['validated']);
 
 	const isValidated = computed(() => {
 		let changed = false;
