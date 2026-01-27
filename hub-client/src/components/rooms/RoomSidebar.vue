@@ -1,12 +1,9 @@
 <template>
-	<div class="bg-surface-background flex h-screen shrink-0 flex-col overflow-hidden transition-all duration-300 ease-in-out" :class="sidebarClasses" :style="sidebarStyle">
+	<div class="bg-surface-background shrink-0 overflow-hidden transition-all duration-300 ease-in-out" :class="sidebarClasses" :style="sidebarStyle">
 		<!-- Only render content when open to prevent layout issues -->
 		<template v-if="isOpen">
-			<!-- Sidebar Header with Tabs -->
-			<RoomSidebarHeader :active-tab="activeTab" :is-mobile="isMobile" @close="emit('close')" @tab-change="emit('tabChange', $event)" />
-
 			<!-- Content Area -->
-			<div class="h-full flex-1 overflow-y-auto">
+			<div class="h-full overflow-y-auto">
 				<slot></slot>
 			</div>
 		</template>
@@ -17,20 +14,12 @@
 	//  Packages
 	import { computed } from 'vue';
 
-	// Components
-	import RoomSidebarHeader from '@hub-client/components/rooms/RoomSidebarHeader.vue';
-
 	// Composables
 	import { SidebarTab } from '@hub-client/composables/useSidebar';
 
 	const props = defineProps<{
 		activeTab: SidebarTab;
 		isMobile: boolean;
-	}>();
-
-	const emit = defineEmits<{
-		(e: 'close'): void;
-		(e: 'tabChange', tab: SidebarTab): void;
 	}>();
 
 	const isOpen = computed(() => props.activeTab !== SidebarTab.None);

@@ -43,15 +43,15 @@ export function useSidebar() {
 	}
 
 	// Toggle between open/closed for a specific tab
-	// Used for header buttons that should open sidebar if closed
+	// Used for header buttons that should toggle the sidebar
 	function toggleTab(tab: SidebarTab) {
-		if (activeTab.value === SidebarTab.None) {
-			openTab(tab);
-		} else if (activeTab.value !== tab) {
-			// Switch to the requested tab
+		if (activeTab.value === tab) {
+			// If already on this tab, close the sidebar
+			close();
+		} else {
+			// Open or switch to the requested tab
 			openTab(tab);
 		}
-		// If already on this tab, do nothing (stay open per requirements)
 	}
 
 	// Open a DM room in the sidebar

@@ -1,48 +1,56 @@
 <template>
-	<div class="flex h-full">
-		<HeaderFooter>
-			<template #header>
-				<div class="relative flex h-full items-center justify-between gap-6" :class="isMobile ? 'pl-4' : 'pl-0'">
-					<div class="flex w-fit items-center gap-3 overflow-hidden">
-						<Icon type="chat-circle-text" />
-						<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">
-							<TruncatedText class="font-headings font-semibold">
-								<h2>{{ t('menu.directmsg') }}</h2>
-							</TruncatedText>
-						</H3>
-						<TruncatedText class="hidden md:inline" />
-					</div>
-					<div class="flex gap-2">
-						<Button
-							v-if="!user.isAdmin"
-							size="sm"
-							class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1 overflow-visible"
-							:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
-							@click="directMessageAdmin()"
-						>
-							<Icon type="headset" size="sm"></Icon>
-							<span v-if="!isMobile">{{ t('menu.contact') }}</span>
-							<span :class="isMobile ? 'absolute -top-2 -right-2' : 'absolute -top-2 -right-2 flex items-center gap-2'">
-								<Badge class="text-label-small" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
-								<Badge class="text-label-small" color="ph" v-else-if="newAdminMsgCount > 0">{{ newAdminMsgCount }}</Badge>
-							</span>
-						</Button>
+	<div class="flex h-full flex-col">
+		<!-- Shared Header -->
+		<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-8' : 'pl-8'">
+			<!-- Left: DM title -->
+			<div class="flex w-fit items-center gap-3 overflow-hidden">
+				<Icon type="chat-circle-text" />
+				<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">
+					<TruncatedText class="font-headings font-semibold">
+						<h2>{{ t('menu.directmsg') }}</h2>
+					</TruncatedText>
+				</H3>
+				<TruncatedText class="hidden md:inline" />
+			</div>
 
-						<Button
-							class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1"
-							:class="isMobile ? 'mr-4 justify-center' : 'justify-between'"
-							size="sm"
-							@click="sidebar.setTab(SidebarTab.NewDM)"
-							:disabled="sidebar.activeTab.value === SidebarTab.NewDM"
-						>
-							<Icon type="plus" size="sm" />
-							<span v-if="!isMobile">{{ t('others.new_message') }}</span>
-						</Button>
-					</div>
-				</div>
-			</template>
+			<!-- Right: Buttons -->
+			<div class="flex items-center gap-2">
+				<!-- Close button (only when sidebar is open) - positioned at left of icon row -->
+				<button v-if="sidebar.isOpen.value" class="hover:bg-surface-variant rounded-md p-2 transition-colors" :aria-label="t('global.close')" @click="sidebar.close()">
+					<Icon type="arrow-right" size="base" />
+				</button>
 
-			<div class="flex h-full flex-col px-4 py-4 md:px-16 md:py-10">
+				<Button
+					v-if="!user.isAdmin"
+					size="sm"
+					class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1 overflow-visible"
+					:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
+					@click="directMessageAdmin()"
+				>
+					<Icon type="headset" size="sm"></Icon>
+					<span v-if="!isMobile">{{ t('menu.contact') }}</span>
+					<span :class="isMobile ? 'absolute -top-2 -right-2' : 'absolute -top-2 -right-2 flex items-center gap-2'">
+						<Badge class="text-label-small" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
+						<Badge class="text-label-small" color="ph" v-else-if="newAdminMsgCount > 0">{{ newAdminMsgCount }}</Badge>
+					</span>
+				</Button>
+
+				<Button
+					class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1"
+					:class="isMobile ? 'justify-center' : 'justify-between'"
+					size="sm"
+					@click="sidebar.setTab(SidebarTab.NewDM)"
+					:disabled="sidebar.activeTab.value === SidebarTab.NewDM"
+				>
+					<Icon type="plus" size="sm" />
+					<span v-if="!isMobile">{{ t('others.new_message') }}</span>
+				</Button>
+			</div>
+		</div>
+
+		<!-- Content row: Message list + Sidebar -->
+		<div class="flex flex-1 overflow-hidden">
+			<div class="flex h-full w-full flex-col overflow-y-auto px-4 py-4 md:px-16 md:py-10">
 				<span v-if="privateRooms?.length === 0" class="mx-auto shrink-0">
 					{{ t('others.no_private_message') }}
 				</span>
@@ -50,20 +58,20 @@
 					<MessagePreview v-for="room in sortedPrivateRooms" :key="room.roomId" :room="room" :isMobile="isMobile" class="hover:cursor-pointer" role="listitem" @click="openDMRoom(room)" />
 				</div>
 			</div>
-		</HeaderFooter>
 
-		<!-- DM Sidebar -->
-		<RoomSidebar :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value" @close="sidebar.close()" @tab-change="sidebar.setTab($event)">
-			<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="isMobile" @close="sidebar.close()" />
-			<DirectMessageRoom v-if="sidebar.activeTab.value === SidebarTab.DirectMessage && sidebar.selectedDMRoom.value" :room="sidebar.selectedDMRoom.value" />
-		</RoomSidebar>
+			<!-- DM Sidebar -->
+			<RoomSidebar :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value">
+				<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="isMobile" @close="sidebar.close()" />
+				<DirectMessageRoom v-if="sidebar.activeTab.value === SidebarTab.DirectMessage && sidebar.selectedDMRoom.value" :room="sidebar.selectedDMRoom.value" />
+			</RoomSidebar>
+		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
 	import { EventType, NotificationCountType } from 'matrix-js-sdk';
-	import { computed } from 'vue';
+	import { computed, onUnmounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -75,7 +83,6 @@
 	import DirectMessageRoom from '@hub-client/components/rooms/DirectMessageRoom.vue';
 	import NewConversationPanel from '@hub-client/components/rooms/NewConversationPanel.vue';
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
-	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import MessagePreview from '@hub-client/components/ui/MessagePreview.vue';
 
 	// Composable
@@ -103,6 +110,11 @@
 	const sidebar = useSidebar();
 	const isMobile = computed(() => settings.isMobileState);
 	const privateRooms = computed<Array<Room>>(() => getPrivateRooms());
+
+	// Close sidebar when leaving this page
+	onUnmounted(() => {
+		sidebar.close();
+	});
 
 	const newAdminMsgCount = computed(() => {
 		if (user.isAdmin) return;

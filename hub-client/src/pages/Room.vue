@@ -1,67 +1,73 @@
 <template>
-	<div class="flex h-full">
+	<div class="flex h-full flex-col">
 		<template v-if="rooms.currentRoomExists">
-			<HeaderFooter>
-				<template #header>
-					<div class="flex h-full w-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
-						<div v-if="rooms.currentRoom" class="relative flex w-fit items-center gap-3" data-testid="roomtype">
-							<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
-							<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
-							<div class="group hover:mt-025 relative hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
-								<div class="flex flex-col group-hover:border-b-2 group-hover:border-dotted">
-									<H3 class="text-on-surface flex">
-										<TruncatedText class="font-headings font-semibold">
-											<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-											<GroupRoomHeader v-else-if="room!.isGroupRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-											<AdminContactRoomHeader v-else-if="room!.isAdminContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-											<StewardContactRoomHeader v-else-if="room!.isStewardContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-											<RoomName v-else :room="rooms.currentRoom" />
-										</TruncatedText>
-									</H3>
-									<TruncatedText class="hidden md:inline"> </TruncatedText>
-								</div>
-								<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2" />
-							</div>
+			<!-- Shared Header -->
+			<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'" data-testid="roomheader">
+				<!-- Left: Room info -->
+				<div v-if="rooms.currentRoom" class="relative flex w-fit items-center gap-3" data-testid="roomtype">
+					<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
+					<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
+					<div class="group hover:mt-025 relative hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
+						<div class="flex flex-col group-hover:border-b-2 group-hover:border-dotted">
+							<H3 class="text-on-surface flex">
+								<TruncatedText class="font-headings font-semibold">
+									<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
+									<GroupRoomHeader v-else-if="room!.isGroupRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
+									<AdminContactRoomHeader v-else-if="room!.isAdminContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
+									<StewardContactRoomHeader v-else-if="room!.isStewardContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
+									<RoomName v-else :room="rooms.currentRoom" />
+								</TruncatedText>
+							</H3>
+							<TruncatedText class="hidden md:inline"> </TruncatedText>
 						</div>
-						<div v-if="!sidebar.isOpen.value" class="flex gap-4">
-							<RoomHeaderButtons>
-								<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
-								<GlobalBarButton type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
-								<GlobalBarButton type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
-								<!--Only show Editing icon for steward but not for administrator-->
-								<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
-								<!--Except for moderator everyone should talk to room moderator-->
-								<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.MessageSteward) && room!.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
-							</RoomHeaderButtons>
-						</div>
-					</div>
-				</template>
-
-				<div class="flex h-full w-full justify-between overflow-hidden">
-					<div class="flex h-full w-full flex-col overflow-hidden">
-						<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)" />
+						<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2" />
 					</div>
 				</div>
 
-				<template #footer>
-					<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()" />
-				</template>
-			</HeaderFooter>
-		</template>
+				<!-- Right: Sidebar controls -->
+				<div class="flex items-center gap-2">
+					<!-- Close button (only when sidebar is open) - positioned at left of icon row -->
+					<button v-if="sidebar.isOpen.value" class="hover:bg-surface-variant rounded-md p-2 transition-colors" :aria-label="t('global.close')" @click="sidebar.close()">
+						<Icon type="arrow-right" size="base" />
+					</button>
+					<RoomHeaderButtons>
+						<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
+						<GlobalBarButton type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
+						<GlobalBarButton type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
+						<!-- Thread tab indicator (shown when active) -->
+						<GlobalBarButton v-if="sidebar.activeTab.value === SidebarTab.Thread" type="chat-circle" :selected="true" />
+						<!--Only show Editing icon for steward but not for administrator-->
+						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
+						<!--Except for moderator everyone should talk to room moderator-->
+						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.MessageSteward) && room!.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
+					</RoomHeaderButtons>
+				</div>
+			</div>
 
-		<!-- Room sidebar -->
-		<RoomSidebar :key="route.fullPath" :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value" @close="sidebar.close()" @tab-change="sidebar.setTab($event)">
-			<RoomLibrary v-if="sidebar.activeTab.value === SidebarTab.Library" :room="room!" />
-			<RoomThread
-				v-if="sidebar.activeTab.value === SidebarTab.Thread && room?.getCurrentThreadId()"
-				:room="room!"
-				:scroll-to-event-id="room!.getCurrentEvent()?.eventId"
-				@scrolled-to-event-id="room!.setCurrentEvent(undefined)"
-				@thread-length-changed="currentThreadLengthChanged"
-			/>
-			<RoomMemberList v-if="sidebar.activeTab.value === SidebarTab.Members" :room="room!" />
-			<RoomSearch v-if="sidebar.activeTab.value === SidebarTab.Search" :room="room!" @scroll-to-event-id="onScrollToEventId" />
-		</RoomSidebar>
+			<!-- Content row: Timeline + Sidebar -->
+			<div class="flex flex-1 overflow-hidden">
+				<div class="flex h-full w-full flex-col overflow-hidden">
+					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)" />
+				</div>
+
+				<!-- Room sidebar -->
+				<RoomSidebar :key="route.fullPath" :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value">
+					<RoomLibrary v-if="sidebar.activeTab.value === SidebarTab.Library" :room="room!" />
+					<RoomThread
+						v-if="sidebar.activeTab.value === SidebarTab.Thread && room?.getCurrentThreadId()"
+						:room="room!"
+						:scroll-to-event-id="room!.getCurrentEvent()?.eventId"
+						@scrolled-to-event-id="room!.setCurrentEvent(undefined)"
+						@thread-length-changed="currentThreadLengthChanged"
+					/>
+					<RoomMemberList v-if="sidebar.activeTab.value === SidebarTab.Members" :room="room!" />
+					<RoomSearch v-if="sidebar.activeTab.value === SidebarTab.Search" :room="room!" @scroll-to-event-id="onScrollToEventId" />
+				</RoomSidebar>
+			</div>
+
+			<!-- Footer -->
+			<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()" />
+		</template>
 	</div>
 
 	<!-- Secure room join dialog -->
@@ -70,7 +76,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
 
@@ -92,7 +98,6 @@
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
 	import StewardContactRoomHeader from '@hub-client/components/rooms/StewardContactRoomHeader.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
-	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
@@ -164,6 +169,11 @@
 		// Update might not have rooms loaded in the store, therefore, scrollToEventId is explicitly set here.
 		scrollToEventId.value = rooms.scrollPositions[props.id];
 		LOGGER.log(SMI.ROOM, `Room mounted `);
+	});
+
+	// Close sidebar when leaving this page
+	onUnmounted(() => {
+		sidebar.close();
 	});
 
 	watch(route, () => {

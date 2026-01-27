@@ -33,10 +33,15 @@
 			<template v-else-if="searchResults.length > 0">
 				<div v-for="item in searchResults" :key="item.event_id" class="group" role="listitem">
 					<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
-						<div class="hover:bg-surface-high flex items-center gap-2 rounded-md p-2">
-							<Avatar :avatar-url="user.userAvatar(item.event_sender)" :user-id="item.event_sender" class="h-8 w-8 shrink-0" />
-							<div class="min-w-0 flex-1">
-								<TruncatedText>{{ item.event_body }}</TruncatedText>
+						<div class="hover:bg-surface-high flex flex-col gap-1 rounded-md p-2">
+							<div class="flex items-center gap-2">
+								<Avatar :avatar-url="user.userAvatar(item.event_sender)" :user-id="item.event_sender" class="h-8 w-8 shrink-0" />
+								<div class="min-w-0 flex-1">
+									<TruncatedText>{{ item.event_body }}</TruncatedText>
+								</div>
+							</div>
+							<div class="text-on-surface-dim pl-10">
+								<EventTimeCompact :timestamp="item.event_timestamp" />
 							</div>
 						</div>
 					</a>
@@ -58,6 +63,7 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import EventTimeCompact from '@hub-client/components/rooms/EventTimeCompact.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
@@ -153,12 +159,16 @@
 					event_type: result.context.ourEvent.event.type,
 					event_body: result.context.ourEvent.event.content?.body,
 					event_sender: result.context.ourEvent.event.sender,
+					event_timestamp: result.context.ourEvent.event.origin_server_ts ?? 0,
 				}) as TSearchResult,
 		);
 
 		mappedResults.forEach((element) => {
 			element.event_body = formatSearchResult(element.event_body, searchTerm.value, 5);
 		});
+
+		// Sort by timestamp ascending (oldest first, matching timeline direction)
+		mappedResults.sort((a, b) => a.event_timestamp - b.event_timestamp);
 
 		return mappedResults;
 	}

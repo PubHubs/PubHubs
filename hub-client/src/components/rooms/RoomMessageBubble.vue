@@ -141,7 +141,6 @@
 									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
 									:title="t('menu.moderation_tools_disclosure')"
 								>
-									xp
 									<Icon type="warning" size="sm" />
 								</button>
 
