@@ -1,13 +1,17 @@
 <template>
-	<div class="gap-075 mb-2 flex w-full min-w-4000 flex-col items-start justify-start" v-click-outside="close">
+	<div class="gap-075 mb-2 flex w-4000 flex-col items-start justify-start" v-click-outside="close">
 		<Label :for="id" :required="required"><slot></slot></Label>
 
 		<div class="bg-surface-low outline-offset-thin flex h-11 min-h-11 w-full items-center justify-start gap-2 rounded px-175 py-100 outline focus:ring-3" v-click-outside="close">
-			<div class="grow cursor-pointer text-nowrap" @click.stop="toggle">
-				<span v-if="model" class="flex items-center gap-2">
-					<Icon v-if="icon" :type="icon"></Icon>
-					<span>{{ label }}</span>
-				</span>
+			<div class="grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
+				<template v-if="model">
+					<div v-if="multiple" class="flex items-center gap-100">
+						<div v-for="(item, index) in model" class="bg-surface-subtle py-025 rounded px-100">
+							<DropDownValue :value="item"></DropDownValue>
+						</div>
+					</div>
+					<DropDownValue v-else :value="model"></DropDownValue>
+				</template>
 				<span v-else class="text-surface-subtle">{{ placeholder }}</span>
 			</div>
 			<div class="cursor-pointer rounded-md bg-transparent" @click.stop="toggle">
@@ -16,7 +20,7 @@
 		</div>
 
 		<div v-if="open" class="bg-surface-low outline-offset-thin flex grow flex-col overflow-hidden rounded outline">
-			<DropDownOption v-for="(option, index) in options" :active="option === model" @click.stop="select(option)" class="-ml-[1px]">{{ option }}</DropDownOption>
+			<DropDownOption v-for="(option, index) in options" :value="option" :active="selection.includes(index)" @click.stop="select(index)" class="-ml-[1px]"></DropDownOption>
 		</div>
 
 		<FieldHelperText v-if="(props.help && !changed) || validated">{{ help }}</FieldHelperText>
@@ -29,22 +33,22 @@
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed, inject, onMounted, ref, useAttrs, watch } from 'vue';
+	import { PropType, computed, inject, onMounted, ref } from 'vue';
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
 	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
+	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
 	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
 	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	// Composables
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const model = defineModel<string | number>();
-
 	const props = withDefaults(
 		defineProps<{
 			options: PropType<any>;
+			multiple?: boolean;
 			name?: string;
 			id?: string;
 			placeholder?: string;
@@ -53,12 +57,16 @@
 			disabled?: boolean;
 		}>(),
 		{
+			multiple: false,
 			placeholder: '',
 			help: '',
 			validation: undefined,
 			disabled: false,
 		},
 	);
+
+	const model = defineModel<any | Array<any>>();
+	const selection = ref<Array<number>>([]); // selection of choosen indexes
 
 	// Validation etc.
 	const { id, fieldName, update, changed } = useFormInput(props, model);
@@ -76,12 +84,44 @@
 
 	const open = ref(false);
 
-	const select = (option: any) => {
-		if (model.value == option) {
-			model.value = undefined;
+	const select = (index: number) => {
+		if (props.multiple) {
+			if (selection.value.includes(index)) {
+				const idx = selection.value.findIndex((item: any) => item == index);
+				if (idx >= 0) {
+					selection.value.splice(idx, 1);
+				}
+			} else {
+				selection.value.push(index);
+			}
 		} else {
-			model.value = option;
+			if (selection.value.includes(index)) {
+				selection.value = [];
+			} else {
+				selection.value = [index];
+			}
 		}
+
+		// sort selection
+		selection.value = selection.value.sort();
+
+		// update model
+		if (props.multiple) {
+			model.value = [];
+			for (let i = 0; i < selection.value.length; i++) {
+				model.value.push((props.options as Array<any>)[selection.value[i]]);
+			}
+			if (model.value.length == 0) {
+				model.value = undefined;
+			}
+		} else {
+			if (selection.value.length > 0) {
+				model.value = (props.options as Array<any>)[selection.value[0]];
+			} else {
+				model.value = undefined;
+			}
+		}
+
 		update();
 		close();
 	};

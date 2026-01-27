@@ -61,6 +61,7 @@
 
 				<h2 class="my-200">DropDown</h2>
 				<DropDown :options="options" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Eenvoudig</DropDown>
+				<DropDown :options="options" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Eenvoudig Multiple</DropDown>
 				<DropDown :options="iconOptions" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Met Ikonen en Labels</DropDown>
 			</div>
 
