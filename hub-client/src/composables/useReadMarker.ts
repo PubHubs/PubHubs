@@ -10,18 +10,10 @@ export function useReadMarker(room: Room) {
 
 	function initialize() {
 		const lastRead = getLastReadMessage(room.roomId);
-		displayedReadMarker.value = lastRead;
-
 		if (lastRead) {
-			const stored = localStorage.getItem('lastReadMessages');
-			if (stored) {
-				const messages = JSON.parse(stored);
-				const data = messages[room.roomId];
-				if (data?.timestamp) {
-					room.setLastVisibleEventId(lastRead);
-					room.setLastVisibleTimeStamp(data.timestamp);
-				}
-			}
+			displayedReadMarker.value = lastRead.eventId;
+			room.setLastVisibleEventId(lastRead.eventId);
+			room.setLastVisibleTimeStamp(lastRead.timestamp);
 		}
 	}
 

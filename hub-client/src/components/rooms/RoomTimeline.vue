@@ -172,6 +172,17 @@
 
 	defineExpose({ elRoomTimeline });
 
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			if (activeReactionPanel.value) {
+				closeReactionPanel();
+			}
+			if (activeProfileCard.value) {
+				closeProfileCard();
+			}
+		}
+	}
+
 	onBeforeUnmount(() => {
 		// Persist read marker
 		persistReadMarker();
@@ -181,6 +192,9 @@
 			eventObserver.disconnectObserver();
 			eventObserver = null;
 		}
+
+		// Cleanup keyboard listener
+		document.removeEventListener('keydown', handleKeydown);
 	});
 
 	onMounted(async () => {
@@ -188,6 +202,9 @@
 
 		// Initialize read marker from localStorage
 		initializeReadMarker();
+
+		// Setup keyboard listener for Escape
+		document.addEventListener('keydown', handleKeydown);
 
 		// Setup pagination observer
 		setupPaginationObserver(topSentinel, bottomSentinel);
@@ -427,10 +444,6 @@
 		scrollToEvent(inReplyToId, { position: ScrollPosition.Center, highlight: true });
 	}
 
-	function onClickNewMessages() {
-		scrollToNewest();
-	}
-
 	function onEditPoll(poll: Poll, eventId: string) {
 		editingPoll.value = { poll, eventId };
 	}
@@ -448,7 +461,9 @@
 	}
 
 	function toggleReactionPanel(eventId: string) {
+		console.error('toggleReactionPanel called with:', eventId, 'current:', activeReactionPanel.value);
 		activeReactionPanel.value = activeReactionPanel.value === eventId ? null : eventId;
+		console.error('activeReactionPanel now:', activeReactionPanel.value);
 	}
 
 	function closeReactionPanel() {

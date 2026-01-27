@@ -131,7 +131,6 @@ const defaultSettings: Settings = {
 			signedMessages: true,
 			dateSplitter: true,
 			disclosure: true,
-			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,

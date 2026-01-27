@@ -1,13 +1,16 @@
 export const useLastReadMessages = () => {
 	const STORAGE_KEY = 'lastReadMessages';
 
-	const getLastReadMessage = (roomId: string): string | null => {
+	const getLastReadMessage = (roomId: string): { eventId: string; timestamp: number } | null => {
 		try {
 			const stored = localStorage.getItem(STORAGE_KEY);
 			if (!stored) return null;
 
 			const messages = JSON.parse(stored);
-			return messages[roomId]?.eventId || null;
+			const data = messages[roomId];
+			if (!data?.eventId) return null;
+
+			return { eventId: data.eventId, timestamp: data.timestamp ?? 0 };
 		} catch {
 			return null;
 		}

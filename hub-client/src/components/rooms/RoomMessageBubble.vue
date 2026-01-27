@@ -60,21 +60,20 @@
 								</template>
 
 								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
-									<div v-if="isSupported">
+									<!-- <div v-if="isSupported">
 										<button
 											@click="copy(`${source}?eventid=${props.event.event_id}`)"
-											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 										>
-											<!-- by default, `copied` will be reset in 1.5s -->
 											<Icon type="link" size="sm" v-if="!copied"></Icon>
 											<Icon type="check" size="sm" v-else>Copied!</Icon>
 										</button>
-									</div>
+									</div> -->
 									<!-- Reaction Button -->
 									<button
 										v-if="!redactedMessage"
 										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 										:title="t('message.reply_emoji')"
 									>
 										<Icon type="smiley" size="sm"></Icon>
@@ -84,7 +83,7 @@
 									<button
 										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
 										@click="reply"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 										:title="t('message.reply')"
 									>
 										<Icon type="arrow-bend-up-left" size="sm" />
@@ -94,7 +93,7 @@
 									<button
 										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 										@click="replyInThread"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 										:title="t('message.reply_in_thread')"
 									>
 										<Icon type="chat-circle" size="sm"></Icon>
@@ -104,7 +103,7 @@
 									<button
 										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && props.event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
 										@click="onDeleteMessage(props.event)"
-										class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 										:title="t('menu.delete_message')"
 									>
 										<Icon type="trash" size="sm" />
@@ -147,7 +146,7 @@
 					<button
 						v-if="hasBeenVisible && !deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 						@click="replyInThread"
-						class="bg-hub-background-3 text-label-tiny inline-flex rounded-md px-2 py-1 hover:opacity-80"
+						class="bg-hub-background-3 text-label-tiny inline-flex rounded-md px-2 py-1 hover:cursor-pointer hover:opacity-80"
 					>
 						<Icon type="chat-circle" size="xs"></Icon>
 						<!-- &nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }}) -->
@@ -470,11 +469,13 @@
 		}
 
 		// Reaction
-		if (!props.event.redactedMessage) {
+		if (!redactedMessage.value) {
 			menu.push({
 				label: 'Add reaction',
 				icon: 'smiley',
-				onClick: () => emit('reactionPanelToggle', props.event.event_id),
+				onClick: () => {
+					setTimeout(() => emit('reactionPanelToggle', props.event.event_id), 0);
+				},
 			});
 		}
 
