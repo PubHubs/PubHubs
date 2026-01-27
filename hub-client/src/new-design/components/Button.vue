@@ -48,8 +48,8 @@
 		secondary: 'bg-surface-base text-on-surface ring-button-blue hover:opacity-75',
 		tertiary: 'outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
 		error: 'bg-button-red text-on-button-red ring-on-accent-error hover:opacity-75',
-		primaryIcon: 'text-button-blue ring-on-accent-primary hover:opacity-75 min-h-300! h-300! w-300!',
-		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300! h-300! w-300!',
+		primaryIcon: 'text-button-blue ring-on-accent-primary hover:opacity-75 min-h-300 h-300! w-300!',
+		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
 	} as const;
 	export type TVariant = keyof typeof buttonVariants;
 </script>
