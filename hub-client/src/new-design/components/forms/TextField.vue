@@ -35,7 +35,7 @@
 
 		<FieldHelperText v-if="props.help && !(!validated && changed)">{{ help }}</FieldHelperText>
 
-		<div class="flex w-full gap-100">
+		<div v-if="showLength || (!validated && changed)" class="flex w-full gap-100">
 			<div class="grow">
 				<FieldValidationError v-if="!validated && changed">
 					{{ $t(validateField!.translationKey, validateField!.parameters) }}
