@@ -60,7 +60,7 @@
 				<Toggle :disabled="true" :model-value="true">Disabled</Toggle>
 
 				<h2 class="my-200">DropDown</h2>
-				<DropDown :options="options">Toggle 0</DropDown>
+				<DropDown :options="options" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze" class="min-w-4000">Eenvoudig</DropDown>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
