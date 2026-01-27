@@ -64,7 +64,7 @@
 				</template>
 
 				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
-					<IconButton type="plus-circle" data-testid="paperclip" size="lg" @click.stop="messageInput.togglePopover()" />
+					<IconButton type="plus-circle" data-testid="paperclip" size="lg" @click.stop="messageInput.togglePopover()" class="hover:cursor-pointer" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
@@ -82,19 +82,24 @@
 					<!--Steward and above can broadcast only in main time line-->
 					<button
 						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
-						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
+						:class="!messageInput.state.sendButtonEnabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
 						<Icon type="megaphone-simple" size="lg"></Icon>
 					</button>
 
 					<!-- Emoji picker -->
-					<button>
+					<button class="hover:cursor-pointer">
 						<Icon type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" />
 					</button>
 
 					<!-- Sendbutton -->
-					<button :title="$t('message.send')" :class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'" :disabled="!messageInput.state.sendButtonEnabled" @click="submitMessage">
+					<button
+						:title="$t('message.send')"
+						:class="!messageInput.state.sendButtonEnabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
+						:disabled="!messageInput.state.sendButtonEnabled"
+						@click="submitMessage"
+					>
 						<Icon type="paper-plane-right" size="lg" />
 					</button>
 				</div>

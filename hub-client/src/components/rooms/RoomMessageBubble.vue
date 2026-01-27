@@ -108,7 +108,7 @@
 								<button
 									v-if="!redactedMessage"
 									@click.stop="emit('reactionPanelToggle', props.event.event_id)"
-									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
 									:title="t('message.reply_emoji')"
 								>
 									<Icon type="smiley" size="sm"></Icon>
@@ -118,7 +118,7 @@
 								<button
 									v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
 									@click="reply"
-									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
 									:title="t('message.reply')"
 								>
 									<Icon type="arrow-bend-up-left" size="sm" />
@@ -128,7 +128,7 @@
 								<button
 									v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 									@click="replyInThread"
-									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
 									:title="t('message.reply_in_thread')"
 								>
 									<Icon type="chat-circle" size="sm"></Icon>
@@ -138,7 +138,7 @@
 								<button
 									v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
 									@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
 									:title="t('menu.moderation_tools_disclosure')"
 								>
 									<Icon type="warning" size="sm" />
@@ -148,7 +148,7 @@
 								<button
 									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
 									@click="onDeleteMessage(event)"
-									class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out"
+									class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
 									:title="t('menu.delete_message')"
 								>
 									<Icon type="trash" size="sm" />
