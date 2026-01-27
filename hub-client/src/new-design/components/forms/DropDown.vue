@@ -1,10 +1,13 @@
 <template>
-	<div class="gap-075 mb-2 flex w-full flex-col items-start justify-start" v-click-outside="close">
+	<div class="gap-075 mb-2 flex w-full min-w-4000 flex-col items-start justify-start" v-click-outside="close">
 		<Label :for="id" :required="required"><slot></slot></Label>
 
 		<div class="bg-surface-low outline-offset-thin flex h-11 min-h-11 w-full items-center justify-start gap-2 rounded px-175 py-100 outline focus:ring-3" v-click-outside="close">
 			<div class="grow cursor-pointer text-nowrap" @click.stop="toggle">
-				<span v-if="model">{{ model }}</span>
+				<span v-if="model" class="flex items-center gap-2">
+					<Icon v-if="icon" :type="icon"></Icon>
+					<span>{{ label }}</span>
+				</span>
 				<span v-else class="text-surface-subtle">{{ placeholder }}</span>
 			</div>
 			<div class="cursor-pointer rounded-md bg-transparent" @click.stop="toggle">
@@ -58,7 +61,7 @@
 	);
 
 	// Validation etc.
-	const { id, slotDefault, fieldName, update, changed } = useFormInput(props, model);
+	const { id, fieldName, update, changed } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
 
 	onMounted(() => {
@@ -71,16 +74,9 @@
 		}
 	});
 
-	// const emit = defineEmits(usedEvents);
-	// const { value: inputValue, setValue, setOptions, selectOption, optionIsSelected, changed, submit, cancel } = useFormInputEvents(emit);
-
-	// setValue(props.value);
-	// setOptions(props.options);
-
 	const open = ref(false);
 
 	const select = (option: any) => {
-		changed.value = true;
 		if (model.value == option) {
 			model.value = undefined;
 		} else {
@@ -89,6 +85,16 @@
 		update();
 		close();
 	};
+
+	const label = computed(() => {
+		if (model.value.label) return model.value.label;
+		return model.value;
+	});
+
+	const icon = computed(() => {
+		if (model.value.icon) return model.value.icon;
+		return undefined;
+	});
 
 	const toggle = () => {
 		open.value = !open.value;

@@ -60,7 +60,8 @@
 				<Toggle :disabled="true" :model-value="true">Disabled</Toggle>
 
 				<h2 class="my-200">DropDown</h2>
-				<DropDown :options="options" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze" class="min-w-4000">Eenvoudig</DropDown>
+				<DropDown :options="options" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Eenvoudig</DropDown>
+				<DropDown :options="iconOptions" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Met Ikonen en Labels</DropDown>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -184,6 +185,13 @@
 	} as formType);
 
 	const options = ['Optie 1', 'Mogelijkheid 2', 'Derde kans', 'Quattro', 'Meer dan vijf is niet nodig'];
+	const iconOptions = [
+		{ icon: 'basketball', value: 'een', label: 'Optie 1' },
+		{ icon: 'dog', value: 'twee', label: 'Mogelijkheid 2' },
+		{ icon: 'globe', value: 'drie', label: 'Derde kans' },
+		{ icon: 'key', value: 'vier', label: 'Quattro' },
+		{ icon: 'shield', value: 'vijf', label: 'Meer dan vijf is niet nodig' },
+	];
 
 	const clicked = () => {
 		alert('clicked!');
