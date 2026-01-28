@@ -64,6 +64,7 @@
 				<DropDown :options="options" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Eenvoudig Multiple</DropDown>
 				<DropDown :options="iconOptions" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Met Ikonen en Labels</DropDown>
 				<DropDown :options="iconOptions" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Multiple Ikonen en Labels</DropDown>
+				<DropDown v-if="userOptions.length > 0" :options="userOptions" placeholder="Selecteer een user" :validation="{ required: true }" help="Users">Userlist</DropDown>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -144,11 +145,14 @@
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, onMounted, reactive } from 'vue';
+	import { onMounted, reactive, ref } from 'vue';
 
-	import { ValidationRule, ValidatorFn } from '@hub-client/models/validation/TValidate';
+	// Models
+	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+	import { ValidationRule } from '@hub-client/models/validation/TValidate';
 
-	// New design
+	import { useUser } from '@hub-client/stores/user';
+
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
@@ -186,6 +190,14 @@
 		option2: true,
 	} as formType);
 
+	const myProp = 'Hi';
+
+	const items2: MenuItem[] = [
+		{ label: 'Open1', icon: 'smiley', payload: { myProp } },
+		{ label: 'Rename2', disabled: true },
+		{ label: 'Delete2', isDelicate: true },
+	];
+
 	const options = ['Optie 1', 'Mogelijkheid 2', 'Derde kans', 'Quattro', 'Meer dan vijf is niet nodig'];
 	const iconOptions = [
 		{ icon: 'basketball', value: 'een', label: 'Optie 1' },
@@ -194,6 +206,31 @@
 		{ icon: 'key', value: 'vier', label: 'Quattro' },
 		{ icon: 'shield', value: 'vijf', label: 'Meer dan vijf is niet nodig' },
 	];
+	const userOptions = ref<Array<any>>([]);
+
+	onMounted(() => {
+		document.addEventListener('context-menu-select', (e: any) => {
+			const item = e.detail.item;
+			if (item.label === 'Open1') {
+				console.log('Message:', myProp);
+			}
+		});
+	});
+
+	onMounted(async () => {
+		const users = await ManagementUtils.getUsersAccounts();
+		const user = useUser();
+		userOptions.value = users.map((item) => {
+			let avatar = user.userAvatar(item.name);
+			if (typeof avatar === 'undefined') avatar = '';
+			return {
+				value: item.name,
+				label: item.displayname,
+				avatar: avatar,
+			};
+		});
+		console.info(userOptions.value);
+	});
 
 	const clicked = () => {
 		alert('clicked!');
@@ -201,14 +238,6 @@
 
 	// Context menu
 	const { openMenu } = useContextMenu();
-
-	const myProp = 'Hi';
-
-	const items2: MenuItem[] = [
-		{ label: 'Open1', icon: 'smiley', payload: { myProp } },
-		{ label: 'Rename2', disabled: true },
-		{ label: 'Delete2', isDelicate: true },
-	];
 
 	// Custom validator Example
 	function mustBeYesOrNoFn() {
@@ -248,13 +277,4 @@
 		} as ValidationRule;
 		return rule;
 	}
-
-	onMounted(() => {
-		document.addEventListener('context-menu-select', (e: any) => {
-			const item = e.detail.item;
-			if (item.label === 'Open1') {
-				console.log('Message:', myProp);
-			}
-		});
-	});
 </script>
