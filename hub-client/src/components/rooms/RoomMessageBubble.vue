@@ -125,16 +125,6 @@
 									<Icon type="chat-circle" size="sm"></Icon>
 								</button>
 
-								<!-- Disclosure Button -->
-								<button
-									v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
-									@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex h-fit w-fit items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
-									:title="t('menu.moderation_tools_disclosure')"
-								>
-									<Icon type="warning" size="sm" />
-								</button>
-
 								<!-- Delete Button -->
 								<button
 									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
@@ -164,7 +154,7 @@
 	import MessageDisclosureRequest from './MessageDisclosureRequest.vue';
 	import { useClipboard } from '@vueuse/core';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
-	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+	import { PropType, computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
