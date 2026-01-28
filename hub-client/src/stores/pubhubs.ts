@@ -381,7 +381,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			try {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				let roomType: string = getRoomType(matrixRoom);
+				const roomType: string = getRoomType(matrixRoom);
 				rooms.initRoomsWithMatrixRoom(matrixRoom, matrixRoom?.name ?? undefined, roomType, []);
 			} catch (err) {
 				throw err;
@@ -897,23 +897,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
-		async sendPrivateReceipt(event: MatrixEvent) {
-			if (!event) return;
-			const rooms = useRooms();
-			if (event.getRoomId() && rooms.roomsSeen[event.getRoomId()!] && rooms.roomsSeen[event.getRoomId()!] >= event.localTimestamp) {
+		async sendPrivateReceipt(event: MatrixEvent, roomId: string) {
+			const eventId = event?.getId();
+			if (!eventId || !roomId || !roomId.startsWith('!')) {
 				return;
 			}
-			const loggedInUser = useUser();
-			const content = {
-				'm.read.private': {
-					[loggedInUser.userId!]: {
-						ts: event.localTimestamp,
-						thread_id: 'main',
-					},
-				},
-			};
-			rooms.roomsSeen[event.getRoomId()!] = event.localTimestamp;
-			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
+
+			try {
+				// Direct API call since SDK's sendReceipt uses event.getRoomId() which may be undefined
+				const path = `/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(ReceiptType.ReadPrivate)}/${encodeURIComponent(eventId)}`;
+				// @ts-ignore - using internal http client for direct API call
+				await this.client.http.authedRequest('POST', path, undefined, { thread_id: 'main' });
+
+				const rooms = useRooms();
+				setTimeout(() => {
+					rooms.notifyUnreadCountChanged();
+				}, 100);
+			} catch {
+				// Silently fail - receipt sending is not critical
+			}
 		},
 
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {

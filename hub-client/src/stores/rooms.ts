@@ -72,7 +72,6 @@ const useRooms = defineStore('rooms', {
 		return {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
-			roomsSeen: {} as { [index: string]: number },
 			roomList: [] as Array<RoomListRoom>,
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
@@ -81,6 +80,7 @@ const useRooms = defineStore('rooms', {
 			initialRoomsLoaded: false,
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
+			unreadCountVersion: 0, // Increment to trigger reactive updates for badge
 		};
 	},
 
@@ -218,6 +218,10 @@ const useRooms = defineStore('rooms', {
 		},
 		setTimestamps(timestamps: Array<Array<number | string>>) {
 			this.timestamps = timestamps;
+		},
+
+		notifyUnreadCountChanged() {
+			this.unreadCountVersion++;
 		},
 
 		loadFromSlidingSync(roomId: string, roomData: SlidingSyncRoomData) {

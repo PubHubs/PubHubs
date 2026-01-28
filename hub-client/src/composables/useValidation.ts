@@ -77,7 +77,7 @@ function useFieldValidation(name: string, model: any, validation?: Object) {
 		required.value = keys.includes('required');
 		if (keys.length > 0) {
 			keys.forEach((key) => {
-				let rule = {
+				const rule = {
 					validator: validateFunctions[key],
 					args: [] as any[],
 					message: validateMessageFunctions[key],

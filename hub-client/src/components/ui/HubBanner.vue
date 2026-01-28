@@ -6,11 +6,8 @@
 </template>
 
 <script setup lang="ts">
-	// Packages
-	import defaultUrl from '/public/img/banner.svg';
-
-	// Stores
-	import { useSettings } from '@hub-client/stores/settings';
+	// Assets
+	import defaultUrl from '@hub-client/assets/banner.svg';
 
 	// Types
 	type Props = {
@@ -20,6 +17,4 @@
 	};
 
 	const props = defineProps<Props>();
-
-	const settings = useSettings();
 </script>
