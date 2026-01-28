@@ -17,9 +17,7 @@ export enum SidebarTab {
 
 const activeTab = ref<SidebarTab>(SidebarTab.None);
 const selectedDMRoom = ref<Room | null>(null);
-// Persisted DM room ID - survives close() calls so DM page can restore state
 const lastDMRoomId = ref<string | null>(null);
-// Flag to disable transitions when closing during navigation
 const skipTransition = ref(false);
 
 export function useSidebar() {
@@ -38,11 +36,6 @@ export function useSidebar() {
 	function close() {
 		activeTab.value = SidebarTab.None;
 		selectedDMRoom.value = null;
-	}
-
-	// Set tab (same as openTab, but clearer intent)
-	function setTab(tab: SidebarTab) {
-		activeTab.value = tab;
 	}
 
 	// Toggle between open/closed for a specific tab
@@ -86,7 +79,7 @@ export function useSidebar() {
 		}
 	}
 
-	// Close sidebar for room pages (clears active state but preserves DM history)
+	// Close sidebar for room pages
 	function closeForRoomPage() {
 		activeTab.value = SidebarTab.None;
 		selectedDMRoom.value = null;
@@ -111,7 +104,6 @@ export function useSidebar() {
 		isMobile,
 		openTab,
 		close,
-		setTab,
 		toggleTab,
 		openDMRoom,
 		restoreDMRoom,

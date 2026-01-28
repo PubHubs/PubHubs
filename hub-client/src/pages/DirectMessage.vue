@@ -39,7 +39,7 @@
 					class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1"
 					:class="isMobile ? 'justify-center' : 'justify-between'"
 					size="sm"
-					@click="sidebar.setTab(SidebarTab.NewDM)"
+					@click="sidebar.openTab(SidebarTab.NewDM)"
 					:disabled="sidebar.activeTab.value === SidebarTab.NewDM"
 				>
 					<Icon type="plus" size="sm" />

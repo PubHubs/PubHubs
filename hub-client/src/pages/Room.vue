@@ -195,7 +195,7 @@
 		() => room.value?.getCurrentThreadId(),
 		(threadId) => {
 			if (threadId) {
-				sidebar.setTab(SidebarTab.Thread);
+				sidebar.openTab(SidebarTab.Thread);
 			} else if (sidebar.activeTab.value === SidebarTab.Thread) {
 				sidebar.close();
 			}
