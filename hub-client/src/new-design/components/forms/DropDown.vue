@@ -1,6 +1,7 @@
 <template>
 	<div
 		class="gap-050 relative mb-2 flex w-4000 flex-col items-start justify-start"
+		contenteditable="true"
 		v-click-outside="close"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
@@ -10,7 +11,7 @@
 	>
 		<Label :for="id" :required="required"><slot></slot></Label>
 
-		<div class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" v-click-outside="close" contenteditable="true">
+		<div class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3">
 			<div class="max-h-300 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
 				<template v-if="model">
 					<div v-if="multiple" class="gap-050 flex max-h-300 items-center overflow-hidden">
@@ -92,13 +93,16 @@
 			}
 		}
 		setItems(props.options as Array<any>);
+		cursor.value = -1;
 	});
 
 	const open = ref(false);
 
 	// Make sure dropdown is opened when cursorkey is used
 	watch(cursor, () => {
-		open.value = true;
+		if (cursor.value >= 0) {
+			open.value = true;
+		}
 	});
 
 	const select = (index: number) => {
