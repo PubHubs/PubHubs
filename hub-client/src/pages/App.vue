@@ -61,13 +61,6 @@
 					</template>
 				</RoomListHeader>
 
-				<!-- When user is admin, show the moderation tools menu -->
-				<RoomListHeader v-if="disclosureEnabled && user.isAdmin" label="menu.moderation_tools">
-					<Menu>
-						<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ t('menu.moderation_tools_disclosure') }} </MenuItem>
-					</Menu>
-				</RoomListHeader>
-
 				<!-- When user is admin, show the admin tools menu -->
 				<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
 					<template #roomlist>
