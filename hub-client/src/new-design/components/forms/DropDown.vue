@@ -1,5 +1,5 @@
 <template>
-	<div class="gap-075 mb-2 flex w-4000 flex-col items-start justify-start" v-click-outside="close">
+	<div class="gap-075 relative mb-2 flex w-4000 flex-col items-start justify-start" v-click-outside="close">
 		<Label :for="id" :required="required"><slot></slot></Label>
 
 		<div class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" v-click-outside="close">
@@ -19,7 +19,7 @@
 			</div>
 		</div>
 
-		<div v-if="open" class="bg-surface-low outline-offset-thin flex grow flex-col overflow-hidden rounded outline">
+		<div v-if="open" class="bg-surface-low outline-offset-thin absolute top-800 z-50 flex w-full grow flex-col overflow-hidden rounded outline">
 			<DropDownOption v-for="(option, index) in options" :value="option" :active="selection.includes(index)" @click.stop="select(index)" class="-ml-[1px]"></DropDownOption>
 		</div>
 
