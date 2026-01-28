@@ -1,12 +1,12 @@
 <template>
-	<div class="gap-075 relative mb-2 flex w-4000 flex-col items-start justify-start" v-click-outside="close">
+	<div class="gap-050 relative mb-2 flex w-4000 flex-col items-start justify-start" v-click-outside="close">
 		<Label :for="id" :required="required"><slot></slot></Label>
 
 		<div class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" v-click-outside="close">
 			<div class="max-h-300 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
 				<template v-if="model">
-					<div v-if="multiple" class="flex items-center gap-100">
-						<div v-for="(item, index) in model" class="bg-surface-subtle py-025 rounded px-100">
+					<div v-if="multiple" class="gap-050 flex max-h-300 items-center overflow-hidden">
+						<div v-for="item in model" class="bg-surface-subtle rounded px-100">
 							<DropDownValue :value="item"></DropDownValue>
 						</div>
 					</div>
@@ -15,7 +15,7 @@
 				<span v-else class="text-surface-subtle">{{ placeholder }}</span>
 			</div>
 			<div class="cursor-pointer rounded-md bg-transparent" @click.stop="toggle">
-				<Icon type="caret-down" size="md" weight="fill"></Icon>
+				<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
 			</div>
 		</div>
 

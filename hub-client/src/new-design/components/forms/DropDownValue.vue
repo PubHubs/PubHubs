@@ -1,6 +1,6 @@
 <template>
-	<span class="inline-flex max-h-300 items-center justify-start gap-2">
-		<Icon v-if="icon" :type="icon"></Icon>
+	<span class="inline-flex max-h-300 items-center justify-start gap-2 overflow-hidden">
+		<Icon v-if="icon" :type="icon" class="h-150 w-150"></Icon>
 		<span class="text-surface-on-surface justify-start text-nowrap">{{ label }}</span>
 	</span>
 </template>
