@@ -46,7 +46,7 @@
 
 			<!-- Content row: Timeline + Sidebar -->
 			<div class="flex flex-1 overflow-hidden">
-				<div class="flex h-full w-full flex-col overflow-hidden">
+				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
 					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" @scrolled-to-event-id="room.setCurrentEvent(undefined)" />
 				</div>
 

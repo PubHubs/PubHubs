@@ -1,6 +1,6 @@
 <template>
 	<div class="flex h-full flex-col">
-		<div>
+		<div class="shrink-0">
 			<InlineSpinner v-if="isLoadingNewEvents" class="absolute flex w-full justify-center" />
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
 			<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" />
@@ -42,7 +42,7 @@
 			</template>
 			<div ref="bottomSentinel" class="pointer-events-none min-h-[1px]" style="content-visibility: hidden"></div>
 		</div>
-		<MessageInput class="z-10" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler"></MessageInput>
+		<MessageInput class="z-10 shrink-0" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler"></MessageInput>
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage" />
 	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" />

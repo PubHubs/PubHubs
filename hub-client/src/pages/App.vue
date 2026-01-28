@@ -1,5 +1,5 @@
 <template>
-	<div v-if="user.isLoggedIn && setupReady" class="font-body text-on-surface text-body flex w-full shrink-0">
+	<div v-if="user.isLoggedIn && setupReady" class="font-body text-on-surface text-body flex h-screen w-full overflow-hidden">
 		<HeaderFooter class="relative shrink-0" :class="isMobile ? 'w-[calc(50%-40px)]!' : 'flex max-w-[320px]'">
 			<template #header>
 				<div class="flex h-full w-full justify-between py-2">
@@ -81,7 +81,7 @@
 			</div>
 		</HeaderFooter>
 
-		<div class="h-screen flex-1 shrink-0 overflow-hidden" :class="isMobile ? 'w-screen' : 'w-full'" role="document">
+		<div class="h-full min-w-0 flex-1 overflow-hidden" role="document">
 			<router-view />
 		</div>
 
