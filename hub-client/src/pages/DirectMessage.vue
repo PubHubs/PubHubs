@@ -149,10 +149,10 @@
 		{ once: true },
 	);
 
-	// Close sidebar before leaving to prevent animation when entering room pages
+	// Close sidebar instantly before leaving to prevent animation when entering room pages
 	onBeforeRouteLeave((to) => {
 		if (to.name === 'room') {
-			sidebar.closeForRoomPage();
+			sidebar.closeInstantly();
 		}
 	});
 

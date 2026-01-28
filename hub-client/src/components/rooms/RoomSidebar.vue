@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface-background shrink-0 overflow-hidden transition-all duration-300 ease-in-out" :class="sidebarClasses" :style="sidebarStyle">
+	<div class="bg-surface-background shrink-0 overflow-hidden" :class="[sidebarClasses, { 'transition-all duration-300 ease-in-out': !sidebar.skipTransition.value }]" :style="sidebarStyle">
 		<!-- Only render content when open to prevent layout issues -->
 		<template v-if="isOpen">
 			<!-- Content Area -->
@@ -15,13 +15,14 @@
 	import { computed } from 'vue';
 
 	// Composables
-	import { SidebarTab } from '@hub-client/composables/useSidebar';
+	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	const props = defineProps<{
 		activeTab: SidebarTab;
 		isMobile: boolean;
 	}>();
 
+	const sidebar = useSidebar();
 	const isOpen = computed(() => props.activeTab !== SidebarTab.None);
 
 	// DM sidebar takes more space (100% - 412px) to show conversation

@@ -51,7 +51,7 @@
 				</div>
 
 				<!-- Room sidebar -->
-				<RoomSidebar :key="route.fullPath" :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value">
+				<RoomSidebar :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value">
 					<RoomLibrary v-if="sidebar.activeTab.value === SidebarTab.Library" :room="room!" />
 					<RoomThread
 						v-if="sidebar.activeTab.value === SidebarTab.Thread && room?.getCurrentThreadId()"
@@ -76,9 +76,9 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRoute, useRouter } from 'vue-router';
+	import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
@@ -149,7 +149,6 @@
 	const room = computed(() => {
 		let r = rooms.rooms[props.id];
 		if (!r) {
-			// I want the side effect that should be avoided according to the lint rule.
 			// eslint-disable-next-line
 			router.push({
 				name: 'error-page',
@@ -157,7 +156,7 @@
 			});
 			return undefined;
 		}
-		// the name of the room will be synced later, start with an empty name
+		// The name of the room will be synced later, start with an empty name
 		if (r.name === props.id) {
 			r.name = '';
 		}
@@ -165,17 +164,17 @@
 	});
 
 	onMounted(() => {
-		// Always close sidebar when entering a room page
-		sidebar.closeForRoomPage();
+		// Ensure sidebar is closed instantly when entering a room page
+		sidebar.closeInstantly();
 		update();
 		// Update might not have rooms loaded in the store, therefore, scrollToEventId is explicitly set here.
 		scrollToEventId.value = rooms.scrollPositions[props.id];
 		LOGGER.log(SMI.ROOM, `Room mounted `);
 	});
 
-	// Close sidebar when leaving this page
-	onUnmounted(() => {
-		sidebar.closeForRoomPage();
+	// Close sidebar instantly before leaving this page
+	onBeforeRouteLeave(() => {
+		sidebar.closeInstantly();
 	});
 
 	watch(route, () => {
@@ -188,7 +187,6 @@
 			rooms.currentRoom.setCurrentThreadId(undefined); // Reset current thread
 			rooms.currentRoom.setCurrentEvent(undefined); // Reset current event
 		}
-		sidebar.closeForRoomPage(); // Close sidebar when navigating to a different room
 		update();
 	});
 

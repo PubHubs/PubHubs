@@ -19,6 +19,8 @@ const activeTab = ref<SidebarTab>(SidebarTab.None);
 const selectedDMRoom = ref<Room | null>(null);
 // Persisted DM room ID - survives close() calls so DM page can restore state
 const lastDMRoomId = ref<string | null>(null);
+// Flag to disable transitions when closing during navigation
+const skipTransition = ref(false);
 
 export function useSidebar() {
 	const settings = useSettings();
@@ -88,12 +90,23 @@ export function useSidebar() {
 	function closeForRoomPage() {
 		activeTab.value = SidebarTab.None;
 		selectedDMRoom.value = null;
-		// Note: lastDMRoomId is intentionally preserved
+	}
+
+	// Close sidebar instantly without animation (used during navigation)
+	function closeInstantly() {
+		skipTransition.value = true;
+		activeTab.value = SidebarTab.None;
+		selectedDMRoom.value = null;
+		// Reset the flag after a tick so subsequent operations animate normally
+		setTimeout(() => {
+			skipTransition.value = false;
+		}, 0);
 	}
 
 	return {
 		activeTab: computed(() => activeTab.value),
 		selectedDMRoom: computed(() => selectedDMRoom.value),
+		skipTransition: computed(() => skipTransition.value),
 		isOpen,
 		isMobile,
 		openTab,
@@ -103,5 +116,6 @@ export function useSidebar() {
 		openDMRoom,
 		restoreDMRoom,
 		closeForRoomPage,
+		closeInstantly,
 	};
 }

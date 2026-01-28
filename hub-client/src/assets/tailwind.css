@@ -316,14 +316,14 @@
 	--text-label-tiny--font-weight: 500;
 
 	/* Animations */
-	--animate-highlight: highlight 5s ease-in-out;
+	--animate-highlight: highlight 2s ease-in-out;
 	@keyframes highlight {
 		0% {
 			background: none;
 		}
 
-		70% {
-			background: var(--color-surface-subtle);
+		50% {
+			background: var(--color-surface-base);
 		}
 
 		100% {
