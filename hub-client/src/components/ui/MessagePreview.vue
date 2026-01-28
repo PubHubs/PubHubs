@@ -84,7 +84,6 @@
 		},
 	});
 
-	// Could also be done in onMounted, but in the future perhaps the avatar of a groupsmessage is editable
 	watch(
 		() => props.room,
 		async (room) => {
@@ -131,12 +130,6 @@
 		return event.value?.localTimestamp || 0;
 	});
 
-	const avatarUser = computed(() => {
-		const sender = getOtherDMUser()?.userId;
-		if (!sender || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return undefined;
-		return props.room.getMember(sender, true);
-	});
-
 	const displayName = computed(() => {
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return props.room.name;
 		if (roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('admin.support');
@@ -149,7 +142,6 @@
 	const isGroupOrContact = computed(() => roomType.value === RoomType.PH_MESSAGES_GROUP || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT || roomType.value === RoomType.PH_MESSAGE_STEWARD_CONTACT);
 
 	function getOtherDMUser(): RoomMember | null | undefined {
-		// Due to how avatar is implemented  this is a quick fix for group avatar.
 		// For avatars - there needs to be a valid user if the override url needs to work.
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return event.value?.sender;
 
