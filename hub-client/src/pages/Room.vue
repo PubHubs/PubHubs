@@ -26,8 +26,8 @@
 
 				<!-- Right: Sidebar controls -->
 				<div class="flex items-center gap-2">
-					<!-- Close button (only when sidebar is open) - positioned at left of icon row -->
-					<button v-if="sidebar.isOpen.value" class="hover:bg-surface-variant rounded-md p-2 transition-colors" :aria-label="t('global.close')" @click="sidebar.close()">
+					<!-- Close button -->
+					<button v-if="sidebar.isOpen.value" class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer" :aria-label="t('global.close')" @click="sidebar.close()">
 						<Icon type="arrow-right" size="base" />
 					</button>
 					<RoomHeaderButtons>
@@ -165,6 +165,8 @@
 	});
 
 	onMounted(() => {
+		// Always close sidebar when entering a room page
+		sidebar.closeForRoomPage();
 		update();
 		// Update might not have rooms loaded in the store, therefore, scrollToEventId is explicitly set here.
 		scrollToEventId.value = rooms.scrollPositions[props.id];
@@ -173,20 +175,20 @@
 
 	// Close sidebar when leaving this page
 	onUnmounted(() => {
-		sidebar.close();
+		sidebar.closeForRoomPage();
 	});
 
 	watch(route, () => {
 		if (rooms.currentRoom) {
-			// for scrolling back to this room: save the id of the first visible event
+			// For scrolling back to this room: save the id of the first visible event
 			const firstEventId = getFirstVisibleEventId();
 			if (firstEventId) {
 				rooms.scrollPositions[rooms.currentRoom.roomId] = firstEventId ?? '';
 			}
-			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
-			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
+			rooms.currentRoom.setCurrentThreadId(undefined); // Reset current thread
+			rooms.currentRoom.setCurrentEvent(undefined); // Reset current event
 		}
-		sidebar.close(); // Close sidebar when navigating to a different room
+		sidebar.closeForRoomPage(); // Close sidebar when navigating to a different room
 		update();
 	});
 

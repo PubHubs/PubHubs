@@ -1,7 +1,7 @@
 <template>
-	<div class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'">
-		<div class="flex min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
-			<Avatar :class="'shrink-0'" :avatar-url="avatarOverrideUrl" icon="users" />
+	<div class="mx-auto h-16 rounded-xl px-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
+		<div class="flex h-full min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
+			<Avatar :class="'shrink-0'" :avatar-url="avatarOverrideUrl" :user-id="otherDMUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
 			<div class="min-w-0 grow overflow-hidden">
 				<div class="flex flex-col gap-1">
 					<div class="flex flex-row items-center gap-2">
@@ -24,7 +24,7 @@
 						</p>
 					</div>
 
-					<!-- Right Section: Message Body -->
+					<!-- Right Section: Message body -->
 					<div v-if="room.hasMessages()" class="mt-1 min-w-0">
 						<p v-html="event?.getContent().ph_body" class="truncate"></p>
 					</div>
@@ -34,11 +34,11 @@
 				</div>
 			</div>
 
-			<Badge v-if="newMessage > 0" color="notification" class="aspect-square h-full flex-shrink-0">
+			<Badge v-if="newMessage > 0" color="notification" class="aspect-square h-full shrink-0">
 				{{ newMessage }}
 			</Badge>
 
-			<EventTime v-if="lastMessageTimestamp !== undefined && lastMessageTimestamp !== 0" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="flex-shrink-0" />
+			<EventTime v-if="lastMessageTimestamp !== undefined && lastMessageTimestamp !== 0" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="shrink-0" />
 		</div>
 	</div>
 </template>
@@ -62,8 +62,10 @@
 
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
 
 	const rooms = useRooms();
+	const userStore = useUser();
 	const { t } = useI18n();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
@@ -73,6 +75,10 @@
 			required: true,
 		},
 		isMobile: {
+			type: Boolean,
+			default: false,
+		},
+		active: {
 			type: Boolean,
 			default: false,
 		},
@@ -86,6 +92,14 @@
 				avatarOverrideUrl.value = undefined;
 				return;
 			}
+			// For 1:1 DMs, use the other user's avatar
+			if (room.getType() === RoomType.PH_MESSAGES_DM) {
+				const otherUser = getOtherDMUser();
+				if (otherUser?.userId) {
+					avatarOverrideUrl.value = userStore.userAvatar(otherUser.userId);
+					return;
+				}
+			}
 			avatarOverrideUrl.value = await props.room.getRoomAvatarAuthorizedUrl();
 		},
 		{ immediate: true },
@@ -93,25 +107,30 @@
 
 	const roomType = computed(() => props.room.getType());
 
+	const otherDMUserId = computed(() => {
+		if (roomType.value === RoomType.PH_MESSAGES_DM) {
+			return getOtherDMUser()?.userId;
+		}
+		return undefined;
+	});
+
 	const newMessage = computed(() => props.room.getUnreadNotificationCount(NotificationCountType.Total));
 
-	// In your script setup
 	const latestMessageEvent = computed(() => {
-		// Replace with actual SDK method if available
 		const events = props.room.getLiveTimelineEvents();
+
 		// Find the latest message event
 		const messageEvents = events.filter((event) => event.getType() === EventType.RoomMessage);
 		if (messageEvents.length === 0) return undefined;
 		return [...messageEvents].sort((a, b) => b.localTimestamp - a.localTimestamp)[0];
 	});
 
-	const event = latestMessageEvent; // This would now be the latest message event
+	const event = latestMessageEvent;
 
 	const lastMessageTimestamp = computed(() => {
 		return event.value?.localTimestamp || 0;
 	});
 
-	// No user is needed for Room Avatar, we just override img url. We don't have a Room Avatar.
 	const avatarUser = computed(() => {
 		const sender = getOtherDMUser()?.userId;
 		if (!sender || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return undefined;

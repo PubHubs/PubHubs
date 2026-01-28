@@ -21,14 +21,11 @@
 							:data-event-id="item.matrixEvent.event.event_id"
 							class="room-event"
 							:class="{ 'animate-highlight': props.eventIdToScroll === item.matrixEvent.event.event_id }"
-							:active-profile-card="activeProfileCard"
 							:active-reaction-panel="activeReactionPanel"
 							@in-reply-to-click="onInReplyToClick"
 							@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
 							@edit-poll="onEditPoll"
 							@edit-scheduler="onEditScheduler"
-							@profile-card-toggle="toggleProfileCard"
-							@profile-card-close="closeProfileCard"
 							@reaction-panel-toggle="toggleReactionPanel"
 							@reaction-panel-close="closeReactionPanel"
 							@clicked-emoticon="sendEmoji"
@@ -96,7 +93,6 @@
 	const bottomSentinel = ref<HTMLElement | null>(null);
 	const isLoadingNewEvents = ref(false);
 	const showConfirmDelMsgDialog = ref(false);
-	const activeProfileCard = ref<string | null>(null);
 	const activeReactionPanel = ref<string | null>(null);
 	const eventToBeDeleted = ref<TMessageEvent>();
 	const editingPoll = ref<{ poll: Poll; eventId: string } | undefined>(undefined);
@@ -496,14 +492,6 @@
 
 	function onEditScheduler(scheduler: Scheduler, eventId: string) {
 		editingScheduler.value = { scheduler, eventId };
-	}
-
-	function toggleProfileCard(eventId: string) {
-		activeProfileCard.value = activeProfileCard.value === eventId ? null : eventId;
-	}
-
-	function closeProfileCard() {
-		activeProfileCard.value = null;
 	}
 
 	function toggleReactionPanel(eventId: string) {

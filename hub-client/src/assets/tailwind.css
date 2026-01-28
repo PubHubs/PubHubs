@@ -406,7 +406,7 @@
 		@apply bg-surface-high!;
 	}
 	.editor .v-note-wrapper {
-		@apply !min-h-20! relative z-10! max-h-[400px]! resize-y! overflow-y-auto;
+		@apply min-h-20! relative z-10! max-h-[400px]! resize-y! overflow-y-auto;
 	}
 	.dark .editor .auto-textarea-wrapper .auto-textarea-input {
 		color: white !important;

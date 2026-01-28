@@ -107,6 +107,7 @@
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
@@ -115,11 +116,14 @@
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { User, useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const pubhubs = usePubhubsStore();
 	const userStore = useUser();
+	const rooms = useRooms();
+	const sidebar = useSidebar();
 	const groupPanel = ref<boolean>(false);
 	const groupProfile = ref<boolean>(false);
 	const groupPanelButton = ref<boolean>(true);
@@ -194,8 +198,15 @@
 
 	async function gotToPrivateRoom(other: User | MatrixUser[]) {
 		const room = await pubhubs.createPrivateRoomWith(other);
-		if (room) await pubhubs.routeToRoomPage(room);
-		else dialog.confirm(t('errors.cant_find_room'));
+		if (room) {
+			// Open in sidebar instead of navigating to room page
+			const storeRoom = rooms.rooms[room.room_id];
+			if (storeRoom) {
+				sidebar.openDMRoom(storeRoom);
+			}
+		} else {
+			dialog.confirm(t('errors.cant_find_room'));
+		}
 	}
 
 	async function usersSelectionDone() {
@@ -240,7 +251,11 @@
 		if (room) {
 			await uploadAvatar(room.room_id);
 			await setRoomName(room.room_id, groupName.value);
-			await pubhubs.routeToRoomPage(room);
+			// Open in sidebar instead of navigating to room page
+			const storeRoom = rooms.rooms[room.room_id];
+			if (storeRoom) {
+				sidebar.openDMRoom(storeRoom);
+			}
 		}
 	}
 

@@ -18,7 +18,7 @@
 
 			<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
 				<section class="flex flex-col gap-2">
-					<div class="bg-surface text-hub-text group flex items-center justify-between overflow-hidden rounded-lg py-2 pr-4 pl-2" role="complementary">
+					<div class="bg-surface text-hub-text group flex h-16 items-center justify-between overflow-hidden rounded-lg py-2 pr-4 pl-2" role="complementary">
 						<div class="flex w-full items-center gap-2 truncate">
 							<Avatar :avatarUrl="user.userAvatar(user.userId!) ?? user.avatarUrl" :userId="user.userId!" />
 							<div class="flex h-fit w-full flex-col overflow-hidden">

@@ -15,11 +15,6 @@
 
 			<!-- Right: Buttons -->
 			<div class="flex items-center gap-2">
-				<!-- Close button (only when sidebar is open) - positioned at left of icon row -->
-				<button v-if="sidebar.isOpen.value" class="hover:bg-surface-variant rounded-md p-2 transition-colors" :aria-label="t('global.close')" @click="sidebar.close()">
-					<Icon type="arrow-right" size="base" />
-				</button>
-
 				<Button
 					v-if="!user.isAdmin"
 					size="sm"
@@ -48,14 +43,23 @@
 			</div>
 		</div>
 
-		<!-- Content row: Message list + Sidebar -->
+		<!-- Content row: Message list + sidebar -->
 		<div class="flex flex-1 overflow-hidden">
-			<div class="flex h-full w-full flex-col overflow-y-auto px-4 py-4 md:px-16 md:py-10">
+			<div class="flex h-full w-full flex-col overflow-y-auto p-3 md:p-4">
 				<span v-if="privateRooms?.length === 0" class="mx-auto shrink-0">
 					{{ t('others.no_private_message') }}
 				</span>
 				<div class="w-full transition-all duration-300 ease-in-out" role="list" data-testid="conversations">
-					<MessagePreview v-for="room in sortedPrivateRooms" :key="room.roomId" :room="room" :isMobile="isMobile" class="hover:cursor-pointer" role="listitem" @click="openDMRoom(room)" />
+					<MessagePreview
+						v-for="room in sortedPrivateRooms"
+						:key="room.roomId"
+						:room="room"
+						:isMobile="isMobile"
+						:active="sidebar.selectedDMRoom.value?.roomId === room.roomId"
+						class="hover:cursor-pointer"
+						role="listitem"
+						@click="openDMRoom(room)"
+					/>
 				</div>
 			</div>
 
@@ -71,8 +75,9 @@
 <script setup lang="ts">
 	// Packages
 	import { EventType, NotificationCountType } from 'matrix-js-sdk';
-	import { computed, onUnmounted } from 'vue';
+	import { computed, onMounted, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { onBeforeRouteLeave } from 'vue-router';
 
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
@@ -111,11 +116,6 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const privateRooms = computed<Array<Room>>(() => getPrivateRooms());
 
-	// Close sidebar when leaving this page
-	onUnmounted(() => {
-		sidebar.close();
-	});
-
 	const newAdminMsgCount = computed(() => {
 		if (user.isAdmin) return;
 		const adminContactRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
@@ -130,6 +130,30 @@
 		return [...privateRooms.value].sort((r1, r2) => {
 			return lastEventTimeStamp(r2) - lastEventTimeStamp(r1);
 		});
+	});
+
+	// Restore sidebar state when entering the DM page
+	onMounted(() => {
+		sidebar.restoreDMRoom(sortedPrivateRooms.value);
+	});
+
+	// Watch for rooms to become available
+	watch(
+		sortedPrivateRooms,
+		(newRooms) => {
+			// Only auto-open if sidebar is not already open and rooms just became available
+			if (!sidebar.isOpen.value && newRooms.length > 0) {
+				sidebar.restoreDMRoom(newRooms);
+			}
+		},
+		{ once: true },
+	);
+
+	// Close sidebar before leaving to prevent animation when entering room pages
+	onBeforeRouteLeave((to) => {
+		if (to.name === 'room') {
+			sidebar.closeForRoomPage();
+		}
 	});
 
 	async function directMessageAdmin() {

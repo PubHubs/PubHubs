@@ -8,13 +8,10 @@
 					:room="room"
 					:event="props.room.currentThread?.rootEvent?.event"
 					:viewFromThread="true"
-					:active-profile-card="activeProfileCard"
 					:active-reaction-panel="activeReactionPanel"
 					class="room-event"
 					@in-reply-to-click="onInReplyToClick"
 					@delete-message="confirmDeleteMessage"
-					@profile-card-toggle="toggleProfileCard"
-					@profile-card-close="closeProfileCard"
 					@reaction-panel-toggle="toggleReactionPanel"
 					@reaction-panel-close="closeReactionPanel"
 					@clicked-emoticon="sendEmoji"
@@ -29,14 +26,11 @@
 						:room="room"
 						:event="item.matrixEvent.event"
 						:viewFromThread="true"
-						:active-profile-card="activeProfileCard"
 						:active-reaction-panel="activeReactionPanel"
 						class="room-event"
 						@clicked-emoticon="sendEmoji"
 						@in-reply-to-click="onInReplyToClick"
 						@delete-message="confirmDeleteMessage"
-						@profile-card-toggle="toggleProfileCard"
-						@profile-card-close="closeProfileCard"
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
 					></RoomMessageBubble>
@@ -94,7 +88,6 @@
 	let threadEvents: Reactive<TimelineEvent[]> = reactive<TimelineEvent[]>([]);
 	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
 
-	const activeProfileCard = ref<string | null>(null);
 	const activeReactionPanel = ref<string | null>(null);
 
 	const filteredEvents = computed(() => {
@@ -217,14 +210,6 @@
 				deletedEvents.push(deletedEvent.matrixEvent as MatrixEvent);
 			}
 		}
-	}
-
-	function toggleProfileCard(eventId: string) {
-		activeProfileCard.value = activeProfileCard.value === eventId ? null : eventId;
-	}
-
-	function closeProfileCard() {
-		activeProfileCard.value = null;
 	}
 
 	function toggleReactionPanel(eventId: string) {

@@ -8,7 +8,7 @@
 			</div>
 
 			<!-- Message Container -->
-			<div class="relative flex w-full gap-2 px-6" :class="getMessageContainerClasses">
+			<div class="relative flex w-full gap-4 px-6" :class="getMessageContainerClasses">
 				<!-- Reaction Panel -->
 				<div v-if="showReactionPanel" :class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
 					<ReactionMiniPopUp :eventId="props.event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, props.event.event_id)" @close-panel="emit('reactionPanelClose')" />
@@ -18,19 +18,10 @@
 				<Avatar
 					:avatar-url="user.userAvatar(props.event.sender)"
 					:user-id="props.event.sender"
-					@click.stop="emit('profileCardToggle', props.event.event_id)"
-					:class="['transition-all duration-500 ease-in-out', { 'ring-on-surface-dim cursor-pointer ring-1 ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
-					@contextmenu="openMenu($event, props.event.sender !== user.userId ? [{ label: 'Direct message', icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])"
+					@contextmenu="openMenu($event, props.event.sender !== user.userId && !room.directMessageRoom() ? [{ label: 'Direct message', icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])"
 				/>
-
-				<!-- Profile Card -->
-				<div class="relative">
-					<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(props.event) ? 'bottom-4' : '']">
-						<ProfileCard :event="props.event" :room="room" :room-member="roomMember" />
-					</Popover>
-				</div>
 
 				<!-- Message and Actions -->
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
@@ -190,8 +181,6 @@
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
-	import Popover from '@hub-client/components/ui/Popover.vue';
-	import ProfileCard from '@hub-client/components/ui/ProfileCard.vue';
 	import ReactionMiniPopUp from '@hub-client/components/ui/ReactionMiniPopUp.vue';
 
 	// Logic
@@ -233,7 +222,6 @@
 	const { text, copy, copied, isSupported } = useClipboard({ source });
 	const isMobile = computed(() => settings.isMobileState);
 
-	let roomMember = ref();
 	let threadLength = ref(0);
 
 	const props = defineProps({
@@ -260,10 +248,6 @@
 			type: Boolean,
 			default: false,
 		},
-		activeProfileCard: {
-			type: String as PropType<string | null>,
-			default: null,
-		},
 		activeReactionPanel: {
 			type: String as PropType<string | null>,
 			default: null,
@@ -277,13 +261,6 @@
 	onMounted(() => {
 		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
 		threadLength.value = props.eventThreadLength;
-	});
-
-	onBeforeUnmount(() => {
-		// If the profile card is open when this component is unmounted, close it.
-		if (props.activeProfileCard === props.event.event_id) {
-			emit('profileCardClose');
-		}
 	});
 
 	/**
@@ -305,14 +282,10 @@
 		(e: 'deleteMessage', event: TMessageEvent): void;
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
-		(e: 'profileCardToggle', eventId: string): void;
-		(e: 'profileCardClose'): void;
 		(e: 'reactionPanelToggle', eventId: string): void;
 		(e: 'reactionPanelClose'): void;
 		(e: 'clickedEmoticon', emoji: string, eventId: string): void;
 	}>();
-
-	const showProfileCard = computed(() => props.activeProfileCard === props.event.event_id);
 
 	const showReactionPanel = computed(() => props.activeReactionPanel === props.event.event_id);
 
@@ -431,8 +404,8 @@
 	function getContextMenuItems() {
 		const menu: MenuItem[] = [];
 
-		// Direct message (only if sender is not current user)
-		if (props.event.sender !== user.userId) {
+		// Direct message (only if sender is not current user and not already in a DM)
+		if (props.event.sender !== user.userId && !props.room.directMessageRoom()) {
 			menu.push({
 				label: 'Direct message',
 				icon: 'chat-circle',
