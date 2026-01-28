@@ -229,7 +229,6 @@
 				avatar: avatar,
 			};
 		});
-		console.info(userOptions.value);
 	});
 
 	const clicked = () => {

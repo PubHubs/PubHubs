@@ -1,8 +1,16 @@
 <template>
-	<div class="gap-050 relative mb-2 flex w-4000 flex-col items-start justify-start" v-click-outside="close">
+	<div
+		class="gap-050 relative mb-2 flex w-4000 flex-col items-start justify-start"
+		v-click-outside="close"
+		@keydown.arrow-down.prevent="cursorDown()"
+		@keydown.arrow-up.prevent="cursorUp()"
+		@keydown.enter.prevent="select(cursor)"
+		@keydown.esc.prevent="close"
+		@focusout="close"
+	>
 		<Label :for="id" :required="required"><slot></slot></Label>
 
-		<div class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" v-click-outside="close">
+		<div class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" v-click-outside="close" contenteditable="true">
 			<div class="max-h-300 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
 				<template v-if="model">
 					<div v-if="multiple" class="gap-050 flex max-h-300 items-center overflow-hidden">
@@ -20,7 +28,7 @@
 		</div>
 
 		<div v-if="open" class="bg-surface-low outline-offset-thin absolute top-800 z-50 flex w-full grow flex-col overflow-hidden rounded outline">
-			<DropDownOption v-for="(option, index) in options" :value="option" :active="selection.includes(index)" @click.stop="select(index)" class="-ml-[1px]"></DropDownOption>
+			<DropDownOption v-for="(option, index) in options" :value="option" :highlighted="cursor === index" :active="selection.includes(index)" @click.stop="select(index)" class="-ml-[1px]"></DropDownOption>
 		</div>
 
 		<FieldHelperText v-if="(props.help && !changed) || validated">{{ help }}</FieldHelperText>
@@ -33,8 +41,9 @@
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed, inject, onMounted, ref } from 'vue';
+	import { PropType, inject, onMounted, ref, watch } from 'vue';
 
+	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
 	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
@@ -44,6 +53,8 @@
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	// Composables
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
+
+	const { setItems, cursor, cursorDown, cursorUp, reset, selectItem, selectItemByEnter } = useKeyStrokes();
 
 	const props = withDefaults(
 		defineProps<{
@@ -80,9 +91,15 @@
 				addField(fieldName.value, model, changed, validated);
 			}
 		}
+		setItems(props.options as Array<any>);
 	});
 
 	const open = ref(false);
+
+	// Make sure dropdown is opened when cursorkey is used
+	watch(cursor, () => {
+		open.value = true;
+	});
 
 	const select = (index: number) => {
 		if (props.multiple) {
@@ -125,16 +142,6 @@
 		update();
 		close();
 	};
-
-	const label = computed(() => {
-		if (model.value.label) return model.value.label;
-		return model.value;
-	});
-
-	const icon = computed(() => {
-		if (model.value.icon) return model.value.icon;
-		return undefined;
-	});
 
 	const toggle = () => {
 		open.value = !open.value;
