@@ -2,8 +2,8 @@
 	<div class="gap-075 mb-2 flex w-4000 flex-col items-start justify-start" v-click-outside="close">
 		<Label :for="id" :required="required"><slot></slot></Label>
 
-		<div class="bg-surface-low outline-offset-thin flex h-11 min-h-11 w-full items-center justify-start gap-2 rounded px-175 py-100 outline focus:ring-3" v-click-outside="close">
-			<div class="grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
+		<div class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" v-click-outside="close">
+			<div class="max-h-300 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
 				<template v-if="model">
 					<div v-if="multiple" class="flex items-center gap-100">
 						<div v-for="(item, index) in model" class="bg-surface-subtle py-025 rounded px-100">

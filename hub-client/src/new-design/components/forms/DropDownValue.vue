@@ -1,5 +1,5 @@
 <template>
-	<span class="inline-flex items-center justify-start gap-2">
+	<span class="inline-flex max-h-300 items-center justify-start gap-2">
 		<Icon v-if="icon" :type="icon"></Icon>
 		<span class="text-surface-on-surface justify-start text-nowrap">{{ label }}</span>
 	</span>
