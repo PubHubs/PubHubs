@@ -1,6 +1,6 @@
 <template>
 	<div class="flex h-full flex-col gap-4 overflow-y-auto p-3">
-		<div v-if="stewardIds && stewardIds.length > 0" class="flex-1">
+		<div v-if="stewardIds && stewardIds.length > 0" class="pb-8">
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.stewards') }}</div>
@@ -16,7 +16,7 @@
 			</div>
 		</div>
 
-		<div v-if="memberIds && memberIds.length > 0" class="flex-1">
+		<div v-if="memberIds && memberIds.length > 0" class="grow">
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.members') }}</div>
