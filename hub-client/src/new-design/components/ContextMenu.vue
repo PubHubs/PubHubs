@@ -101,8 +101,6 @@
 	function onKeydown(e: KeyboardEvent) {
 		const buttons = itemButtons.value;
 
-		console.error(buttons);
-
 		if (!buttons.length) return;
 
 		const currentIndex = buttons.findIndex((button) => button === document.activeElement);
