@@ -226,6 +226,11 @@
 	}
 
 	async function update() {
+		// Set current room early if it already exists (makes header visible sooner)
+		if (rooms.roomExists(props.id)) {
+			rooms.changeRoom(props.id);
+		}
+
 		await rooms.waitForInitialRoomsLoaded();
 
 		hubSettings.hideBar();

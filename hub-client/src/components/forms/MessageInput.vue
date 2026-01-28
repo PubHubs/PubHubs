@@ -64,7 +64,14 @@
 				</template>
 
 				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
-					<IconButton type="plus-circle" data-testid="paperclip" size="lg" @click.stop="messageInput.togglePopover()" class="hover:cursor-pointer" />
+					<IconButton
+						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
+						data-testid="paperclip"
+						size="lg"
+						@click.stop="messageInput.togglePopover()"
+						class="transition-transform duration-200 hover:cursor-pointer"
+						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
+					/>
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"

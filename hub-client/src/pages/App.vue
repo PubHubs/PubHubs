@@ -81,7 +81,7 @@
 			</div>
 		</HeaderFooter>
 
-		<div class="h-full min-w-0 flex-1 overflow-hidden" role="document">
+		<div class="h-full min-w-0 flex-1 overflow-hidden" :class="isMobile ? 'w-screen' : ''" role="document">
 			<router-view />
 		</div>
 

@@ -30,7 +30,7 @@
 
 	const sidebarClasses = computed(() => {
 		if (props.isMobile) {
-			return isOpen.value ? 'fixed inset-y-0 right-0 z-50 w-[calc(50vw_+_40px)]' : 'fixed inset-y-0 right-0 z-50 w-0';
+			return isOpen.value ? 'fixed top-[80px] bottom-0 right-0 z-50 w-[calc(50vw_+_40px)]' : 'fixed top-[80px] bottom-0 right-0 z-50 w-0';
 		}
 		if (!isOpen.value) {
 			return 'relative z-40 w-0 border-l-0';
