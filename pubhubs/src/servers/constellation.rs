@@ -136,7 +136,7 @@ impl Inner {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum ConstellationOrId {
-    Constellation(Constellation),
+    Constellation(Box<Constellation>),
     Id { id: id::Id },
 }
 
@@ -152,7 +152,7 @@ impl ConstellationOrId {
     /// Returns underlying [`Constellation`], if any.
     pub fn into_constellation(self) -> Option<Constellation> {
         if let Self::Constellation(c) = self {
-            return Some(c);
+            return Some(*c);
         }
         None
     }

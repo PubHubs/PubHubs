@@ -1,6 +1,6 @@
 use crate::api::{self, ApiResultExt as _, NoPayload};
-use crate::servers::{self, Constellation, server::Server as _};
 use crate::servers::constellation::ConstellationOrId;
+use crate::servers::{self, Constellation, server::Server as _};
 
 impl crate::client::Client {
     /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
@@ -42,7 +42,10 @@ impl crate::client::Client {
         }
 
         let Some(constellation) = phc_inf.constellation_or_id.unwrap().into_constellation() else {
-            log::error!("{phc} did not return a constellation, but just its id", phc = servers::Name::PubhubsCentral);
+            log::error!(
+                "{phc} did not return a constellation, but just its id",
+                phc = servers::Name::PubhubsCentral
+            );
             return Err(api::ErrorCode::InternalError);
         };
 

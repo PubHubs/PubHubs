@@ -496,10 +496,13 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             "this `discover` method should only be run when phc_inf.constellation is some"
         );
 
-        let Some(phc_inf_constellation) = phc_inf.constellation_or_id.unwrap().into_constellation() else {
-            log::warn!("{server_name}: {phc} returned only its contellation id",
+        let Some(phc_inf_constellation) = phc_inf.constellation_or_id.unwrap().into_constellation()
+        else {
+            log::warn!(
+                "{server_name}: {phc} returned only its contellation id",
                 phc = Name::PubhubsCentral,
-                server_name = S::NAME);
+                server_name = S::NAME
+            );
             return Err(api::ErrorCode::InternalError);
         };
 
@@ -913,18 +916,16 @@ impl<S: Server> AppBase<S> {
         use super::constellation::ConstellationOrId;
 
         // Return our constellation (if we have one), but only its id if we're not PHC.
-        let constellation_or_id = 
-                app
-                .running_state
-                .as_ref()
-                .map(|rs| {
-                    match S::NAME {
-                        Name::PubhubsCentral => ConstellationOrId::Constellation(
-                            AsRef::<Constellation>::as_ref(&rs.constellation).clone()),
-                        _ => ConstellationOrId::Id{id: rs.constellation.id }
-                    }
-                });
-
+        let constellation_or_id = app.running_state.as_ref().map(|rs| match S::NAME {
+            Name::PubhubsCentral => ConstellationOrId::Constellation(
+                AsRef::<Constellation>::as_ref(&rs.constellation)
+                    .clone()
+                    .into(),
+            ),
+            _ => ConstellationOrId::Id {
+                id: rs.constellation.id,
+            },
+        });
 
         Ok(api::DiscoveryInfoResp {
             name: S::NAME,
@@ -940,9 +941,8 @@ impl<S: Server> AppBase<S> {
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
-            constellation_or_id
+            constellation_or_id,
         })
-        
     }
 }
 
