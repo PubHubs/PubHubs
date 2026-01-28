@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="bg-surface rounded-md"
+		class="bg-surface fixed right-8 rounded-md"
 		:class="{
 			'hidden group-hover:block': !isTouchDevice && !remainActive,
 			'bg-surface-base block': isTouchDevice || remainActive,
