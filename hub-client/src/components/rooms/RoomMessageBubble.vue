@@ -49,7 +49,7 @@
 							</div>
 
 							<!-- Message Action Buttons -->
-							<div>
+							<div class="bg-surface absolute right-0 flex rounded-md">
 								<template v-if="timerReady && !deleteMessageDialog">
 									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
 										<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
@@ -57,8 +57,7 @@
 									<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
 								</template>
 
-								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
-									<!-- <div v-if="isSupported">
+								<!-- <div v-if="isSupported">
 										<button
 											@click="copy(`${source}?eventid=${props.event.event_id}`)"
 											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
@@ -67,46 +66,46 @@
 											<Icon type="check" v-else>Copied!</Icon>
 										</button>
 									</div> -->
-									<!-- Reaction Button -->
-									<button
-										v-if="!redactedMessage"
-										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-										:title="t('message.reply_emoji')"
-									>
-										<Icon type="smiley" />
-									</button>
+								<!-- Reaction Button -->
+								<button
+									v-if="!redactedMessage"
+									@click.stop="emit('reactionPanelToggle', props.event.event_id)"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+									:title="t('message.reply_emoji')"
+								>
+									<Icon type="smiley" />
+								</button>
 
-									<!-- Reply Button -->
-									<button
-										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
-										@click="reply"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-										:title="t('message.reply')"
-									>
-										<Icon type="arrow-bend-up-left" />
-									</button>
+								<!-- Reply Button -->
+								<button
+									v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
+									@click="reply"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+									:title="t('message.reply')"
+								>
+									<Icon type="arrow-bend-up-left" />
+								</button>
 
-									<!-- Thread Reply Button -->
-									<button
-										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-										@click="replyInThread"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-										:title="t('message.reply_in_thread')"
-									>
-										<Icon type="chat-circle" />
-									</button>
+								<!-- Thread Reply Button -->
+								<button
+									v-if="!viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage"
+									@click="replyInThread"
+									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
+									:class="threadLength > 0 ? 'bg-accent-primary hover:text-accent-primary flex hover:bg-transparent' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
+									:title="t('message.reply_in_thread')"
+								>
+									<Icon type="chat-circle" />
+								</button>
 
-									<!-- Delete Button -->
-									<button
-										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && props.event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
-										@click="onDeleteMessage(props.event)"
-										class="text-on-surface-variant hover:bg-on-accent-red hover:text-accent-red flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-										:title="t('menu.delete_message')"
-									>
-										<Icon type="trash" />
-									</button>
-								</RoomEventActionsPopup>
+								<!-- Delete Button -->
+								<button
+									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && props.event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
+									@click="onDeleteMessage(props.event)"
+									class="text-on-surface-variant hover:bg-on-accent-red hover:text-accent-red hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+									:title="t('menu.delete_message')"
+								>
+									<Icon type="trash" />
+								</button>
 							</div>
 						</div>
 					</div>
@@ -139,18 +138,6 @@
 							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
 						/>
 					</template>
-
-					<div class="mt-4 flex h-4 items-center justify-end gap-4">
-						<!-- Thread View Button -->
-						<button
-							v-if="hasBeenVisible && !deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-							@click="replyInThread"
-							class="text-label-tiny inline-flex gap-1 rounded-md hover:cursor-pointer hover:opacity-80"
-						>
-							{{ t('message.threads.view_thread') }}
-							<Icon type="chat-circle" size="sm" />
-						</button>
-					</div>
 				</div>
 			</div>
 
@@ -181,7 +168,6 @@
 	import MessageSigned from '@hub-client/components/rooms/MessageSigned.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
-	import RoomEventActionsPopup from '@hub-client/components/rooms/RoomEventActionsPopup.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
@@ -223,7 +209,6 @@
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const source = ref('');
 	// const { copy, copied, isSupported } = useClipboard({ source });
-	const isMobile = computed(() => settings.isMobileState);
 
 	// Intersection observer
 	const messageRoot = ref<HTMLElement | null>(null);
