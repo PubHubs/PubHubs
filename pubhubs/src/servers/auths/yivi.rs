@@ -82,6 +82,7 @@ impl App {
             log::debug!(
                 "invalid yivi signed session result submitted by yivi server (or imposter)",
             );
+            log::trace!("invalid signed session result jwt: {result_jwt}");
             return actix_web::HttpResponse::BadRequest().finish();
         };
 
