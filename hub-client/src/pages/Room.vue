@@ -282,10 +282,14 @@
 		currentRoomToEdit.value = currentPublicRooms.find((room) => room.room_id === props.id);
 
 		// If room is not there then don't show dialog box. Throw an error.
-		if (currentRoomToEdit.value) {
-			if (currentRoomToEdit.value?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
+		if (currentRoomToEdit.value?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
+			const secured_room = await rooms.fetchSecuredRoomSteward();
+			if (secured_room && secured_room.room_id == props.id) {
+				currentRoomToEdit.value = secured_room;
 				secured.value = true;
 			}
+		}
+		if (currentRoomToEdit.value) {
 			showEditRoom.value = true;
 		} else {
 			router.push({
