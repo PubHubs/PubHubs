@@ -410,6 +410,10 @@ const useRooms = defineStore('rooms', {
 			const result = await api_synapse.apiGET<Array<TSecuredRoom>>(api_synapse.apiURLS.securedRooms);
 			this.securedRooms = result;
 		},
+		// Needs Moderator token
+		async fetchSecuredRoomSteward() {
+			return await api_synapse.apiGET<TSecuredRoom>(`${api_synapse.apiURLS.securedRooms}?room_id=${this.currentRoom?.roomId}`);
+		},
 
 		// Non-Admin api for getting information about an individual secured room based on room ID.
 		async getSecuredRoomInfo(roomId: string): Promise<TSecuredRoom | undefined> {

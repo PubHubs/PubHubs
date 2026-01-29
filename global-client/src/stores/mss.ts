@@ -37,7 +37,7 @@ const useMSS = defineStore('mss', {
 	},
 
 	actions: {
-		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode, phCardTranslation?: string): Promise<{ key: string; values?: string[] } | undefined> {
+		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode): Promise<{ key: string; values?: string[] } | undefined> {
 			const settings = useSettings();
 			const cardFeature = settings.isFeatureEnabled(FeatureFlag.phCard);
 			const authServer = await this.getAuthServer();
