@@ -1,6 +1,6 @@
 <template>
 	<Dialog :title="$t('admin.ask_disclosure_title')" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close($event)">
-		<ValidatedForm @submit.prevent class="flex flex-col" :class="isMobile ? 'w-full' : 'w-[450px]'" v-slot="{ isValidated }">
+		<ValidatedForm @submit.prevent class="flex flex-col p-200" :class="isMobile ? 'w-full' : 'w-[450px]'" v-slot="{ isValidated }">
 			<div
 				class="mb-2 flex w-full flex-col gap-x-2 gap-y-1"
 				@click.stop="
@@ -20,23 +20,8 @@
 			</div>
 			<ChooseFromUsersList v-if="selectUser" :header="$t('admin.ask_disclosure_choose_user')" @chosen-user="onChosenUser" @click.stop @keydown.esc.stop="selectUser = false" />
 
-			<div class="mb-2 flex w-full flex-col gap-x-2 gap-y-1">
-				<div class="flex flex-col">
-					<div>
-						<TextFieldAutoComplete v-model="attribute" :options="yiviAttributes">{{ $t('admin.secured_yivi_attributes') }}</TextFieldAutoComplete>
-					</div>
-					<!-- Tags display -->
-					<div v-if="ask.attributes.length > 0" class="mt-2 flex flex-wrap gap-2">
-						<span v-for="(attribute, index) in ask.attributes" :key="index" class="bg-background inline-flex items-center gap-1 rounded-xl border px-3 py-1">
-							{{ attribute }}
-							<Icon type="x" class="hover:text-error cursor-pointer" @click="removeAttribute(index)" />
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<TextFieldAutoComplete v-model="ask.where_room" :options="roomOptions" :validation="{ required: true }">{{ $t('rooms.room') }}</TextFieldAutoComplete>
-
+			<DropDown v-model="ask.attributes" :options="yiviAttributes" :multiple="true" :validation="{ required: true }">{{ $t('admin.secured_yivi_attributes') }}</DropDown>
+			<DropDown v-model="ask.where_room" :options="roomOptions" :validation="{ required: true }">{{ $t('rooms.room') }}</DropDown>
 			<TextArea placeholder="Add a message to your disclosure request" :validation="{ required: true, maxLength: 100 }" v-model="ask.message" @keydown.esc.stop>{{ $t('admin.ask_disclosure_message_title') }}</TextArea>
 
 			<ButtonGroup>
@@ -73,6 +58,7 @@
 
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
+	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
@@ -85,7 +71,7 @@
 
 	const { t } = useI18n();
 	const emit = defineEmits(['close']);
-	const attribute = ref<string>('');
+	// const attribute = ref<string>('');
 	const selectUser = ref<boolean>(false);
 	const dropdown = ref<string | null>('notNull');
 	const yiviAttributes = yiviStore.getAttributes(t).map((item) => item.label);
@@ -133,42 +119,44 @@
 	// 	// formErrors.value = validationComposable.validateBySchema(values, validationComposable.askDisclosureSchema);
 	// }
 
-	function addAttribute() {
-		if (attribute.value && ask.value && !ask.value.attributes.includes(attribute.value)) {
-			if (yiviStore.getAttributes(t).find((attr: Attribute) => attr.label === attribute.value.trim())) {
-				ask.value.attributes.push(attribute.value);
+	// function addAttribute() {
+	// 	if (attribute.value && ask.value && !ask.value.attributes.includes(attribute.value)) {
+	// 		if (yiviStore.getAttributes(t).find((attr: Attribute) => attr.label === attribute.value.trim())) {
+	// 			ask.value.attributes.push(attribute.value);
 
-				// validateRoomForm();
-			} else {
-				// if (!formErrors.value) {
-				// 	formErrors.value = {};
-				// }
-				// formErrors.value['invalidAttribute'] = {
-				// 	translationKey: 'admin.error_invalid_attribute',
-				// 	parameters: [attribute.value],
-				// };
-			}
-		}
-		attribute.value = '';
-	}
+	// 			// validateRoomForm();
+	// 		} else {
+	// 			// if (!formErrors.value) {
+	// 			// 	formErrors.value = {};
+	// 			// }
+	// 			// formErrors.value['invalidAttribute'] = {
+	// 			// 	translationKey: 'admin.error_invalid_attribute',
+	// 			// 	parameters: [attribute.value],
+	// 			// };
+	// 		}
+	// 	}
+	// 	attribute.value = '';
+	// }
 
-	function removeAttribute(index: number) {
-		if (ask.value) {
-			ask.value.attributes.splice(index, 1);
-			// validateRoomForm();
-		}
-	}
+	// function removeAttribute(index: number) {
+	// 	if (ask.value) {
+	// 		ask.value.attributes.splice(index, 1);
+	// 		// validateRoomForm();
+	// 	}
+	// }
+
 	onBeforeMount(async () => {
+		await roomsStore.fetchPublicRooms();
 		ask.value.user = {
 			userId: props.user.name,
 			displayName: props.user.displayname,
 		};
-		await roomsStore.fetchPublicRooms();
 	});
 
 	async function close() {
 		emit('close');
 	}
+
 	function onChosenUser(other: User) {
 		selectUser.value = false;
 		ask.value.user = {

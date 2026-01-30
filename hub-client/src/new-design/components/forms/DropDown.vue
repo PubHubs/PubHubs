@@ -1,17 +1,15 @@
 <template>
 	<div
-		class="gap-050 relative mb-2 flex w-4000 flex-col items-start justify-start"
-		contenteditable="true"
+		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
 		v-click-outside="close"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
 		@keydown.enter.prevent="select(cursor)"
 		@keydown.esc.prevent="close"
-		@focusout="close"
 	>
 		<Label :for="id" :required="required"><slot></slot></Label>
 
-		<div class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3">
+		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" role="select" tabindex="0">
 			<div class="max-h-300 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
 				<template v-if="model">
 					<div v-if="multiple" class="gap-050 flex max-h-300 items-center overflow-hidden">
@@ -28,7 +26,7 @@
 			</div>
 		</div>
 
-		<div v-if="open" class="bg-surface-low outline-offset-thin absolute top-800 z-50 flex w-full grow flex-col overflow-hidden rounded outline">
+		<div v-show="open" class="bg-surface-low outline-offset-thin absolute top-800 z-50 flex w-full grow flex-col overflow-hidden rounded outline">
 			<DropDownOption v-for="(option, index) in options" :value="option" :highlighted="cursor === index" :active="selection.includes(index)" @click.stop="select(index)" class="-ml-[1px]"></DropDownOption>
 		</div>
 
@@ -93,6 +91,23 @@
 			}
 		}
 		setItems(props.options as Array<any>);
+		// set selection
+		if (model.value) {
+			if (props.multiple) {
+				for (let i = 0; i < model.value.length; i++) {
+					const idx = (props.options as Array<any>).findIndex((item) => item == model.value[i]);
+					if (idx >= 0) {
+						selection.value.push(idx);
+					}
+				}
+			} else {
+				const idx = (props.options as Array<any>).findIndex((item) => item == model.value);
+				if (idx >= 0) {
+					selection.value = (props.options as Array<any>)[idx];
+				}
+			}
+		}
+		// set cursor off until it is used
 		cursor.value = -1;
 	});
 
@@ -128,13 +143,14 @@
 
 		// update model
 		if (props.multiple) {
-			model.value = [];
+			let newModel = [] as Array<any> | undefined;
 			for (let i = 0; i < selection.value.length; i++) {
-				model.value.push((props.options as Array<any>)[selection.value[i]]);
+				newModel?.push((props.options as Array<any>)[selection.value[i]]);
 			}
-			if (model.value.length == 0) {
-				model.value = undefined;
+			if (newModel?.length == 0) {
+				newModel = undefined;
 			}
+			model.value = newModel;
 		} else {
 			if (selection.value.length > 0) {
 				model.value = (props.options as Array<any>)[selection.value[0]];

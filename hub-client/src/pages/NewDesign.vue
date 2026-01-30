@@ -60,10 +60,10 @@
 				<Toggle :disabled="true" :model-value="true">Disabled</Toggle>
 
 				<h2 class="my-200">DropDown</h2>
-				<DropDown :options="options" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Eenvoudig</DropDown>
-				<DropDown :options="options" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Eenvoudig Multiple</DropDown>
-				<DropDown :options="iconOptions" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Met Ikonen en Labels</DropDown>
-				<DropDown :options="iconOptions" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Multiple Ikonen en Labels</DropDown>
+				<DropDown v-model="dropDownValues.simple" :options="options" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Eenvoudig</DropDown>
+				<DropDown v-model="dropDownValues.multiple" :options="options" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Eenvoudig Multiple</DropDown>
+				<DropDown v-model="dropDownValues.simpleIcon" :options="iconOptions" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Met Ikonen en Labels</DropDown>
+				<DropDown v-model="dropDownValues.multipleIcons" :options="iconOptions" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Multiple Ikonen en Labels</DropDown>
 				<DropDown v-if="userOptions.length > 0" :options="userOptions" placeholder="Selecteer een user" :validation="{ required: true }" help="Users">Userlist</DropDown>
 			</div>
 
@@ -155,6 +155,7 @@
 
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
+	import { iconSize } from '@hub-client/new-design/components/Icon.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
@@ -207,6 +208,12 @@
 		{ icon: 'shield', value: 'vijf', label: 'Meer dan vijf is niet nodig' },
 	];
 	const userOptions = ref<Array<any>>([]);
+	const dropDownValues = reactive({
+		simple: options[0],
+		multiple: [options[2], options[4]],
+		simpleIcon: iconOptions[0],
+		multipleIcons: [iconOptions[0], iconOptions[4]],
+	});
 
 	onMounted(() => {
 		document.addEventListener('context-menu-select', (e: any) => {
