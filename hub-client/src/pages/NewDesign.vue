@@ -149,13 +149,13 @@
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+	import { FieldInputType, FieldOption, FieldOptions, FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { ValidationRule } from '@hub-client/models/validation/TValidate';
 
 	import { useUser } from '@hub-client/stores/user';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
-	import { iconSize } from '@hub-client/new-design/components/Icon.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
@@ -199,15 +199,15 @@
 		{ label: 'Delete2', isDelicate: true },
 	];
 
-	const options = ['Optie 1', 'Mogelijkheid 2', 'Derde kans', 'Quattro', 'Meer dan vijf is niet nodig'];
+	const options = ['Optie 1', 'Mogelijkheid 2', 'Derde kans', 'Quattro', 'Meer dan vijf is niet nodig'] as FieldOptions;
 	const iconOptions = [
 		{ icon: 'basketball', value: 'een', label: 'Optie 1' },
 		{ icon: 'dog', value: 'twee', label: 'Mogelijkheid 2' },
 		{ icon: 'globe', value: 'drie', label: 'Derde kans' },
 		{ icon: 'key', value: 'vier', label: 'Quattro' },
 		{ icon: 'shield', value: 'vijf', label: 'Meer dan vijf is niet nodig' },
-	];
-	const userOptions = ref<Array<any>>([]);
+	] as FieldOptions;
+	const userOptions = ref<FieldOptions>([]);
 	const dropDownValues = reactive({
 		simple: options[0],
 		multiple: [options[2], options[4]],

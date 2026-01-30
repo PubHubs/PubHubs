@@ -9,12 +9,14 @@
 </template>
 
 <script setup lang="ts">
+	import { FieldOption } from '@hub-client/models/validation/TFormOption';
+
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
 
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			value: Object | String;
+			value: FieldOption;
 			active: boolean;
 			highlighted: boolean;
 		}>(),

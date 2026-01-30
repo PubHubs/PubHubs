@@ -40,10 +40,13 @@
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, inject, onMounted, ref, watch } from 'vue';
+	import { inject, onMounted, ref, watch } from 'vue';
 
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
+
+	import { FieldInputType, FieldOptions, FieldSelection } from '@hub-client/models/validation/TFormOption';
+	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
@@ -53,17 +56,17 @@
 	// Composables
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const { setItems, cursor, cursorDown, cursorUp, reset, selectItem, selectItemByEnter } = useKeyStrokes();
+	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 
 	const props = withDefaults(
 		defineProps<{
-			options: PropType<any>;
+			options: FieldOptions;
 			multiple?: boolean;
 			name?: string;
 			id?: string;
 			placeholder?: string;
 			help?: string;
-			validation?: Object;
+			validation?: FieldValidations;
 			disabled?: boolean;
 		}>(),
 		{
@@ -75,8 +78,8 @@
 		},
 	);
 
-	const model = defineModel<any | Array<any>>();
-	const selection = ref<Array<number>>([]); // selection of choosen indexes
+	const model = defineModel<FieldInputType>();
+	const selection = ref<FieldSelection>([]); // selection of choosen indexes
 
 	// Validation etc.
 	const { id, fieldName, update, changed } = useFormInput(props, model);

@@ -11,6 +11,8 @@
 </template>
 
 <script setup lang="ts">
+	// This is a wrapper component to make any custom made input field to a validated field
+	//
 	// Packages
 	import { inject, onMounted, ref, watch } from 'vue';
 

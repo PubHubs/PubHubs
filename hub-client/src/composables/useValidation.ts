@@ -1,7 +1,7 @@
 // Models
 import { computed, ref } from 'vue';
 
-import { ValidationMessage, ValidationRule } from '@hub-client/models/validation/TValidate';
+import { FieldValidations, ValidationMessage, ValidationRule } from '@hub-client/models/validation/TValidate';
 
 /**
  * useValidation provides a framework for form validation.
@@ -67,7 +67,7 @@ const validateMessageFunctions: { [key: string]: Function } = {
 	},
 };
 
-function useFieldValidation(name: string, model: any, validation?: Object) {
+function useFieldValidation(name: string, model: any, validation?: FieldValidations) {
 	const changed = ref(false);
 	const required = ref(false);
 	const rules = [] as ValidationRule[];
