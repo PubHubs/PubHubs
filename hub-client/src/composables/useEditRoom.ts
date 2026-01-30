@@ -26,7 +26,7 @@ function useEditRoom() {
 	 */
 	async function updatePublicRoom(isNewRoom: boolean, room: TEditRoom, room_id: string) {
 		if (isNewRoom) {
-			let newRoomOptions = {
+			const newRoomOptions = {
 				name: room.name,
 				topic: room.topic,
 				visibility: 'public',
@@ -44,7 +44,7 @@ function useEditRoom() {
 	 * Updates or creates a secured room with the given attributes.
 	 */
 	async function updateSecuredRoom(isNewRoom: boolean, room: TSecuredRoom, selectedAttributes: Array<TEditRoomFormAttributes>, attributeRemoved: boolean, room_id?: string) {
-		let accepted = {} as SecuredRoomAttributes;
+		const accepted = {} as SecuredRoomAttributes;
 
 		for (const attribute of selectedAttributes) {
 			accepted[attribute.attribute] = {
