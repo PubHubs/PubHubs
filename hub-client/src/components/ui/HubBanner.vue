@@ -7,8 +7,9 @@
 
 <script setup lang="ts">
 	// Packages
-	import defaultUrl from '/public/img/banner.svg';
 	import { computed } from 'vue';
+
+	import defaultUrl from '@hub-client/assets/banner.svg';
 
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';

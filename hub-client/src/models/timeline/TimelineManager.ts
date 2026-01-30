@@ -310,7 +310,7 @@ class TimelineManager {
 		matrixEvents = this.prepareEvents(matrixEvents);
 		if (matrixEvents.length === 0) return undefined;
 
-		let eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
+		const eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
 
 		// if the lastMessageId is undefined
 		// or this events contains the lastMessageId

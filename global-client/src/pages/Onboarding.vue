@@ -353,7 +353,7 @@
 
 		try {
 			const mss = useMSS();
-			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister, t('card.description'));
+			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister);
 			if (errorMessage) {
 				error.value = errorMessage;
 				return;

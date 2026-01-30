@@ -28,7 +28,7 @@ export default class TRoomThread {
 	 */
 	public async getEvents(matrixClient: MatrixClient): Promise<TimelineEvent[]> {
 		// get events from liveTimeline and paginate to get them all
-		let events = this.matrixThread.liveTimeline.getEvents();
+		const events = this.matrixThread.liveTimeline.getEvents();
 		while (await matrixClient.paginateEventTimeline(this.matrixThread.liveTimeline, { backwards: true, limit: 100 })) {
 			events.concat(this.matrixThread.liveTimeline.getEvents());
 		}
