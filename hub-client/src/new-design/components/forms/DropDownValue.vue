@@ -1,9 +1,9 @@
 <template>
-	<span class="inline-flex max-h-300 items-center justify-start gap-2 overflow-hidden">
+	<span class="inline-flex max-h-300 items-center justify-start gap-2">
 		<Avatar v-if="avatar || avatar == ''" :avatar-url="avatar" :user-id="value.value" class="h-300 w-300"></Avatar>
-		<div v-if="icon" class="h-250 w-250 overflow-hidden">
-			<Icon :type="icon" class="h-250 w-250"></Icon>
-		</div>
+		<span v-if="icon" class="h-100 w-100">
+			<Icon :type="icon" size="sm" class="-mt-050 -ml-025 mr-050"></Icon>
+		</span>
 		<span class="text-surface-on-surface justify-start text-nowrap">{{ label }}</span>
 	</span>
 </template>
