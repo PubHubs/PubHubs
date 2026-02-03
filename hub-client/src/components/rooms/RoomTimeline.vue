@@ -4,7 +4,7 @@
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
 		</div>
 
-		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll pb-2">
+		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll pb-2" style="overflow-anchor: none">
 			<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
 			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
 
@@ -135,7 +135,7 @@
 
 	// Initialize composables
 	const { scrollToEvent, scrollToNewest, performInitialScroll, handleNewMessage, isInitialScrollComplete, showJumpToBottomButton, newMessageCount } = useTimelineScroll(elRoomTimeline, props.room, user.userId || '');
-	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded, timelineVersion } = useTimelinePagination(elRoomTimeline, props.room);
+	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded, timelineVersion, refreshTimelineVersion } = useTimelinePagination(elRoomTimeline, props.room);
 	const { displayedReadMarker, initialize: initializeReadMarker, persist: persistReadMarker, update: updateReadMarker } = useReadMarker(props.room);
 	const userHasScrolled = ref(true);
 
@@ -145,7 +145,7 @@
 	const reversedTimeline = computed(() => {
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		timelineVersion.value; // Dependency to trigger re-computation
-		return props.room.getTimeline();
+		return [...props.room.getChronologicalTimeline()].reverse();
 	});
 
 	/**
@@ -239,7 +239,10 @@
 
 	watch(
 		() => props.room.getCurrentEvent(),
-		() => setupEventIntersectionObserver(),
+		() => {
+			refreshTimelineVersion();
+			setupEventIntersectionObserver();
+		},
 		{ deep: true },
 	);
 
