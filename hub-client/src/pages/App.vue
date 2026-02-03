@@ -16,8 +16,8 @@
 								</div>
 							</div>
 							<div class="flex items-center justify-end gap-2">
-								<Notification />
 								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0">{{ rooms.totalUnreadMessages }}</Badge>
+								<Notification />
 							</div>
 						</div>
 					</template>
