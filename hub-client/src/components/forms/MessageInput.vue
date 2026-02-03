@@ -119,7 +119,7 @@
 			</div>
 			<!-- Yivi signing qr popup -->
 			<div class="absolute bottom-[10%] left-1/2 min-w-64 -translate-x-1/2" v-show="messageInput.state.showYiviQR">
-				<Icon type="x" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
+				<Icon type="x" class="absolute right-2 z-10 cursor-pointer text-black" @click="messageInput.state.showYiviQR = false" />
 				<div v-if="messageInput.state.signMessage" :id="EYiviFlow.Sign"></div>
 			</div>
 		</div>
