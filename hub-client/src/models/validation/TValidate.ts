@@ -16,7 +16,6 @@ type ValidationRule = {
 
 type ValidationSchema = Record<string, ValidationRule[]>;
 
-type FieldValidation = Record<string, any>;
-type FieldValidations = Record<string, FieldValidation>;
+type FieldValidations = Record<string, any>;
 
-export { ValidationRule, ValidationSchema, ValidationMessage, ValidationMessageFn, ValidatorFn, FieldValidation, FieldValidations };
+export { ValidationRule, ValidationSchema, ValidationMessage, ValidationMessageFn, ValidatorFn, FieldValidations };

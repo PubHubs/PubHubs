@@ -10,7 +10,7 @@ interface FieldOption {
 	avatar?: string;
 }
 
-type FieldOptions = Array<FieldOption | String>;
+type FieldOptions = Array<FieldOption | string>;
 
 type FieldSelection = Array<number>;
 

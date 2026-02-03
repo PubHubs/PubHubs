@@ -41,6 +41,8 @@
 	// Packages
 	import { computed, onMounted, ref, useAttrs, watch } from 'vue';
 
+	import { FieldValidations } from '@hub-client/models/validation/TValidate';
+
 	// Composables
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	// New design
@@ -54,7 +56,7 @@
 			id?: string;
 			placeholder?: string;
 			help?: string;
-			validation?: Object;
+			validation?: FieldValidations;
 			type?: string;
 			disabled?: boolean;
 			showLength?: boolean;

@@ -16,7 +16,7 @@
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			value: FieldOption;
+			value: FieldOption | string;
 			active: boolean;
 			highlighted: boolean;
 		}>(),

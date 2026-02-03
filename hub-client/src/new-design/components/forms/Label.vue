@@ -8,8 +8,8 @@
 <script setup lang="ts">
 	import { inject } from 'vue';
 
-	const id = inject('id') as string;
-	const required = inject('required') as boolean;
+	const id = inject('id', '') as string;
+	const required = inject('required', false) as boolean;
 
 	// Props
 	const props = withDefaults(

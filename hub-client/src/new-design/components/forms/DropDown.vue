@@ -1,7 +1,12 @@
 <template>
-	<div
-		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+	<ValidateField
+		v-model="model"
+		:name="fieldName"
+		:validation="validation"
+		:help="help"
+		v-slot="{ id, validated, required }"
 		v-click-outside="close"
+		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
 		@keydown.enter.prevent="select(cursor)"
@@ -29,30 +34,22 @@
 		<div v-show="open" class="bg-surface-low outline-offset-thin absolute top-800 z-50 flex w-full grow flex-col rounded outline">
 			<DropDownOption v-for="(option, index) in options" :value="option" :highlighted="cursor === index" :active="selection.includes(index)" @click.stop="select(index)" class="-ml-[1px]"></DropDownOption>
 		</div>
-
-		<FieldHelperText v-if="(props.help && !changed) || validated">{{ help }}</FieldHelperText>
-
-		<FieldValidationError v-else-if="!validated && changed">
-			{{ $t(validateField!.translationKey, validateField!.parameters) }}
-		</FieldValidationError>
-	</div>
+	</ValidateField>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { inject, onMounted, ref, watch } from 'vue';
+	import { onMounted, ref, watch } from 'vue';
 
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
-	import { useFieldValidation } from '@hub-client/composables/validation.composable';
 
 	import { FieldInputType, FieldOptions, FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
-	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
-	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
+	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	// Composables
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
@@ -82,17 +79,9 @@
 	const selection = ref<FieldSelection>([]); // selection of choosen indexes
 
 	// Validation etc.
-	const { id, fieldName, update, changed } = useFormInput(props, model);
-	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
+	const { fieldName, update, changed } = useFormInput(props, model);
 
 	onMounted(() => {
-		// Add field for form validation
-		if (props.validation) {
-			const addField = inject('addField') as Function;
-			if (typeof addField === 'function') {
-				addField(fieldName.value, model, changed, validated);
-			}
-		}
 		setItems(props.options as Array<any>);
 		// set selection
 		if (model.value) {

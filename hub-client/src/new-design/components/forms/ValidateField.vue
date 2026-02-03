@@ -56,7 +56,7 @@
 
 		// Add field for form validation
 		if (props.validation) {
-			const addField = inject('addField') as Function;
+			const addField = inject('addField', () => {}) as Function;
 			if (typeof addField === 'function') {
 				addField(fieldName.value, model, changed, validated);
 			}

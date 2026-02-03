@@ -20,7 +20,7 @@
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			value: FieldOption;
+			value: FieldOption | string;
 		}>(),
 		{},
 	);
