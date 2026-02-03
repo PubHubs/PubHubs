@@ -521,7 +521,6 @@ class TimelineManager {
 			const newOnly = allEvents.filter((e) => !beforeIds.has(e.event.event_id));
 
 			if (newOnly.length > 0) {
-				const prevCount = this.timelineEvents.length;
 				let timeLineEvents = newOnly.map((event) => new TimelineEvent(event, this.roomId));
 
 				// Remove duplicates already in the managed timeline
@@ -536,11 +535,7 @@ class TimelineManager {
 
 					// Enforce sliding window: trim from the opposite end
 					if (this.timelineEvents.length > SystemDefaults.roomTimelineLimit) {
-						if (direction === Direction.Backward) {
-							// Loading older messages: trim newest (from end)
-							this.timelineEvents = this.timelineEvents.slice(0, SystemDefaults.roomTimelineLimit);
-						} else {
-							// Loading newer messages: trim oldest (from start)
+						if (direction === Direction.Forward) {
 							this.timelineEvents = this.timelineEvents.slice(-SystemDefaults.roomTimelineLimit);
 						}
 					}
