@@ -545,12 +545,6 @@ class TimelineManager {
 						}
 					}
 
-					const newCount = this.timelineEvents.length;
-					const added = timeLineEvents.length;
-					const pruned = prevCount + added - newCount;
-					console.error(
-						`[TimelineManager.paginate] direction=${direction === Direction.Backward ? 'backward' : 'forward'} | fetched=${newOnly.length} | added=${added} | pruned=${pruned} | before=${prevCount} | after=${newCount} | limit=${SystemDefaults.roomTimelineLimit}`,
-					);
 					this._timelineVersion++;
 				}
 			}
