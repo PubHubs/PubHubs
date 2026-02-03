@@ -24,7 +24,8 @@
 				}}</TextField>
 
 				<div>
-					<ValidateField v-model="selectedAttributes" :validation="{ required: true, custom: validateAttributes() }" :label="t('admin.secured_yivi_attributes')">
+					<ValidateField v-model="selectedAttributes" :validation="{ required: true, custom: validateAttributes() }">
+						<Label>{{ t('admin.secured_yivi_attributes') }}</Label>
 						<div class="flex flex-wrap gap-2">
 							<Tabs v-slot="{ activeTab, setActiveTab }">
 								<TabHeader>

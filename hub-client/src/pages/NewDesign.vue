@@ -117,7 +117,8 @@
 				<TextArea v-model="formValues.text" placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 
 				<div class="mb-200">
-					<ValidateField v-model="formValues.radio" :validation="{ required: true, custom: customRadioValidation() }" label="Keuze:">
+					<ValidateField v-model="formValues.radio" :validation="{ required: true, custom: customRadioValidation() }">
+						<Label>Keuze:</Label>
 						<Radio v-model="formValues.radio" value="first">Eerste</Radio>
 						<Radio v-model="formValues.radio" value="second">Tweede</Radio>
 						<Radio v-model="formValues.radio" value="third">Derde</Radio>
@@ -159,6 +160,7 @@
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';

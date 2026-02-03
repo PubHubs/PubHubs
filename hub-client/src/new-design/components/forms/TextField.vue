@@ -1,5 +1,5 @@
 <template>
-	<div class="gap-075 mb-100 flex w-full flex-col items-start justify-start">
+	<ValidateField v-model="model" :name="fieldName" :validation="validation" :help="help" :info="lenText" v-slot="{ id, validated, required }" class="gap-075 mb-100 flex w-full flex-col items-start justify-start">
 		<Label :for="id" :required="required"><slot></slot></Label>
 
 		<!-- Input element -->
@@ -14,6 +14,7 @@
 					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
 					:disabled="disabled"
 					:name="name"
+					:id="id"
 					:placeholder="placeholder"
 					@keypress="update()"
 				/>
@@ -26,41 +27,24 @@
 					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
 					:disabled="disabled"
 					:name="name"
+					:id="id"
 					:placeholder="placeholder"
 					:type="type"
 					@keypress="update()"
 				/>
 			</div>
 		</div>
-
-		<FieldHelperText v-if="props.help && !(!validated && changed)">{{ help }}</FieldHelperText>
-
-		<div v-if="showLength || (!validated && changed)" class="flex w-full gap-100">
-			<div class="grow">
-				<FieldValidationError v-if="!validated && changed">
-					{{ $t(validateField!.translationKey, validateField!.parameters) }}
-				</FieldValidationError>
-				&nbsp;
-			</div>
-			<div v-if="showLength" class="text-label-small flex-none whitespace-nowrap">
-				<span>{{ modelLen }}</span>
-				<template v-if="maxLen">/{{ maxLen }} </template>
-			</div>
-		</div>
-	</div>
+	</ValidateField>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { computed, inject, onMounted, ref, useAttrs, watch } from 'vue';
+	import { computed, onMounted, ref, useAttrs, watch } from 'vue';
 
 	// Composables
-	import { useFieldValidation } from '@hub-client/composables/useValidation';
-
-	// New design
-	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
-	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
+	// New design
+	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
@@ -93,9 +77,7 @@
 		calculateLen();
 	});
 
-	// Validation etc.
-	const { id, slotDefault, fieldName, update, changed } = useFormInput(props, model);
-	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
+	const { slotDefault, fieldName, update } = useFormInput(props, model);
 
 	onMounted(() => {
 		// Accessibility
@@ -103,18 +85,9 @@
 			const hasVisibleLabel = !!slotDefault.value || !!props.name;
 			const hasAriaLabel = !!(attrs as any)['aria-label'];
 			if (!hasVisibleLabel && !hasAriaLabel) {
-				console.warn('[TextInput-v2] Accessible name missing. Provide either a visible label (slot / name prop) or `aria-label` attribute.');
+				console.warn('[TextInput] Accessible name missing. Provide either a visible label (slot / name prop) or `aria-label` attribute.');
 			}
 		}
-
-		// Add field for form validation
-		if (props.validation) {
-			const addField = inject('addField') as Function;
-			if (typeof addField === 'function') {
-				addField(fieldName.value, model, changed, validated);
-			}
-		}
-
 		calculateLen();
 	});
 
@@ -133,4 +106,9 @@
 			modelLen.value = 0;
 		}
 	};
+
+	const lenText = computed(() => {
+		if (maxLen.value === false) return false;
+		return modelLen.value + ' / ' + maxLen.value;
+	});
 </script>
