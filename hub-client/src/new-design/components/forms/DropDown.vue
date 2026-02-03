@@ -43,7 +43,7 @@
 	import { inject, onMounted, ref, watch } from 'vue';
 
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
-	import { useFieldValidation } from '@hub-client/composables/useValidation';
+	import { useFieldValidation } from '@hub-client/composables/validation.composable';
 
 	import { FieldInputType, FieldOptions, FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
