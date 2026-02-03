@@ -50,9 +50,6 @@
 	const { id, fieldName, update, changed } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(props.name, model, props.validation);
 
-	// const { id, slotDefault, fieldName, update, changed } = useFormInput(props, model);
-	// const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
-
 	onMounted(() => {
 		// Keep original value
 		originalValue.value = Object.assign({}, model);
