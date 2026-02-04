@@ -100,7 +100,7 @@ router.beforeEach(async (to, _from) => {
 	}
 
 	return { name: 'escape-in-app-browser', query: { next: window.location.href + '&escape-attempted' } };
-})
+});
 
 // Set up Pinia store
 const pinia = createPinia();

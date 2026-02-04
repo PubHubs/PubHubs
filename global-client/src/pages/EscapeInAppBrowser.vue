@@ -1,9 +1,7 @@
 <template>
 	<div class="w-full max-w-screen">
 		Please
-		<a :href="useRoute().query.next" target="_blank">
-		click here	
-		</a>
+		<a :href="useRoute().query.next" target="_blank"> click here </a>
 		to proceed.
 	</div>
 
