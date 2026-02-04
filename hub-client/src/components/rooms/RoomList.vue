@@ -4,7 +4,7 @@
 			<MenuItem
 				:to="{ name: 'room', params: { id: room.roomId } }"
 				:room="room"
-				class="group inline-block w-full"
+				class="no-callout group inline-block w-full select-none"
 				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && '!bg-background'"
 				icon="chats-circle"
 				@click="hubSettings.hideBar()"
