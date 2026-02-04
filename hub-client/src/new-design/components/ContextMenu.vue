@@ -90,9 +90,10 @@
 		store.select(item);
 	}
 
-	// Close when clicking outside the menu
-	function onDocumentClick() {
+	// Close when clicking/touching outside the menu
+	function onDocumentClick(e: Event) {
 		if (!menuRef.value) return;
+		if (e.target instanceof Node && menuRef.value.contains(e.target)) return;
 
 		store.close();
 	}
@@ -162,11 +163,15 @@
 		(open) => {
 			if (open) {
 				positionMenu();
-				setTimeout(() => document.addEventListener('mousedown', onDocumentClick), 0); // So initial click doesn't immediately close the menu
+				setTimeout(() => {
+					document.addEventListener('mousedown', onDocumentClick);
+					document.addEventListener('touchstart', onDocumentClick);
+				}, 0); // So initial click/touch doesn't immediately close the menu
 				window.addEventListener('resize', positionMenu);
 				window.addEventListener('scroll', positionMenu, true);
 			} else {
 				document.removeEventListener('mousedown', onDocumentClick);
+				document.removeEventListener('touchstart', onDocumentClick);
 				window.removeEventListener('resize', positionMenu);
 				window.removeEventListener('scroll', positionMenu, true);
 			}
@@ -177,6 +182,7 @@
 	// Clean up on unmount
 	onUnmounted(() => {
 		document.removeEventListener('mousedown', onDocumentClick);
+		document.removeEventListener('touchstart', onDocumentClick);
 		window.removeEventListener('resize', positionMenu);
 		window.removeEventListener('scroll', positionMenu, true);
 	});

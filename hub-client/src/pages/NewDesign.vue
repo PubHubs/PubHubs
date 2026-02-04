@@ -77,6 +77,7 @@
 
 				<div class="flex flex-col gap-100">
 					<Button
+						class="no-callout select-none"
 						icon="check-circle"
 						title="this is a tooltip"
 						variant="primary"
@@ -91,7 +92,7 @@
 					>
 						Right click menu test
 					</Button>
-					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu($event, items2)" variant="primary" title="this is a tooltip">Right click menu test</Button>
+					<Button class="no-callout select-none" icon="check-circle" @click="clicked()" @contextmenu="openMenu($event, items2)" variant="primary" title="this is a tooltip">Right click menu test</Button>
 
 					<TextField placeholder="Korte tekst" :validation="{ maxLength: 10 }" help="Hier dus een korte tekst">Korte</TextField>
 					<TextArea placeholder="Lange tekst" :validation="{ required: true, minLength: 10 }" help="Lang">Lang</TextArea>
