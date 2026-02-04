@@ -9,6 +9,7 @@
 		<li>secure content: {{ isSecureContext }}</li>
 		<li>title bar visible: {{ titleBarVisible }}</li>
 		<li>standalone: {{ standalone }}</li>
+		<li><a href="https://inappdebugger.com">in-app debugger</a></li>
 	</ul>
 </template>
 
