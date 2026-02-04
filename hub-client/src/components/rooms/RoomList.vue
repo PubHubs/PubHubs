@@ -4,7 +4,7 @@
 			<MenuItem
 				:to="{ name: 'room', params: { id: room.roomId } }"
 				:room="room"
-				class="group inline-block w-full"
+				class="no-callout group inline-block w-full select-none"
 				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-background!'"
 				icon="chats-circle"
 				@click="hubSettings.hideBar()"
@@ -76,7 +76,7 @@
 <script setup lang="ts">
 	// Packages
 	import { NotificationCountType } from 'matrix-js-sdk';
-	import { PropType, computed, onMounted, ref } from 'vue';
+	import { PropType, computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 

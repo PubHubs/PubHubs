@@ -16,7 +16,7 @@
 				<span
 					v-else-if="segment.type === 'user' && segment.tokenId"
 					@click.once="userStore.goToUserRoom(segment.tokenId)"
-					class="text-accent-primary cursor-pointer"
+					class="no-callout text-accent-primary cursor-pointer select-none"
 					v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])"
 					>{{ segment.content }}
 				</span>
@@ -25,7 +25,7 @@
 				<span
 					v-else-if="segment.type === 'room' && segment.tokenId && segment.id"
 					@click="joinIfMember(segment.tokenId, segment.id)"
-					class="relative"
+					class="no-callout relative select-none"
 					v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.join_room'), icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId!, segment.id!) }])"
 				>
 					<span class="text-accent-primary cursor-pointer">{{ segment.content }}</span>
