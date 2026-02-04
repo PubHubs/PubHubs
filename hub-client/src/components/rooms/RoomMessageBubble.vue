@@ -1,5 +1,5 @@
 <template>
-	<div ref="messageRoot" class="no-callout select-none" @contextmenu="openMenu($event, getContextMenuItems(), props.event.event_id)">
+	<div ref="messageRoot" class="no-callout select-none" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
 		<div ref="elReactionPopUp" class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
 			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
@@ -24,7 +24,7 @@
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
 					class="no-callout select-none"
-					@contextmenu="openMenu($event, props.event.sender !== user.userId ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])"
+					v-context-menu="(evt: any) => openMenu(evt, props.event.sender !== user.userId ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])"
 				/>
 				<!-- Avatar placeholder -->
 				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
