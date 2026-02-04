@@ -87,6 +87,21 @@ router.beforeEach(async (to, _from, next) => {
 	}
 });
 
+router.beforeEach(async (to, _from) => {
+	// 'onboarding' refers to /register (for some reason)
+	if (to.name !== 'onboarding') {
+		return;
+	}
+	if (!('yivi_info' in to.query)) {
+		return;
+	}
+	if ('escape-attempted' in to.query) {
+		return;
+	}
+
+	return { name: 'escape-in-app-browser', query: { next: window.location.href + '&escape-attempted' } };
+})
+
 // Set up Pinia store
 const pinia = createPinia();
 pinia.use(({ store }) => {
