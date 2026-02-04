@@ -1,8 +1,6 @@
 # PubHubs — Public hubs for community networks
 
-PubHubs (Public Hubs) is a Dutch community network platform built on public values: openness, transparency, data-minimisation and collective stewardship. It connects people across local hubs (i.e. neighbourhoods, sports clubs, schools, museums, patient organisations, libraries, municipalities) while protecting participants’ data and enabling trustworthy communication — with cryptographic attestation where appropriate.
-
-> Designed for the commons: cooperation, decentral responsibility and practical solidarity are core design goals.
+PubHubs (Public Hubs) is a Dutch community network platform built on public values: openness, transparency and collective stewardship. It connects people across local hubs (i.e. neighbourhoods, sports clubs, schools, museums, patient organisations, libraries, municipalities) while protecting participants’ data and enabling trustworthy communication.
 
 ---
 
@@ -17,7 +15,7 @@ PubHubs (Public Hubs) is a Dutch community network platform built on public valu
 
 # Current status
 
-This project is **in active development** and moving through test phases. The repository is a mirror of internal work and many internals may change before a stable release. If you or your organisation want to help test or contribute, contact the team first.
+This project is **in active development** and moving through test phases. The repository is a mirror of internal work and may be subject to major changes before a stable release. If you or your organisation want to help test or contribute, contact the team first.
 
 ---
 
@@ -70,11 +68,11 @@ See flake.nix for the exact packages and toolchain the project uses.
 mask <task> # e.g. `mask run yivi`
 ```
 
----
+See the [Maskfile](./maskfike.md) for all available commands.
 
-## Values & governance
+### 3. Yivi
 
-PubHubs is explicitly designed around public-value principles: collective control, privacy by default, transparency, and practical solidarity. Technical choices favor community agency and resist concentration of control in opaque or commercial systems.
+To log into the local development, the Yivi app must be set to developer-mode. This can be done by clicking the App ID in the overflow menu a couple of times.
 
 ---
 
