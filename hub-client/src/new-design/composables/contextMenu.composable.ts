@@ -18,6 +18,9 @@ export function useContextMenu() {
 	const openMenu = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null): void => {
 		const isTouch = 'touches' in evt;
 
+		evt.preventDefault();
+		evt.stopPropagation();
+
 		// If it's a touch, start long press timer
 		if (isTouch) {
 			longPressTimer = setTimeout(() => {
@@ -36,12 +39,9 @@ export function useContextMenu() {
 			window.addEventListener('touchmove', clearTimer);
 
 			return;
+		} else {
+			_openMenuAtEvent(evt, items, targetId);
 		}
-
-		// If it's a mouse/pointer event, only open on left click
-		if ('button' in evt && evt.button !== 0) return;
-
-		_openMenuAtEvent(evt, items, targetId);
 	};
 
 	/**
@@ -51,11 +51,8 @@ export function useContextMenu() {
 	 * @param items - The context menu item array
 	 * @param targetId - The unique id for the context menu
 	 */
-	const _openMenuAtEvent = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null) => {
+	const _openMenuAtEvent = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null): void => {
 		const isTouch = 'touches' in evt;
-
-		evt.preventDefault();
-		evt.stopPropagation();
 
 		let x = 0;
 		let y = 0;
