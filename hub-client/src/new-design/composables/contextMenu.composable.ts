@@ -1,10 +1,11 @@
+// Models
+import { SystemDefaults } from '@hub-client/models/constants';
+
 // New design
 import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 import type { MenuItem } from '@hub-client/new-design/stores/contextMenu.store';
 
 export function useContextMenu() {
-	const LONG_PRESS_DURATION = 500;
-
 	const store = useContextMenuStore();
 	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -25,7 +26,7 @@ export function useContextMenu() {
 		if (isTouch) {
 			longPressTimer = setTimeout(() => {
 				_openMenuAtEvent(evt, items, targetId);
-			}, LONG_PRESS_DURATION);
+			}, SystemDefaults.longPressDuration);
 
 			// Cancel long press if touch ends or moves
 			const clearTimer = () => {

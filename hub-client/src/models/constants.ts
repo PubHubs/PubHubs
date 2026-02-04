@@ -12,6 +12,7 @@ enum SystemDefaults {
 	publicRoomsReload = 86_400_000, // Time to cache public rooms. Reload will be forced after creating.editing new rooms, so this can be long. Now set to one day.
 	MaxNumberFileUploads = 50, // Maximum number of files that can be dropped/uploaded
 	mainRoomListRange = 40, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
+	longPressDuration = 250, // Amount of milliseconds for a long-press
 }
 
 // options for sliding sync
