@@ -27,7 +27,7 @@ import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/
 import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
 import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 import Room from '@hub-client/models/rooms/Room';
-import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TSearchParameters } from '@hub-client/models/search/TSearch';
 
 // Stores
@@ -495,7 +495,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			this.updateRoom(roomId, true);
 		},
 
-		async setPrivateRoomHiddenStateForUser(room: Room, hide: boolean) {
+		async setPrivateRoomHiddenStateForUser(room: Room | RoomListRoom, hide: boolean) {
 			let name = room.name;
 			const user = useUser();
 			const me = user.user as User;

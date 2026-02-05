@@ -1,5 +1,5 @@
 <template>
-	<span v-if="room?.isPrivateRoom()">
+	<span v-if="DirectRooms.includes(room?.getType() as RoomType)">
 		{{ $t('rooms.private_members') }}
 		<PrivateRoomMembersList :members="room?.getOtherJoinedAndInvitedMembers()" />
 	</span>
@@ -12,6 +12,7 @@
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
+	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	const props = defineProps({
 		room: {

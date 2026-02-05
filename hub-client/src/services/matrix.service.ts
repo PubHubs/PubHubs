@@ -1,5 +1,5 @@
 // Packages
-import { EventType, IStateEvent, type MatrixClient } from 'matrix-js-sdk';
+import { EventType, IRoomEvent, IStateEvent, type MatrixClient } from 'matrix-js-sdk';
 import { MSC3575List, MSC3575RoomData, MSC3575SlidingSyncResponse, SlidingSync, SlidingSyncEvent, SlidingSyncState } from 'matrix-js-sdk/lib/sliding-sync';
 
 // Logic
@@ -30,6 +30,7 @@ class MatrixService {
 	private roomsCount: number = 0; // number of rooms returned by sliding sync
 	private roomsUpperRange: number = SystemDefaults.mainRoomListRange; // current number of the upper range of the roomlist
 	private initialRoomLoading: boolean = true; // Are we fetching the first roomlist with only memberdata? (vs the main roomlist with all data)
+
 	/**
 	 * Construct a MatrixService instance.
 	 *
@@ -66,6 +67,9 @@ class MatrixService {
 
 		const initialRoomListFilter = new Map<string, MSC3575List>([[SlidingSyncOptions.roomList, RoomLists.get(SlidingSyncOptions.initialRoomList)!]]);
 
+		// TODO sliding sync update: the current version of the Matrix JS SDK does not support new SlidingSync({ client, lists, extensions, });
+		// as soon as this is updated we need to pass the notifications in extensions: { unread_notifications: { enabled: true, }, },
+		// and then the options from this.client.startClient can be removed, see further
 		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 /* global default value */ }, this.client, SystemDefaults.syncIntervalMS);
 
 		// Attach event handlers
@@ -76,10 +80,12 @@ class MatrixService {
 			// debug only
 			// (window as any).SYNC_TRACE = 1;
 
-			await this.client.startClient({
-				includeArchivedRooms: false,
-				threadSupport: true,
-			});
+			// TODO sliding sync update: as soon as the sliding sync API is updated to new SlidingSync({ client, lists, extensions, }); we can remove lazyLoadMembers and initialSyncLimit again
+			// The parameters to startClient used to be threadSupport and includeArchivedRooms
+			// But since we need to get the full list of rooms to the client before syncing them to get the correct number of notifications
+			// also lazyLoadMembers and initialSyncLimit are passed
+			await this.client.startClient({ lazyLoadMembers: true, initialSyncLimit: 0, threadSupport: true, includeArchivedRooms: false });
+
 			await this.slidingSync.start();
 
 			LOGGER.log(SMI.SYNC, 'Sliding Sync started');
@@ -142,10 +148,6 @@ class MatrixService {
 	 * When there are more rooms than the current upperRange: increase it to wait for the next load of rooms
 	 */
 	private SetRoomSlidingSync() {
-		if (this.initialRoomLoading) {
-			this.initialRoomLoading = false;
-		}
-
 		const mainRoomList = RoomLists.get(SlidingSyncOptions.mainRoomList);
 		mainRoomList!.ranges[0][1] = this.roomsUpperRange;
 
@@ -186,6 +188,7 @@ class MatrixService {
 			this.slidingSync.modifyRoomSubscriptions(new Set([roomId]));
 
 			LOGGER.log(SMI.SYNC, `Added room subscription for ${roomId} with timeline key ${timeLineKey}`, { roomId, timeLineKey });
+
 			return timeLineKey;
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, `Failed to subscribe to ${roomId}`, { roomId, err });
@@ -205,15 +208,20 @@ class MatrixService {
 	 * @param required_state required_state as coming from the sync
 	 * @returns void
 	 */
-	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[]): Promise<any> {
-		return this.client!.joinRoom(roomId)
-			.then((joinedRoom) => {
-				this.client!.store.storeRoom(joinedRoom);
-				this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
-			})
-			.catch((err) => {
-				LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
-			});
+	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[], timeline: (IStateEvent | IRoomEvent)[]): Promise<any> {
+		this.client!.getRoom(roomId); // puts the room in the client store
+
+		const lastMessageId = timeline.findLast((x) => x.type === EventType.RoomMessage)?.event_id;
+		return this.roomsStore.updateRoomList(roomId, roomName, roomType, lastMessageId, false); // update the roomlist with the current room
+
+		// return this.client!.joinRoom(roomId)
+		// 	.then((joinedRoom) => {
+		// 		this.client!.store.storeRoom(joinedRoom);
+		// 		this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
+		// 	})
+		// 	.catch((err) => {
+		// 		LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
+		// 	});
 	}
 
 	/**
@@ -249,7 +257,7 @@ class MatrixService {
 				// Only handle the join when the room is not joined yet
 				if (!this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join) {
 					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? RoomType.PH_MESSAGES_DEFAULT;
-					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state));
+					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state, roomData.timeline));
 				}
 
 				// get the invite state
@@ -262,13 +270,16 @@ class MatrixService {
 					if (DirectRooms.includes(roomType) && roomName) {
 						const invites = inviteState.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId && x.content?.[MatrixType.MemberShip] === MatrixType.Invite);
 						invites.forEach((x) => {
-							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state));
+							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state, roomData.timeline));
 						});
 					}
 				}
 			}
 
 			Promise.all(joinPromises).then(() => {
+				if (this.initialRoomLoading) {
+					this.initialRoomLoading = false;
+				}
 				this.SetRoomSlidingSync(); // sets the correct sliding sync for the room
 				this.roomsStore.setRoomsLoaded(true);
 			});

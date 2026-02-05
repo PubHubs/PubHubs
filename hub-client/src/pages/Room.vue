@@ -1,6 +1,6 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+		<HeaderFooter v-if="!isLoading" :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
 				<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, nextTick, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
 
@@ -136,6 +136,7 @@
 	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 	const scrollToEventId = ref<string>();
 	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
+	const isLoading = ref(true); // keep track if the page is loading, then the template cannot be rendered yet
 
 	// Passed by the router
 	const props = defineProps({
@@ -148,9 +149,7 @@
 	const room = computed(() => {
 		let r = rooms.rooms[props.id];
 		if (!r) {
-			// I want the side effect that should be avoided according to the lint rule.
-			// eslint-disable-next-line
-			router.push({
+			void router.push({
 				name: 'error-page',
 				query: { errorKey: 'errors.cant_find_room' },
 			});
@@ -167,8 +166,10 @@
 		isSearchBarExpanded.value = isExpanded;
 	};
 
-	onMounted(() => {
-		update();
+	onMounted(async () => {
+		isLoading.value = true;
+		await update();
+
 		// Handle explicit scroll requests from URL parameter
 		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
 		if (eventIdFromQuery) {
@@ -179,17 +180,18 @@
 			// Clear it after reading so it doesn't persist
 			delete rooms.scrollPositions[props.id];
 		}
+		isLoading.value = false;
 	});
 
 	watch(
 		route,
-		() => {
+		async () => {
 			// Check for eventId in query param on route change
 			const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
 			if (eventIdFromQuery) {
 				scrollToEventId.value = eventIdFromQuery;
 			}
-
+			isLoading.value = true;
 			if (rooms.currentRoom) {
 				// Save last visible (read) event to localStorage
 				const lastEventId = rooms.currentRoom.getLastVisibleEventId();
@@ -203,10 +205,11 @@
 						}
 					}
 				}
-				rooms.currentRoom.setCurrentThreadId(undefined);
-				rooms.currentRoom.setCurrentEvent(undefined);
+				rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
+				rooms.currentRoom.setCurrentEvent(undefined); // reset current event
 			}
-			update();
+			await update();
+			isLoading.value = false;
 		},
 		{ immediate: true },
 	);
@@ -219,9 +222,17 @@
 		await rooms.waitForInitialRoomsLoaded();
 
 		hubSettings.hideBar();
-		rooms.changeRoom(props.id);
 
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
+
+		// if the user is a member and the room is selected from the roomList in the menu the room possibly has to be joined first: to get all the roomData in the right stores
+		if (userIsMember) {
+			await rooms.joinRoomListRoom(props.id);
+		}
+
+		// change to the current room
+		rooms.changeRoom(props.id);
+
 		if (!userIsMember) {
 			let promise = null;
 

@@ -48,7 +48,7 @@
 									<span class="text-label-small">|</span>
 									<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
 								</span>
-								<RoomBadge v-if="hasBeenVisible && !room.directMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
+								<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
 							</div>
 
 							<!-- Message Action Buttons -->
@@ -128,7 +128,7 @@
 
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
-						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="props.event.content" />
+						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !DirectRooms.includes(room.getType as RoomType)" :event="props.event.content" />
 						<MessageSigned v-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
 						<MessageFile v-if="props.event.content.msgtype === MsgType.File && !redactedMessage" :message="props.event.content" />
 						<MessageImage v-if="props.event.content.msgtype === MsgType.Image && !redactedMessage" :message="props.event.content" />
@@ -193,7 +193,6 @@
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
-	import { router } from '@hub-client/logic/core/router';
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 
 	// Models
@@ -201,6 +200,7 @@
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
+	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useConnection } from '@hub-client/stores/connection';
