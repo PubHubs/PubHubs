@@ -16,6 +16,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] New permissions/roles for different types of users (in client).
 - [NEW] Backend: adds the option to check for a reused phone number during registration
 - [NEW] Backend: authentication publishes historic pubhubs card validity duration values
+- [NEW] Speed optimization: the roomlist in the menu does not automatically load rooms anymore
 - [BUG] Polls/datepickers were not always correctly updated
 - [BUG] Searching for rooms in Discover Rooms was too slow, especially in Firefox
 - [BUG] Direct messages were not showing group messages
