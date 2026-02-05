@@ -8,11 +8,11 @@
 			<!-- Shared Header -->
 			<div v-else class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'" data-testid="roomheader">
 				<!-- Left: Room info -->
-				<div v-if="rooms.currentRoom" class="relative flex w-fit items-center gap-3" data-testid="roomtype">
+				<div v-if="rooms.currentRoom" class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden" data-testid="roomtype">
 					<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
 					<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
-					<div class="group hover:mt-025 relative hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
-						<div class="flex flex-col group-hover:border-b-2 group-hover:border-dotted">
+					<div class="group hover:mt-025 relative min-w-0 flex-1 overflow-hidden hover:cursor-pointer" @click="copyRoomUrl" :title="t('menu.copy_room_url')">
+						<div class="flex min-w-0 flex-col group-hover:border-b-2 group-hover:border-dotted">
 							<H3 class="text-on-surface flex">
 								<TruncatedText class="font-headings font-semibold">
 									<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
