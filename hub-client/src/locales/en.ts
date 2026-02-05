@@ -168,6 +168,12 @@ const en = {
 			almost_done: "Great, you're almost done!",
 			hooray: 'Hooray! {0} You are registered and logged in to PubHubs.\nYou will be redirected to an overview of hubs automatically. Have fun!',
 		},
+		inapp: {
+			in_yivi: 'You are likely viewing this page from within the Yivi app.',
+			reobtain_not_possible: 'Reobtaining a PubHubs card is not currently not possible from there.',
+			go_to_pubhubs_directly: "Please go to PubHubs website via your browser, and reregister there.",
+			youll_get_card: "You will receive a new PubHubs card in this process."
+		}
 	},
 	login: {
 		login: 'Login',

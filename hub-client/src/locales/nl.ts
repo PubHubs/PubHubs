@@ -167,6 +167,12 @@ const nl = {
 			almost_done: 'Top, je bent bijna klaar!',
 			hooray: 'Hoera! {0} Je bent geregistreerd en ingelogd bij PubHubs.\nJe wordt vanzelf doorgestuurd naar een overzicht met hubs. Veel plezier!',
 		},
+		inapp: {
+			in_yivi: 'Waarschijnlijk bekijkt u deze pagina vanuit de Yivi app.',
+			reobtain_not_possible: 'Het is vanuit daar momenteel niet mogelijk een PubHubs kaartje te krijgen.',
+			go_to_pubhubs_directly: "Ga in plaats daarvan naar de PubHubs wesbite en (her)registreer.",
+			youll_get_card: "Tijdens dit proces krijgt u een nieuwe PubHubs kaart."
+		}
 	},
 	login: {
 		login: 'Login',
