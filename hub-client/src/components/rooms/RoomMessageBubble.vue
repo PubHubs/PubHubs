@@ -8,7 +8,7 @@
 			</div>
 
 			<!-- Message Container -->
-			<div class="relative flex w-full gap-4 px-4" :class="getMessageContainerClasses">
+			<div class="relative flex w-full gap-4" :class="[getMessageContainerClasses, isMobile ? 'px-2' : 'px-5']">
 				<!-- Reaction Panel -->
 				<div v-if="showReactionPanel && hasBeenVisible" :class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
 					<ReactionMiniPopUp :eventId="props.event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, props.event.event_id)" @close-panel="emit('reactionPanelClose')" />
@@ -27,13 +27,6 @@
 				/>
 				<!-- Avatar placeholder -->
 				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
-
-				<!-- Profile Card -->
-				<div v-if="hasBeenVisible" class="relative">
-					<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(props.event) ? 'bottom-4' : '']">
-						<ProfileCard :event="props.event" :room="room" :room-member="roomMember" />
-					</Popover>
-				</div>
 
 				<!-- Message and Actions -->
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
@@ -156,7 +149,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { useClipboard } from '@vueuse/core';
+	// import { useClipboard } from '@vueuse/core';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -211,10 +204,11 @@
 	const hubSettings = useHubSettings();
 	const { t } = useI18n();
 	const hover = ref(false);
-	const openEmojiPanel = ref(false);
+	// const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const source = ref('');
 	// const { copy, copied, isSupported } = useClipboard({ source });
+	const isMobile = computed(() => settings.isMobileState);
 
 	// Intersection observer
 	const messageRoot = ref<HTMLElement | null>(null);
