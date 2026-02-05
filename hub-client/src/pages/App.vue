@@ -1,16 +1,16 @@
 <template>
-	<div class="bg-background font-body text-on-surface text-body h-dvh w-full">
+	<div class="bg-background font-body text-on-surface text-body h-full w-full">
 		<div v-if="setupReady" class="h-full">
 			<div v-if="user.isLoggedIn" class="flex h-full">
 				<HeaderFooter class="bg-surface-low w-full" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">
 					<template #header>
 						<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 							<span class="font-semibold uppercase">hub</span>
-							<hr class="bg-on-surface-dim h-[2px] grow" />
+							<hr class="bg-on-surface-dim h-025 grow" />
 						</div>
 						<div class="flex h-full justify-between py-2">
 							<div class="flex items-center justify-between gap-2">
-								<div class="group hover:border-on-surface-dim relative flex cursor-pointer items-center gap-2 hover:mt-[2px] hover:border-b-2 hover:border-dotted" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
+								<div class="group hover:border-on-surface-dim hover:mt-025 relative flex cursor-pointer items-center gap-2 hover:border-b-2 hover:border-dotted" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
 									<H3 class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
 									<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
 								</div>
