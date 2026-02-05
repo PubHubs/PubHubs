@@ -76,7 +76,6 @@
 										<P>{{ $t(error.key, error.values) }}</P>
 									</div>
 
-									<P>{{ $t('register.card_3_text_1') }}</P>
 									<P>{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
 								</div>
 
