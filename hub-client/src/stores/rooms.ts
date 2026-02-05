@@ -8,8 +8,8 @@ import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 import { propCompare } from '@hub-client/logic/core/extensions';
 import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
 
-import { ScrollPosition } from '@hub-client/models/constants';
 // Models
+import { ScrollPosition } from '@hub-client/models/constants';
 import Room from '@hub-client/models/rooms/Room';
 import { DirectRooms, RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
@@ -67,8 +67,7 @@ const useRooms = defineStore('rooms', {
 		return {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
-			roomsSeen: {} as { [index: string]: number },
-			roomList: [] as Array<RoomListRoom>, // sorted list of rooms for menu
+			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },
@@ -246,17 +245,21 @@ const useRooms = defineStore('rooms', {
 		 * @param roomId
 		 */
 		async joinRoomListRoom(roomId: string) {
-			if (!this.rooms[roomId]) {
-				const pubhubs = usePubhubsStore();
-				await pubhubs.joinRoom(roomId);
-				const lastMessageId = this.roomList.find((x) => x.roomId === roomId)?.lastMessageId;
-				if (lastMessageId) {
-					// @ts-expect-error (typescript does not know that joinroom adds the room to this.rooms)
-					await this.rooms[roomId].loadToEvent({
-						eventId: lastMessageId,
-						position: ScrollPosition.Start,
-					});
-				}
+			if (this.rooms[roomId]) {
+				return; // Already joined
+			}
+
+			const pubhubs = usePubhubsStore();
+			await pubhubs.joinRoom(roomId);
+
+			const lastMessageId = this.roomList.find((x) => x.roomId === roomId)?.lastMessageId;
+			const room = this.room(roomId);
+
+			if (lastMessageId && room) {
+				await room.loadToEvent({
+					eventId: lastMessageId,
+					position: ScrollPosition.Start,
+				});
 			}
 		},
 

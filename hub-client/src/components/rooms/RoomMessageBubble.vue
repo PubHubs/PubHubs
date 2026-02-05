@@ -128,7 +128,7 @@
 
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
-						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !DirectRooms.includes(room.getType as RoomType)" :event="props.event.content" />
+						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)" :event="props.event.content" />
 						<MessageSigned v-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
 						<MessageFile v-if="props.event.content.msgtype === MsgType.File && !redactedMessage" :message="props.event.content" />
 						<MessageImage v-if="props.event.content.msgtype === MsgType.Image && !redactedMessage" :message="props.event.content" />
