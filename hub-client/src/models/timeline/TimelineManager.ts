@@ -120,8 +120,8 @@ class TimelineManager {
 		const matrix = useMatrix();
 
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `Initializing timeline for room ${roomId}`);
-		this.roomId = roomId;
 
+		this.roomId = roomId;
 		this.roomTimelineKey = matrix.addRoomSubscription(roomId);
 	}
 

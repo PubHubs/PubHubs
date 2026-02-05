@@ -80,7 +80,7 @@
 
 					<!--Steward and above can broadcast only in main time line-->
 					<button
-						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
+						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isDirectMessageRoom()"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
@@ -150,7 +150,7 @@
 
 	// Logic
 	import { useMessageInput } from '@hub-client/logic/messageInput';
-	import { yiviFlow, yiviSignMessage } from '@hub-client/logic/yiviHandler';
+	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	// Models
 	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';

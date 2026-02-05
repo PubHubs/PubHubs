@@ -9,8 +9,9 @@ import { propCompare } from '@hub-client/logic/core/extensions';
 import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
 
 // Models
+import { ScrollPosition } from '@hub-client/models/constants';
 import Room from '@hub-client/models/rooms/Room';
-import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { DirectRooms, RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -21,13 +22,13 @@ import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useUser } from '@hub-client/stores/user';
 
 // Types
-interface RoomMessages {
+type RoomMessages = {
 	chunk: Chunk[];
 	start: string;
 	end: string;
-}
+};
 
-interface Chunk {
+type Chunk = {
 	type: string;
 	room_id: string;
 	sender: string;
@@ -37,22 +38,16 @@ interface Chunk {
 	event_id: string;
 	user_id: string;
 	age: number;
-}
+};
 
-interface Content {
+type Content = {
 	body: string;
 	msgtype: string;
-}
+};
 
-interface Unsigned {
+type Unsigned = {
 	age: number;
-}
-
-interface RoomListRoom {
-	roomId: string;
-	roomType: string;
-	name: string;
-}
+};
 
 function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
 	// Note that it is allowed to have no attribute values for an attribute type.
@@ -72,7 +67,7 @@ const useRooms = defineStore('rooms', {
 		return {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
-			roomList: [] as Array<RoomListRoom>,
+			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },
@@ -84,6 +79,7 @@ const useRooms = defineStore('rooms', {
 		};
 	},
 
+	// #region getters
 	getters: {
 		/**
 		 *  Returns roomsLoaded: all rooms are loaded AND all rooms have a name that is different from the roomId.
@@ -101,28 +97,27 @@ const useRooms = defineStore('rooms', {
 			return rooms;
 		},
 
-		sortedRoomsArrayByJoinedTime(): Array<Room> {
-			const user = useUser();
-			const rooms: Array<Room> = Object.assign([], this.roomsArray);
-			rooms.sort((a, b) => {
-				const aJoined = a.getMember(user.userId!)?.getLastModifiedTime();
-				const bJoined = b.getMember(user.userId!)?.getLastModifiedTime();
-				return aJoined! < bJoined! ? 1 : -1;
-			});
-			return rooms;
-		},
-
-		sortedRoomsArray(): Array<Room> {
-			const rooms: Array<Room> = Object.assign([], this.roomsArray);
-			rooms.sort((a, b) => (a.name > b.name ? 1 : -1));
-			return rooms;
-		},
-
-		privateRooms(): Array<Room> {
-			const rooms: Array<Room> = Object.assign([], this.roomsArray);
-			const privateRooms = rooms.filter((item) => item.getType() == RoomType.PH_MESSAGES_DM);
-			return privateRooms;
-		},
+		// TODO never used. Can be deleted?
+		// sortedRoomsArrayByJoinedTime(): Array<Room> {
+		// 	const user = useUser();
+		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
+		// 	rooms.sort((a, b) => {
+		// 		const aJoined = a.getMember(user.userId!)?.getLastModifiedTime();
+		// 		const bJoined = b.getMember(user.userId!)?.getLastModifiedTime();
+		// 		return aJoined! < bJoined! ? 1 : -1;
+		// 	});
+		// 	return rooms;
+		// },
+		// sortedRoomsArray(): Array<Room> {
+		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
+		// 	rooms.sort((a, b) => (a.name > b.name ? 1 : -1));
+		// 	return rooms;
+		// },
+		// privateRooms(): Array<Room> {
+		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
+		// 	const privateRooms = rooms.filter((item) => item.getType() == RoomType.PH_MESSAGES_DM);
+		// 	return privateRooms;
+		// },
 
 		hasRooms(): boolean {
 			return this.roomsArray?.length > 0;
@@ -188,6 +183,7 @@ const useRooms = defineStore('rooms', {
 			return Object.keys(state.securedRooms).length > 0;
 		},
 
+		// TODO sort securedRooms on adding, so sorting takes place only once
 		sortedSecuredRooms(state): Array<TSecuredRoom> {
 			return state.securedRooms.sort(propCompare('room_name'));
 		},
@@ -205,6 +201,8 @@ const useRooms = defineStore('rooms', {
 			return state.timestamps;
 		},
 	},
+
+	//#endregion getters
 
 	actions: {
 		async waitForInitialRoomsLoaded(): Promise<void> {
@@ -242,9 +240,46 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
-		updateRoomList(roomId: string, name: string, type: string) {
+		/**
+		 * In case the room is not joined yet: join a room from the roomList in the menu. Joins and initializes the timeline
+		 * @param roomId
+		 */
+		async joinRoomListRoom(roomId: string) {
+			if (this.rooms[roomId]) {
+				return; // Already joined
+			}
+
+			const pubhubs = usePubhubsStore();
+			await pubhubs.joinRoom(roomId);
+
+			const lastMessageId = this.roomList.find((x) => x.roomId === roomId)?.lastMessageId;
+			const room = this.room(roomId);
+
+			if (lastMessageId && room) {
+				await room.loadToEvent({
+					eventId: lastMessageId,
+					position: ScrollPosition.Start,
+				});
+			}
+		},
+
+		/**
+		 * Updates the roomList with a new room and keeps it sorted on name
+		 * @param roomId
+		 * @param name
+		 * @param type
+		 */
+		updateRoomList(roomId: string, name: string, type: string, lastMessageId: string | undefined, isHidden: boolean) {
 			if (!this.roomList.some((room) => room.roomId === roomId)) {
-				this.roomList.push({ roomId: roomId, roomType: type, name: name });
+				this.roomList.push({ roomId: roomId, roomType: type, name: name, lastMessageId: lastMessageId, isHidden: isHidden });
+			}
+			this.roomList.sort((a, b) => a.name.localeCompare(b.name));
+		},
+
+		setRoomListHidden(roomId: string, isHidden: boolean) {
+			const room = this.roomList.find((room) => room.roomId === roomId);
+			if (room) {
+				room.isHidden = isHidden;
 			}
 		},
 
@@ -273,6 +308,7 @@ const useRooms = defineStore('rooms', {
 				this.currentRoomId = '';
 			}
 			delete this.rooms[roomId];
+			this.roomList = this.roomList.filter((room) => room.roomId !== roomId);
 		},
 
 		// replace the current rooms in the store with the new ones
@@ -315,6 +351,7 @@ const useRooms = defineStore('rooms', {
 		async fetchPublicRooms(force: boolean = false) {
 			const pubhubs = usePubhubsStore();
 			const rooms = await pubhubs.getAllPublicRooms(force);
+			// TODO its best to sort the publicrooms on adding, then sorting will take place only once
 			this.publicRooms = rooms.toSorted(propCompare('name'));
 		},
 
@@ -322,6 +359,7 @@ const useRooms = defineStore('rooms', {
 		// Useful to filter based on custom room types.
 		fetchRoomArrayByType(type: string | undefined): Array<Room> {
 			const user = useUser();
+			// TODO sorting should be done during adding of room so the roomsArray always is sorted!
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
 			// visibility is based on a prefix on room names when the room is joined or left.
 			if (type === RoomType.PH_MESSAGES_DM) {
@@ -330,25 +368,35 @@ const useRooms = defineStore('rooms', {
 			return rooms.filter((room) => room.getType() === type);
 		},
 
-		// Filter rooms based on accessibility: Public, Secured or Directmessages
+		/**
+		 * Filter rooms based on accessibility: Public, Secured or Directmessages
+		 * @param types Array of RoomTypes to fetch
+		 * @returns
+		 */
 		fetchRoomArrayByAccessibility(types: RoomType[]): Array<Room> {
 			const user = useUser();
+			// TODO sorting should be done during adding of room so the roomsArray always is sorted!
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
 			// filter all the rooms by type
 			// filter OUT every room that is a PH_MESSAGES_DM where !isVisiblePrivateRoom
-			let result = rooms.filter((room) => room.getType() !== undefined && types.includes(room.getType() as RoomType));
+			let result = rooms.filter((room) => !room.isHidden() && room.getType() !== undefined && types.includes(room.getType() as RoomType));
 			if (types.includes(RoomType.PH_MESSAGES_DM)) {
 				result = result.filter((room) => room.getType() !== undefined && (room.getType() !== RoomType.PH_MESSAGES_DM || isVisiblePrivateRoom(room.name, user.user!)));
 			}
 			return result;
+		},
 
-			// TODO sliding sync
-			// This was commented out for the private rooms to show anything at all
-			// visibility is based on a prefix on room names when the room is joined or left.
-			// if (types.includes(RoomType.PH_MESSAGES_DM)) {
-			// 	return rooms.filter((room) => room.getType() !== undefined && types.includes(room.getType() as RoomType)).filter((room) => isVisiblePrivateRoom(room.name, user));
-			// }
-			// return rooms.filter((room) => room.getType() !== undefined && types.includes(room.getType() as RoomType));
+		/**
+		 * Filter room displaylist based on RoomTypes
+		 * @param types Array of RoomTypes to fetch
+		 */
+		fetchRoomList(types: RoomType[]): Array<RoomListRoom> {
+			const user = useUser();
+			let result = this.roomList.filter((room) => room.isHidden === false && room.roomType !== undefined && types.includes(room.roomType as RoomType));
+			if (types.includes(RoomType.PH_MESSAGES_DM)) {
+				result = result.filter((room) => room.roomType !== undefined && (room.roomType !== RoomType.PH_MESSAGES_DM || isVisiblePrivateRoom(room.name, user.user!)));
+			}
+			return result;
 		},
 
 		memberOfPublicRoom(roomId: string): boolean {
@@ -365,7 +413,7 @@ const useRooms = defineStore('rooms', {
 
 		roomIsSecure(roomId: string): boolean {
 			const room = this.fetchRoomById(roomId);
-			return room?.roomType === RoomType.PH_MESSAGES_RESTRICTED;
+			return room?.getType() === RoomType.PH_MESSAGES_RESTRICTED;
 		},
 
 		//? Some documentation would be helpful here.
@@ -535,14 +583,14 @@ const useRooms = defineStore('rooms', {
 			const user = useUser();
 			const pubhubs = usePubhubsStore();
 			const stewardIds = members.map((member) => member.userId);
-			const stewardRoom: Room = this.currentStewardRoom(roomId);
+			const stewardRoom: Room | undefined = this.currentStewardRoom(roomId);
 
 			if (stewardRoom) {
 				const roomMembers: TRoomMember[] = stewardRoom.matrixRoom.getMembers();
 				// If moderators are updated then update the moderators join and leave in the room.
 
 				roomMembers.forEach(async (member: TRoomMember) => {
-					if (this.room(roomId).getPowerLevel(member.userId) !== 50 && member.userId !== user.userId) {
+					if (this.room(roomId)?.getPowerLevel(member.userId) !== 50 && member.userId !== user.userId) {
 						if (stewardRoom.getMember(member.userId)?.membership !== 'leave') {
 							await pubhubs.client.kick(stewardRoom.roomId, member.userId);
 						}

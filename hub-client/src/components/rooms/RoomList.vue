@@ -23,28 +23,24 @@
 			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
-						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
-						<GroupRoomName v-else-if="room.isGroupRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
-						<AdminContactRoomName v-else-if="room.isAdminContactRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
-						<RoomName v-else :room="room" />
+						<RoomName :room="room" />
 					</TruncatedText>
 
 					<Icon
-						v-if="!room.isAdminContactRoom()"
 						type="x"
 						data-testid="leave-room"
 						class="text-on-surface-variant hover:text-accent-error cursor-pointer stroke-2 transition-all duration-200 ease-in-out md:hidden md:group-hover:inline-block"
 						@click.prevent="leaveRoom(room.roomId)"
 					/>
 					<span class="flex gap-2 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
-						<Badge class="text-label-small" color="hub" v-if="getUnreadCount(room, NotificationCountType.Total) > 99">99+</Badge>
-						<Badge v-else-if="getUnreadCount(room, NotificationCountType.Total) > 0" color="hub">{{ getUnreadCount(room, NotificationCountType.Total) }}</Badge>
-						<Badge color="hub" v-if="getUnreadCount(room, NotificationCountType.Highlight) > 0"><Icon type="at" size="sm" class="shrink-0" /></Badge>
+						<Badge class="text-label-small" color="hub" v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 99">99+</Badge>
+						<Badge v-else-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0" color="hub">{{ getUnreadCount(room.roomId, NotificationCountType.Total) }}</Badge>
+						<Badge color="hub" v-if="getUnreadCount(room.roomId, NotificationCountType.Highlight) > 0"><Icon type="at" size="sm" class="shrink-0" /></Badge>
 					</span>
 				</span>
 			</MenuItem>
 		</template>
-		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications" :key="notification.room_id" class="relative flex flex-row">
+		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications.notifications" :key="notification.room_id" class="relative flex flex-row">
 			<MenuItem
 				icon="shield"
 				v-if="notification.room_id"
@@ -66,10 +62,10 @@
 				</span>
 			</MenuItem>
 		</template>
+		<template v-if="!roomsLoaded && currentJoinedRooms.length > 0">
+			<MenuItemSkeleton v-for="n in 3" :key="n" />
+		</template>
 	</Menu>
-	<div class="ml-4">
-		<InlineSpinner v-if="!roomsLoaded" />
-	</div>
 	<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" :secured="true" />
 </template>
 
@@ -84,21 +80,17 @@
 	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
-	import AdminContactRoomName from '@hub-client/components/rooms/AdminContactRoomName.vue';
-	import GroupRoomName from '@hub-client/components/rooms/GroupRoomName.vue';
-	import PrivateRoomName from '@hub-client/components/rooms/PrivateRoomName.vue';
 	import RoomName from '@hub-client/components/rooms/RoomName.vue';
-	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Menu from '@hub-client/components/ui/Menu.vue';
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
+	import MenuItemSkeleton from '@hub-client/components/ui/MenuItemSkeleton.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 
 	// Models
-	import Room from '@hub-client/models/rooms/Room';
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
 	// Stores
@@ -136,7 +128,7 @@
 	});
 
 	const currentJoinedRooms = computed(() => {
-		return rooms.fetchRoomArrayByAccessibility(props.roomTypes).filter((room: Room) => room.isHidden() === false);
+		return rooms.fetchRoomList(props.roomTypes);
 	});
 
 	const roomsLoaded = computed(() => {
@@ -144,16 +136,20 @@
 	});
 
 	// Reactive dependency on unreadCountVersion for badge updates
-	function getUnreadCount(room: Room, type: NotificationCountType): number {
+	function getUnreadCount(roomId: string, countType: NotificationCountType): number {
 		void rooms.unreadCountVersion;
-		return room.getRoomUnreadNotificationCount(type);
+		const room = pubhubs.client.getRoom(roomId);
+		if (room) {
+			return room.getRoomUnreadNotificationCount(countType);
+		}
+		return 0;
 	}
 
 	async function leaveRoom(roomId: string) {
-		const room = rooms.room(roomId);
+		const room = currentJoinedRooms.value.find((room) => room.roomId === roomId);
 		if (room) {
 			const leaveMsg = await leaveMessageContext(roomId);
-			if (room.isPrivateRoom() || room.isGroupRoom()) {
+			if (DirectRooms.includes(room.roomType as RoomType)) {
 				if (await dialog.okcancel(t('rooms.hide_sure'))) {
 					await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
 					await router.replace({ name: 'home' });

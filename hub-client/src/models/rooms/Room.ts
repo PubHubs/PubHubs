@@ -142,7 +142,7 @@ export default class Room {
 		return this.getType() === RoomType.SECURED;
 	}
 
-	public directMessageRoom(): boolean {
+	public isDirectMessageRoom(): boolean {
 		return this.isPrivateRoom() || this.isAdminContactRoom() || this.isStewardContactRoom() || this.isGroupRoom();
 	}
 
