@@ -16,7 +16,7 @@
 
 		<div class="overflow-y-auto" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
 			<!-- Registration section -->
-			<section class="bg-background flex flex-col gap-8 overflow-x-hidden" :class="isMobile ? 'py-8' : 'py-16'">
+			<section class="bg-background flex flex-col gap-8 overflow-x-hidden" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)] py-8' : 'py-16'">
 				<div class="flex shrink-0 flex-col gap-8" :class="isMobile && 'h-full'">
 					<!-- Title -->
 					<div class="mx-auto w-full max-w-[80ch]">
