@@ -118,8 +118,14 @@
 	const { t } = useI18n();
 	const dialog = useDialog();
 	const sidebar = useSidebar();
+
+	onMounted(async () => {
+		loadPrivateRooms();
+	});
+
 	const isMobile = computed(() => settings.isMobileState);
-	const privateRooms = computed<Array<Room>>(() => getPrivateRooms());
+
+	const privateRooms = ref<Array<Room>>([]); // No computed, since this uses an async method
 
 	const newAdminMsgCount = computed(() => {
 		if (user.isAdmin) return;
@@ -173,8 +179,13 @@
 		}
 	}
 
-	function getPrivateRooms(): Array<Room> {
-		return rooms.fetchRoomArrayByAccessibility(DirectRooms);
+	async function loadPrivateRooms() {
+		await rooms.waitForInitialRoomsLoaded(); // we need the roomslist, so wait till its loaded
+		const roomsList = rooms.fetchRoomList(DirectRooms);
+		for (const room of roomsList) {
+			await rooms.joinRoomListRoom(room.roomId);
+			privateRooms.value = [...privateRooms.value, rooms.rooms[room.roomId]];
+		}
 	}
 
 	function lastEventTimeStamp(room: Room): number {

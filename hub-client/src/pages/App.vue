@@ -46,14 +46,14 @@
 				</section>
 
 				<!-- Public rooms -->
-				<RoomListHeader label="admin.public_rooms">
+				<RoomListHeader v-if="hasPublicRooms" label="admin.public_rooms">
 					<template #roomlist>
 						<RoomList :roomTypes="PublicRooms" />
 					</template>
 				</RoomListHeader>
 
 				<!-- Secured rooms -->
-				<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
+				<RoomListHeader v-if="hasSecuredRooms" label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
 					<template #roomlist>
 						<RoomList :roomTypes="SecuredRooms" />
 					</template>
@@ -152,6 +152,9 @@
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
 	const { scrollToEnd } = useGlobalScroll();
+
+	const hasPublicRooms = computed(() => rooms.fetchRoomList(PublicRooms).length > 0 || !rooms.roomsLoaded);
+	const hasSecuredRooms = computed(() => rooms.fetchRoomList(SecuredRooms).length > 0 || !rooms.roomsLoaded);
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');

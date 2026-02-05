@@ -26,11 +26,15 @@
 	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	// Composables
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
+
+	// Models
+	import { RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useMenu } from '@hub-client/stores/menu';
-	import { Room, useRooms } from '@hub-client/stores/rooms';
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	const menu = useMenu();
 	const rooms = useRooms();
@@ -72,14 +76,14 @@
 			default: 'base',
 		},
 		room: {
-			type: Object as PropType<Room | undefined>, // Room prop can be a Room type or undefined.
+			type: Object as PropType<RoomListRoom | undefined>,
 			required: false,
 		},
 	});
 
 	function isSecuredRoom() {
 		if (!props.room) return false;
-		return props.room.isSecuredRoom();
+		return SecuredRooms.includes(props.room.roomType as RoomType);
 	}
 
 	function click() {

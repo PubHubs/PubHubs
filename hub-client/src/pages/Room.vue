@@ -1,8 +1,12 @@
 <template>
 	<div class="flex h-full flex-col">
 		<template v-if="rooms.currentRoomExists">
+			<div v-if="isLoading" class="flex h-full w-full flex-col gap-4 p-4">
+				<div class="bg-surface-base h-[80px] w-full animate-pulse rounded-lg"></div>
+				<div class="bg-surface-base h-full w-full animate-pulse rounded-lg"></div>
+			</div>
 			<!-- Shared Header -->
-			<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'" data-testid="roomheader">
+			<div v-else class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'" data-testid="roomheader">
 				<!-- Left: Room info -->
 				<div v-if="rooms.currentRoom" class="relative flex w-fit items-center gap-3" data-testid="roomtype">
 					<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
@@ -76,7 +80,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, nextTick, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
@@ -141,6 +145,7 @@
 	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 	const scrollToEventId = ref<string>();
 	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
+	const isLoading = ref(true); // keep track if the page is loading, then the template cannot be rendered yet
 
 	// Passed by the router
 	const props = defineProps({
@@ -152,7 +157,7 @@
 		let r = rooms.rooms[props.id];
 		if (!r) {
 			// eslint-disable-next-line
-			router.push({
+			void router.push({
 				name: 'error-page',
 				query: { errorKey: 'errors.cant_find_room' },
 			});
@@ -165,10 +170,16 @@
 		return r;
 	});
 
-	onMounted(() => {
+	const handleToggleSearchbar = (isExpanded: boolean) => {
+		isSearchBarExpanded.value = isExpanded;
+	};
+
+	onMounted(async () => {
 		// Ensure sidebar is closed instantly when entering a room page
 		sidebar.closeInstantly();
-		update();
+		isLoading.value = true;
+		await update();
+
 		// Handle explicit scroll requests from URL parameter
 		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
 		if (eventIdFromQuery) {
@@ -179,6 +190,18 @@
 			// Clear it after reading so it doesn't persist
 			delete rooms.scrollPositions[props.id];
 		}
+
+		isLoading.value = false;
+	});
+
+	// Close sidebar instantly before leaving this page
+	onBeforeRouteLeave(() => {
+		sidebar.closeInstantly();
+	});
+
+	// Close sidebar instantly before leaving this page
+	onBeforeRouteLeave(() => {
+		sidebar.closeInstantly();
 	});
 
 	// Close sidebar instantly before leaving this page
@@ -193,13 +216,13 @@
 
 	watch(
 		route,
-		() => {
+		async () => {
 			// Check for eventId in query param on route change
 			const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
 			if (eventIdFromQuery) {
 				scrollToEventId.value = eventIdFromQuery;
 			}
-
+			isLoading.value = true;
 			if (rooms.currentRoom) {
 				// Save last visible (read) event to localStorage
 				const lastEventId = rooms.currentRoom.getLastVisibleEventId();
@@ -213,10 +236,11 @@
 						}
 					}
 				}
-				rooms.currentRoom.setCurrentThreadId(undefined);
-				rooms.currentRoom.setCurrentEvent(undefined);
+				rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
+				rooms.currentRoom.setCurrentEvent(undefined); // reset current event
 			}
-			update();
+			await update();
+			isLoading.value = false;
 		},
 		{ immediate: true },
 	);
@@ -246,9 +270,17 @@
 		await rooms.waitForInitialRoomsLoaded();
 
 		hubSettings.hideBar();
-		rooms.changeRoom(props.id);
 
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
+
+		// if the user is a member and the room is selected from the roomList in the menu the room possibly has to be joined first: to get all the roomData in the right stores
+		if (userIsMember) {
+			await rooms.joinRoomListRoom(props.id);
+		}
+
+		// change to the current room
+		rooms.changeRoom(props.id);
+
 		if (!userIsMember) {
 			let promise = null;
 

@@ -85,7 +85,7 @@
 				.map(({ sender }) => sender);
 
 		// direct messages do not have stewards, only members with powerlevel 100, so show only the members
-		if (props.room.directMessageRoom()) {
+		if (props.room.isDirectMessageRoom()) {
 			memberIds.value = [...new Set(realMembers.map((x) => x.sender))]; // Set only stores unique values
 		} else {
 			stewardIds.value = filterMembersByPowerLevel(50, 99);
