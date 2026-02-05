@@ -29,13 +29,6 @@
 						<RoomName v-else :room="room" />
 					</TruncatedText>
 
-					<Icon
-						v-if="!room.isAdminContactRoom()"
-						type="x"
-						data-testid="leave-room"
-						class="text-on-surface-variant hover:text-accent-error cursor-pointer stroke-2 transition-all duration-200 ease-in-out md:hidden md:group-hover:inline-block"
-						@click.prevent="leaveRoom(room.roomId)"
-					/>
 					<span class="flex gap-2 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
 						<Badge class="text-label-small" color="hub" v-if="getUnreadCount(room, NotificationCountType.Total) > 99">99+</Badge>
 						<Badge v-else-if="getUnreadCount(room, NotificationCountType.Total) > 0" color="hub">{{ getUnreadCount(room, NotificationCountType.Total) }}</Badge>
