@@ -276,6 +276,13 @@ const useRooms = defineStore('rooms', {
 			this.roomList.sort((a, b) => a.name.localeCompare(b.name));
 		},
 
+		setRoomListHidden(roomId: string, isHidden: boolean) {
+			const room = this.roomList.find((room) => room.roomId === roomId);
+			if (room) {
+				room.isHidden = isHidden;
+			}
+		},
+
 		// add one room to the store upon initializing PubHubs
 		initRoomsWithMatrixRoom(matrixRoom: MatrixRoom, roomName: string | undefined, roomType: string, stateEvents: IStateEvent[]) {
 			if (!this.rooms[matrixRoom.roomId]) {
@@ -301,6 +308,7 @@ const useRooms = defineStore('rooms', {
 				this.currentRoomId = '';
 			}
 			delete this.rooms[roomId];
+			this.roomList = this.roomList.filter((room) => room.roomId !== roomId);
 		},
 
 		// replace the current rooms in the store with the new ones

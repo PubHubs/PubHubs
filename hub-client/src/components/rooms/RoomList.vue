@@ -62,10 +62,10 @@
 				</span>
 			</MenuItem>
 		</template>
+		<template v-if="!roomsLoaded && currentJoinedRooms.length > 0">
+			<MenuItemSkeleton v-for="n in 3" :key="n" />
+		</template>
 	</Menu>
-	<div class="ml-4">
-		<InlineSpinner v-if="!roomsLoaded" />
-	</div>
 	<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" :secured="true" />
 </template>
 
@@ -81,9 +81,9 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import RoomName from '@hub-client/components/rooms/RoomName.vue';
-	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Menu from '@hub-client/components/ui/Menu.vue';
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
+	import MenuItemSkeleton from '@hub-client/components/ui/MenuItemSkeleton.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables

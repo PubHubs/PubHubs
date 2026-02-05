@@ -1,6 +1,10 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="!isLoading" :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+		<div v-if="isLoading" class="flex h-full w-full flex-col gap-4 p-4">
+			<div class="bg-surface-base h-[80px] w-full animate-pulse rounded-lg"></div>
+			<div class="bg-surface-base h-full w-full animate-pulse rounded-lg"></div>
+		</div>
+		<HeaderFooter v-else :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
 				<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>

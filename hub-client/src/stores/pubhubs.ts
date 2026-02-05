@@ -382,7 +382,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
 				const roomType: string = getRoomType(matrixRoom);
-				rooms.initRoomsWithMatrixRoom(matrixRoom, matrixRoom?.name ?? undefined, roomType, []);
+				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
+				const roomName = publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
+				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
+				rooms.updateRoomList(room_id, roomName, roomType, undefined, false);
 			} catch (err) {
 				throw err;
 			}
@@ -496,12 +499,13 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		async setPrivateRoomHiddenStateForUser(room: Room | RoomListRoom, hide: boolean) {
+			const rooms = useRooms();
 			let name = room.name;
 			const user = useUser();
 			const me = user.user as User;
 			name = updatePrivateRoomName(name, me, hide);
 			await this.client.setRoomName(room.roomId, name);
-			this.updateRooms();
+			rooms.setRoomListHidden(room.roomId, hide);
 		},
 
 		_createEmptyMentions(): TMentions {
