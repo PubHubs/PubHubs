@@ -4,7 +4,7 @@
 
 		<div class="flex h-full">
 			<GlobalBar v-if="!(route.name === 'onboarding')" />
-			<div class="h-[100dvh] w-full flex-1">
+			<div class="h-dvh w-full flex-1">
 				<router-view />
 			</div>
 		</div>
