@@ -1,15 +1,9 @@
 <template>
-	<span v-if="userHasBadge" class="flex flex-wrap text-nowrap" data-testid="event-badges" :title="label">
-		<span class="text-label-small flex h-4 items-center gap-1 rounded-xl bg-black p-2 text-white lowercase">
-			<template v-if="hasPowerPrivileges || isHubAdmin">
-				<Icon type="user" size="sm"></Icon>
-				<span>{{ label }}</span>
-			</template>
-			<template v-else v-for="value in roomAttributes" :key="value">
-				<Icon type="check-circle" size="sm"></Icon>
-				<span>{{ value }}</span>
-			</template>
-		</span>
+	<span v-if="userHasBadge" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 items-center justify-center gap-2 border uppercase" data-testid="event-badges" :title="label">
+		<span v-if="hasPowerPrivileges || isHubAdmin">{{ label }}</span>
+		<template v-else v-for="value in roomAttributes" :key="value">
+			<span>{{ value }}</span>
+		</template>
 	</span>
 </template>
 
@@ -17,9 +11,6 @@
 	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-
-	// Components
-	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';

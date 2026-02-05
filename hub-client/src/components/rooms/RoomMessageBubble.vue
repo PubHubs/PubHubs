@@ -8,7 +8,7 @@
 			</div>
 
 			<!-- Message Container -->
-			<div class="relative flex w-full gap-4 px-6" :class="getMessageContainerClasses">
+			<div class="relative flex w-full gap-4 px-4" :class="getMessageContainerClasses">
 				<!-- Reaction Panel -->
 				<div v-if="showReactionPanel && hasBeenVisible" :class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
 					<ReactionMiniPopUp :eventId="props.event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, props.event.event_id)" @close-panel="emit('reactionPanelClose')" />
@@ -39,15 +39,18 @@
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
-							<div class="flex w-full min-w-0 grow flex-wrap items-center gap-2">
-								<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
-								<span class="flex gap-2">
-									<span class="text-label-small">|</span>
+							<div class="mb-2 flex w-full min-w-0 grow flex-col gap-1">
+								<div class="flex w-full min-w-0 grow flex-wrap items-center gap-4">
+									<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
+
+									<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
+								</div>
+
+								<span class="text-label-tiny text-on-surface-dim flex gap-2">
 									<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
-									<span class="text-label-small">|</span>
+									<span>|</span>
 									<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
 								</span>
-								<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
 							</div>
 
 							<!-- Message Action Buttons -->
