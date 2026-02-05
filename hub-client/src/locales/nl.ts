@@ -170,9 +170,9 @@ const nl = {
 		inapp: {
 			in_yivi: 'Waarschijnlijk bekijkt u deze pagina vanuit de Yivi app.',
 			reobtain_not_possible: 'Het is vanuit daar momenteel niet mogelijk een PubHubs kaartje te krijgen.',
-			go_to_pubhubs_directly: "Ga in plaats daarvan naar de PubHubs wesbite en (her)registreer.",
-			youll_get_card: "Tijdens dit proces krijgt u een nieuwe PubHubs kaart."
-		}
+			go_to_pubhubs_directly: 'Ga in plaats daarvan naar de PubHubs wesbite en (her)registreer.',
+			youll_get_card: 'Tijdens dit proces krijgt u een nieuwe PubHubs kaart.',
+		},
 	},
 	login: {
 		login: 'Login',

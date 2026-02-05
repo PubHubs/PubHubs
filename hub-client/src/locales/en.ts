@@ -170,10 +170,10 @@ const en = {
 		},
 		inapp: {
 			in_yivi: 'You are likely viewing this page from within the Yivi app.',
-			reobtain_not_possible: 'Reobtaining a PubHubs card is not currently not possible from there.',
-			go_to_pubhubs_directly: "Please go to PubHubs website via your browser, and reregister there.",
-			youll_get_card: "You will receive a new PubHubs card in this process."
-		}
+			reobtain_not_possible: '(Re)obtaining a PubHubs card is not currently not possible from there.',
+			go_to_pubhubs_directly: 'Please go to PubHubs website via your browser, and (re)register there.',
+			youll_get_card: 'You will receive a PubHubs card in this process.',
+		},
 	},
 	login: {
 		login: 'Login',
