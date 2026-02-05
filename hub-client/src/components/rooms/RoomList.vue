@@ -140,7 +140,7 @@
 		void rooms.unreadCountVersion;
 		const room = pubhubs.client.getRoom(roomId);
 		if (room) {
-			return room.getUnreadNotificationCount(countType);
+			return room.getRoomUnreadNotificationCount(countType);
 		}
 		return 0;
 	}
