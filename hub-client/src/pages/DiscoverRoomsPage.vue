@@ -28,9 +28,9 @@
 		</div>
 
 		<!-- Room grid -->
-		<div v-if="roomsLoaded" class="flex w-full flex-col gap-2">
+		<div v-if="roomsLoaded" class="@container flex w-full flex-col gap-2">
 			<div class="flex w-full justify-center rounded-xl py-8">
-				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="3xl:grid-cols-3 grid w-full grid-cols-1 gap-8 px-0 transition-all duration-300 md:grid-cols-2 lg:px-16">
+				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="grid w-full grid-cols-1 gap-8 transition-all duration-300 @2xl:grid-cols-2 @7xl:grid-cols-3">
 					<RoomCard
 						v-for="room in filteredRooms"
 						:key="room.room_id"
@@ -38,8 +38,6 @@
 						:isSecured="rooms.publicRoomIsSecure(room.room_id)"
 						:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
 						:timestamp="roomTimestamps[room.room_id]"
-						:isExpanded="expandedCardId === room.room_id"
-						@toggleExpand="handleToggleExpand(room.room_id)"
 					/>
 				</TransitionGroup>
 
@@ -61,6 +59,7 @@
 	import P from '@hub-client/components/elements/P.vue';
 	import RoomCard from '@hub-client/components/rooms/RoomCard.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -73,7 +72,6 @@
 	const { t } = useI18n();
 	const timestamps = ref<any[]>(rooms.roomtimestamps);
 	const roomTimestamps = ref<Record<string, Date>>({});
-	const expandedCardId = ref<string | null>(null);
 	const searchQuery = ref('');
 	let roomsLoaded = ref(true);
 
@@ -115,13 +113,8 @@
 		return filtered;
 	};
 
-	const handleToggleExpand = (roomId: string) => {
-		expandedCardId.value = expandedCardId.value === roomId ? null : roomId;
-	};
-	// Process timestamps into a map for easier lookup
 	function processTimestamps() {
 		if (!timestamps.value) return;
-
 		const timestampMap: Record<string, Date> = {};
 		timestamps.value.forEach((timestamp) => {
 			if (timestamp && timestamp.length >= 2) {
@@ -131,7 +124,7 @@
 		roomTimestamps.value = timestampMap;
 	}
 
-	async function loadHubSettings() {
+	async function loadTimestamps() {
 		const response = await pubhubsStore.fetchTimestamps();
 		if (response) {
 			timestamps.value = response;
@@ -139,14 +132,14 @@
 		}
 	}
 
-	// This ensures that whenever timestamps or rooms change, we reprocess the timestamps
 	watchEffect(() => {
 		if (timestamps.value && timestamps.value.length > 0) {
 			processTimestamps();
 		}
 	});
+
 	onBeforeMount(() => {
-		loadHubSettings();
+		loadTimestamps();
 	});
 
 	onMounted(async () => {

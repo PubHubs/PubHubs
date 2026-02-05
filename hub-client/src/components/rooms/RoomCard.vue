@@ -1,53 +1,36 @@
 <template>
-	<div role="article" class="xs:w-auto flex h-[320px] w-full flex-col rounded-xl shadow-sm transition-all duration-300" :class="isExpanded ? 'bg-surface row-span-2 h-[672px]' : 'bg-surface-low h-[320px]'">
-		<!-- Main card -->
-		<div class="bg-surface-low flex h-[320px] w-full shrink-0 flex-col gap-4 overflow-hidden rounded-xl py-8 shadow-md">
-			<div class="flex items-center justify-between">
-				<H2 class="line-clamp-2 w-2/3 pl-8">{{ room.name }}</H2>
-				<div v-if="isSecured" class="bg-accent-primary text-on-accent-primary flex h-fit items-center justify-center rounded-l-lg py-2 pr-4 pl-2" :title="t('admin.secured_room')">
-					<Icon type="shield"></Icon>
+	<div role="article" class="bg-surface-low @container flex w-full flex-col justify-between gap-4 rounded-xl p-6 shadow-md">
+		<div class="flex items-center justify-between gap-2">
+			<H2 class="line-clamp-2">{{ room.name }}</H2>
+			<div v-if="isSecured" class="bg-accent-primary text-on-accent-primary flex h-fit shrink-0 items-center justify-center rounded-lg px-2 py-1" :title="t('admin.secured_room')">
+				<Icon type="shield"></Icon>
+			</div>
+		</div>
+
+		<P v-if="room.topic" class="line-clamp-2">{{ room.topic }}</P>
+
+		<div class="flex w-full flex-col gap-4 @sm:flex-row @sm:items-end @sm:justify-between">
+			<div class="text-on-surface-dim text-label flex flex-wrap items-center gap-2">
+				<div class="flex items-center gap-2">
+					<Icon type="user" size="sm"></Icon>
+					<span class="truncate whitespace-nowrap">{{ memberCount }}</span>
+				</div>
+				<div v-if="timestamp" class="flex items-center gap-2">
+					<Icon type="clock" size="sm"></Icon>
+					<span>{{ timestamp.toLocaleDateString() }}</span>
 				</div>
 			</div>
-			<div class="flex h-full flex-col gap-4 px-8">
-				<div class="flex h-full items-center">
-					<P class="line-clamp-2">{{ room.topic }}</P>
-				</div>
 
-				<div class="flex w-full items-end justify-between gap-4">
-					<div class="text-on-surface-dim text-label flex flex-row flex-wrap gap-4 overflow-hidden">
-						<div class="flex items-center gap-2">
-							<Icon type="user" size="sm"></Icon>
-							<span class="truncate whitespace-nowrap">{{ memberCount }}</span>
-						</div>
-						<div v-if="timestamp" class="flex items-center gap-2">
-							<Icon type="clock" size="sm"></Icon>
-							<span> {{ timestamp.toLocaleDateString().slice(0, 6) + timestamp.toLocaleDateString().slice(8, 10) }} {{ timestamp.toLocaleTimeString().slice(0, 5) }}</span>
-						</div>
-					</div>
-
-					<div class="hidden lg:block">
-						<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
-							{{ t('rooms.already_joined') }}
-						</Button>
-						<Button v-else-if="isSecured" @click="joinSecureRoom" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" color="primary">
-							{{ t('rooms.join_secured_room') }}
-						</Button>
-						<Button v-else @click="joinRoom" class="w-fit shrink-0 whitespace-nowrap" :title="t('rooms.join_room')">
-							{{ t('rooms.join_room') }}
-						</Button>
-					</div>
-				</div>
-				<div class="mt-4 block lg:hidden">
-					<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
-						{{ t('rooms.already_joined') }}
-					</Button>
-					<Button v-else-if="isSecured" @click="joinSecureRoom" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" color="primary">
-						{{ t('rooms.join_secured_room') }}
-					</Button>
-					<Button v-else @click="joinRoom" class="w-fit shrink-0 whitespace-nowrap" :title="t('rooms.join_room')">
-						{{ t('rooms.join_room') }}
-					</Button>
-				</div>
+			<div class="shrink-0">
+				<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-full whitespace-nowrap @sm:w-fit">
+					{{ t('rooms.already_joined') }}
+				</Button>
+				<Button v-else-if="isSecured" @click="joinSecureRoom" class="w-full whitespace-nowrap @sm:w-fit" :title="t('rooms.view_access_requirements')" color="primary">
+					{{ t('rooms.join_secured_room') }}
+				</Button>
+				<Button v-else @click="joinRoom" class="w-full whitespace-nowrap @sm:w-fit" :title="t('rooms.join_room')">
+					{{ t('rooms.join_room') }}
+				</Button>
 			</div>
 		</div>
 
@@ -88,13 +71,9 @@
 			type: Boolean,
 			default: false,
 		},
-		isExpanded: {
-			type: Boolean,
-			default: false,
-		},
 		timestamp: {
 			type: Date,
-			required: true,
+			default: undefined,
 		},
 	});
 

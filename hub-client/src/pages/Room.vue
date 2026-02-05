@@ -156,11 +156,6 @@
 	const room = computed(() => {
 		let r = rooms.rooms[props.id];
 		if (!r) {
-			// eslint-disable-next-line
-			void router.push({
-				name: 'error-page',
-				query: { errorKey: 'errors.cant_find_room' },
-			});
 			return undefined;
 		}
 		// The name of the room will be synced later, start with an empty name
@@ -275,15 +270,18 @@
 
 		// if the user is a member and the room is selected from the roomList in the menu the room possibly has to be joined first: to get all the roomData in the right stores
 		if (userIsMember) {
-			await rooms.joinRoomListRoom(props.id);
+			try {
+				await rooms.joinRoomListRoom(props.id);
+			} catch {
+				router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
+				return;
+			}
 		}
 
 		// change to the current room
 		rooms.changeRoom(props.id);
 
 		if (!userIsMember) {
-			let promise = null;
-
 			await rooms.fetchPublicRooms();
 			const roomIsSecure = rooms.publicRoomIsSecure(props.id);
 
@@ -293,19 +291,19 @@
 				return;
 			}
 			// Non-secured rooms can be joined immediately
-			else {
-				promise = pubhubs.joinRoom(props.id);
-			}
-			// Need this extra check
-			if (promise) {
+			try {
+				await pubhubs.joinRoom(props.id);
+			} catch {
 				// Room does not exist or user failed to join room
-				promise.catch(() => {
-					router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find' } });
-				});
+				router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
+				return;
 			}
 		}
 
-		if (!rooms.currentRoom) return;
+		if (!rooms.currentRoom) {
+			router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
+			return;
+		}
 
 		// Initialize syncing of room
 		rooms.currentRoom.initTimeline();
