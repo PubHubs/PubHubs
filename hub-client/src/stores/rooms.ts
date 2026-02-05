@@ -551,8 +551,9 @@ const useRooms = defineStore('rooms', {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
 		getTotalPrivateRoomUnreadMsgCount(): number {
-			const totalPrivateRooms = this.fetchRoomArrayByAccessibility(DirectRooms);
-			return totalPrivateRooms.reduce((total, room) => total + (room.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
+			const pubhubs = usePubhubsStore();
+			const totalPrivateRooms = this.fetchRoomList(DirectRooms).map((x) => pubhubs.client.getRoom(x.roomId));
+			return totalPrivateRooms.reduce((total, room) => total + (room!.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {
