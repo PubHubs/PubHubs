@@ -69,7 +69,6 @@
 					<TextArea
 						ref="elTextInput"
 						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
-						v-focus
 						:placeholder="$t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
 						v-model="value"
