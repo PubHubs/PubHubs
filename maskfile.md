@@ -19,6 +19,14 @@ This required [tmux](https://github.com/tmux/tmux) to be installed.
 sh run-all.sh
 ```
 
+#### cleanup
+
+> Kills everything in the TMUX session.
+
+```sh
+sh run-all-cleanup.sh
+```
+
 ### init
 
 > Initializes/wipes the development environment

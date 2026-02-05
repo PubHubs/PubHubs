@@ -663,6 +663,20 @@ export default class Room {
 		return this.timelineManager.getEvents();
 	}
 
+	/**
+	 * Returns timeline events sorted chronologically (oldest first)
+	 */
+	public getChronologicalTimeline(): TimelineEvent[] {
+		return this.timelineManager.getChronologicalTimeline();
+	}
+
+	/**
+	 * Returns the timeline version counter
+	 */
+	public getTimelineVersion(): number {
+		return this.timelineManager.getTimelineVersion();
+	}
+
 	public getLibraryTimeline(): TimelineEvent[] {
 		return this.timelineManager.getLibraryEvents();
 	}

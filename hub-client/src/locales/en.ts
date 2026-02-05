@@ -218,7 +218,13 @@ const en = {
 		admin_tools_hub_settings: 'Hub settings',
 		moderation_tools: 'Moderation tools',
 		moderation_tools_disclosure: 'Request disclosure',
+		add_reaction: 'Add reaction',
+		copy_message: 'Copy message',
 		delete_message: 'Delete message',
+		direct_message: 'Direct message',
+		join_room: 'Join',
+		reply: 'Reply',
+		reply_in_thread: 'Reply in thread',
 	},
 	others: {
 		step: 'Step {0}',

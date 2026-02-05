@@ -1,5 +1,5 @@
 <template>
-	<div ref="messageRoot" @contextmenu="openMenu($event, getContextMenuItems(), props.event.event_id)">
+	<div ref="messageRoot" class="no-callout select-none" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
 		<div ref="elReactionPopUp" class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
 			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
@@ -21,7 +21,9 @@
 					:user-id="props.event.sender"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
-					@contextmenu="openMenu($event, props.event.sender !== user.userId && !room.directMessageRoom() ? [{ label: 'Direct message', icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])"
+					v-context-menu="
+						(evt: any) => openMenu(evt, props.event.sender !== user.userId && !room.directMessageRoom() ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])
+					"
 				/>
 				<!-- Avatar placeholder -->
 				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
@@ -435,7 +437,7 @@
 		// Direct message (only if sender is not current user and not already in a DM)
 		if (props.event.sender !== user.userId && !props.room.directMessageRoom()) {
 			menu.push({
-				label: 'Direct message',
+				label: t('menu.direct_message'),
 				icon: 'chat-circle',
 				onClick: () => user.goToUserRoom(props.event.sender),
 			});
@@ -444,7 +446,7 @@
 		// Reaction
 		if (!redactedMessage.value) {
 			menu.push({
-				label: 'Add reaction',
+				label: t('menu.add_reaction'),
 				icon: 'smiley',
 				onClick: () => {
 					setTimeout(() => emit('reactionPanelToggle', props.event.event_id), 0);
@@ -455,7 +457,7 @@
 		// Reply
 		if (!props.event.msgIsNotSend && !props.event.redactedMessage && !props.event.isThreadRoot) {
 			menu.push({
-				label: 'Reply',
+				label: t('menu.reply'),
 				icon: 'arrow-bend-up-left',
 				onClick: () => reply(),
 			});
@@ -464,16 +466,25 @@
 		// Thread reply
 		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !props.event.redactedMessage) {
 			menu.push({
-				label: 'Reply in thread',
+				label: t('menu.reply_in_thread'),
 				icon: 'chat-circle',
 				onClick: () => replyInThread(),
+			});
+		}
+
+		// Copy message text
+		if (!redactedMessage.value && props.event.content.body) {
+			menu.push({
+				label: t('menu.copy_message'),
+				icon: 'copy',
+				onClick: () => navigator.clipboard.writeText(props.event.content.body),
 			});
 		}
 
 		// Delete (only your own messages)
 		if (settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !props.event.msgIsNotSend && props.event.sender === user.userId && !props.event.redactedMessage && !(props.viewFromThread && props.event.isThreadRoot)) {
 			menu.push({
-				label: 'Delete message',
+				label: t('menu.delete_message'),
 				icon: 'trash',
 				isDelicate: true,
 				onClick: () => onDeleteMessage(props.event),

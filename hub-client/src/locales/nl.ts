@@ -217,7 +217,13 @@ const nl = {
 		admin_tools_hub_settings: 'Hub instellingen',
 		moderation_tools: 'Toezichtsmiddelen',
 		moderation_tools_disclosure: 'Vragen informatie vrij te geven',
+		add_reaction: 'Reactie toevoegen',
+		copy_message: 'Bericht kopiëren',
 		delete_message: 'Verwijder bericht',
+		direct_message: 'Direct bericht',
+		join_room: 'Deelnemen',
+		reply: 'Beantwoorden',
+		reply_in_thread: 'Beantwoorden in thread',
 	},
 	others: {
 		step: 'Stap {0}',

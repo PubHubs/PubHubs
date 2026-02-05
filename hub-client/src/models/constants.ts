@@ -5,12 +5,14 @@
 enum SystemDefaults {
 	syncIntervalMS = 3000, // Sync interval in milliseconds. Experimental selection for interval. Changed it from 2000 to 1000 to load events much quickly.
 	SyncTimelineLimit = 100, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
-	initialRoomTimelineLimit = 100, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
-	roomTimelineLimit = 500, // Subsequent pagination: can be relatively high
+	initialRoomTimelineLimit = 50, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
+	roomTimelineLimit = 100, // Max messages in the sliding window
+	paginationBatchSize = 50, // Messages to fetch per pagination
 	initialRoomListRange = 99999, // Initial number of rooms to fetch, in the future perhaps paginate this?
 	publicRoomsReload = 86_400_000, // Time to cache public rooms. Reload will be forced after creating.editing new rooms, so this can be long. Now set to one day.
 	MaxNumberFileUploads = 50, // Maximum number of files that can be dropped/uploaded
 	mainRoomListRange = 40, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
+	longPressDuration = 250, // Amount of milliseconds for a long-press
 }
 
 // options for sliding sync

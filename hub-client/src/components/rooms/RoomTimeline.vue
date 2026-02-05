@@ -1,19 +1,11 @@
 <template>
 	<div class="relative flex h-full flex-col">
-		<!-- Loading indicator at top when loading older messages (absolute to prevent layout shift) -->
-		<div v-if="isLoadingPrevious" class="bg-surface/90 absolute top-0 right-0 left-0 z-10 flex w-full items-center justify-center gap-2 py-3">
-			<InlineSpinner />
-			<span class="text-on-surface-variant text-label-small">
-				{{ $t('rooms.loading_older_messages') }}
-			</span>
-		</div>
-
 		<div class="shrink-0">
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
 		</div>
 
-		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll pb-2">
-			<!-- Bottom sentinel (appears at visual bottom) -->
+		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-contain pb-2" style="overflow-anchor: none">
+			<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
 			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
 
 			<!-- Expands if the timeline height < the vieport, to top-align the content -->
@@ -55,16 +47,8 @@
 				{{ $t('rooms.roomCreated') }}
 			</div>
 
-			<!-- Top sentinel (appears at visual top) -->
+			<!-- Top sentinel (appears at visual top, near oldest messages) -->
 			<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"></div>
-		</div>
-
-		<!-- Loading indicator at bottom when loading newer messages -->
-		<div v-if="isLoadingNext" class="bg-surface flex w-full items-center justify-center gap-2 py-3">
-			<InlineSpinner />
-			<span class="text-on-surface-variant text-label-small">
-				{{ $t('rooms.loading_newer_messages') }}
-			</span>
 		</div>
 
 		<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
@@ -82,7 +66,6 @@
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import DateDisplayer from '@hub-client/components/ui/DateDisplayer.vue';
-	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import JumpToBottomButton from '@hub-client/components/ui/JumpToBottomButton.vue';
 	import LastReadMarker from '@hub-client/components/ui/LastReadMarker.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
@@ -148,22 +131,26 @@
 
 	// Initialize composables
 	const { scrollToEvent, scrollToNewest, performInitialScroll, handleNewMessage, isInitialScrollComplete, showJumpToBottomButton, newMessageCount } = useTimelineScroll(elRoomTimeline, props.room, user.userId || '');
-	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded } = useTimelinePagination(elRoomTimeline, props.room);
+	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded, timelineVersion, refreshTimelineVersion } = useTimelinePagination(elRoomTimeline, props.room);
 	const { displayedReadMarker, initialize: initializeReadMarker, persist: persistReadMarker, update: updateReadMarker } = useReadMarker(props.room);
 	const userHasScrolled = ref(true);
 
 	/**
-	 * Original timeline in chronological order [oldest, ..., newest]
+	 * Timeline in reverse order [newest, ..., oldest] for column-reverse rendering
 	 */
-	const roomTimeLine = computed(() => {
-		return props.room.getTimeline();
+	const reversedTimeline = computed(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		timelineVersion.value; // Dependency to trigger re-computation
+		return [...props.room.getChronologicalTimeline()].reverse();
 	});
 
 	/**
-	 * Reversed timeline for column-reverse rendering [newest, ..., oldest]
+	 * Timeline in chronological order [oldest, ..., newest]
 	 */
-	const reversedTimeline = computed(() => {
-		return [...roomTimeLine.value].reverse();
+	const roomTimeLine = computed(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		timelineVersion.value; // Dependency to trigger re-computation
+		return props.room.getChronologicalTimeline();
 	});
 
 	defineExpose({ elRoomTimeline });
@@ -235,7 +222,7 @@
 
 	watch(
 		() => props.eventIdToScroll,
-		async (eventId, oldEventId) => {
+		async (eventId) => {
 			if (!eventId) return;
 			// Only handle changes after initial scroll is complete
 			if (!isInitialScrollComplete.value) {
@@ -248,7 +235,10 @@
 
 	watch(
 		() => props.room.getCurrentEvent(),
-		() => setupEventIntersectionObserver(),
+		() => {
+			refreshTimelineVersion();
+			setupEventIntersectionObserver();
+		},
 		{ deep: true },
 	);
 
@@ -394,7 +384,7 @@
 		// Notify scroll composable about new messages (for indicator)
 		// Skip during pagination - these are old messages being loaded, not new ones
 		if (newTimelineLength > oldTimelineLength && oldTimelineLength > 0 && !isLoadingPrevious.value && !isLoadingNext.value) {
-			const timeline = props.room.getTimeline();
+			const timeline = props.room.getChronologicalTimeline();
 			const newMessages = timeline.slice(oldTimelineLength);
 
 			newMessages.forEach((item) => {
