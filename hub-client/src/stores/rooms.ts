@@ -273,7 +273,7 @@ const useRooms = defineStore('rooms', {
 			if (!this.roomList.some((room) => room.roomId === roomId)) {
 				this.roomList.push({ roomId: roomId, roomType: type, name: name, lastMessageId: lastMessageId, isHidden: isHidden });
 			}
-			this.roomList.sort((a, b) => a.name.localeCompare(b.name));
+			this.roomList.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
 		},
 
 		setRoomListHidden(roomId: string, isHidden: boolean) {
@@ -281,6 +281,19 @@ const useRooms = defineStore('rooms', {
 			if (room) {
 				room.isHidden = isHidden;
 			}
+		},
+
+		setRoomListName(roomId: string, name: string) {
+			const room = this.roomList.find((room) => room.roomId === roomId);
+			if (room) {
+				room.name = name;
+			}
+			// Also update the Room object if it exists
+			if (this.rooms[roomId]) {
+				this.rooms[roomId].name = name;
+			}
+			// Re-sort the list since name changed
+			this.roomList.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
 		},
 
 		// add one room to the store upon initializing PubHubs
@@ -488,9 +501,9 @@ const useRooms = defineStore('rooms', {
 			}
 			const newRoom = await api_synapse.apiPOST<TSecuredRoom>(api_synapse.apiURLS.securedRooms, room);
 			this.securedRooms.push(newRoom);
-			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
+			await this.fetchPublicRooms(true); // Force refresh so the new room is recognised as a secured room
 			const pubhubs = usePubhubsStore();
-			pubhubs.joinRoom(newRoom.room_id);
+			await pubhubs.joinRoom(newRoom.room_id);
 			return { result: newRoom };
 		},
 
@@ -504,6 +517,10 @@ const useRooms = defineStore('rooms', {
 			if (pidx >= 0) {
 				this.securedRooms[pidx] = room;
 			}
+			// Update roomList with new name
+			if (room.name) {
+				this.setRoomListName(modified_id, room.name);
+			}
 			return modified_id;
 		},
 
@@ -516,6 +533,7 @@ const useRooms = defineStore('rooms', {
 			const deleted_id = response.delete_id;
 
 			this.room(room_id)?.setHidden(true);
+			this.setRoomListHidden(room_id, true);
 
 			this.publicRooms = this.publicRooms.filter((r: any) => r.room_id !== room_id);
 
@@ -531,6 +549,7 @@ const useRooms = defineStore('rooms', {
 			this.securedRooms = this.securedRooms.filter((r) => r.room_id !== deleted_id);
 			this.publicRooms = this.publicRooms.filter((r: any) => r.room_id !== deleted_id);
 			this.room(deleted_id)?.setHidden(true);
+			this.setRoomListHidden(deleted_id, true);
 			return deleted_id;
 		},
 
