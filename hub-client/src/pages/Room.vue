@@ -1,9 +1,8 @@
 <template>
 	<div class="flex h-full flex-col">
 		<template v-if="rooms.currentRoomExists">
-			<div v-if="isLoading" class="flex h-full w-full flex-col gap-4 p-4">
-				<div class="bg-surface-base h-[80px] w-full animate-pulse rounded-lg"></div>
-				<div class="bg-surface-base h-full w-full animate-pulse rounded-lg"></div>
+			<div v-if="isLoading" class="flex h-full w-full items-center justify-center">
+				<InlineSpinner />
 			</div>
 			<!-- Shared Header -->
 			<div v-else class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'" data-testid="roomheader">
@@ -102,6 +101,7 @@
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
 	import StewardContactRoomHeader from '@hub-client/components/rooms/StewardContactRoomHeader.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
@@ -142,10 +142,10 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
-	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 	const scrollToEventId = ref<string>();
 	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
-	const isLoading = ref(true); // keep track if the page is loading, then the template cannot be rendered yet
+	const isLoading = ref(true); // Keep track if the page is loading, then the template cannot be rendered yet
+	let updateVersion = 0; // Used to cancel stale update() calls
 
 	// Passed by the router
 	const props = defineProps({
@@ -173,7 +173,7 @@
 		// Ensure sidebar is closed instantly when entering a room page
 		sidebar.closeInstantly();
 		isLoading.value = true;
-		await update();
+		const completed = await update();
 
 		// Handle explicit scroll requests from URL parameter
 		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
@@ -185,8 +185,7 @@
 			// Clear it after reading so it doesn't persist
 			delete rooms.scrollPositions[props.id];
 		}
-
-		isLoading.value = false;
+		if (completed) isLoading.value = false;
 	});
 
 	// Close sidebar instantly before leaving this page
@@ -209,73 +208,57 @@
 		sidebar.closeInstantly();
 	});
 
-	watch(
-		route,
-		async () => {
-			// Check for eventId in query param on route change
-			const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
-			if (eventIdFromQuery) {
-				scrollToEventId.value = eventIdFromQuery;
-			}
-			isLoading.value = true;
-			if (rooms.currentRoom) {
-				// Save last visible (read) event to localStorage
-				const lastEventId = rooms.currentRoom.getLastVisibleEventId();
-				if (lastEventId) {
-					const event = rooms.currentRoom.findEventById(lastEventId);
-					if (event) {
-						// Use the message's timestamp; marker can only advance to newer messages
-						const messageTimestamp = event.localTimestamp || event.getTs();
-						if (messageTimestamp) {
-							setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
-						}
+	watch(route, async () => {
+		// Check for eventId in query param on route change
+		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
+		if (eventIdFromQuery) {
+			scrollToEventId.value = eventIdFromQuery;
+		}
+		isLoading.value = true;
+		if (rooms.currentRoom) {
+			// Save last visible (read) event to localStorage
+			const lastEventId = rooms.currentRoom.getLastVisibleEventId();
+			if (lastEventId) {
+				const event = rooms.currentRoom.findEventById(lastEventId);
+				if (event) {
+					// Use the message's timestamp; marker can only advance to newer messages
+					const messageTimestamp = event.localTimestamp || event.getTs();
+					if (messageTimestamp) {
+						setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
 					}
 				}
-				rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
-				rooms.currentRoom.setCurrentEvent(undefined); // reset current event
 			}
-			await update();
-			isLoading.value = false;
-		},
-		{ immediate: true },
-	);
-
-	// Auto-activate Thread tab when a thread is opened
-	watch(
-		() => room.value?.getCurrentThreadId(),
-		(threadId) => {
-			if (threadId) {
-				sidebar.openTab(SidebarTab.Thread);
-			} else if (sidebar.activeTab.value === SidebarTab.Thread) {
-				sidebar.close();
-			}
-		},
-	);
+			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
+			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
+		}
+		const completed = await update();
+		if (completed) isLoading.value = false;
+	});
 
 	function currentThreadLengthChanged(newLength: number) {
 		room.value!.setCurrentThreadLength(newLength);
 	}
 
-	async function update() {
+	async function update(): Promise<boolean> {
+		const currentVersion = ++updateVersion;
+
 		// Set current room early if it already exists (makes header visible sooner)
 		if (rooms.roomExists(props.id)) {
 			rooms.changeRoom(props.id);
 		}
 
 		await rooms.waitForInitialRoomsLoaded();
+		if (currentVersion !== updateVersion) return false; // stale update
 
 		hubSettings.hideBar();
 
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
+		if (currentVersion !== updateVersion) return false; // stale update
 
 		// if the user is a member and the room is selected from the roomList in the menu the room possibly has to be joined first: to get all the roomData in the right stores
 		if (userIsMember) {
-			try {
-				await rooms.joinRoomListRoom(props.id);
-			} catch {
-				router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
-				return;
-			}
+			await rooms.joinRoomListRoom(props.id);
+			if (currentVersion !== updateVersion) return false; // stale update
 		}
 
 		// change to the current room
@@ -283,12 +266,14 @@
 
 		if (!userIsMember) {
 			await rooms.fetchPublicRooms();
+			if (currentVersion !== updateVersion) return false; // stale update
+
 			const roomIsSecure = rooms.publicRoomIsSecure(props.id);
 
 			// For secured rooms users first have to authenticate
 			if (roomIsSecure) {
 				joinSecuredRoom.value = props.id;
-				return;
+				return true;
 			}
 			// Non-secured rooms can be joined immediately
 			try {
@@ -296,19 +281,16 @@
 			} catch {
 				// Room does not exist or user failed to join room
 				router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
-				return;
 			}
 		}
 
-		if (!rooms.currentRoom) {
-			router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
-			return;
-		}
+		if (!rooms.currentRoom) return true;
 
 		// Initialize syncing of room
 		rooms.currentRoom.initTimeline();
 
 		await rooms.fetchPublicRooms(); // Needed for mentions (if not loaded allready)
+		return currentVersion === updateVersion;
 	}
 
 	async function onScrollToEventId(ev: any) {

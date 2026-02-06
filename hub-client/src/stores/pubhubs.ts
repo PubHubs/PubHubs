@@ -483,8 +483,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		async renameRoom(roomId: string, name: string) {
+			const rooms = useRooms();
 			const response = await this.client.setRoomName(roomId, name);
-			this.updateRoom(roomId);
+			rooms.setRoomListName(roomId, name);
 			return response;
 		},
 

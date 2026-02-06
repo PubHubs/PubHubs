@@ -56,7 +56,7 @@
 				</span>
 			</MenuItem>
 		</template>
-		<template v-if="!roomsLoaded && currentJoinedRooms.length > 0">
+		<template v-if="!roomsLoaded && currentJoinedRooms.length === 0">
 			<MenuItemSkeleton v-for="n in 3" :key="n" />
 		</template>
 	</Menu>
