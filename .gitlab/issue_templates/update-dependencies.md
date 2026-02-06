@@ -51,4 +51,8 @@ For reference, dependencies are in `package.json`.
  - [ ] Check if  `python:3.13` can be replaced by `python:latest` in the `hub-unit-test` job of [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml) without making the tests fail.
  - [ ] Update the node version in the [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml?ref_type=heads#L190) file for global and hub client related jobs.
 
+## Nix
+
+- [ ] If you have Nix, update the Nix flake by running `nix flake update`.
+
 (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/issue_templates/update-dependencies.md).)
