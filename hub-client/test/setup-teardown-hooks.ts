@@ -1,4 +1,4 @@
 // @ts-expect-error
 global._env = {
-	HUB_URL: 'http://testdomain',
+	HUB_URL: 'http://test',
 };

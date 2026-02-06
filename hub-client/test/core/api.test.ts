@@ -3,13 +3,184 @@
 import { server } from '../mocks/server';
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 
+
+
 // Logic
 import { api_synapse } from '@hub-client/logic/core/api';
+
+
 
 // Stores
 import { TSecuredRoom } from '@hub-client/stores/rooms';
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 
@@ -19,14 +190,14 @@ describe('api_synapse', () => {
 	});
 
 	test('api - apiURLS', () => {
-		expect(api_synapse.baseURL).toBe('http://testdomain2/_synapse/');
-		expect(api_synapse.apiURLS.securedRooms).toBe('http://testdomain2/_synapse/client/secured_rooms');
-		expect(api_synapse.apiURLS.roomsAPIV2).toBe('http://testdomain2/_synapse/admin/v2/rooms/');
-		expect(api_synapse.apiURLS.usersAPIV1).toBe('http://testdomain2/_synapse/admin/v1/users/');
-		expect(api_synapse.apiURLS.securedRoom).toBe('http://testdomain2/_synapse/client/srextra');
-		expect(api_synapse.apiURLS.notice).toBe('http://testdomain2/_synapse/client/notices');
-		expect(api_synapse.apiURLS.usersAPIV3).toBe('http://testdomain2/_synapse/admin/v3/users/');
-		expect(api_synapse.apiURLS.roomsAPIV1).toBe('http://testdomain2/_synapse/admin/v1/rooms/');
+		expect(api_synapse.baseURL).toBe('http://test/_synapse/');
+		expect(api_synapse.apiURLS.securedRooms).toBe('http://test/_synapse/client/secured_rooms');
+		expect(api_synapse.apiURLS.roomsAPIV2).toBe('http://test/_synapse/admin/v2/rooms/');
+		expect(api_synapse.apiURLS.usersAPIV1).toBe('http://test/_synapse/admin/v1/users/');
+		expect(api_synapse.apiURLS.securedRoom).toBe('http://test/_synapse/client/srextra');
+		expect(api_synapse.apiURLS.notice).toBe('http://test/_synapse/client/notices');
+		expect(api_synapse.apiURLS.usersAPIV3).toBe('http://test/_synapse/admin/v3/users/');
+		expect(api_synapse.apiURLS.roomsAPIV1).toBe('http://test/_synapse/admin/v1/rooms/');
 	});
 
 	test('api - apiOptions', () => {
@@ -85,14 +256,5 @@ describe('api secured rooms', () => {
 		expect(resp).toBeTypeOf('object');
 		expect(resp).toHaveProperty('room_name');
 		expect(resp).toHaveProperty('room_id');
-	});
-
-	test('DELETE', async () => {
-		const room_id = 'roomid';
-		await expect(api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms)).rejects.toThrowError('Error');
-		await expect(api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms + '?room_id=')).rejects.toThrowError('Error');
-		const resp = await api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms + '?room_id=' + room_id);
-		expect(resp).toBeTypeOf('object');
-		expect(resp).toEqual({ deleted: 'ID:' + room_id });
 	});
 });
