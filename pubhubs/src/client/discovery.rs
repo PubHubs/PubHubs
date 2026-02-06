@@ -145,14 +145,16 @@ impl DiscoveryInfoCheck<'_> {
         }
 
         if let Some(ref c) = inf.constellation
-            && self.constellation.is_some() && c.id != self.constellation.unwrap().id {
-                log::error!(
-                    "{} at {} has a different view of the constellation of PubHubs servers",
-                    inf.name,
-                    source,
-                );
-                return Err(api::ErrorCode::InternalError);
-            }
+            && self.constellation.is_some()
+            && c.id != self.constellation.unwrap().id
+        {
+            log::error!(
+                "{} at {} has a different view of the constellation of PubHubs servers",
+                inf.name,
+                source,
+            );
+            return Err(api::ErrorCode::InternalError);
+        }
 
         api::Result::Ok(inf)
     }
