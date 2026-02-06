@@ -137,10 +137,10 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
-	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 	const scrollToEventId = ref<string>();
 	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
-	const isLoading = ref(true); // keep track if the page is loading, then the template cannot be rendered yet
+	const isLoading = ref(true); // Keep track if the page is loading, then the template cannot be rendered yet
+	let updateVersion = 0; // Used to cancel stale update() calls
 
 	// Passed by the router
 	const props = defineProps({
@@ -172,7 +172,7 @@
 
 	onMounted(async () => {
 		isLoading.value = true;
-		await update();
+		const completed = await update();
 
 		// Handle explicit scroll requests from URL parameter
 		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
@@ -184,54 +184,55 @@
 			// Clear it after reading so it doesn't persist
 			delete rooms.scrollPositions[props.id];
 		}
-		isLoading.value = false;
+		if (completed) isLoading.value = false;
 	});
 
-	watch(
-		route,
-		async () => {
-			// Check for eventId in query param on route change
-			const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
-			if (eventIdFromQuery) {
-				scrollToEventId.value = eventIdFromQuery;
-			}
-			isLoading.value = true;
-			if (rooms.currentRoom) {
-				// Save last visible (read) event to localStorage
-				const lastEventId = rooms.currentRoom.getLastVisibleEventId();
-				if (lastEventId) {
-					const event = rooms.currentRoom.findEventById(lastEventId);
-					if (event) {
-						// Use the message's timestamp; marker can only advance to newer messages
-						const messageTimestamp = event.localTimestamp || event.getTs();
-						if (messageTimestamp) {
-							setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
-						}
+	watch(route, async () => {
+		// Check for eventId in query param on route change
+		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
+		if (eventIdFromQuery) {
+			scrollToEventId.value = eventIdFromQuery;
+		}
+		isLoading.value = true;
+		if (rooms.currentRoom) {
+			// Save last visible (read) event to localStorage
+			const lastEventId = rooms.currentRoom.getLastVisibleEventId();
+			if (lastEventId) {
+				const event = rooms.currentRoom.findEventById(lastEventId);
+				if (event) {
+					// Use the message's timestamp; marker can only advance to newer messages
+					const messageTimestamp = event.localTimestamp || event.getTs();
+					if (messageTimestamp) {
+						setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
 					}
 				}
-				rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
-				rooms.currentRoom.setCurrentEvent(undefined); // reset current event
 			}
-			await update();
-			isLoading.value = false;
-		},
-		{ immediate: true },
-	);
+			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
+			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
+		}
+		const completed = await update();
+		if (completed) isLoading.value = false;
+	});
 
 	function currentThreadLengthChanged(newLength: number) {
 		room.value!.setCurrentThreadLength(newLength);
 	}
 
-	async function update() {
+	async function update(): Promise<boolean> {
+		const currentVersion = ++updateVersion;
+
 		await rooms.waitForInitialRoomsLoaded();
+		if (currentVersion !== updateVersion) return false; // stale update
 
 		hubSettings.hideBar();
 
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
+		if (currentVersion !== updateVersion) return false; // stale update
 
 		// if the user is a member and the room is selected from the roomList in the menu the room possibly has to be joined first: to get all the roomData in the right stores
 		if (userIsMember) {
 			await rooms.joinRoomListRoom(props.id);
+			if (currentVersion !== updateVersion) return false; // stale update
 		}
 
 		// change to the current room
@@ -241,12 +242,14 @@
 			let promise = null;
 
 			await rooms.fetchPublicRooms();
+			if (currentVersion !== updateVersion) return false; // stale update
+
 			const roomIsSecure = rooms.publicRoomIsSecure(props.id);
 
 			// For secured rooms users first have to authenticate
 			if (roomIsSecure) {
 				joinSecuredRoom.value = props.id;
-				return;
+				return true;
 			}
 			// Non-secured rooms can be joined immediately
 			else {
@@ -261,7 +264,7 @@
 			}
 		}
 
-		if (!rooms.currentRoom) return;
+		if (!rooms.currentRoom) return true;
 
 		// Initialize syncing of room
 		rooms.currentRoom.initTimeline();
@@ -269,6 +272,7 @@
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 
 		await rooms.fetchPublicRooms(); // Needed for mentions (if not loaded allready)
+		return currentVersion === updateVersion;
 	}
 
 	async function onScrollToEventId(ev: any) {
