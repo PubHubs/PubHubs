@@ -66,7 +66,7 @@ const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 		});
 };
 
-const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: string): Promise<string> => {
+const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: string) => {
 	const settings = useSettings();
 	let yivi;
 	try {
@@ -81,9 +81,6 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 					body: disclosureRequest,
 					headers: { 'Content-Type': 'text/plain' },
 				},
-			},
-			state: {
-				pairing: false,
 			},
 		});
 		yivi.use(yiviWeb);

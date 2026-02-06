@@ -5,7 +5,7 @@
 	<div class="m-auto flex h-full flex-col gap-8">
 		<div class="mx-auto mt-20 flex w-8/12 flex-col items-center gap-4">
 			<H1 v-if="hubSettings.hubName" class="text-center">{{ $t('home.hub_homepage_welcome_auth', [hubSettings.hubName]) }}</H1>
-			<div class="mx-auto my-10 max-h-20 w-fit max-w-24 rounded-md">
+			<div class="mx-auto max-h-20 w-fit max-w-24 rounded-md">
 				<HubIcon class="w-auto" v-if="hubSettings.hubName" :hub-name="hubSettings.hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" />
 			</div>
 			<Button @click="gotoDiscoverRooms()" class="flex w-max justify-center gap-2"

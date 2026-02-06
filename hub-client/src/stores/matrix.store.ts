@@ -16,6 +16,16 @@ const useMatrixStore = defineStore('matrix', {
 		async init() {
 			const matrixService = useMatrixService();
 			if (!matrixService) return;
+
+			// TODO: Load persisted data from local storage
+			// try {
+			// 	// Load persisted subscriptions from account data
+			// 	const persisted = await matrixService.loadSubscribedRoomsFromAccountData();
+			// 	this.subscribedRooms = persisted ?? {};
+			// } catch (err) {
+			// 	console.warn('Failed to load subscribedRooms from MatrixService', err);
+			// 	this.subscribedRooms = {};
+			// }
 		},
 
 		// #endregion
@@ -42,7 +52,7 @@ const useMatrixStore = defineStore('matrix', {
 		async stopSync() {
 			try {
 				const matrixService = useMatrixService();
-				matrixService.stopSync();
+				await matrixService.stopSync();
 			} finally {
 				this.hasActiveSync = false;
 			}

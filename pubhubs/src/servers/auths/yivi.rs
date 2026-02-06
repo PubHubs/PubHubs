@@ -52,11 +52,6 @@ impl App {
     ) -> impl actix_web::Responder {
         let app = app.into_inner();
         let api::auths::YiviNextSessionQuery { state } = query.into_inner();
-
-        log::trace!(
-            "yivi server (or imposter) submits next sessions request; jwt: {result_jwt:?}; auth state: {}", state
-        );
-
         let result_jwt = jwt::JWT::from(result_jwt);
 
         let Some(state) = AuthState::unseal(&state, &app.auth_state_secret) else {
@@ -87,7 +82,6 @@ impl App {
             log::debug!(
                 "invalid yivi signed session result submitted by yivi server (or imposter)",
             );
-            log::trace!("invalid signed session result jwt: {result_jwt}");
             return actix_web::HttpResponse::BadRequest().finish();
         };
 

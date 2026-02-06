@@ -173,14 +173,7 @@ impl App {
             .map(|attr_type| (attr_type.handles.preferred().clone(), attr_type.clone()))
             .collect();
 
-        Ok(api::auths::WelcomeResp {
-            attr_types,
-            card_validity: app
-                .get_yivi()
-                .map(|yivi| yivi.card_config.valid_for.to_welcome_ep_format())
-                .ok()
-                .flatten(),
-        })
+        Ok(api::auths::WelcomeResp { attr_types })
     }
 }
 

@@ -16,10 +16,14 @@
 	// Models
 	import { TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
+	// Stores
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+
+	const settings = useSettings();
 	const matrixFiles = useMatrixFiles();
 	const authMediaUrl = ref<string | undefined>(undefined);
 
 	const props = defineProps<{ message: TFileMessageEventContent }>();
 
-	onMounted(async () => (authMediaUrl.value = props.message.url ? await matrixFiles.getAuthorizedMediaUrl(props.message.url) : undefined));
+	onMounted(async () => (authMediaUrl.value = props.message.url ? await matrixFiles.useAuthorizedMediaUrl(props.message.url, settings.isFeatureEnabled(FeatureFlag.authenticatedMedia)) : undefined));
 </script>

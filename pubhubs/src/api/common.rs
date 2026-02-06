@@ -519,9 +519,7 @@ pub trait EndpointDetails {
 /// Wraps one of the dalek types to enforce hex serialization
 macro_rules! wrap_dalek_type {
     {$type:ident, $wrapped_type:path, derive( $($derive:tt)* ), $visitor_type:path } => {
-        #[doc = "Wrapper around [`"]
-        #[doc = stringify!($wrapped_type)]
-        #[doc = "`] enforcing base16 serialization."]
+        /// Wrapper around [`$wrapped_type`] enforcing base16 serialization.
         #[derive(Clone, Debug, Serialize, Deserialize, $( $derive )* )]
         #[serde(transparent)]
         pub struct $type {

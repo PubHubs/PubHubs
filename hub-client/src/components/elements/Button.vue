@@ -22,7 +22,7 @@
 		text: 'shadow-none hover:opacity-75',
 		primary: 'bg-accent-primary hover:opacity-75 text-on-accent-primary',
 		secondary: 'bg-accent-secondary hover:opacity-75 text-on-accent-secondary',
-		red: 'bg-button-red hover:opacity-75 text-background dark:text-on-surface',
+		red: 'bg-accent-red hover:opacity-75 text-background dark:text-on-surface',
 		gray: 'bg-surface hover:opacity-75 text-on-surface',
 	};
 

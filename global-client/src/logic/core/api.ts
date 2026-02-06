@@ -28,7 +28,6 @@ const phc_api = _env.PHC_URL
 			overwriteObject: '.ph/user/obj/by-hash',
 			polymorphicPseudonymPackage: '.ph/user/ppp',
 			hashedHubPseudonymPackage: '.ph/user/hhpp',
-			CardPseudPackage: '.ph/user/card-pseud',
 		})
 	: null;
 
@@ -38,9 +37,6 @@ const auths_api = (authServerUrl: string) =>
 		authStart: '.ph/auth/start',
 		authComplete: '.ph/auth/complete',
 		attrKeys: '.ph/attr-keys',
-		YiviWaitForResultEP: '.ph/yivi/wait-for-result',
-		cardEP: '.ph/card',
-		YiviReleaseNextSessionEP: '.ph/yivi/release-next-session',
 	});
 
 const tr_api = (transcryptorUrl: string) =>

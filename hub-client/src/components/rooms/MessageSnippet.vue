@@ -21,7 +21,6 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	import { useMentions } from '@hub-client/composables/useMentions';
 	// Composables
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
@@ -63,6 +62,6 @@
 	});
 
 	const snippetText = computed(() => {
-		return redactedMessage.value ? t('message.delete.original_message_deleted') : useMentions().formatMentions(text.value);
+		return redactedMessage.value ? t('message.delete.original_message_deleted') : text.value;
 	});
 </script>

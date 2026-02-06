@@ -1,5 +1,5 @@
 <template>
-	<span class="text-label-small flex text-nowrap" :title="formatted">
+	<span class="text-label-small flex">
 		<span>{{ formatted }}</span>
 	</span>
 </template>

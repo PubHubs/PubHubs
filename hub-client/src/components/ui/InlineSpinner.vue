@@ -1,3 +1,3 @@
 <template>
-	<Icon class="justify-centertext-gray-light flex animate-spin items-center" type="spinner" size="xl" />
+	<Icon class="text-gray-light inline-block animate-spin" type="spinner" size="lg" />
 </template>

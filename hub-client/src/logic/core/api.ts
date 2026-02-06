@@ -2,7 +2,7 @@
 import { Api } from '@hub-client/logic/core/apiCore';
 import { CONFIG } from '@hub-client/logic/logging/Config';
 
-const BASE_URL = CONFIG._env.HUB_URL;
+let BASE_URL = CONFIG._env.HUB_URL;
 
 const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	// Client APIs

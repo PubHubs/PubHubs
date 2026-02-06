@@ -5,15 +5,13 @@ type ValidationMessage = {
 	parameters: any[];
 };
 
-type ValidationMessageFn = ValidationMessage | ((value: any, ...args: any[]) => ValidationMessage);
-
 type ValidationRule = {
 	validator: ValidatorFn;
 	args?: any[];
 	// message can both be a  ValidationMessage or fuction that returns a ValidationMessage
-	message: ValidationMessageFn;
+	message: ValidationMessage | ((value: any, ...args: any[]) => ValidationMessage);
 };
 
 type ValidationSchema = Record<string, ValidationRule[]>;
 
-export { ValidationRule, ValidationSchema, ValidationMessage, ValidationMessageFn, ValidatorFn };
+export { ValidationRule, ValidationSchema, ValidationMessage };

@@ -5,7 +5,7 @@
 		<p>{{ $t('roomlibrary.used_attribute') }} '{{ attributes.toString() }}' {{ $t('roomlibrary.with_value') }} '{{ displayDisclosedAttribute.toString() }}'</p>
 
 		<p class="mt-2">
-			<a class="flex gap-2" v-if="fileUrl" :href="fileUrl.url" :download="fileName">
+			<a class="flex gap-2" v-if="fileUrl" :href="fileUrl" :download="fileName">
 				<span>{{ $t('roomlibrary.download_info') }}</span>
 				<IconButton type="download-simple"></IconButton>
 			</a>
@@ -15,12 +15,10 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, onUnmounted, ref } from 'vue';
+	import { computed, onMounted, ref } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 
 	// Models
 	import { TFileMessageEventContent, TSignedMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -30,7 +28,7 @@
 	import { buttonsOk } from '@hub-client/stores/dialog';
 
 	const showPopup = ref(false);
-	const fileUrl = ref<BlobManager>();
+	const fileUrl = ref<string>('');
 	const fileName = ref<string>('');
 
 	const props = defineProps<{
@@ -56,17 +54,13 @@
 
 	onMounted(() => {
 		const blob = new Blob([JSON.stringify(signedMessage.value.signed_message)], { type: 'application/json' });
-		fileUrl.value = new BlobManager(blob);
+		fileUrl.value = window.URL.createObjectURL(blob);
 		// Download as the correct file type
 		if (originalEventContent.value.filename) {
 			let split = originalEventContent.value.filename.split('.');
 			split.pop();
 			fileName.value = 'Signed_' + split.join() + '.json';
 		}
-	});
-
-	onUnmounted(() => {
-		fileUrl.value?.revoke();
 	});
 
 	function togglePopup() {

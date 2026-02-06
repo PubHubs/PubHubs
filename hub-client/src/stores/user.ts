@@ -1,12 +1,7 @@
 // Packages
-import { usePubhubsStore } from './pubhubs';
 import { assert } from 'chai';
-import { EventType, MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
-import { MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
+import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
-
-// Composables
-import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 // Logic
 import { api_synapse } from '@hub-client/logic/core/api';
@@ -17,7 +12,7 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 // Models
-import { MatrixType, OnboardingType } from '@hub-client/models/constants';
+import { OnboardingType } from '@hub-client/models/constants';
 import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
 
 // Stores
@@ -33,21 +28,14 @@ class User extends MatrixUser {
 	}
 }
 
-// profile info all users but current
-type UserProfile = {
-	displayName?: string;
-	avatarUrl?: string;
-	contentAvatarUrl?: string; // Authorized media changes the url. This is the original one so we can compare to the incoming one to see if we need to reload
-};
-
 const defaultUser = {} as User;
 
 type State = {
 	client: MatrixClient | undefined; // Store can also communicate with synapse for writes.
 	userId: string | null;
-	_avatarUrl: string | undefined; // In case of authorized media: this is the url of the cached blob
+	_avatarMxcUrl: string | undefined;
 	_displayName: string | undefined | null;
-	usersProfile: Map<string, UserProfile>; // Key-value pairs of users. Key=UserId.
+	usersProfile: Map<string, { avatar_url?: string; displayname?: string }>;
 	administrator: Administrator | null;
 	isAdministrator: boolean;
 	needsOnboarding: boolean;
@@ -60,10 +48,10 @@ const useUser = defineStore('user', {
 	state: (): State => ({
 		client: undefined,
 		userId: null,
-		_avatarUrl: undefined,
+		_avatarMxcUrl: undefined,
 		_displayName: undefined,
 		administrator: null,
-		usersProfile: new Map<string, UserProfile>(),
+		usersProfile: new Map<string, { avatar_url?: string; displayname?: string }>(),
 		isAdministrator: false,
 		needsOnboarding: false,
 		needsConsent: false,
@@ -75,7 +63,7 @@ const useUser = defineStore('user', {
 			try {
 				const clientUser = this.client.getUser(userId!);
 				return clientUser ?? defaultUser;
-			} catch {
+			} catch (error) {
 				return defaultUser;
 			}
 		},
@@ -88,11 +76,11 @@ const useUser = defineStore('user', {
 			return isAdministrator;
 		},
 
-		avatarUrl({ _avatarUrl }): string | undefined {
-			return _avatarUrl;
+		avatarUrl({ _avatarMxcUrl: _avatarMxcUrl }): string | undefined {
+			return _avatarMxcUrl;
 		},
 
-		displayName({ _displayName }): string | null | undefined {
+		displayName({ _displayName: _displayName }): string | null | undefined {
 			return _displayName;
 		},
 
@@ -110,12 +98,12 @@ const useUser = defineStore('user', {
 
 		userDisplayName: (state) => {
 			return (userId: string): string | undefined => {
-				return state.usersProfile.get(userId)?.displayName;
+				return state.usersProfile.get(userId)?.displayname;
 			};
 		},
 		userAvatar: (state) => {
 			return (userId: string): string | undefined => {
-				return state.usersProfile.get(userId)?.avatarUrl;
+				return state.usersProfile.get(userId)?.avatar_url;
 			};
 		},
 	},
@@ -123,36 +111,6 @@ const useUser = defineStore('user', {
 		// #region Setter method
 		setClient(client: MatrixClient) {
 			this.client = client;
-		},
-
-		async loadFromSlidingSync(roomData: MSC3575RoomData): Promise<boolean> {
-			// profile data of members is in the join content of roommember events, need only update when there is new content
-			const membersOnlyProfileUpdate = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
-			if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
-
-			const { getAuthorizedMediaUrl } = useMatrixFiles();
-
-			membersOnlyProfileUpdate.forEach(async (member) => {
-				const memberToUpdate = this.usersProfile.get(member.sender);
-
-				// data is going to be set async. So we already add a userprofile from the current data that we know of
-				if (!memberToUpdate) {
-					this.setUserProfile(member.sender, { displayName: member.content.displayname, contentAvatarUrl: member.content.avatar_url });
-				}
-
-				// only update the member if not available yet in userProfile, or if displayname/avatarurl has changed
-				if (!memberToUpdate || memberToUpdate?.displayName !== member.content.displayname || memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
-					const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
-					const profile: UserProfile = {
-						displayName: member.content.displayname ?? undefined,
-						avatarUrl: avatarUrl,
-						contentAvatarUrl: member.content.avatar_url,
-					};
-					this.setUserProfile(member.sender, profile);
-				}
-			});
-
-			return true;
 		},
 
 		// Storing my  UserId
@@ -166,24 +124,22 @@ const useUser = defineStore('user', {
 			this.client.setDisplayName(name);
 		},
 
-		async setAvatarUrl(avatarUrl: string) {
+		async setAvatarMxcUrl(avatarUrl: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
-
-			const { getAuthorizedMediaUrl } = useMatrixFiles();
-			this._avatarUrl = await getAuthorizedMediaUrl(avatarUrl);
+			this._avatarMxcUrl = avatarUrl;
 			this.client.setAvatarUrl(avatarUrl);
 		},
 
 		// Profile setter method for me.
 		// This method is used during login of me.
 		setProfile(profile: any) {
-			if (profile.avatar_url !== undefined) this.setAvatarUrl(profile.avatar_url);
+			if (profile.avatar_url !== undefined) this.setAvatarMxcUrl(profile.avatar_url);
 			if (profile.displayname !== undefined) this.setDisplayName(profile.displayname);
 		},
 
 		// Profile setter method for all users.
 		// This method is used when syncing profiles of users.
-		setUserProfile(userId: string, profileData: UserProfile) {
+		setAllProfiles(userId: string, profileData: Object) {
 			this.usersProfile.set(userId, profileData);
 		},
 
@@ -213,7 +169,7 @@ const useUser = defineStore('user', {
 				} else {
 					this.isAdministrator = false;
 				}
-			} catch {
+			} catch (error) {
 				this.isAdministrator = false;
 			}
 		},
@@ -222,7 +178,7 @@ const useUser = defineStore('user', {
 			try {
 				const settings = useSettings();
 				if (!settings.isFeatureEnabled(FeatureFlag.consent)) return false;
-				const response = await api_synapse.apiGET<ConsentJSONParser>(`${api_synapse.apiURLS.data}?data=consent`);
+				const response = (await api_synapse.apiGET(`${api_synapse.apiURLS.data}?data=consent`)) as ConsentJSONParser;
 				if (response) {
 					this.needsConsent = response.needs_consent;
 					this.needsOnboarding = response.needs_onboarding;
@@ -237,17 +193,6 @@ const useUser = defineStore('user', {
 				router.push({ name: 'onboarding', query: { type: onboardingType, originalRoute: router.currentRoute.value.path } });
 			}
 			return this.needsConsent;
-		},
-
-		async goToUserRoom(userId: string) {
-			const pubhubs = usePubhubsStore();
-			const otherUser = this.client!.getUser(userId);
-			if (otherUser && this.userId !== otherUser.userId) {
-				const userRoom = await pubhubs.createPrivateRoomWith(otherUser as User);
-				if (userRoom) {
-					await pubhubs.routeToRoomPage(userRoom);
-				}
-			}
 		},
 
 		// #endregion

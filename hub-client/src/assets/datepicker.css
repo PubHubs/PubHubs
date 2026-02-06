@@ -15,7 +15,7 @@
 }
 
 .dp--menu-wrapper {
-	box-shadow: 0px 0px 5px var(--surface-elevated);
+	box-shadow: 0px 0px 5px var(--black);
 	border-radius: 5px;
 }
 .dp__input_wrap input {

@@ -18,7 +18,7 @@ export type DisclosureAttribute = {
 export type AskDisclosure = {
 	user: { userId: string; displayName?: string }; // subset of MatrixUser
 	message: string;
-	attributes: string[];
+	attributes: DisclosureAttribute[];
 	where_room: string;
 };
 
@@ -26,7 +26,7 @@ export type AskDisclosureMessage = {
 	userId: string;
 	replyToRoomId: string;
 	message: string;
-	attributes: string[];
+	attributes: DisclosureAttribute[];
 };
 
 type YiviSignedMessage = {
@@ -51,7 +51,7 @@ export function getMessage(message: SignedMessage): string {
 
 export function getDisclosedAttributes(message: SignedMessage): DisclosedAttribute[] {
 	if (message.disclosed) {
-		return message.disclosed.flat() || [];
+		return message.disclosed[0] || [];
 	}
 	return [];
 }

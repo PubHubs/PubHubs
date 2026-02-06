@@ -87,6 +87,7 @@ function useMessageInput() {
 	}
 
 	function closePoll() {
+		console.error('closePoll called');
 		resetAll();
 	}
 

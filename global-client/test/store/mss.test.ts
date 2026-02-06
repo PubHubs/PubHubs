@@ -9,8 +9,7 @@ import { api } from '@global-client/logic/core/api';
 
 // Models
 import PHCServer from '@global-client/models/MSS/PHC';
-import { AttrKeyResp, SignedIdentifyingAttrs } from '@global-client/models/MSS/TAuths';
-import { UserSecretData, UserSecretObject } from '@global-client/models/MSS/TPHC';
+import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
@@ -33,18 +32,18 @@ describe('Multi-server setup', () => {
 		});
 
 		test('Generating a new user secret', async () => {
-			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
+			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey1', 'timestamp1'],
 					old_key: null,
 				},
 			};
-			const mockedIdentifyingAttrs: SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			expect(localStorage.getItem('UserSecret')).toBeNull();
 
 			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
-			await phcServer.stateEP();
+			await phcServer['_stateEP']();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, null, null);
 
 			expect(localStorage.getItem('UserSecret')).toBeTypeOf('string');
@@ -53,24 +52,24 @@ describe('Multi-server setup', () => {
 		});
 
 		test('Logging in with a user secret of version 0', async () => {
-			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
+			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey2', 'timestamp2'],
 					old_key: 'someKey1',
 				},
 			};
-			const mockedIdentifyingAttrs: SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			// Use the old way of encoding the key
-			const userSecret = globalThis.crypto.getRandomValues(new Uint8Array(32));
+			const userSecret = window.crypto.getRandomValues(new Uint8Array(32));
 			const encUserSecret = await phcServer['_encryptData'](userSecret, new TextEncoder().encode('someKey1'));
-			let oldUserSecretObject: UserSecretData = { emailAttrId: { emailAttrValue: { ts: 'timestamp1', encUserSecret: Buffer.from(encUserSecret).toString('base64') } } };
+			let oldUserSecretObject: mssTypes.UserSecretData = { emailAttrId: { emailAttrValue: { ts: 'timestamp1', encUserSecret: Buffer.from(encUserSecret).toString('base64') } } };
 
 			localStorage.removeItem('UserSecret');
 			expect(localStorage.getItem('UserSecret')).toBeNull();
 
 			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
-			await phcServer.stateEP();
+			await phcServer['_stateEP']();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, oldUserSecretObject, { usersecret: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 }, backup: null });
 
 			expect(localStorage.getItem('UserSecret')).toBeTypeOf('string');
@@ -82,22 +81,22 @@ describe('Multi-server setup', () => {
 			expect(userSecretObject.object).toEqual(backupObject.object);
 
 			// Test if globalsettings encrypted with the old userSecret encoding can be retrieved without throwing an error on crypto.subtle.decrypt
-			const globalSettings = globalThis.crypto.getRandomValues(new Uint8Array(32));
+			const globalSettings = window.crypto.getRandomValues(new Uint8Array(32));
 			const oldEncryptedGlobalSettings = await EncryptVersion0.encryptDataVersion0(globalSettings, 'ThisIsAUserSecret');
 			const decodedGlobalSettings = await phcServer['_decryptData'](oldEncryptedGlobalSettings, 'ThisIsAUserSecret');
 			expect(decodedGlobalSettings).toEqual(globalSettings);
 		});
 
 		test('Logging in with a user secret of version 1', async () => {
-			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
+			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey3', 'timestamp2'],
 					old_key: 'someKey2',
 				},
 			};
-			const mockedIdentifyingAttrs: SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
-			const oldUserSecret = await phcServer.getUserSecretObject();
+			const oldUserSecret = await phcServer['_getUserSecretObject']();
 
 			const userSecret = localStorage.getItem('UserSecret');
 
@@ -105,7 +104,7 @@ describe('Multi-server setup', () => {
 			expect(localStorage.getItem('UserSecret')).toBeNull();
 
 			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
-			await phcServer.stateEP();
+			await phcServer['_stateEP']();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, oldUserSecret.object, {
 				usersecret: oldUserSecret.details.usersecret,
 				backup: oldUserSecret.details.backup,
@@ -126,7 +125,7 @@ describe('Multi-server setup', () => {
 			const userSecretObject = await phcServer.getUserObject('usersecret');
 
 			const decodedUserSecret = new TextDecoder().decode(userSecretObject.object);
-			const parsedObject = JSON.parse(decodedUserSecret) as UserSecretObject;
+			const parsedObject = JSON.parse(decodedUserSecret) as mssTypes.UserSecretObject;
 			const decryptedUserSecretBytes = await phcServer['_decryptUserSecret']('someKey3', parsedObject.data['emailAttrId']['emailAttrValue'], Number(parsedObject.version));
 
 			expect(userSecretBytes).toEqual(decryptedUserSecretBytes);

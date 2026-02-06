@@ -2,19 +2,15 @@
 import { EventType } from 'matrix-js-sdk';
 import { type MSC3575List, type MSC3575RoomSubscription, MSC3575_STATE_KEY_LAZY, MSC3575_STATE_KEY_ME, MSC3575_WILDCARD } from 'matrix-js-sdk/lib/sliding-sync.js';
 
-import { MatrixEventType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
+import { SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
 
 // #region Subscriptions
 
 /*
 Main mechanism for sliding sync
 
-First collect all rooms by an initialroomlist that asks for all the rooms with Name, Memberdata and a timeline segment
-These rooms are loaded into the RoomList of the rooms store and displayed in the menu. 
-For each room the last message is saved. When a room is clicked in the menu, the last message is taken as the base for the timelineManager of the room 
-and the room is subscribed to for further syncing.
-
-As soon as the roomlist is loaded the initial list is removed and replaced by a list that for now handles most basic syncing: ask for the recent rooms the full data
+First collect all rooms by an initialroomlist that asks for all the rooms with Name and Memberdata
+As soon as that is loaded remove this list and replace by a list that for now handles most basic syncing: ask for the recent rooms the full data
 
 After that: only the current room is subscribed to. And unsubscribed when the user turns to another room
 
@@ -31,10 +27,8 @@ const InitialRoomList: MSC3575List = {
 		[EventType.RoomCreate, MSC3575_WILDCARD],
 		[EventType.RoomMember, MSC3575_WILDCARD],
 		[EventType.RoomPowerLevels, MSC3575_WILDCARD],
-		[MatrixEventType.RoomReceipt, MSC3575_WILDCARD],
-		[MatrixEventType.RoomReadMarker, MSC3575_WILDCARD],
 	],
-	timeline_limit: SystemDefaults.initialRoomTimelineLimit, // From this eventlist the roomtimeline is initially created
+	timeline_limit: 0, // don't need events here
 };
 
 // Main Roomlist: fetch the most recent rooms with all required_state data and memberdata
@@ -46,7 +40,7 @@ const MainRoomList: MSC3575List = {
 		[EventType.RoomMember, MSC3575_STATE_KEY_LAZY],
 		['*', '*'],
 	],
-	timeline_limit: SystemDefaults.initialRoomTimelineLimit, // We need the timeline events, this is for subsequent syncing
+	timeline_limit: SystemDefaults.initialRoomTimelineLimit, // despite subscribing to rooms we also initially need the timeline here
 };
 
 // Put Roomlists in map for easy handling

@@ -9,7 +9,7 @@ import { api } from '@global-client/logic/core/api';
 
 // Models
 import PHCServer from '@global-client/models/MSS/PHC';
-import { AttrKeyResp, SignedIdentifyingAttrs } from '@global-client/models/MSS/TAuths';
+import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
 
 // Stores
 import { PinnedHubs, useGlobal } from '@global-client/stores/global';
@@ -59,16 +59,16 @@ describe('Global', () => {
 
 			await api.api(api.apiURLS.login);
 			phcServer = new PHCServer();
-			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
+			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey1', 'timestamp1'],
 					old_key: null,
 				},
 			};
-			const mockedIdentifyingAttrs: SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
-			await phcServer.stateEP();
+			await phcServer['_stateEP']();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, null, null);
 			const resp = await global.checkLoginAndSettings();
 			expect(resp).toEqual(true);

@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface flex max-w-[700px] flex-col rounded-xl border p-3">
+	<div class="bg-surface flex flex-col rounded-lg p-3">
 		<div class="flex">
 			<h3 class="font-bold">{{ $t('message.messageSigned.heading') }}</h3>
 			<Icon type="warning" :size="'sm'" @mouseover="showVerificationStatus = true" @mouseout="showVerificationStatus = false" class="text-accent-red p-[0.6rem]" />

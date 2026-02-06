@@ -38,32 +38,26 @@
 }
 
 :root {
-	/* New values */
+	/* New colors */
 	--surface-background: #ffffff; /* Used for backgrounds */
 	--surface-base: #e3e5e8; /* Used for large surfaces */
 	--surface-elevated: #d1d1d1; /* Used for surfaces on top of a background or surface */
 	--on-surface-dim: #717171; /* Used for dim text */
 	--on-surface: #3d3c3c; /* Used for text */
 	--on-surface-bright: #202020; /* Used for bright text */
+
 	--accent-blue: #005a9e; /* Used for theming */
 	--on-accent-blue: #c0e3fd; /* Used for text on primary accent */
 	--accent-green: #4c6b1f;
 	--on-accent-green: #d3f1a7;
 	--accent-orange: #a54800;
 	--on-accent-orange: #fedec8;
-	--accent-red: #ae2e24;
-	--on-accent-red: #ffd5d2;
+	--accent-error: #ae2e24;
+	--on-accent-error: #ffd5d2;
 	--accent-purple: #5e24ae;
 	--on-accent-purple: #e8d2ff;
-	--button-blue: #1868db;
-	--on-button-blue: #eaf3ff;
-	--button-red: #c9372c;
-	--on-button-red: #ffeeec;
 
-	--font-atkinson: 'Atkinson Hyperlegible', sans-serif;
-	--font-inter: 'Inter', sans-serif;
-
-	/* Old values */
+	/* Old colors */
 	--background: #ffffff; /* Used for room background */
 	--surface-low: #f2f3f5; /* Used for the room top bar and hub bar */
 	--surface: #e3e5e8; /* Used for the hub top bar and global bar */
@@ -93,32 +87,32 @@
 	--on-accent-blue: #000000;
 	--accent-orange: #fcba6d;
 	--on-accent-orange: #000000;
+
+	--font-atkinson: 'Atkinson Hyperlegible', sans-serif;
+	--font-inter: 'Inter', sans-serif;
 }
 
 .dark {
-	/* New values (dark) */
+	/* New colors (dark) */
 	--surface-background: #464545; /* Used for backgrounds */
 	--surface-base: #2f2e2e; /* Used for large surfaces */
 	--surface-elevated: #202020; /* Used for surfaces on top of a background or surface */
 	--on-surface-dim: #bbbbbb; /* Used for dim text */
 	--on-surface: #e3e5e8; /* Used for text */
 	--on-surface-bright: #ffffff; /* Used for bright text */
+
 	--accent-blue: #c0e3fd; /* Used for theming */
 	--on-accent-blue: #005a9e; /* Used for text on primary accent */
 	--accent-green: #d3f1a7;
 	--on-accent-green: #4c6b1f;
 	--accent-orange: #fedec8;
 	--on-accent-orange: #a54800;
-	--accent-red: #ffd5d2;
-	--on-accent-red: #ae2e24;
+	--accent-error: #ffd5d2;
+	--on-accent-error: #ae2e24;
 	--accent-purple: #e8d2ff;
 	--on-accent-purple: #5e24ae;
-	--button-blue: #3dadff;
-	--on-button-blue: #003178;
-	--button-red: #f87168;
-	--on-button-red: #600700;
 
-	/* Old values (dark) */
+	/* Old colors (dark) */
 	--background: #464545;
 	--surface-low: #3d3c3c;
 	--surface: #2f2e2e;
@@ -132,17 +126,18 @@
 
 @theme {
 	/* New theme */
-	--color-*: initial;
 	--color-currentColor: currentColor;
 	--color-transparent: transparent;
 	--color-black: #202020;
 	--color-white: #ffffff;
+
 	--color-surface-background: var(--surface-background);
 	--color-surface-base: var(--surface-base);
 	--color-surface-elevated: var(--surface-elevated);
 	--color-on-surface: var(--on-surface);
 	--color-on-surface-dim: var(--on-surface-dim);
 	--color-on-surface-bright: var(--on-surface-bright);
+
 	--color-accent-blue: var(--accent-blue);
 	--color-on-accent-blue: var(--on-accent-blue);
 	--color-accent-green: var(--accent-green);
@@ -153,10 +148,6 @@
 	--color-on-accent-red: var(--on-accent-red);
 	--color-accent-purple: var(--accent-purple);
 	--color-on-accent-purple: var(--on-accent-purple);
-	--color-button-blue: var(--button-blue);
-	--color-on-button-blue: var(--on-button-blue);
-	--color-button-red: var(--button-red);
-	--color-on-button-red: var(--on-button-red);
 
 	/* Aliases */
 	--color-accent-primary: var(--accent-blue);
@@ -170,18 +161,9 @@
 	--color-accent-steward: var(--accent-purple);
 	--color-on-accent-steward: var(--on-accent-purple);
 
-	--font-*: initial;
 	--font-headings: var(--font-atkinson);
 	--font-body: var(--font-inter);
 
-	/* --radius-*: initial; */
-	--radius-none: 0px;
-	--radius-small: 2px;
-	--radius-base: 4px;
-	--radius-large: 8px;
-	--radius-full: calc(infinity * 1px);
-
-	--spacing-*: initial;
 	--spacing-0: 0;
 	--spacing-thin: 0.5px;
 	--spacing-0125: 1px;
@@ -201,9 +183,7 @@
 	--spacing-600: 48px;
 	--spacing-800: 64px;
 	--spacing-1000: 80px;
-	--spacing-4000: 320px;
 
-	--text-*: initial;
 	--text-title: 24px;
 	--text-title--line-height: 1.28;
 	--text-title--font-weight: 600;
@@ -314,26 +294,6 @@
 	--text-label-tiny: 12px;
 	--text-label-tiny--line-height: 1.3;
 	--text-label-tiny--font-weight: 500;
-
-	/* Animations */
-	--animate-highlight: highlight 5s ease-in-out;
-	@keyframes highlight {
-		0% {
-			background: none;
-		}
-
-		70% {
-			background: var(--color-surface-subtle);
-		}
-
-		100% {
-			background: none;
-		}
-	}
-}
-
-@utility no-callout {
-	-webkit-touch-callout: none;
 }
 
 @layer base {

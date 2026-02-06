@@ -8,8 +8,6 @@
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
-	import { delay } from '@global-client/logic/utils/generalUtils';
-
 	// Logic
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { Logger } from '@hub-client/logic/logging/Logger';
@@ -43,15 +41,17 @@
 
 	async function onRouteChange() {
 		let hubId = undefined;
-		const maxAttempts = 4;
-		for (let attempt = 0; attempt < maxAttempts && !hubId; attempt++) {
+		const maxAttempts = 7;
+		// TODO try to change timings of vue events so there is less wait time in this function
+		for (let attempts = 0; attempts < maxAttempts && !hubId; attempts++) {
 			try {
 				hubId = hubs.hubId(route.params.name as string);
 			} catch (error) {
-				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempt}`, { error });
+				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempts}`, { error });
 			}
 			if (!hubId) {
-				delay(attempt);
+				const delay = Math.min(10 * 2 ** attempts, 1000);
+				await new Promise((r) => setTimeout(r, delay));
 			}
 		}
 		if (!hubId) {
@@ -76,18 +76,16 @@
 				break;
 			case Status.MSSHubNotLoggedIn: {
 				try {
-					const maxAttempts = 4;
-					for (let attempt = 0; attempt < maxAttempts; attempt++) {
-						if (attempt > 0) {
-							delay(attempt - 1);
-						}
+					const maxAttempts = 3;
+					for (let attempts = 0; attempts < maxAttempts; attempts++) {
 						const mss = useMSS();
 						const enterStartResp = await hub.enterStartEP();
 						assert.isDefined(enterStartResp, 'Something went wrong receiving/handling the response from enterStartEP.');
 						const hhpp = await mss.enterHub(id, enterStartResp);
 						assert.isDefined(hhpp, 'Something went wrong with getting the signedHhpp.');
 						const enterCompleteResp = await hub.enterCompleteEP(enterStartResp.state, hhpp);
-						if (enterCompleteResp === 'RetryFromStart' && attempt < maxAttempts) continue;
+						// TODO Floris: Add a little delay for each retry
+						if (enterCompleteResp === 'RetryFromStart' && attempts < maxAttempts) continue;
 						else if (enterCompleteResp === 'RetryFromStart') throw new Error('Max attemps for RetryFromStart were passed');
 						assert.isDefined(enterCompleteResp, 'Something went wrong receiving/handling a response from enterCompleteEP.');
 						const authInfo = JSON.stringify({

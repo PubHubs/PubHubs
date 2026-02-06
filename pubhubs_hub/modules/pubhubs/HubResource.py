@@ -31,7 +31,8 @@ class HubResource(DirectServeJsonResource):
 		self.putChild(b'default-icon', HubMediaResource(module_api, module_config, media_type="icon", is_default=True))
 		self.putChild(b'banner', HubMediaResource(module_api, module_config, media_type="banner", is_default=False))
 		self.putChild(b'default-banner', HubMediaResource(module_api, module_config, media_type="banner", is_default=True))
-		self.putChild(b'settings', HubSettingsResource(module_api, module_config, store))
+		self.putChild(b'settings', HubSettingsResource(module_api, module_config, store, is_default=False))
+		self.putChild(b'default-settings', HubSettingsResource(module_api, module_config, store, is_default=True))
 		self.putChild(b'data', HubDataResource(module_api, module_config , store ))
  
 			

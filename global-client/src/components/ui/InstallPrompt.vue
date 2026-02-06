@@ -2,7 +2,9 @@
 	<div v-if="showPrompt" class="fixed inset-0 z-50">
 		<div class="bg-surface-high absolute inset-0 opacity-80" @click="closePrompt" />
 		<div class="bg-background absolute right-0 bottom-0 left-0 flex h-fit w-full flex-col rounded-t-2xl p-2 shadow-[0_-5px_10px_rgba(0,0,0,0.2)]">
-			<Icon type="x" class="absolute top-3 right-3" @click="closePrompt" />
+			<div class="bg-surface-high absolute top-3 right-3 h-6 w-6 rounded-full">
+				<Icon type="x" :as-button="true" @click="closePrompt" />
+			</div>
 			<div class="flex items-center justify-between pr-12">
 				<div class="flex items-center">
 					<img alt="PubHubs icon" :src="logoWhiteUrl" class="mr-2 hidden h-10 w-10 dark:block" />
@@ -55,8 +57,8 @@
 				<div v-else-if="props.operatingSystem === 'iOS'">
 					<InstallPromptInstruction
 						:instructions="[
-							{ icon: 'export', instruction: 'pwa.click_share' },
-							{ icon: 'plus-square', instruction: 'pwa.ios_add_to_homescreen' },
+							{ icon: 'share', instruction: 'pwa.click_share' },
+							{ icon: 'plus', instruction: 'pwa.ios_add_to_homescreen' },
 						]"
 					/>
 				</div>
