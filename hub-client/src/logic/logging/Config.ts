@@ -47,7 +47,7 @@ export default class Config {
 
 		if (!globalClientUrl || typeof globalClientUrl !== 'string') {
 			// @ts-expect-error
-			if (window._env.HUB_URL === 'http://test') {
+			if (window._env.HUB_URL === 'http://test2') {
 				return 'testing';
 			}
 			console.error('PUBHUBS_URL is not defined in the environment');
@@ -58,7 +58,7 @@ export default class Config {
 			return 'development';
 		} else if (globalClientUrl.startsWith('http://localhost')) {
 			return 'local development';
-		} else if (globalClientUrl === 'http://test') {
+		} else if (globalClientUrl === 'http://test2') {
 			return 'testing';
 		} else {
 			return 'production';

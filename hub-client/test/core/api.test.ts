@@ -19,14 +19,14 @@ describe('api_synapse', () => {
 	});
 
 	test('api - apiURLS', () => {
-		expect(api_synapse.baseURL).toBe('http://test/_synapse/');
-		expect(api_synapse.apiURLS.securedRooms).toBe('http://test/_synapse/client/secured_rooms');
-		expect(api_synapse.apiURLS.roomsAPIV2).toBe('http://test/_synapse/admin/v2/rooms/');
-		expect(api_synapse.apiURLS.usersAPIV1).toBe('http://test/_synapse/admin/v1/users/');
-		expect(api_synapse.apiURLS.securedRoom).toBe('http://test/_synapse/client/srextra');
-		expect(api_synapse.apiURLS.notice).toBe('http://test/_synapse/client/notices');
-		expect(api_synapse.apiURLS.usersAPIV3).toBe('http://test/_synapse/admin/v3/users/');
-		expect(api_synapse.apiURLS.roomsAPIV1).toBe('http://test/_synapse/admin/v1/rooms/');
+		expect(api_synapse.baseURL).toBe('http://testdomain2/_synapse/');
+		expect(api_synapse.apiURLS.securedRooms).toBe('http://testdomain2/_synapse/client/secured_rooms');
+		expect(api_synapse.apiURLS.roomsAPIV2).toBe('http://testdomain2/_synapse/admin/v2/rooms/');
+		expect(api_synapse.apiURLS.usersAPIV1).toBe('http://testdomain2/_synapse/admin/v1/users/');
+		expect(api_synapse.apiURLS.securedRoom).toBe('http://testdomain2/_synapse/client/srextra');
+		expect(api_synapse.apiURLS.notice).toBe('http://testdomain2/_synapse/client/notices');
+		expect(api_synapse.apiURLS.usersAPIV3).toBe('http://testdomain2/_synapse/admin/v3/users/');
+		expect(api_synapse.apiURLS.roomsAPIV1).toBe('http://testdomain2/_synapse/admin/v1/rooms/');
 	});
 
 	test('api - apiOptions', () => {
