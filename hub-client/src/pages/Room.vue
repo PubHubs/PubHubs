@@ -1,8 +1,7 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<div v-if="isLoading" class="flex h-full w-full flex-col gap-4 p-4">
-			<div class="bg-surface-base h-[80px] w-full animate-pulse rounded-lg"></div>
-			<div class="bg-surface-base h-full w-full animate-pulse rounded-lg"></div>
+		<div v-if="isLoading" class="flex h-full w-full items-center justify-center">
+			<InlineSpinner />
 		</div>
 		<HeaderFooter v-else :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
@@ -95,6 +94,7 @@
 	import StewardContactRoomHeader from '@hub-client/components/rooms/StewardContactRoomHeader.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
