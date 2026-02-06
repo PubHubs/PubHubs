@@ -1,5 +1,5 @@
 <template>
-	<div ref="messageRoot" class="no-callout select-none" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
+	<div ref="messageRoot" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
 		<div ref="elReactionPopUp" class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
 			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
@@ -284,11 +284,6 @@
 			observer.disconnect();
 			observer = null;
 		}
-
-		// If the profile card is open when this component is unmounted, close it.
-		if (props.activeProfileCard === props.event.event_id) {
-			emit('profileCardClose');
-		}
 	});
 
 	/**
@@ -433,7 +428,7 @@
 		const menu: MenuItem[] = [];
 
 		// Direct message (only if sender is not current user and not already in a DM)
-		if (props.event.sender !== user.userId && !props.room.directMessageRoom()) {
+		if (props.event.sender !== user.userId && !props.room.isDirectMessageRoom()) {
 			menu.push({
 				label: t('menu.direct_message'),
 				icon: 'chat-circle',
