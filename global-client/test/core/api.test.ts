@@ -73,7 +73,7 @@ describe('api', () => {
 
 	test('api - apiURLS', () => {
 		// @ts-ignore
-		expect(api.baseURL).toBe('http://testdomain2');
+		expect(api.baseURL).toBe('http://test');
 
 		expect(Object.keys(api.apiURLS).length).toBe(3);
 		expect(api.apiURLS.login).toBe('http://test/login');
