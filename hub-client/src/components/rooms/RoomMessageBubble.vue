@@ -22,7 +22,7 @@
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
 					v-context-menu="
-						(evt: any) => openMenu(evt, props.event.sender !== user.userId && !room.directMessageRoom() ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])
+						(evt: any) => openMenu(evt, props.event.sender !== user.userId && !room.isDirectMessageRoom() ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])
 					"
 				/>
 				<!-- Avatar placeholder -->
@@ -39,10 +39,9 @@
 									<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
 								</div>
 
-								<span class="text-label-tiny text-on-surface-dim flex gap-2">
-									<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
-									<span>|</span>
+								<span class="text-label-tiny text-on-surface-dim flex gap-1">
 									<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
+									<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
 								</span>
 							</div>
 
@@ -171,6 +170,9 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import ReactionMiniPopUp from '@hub-client/components/ui/ReactionMiniPopUp.vue';
 
+	// Composables
+	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
+
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import { CONFIG } from '@hub-client/logic/logging/Config';
@@ -209,6 +211,7 @@
 	const source = ref('');
 	// const { copy, copied, isSupported } = useClipboard({ source });
 	const isMobile = computed(() => settings.isMobileState);
+	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 
 	// Intersection observer
 	const messageRoot = ref<HTMLElement | null>(null);
@@ -283,6 +286,11 @@
 			observer.unobserve(messageRoot.value);
 			observer.disconnect();
 			observer = null;
+		}
+
+		// If the profile card is open when this component is unmounted, close it.
+		if (props.activeProfileCard === props.event.event_id) {
+			emit('profileCardClose');
 		}
 	});
 
