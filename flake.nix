@@ -51,6 +51,8 @@
                 rustc # 1.92
                 cargo # 1.92
                 cargo-watch # 8.5.3
+                clippy
+                rustfmt
                 docker # 29.2.0
                 mask # 0.11.7
                 nodejs # 24.13.0
