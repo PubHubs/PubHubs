@@ -81,7 +81,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onBeforeMount, ref, watch } from 'vue';
+	import { computed, onBeforeMount, onBeforeUnmount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Assets
@@ -97,6 +97,7 @@
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 	import MediaUploadSection from '@hub-client/components/ui/MediaUploadSection.vue';
 
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
 	import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
@@ -129,7 +130,7 @@
 	const settingsSaved = ref(false);
 
 	// Selected URLs
-	const selectedUrls = ref<Record<string, string | null | undefined>>({
+	const selectedUrls = ref<Record<string, BlobManager | null | undefined>>({
 		icon: undefined,
 		banner: undefined,
 	});
@@ -153,11 +154,20 @@
 		displayHubJSON();
 	});
 
+	onBeforeUnmount(() => {
+		if (selectedUrls.value) {
+			const urls = selectedUrls.value || {};
+			for (const key in urls) {
+				urls[key]?.revoke();
+			}
+		}
+	});
+
 	// Computed URLs
 	const iconUrl = computed(() => computeMediaUrl('icon'));
 	const bannerUrl = computed(() => computeMediaUrl('banner'));
 
-	function computeMediaUrl(mediaType: 'icon' | 'banner') {
+	function computeMediaUrl(mediaType: 'icon' | 'banner'): string {
 		const selectedUrl = selectedUrls.value[mediaType];
 
 		if (selectedUrl === undefined) {
@@ -165,7 +175,7 @@
 		} else if (selectedUrl === null) {
 			return mediaType === 'icon' ? hubSettings.iconDefaultUrlActiveTheme : hubSettings.bannerDefaultUrl;
 		} else {
-			return selectedUrl;
+			return selectedUrl?.url ?? '';
 		}
 	}
 
@@ -193,7 +203,8 @@
 
 		// Store the file and create object URL
 		mediaFiles.value[mediaType] = file;
-		selectedUrls.value[mediaType] = URL.createObjectURL(file);
+		selectedUrls.value[mediaType]?.revoke();
+		selectedUrls.value[mediaType] = new BlobManager(file);
 		settingsChanged.value = true;
 	}
 
@@ -210,6 +221,7 @@
 	}
 
 	function removeMedia(mediaType: 'icon' | 'banner') {
+		selectedUrls.value[mediaType]?.revoke();
 		selectedUrls.value[mediaType] = null;
 		mediaFiles.value[mediaType] = null;
 		settingsChanged.value = true;

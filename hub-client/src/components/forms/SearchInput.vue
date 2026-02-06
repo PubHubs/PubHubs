@@ -1,7 +1,7 @@
 <template>
 	<!-- Desktop search component -->
 	<div class="bg-background hidden items-center justify-end rounded-md md:flex" v-click-outside="reset">
-		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
+		<div class="relative flex max-w-full items-center justify-end pl-100 transition-all duration-200">
 			<input
 				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				type="text"
@@ -59,7 +59,7 @@
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="bg-surface-low absolute top-16 right-0 z-50 w-full overflow-y-auto rounded-md md:top-20 md:w-[20vw]" data-testid="search-result">
+	<div v-if="searched" class="bg-surface-low absolute top-24 right-0 z-50 h-full w-full overflow-y-auto rounded-md pb-24 md:w-[20vw]" data-testid="search-result">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group" role="listitem">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
@@ -69,6 +69,7 @@
 					</div>
 				</a>
 			</div>
+			<InlineSpinner v-if="isSearching" class="z-50 float-left mr-2" />
 		</template>
 		<template v-else-if="isSearching">
 			<InlineSpinner class="float-left mr-2" />
@@ -96,6 +97,7 @@
 
 	// Composables
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { useMentions } from '@hub-client/composables/useMentions';
 
 	// Logic
 	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
@@ -217,39 +219,38 @@
 	function formatSearchResult(eventbody: string, searchterm: string, numberOfWords: number): string {
 		if (!eventbody || !searchterm) return '';
 
-		var words = filterAlphanumeric(eventbody)?.toLowerCase().split(/\s+/);
-		var searchWords = filterAlphanumeric(searchterm.trim())?.toLowerCase().split(/\s+/);
+		const words = filterAlphanumeric(eventbody)?.toLowerCase().split(/\s+/);
+		const searchWords = filterAlphanumeric(searchterm.trim())?.toLowerCase().split(/\s+/);
 
 		if (!words || !searchWords) return '';
 
-		// Compare the words to the searchterm.
-		// if searchterm is fully found, index will be > -1
-		// if searchterm is not found, index will be -1
-		var index = -1;
-		for (var i = 0; i < words.length; i++) {
-			if (words[i] === searchWords[0]) {
-				index = i;
-				for (var j = 1; j < searchWords.length; j++) {
-					// If the words do not match, reset the index to -1 and break out of the loop
-					if (words[i + j] !== searchWords[j]) {
-						index = -1;
-						break;
-					}
-				}
-				// If the index is not -1 after the loop, the search term was found
-				if (index !== -1) {
+		// Find where the search query starts
+		let index = -1;
+		for (let i = 0; i <= words.length - searchWords.length; i++) {
+			if (words[i] !== searchWords[0]) continue;
+			// Set match to true if first search word is found
+			let match = true;
+			for (let j = 1; j < searchWords.length; j++) {
+				if (words[i + j] !== searchWords[j]) {
+					// If the search words after the initial matched word are not found, set match to false again.
+					match = false;
 					break;
 				}
 			}
+			if (match) {
+				index = i;
+				break;
+			}
 		}
 
-		if (index === -1) {
-			return '';
-		}
+		if (index === -1) return '';
 
-		var start = Math.max(0, index - numberOfWords);
-		var end = Math.min(eventbody.split(' ').length, index + searchWords.length + numberOfWords);
+		const originalWords = eventbody.split(' ');
+		const start = Math.max(0, index - numberOfWords);
+		const end = Math.min(originalWords.length, index + searchWords.length + numberOfWords);
 
-		return eventbody.split(' ').slice(start, end).join(' ');
+		const searchSnippet = originalWords.slice(start, end).join(' ');
+
+		return useMentions().formatMentions(searchSnippet);
 	}
 </script>

@@ -2,9 +2,8 @@
 
 Run these with the following command: `mask run [command name]` (ex. `mask run global`).
 
-For windows users, make sure you have bash installed such as for example [gitBash](https://git-scm.com/install/windows) (It is installed with git as default).
-Make sure you have [mask](https://github.com/jacobdeichert/mask) installed (it is already included in the Nix flake).
-Make sure you have [irma](https://github.com/privacybydesign/irmago) installed
+For windows users, make sure you have bash installed such as for example [gitBash](https://git-scm.com/install/windows) (it is installed with git by default).
+Make sure you have [mask](https://github.com/jacobdeichert/mask) and [irma](https://github.com/privacybydesign/irmago) installed (they are already included in the Nix flake).
 
 ## run
 
@@ -18,6 +17,14 @@ This required [tmux](https://github.com/tmux/tmux) to be installed.
 
 ```sh
 sh run-all.sh
+```
+
+#### cleanup
+
+> Kills everything in the TMUX session.
+
+```sh
+sh run-all-cleanup.sh
 ```
 
 ### init

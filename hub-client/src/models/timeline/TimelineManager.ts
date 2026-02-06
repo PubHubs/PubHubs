@@ -48,6 +48,8 @@ class TimelineManager {
 
 	/** Contains the current filtered timelineevents */
 	private timelineEvents: TimelineEvent[] = [];
+	/** Increasing version counter, bumped on every timeline mutation */
+	private _timelineVersion: number = 0;
 	/** Contains all redacted events, deletions and edits */
 	private redactedEvents: TimelineEvent[] = [];
 	/** Contains all roomlibrary events */
@@ -118,8 +120,8 @@ class TimelineManager {
 		const matrix = useMatrix();
 
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `Initializing timeline for room ${roomId}`);
-		this.roomId = roomId;
 
+		this.roomId = roomId;
 		this.roomTimelineKey = matrix.addRoomSubscription(roomId);
 	}
 
@@ -163,22 +165,31 @@ class TimelineManager {
 				return;
 			}
 
-			this.client.relations(this.roomId, eventId, null, null).then((relations) => {
-				// add or replace relations and set isFetched to true, so the API call will be once per event
-				if (currentrelatedEvents) {
-					currentrelatedEvents.isFetched = true;
-					for (const relation of relations.events) {
-						const i = currentrelatedEvents.relatedEvents.findIndex((x) => x.event.event_id === relation.event.event_id);
-						if (i >= 0) {
-							currentrelatedEvents.relatedEvents[i] = relation;
-						} else {
-							currentrelatedEvents.relatedEvents.push(relation);
+			// check if eventId is a valid event, to remove API errors from client.relations
+			const room = this.client?.getRoom(this.roomId ?? undefined);
+			if (!room?.findEventById(eventId)) {
+				return;
+			}
+
+			this.client
+				.relations(this.roomId, eventId, null, null)
+				.then((relations) => {
+					// add or replace relations and set isFetched to true, so the API call will be once per event
+					if (currentrelatedEvents) {
+						currentrelatedEvents.isFetched = true;
+						for (const relation of relations.events) {
+							const i = currentrelatedEvents.relatedEvents.findIndex((x) => x.event.event_id === relation.event.event_id);
+							if (i >= 0) {
+								currentrelatedEvents.relatedEvents[i] = relation;
+							} else {
+								currentrelatedEvents.relatedEvents.push(relation);
+							}
 						}
+					} else {
+						this.relatedEvents.push({ eventId: eventId, isFetched: true, relatedEvents: relations.events });
 					}
-				} else {
-					this.relatedEvents.push({ eventId: eventId, isFetched: true, relatedEvents: relations.events });
-				}
-			});
+				})
+				.catch((error) => {}); // do nothing, but remove error
 		});
 	}
 
@@ -219,6 +230,7 @@ class TimelineManager {
 		// Then add the events to the timeline
 		this.timelineEvents = this.timelineEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
 		this.timelineEvents = [...this.timelineEvents, ...eventList];
+		this._timelineVersion++;
 
 		return scrollToEventId;
 	}
@@ -255,6 +267,7 @@ class TimelineManager {
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
 		this.timelineEvents = mappedEvents;
+		this._timelineVersion++;
 
 		return mappedEvents;
 	}
@@ -301,7 +314,7 @@ class TimelineManager {
 		matrixEvents = this.prepareEvents(matrixEvents);
 		if (matrixEvents.length === 0) return undefined;
 
-		let eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
+		const eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
 
 		// if the lastMessageId is undefined
 		// or this events contains the lastMessageId
@@ -352,6 +365,20 @@ class TimelineManager {
 
 	public getEvents(): TimelineEvent[] {
 		return this.timelineEvents;
+	}
+
+	/**
+	 * Returns a copy of the timeline events sorted chronologically (oldest first)
+	 */
+	public getChronologicalTimeline(): TimelineEvent[] {
+		return [...this.timelineEvents].sort((a, b) => a.matrixEvent.getTs() - b.matrixEvent.getTs());
+	}
+
+	/**
+	 * Returns the current timeline version counter.
+	 */
+	public getTimelineVersion(): number {
+		return this._timelineVersion;
 	}
 
 	public getLibraryEvents(): TimelineEvent[] {
@@ -405,7 +432,9 @@ class TimelineManager {
 			// but sometimes the history of the room is incorrect read and it keeps returning true. In that case we try only 2 times.
 			let canPaginate = true;
 			let numberoftries = 0;
-			while (numberoftries < 2 && canPaginate && timeline.getEvents().length < limit) {
+			// Target = current size + limit
+			const target = timeline.getEvents().length + limit;
+			while (numberoftries < 2 && canPaginate && timeline.getEvents().length < target) {
 				const before = timeline.getEvents().length;
 				canPaginate = await this.client.paginateEventTimeline(timeline, {
 					backwards: direction === Direction.Backward,
@@ -482,20 +511,36 @@ class TimelineManager {
 		const timeline = await this.getEventTimeline(fromEventId);
 		if (!timeline) {
 			this.timelineEvents = [];
+			this._timelineVersion++;
 		} else {
-			const newEvents = await this.performPaginate(direction, limit, timeline);
-			if (newEvents?.length > 0) {
-				let timeLineEvents = newEvents.map((event) => new TimelineEvent(event, this.roomId));
-				timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.roomTimelineLimit, direction);
-				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
-				timeLineEvents.forEach((x) => {
-					//this.reactionsTracker.addEvent(x.matrixEvent);
-					//this.editsTracker.addEvent(x.matrixEvent);
-				});
-				if (direction === Direction.Backward) {
-					this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
-				} else {
-					this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
+			// Snapshot SDK timeline IDs before fetching
+			const beforeIds = new Set(timeline.getEvents().map((e) => e.event.event_id));
+			const allEvents = await this.performPaginate(direction, limit, timeline);
+
+			// Only take events that are truly new
+			const newOnly = allEvents.filter((e) => !beforeIds.has(e.event.event_id));
+
+			if (newOnly.length > 0) {
+				let timeLineEvents = newOnly.map((event) => new TimelineEvent(event, this.roomId));
+
+				// Remove duplicates already in the managed timeline
+				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((existing) => existing.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
+
+				if (timeLineEvents.length > 0) {
+					if (direction === Direction.Backward) {
+						this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
+					} else {
+						this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
+					}
+
+					// Enforce sliding window: trim from the opposite end
+					if (this.timelineEvents.length > SystemDefaults.roomTimelineLimit) {
+						if (direction === Direction.Forward) {
+							this.timelineEvents = this.timelineEvents.slice(-SystemDefaults.roomTimelineLimit);
+						}
+					}
+
+					this._timelineVersion++;
 				}
 			}
 		}

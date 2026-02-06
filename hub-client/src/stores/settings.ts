@@ -33,7 +33,6 @@ enum FeatureFlag {
 	signedMessages = 'signedMessages',
 	dateSplitter = 'dateSplitter',
 	disclosure = 'disclosure',
-	unreadMarkers = 'unreadmarkers',
 	notifications = 'notifications',
 	deleteMessages = 'deleteMessages',
 	hubSettings = 'hubSettings',
@@ -43,6 +42,7 @@ enum FeatureFlag {
 	unreadCounter = 'unreadCounter',
 	consent = 'consent',
 	roomLibrary = 'roomLibrary',
+	phCard = 'phCard',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -92,7 +92,7 @@ const defaultSettings: Settings = {
 	language: fallbackLanguage,
 	_i18n: { locale: undefined, availableLocales: undefined },
 	// First check if the Notifications API is supported.
-	notificationsPermission: 'Notification' in window ? (Notification.permission === 'denied' || Notification.permission === 'default' ? NotificationsPermission.Deny : NotificationsPermission.Allow) : NotificationsPermission.Deny,
+	notificationsPermission: 'Notification' in globalThis ? (Notification.permission === 'denied' || Notification.permission === 'default' ? NotificationsPermission.Deny : NotificationsPermission.Allow) : NotificationsPermission.Deny,
 
 	/**
 	 * Enable/disable feature flags here.
@@ -103,7 +103,6 @@ const defaultSettings: Settings = {
 			signedMessages: true,
 			dateSplitter: true,
 			disclosure: false,
-			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
@@ -112,12 +111,12 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
+			phCard: false,
 		},
 		stable: {
 			signedMessages: true,
 			dateSplitter: true,
 			disclosure: false,
-			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
@@ -126,12 +125,12 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
+			phCard: false,
 		},
 		local: {
 			signedMessages: true,
 			dateSplitter: true,
-			disclosure: false,
-			unreadmarkers: true,
+			disclosure: true,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
@@ -139,7 +138,8 @@ const defaultSettings: Settings = {
 			unreadCounter: true,
 			roomLibrary: true,
 			votingWidget: true,
-			consent: false,
+			consent: true,
+			phCard: true,
 		},
 	},
 };
@@ -168,7 +168,7 @@ const useSettings = defineStore('settings', {
 			if (state.theme !== Theme.System) {
 				return state.theme;
 			}
-			if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+			if (globalThis.matchMedia('(prefers-color-scheme: dark)').matches) {
 				return Theme.Dark;
 			}
 			return Theme.Light;
@@ -203,10 +203,10 @@ const useSettings = defineStore('settings', {
 		 */
 		getThemeOptions: () => (themes: Function | undefined) => {
 			const options = Object.values(Theme).map((e) => {
-				if (typeof themes !== 'function') {
-					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
-				} else {
+				if (typeof themes === 'function') {
 					return { label: themes('themes.' + e), value: e };
+				} else {
+					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
 				}
 			});
 			return options;
@@ -221,10 +221,10 @@ const useSettings = defineStore('settings', {
 
 		getNotificationOptions: () => (notifications: Function | undefined) => {
 			const options = Object.values(NotificationsPermission).map((e) => {
-				if (typeof notifications !== 'function') {
-					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
-				} else {
+				if (typeof notifications === 'function') {
 					return { label: notifications('notifications.' + e), value: e };
+				} else {
+					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
 				}
 			});
 			return options;
@@ -308,7 +308,7 @@ const useSettings = defineStore('settings', {
 			this.isMobileState = isMobile;
 
 			const iframe = document.getElementById('hub-frame-id') as HTMLIFrameElement;
-			if (iframe && iframe.contentWindow) {
+			if (iframe?.contentWindow) {
 				iframe.contentWindow.postMessage({ isMobileState: isMobile }, '*');
 			}
 		},

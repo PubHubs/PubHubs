@@ -2,7 +2,7 @@
 name = "pubhubs"
 edition = "2024"
 license-file = "../LICENSE"
-rust-version = "1.89"
+rust-version = "1.91"
 
 [[bin]]
 name = "pubhubs"
@@ -25,7 +25,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_repr = { version = "0.1" }
 serde_bytes = { version = "0.11" }
 serde_json = { version = "1.0" }
-serde_yaml = { version = "0.9" }
 serde_urlencoded = { version = "0.7" }
 toml = { version = "0.9" }
 postcard = { version = "1.1", features = [ "use-std" ] }
@@ -45,7 +44,6 @@ regex = { version = "1.11" }
 # Web dependencies
 actix-web = { version = "4.11" }
 actix-cors = { version = "0.7" }
-actix-files = { version = "0.6" }
 bytes = { version = "1", features = ["serde"] }
 env_logger = { version = "0.11.8" }
 mime = { version = "0.3" }

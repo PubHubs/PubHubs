@@ -14,7 +14,7 @@
 					<input
 						v-model="poll.title"
 						type="text"
-						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
+						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						:placeholder="$t('message.voting.enter_title')"
 						maxlength="100"
 						@input="updatePoll"
@@ -26,7 +26,7 @@
 							<input
 								v-model="option.title"
 								type="text"
-								class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
+								class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 								:placeholder="$t('message.voting.enter_option')"
 								maxlength="70"
 								@input="updateOptions"
@@ -36,7 +36,7 @@
 						</div>
 						<input
 							v-if="poll.options.length < 3"
-							class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
+							class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 							disabled
 						/>
 						<Checkbox :label="$t('message.voting.show_votes_before_voting')" v-model="poll.showVotesBeforeVoting" @input="updatePoll"></Checkbox>
@@ -51,7 +51,7 @@
 					<textarea
 						v-else
 						v-model="poll.description"
-						class="scrollbar-emojipicker bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 max-h-full w-1/3 resize-none rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
+						class="scrollbar-emojipicker bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 max-h-full w-1/3 resize-none rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						maxlength="500"
 						:placeholder="$t('message.voting.enter_description')"
 						@input="updatePoll"

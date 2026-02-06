@@ -17,12 +17,12 @@ describe('api', () => {
 
 	test('api - apiURLS', () => {
 		// @ts-ignore
-		expect(api.baseURL).toBe('http://test');
+		expect(api.baseURL).toBe('http://testdomain');
 
 		expect(Object.keys(api.apiURLS).length).toBe(3);
-		expect(api.apiURLS.login).toBe('http://test/login');
-		expect(api.apiURLS.loginEn).toBe('http://test/en/login');
-		expect(api.apiURLS.logout).toBe('http://test/logout');
+		expect(api.apiURLS.login).toBe('http://testdomain/login');
+		expect(api.apiURLS.loginEn).toBe('http://testdomain/en/login');
+		expect(api.apiURLS.logout).toBe('http://testdomain/logout');
 	});
 
 	test('api - apiOptions', () => {

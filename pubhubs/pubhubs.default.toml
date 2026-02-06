@@ -34,6 +34,31 @@ key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
 type = "demo"
 # registration_source = "app.pubhubs.net"
 
+# How long is the pubhubs card valid, and was it valid historically?
+# `starting_epoch` refers the yivi epoch starting from which the associated value
+# came into effect.
+#
+# Use `cargo run tools yivi-epoch` to get the current yivi epoch.
+#
+# NOTE:  The correct value for the current card validity based on the entries below is 2 weeks.
+# The other entries, which are present for testing, can be removed from this default configuration
+# file later on.
+[[auths.yivi.card.valid_for]]
+starting_epoch = 0
+value = "671s"
+
+[[auths.yivi.card.valid_for]]
+starting_epoch = 1
+value = "672s"
+
+[[auths.yivi.card.valid_for]]
+starting_epoch = 1230
+value = "2w"
+
+[[auths.yivi.card.valid_for]]
+starting_epoch = 20000
+value = "673s"
+
 [[auths.attribute_types]]
 handles = ['email']
 id = "Fr7Gsfh73AU9k9N4eR9vDBINhMOImXm-Qqfkz0RxjwI"

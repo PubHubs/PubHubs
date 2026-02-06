@@ -19,7 +19,7 @@ export default class Config {
 
 		this._logLevelToStartLoggingFrom = this.getInitLogLevel(this._productionMode);
 
-		for (var key of ['HUB_URL', 'PARENT_URL']) {
+		for (const key of ['HUB_URL', 'PARENT_URL']) {
 			// the global _env (not to be confused with this._env) is set by client-config.js
 			if (key in _env) {
 				this._env[key] = _env[key];
@@ -47,7 +47,7 @@ export default class Config {
 
 		if (!globalClientUrl || typeof globalClientUrl !== 'string') {
 			// @ts-expect-error
-			if (window._env.HUB_URL === 'http://test') {
+			if (globalThis._env.HUB_URL === 'http://testing') {
 				return 'testing';
 			}
 			console.error('PUBHUBS_URL is not defined in the environment');
@@ -58,7 +58,7 @@ export default class Config {
 			return 'development';
 		} else if (globalClientUrl.startsWith('http://localhost')) {
 			return 'local development';
-		} else if (globalClientUrl === 'http://test') {
+		} else if (globalClientUrl === 'http://testing') {
 			return 'testing';
 		} else {
 			return 'production';
