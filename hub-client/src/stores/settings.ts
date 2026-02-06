@@ -111,7 +111,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
-			phCard: true,
+			phCard: false,
 		},
 		stable: {
 			signedMessages: true,
