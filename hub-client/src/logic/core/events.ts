@@ -15,6 +15,7 @@ enum PubHubsMsgType {
 	Default = '',
 	SignedMessage = 'pubhubs.signed_message',
 	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
+	DisclosedMessage = 'pubhubs.disclosed_message',
 	AnnouncementMessage = 'pubhubs.announcement_message',
 	VotingWidget = 'pubhubs.voting_widget.widget',
 	VotingWidgetEdit = 'pubhubs.voting_widget.edit',
@@ -44,51 +45,6 @@ class Events {
 	//private readonly client: MatrixClient;
 	private readonly eventTimeLineHandler = new EventTimeLineHandler();
 
-	// TODO: Can this be removed
-	// public constructor(client: MatrixClient) {
-	// 	//this.client = client;
-	// 	// this.client.on(RoomEvent.Timeline, (event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) => this.eventRoomTimeline(this.eventTimeHandler, event, matrixRoom, toStartOfTimeline));
-	// 	// this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
-	// }
-
-	// TODO SlidingSync threads are passed by the eventtimeline, test if it all still works with the sliding sync.
-	// initEvents() {
-	// 	return new Promise((resolve) => {
-	// 		this.client.on(ClientEvent.Sync, (state: SyncState) => {
-	// 			const connection = useConnection();
-	// 			if (state === 'ERROR') {
-	// 				connection.error();
-	// 			}
-	// 			if (state === 'RECONNECTING') {
-	// 				connection.off();
-	// 			}
-	// 			if (state === 'SYNCING') {
-	// 				connection.on();
-	// 			}
-	// 			if (state === 'PREPARED') {
-	// 				// DEBUGGING purpose - To understand the following events.
-	// 				// this.client.on('event' as any, (event: any) => {
-	// 				// 	console.debug('== EVENT', event.getType());
-	// 				// 	console.debug('== EVENT', event);
-	// 				// });
-	// 				resolve(true);
-	// 			}
-	// 		});
-
-	// 		// Start client sync
-	// 		const settings = useSettings();
-	// 		this.client
-	// 			.startClient({
-	// 				threadSupport: true,
-	// 				initialSyncLimit: settings.pagination,
-	// 				includeArchivedRooms: false,
-	// 			})
-	// 			.then((result) => {
-	// 				console.error('Client started with result:', result);
-	// 			});
-	// 	});
-	// }
-
 	/**
 	 * Matrix Events
 	 */
@@ -104,11 +60,11 @@ class Events {
 			rooms.addProfileNotice(event.getRoomId()!, event.getContent().body);
 		}
 
-		if (!toStartOfTimeline) {
-			if (event.event.type !== EventType.RoomMessage) return;
-			const rooms = useRooms();
-			rooms.onModRoomMessage(event);
-		}
+		// if (!toStartOfTimeline) {
+		// 	if (event.event.type !== EventType.RoomMessage) return;
+		// 	const rooms = useRooms();
+		// 	rooms.onModRoomMessage(event);
+		// }
 	}
 
 	eventRoomMemberMembership(client: MatrixClient) {

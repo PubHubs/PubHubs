@@ -1,176 +1,20 @@
 // Packages
 import { HttpResponse, http } from 'msw';
 
-
-
 // Models
 import PHCServer from '@global-client/models/MSS/PHC';
 import { PHCStateResp, PHCWelcomeResp } from '@global-client/models/MSS/TMultiServerSetup';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 let encryptedUserSecret = null;
 let encryptedUserSecretBackup = null;
 
 export const handlers = [
-	http.get('http://test/login', () => {
+	http.get('http://testdomain/login', () => {
 		localStorage.setItem('PHauthToken', `{"auth_token":"someValue","expires":${Date.now() + 1000}}`);
 		return new HttpResponse(null, { status: 200 });
 	}),
 
-	http.get('http://test/.ph/user/welcome', () => {
+	http.get('http://testdomain/.ph/user/welcome', () => {
 		const data: PHCWelcomeResp = {
 			Ok: {
 				constellation: {
@@ -187,7 +31,7 @@ export const handlers = [
 					auths_jwt_key: 'authsJWTkey',
 					auths_enc_key: 'authsEncKey',
 					master_enc_key: 'masterEncKey',
-					global_client_url: 'http://test',
+					global_client_url: 'http://testdomain',
 					ph_version: 'someVersion',
 				},
 				hubs: {
@@ -200,7 +44,7 @@ export const handlers = [
 		return HttpResponse.json(data, { status: 200 });
 	}),
 
-	http.get('http://test/.ph/user/state', () => {
+	http.get('http://testdomain/.ph/user/state', () => {
 		const data: PHCStateResp = {
 			Ok: {
 				State: {
@@ -217,7 +61,7 @@ export const handlers = [
 		return HttpResponse.json(data, { status: 200 });
 	}),
 
-	http.get('http://test/.ph/user/obj/by-hash/globalSettingsHash/globalSettingsHmac', async () => {
+	http.get('http://testdomain/.ph/user/obj/by-hash/globalSettingsHash/globalSettingsHmac', async () => {
 		if (localStorage.getItem('PHauthToken')) {
 			const data = {
 				theme: 'system',
@@ -255,37 +99,37 @@ export const handlers = [
 		return HttpResponse.json(data, { status: 200 });
 	}),
 
-	http.get('http://test/logout', () => {
+	http.get('http://testdomain/logout', () => {
 		localStorage.removeItem('PHauthToken');
 		localStorage.removeItem('UserSecret');
 		return new HttpResponse(null, { status: 200 });
 	}),
 
-	http.post('http://test/.ph/user/obj/by-handle/usersecret', async ({ request }) => {
+	http.post('http://testdomain/.ph/user/obj/by-handle/usersecret', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecret = body;
 		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 } } } }, { status: 200 });
 	}),
 
-	http.post('http://test/.ph/user/obj/by-hash/usersecret/userSecretHash', async ({ request }) => {
+	http.post('http://testdomain/.ph/user/obj/by-hash/usersecret/userSecretHash', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecret = body;
 		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 } } } }, { status: 200 });
 	}),
 
-	http.post('http://test/.ph/user/obj/by-handle/usersecretbackup', async ({ request }) => {
+	http.post('http://testdomain/.ph/user/obj/by-handle/usersecretbackup', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecretBackup = body;
 		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 } } } }, { status: 200 });
 	}),
 
-	http.post('http://test/.ph/user/obj/by-hash/usersecretbackup/userSecretBackupHash', async ({ request }) => {
+	http.post('http://testdomain/.ph/user/obj/by-hash/usersecretbackup/userSecretBackupHash', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecretBackup = body;
 		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 } } } }, { status: 200 });
 	}),
 
-	http.get('http://test/.ph/user/obj/by-hash/userSecretHash/userSecretHmac', () => {
+	http.get('http://testdomain/.ph/user/obj/by-hash/userSecretHash/userSecretHmac', () => {
 		return HttpResponse.arrayBuffer(encryptedUserSecret, {
 			headers: {
 				'content-type': 'application/octet-stream',
@@ -294,7 +138,7 @@ export const handlers = [
 		});
 	}),
 
-	http.get('http://test/.ph/user/obj/by-hash/userSecretBackupHash/userSecretBackupHmac', () => {
+	http.get('http://testdomain/.ph/user/obj/by-hash/userSecretBackupHash/userSecretBackupHmac', () => {
 		return HttpResponse.arrayBuffer(encryptedUserSecretBackup, {
 			headers: {
 				'content-type': 'application/octet-stream',

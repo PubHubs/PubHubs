@@ -8,8 +8,11 @@ client-config.local.js
 .python-version
 *.code-workspace
 *.swp
-
+node_modules
 
 # Added by cargo
-
 /target
+
+# Nix
+.direnv
+result

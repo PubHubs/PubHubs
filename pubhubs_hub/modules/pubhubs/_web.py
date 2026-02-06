@@ -71,8 +71,8 @@ class YiviStart(DirectServeJsonResource):
             respond_with_json(request, 403, {})
             return
 
-        to_disclose = list(room.accepted.keys())
-        session_request = {"@context": "https://irma.app/ld/request/disclosure/v2", "disclose": [[to_disclose]]}
+        to_disclose = list(map(lambda attribute: [[attribute]] , list(room.accepted.keys())))
+        session_request = {"@context": "https://irma.app/ld/request/disclosure/v2", "disclose": to_disclose}
 
         yivi_url = self.config.get("yivi_url", "http://localhost:8089")
         answer = await http_client.post_json_get_json(f"{yivi_url}/session", session_request)
@@ -148,7 +148,7 @@ class YiviResult(DirectServeJsonResource):
             if result.get("disclosed") is None:
                 return None
 
-            disclosed = result.get("disclosed")[0]
+            disclosed = self._flatten(result.get("disclosed"))
 
             if len(disclosed) < 1:
                 return None
@@ -216,7 +216,6 @@ class YiviResult(DirectServeJsonResource):
         allowed = await self.check_allowed(result, room_id)
         if allowed:
             await self.store.allow(user_id, room_id, time.time())
-            await self.module_api.update_room_membership(user_id, user_id, room_id, "join")
 
             answer = {
                     "goto": f"{self.config[CLIENT_URL]}#/room/{room_id}"
@@ -259,3 +258,10 @@ class YiviResult(DirectServeJsonResource):
         logger.debug(f"Retrieved yivi result {result}")
 
         respond_with_json(request, 200, result)
+
+    def _flatten(self, matrix):
+        flat_list = []
+        for row in matrix:
+            flat_list.extend(row)
+        return flat_list
+

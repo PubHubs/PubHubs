@@ -9,6 +9,24 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+## Changes not yet released
+
+- [NEW] Messages can be shared.
+
+## 06 February 2025 - v3.2.0
+
+- [NEW] Room timeline scrolling experience is optimized
+- [NEW] Reintroduced Pubhubs card for login
+- [NEW] New permissions/roles for different types of users (in client).
+- [NEW] Backend: adds the option to check for a reused phone number during registration
+- [NEW] Backend: authentication publishes historic pubhubs card validity duration values
+- [NEW] Speed optimization: the roomlist in the menu does not automatically load rooms anymore
+- [BUG] Polls/datepickers were not always correctly updated
+- [BUG] Searching for rooms in Discover Rooms was too slow, especially in Firefox
+- [BUG] Direct messages were not showing group messages
+  - _internal_ (remove me after merge): uncomment []
+
+
 ## 09 December 2025 - v3.1.1
 
 - [FIX] Fixed that secured room notifcations cannot be removed.
@@ -16,12 +34,10 @@ _Please add a brief description of any changes and any migrations to be performe
 ## 04 December 2025 - v3.1.0
 
 - [NEW, BREAKING] Reintroduces support for the pubhubs card in the backend
-  - _Internal:_ pubhubs card attributes with `not_addable_by_default = true` need to be added to `pubhubs.toml`, as well as a `[auth.yivi.card]` section.
 - [NEW] Using sliding sync instead of /sync API
 - [NEW] Direct url links to room and pages in the hub-client still redirect after the login or registration flow.
 - [BUG] Fixed direct url links to rooms and pages not working in hub-client
 - [BREAKING] The old pubhubs server (that served the global client) has been removed
-  - _Internal:_ the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted after merge
 - [NEW] The development setup has been simplified, see `maskfile.md`
 - [BUG] The login page is no longer visible for a split second upon a refresh when logged in.
 - [NEW] The login and home (hub discovery) page are now split.

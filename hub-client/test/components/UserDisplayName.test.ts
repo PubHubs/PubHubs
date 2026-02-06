@@ -43,7 +43,6 @@ describe('User Display Name.vue Test', () => {
 		});
 		// Wait until the DOM updates
 		await flushPromises();
-		console.info(wrapper.find(nameSelector));
 		expect(wrapper.find(nameSelector).text()).toEqual('user2');
 		await wrapper.setProps({
 			user: '@123-abc:matrix',

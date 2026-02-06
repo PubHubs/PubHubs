@@ -9,7 +9,7 @@
 					v-model="editRoom.name"
 					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 				/>
-				<P class="text-label-small float-end"> {{ editRoom.name.length }} / {{ validationComposable.roomSchemaConstants.maxNameLength }} </P>
+				<P class="text-label-small float-end"> {{ editRoom.name?.length ?? 0 }} / {{ validationComposable.roomSchemaConstants.maxNameLength }} </P>
 			</FormLine>
 
 			<FormLine>
@@ -20,7 +20,7 @@
 					v-model="editRoom.topic"
 					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 				/>
-				<P class="text-label-small float-end"> {{ editRoom.topic.length }} / {{ validationComposable.roomSchemaConstants.maxTopicLength }} </P>
+				<P class="text-label-small float-end"> {{ editRoom.topic?.length ?? 0 }} / {{ validationComposable.roomSchemaConstants.maxTopicLength }} </P>
 			</FormLine>
 
 			<FormLine v-if="!secured">
@@ -32,7 +32,7 @@
 					:disabled="!isNewRoom"
 					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 				/>
-				<P v-if="editRoom.type" class="text-label-small float-end"> {{ editRoom.type.length }} / {{ validationComposable.roomSchemaConstants.maxTypeLength }} </P>
+				<P v-if="editRoom.type" class="text-label-small float-end"> {{ editRoom.type?.length ?? 0 }} / {{ validationComposable.roomSchemaConstants.maxTypeLength }} </P>
 			</FormLine>
 
 			<div v-if="secured">
@@ -44,7 +44,7 @@
 						v-model="editRoom.user_txt"
 						class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 					/>
-					<P class="text-label-small float-end"> {{ editRoom.user_txt.length }} / {{ validationComposable.roomSchemaConstants.maxDescriptionLength }} </P>
+					<P class="text-label-small float-end"> {{ editRoom.user_txt?.length ?? 0 }} / {{ validationComposable.roomSchemaConstants.maxDescriptionLength }} </P>
 				</FormLine>
 				<div>
 					<div class="mt-4 flex flex-wrap gap-2">
@@ -138,10 +138,10 @@
 
 	// Composables
 	import { useEditRoom } from '@hub-client/composables/useEditRoom';
+	import { useValidation } from '@hub-client/composables/useValidation';
 
 	// Logic
 	import { isEmpty, trimSplit } from '@hub-client/logic/core/extensions';
-	import { useValidation } from '@hub-client/logic/validation/useValidation';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
@@ -278,12 +278,12 @@
 
 		if (!props.secured) {
 			const room = editRoom.value as TEditRoom;
-			await editRoomComposable.updatePublicRoom(isNewRoom.value, room, (props.room as any)?.room_id);
+			await editRoomComposable.updatePublicRoom(isNewRoom.value, room, props.room.room_id);
 		} else {
 			const room = editRoom.value as TSecuredRoom;
 			selectedAttributes.value = editRoomComposable.translateYiviLabelsToAttributes(selectedAttributes.value, t);
 			try {
-				await editRoomComposable.updateSecuredRoom(isNewRoom.value, room, selectedAttributes.value, attributeChanged.value, (props.room as any)?.room_id);
+				await editRoomComposable.updateSecuredRoom(isNewRoom.value, room, selectedAttributes.value, attributeChanged.value, props.room.room_id);
 			} catch (error) {
 				errorMessage.value = t((error as Error).message);
 				return false;

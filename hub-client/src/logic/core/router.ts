@@ -41,12 +41,6 @@ const routes = [
 		component: () => import('@hub-client/pages/HubSettings.vue'),
 		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
-	{
-		path: '/ask-disclosure',
-		name: 'ask-disclosure',
-		component: () => import('@hub-client/pages/AskDisclosure.vue'),
-		meta: { onlyAdmin: true, onboarding: true },
-	},
 	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@hub-client/pages/DirectMessage.vue'), meta: { hideBar: true, onboarding: true } },
 	{
 		path: '/room/:id',
@@ -74,6 +68,13 @@ const routes = [
 		component: () => import('@hub-client/pages/Icons.vue'),
 		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
+	{
+		path: '/design',
+		name: 'design',
+		component: () => import('@hub-client/pages/NewDesign.vue'),
+		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+	},
+
 	{
 		path: '/nop',
 		name: 'nop',

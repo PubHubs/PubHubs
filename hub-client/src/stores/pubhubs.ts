@@ -22,11 +22,12 @@ import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
+import { SystemDefaults } from '@hub-client/models/constants';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
 import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 import Room from '@hub-client/models/rooms/Room';
-import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TSearchParameters } from '@hub-client/models/search/TSearch';
 
 // Stores
@@ -165,7 +166,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			// this actually does nothing when already joined, but it will return the room to be stored
 
 			for (const room_id of joinedRooms) {
-				if (!knownRooms.find((kr: any) => kr.roomId === room_id)) {
+				if (!knownRooms.some((kr: any) => kr.roomId === room_id)) {
 					const roomName = allPublicRooms.find((r: any) => r.room_id === room_id)?.name ?? undefined;
 
 					// join again and then store the room in the client store
@@ -225,9 +226,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			let matrixRoom = this.client.getRoom(roomId);
 			try {
-				if (!matrixRoom) {
-					matrixRoom = await this.client.joinRoom(roomId);
-				}
+				matrixRoom ??= await this.client.joinRoom(roomId);
 				if (matrixRoom) {
 					this.client.store.storeRoom(matrixRoom);
 
@@ -262,14 +261,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		showError(error: string | MatrixError) {
-			if (typeof error !== 'string') {
-				if (error.errcode !== 'M_FORBIDDEN' && error.data) {
-					this.showDialog(error.data.error as string);
-				} else {
-					logger.trace(SMI.STORE, 'showing error dialog', { error });
-				}
-			} else {
+			if (typeof error === 'string') {
 				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
+			} else if (error.errcode !== 'M_FORBIDDEN' && error.data) {
+				this.showDialog(error.data.error as string);
+			} else {
+				logger.trace(SMI.STORE, 'showing error dialog', { error });
 			}
 		},
 
@@ -320,31 +317,35 @@ const usePubhubsStore = defineStore('pubhubs', {
 			});
 		},
 
-		async getAllPublicRooms() {
-			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(), { current: publicRoomsLoading });
+		async getAllPublicRooms(force: boolean = false) {
+			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(force), { current: publicRoomsLoading });
 		},
 
 		// actual performing of publicRooms API call
-		async performGetAllPublicRooms(): Promise<TPublicRoom[]> {
+		async performGetAllPublicRooms(force: boolean = false): Promise<TPublicRoom[]> {
 			if (!this.client.publicRooms) {
 				return [];
 			}
-			if (Date.now() < this.lastPublicCheck + 2_500) {
-				//Only check again after 4 seconds.
+
+			// Only check again after certain time. Can be long. See SystemDefaults.
+			if (Date.now() < this.lastPublicCheck + SystemDefaults.publicRoomsReload && !force) {
 				return this.publicRooms;
 			}
+			this.lastPublicCheck = Date.now();
 
-			let publicRoomsResponse = await this.client.publicRooms();
+			const limit = 100; // because we need all the public rooms, limit is set high to limit the number of calls, 100 seems to be the internal matrix API max
+			let publicRoomsResponse = await this.client.publicRooms({ limit: limit });
 			let public_rooms = publicRoomsResponse.chunk;
 
-			// DANGER this while loop turns infinite when the generated public rooms request is a POST request. This happens when the optional 'options' parameter is supplied to 'this.client.publicRooms'. Then the pagination doesn't work anymore and the loop becomes infinite.
+			// Previous versions had a problem, but I cannot reproduce it anymore: DANGER this while loop turns infinite when the generated public rooms request is a POST request. This happens when the optional 'options' parameter is supplied to 'this.client.publicRooms'. Then the pagination doesn't work anymore and the loop becomes infinite.
 			while (publicRoomsResponse.next_batch) {
 				publicRoomsResponse = await this.client.publicRooms({
 					since: publicRoomsResponse.next_batch,
+					limit: limit,
 				});
 				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
 			}
-			this.lastPublicCheck = Date.now();
+
 			this.publicRooms = public_rooms;
 			return public_rooms;
 		},
@@ -380,8 +381,11 @@ const usePubhubsStore = defineStore('pubhubs', {
 			try {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				let roomType: string = getRoomType(matrixRoom);
-				rooms.initRoomsWithMatrixRoom(matrixRoom!, matrixRoom?.name ?? undefined, roomType, []);
+				const roomType: string = getRoomType(matrixRoom);
+				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
+				const roomName = publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
+				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
+				rooms.updateRoomList(room_id, roomName, roomType, undefined, false);
 			} catch (err) {
 				throw err;
 			}
@@ -458,12 +462,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (existingRoomId === false) {
 				const otherUserForName = otherUsers;
 				const privateRoomName = createNewPrivateRoomName([me, ...otherUserForName]);
-				const stewardRoomName = roomIdForStewardRoomCreate !== '' ? roomIdForStewardRoomCreate + ',' + privateRoomName : '';
+				const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
 				const inviteIds = otherUsers.map((u) => u.userId);
 
 				const room = await this.createRoom({
 					preset: 'trusted_private_chat',
-					name: roomIdForStewardRoomCreate !== '' ? stewardRoomName : privateRoomName,
+					name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
 					visibility: 'private',
 					invite: inviteIds,
 					is_direct: true,
@@ -479,8 +483,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		async renameRoom(roomId: string, name: string) {
+			const rooms = useRooms();
 			const response = await this.client.setRoomName(roomId, name);
-			this.updateRoom(roomId);
+			rooms.setRoomListName(roomId, name);
 			return response;
 		},
 
@@ -494,13 +499,14 @@ const usePubhubsStore = defineStore('pubhubs', {
 			this.updateRoom(roomId, true);
 		},
 
-		async setPrivateRoomHiddenStateForUser(room: Room, hide: boolean) {
+		async setPrivateRoomHiddenStateForUser(room: Room | RoomListRoom, hide: boolean) {
+			const rooms = useRooms();
 			let name = room.name;
 			const user = useUser();
 			const me = user.user as User;
 			name = updatePrivateRoomName(name, me, hide);
 			await this.client.setRoomName(room.roomId, name);
-			this.updateRooms();
+			rooms.setRoomListHidden(room.roomId, hide);
 		},
 
 		_createEmptyMentions(): TMentions {
@@ -666,6 +672,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
 			const content = {
 				msgtype: PubHubsMgType.SignedMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
+				body: 'signed message',
+				signed_message: signedMessage,
+				ph_body: '',
+				'm.relates_to': threadRoot
+					? {
+							event_id: threadRoot.event_id,
+							rel_type: 'm.thread',
+							'm.in_reply_to': undefined,
+						}
+					: undefined,
+				// satisfy the sdk's type checking
+				'm.new_content': undefined,
+			};
+			const threadId = threadRoot?.event_id ?? null;
+			await this.client.sendMessage(roomId, threadId, content);
+		},
+		async addDisclosedMessage(roomId: string, signedMessage: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
+			const content = {
+				msgtype: PubHubsMgType.DisclosedMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
 				body: 'signed message',
 				signed_message: signedMessage,
 				ph_body: '',
@@ -877,23 +902,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
-		async sendPrivateReceipt(event: MatrixEvent) {
-			if (!event) return;
-			const rooms = useRooms();
-			if (event.getRoomId() && rooms.roomsSeen[event.getRoomId()!] && rooms.roomsSeen[event.getRoomId()!] >= event.localTimestamp) {
+		async sendPrivateReceipt(event: MatrixEvent, roomId: string) {
+			const eventId = event?.getId();
+			if (!eventId || !roomId || !roomId.startsWith('!')) {
 				return;
 			}
-			const loggedInUser = useUser();
-			const content = {
-				'm.read.private': {
-					[loggedInUser.userId!]: {
-						ts: event.localTimestamp,
-						thread_id: 'main',
-					},
-				},
-			};
-			rooms.roomsSeen[event.getRoomId()!] = event.localTimestamp;
-			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
+
+			try {
+				// Direct API call since SDK's sendReceipt uses event.getRoomId() which may be undefined
+				const path = `/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(ReceiptType.ReadPrivate)}/${encodeURIComponent(eventId)}`;
+				// @ts-ignore - using internal http client for direct API call
+				await this.client.http.authedRequest('POST', path, undefined, { thread_id: 'main' });
+
+				const rooms = useRooms();
+				setTimeout(() => {
+					rooms.notifyUnreadCountChanged();
+				}, 100);
+			} catch {
+				// Silently fail - receipt sending is not critical
+			}
 		},
 
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
@@ -934,7 +961,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			try {
 				// FileLibrary
 				if (eventType === PubHubsMgType.LibraryFileMessage) {
-					await this.client.sendEvent(roomId, eventType as keyof TimelineEvents, content);
+					await this.client.sendEvent(roomId, eventType as unknown as keyof TimelineEvents, content);
 				} else {
 					await this.client.sendMessage(roomId, thread, content);
 				}
@@ -973,8 +1000,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (!this.client.getUsers) {
 				return [];
 			}
-			const users = (await this.client.getUsers()) as Array<MatrixUser>;
-			return users;
+			return this.client.getUsers();
 		},
 
 		/**
@@ -983,7 +1009,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @returns the promise of searchRoomEvents or an empty promise (when no term is given)
 		 */
 		async searchRoomEvents(term: string, searchParameters: TSearchParameters): Promise<ISearchResults> {
-			if (!term || !term.length) {
+			if (!term?.length) {
 				const emptySearchResult: ISearchResults = {
 					results: [],
 					highlights: [],
@@ -1013,9 +1039,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * Makes an authenticated request to get the media and returns a local URL to the retrieved file (which does not need authorization).
 		 * This is useful for usage in <img> tags, where you cannot send an access token.
 		 *
+		 * NB:	The local URL is of a created blob, that needs to be revoked afterwards.
+		 * 		This is the responsibility of the calling method!
+		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async getAuthorizedMediaUrl(url: string): Promise<string | null> {
+		async fetchAuthorizedMediaUrl(url: string): Promise<string | null> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
@@ -1075,7 +1104,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		/**
 		 * Fetches latest room timestamps from the API
 		 */
-		async fetchTimestamps(): Promise<Array<Array<Number | string>>> {
+		async fetchTimestamps(): Promise<Array<Array<number | string>>> {
 			const url = `${api_synapse.apiURLS.data}?data=timestamps`;
 			return await api_synapse.apiGET(url);
 		},
@@ -1225,8 +1254,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
 		},
 		async routeToRoomPage(room: { room_id: string }) {
-			const room_id = room.room_id;
-			await router.push({ name: 'room', params: { id: room_id } });
+			await router.push({ name: 'room', params: { id: room.room_id } });
 		},
 
 		// Set up admin room. Corner case is that members might not have joined yet and room is available.
