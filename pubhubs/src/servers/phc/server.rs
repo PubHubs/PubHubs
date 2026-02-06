@@ -205,10 +205,10 @@ impl crate::servers::App<Server> for App {
         {
             let new_constellation_id = constellation::Inner::derive_id(&new_constellation_inner);
 
-            if self.running_state.is_some() {
+            if let Some(ref state) = self.running_state {
                 log::info!(
                     "Detected change in constellation {} -> {}",
-                    self.running_state.as_ref().unwrap().constellation.id,
+                    state.constellation.id,
                     new_constellation_id
                 );
             } else {
