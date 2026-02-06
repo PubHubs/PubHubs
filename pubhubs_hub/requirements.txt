@@ -6,3 +6,5 @@ typing-extensions>=3.7.4
 twisted>=24.11.0
 # /use the same version as the docker image is built from
 matrix-synapse==1.139.2
+# Pin this to working version because test were failing due to compatibility issue
+prometheus-client==0.23.1  
