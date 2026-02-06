@@ -16,12 +16,12 @@
 
 		<div class="overflow-y-auto" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
 			<!-- Registration section -->
-			<section class="bg-background flex flex-col gap-8 overflow-x-hidden" :class="isMobile ? 'py-8' : 'py-16'">
-				<div class="flex shrink-0 flex-col gap-8" :class="isMobile && 'h-full'">
+			<section class="bg-background flex flex-col overflow-x-hidden" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)] gap-4 py-4' : 'gap-8 py-16'">
+				<div class="flex shrink-0 flex-col" :class="isMobile ? 'h-full gap-4' : 'gap-8'">
 					<!-- Title -->
 					<div class="mx-auto w-full max-w-[80ch]">
 						<div class="flex flex-col gap-2" :class="isMobile && 'px-4'">
-							<P class="font-semibold">{{ $t('register.no_account_yet', [$t('common.app_name')]) }}</P>
+							<P v-if="!isMobile" class="font-semibold">{{ $t('register.no_account_yet', [$t('common.app_name')]) }}</P>
 							<H1>{{ $t('register.register_3_steps', [$t('common.app_name')]) }}</H1>
 						</div>
 					</div>
@@ -76,7 +76,6 @@
 										<P>{{ $t(error.key, error.values) }}</P>
 									</div>
 
-									<P>{{ $t('register.card_3_text_1') }}</P>
 									<P>{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
 								</div>
 
@@ -158,7 +157,7 @@
 						</div>
 
 						<!-- Page Indicators -->
-						<div class="flex items-center justify-center gap-4 py-1">
+						<div class="flex items-center justify-center gap-4" :class="isMobile ? 'py-0' : 'py-1'">
 							<div
 								v-for="(item, index) in items"
 								:key="index"
@@ -232,7 +231,9 @@
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-	import { PHCEnterMode, loginMethods } from '@global-client/models/MSS/TMultiServerSetup';
+	// Models
+	import { loginMethods } from '@global-client/models/MSS/TAuths';
+	import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 	// Logic
 	import { useMSS } from '@global-client/stores/mss';

@@ -35,8 +35,9 @@ import { useDialog } from "@hub-client/stores/dialog";
 We handle props definition in the following way.
 
 - Using `withDefaults` saves 2 lines per prop compared to when using just `defineProps`.
-- This alows to type props easily by doing `defineProps<Props>`.
-- Props are sorted alphabetically
+- This allows to type props easily by doing `defineProps<Props>`.
+- A prop is required when no default is given.
+- Props are sorted alphabetically.
 
 ```ts
 // Props

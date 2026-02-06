@@ -1,35 +1,11 @@
 // Packages
 import { HttpResponse, http } from 'msw';
 
-
-
 // Stores
 import { TSecuredRoom } from '@hub-client/stores/rooms';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export const handlers = [
-	http.get('http://test/_synapse/client/secured_rooms', () => {
+	http.get('http://testing/_synapse/client/secured_rooms', () => {
 		return HttpResponse.json(
 			[
 				{
@@ -56,7 +32,7 @@ export const handlers = [
 		);
 	}),
 
-	http.post('http://test/_synapse/client/secured_rooms', async (request) => {
+	http.post('http://testing/_synapse/client/secured_rooms', async (request) => {
 		const body = (await request.request.json()) as TSecuredRoom;
 		if (
 			typeof body.room_name === 'undefined' ||

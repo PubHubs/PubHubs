@@ -1,21 +1,24 @@
 <template>
-	<div class="bg-background font-body text-on-surface text-body h-screen w-full">
+	<div class="bg-background font-body text-on-surface text-body h-full w-full">
 		<div v-if="setupReady" class="h-full">
 			<div v-if="user.isLoggedIn" class="flex h-full">
 				<HeaderFooter class="bg-surface-low w-full" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">
 					<template #header>
 						<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 							<span class="font-semibold uppercase">hub</span>
-							<hr class="bg-on-surface-dim h-[2px] grow" />
+							<hr class="bg-on-surface-dim h-025 grow" />
 						</div>
 						<div class="flex h-full justify-between py-2">
-							<div class="flex items-center justify-between">
-								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
-								<Notification class="absolute right-4" />
-								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
-								<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
+							<div class="flex items-center justify-between gap-2">
+								<div class="group hover:border-on-surface-dim hover:mt-025 relative flex cursor-pointer items-center gap-2 hover:border-b-2 hover:border-dotted" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
+									<H3 class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
+									<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
+								</div>
 							</div>
-							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
+							<div class="flex items-center justify-end gap-2">
+								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0">{{ rooms.totalUnreadMessages }}</Badge>
+								<Notification />
+							</div>
 						</div>
 					</template>
 
@@ -50,24 +53,17 @@
 						</section>
 
 						<!-- Public rooms -->
-						<RoomListHeader label="admin.public_rooms">
+						<RoomListHeader v-if="hasPublicRooms" label="admin.public_rooms">
 							<template #roomlist>
 								<RoomList :roomTypes="PublicRooms" />
 							</template>
 						</RoomListHeader>
 
 						<!-- Secured rooms -->
-						<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
+						<RoomListHeader v-if="hasSecuredRooms" label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
 							<template #roomlist>
 								<RoomList :roomTypes="SecuredRooms" />
 							</template>
-						</RoomListHeader>
-
-						<!-- When user is admin, show the moderation tools menu -->
-						<RoomListHeader v-if="disclosureEnabled && user.isAdmin" label="menu.moderation_tools">
-							<Menu>
-								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ t('menu.moderation_tools_disclosure') }} </MenuItem>
-							</Menu>
 						</RoomListHeader>
 
 						<!-- When user is admin, show the admin tools menu -->
@@ -95,21 +91,22 @@
 
 		<Dialog v-if="dialog.visible" @close="dialog.close" />
 	</div>
+
+	<ContextMenu />
 </template>
 
 <script setup lang="ts">
 	// Packages
 	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
-	import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { RouteParamValue, useRouter } from 'vue-router';
+	import { NavigationFailure, RouteParamValue, isNavigationFailure, useRouter } from 'vue-router';
 
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
-	import Disclosure from '@hub-client/components/rooms/Disclosure.vue';
 	import RoomList from '@hub-client/components/rooms/RoomList.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
@@ -119,12 +116,15 @@
 	import Notification from '@hub-client/components/ui/Notification.vue';
 	import RoomListHeader from '@hub-client/components/ui/RoomListHeader.vue';
 
+	// Composables
+	import { useClipboard } from '@hub-client/composables/useClipboard';
+
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
-	import { routes } from '@hub-client/logic/core/router';
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	import { QueryParameterKey } from '@hub-client/models/constants';
 	// Models
 	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
@@ -140,6 +140,9 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// New design
+	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
+
 	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
 	const settings = useSettings();
@@ -150,10 +153,14 @@
 	const dialog = useDialog();
 	const pubhubs = usePubhubsStore();
 	const menu = useMenu();
+	const { copyHubUrl } = useClipboard();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
+
+	const hasPublicRooms = computed(() => rooms.fetchRoomList(PublicRooms).length > 0 || !rooms.roomsLoaded);
+	const hasSecuredRooms = computed(() => rooms.fetchRoomList(SecuredRooms).length > 0 || !rooms.roomsLoaded);
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
@@ -212,15 +219,42 @@
 				hubSettings.initHubInformation(message.content as HubInformation);
 			});
 
-			// Listen to roomchange
 			messagebox.addCallback('parentFrame', MessageType.RoomChange, async (message: Message) => {
+				let navigationResult: NavigationFailure | void | undefined = undefined;
+				//TODO: content from MessageType.RoomChange is roomId? maybe we can rename content to roomId.
 				const content = message.content as RouteParamValue;
-				const isNonRoomRoute = routes.some((r) => r.name === content && r.name !== 'room');
-				if (isNonRoomRoute) {
-					router.push({ name: content });
+				// If content is a roomId then it has a format that starts with !.
+				if (content.startsWith('!')) {
+					navigationResult = await router.push({ name: 'room', params: { id: content } });
 				} else {
-					router.push({ name: 'room', params: { id: content } });
+					navigationResult = await router.push({ name: content as any });
 				}
+
+				// FALLBACK to homepage if there is a navigation failure.
+				if (navigationResult && isNavigationFailure(navigationResult)) {
+					await router.push({ name: 'home' });
+				}
+			});
+
+			// Listen to event change
+			messagebox.addCallback('parentFrame', MessageType.EventChange, (message: Message) => {
+				const url = message.content;
+
+				const [routePart, queryPart] = url.split('?');
+
+				const params = new URLSearchParams(queryPart);
+
+				const eventId = params.get(QueryParameterKey.EventId);
+
+				if (!eventId) return;
+
+				// Ignore any empty values
+				const splitRoutePart: string[] = routePart.split('/').filter(Boolean);
+
+				const roomId = splitRoutePart[splitRoutePart.length - 1];
+
+				// Set the scroll position to event
+				rooms.scrollPositions[roomId] = eventId;
 			});
 
 			// Listen to global menu change

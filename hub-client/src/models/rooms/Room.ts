@@ -142,7 +142,7 @@ export default class Room {
 		return this.getType() === RoomType.SECURED;
 	}
 
-	public directMessageRoom(): boolean {
+	public isDirectMessageRoom(): boolean {
 		return this.isPrivateRoom() || this.isAdminContactRoom() || this.isStewardContactRoom() || this.isGroupRoom();
 	}
 
@@ -663,6 +663,20 @@ export default class Room {
 		return this.timelineManager.getEvents();
 	}
 
+	/**
+	 * Returns timeline events sorted chronologically (oldest first)
+	 */
+	public getChronologicalTimeline(): TimelineEvent[] {
+		return this.timelineManager.getChronologicalTimeline();
+	}
+
+	/**
+	 * Returns the timeline version counter
+	 */
+	public getTimelineVersion(): number {
+		return this.timelineManager.getTimelineVersion();
+	}
+
 	public getLibraryTimeline(): TimelineEvent[] {
 		return this.timelineManager.getLibraryEvents();
 	}
@@ -778,7 +792,7 @@ export default class Room {
 
 	public getThread(eventId: string | undefined): TRoomThread | undefined {
 		if (eventId) {
-			let thread = this.matrixRoom.getThread(eventId);
+			const thread = this.matrixRoom.getThread(eventId);
 			if (thread) {
 				return new TRoomThread(thread);
 			}
@@ -788,11 +802,11 @@ export default class Room {
 
 	public getOrCreateThread(eventId: string | undefined): TRoomThread | undefined {
 		if (eventId) {
-			let thread = this.getThread(eventId);
+			const thread = this.getThread(eventId);
 			if (thread) {
 				return thread;
 			} else {
-				let createdThread = this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
+				const createdThread = this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
 				if (createdThread) {
 					return new TRoomThread(createdThread);
 				}
@@ -842,8 +856,13 @@ export default class Room {
 		this.deleteMessage(event, undefined, threadRootId);
 	}
 
-	public getRoomAvatarMxcUrl(): string | null {
-		return this.matrixRoom.getMxcAvatarUrl();
+	// get the authorized url of the room-avatar
+	public async getRoomAvatarAuthorizedUrl(): Promise<string | undefined> {
+		const mxcUrl = this.matrixRoom.getMxcAvatarUrl();
+		if (mxcUrl) {
+			return await this.matrixFiles.getAuthorizedMediaUrl(mxcUrl);
+		}
+		return undefined;
 	}
 
 	public getRoomMembers(): number {
