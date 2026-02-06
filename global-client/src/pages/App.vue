@@ -1,18 +1,16 @@
 <template>
 	<div class="bg-background font-body text-on-surface text-body h-full min-w-[32rem]">
-		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login')" />
+		<MobileMenu v-if="!(route.name === 'onboarding')" />
 
 		<div class="flex h-full">
-			<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
-			<div class="h-dvh w-full flex-1">
+			<GlobalBar v-if="!(route.name === 'onboarding')" />
+			<div class="h-[100dvh] w-full flex-1">
 				<router-view />
 			</div>
 		</div>
 	</div>
 
 	<Dialog v-if="dialog.visible" @close="dialog.close" />
-
-	<ContextMenu />
 </template>
 
 <script setup lang="ts">
@@ -37,9 +35,6 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { NotificationsPermission, useSettings } from '@hub-client/stores/settings';
-
-	// New design
-	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 
 	const LOGGER = new Logger('GC', CONFIG);
 	const { locale, availableLocales } = useI18n();

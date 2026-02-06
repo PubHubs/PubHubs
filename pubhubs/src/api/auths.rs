@@ -23,34 +23,11 @@ impl EndpointDetails for WelcomeEP {
     const PATH: &'static str = ".ph/welcome";
 }
 
-/// Reponse type for [`WelcomeEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct WelcomeResp {
     /// Available attribute types
     pub attr_types: HashMap<handle::Handle, attr::Type>,
-
-    /// A list of historic values for the duration of the validity of pubhubs cards.
-    ///
-    /// This field is only set when yivi and historic values for
-    /// [`servers::auths::card::CardConfig::valid_for`] are configured.
-    ///
-    /// The list is guaranteed to be ordered by [`HistoricCardValidity::starting_at_timestamp`],
-    /// and is gauranteed to contain an entry with `starting_at_timestamp = 0`.
-    #[serde(default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub card_validity: Option<Vec<HistoricCardValidity>>,
-}
-
-/// Type for [`WelcomeResp::card_validity`]
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct HistoricCardValidity {
-    /// Starting from this timestamp (number of seconds since 1970-01-01 00:00:00Z)...
-    pub starting_at_timestamp: NumericDate,
-
-    /// cards were issued that were valid for this many seconds.
-    pub card_valid_for_secs: u64,
 }
 
 /// Starts the process of obtaining attributes from the authentication server.
@@ -153,12 +130,6 @@ impl AuthState {
         Self {
             inner: inner.into(),
         }
-    }
-}
-
-impl std::fmt::Display for AuthState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt(f)
     }
 }
 
@@ -298,7 +269,7 @@ impl EndpointDetails for CardEP {
 #[serde(deny_unknown_fields)]
 #[must_use]
 pub struct CardReq {
-    /// A by PHC signed registration pseudonym obtained via [`phc::user::CardPseudEP`].
+    /// A by PHC signed registration pseudonym obtained via [`phc::user::CardPseudEP.`]
     pub card_pseud_package: Signed<phc::user::CardPseudPackage>,
 
     /// Optional comment used after the registration date field.

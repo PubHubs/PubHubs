@@ -90,7 +90,6 @@
 	import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 	import { TVotingMessageEvent } from '@hub-client/models/events/voting/TVotingMessageEvent';
 	import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidget, VotingWidgetType, votesForOption } from '@hub-client/models/events/voting/VotingTypes';
-	import Room from '@hub-client/models/rooms/Room';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -99,18 +98,13 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	const rooms = useRooms();
+	const currentRoom = rooms.currentRoom;
 	const pubhubs = usePubhubsStore();
 	const user = useUser();
 	const settings = useSettings();
 	const { d } = useI18n();
 
-	const props = withDefaults(
-		defineProps<{
-			room: Room;
-			event: TVotingMessageEvent;
-		}>(),
-		{},
-	);
+	const props = defineProps<{ event: TVotingMessageEvent }>();
 
 	const emit = defineEmits<{
 		(e: 'editPoll', poll: Poll, eventId: string): void;
@@ -148,7 +142,7 @@
 	});
 
 	watch(
-		() => props.room.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id),
+		() => currentRoom?.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id),
 		(event) => {
 			collectNewVotes(event);
 		},
@@ -408,7 +402,7 @@
 		//events do not get registered instantly which leads to errors when creating polls
 		//this check makes sure that the votingwidget event exists
 		if (props.event.unsigned) {
-			const events = props.room.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id);
+			const events = currentRoom?.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id);
 			votesByOption.value.options = initializeVotesByOption(votingWidget.value.options); //clear any stored data in votesByOption
 			events?.forEach((event) => {
 				lastEventTimestamp = event.event.origin_server_ts as number;

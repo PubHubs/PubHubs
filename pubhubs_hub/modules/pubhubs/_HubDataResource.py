@@ -64,7 +64,7 @@ class HubDataResource(DirectServeJsonResource):
 			respond_with_json(request, 400, {"error": "Missing data parameter"})
 			return
 		
-		request.setHeader(b"Access-Control-Allow-Origin", '*')
+		request.setHeader(b"Access-Control-Allow-Origin", self._module_config.hub_client_url.encode())
 
 		try:
 			match data:
@@ -168,7 +168,7 @@ class HubDataResource(DirectServeJsonResource):
 			respond_with_json(request, 400, {"error": "Missing data parameter"})
 			return
 		
-		request.setHeader(b"Access-Control-Allow-Origin", '*')
+		request.setHeader(b"Access-Control-Allow-Origin", self._module_config.hub_client_url.encode())
 
 		content = request.content.read()
 		body = json.loads(content)

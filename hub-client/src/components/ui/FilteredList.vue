@@ -2,7 +2,7 @@
 	<div class="flex w-full flex-col">
 		<div class="flex w-full items-center gap-4 pb-4">
 			<Icon type="compass" class="text-surface-high dark:text-on-surface-dim" />
-			<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="bg-surface-low text-label h-8 w-full border-none" :class="inputClass" @input="changed()" />
+			<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="!bg-surface-low text-label h-8 w-full border-none" :class="inputClass" @input="changed()" />
 		</div>
 		<ul v-if="filteredItems.length > 0" :class="listClass + ' flex h-full flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-md'">
 			<li v-for="(item, index) in filteredItems" :key="index" class="group block" @click="clickedItem(item)">

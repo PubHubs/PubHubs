@@ -18,7 +18,7 @@
 			</div>
 		</div>
 
-		<div class="bg-background w-full" :class="isMobile ? 'h-[calc(100svh-7.5rem)]' : 'h-[calc(100svh-10rem)]'">
+		<div class="bg-background w-full" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
 			<div class="flex h-full w-full items-center justify-center" :class="isMobile ? 'flex-col' : 'flex-row'">
 				<div class="bg-surface-low flex items-center justify-center" :class="isMobile ? 'h-1/2 w-full px-12' : 'h-full w-1/2 px-36'">
 					<figure class="h-auto w-full">
@@ -28,10 +28,7 @@
 				<div class="flex flex-col items-center justify-center gap-6" :class="isMobile ? 'h-1/2 w-full' : 'h-full w-1/2'">
 					<div class="flex flex-col gap-6">
 						<div class="flex flex-col gap-4">
-							<H1>
-								{{ $t('common.app_name') }}
-								{{ $t('login.global_login') }}
-							</H1>
+							<H1>{{ $t('home.welcome_to', [$t('common.app_name')]) }}</H1>
 							<P>{{ $t('register.have_account', [$t('common.app_name')]) }}</P>
 						</div>
 						<div class="flex flex-col gap-4">
@@ -78,8 +75,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { loginMethods } from '@global-client/models/MSS/TAuths';
-	import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
+	import { PHCEnterMode, loginMethods } from '@global-client/models/MSS/TMultiServerSetup';
 
 	// Stores
 	import { useMSS } from '@global-client/stores/mss';

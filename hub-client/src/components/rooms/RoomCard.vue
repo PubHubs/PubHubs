@@ -51,7 +51,7 @@
 			</div>
 		</div>
 
-		<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" />
+		<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" />
 	</div>
 </template>
 
@@ -66,7 +66,7 @@
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
-	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
+	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';

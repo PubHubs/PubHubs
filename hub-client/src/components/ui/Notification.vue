@@ -7,31 +7,28 @@
 				{{ notifications.length }}
 			</span>
 		</button>
-	</div>
-	<!-- Notification Panel (directly under the bell) -->
-	<div v-if="showNotifications" @click.stop class="border-surface-high bg-surface absolute top-20 right-0 z-50 mt-2 mb-8 max-h-96 overflow-y-auto rounded-lg border p-4 shadow-lg">
-		<div class="mb-2 flex items-center justify-between">
-			<span class="font-semibold">{{ t('notifications.heading') }}</span>
-		</div>
-		<div v-for="notification in notifications" :key="notification.type" class="bg-surface-low mt-2 flex flex-col items-end justify-between rounded-xs p-2 shadow-xs">
-			<div class="flex flex-row">
+		<!-- Notification Panel (directly under the bell) -->
+		<div v-if="showNotifications" @click.stop class="border-surface-high bg-surface relative -right-2 z-50 mt-2 mb-8 max-h-96 overflow-y-auto rounded-lg border p-4 shadow-lg">
+			<div class="mb-2 flex items-center justify-between">
+				<span class="font-semibold">{{ t('notifications.heading') }}</span>
+			</div>
+			<div v-for="notification in notifications" :key="notification.type" class="bg-surface-low mt-2 flex flex-col items-end justify-between rounded-xs p-2 shadow-xs">
 				<p class="mr-2">{{ t(`notifications.${notification.type}`, notification.message_values) }}</p>
-				<Icon @click="dismissNotification(notification)" type="trash" class="text-accent-red flex justify-end hover:cursor-pointer">{{ t('notifications.dismiss') }}</Icon>
+				<div class="flex flex-row items-center gap-2">
+					<Button v-if="(notification.type === TNotificationType.RemovedFromSecuredRoom || notification.type === TNotificationType.SoonRemovedFromSecuredRoom) && notification.room_id" @click="panelOpen = notification.room_id">{{
+						t('notifications.rejoin')
+					}}</Button>
+					<button @click="dismissNotification(notification)" class="text-accent-red hover:underline">{{ t('notifications.dismiss') }}</button>
+				</div>
+				<SecuredRoomLoginDialog
+					v-if="notification.room_id && panelOpen === notification.room_id"
+					@click="panelOpen = null"
+					v-model:dialogOpen="panelOpen"
+					title="notifications.rejoin_secured_room"
+					:message="t(`notifications.${notification.type}`, notification.message_values)"
+					:messageValues="notification.message_values"
+				/>
 			</div>
-			<div class="flex flex-row items-center gap-2">
-				<Button v-if="(notification.type === TNotificationType.RemovedFromSecuredRoom || notification.type === TNotificationType.SoonRemovedFromSecuredRoom) && notification.room_id" @click="panelOpen = notification.room_id">{{
-					t('notifications.rejoin')
-				}}</Button>
-			</div>
-			<RoomLoginDialog
-				v-if="notification.room_id && panelOpen === notification.room_id"
-				@click="panelOpen = null"
-				v-model:dialogOpen="panelOpen"
-				title="notifications.rejoin_secured_room"
-				:message="t(`notifications.${notification.type}`, notification.message_values)"
-				:messageValues="notification.message_values"
-				:secured="true"
-			/>
 		</div>
 	</div>
 </template>
@@ -44,7 +41,7 @@
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
+	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
 
 	// Models
 	import { TNotification, TNotificationType } from '@hub-client/models/users/TNotification';

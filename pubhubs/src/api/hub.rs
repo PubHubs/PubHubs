@@ -30,23 +30,6 @@ pub struct InfoResp {
 
     /// URL to this hub's client
     pub hub_client_url: url::Url,
-
-    /// Changeable information about this hub.
-    #[serde(default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dynamic: Option<DynamicHubInfo>,
-}
-
-/// Type for [`InfoResp::dynamic`]
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-#[must_use]
-pub struct DynamicHubInfo {
-    /// The last time these settings were reloaded
-    pub last_reload: NumericDate,
-
-    /// Hub settings set by admin
-    pub settings: serde_json::Value,
 }
 
 /// Endpoint that start the authentication of a (not yet existing) user

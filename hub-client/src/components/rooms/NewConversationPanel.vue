@@ -33,7 +33,7 @@
 					<span class="text-label-small"> {{ t('others.select_group_name') }}</span>
 					<div class="bg-surface-low flex items-center gap-2 rounded-lg px-2 py-2">
 						<div class="bg-surface-high h-10 w-10 cursor-pointer rounded-full">
-							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl.url" @click="fileInput!.click()"></Avatar>
+							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl" @click="fileInput!.click()"></Avatar>
 							<Button v-else color="" @click="fileInput!.click()">
 								<Icon type="image-square" class="mt-[2px] -ml-[5px]" />
 							</Button>
@@ -96,7 +96,7 @@
 <script setup lang="ts">
 	// Packages
 	import { User as MatrixUser } from 'matrix-js-sdk';
-	import { computed, onBeforeUnmount, ref } from 'vue';
+	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -108,7 +108,6 @@
 	import { fileUpload } from '@hub-client/composables/fileUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
 	import filters from '@hub-client/logic/core/filters';
 
@@ -125,7 +124,7 @@
 	const groupPanelButton = ref<boolean>(true);
 	const groupProfileButton = ref<boolean>(false);
 	const fileInput = ref<HTMLInputElement | null>(null);
-	const avatarPreviewUrl = ref<BlobManager>();
+	const avatarPreviewUrl = ref<string | null>(null);
 	const selectedAvatarFile = ref<File | null>(null);
 	const hideAvatarPreview = ref<boolean>(true);
 	const dialog = useDialog();
@@ -142,10 +141,6 @@
 		},
 	});
 
-	onBeforeUnmount(() => {
-		avatarPreviewUrl.value?.revoke();
-	});
-
 	const usersSelected = computed(() => pubhubs.client.getUsers().filter((user) => selectedUsers.value.includes(user.userId)));
 
 	// New ref for the filter input
@@ -155,7 +150,7 @@
 	const selectionNotCompleted = computed(() => selectedUsers.value.length < 2 || selectedUsers.value.length >= MAX_USER_GROUP);
 
 	// There should be a name and a dp for creating a group.
-	const cannotCreateGroupRoom = computed(() => groupName.value === '' || !avatarPreviewUrl.value?.url || selectedUsers.value.length < 2);
+	const cannotCreateGroupRoom = computed(() => groupName.value === '' || avatarPreviewUrl.value === null || selectedUsers.value.length < 2);
 
 	// Categorize users based on first letter and apply filter
 	const categorizedUsers = computed(() => {
@@ -228,7 +223,7 @@
 		groupPanelButton.value = true;
 		groupProfileButton.value = false;
 
-		if (avatarPreviewUrl.value?.url) {
+		if (avatarPreviewUrl.value) {
 			hideAvatarPreview.value = false;
 		}
 	}
@@ -251,8 +246,7 @@
 				dialog.confirm(t('errors.file_upload'));
 				return;
 			}
-			avatarPreviewUrl.value?.revoke();
-			avatarPreviewUrl.value = new BlobManager(file);
+			avatarPreviewUrl.value = URL.createObjectURL(file);
 			selectedAvatarFile.value = file;
 		}
 	};
@@ -275,7 +269,7 @@
 			});
 		} catch (error) {
 			console.error('Error uploading avatar:', error);
-			avatarPreviewUrl.value?.revoke();
+			avatarPreviewUrl.value === undefined;
 			return;
 		}
 	}

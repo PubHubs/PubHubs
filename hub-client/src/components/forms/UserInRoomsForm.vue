@@ -64,7 +64,6 @@
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiHubManagement';
 
-	import { roles } from '@hub-client/models/constants';
 	// Models
 	import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
 	import { UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
@@ -176,7 +175,7 @@
 	}
 
 	function isRoomAdmin(roomId: string) {
-		return listUserRooms.value.find((room) => room.room_id === roomId)!.room_pl === roles.Admin;
+		return listUserRooms.value.find((room) => room.room_id === roomId)!.room_pl === 100;
 	}
 
 	// Presentation methods //

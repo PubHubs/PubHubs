@@ -74,7 +74,7 @@ const useHubSettings = defineStore('hub-settings', {
 			parentUrl: CONFIG._env.PARENT_URL,
 			// @ts-ignore
 			hubUrl: CONFIG._env.HUB_URL,
-			isSolo: globalThis.self === window.top,
+			isSolo: window.self === window.top,
 			mobileHubMenu: true,
 			_summary: '',
 			_description: '',

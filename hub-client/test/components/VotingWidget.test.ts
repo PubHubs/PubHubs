@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 
 // Components
-import Icon from '@hub-client/components/elements/Icon.vue';
 import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
 
 import { en } from '@hub-client/locales/en';
@@ -19,7 +18,6 @@ import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidg
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { Room } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
 
 // Add to VotingWidget-test-setup.ts
@@ -30,7 +28,6 @@ config.global.mocks = {
 describe('VotingWidget functions', () => {
 	let i18n;
 	const fallbackLanguage = 'en';
-	let room: Room;
 
 	beforeEach(() => {
 		setActivePinia(createPinia());
@@ -57,10 +54,6 @@ describe('VotingWidget functions', () => {
 		const pubhubs = usePubhubsStore();
 		const accessTokenMock = vi.fn();
 		pubhubs.Auth.getAccessToken = accessTokenMock;
-		room = {
-			roomId: 'testroom:example.org',
-			filterRoomWidgetRelatedEvents: vi.fn().mockReturnValue([]),
-		} as unknown as Room;
 	});
 
 	afterEach(() => {
@@ -88,7 +81,6 @@ describe('VotingWidget functions', () => {
 					},
 					event_id: 'TEST',
 				},
-				room: room,
 			},
 		});
 		// Call the function and test if it was called
@@ -137,7 +129,6 @@ describe('VotingWidget functions', () => {
 					},
 					event_id: 'TEST',
 				},
-				room: room,
 			},
 		});
 
@@ -221,7 +212,6 @@ describe('VotingWidget functions', () => {
 					},
 					event_id: 'TEST',
 				},
-				room: room,
 			},
 		});
 		// Set the votesByOption field of the mocked component (cant do this when mounting)
@@ -304,7 +294,6 @@ describe('VotingWidget functions', () => {
 					},
 					event_id: 'TEST',
 				},
-				room: room,
 			},
 		});
 
@@ -354,7 +343,6 @@ describe('VotingWidget functions', () => {
 					},
 					event_id: 'TEST',
 				},
-				room: room,
 			},
 		});
 		// Add data to test the scoring function on
@@ -462,7 +450,6 @@ describe('VotingWidget functions', () => {
 					},
 					event_id: 'TEST',
 				},
-				room: room,
 			},
 		});
 
@@ -500,7 +487,6 @@ describe('VotingWidget functions', () => {
 					},
 					event_id: 'TEST',
 				},
-				room: room,
 			},
 		});
 		const replyEventRadioHasNotVoted = {
@@ -560,7 +546,6 @@ describe('VotingWidget functions', () => {
 					},
 					event_id: 'TEST',
 				},
-				room: room,
 			},
 		});
 		// Event when a user has not voted yet

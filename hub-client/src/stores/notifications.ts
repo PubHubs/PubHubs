@@ -17,6 +17,7 @@ export const useNotifications = defineStore('notifications', {
 				const newNotifications = await api_synapse.apiGET<TNotification[]>(`${api_synapse.apiURLS.data}?data=removed_from_secured_room`);
 
 				// Only add notifications that are not already in the list (by room_id and type)
+				// FIXME: Floris
 				newNotifications.forEach((n: TNotification) => {
 					if (!this.notifications.some((existing: TNotification) => existing.room_id === n.room_id && existing.type === n.type)) {
 						this.notifications.push(n);

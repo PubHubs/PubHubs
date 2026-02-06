@@ -4,13 +4,11 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, test } from 'vitest';
 import { createRouter, createWebHistory } from 'vue-router';
 
+// Logic
 import { routes } from '@hub-client/logic/core/router';
 
 // Pages
 import Room from '@hub-client/pages/Room.vue';
-
-// Logic
-import { setUpi18n } from '@hub-client/i18n';
 
 describe('Room.vue Test', () => {
 	test('room cannot be found redirects to error page', async () => {
@@ -26,11 +24,9 @@ describe('Room.vue Test', () => {
 			pushed = p;
 		};
 
-		const i18n = setUpi18n();
-
 		const wrapper = mount(Room, {
 			global: {
-				plugins: [createTestingPinia(), router, i18n],
+				plugins: [createTestingPinia(), router],
 			},
 			props: {
 				id: '!some_room:some.server',

@@ -39,8 +39,11 @@
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Components
+	// Assets
+	import { icons } from '@hub-client/assets/icons';
+
 	import SettingsDialog from '@global-client/components/forms/SettingsDialog.vue';
+	// Components
 	import GlobalbarButton from '@global-client/components/ui/GlobalbarButton.vue';
 	import HubMenu from '@global-client/components/ui/HubMenu.vue';
 	import Logo from '@global-client/components/ui/Logo.vue';

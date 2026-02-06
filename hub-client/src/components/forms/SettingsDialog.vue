@@ -6,7 +6,7 @@
 				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="chooseAvatar($event)" />
 
 				<div class="flex flex-col justify-between md:w-4/6 md:flex-row">
-					<Avatar :avatar-url="blobUrl?.url" class="h-32 w-32 rounded-full"></Avatar>
+					<Avatar :avatar-url="blobUrl" class="h-32 w-32 rounded-full"></Avatar>
 
 					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
@@ -21,7 +21,7 @@
 				<TextInput
 					class="text-body rounded-xs border p-1 focus:border-blue-500 focus:outline-none md:w-4/6"
 					name="displayname"
-					v-model.trim="formState.data.displayName.value as string"
+					v-model.trim="formState.data.displayName.value"
 					:placeholder="$t('settings.displayname')"
 					@changed="formState.updateData('displayName', $event)"
 				/>
@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { onBeforeUnmount, onMounted, ref } from 'vue';
+	import { onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -58,8 +58,6 @@
 	import { fileUpload } from '@hub-client/composables/fileUpload';
 	import { FormDataType, useFormState } from '@hub-client/composables/useFormState';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
-
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 
 	// Stores
 	import { DialogButtonAction, DialogSubmit, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
@@ -77,7 +75,7 @@
 	const fileInfo = ref<File>();
 
 	let avatarMxcUrl = ref<string | undefined>(undefined);
-	let blobUrl = ref<BlobManager>();
+	let blobUrl = ref<string | undefined>(undefined);
 
 	formState.setData({
 		displayName: {
@@ -96,11 +94,7 @@
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());
 		formState.data.displayName.value = user.userDisplayName(user.userId!) as FormDataType;
-		blobUrl.value = new BlobManager(user.userAvatar(user.userId!));
-	});
-
-	onBeforeUnmount(() => {
-		blobUrl.value?.revoke();
+		blobUrl.value = user.userAvatar(user.userId!);
 	});
 
 	function dialogAction(action: DialogButtonAction) {
@@ -125,9 +119,11 @@
 			await uploadAvatar();
 		}
 		if (avatarMxcUrl.value !== undefined) {
-			user.setAvatarUrl(avatarMxcUrl.value);
+			user.setAvatarMxcUrl(avatarMxcUrl.value);
 		}
-		blobUrl.value?.revoke();
+		if (blobUrl.value) {
+			URL.revokeObjectURL(blobUrl.value);
+		}
 	}
 
 	async function chooseAvatar(event: Event) {
@@ -136,7 +132,7 @@
 		const file = target.files && target.files[0];
 		if (file) {
 			fileInfo.value = file;
-			blobUrl.value?.create(file);
+			blobUrl.value = URL.createObjectURL(file);
 		}
 	}
 
@@ -153,7 +149,7 @@
 			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, (mxUrl) => {
 				avatarMxcUrl.value = mxUrl;
 				if (avatarMxcUrl.value !== undefined) {
-					user.setAvatarUrl(avatarMxcUrl.value);
+					user.setAvatarMxcUrl(avatarMxcUrl.value);
 				}
 			});
 		} else {
@@ -163,7 +159,9 @@
 
 	async function removeAvatar() {
 		avatarMxcUrl.value = '';
-		blobUrl.value?.revoke();
+		if (blobUrl.value) {
+			URL.revokeObjectURL(blobUrl.value);
+		}
 		blobUrl.value = undefined;
 		fileInfo.value = undefined;
 		getSubmitButton().enabled = true;

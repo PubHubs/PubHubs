@@ -14,7 +14,7 @@
 					<input
 						v-model="scheduler.title"
 						type="text"
-						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-md p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
+						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-md focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						:placeholder="$t('message.voting.enter_title')"
 						maxlength="100"
 						@input="updateScheduler"
@@ -24,7 +24,7 @@
 					<input
 						v-model="scheduler.location"
 						type="text"
-						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-md p-100 pl-7 pl-400 focus:ring-0 focus:outline-0 focus:outline-offset-0"
+						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-md pl-7 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						:placeholder="$t('message.voting.enter_location')"
 					/>
 					<Icon type="map-pin" class="absolute top-1 left-0 ml-1"></Icon>
@@ -46,7 +46,7 @@
 						<textarea
 							v-else
 							v-model="scheduler.description"
-							class="scrollbar-emojipicker bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface h-full w-full resize-none rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
+							class="scrollbar-emojipicker bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface h-full w-full resize-none rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
 							maxlength="500"
 							:placeholder="$t('message.voting.enter_description')"
 							@input="updateScheduler"

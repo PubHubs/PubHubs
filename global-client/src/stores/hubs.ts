@@ -6,8 +6,6 @@ import { RouteParams } from 'vue-router';
 // Models
 import { Hub, HubList } from '@global-client/models/Hubs';
 
-import { QueryParameterKey } from '@hub-client/models/constants';
-
 // Stores
 import { useGlobal } from '@global-client/stores/global';
 import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
@@ -180,12 +178,6 @@ const useHubs = defineStore('hubs', {
 				messagebox.addCallback(iframeHubId, MessageType.RoomChange, (message: Message) => {
 					const roomId = message.content;
 					const currentUrl = window.location.href;
-
-					// Query parameter
-					if (currentUrl.includes('?') && currentUrl.includes(QueryParameterKey.EventId)) {
-						messagebox.sendMessage(new Message(MessageType.EventChange, currentUrl), iframeHubId);
-					}
-
 					const [baseUrl] = currentUrl.split('#');
 					// preserve the current history state
 					const currentState = history.state || {};

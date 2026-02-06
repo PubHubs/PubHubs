@@ -8,7 +8,7 @@ import { defineStore } from 'pinia';
 // Models
 import { Attribute } from '@hub-client/models/yivi/Tyivi';
 
-const attributes: Attribute[] = [
+const curatedAttributes: Attribute[] = [
 	{ attribute: 'pbdf.sidn-pbdf.email.email' },
 	{ attribute: 'pbdf.sidn-pbdf.email.domain' },
 	{ attribute: 'pbdf.gemeente.address.street' },
@@ -39,7 +39,7 @@ const attributes: Attribute[] = [
 const useYivi = defineStore('yivi', {
 	state: () => {
 		return {
-			attributes,
+			attributes: curatedAttributes as Attribute[],
 		};
 	},
 

@@ -143,9 +143,7 @@ impl App {
                     if let Some(existing_at_handle) =
                         ati2at.insert(ati.clone(), attr_ty_handle.clone())
                     {
-                        log::debug!(
-                            "attribute types {existing_at_handle} and {attr_ty_handle} both rely on the same yivi attribute type identifier {ati}"
-                        );
+                        log::debug!("attribute types {existing_at_handle} and {attr_ty_handle} both rely on the same yivi attribute type identifier {ati}");
                         return Ok(api::auths::AuthStartResp::Conflict(
                             existing_at_handle,
                             attr_ty_handle.clone(),
@@ -159,8 +157,8 @@ impl App {
 
                 if !had_one {
                     log::debug!(
-                        "got yivi authentication start request for {attr_ty_handle}, but yivi is not supported for this attribute type",
-                    );
+                    "got yivi authentication start request for {attr_ty_handle}, but yivi is not supported for this attribute type",
+                );
                     return Ok(api::auths::AuthStartResp::SourceNotAvailableFor(
                         attr_ty_handle.clone(),
                     ));

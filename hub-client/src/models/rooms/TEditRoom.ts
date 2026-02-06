@@ -4,7 +4,7 @@ import { SecuredRoomAttributes } from '@hub-client/models/rooms/TSecuredRoom';
 // Types
 type TEditRoom = {
 	name: string;
-	accepted?: SecuredRoomAttributes;
+	accepted: SecuredRoomAttributes;
 	topic: string;
 	type: string;
 	user_txt: string;

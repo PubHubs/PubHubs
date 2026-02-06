@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-row gap-2">
-		<Avatar :avatar-url="avatarOverrideUrl" icon="two_users" />
+		<Avatar :avatar-url="props.room.getRoomAvatarMxcUrl() ?? undefined" icon="two_users" />
 
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate leading-tight font-bold">
@@ -12,7 +12,7 @@
 				<Icon type="user" size="sm" class="mr-1" />
 
 				<span class="mx-1">
-					{{ user.user.displayName }}
+					{{ user.rawDisplayName }}
 					<span v-if="memberList.length > 0">,</span>
 				</span>
 
@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, ref, watch } from 'vue';
+	import { computed } from 'vue';
 
 	// Components
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
@@ -40,7 +40,6 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	const user = useUser();
-	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
 	const props = defineProps({
 		room: {
@@ -52,19 +51,6 @@
 			required: true,
 		},
 	});
-
-	// Could also be done in onMounted, but in the future perhaps the avatar of a groupsmessage is editable
-	watch(
-		() => props.room,
-		async (room) => {
-			if (!room) {
-				avatarOverrideUrl.value = undefined;
-				return;
-			}
-			avatarOverrideUrl.value = await props.room.getRoomAvatarAuthorizedUrl();
-		},
-		{ immediate: true },
-	);
 
 	// All members except current user
 	const memberList = computed(() => props.members.filter((m) => m.userId !== user.userId));

@@ -3,15 +3,16 @@ import { Pinia } from 'pinia';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
-import { handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
 import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 
 // Models
-import { EnterCompleteResp, EnterStartResp, HubEnterCompleteReq, HubEnterCompleteResp, HubEnterStartResp } from '@global-client/models/MSS/TGeneral';
+import { handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
+import { EnterCompleteResp, EnterStartResp, HubEnterCompleteReq, HubEnterCompleteResp, HubEnterStartResp } from '@global-client/models/MSS/TMultiServerSetup';
 
 // Stores
-import { FeatureFlag, SettingsStore, useSettings } from '@hub-client/stores/settings';
+import { FeatureFlag, SettingsStore } from '@hub-client/stores/settings';
+import { useSettings } from '@hub-client/stores/settings';
 
 class Hub {
 	readonly hubId: string;
@@ -22,7 +23,7 @@ class Hub {
 	logo: string;
 	unreadMessages: number;
 
-	private readonly settingsStore: SettingsStore;
+	private settingsStore: SettingsStore;
 
 	constructor(hubId: string, hubName: string, url: string, serverUrl: string, description?: string, pinia?: Pinia) {
 		this.hubId = hubId;

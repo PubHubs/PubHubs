@@ -82,7 +82,6 @@ enum MessageType {
 	RemoveAccessToken = 'removeAccessToken', // Hub frame sends a message to remove its' access token to the global client.
 	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
 	BarHide = 'visibilityBar-hide',
-	EventChange = 'eventchange',
 }
 
 /**
@@ -91,11 +90,14 @@ enum MessageType {
  *  - type - a MessageType. Only messages wit a known type can be send and received. Also a callback can be set to a certain message type.
  *  - content - can be anything
  */
+
+type MessageContent = any;
+
 class Message {
 	type: MessageType;
-	content: any;
+	content: MessageContent;
 
-	constructor(type: MessageType, content: any = '') {
+	constructor(type: MessageType, content: MessageContent = '') {
 		this.type = type;
 		this.content = content;
 	}
@@ -130,7 +132,7 @@ const useMessageBox = defineStore('messagebox', {
 		 * Handshake is ready (true)
 		 */
 		isReady: (state) => {
-			return (id: string): boolean => {
+			return (id: string): Boolean => {
 				return state.handshake.get(id) === HandshakeState.Ready;
 			};
 		},
@@ -138,7 +140,7 @@ const useMessageBox = defineStore('messagebox', {
 		/**
 		 * If the hub-client is part of global-client (or standalone, in which case no messages are send/received)
 		 */
-		isConnected(state): boolean {
+		isConnected(state): Boolean {
 			return state.type === MessageBoxType.Parent || state.inIframe;
 		},
 	},
@@ -219,7 +221,7 @@ const useMessageBox = defineStore('messagebox', {
 
 					window.addEventListener('message', this._windowMessageListener.get(id));
 				} else {
-					reject(new Error('Messagebox is not connected'));
+					reject();
 				}
 			});
 		},
@@ -230,7 +232,7 @@ const useMessageBox = defineStore('messagebox', {
 		reset() {
 			this.receiverUrlMap.forEach((_, id) => window.removeEventListener('message', this._windowMessageListener.get(id)));
 			this._windowMessageListener.clear();
-			this.inIframe = globalThis.self !== window.top;
+			this.inIframe = window.self !== window.top;
 			this.type = MessageBoxType.Unset;
 			this.receiverUrlMap.clear();
 			this.handshake.clear();
@@ -275,13 +277,13 @@ const useMessageBox = defineStore('messagebox', {
 				// If the id is 'parentFrame' and the messagebox is of type PARENT, the message needs to be sent to all receivers that are connected with the PARENT.
 				this.receiverUrlMap.forEach((receiverUrl, idFromMap) => {
 					const el: HTMLIFrameElement | null = document.querySelector('iframe#' + idFromMap);
-					if (el !== null && el.contentWindow !== null && el.contentWindow !== undefined) {
+					if (el !== null && el.contentWindow !== null && typeof el.contentWindow !== 'undefined') {
 						target[idFromMap] = { window: el.contentWindow, receiverUrl };
 					}
 				});
 			} else {
 				const el: HTMLIFrameElement | null = document.querySelector('iframe#' + id);
-				if (el !== null && el.contentWindow !== null && el.contentWindow !== undefined) {
+				if (el !== null && el.contentWindow !== null && typeof el.contentWindow !== 'undefined') {
 					const receiverUrl = this.receiverUrlMap.get(id);
 					if (receiverUrl) {
 						target[id] = { window: el.contentWindow, receiverUrl };
@@ -320,7 +322,7 @@ const useMessageBox = defineStore('messagebox', {
 				const callback = callbacks ? callbacks[message.type] : undefined;
 				// console.log('<= ' + this.type + ' RECEIVED', message, id, callback);
 				if (callback) {
-					callback(message);
+					callback(message as Message);
 				}
 			}
 		},
@@ -334,7 +336,7 @@ const useMessageBox = defineStore('messagebox', {
 		 */
 		addCallback(id: string, type: MessageType, callback: Function) {
 			let callbacksList = this.callbacks.get(id);
-			callbacksList ??= {} as { [index in MessageType]: Function };
+			if (!callbacksList) callbacksList = {} as { [index in MessageType]: Function };
 			callbacksList[type] = callback;
 			this.callbacks.set(id, callbacksList);
 		},
@@ -347,7 +349,7 @@ const useMessageBox = defineStore('messagebox', {
 		 */
 		removeCallback(id: string, type: MessageType) {
 			let callbacksList = this.callbacks.get(id);
-			callbacksList ??= {} as { [index in MessageType]: Function };
+			if (!callbacksList) callbacksList = {} as { [index in MessageType]: Function };
 			delete callbacksList[type];
 			this.callbacks.set(id, callbacksList);
 		},

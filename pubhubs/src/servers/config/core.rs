@@ -389,7 +389,7 @@ pub mod phc {
 
     fn default_auth_token_validity() -> core::time::Duration {
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-        // to their Yivi app
+                                                 // to their Yivi app
     }
 
     fn default_pp_nonce_validity() -> core::time::Duration {
@@ -450,7 +450,7 @@ pub mod auths {
 
     fn default_auth_window() -> core::time::Duration {
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-        // to their Yivi app
+                                                 // to their Yivi app
     }
 
     impl ExtraConfig {
