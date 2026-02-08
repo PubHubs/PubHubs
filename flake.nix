@@ -48,18 +48,28 @@
             packages =
               with pkgs;
               [
+                # Docker
+                docker # 29.2.0
+                buildkit # 0.26.3
+
+                # Node
+                nodejs # 24.13.0
+                nodePackages.sass # 1.85.1
+
+                # Python
+                python3 # 3.13.11
+
+                # Rust
                 rustc # 1.92
                 cargo # 1.92
                 cargo-watch # 8.5.3
-                clippy
-                rustfmt
-                docker # 29.2.0
+                clippy # 0.1.92
+                rustfmt # 1.8.0
+
+                # Other
                 mask # 0.11.7
-                nodejs # 24.13.0
-                nodePackages.sass # 1.85.1
                 openssl # 3.6.0
                 pkg-config # 0.29.2
-                python3 # 3.13.11
                 sqlite # 3.51.2
                 tmux # 3.6a
               ]
