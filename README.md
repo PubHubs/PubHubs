@@ -29,14 +29,14 @@ This project is **in active development** and moving through test phases. The re
 
 ### Important files & directories
 
-| Path / Name      | Type | Purpose                                                            | Notes                                                    |
-| ---------------- | ---: | ------------------------------------------------------------------ | -------------------------------------------------------- |
-| `flake.nix`      | file | Nix flake with reproducible developer environment and dependencies | Use this to create dev shells.                           |
-| `docker_yivi/`   |  dir | Docker build files for the Yivi image                              | Builds the Yivi server used for attribute-based acccess. |
-| `global-client/` |  dir | Global client source (TypeScript + Vue)                            | Embeds hub clients via iframe.                           |
-| `hub-client/`    |  dir | Hub client source (TypeScript + Vue)                               | Matrix client customisations.                            |
-| `pubhubs/`       |  dir | PubHubs Central (Rust)                                             | Central login & identity platform.                       |
-| `pubhubs_hub/`   |  dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration.               |
+| Path / Name                       | Type | Purpose                                                            | Notes                                                    |
+| --------------------------------- | ---: | ------------------------------------------------------------------ | -------------------------------------------------------- |
+| [flake.nix](./flake.nix)          | file | Nix flake with reproducible developer environment and dependencies | Use this to create dev shells.                           |
+| [docker_yivi](./docker_yivi/)`    |  dir | Docker build files for the Yivi image                              | Builds the Yivi server used for attribute-based acccess. |
+| [global-client](./global-client/) |  dir | Global client source (TypeScript + Vue)                            | Embeds hub clients via iframe.                           |
+| [hub-client](./hub-client/)       |  dir | Hub client source (TypeScript + Vue)                               | Matrix client customisations.                            |
+| [pubhubs](./pubhubs/)             |  dir | PubHubs Central (Rust)                                             | Central login & identity platform.                       |
+| [pubhubs_hub](./pubhubs_hub/)     |  dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration.               |
 
 > [!Warning] Placement note
 > Do not place this repository inside a folder managed by home-manager’s impermanence feature — that can cause permission problems for test hub data and local services.
@@ -97,12 +97,12 @@ PubHubs consists of two main components:
 1. `Pubhubs Central`, which manages the global login
 
    - [./pubhubs](./pubhubs/) folder contains the backend
-   - [./global_client](./global_client/) folder contains the client
+   - [./global-client](./global-client/) folder contains the client
 
 2. The `Hubs`, which run the Synapse server and Matrix client
    - [/pubhubs_hub](./pubhubs_hub/) folder contains the synapse server
      - [/pubhubs_hub/testhub[0-4]](./pubhubs_hub/testhub0) folders contain the test hubs
-   - [/hub_client](./hub_client/) folder contains the hub client
+   - [/hub-client](./hub-client/) folder contains the hub client
 
 To run the local development, you need to run six things locally:
 
