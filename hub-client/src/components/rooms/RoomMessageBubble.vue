@@ -72,7 +72,7 @@
 									</div> -->
 									<!-- Reaction Button -->
 									<button
-										v-if="!redactedMessage"
+										v-if="!redactedMessage && !isThreadRoot"
 										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
 										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 										:title="t('message.reply_emoji')"
