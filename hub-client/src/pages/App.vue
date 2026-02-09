@@ -151,7 +151,7 @@
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
-	const { scrollToEnd } = useGlobalScroll();
+	const { scrollToEnd, scrollToStart } = useGlobalScroll();
 
 	const hasPublicRooms = computed(() => rooms.fetchRoomList(PublicRooms).length > 0 || !rooms.roomsLoaded);
 	const hasSecuredRooms = computed(() => rooms.fetchRoomList(SecuredRooms).length > 0 || !rooms.roomsLoaded);
@@ -260,6 +260,17 @@
 
 			messagebox.addCallback('parentFrame', MessageType.BarShow, () => {
 				hubSettings.mobileHubMenu = true;
+			});
+
+			// Listen to close sidebar message from global client
+			// If sidebar is open, close it. If not, request scroll to start.
+			messagebox.addCallback('parentFrame', MessageType.CloseSidebar, () => {
+				const sidebar = useSidebar();
+				if (sidebar.isOpen.value) {
+					sidebar.close();
+				} else {
+					scrollToStart();
+				}
 			});
 
 			// Ask for hubinformation

@@ -32,8 +32,8 @@
 
 				<!-- Right: Sidebar controls -->
 				<div class="flex items-center gap-2">
-					<!-- Close button -->
-					<button v-if="sidebar.isOpen.value" class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer" :aria-label="t('global.close')" @click="sidebar.close()">
+					<!-- Close button (desktop only - on mobile the global back arrow handles sidebar close) -->
+					<button v-if="sidebar.isOpen.value && !isMobile" class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer" :aria-label="t('global.close')" @click="sidebar.close()">
 						<Icon type="arrow-right" size="base" />
 					</button>
 					<RoomHeaderButtons>
