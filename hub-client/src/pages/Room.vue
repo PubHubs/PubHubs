@@ -38,7 +38,7 @@
 					</button>
 					<RoomHeaderButtons>
 						<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
-						<GlobalBarButton type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
+						<GlobalBarButton v-if="hasRoomMembers" type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
 						<GlobalBarButton type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
 						<!-- Thread tab indicator (shown when active) -->
 						<GlobalBarButton v-if="sidebar.activeTab.value === SidebarTab.Thread" type="chat-circle" :selected="true" />
@@ -166,6 +166,13 @@
 			r.name = '';
 		}
 		return r;
+	});
+
+	// Check if there are room members to show
+	const hasRoomMembers = computed(() => {
+		if (!room.value) return false;
+		const members = room.value.getStateJoinedMembersIds();
+		return members.filter((id) => !id.startsWith('@notices_user:')).length > 0;
 	});
 
 	const handleToggleSearchbar = (isExpanded: boolean) => {
