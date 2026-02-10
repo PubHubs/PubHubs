@@ -10,23 +10,17 @@
 				<div v-if="rooms.currentRoom" class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden" data-testid="roomtype">
 					<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
 					<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
-					<div
-						class="group relative min-w-0 flex-1 overflow-hidden"
-						:class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'"
-						:title="t('menu.copy_room_url')"
-						@click="!rooms.currentRoom.isDirectMessageRoom() && copyRoomUrl"
-					>
+					<div class="group relative" :class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'" :title="t('menu.copy_room_url')" @click="!rooms.currentRoom.isDirectMessageRoom() && copyRoomUrl">
 						<H3 class="text-on-surface flex">
 							<TruncatedText class="font-headings font-semibold">
 								<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 								<GroupRoomHeader v-else-if="room!.isGroupRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 								<AdminContactRoomHeader v-else-if="room!.isAdminContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 								<StewardContactRoomHeader v-else-if="room!.isStewardContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-								<RoomName v-else :room="rooms.currentRoom" />
+								<RoomName v-else :room="rooms.currentRoom" :title="t('menu.copy_room_url')" />
 							</TruncatedText>
 						</H3>
-						<TruncatedText class="hidden md:inline"> </TruncatedText>
-						<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2" />
+						<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 -right-2" />
 					</div>
 				</div>
 
