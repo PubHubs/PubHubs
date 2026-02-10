@@ -1,10 +1,10 @@
 <template>
 	<div class="flex h-full flex-col">
 		<!-- Shared Header -->
-		<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-8' : 'pl-8'">
+		<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'">
 			<!-- Left: DM title -->
 			<div class="flex w-fit items-center gap-3 overflow-hidden">
-				<Icon type="chat-circle-text" />
+				<Icon type="chat-circle-text" :class="isMobile && 'hidden'" />
 				<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">
 					<TruncatedText class="font-headings font-semibold">
 						<h2>{{ t('menu.directmsg') }}</h2>
