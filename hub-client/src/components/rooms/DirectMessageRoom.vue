@@ -1,7 +1,7 @@
 <template>
 	<div class="flex h-full w-full flex-col overflow-hidden">
 		<!-- Timeline -->
-		<RoomTimeline v-if="room" :room="room" />
+		<RoomTimeline v-if="room" :room="room" :event-id-to-scroll="eventIdToScroll" />
 	</div>
 </template>
 
@@ -18,6 +18,7 @@
 	// Props
 	const props = defineProps<{
 		room: Room;
+		eventIdToScroll?: string;
 	}>();
 
 	// Initialize timeline when room changes

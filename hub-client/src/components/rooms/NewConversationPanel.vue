@@ -1,12 +1,7 @@
 <template>
-	<div class="absolute inset-y-0 right-0 z-40 flex h-full w-[33%] shrink-0 flex-col px-4 py-4" :class="isMobile ? 'bg-background w-full' : 'bg-surface w-[33%]'" data-testid="sidekick">
+	<div class="flex h-full w-full flex-col px-4 py-4" data-testid="sidekick">
 		<div class="flex h-full flex-col">
 			<div v-if="!groupPanel" class="flex shrink-0 flex-col">
-				<div class="group flex items-center justify-between gap-4 px-8 py-2 font-bold">
-					<span role="heading">{{ t('others.new_message') }}</span>
-					<Icon type="x" size="md" @click="$emit('close')" class="cursor-pointer" />
-				</div>
-				<hr class="my-4 border-t border-white" />
 				<div class="relative flex items-center px-8 py-2">
 					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="bg-background text-label h-8 w-full min-w-0 grow rounded-lg border px-4 py-1" />
 					<Icon class="absolute right-0 mr-5" type="magnifying-glass" size="sm" />

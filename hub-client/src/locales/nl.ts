@@ -466,6 +466,7 @@ const nl = {
 		add_tip: 'Gebruik "," om meerdere waardes tegelijk toe te voegen',
 		editroom_typing: 'Selecteer hier het beveiligde attribuut dat je wilt controleren',
 		value: 'Waardes',
+		admin_contact_title: 'Contact Hub Beheerder',
 		admin_contact_main_msg: 'Voor vragen over de kamer kunt u contact opnemen met de kamer steward. Wilt u nog steeds contact opnemen met de Administrator?',
 		if_admin_contact_not_present: 'De Administrator is niet beschikbaar. Neem contact op met de kamer steward voor hulp.',
 	},

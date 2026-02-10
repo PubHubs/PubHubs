@@ -2,54 +2,47 @@
 	<div class="flex h-full flex-col">
 		<!-- Shared Header -->
 		<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'">
-			<!-- Left: DM title -->
+			<!-- Left: DM title (on mobile, show conversation name when sidebar is open) -->
 			<div class="flex w-fit items-center gap-3 overflow-hidden">
 				<Icon type="chat-circle-text" :class="isMobile && 'hidden'" />
 				<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">
 					<TruncatedText class="font-headings font-semibold">
-						<h2>{{ t('menu.directmsg') }}</h2>
+						<h2 v-if="isMobile && sidebar.isOpen.value && sidebar.selectedDMRoom.value">
+							{{ mobileConversationTitle }}
+						</h2>
+						<h2 v-else>{{ t('menu.directmsg') }}</h2>
 					</TruncatedText>
 				</H3>
 				<TruncatedText class="hidden md:inline" />
 			</div>
 
-			<!-- Right: Buttons -->
-			<div class="flex items-center gap-2">
-				<!-- Close button (desktop only - on mobile the global back arrow handles sidebar close, hidden in DM room view) -->
+			<!-- Right: Buttons (hidden on mobile when sidebar is open) -->
+			<div v-if="!isMobile || !sidebar.isOpen.value" class="flex items-center gap-2">
+				<!-- Admin contact button -->
+				<div v-if="!user.isAdmin" class="relative">
+					<GlobalBarButton type="lifebuoy" @click="directMessageAdmin()" />
+					<Badge v-if="newAdminMsgCount > 99" class="text-label-small absolute -top-1 -right-1" color="ph">99+</Badge>
+					<Badge v-else-if="newAdminMsgCount > 0" class="text-label-small absolute -top-1 -right-1" color="ph">{{ newAdminMsgCount }}</Badge>
+				</div>
+
+				<!-- Divider between admin contact and other buttons -->
+				<div v-if="!user.isAdmin" class="bg-on-surface-disabled mx-1 h-6 w-px"></div>
+
+				<!-- Close button for sidebar (desktop only, not for DM rooms) -->
 				<button
 					v-if="sidebar.isOpen.value && !isMobile && sidebar.activeTab.value !== SidebarTab.DirectMessage"
 					class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer"
 					:aria-label="t('global.close')"
 					@click="sidebar.close()"
 				>
-					<Icon type="arrow-right" size="base" />
+					<Icon type="sidebar" size="base" class="rotate-90" />
 				</button>
 
-				<Button
-					v-if="!user.isAdmin"
-					size="sm"
-					class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1 overflow-visible"
-					:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
-					@click="directMessageAdmin()"
-				>
-					<Icon type="lifebuoy" />
-					<span v-if="!isMobile">{{ t('menu.contact') }}</span>
-					<span :class="isMobile ? 'absolute -top-2 -right-2' : 'absolute -top-2 -right-2 flex items-center gap-2'">
-						<Badge class="text-label-small" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
-						<Badge class="text-label-small" color="ph" v-else-if="newAdminMsgCount > 0">{{ newAdminMsgCount }}</Badge>
-					</span>
-				</Button>
+				<!-- Search button (desktop only, when room is selected) -->
+				<GlobalBarButton v-if="!isMobile && selectedRoom" type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
 
-				<Button
-					class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1"
-					:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
-					size="sm"
-					@click="sidebar.openTab(SidebarTab.NewDM)"
-					:disabled="sidebar.activeTab.value === SidebarTab.NewDM"
-				>
-					<Icon type="plus" />
-					<span v-if="!isMobile">{{ t('others.new_message') }}</span>
-				</Button>
+				<!-- New message button -->
+				<GlobalBarButton type="plus" :selected="sidebar.activeTab.value === SidebarTab.NewDM" @click="sidebar.toggleTab(SidebarTab.NewDM)" />
 			</div>
 		</div>
 
@@ -75,8 +68,14 @@
 			</div>
 
 			<!-- Desktop: DM room shown directly (not in sidebar) -->
-			<div v-if="!isMobile && selectedRoom" class="border-on-surface-disabled flex-1 border-l">
-				<DirectMessageRoom :room="selectedRoom" />
+			<div v-if="!isMobile && selectedRoom" class="border-on-surface-disabled flex min-w-0 flex-1 border-l">
+				<DirectMessageRoom :room="selectedRoom" :event-id-to-scroll="scrollToEventId" class="min-w-0 flex-1" />
+
+				<!-- Desktop: Search/NewDM Sidebar -->
+				<RoomSidebar :active-tab="desktopSidebarTab" :is-mobile="false">
+					<RoomSearch v-if="sidebar.activeTab.value === SidebarTab.Search && selectedRoom" :room="selectedRoom" @scroll-to-event-id="onScrollToEventId" />
+					<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="false" @close="sidebar.close()" />
+				</RoomSidebar>
 			</div>
 
 			<!-- Desktop: Empty state when no room selected -->
@@ -87,11 +86,7 @@
 			<!-- Mobile: DM room in sidebar -->
 			<RoomSidebar v-if="isMobile" :active-tab="sidebar.activeTab.value" :is-mobile="true">
 				<DirectMessageRoom v-if="sidebar.activeTab.value === SidebarTab.DirectMessage && sidebar.selectedDMRoom.value" :room="sidebar.selectedDMRoom.value" />
-			</RoomSidebar>
-
-			<!-- NewDM Sidebar (both mobile and desktop) -->
-			<RoomSidebar :active-tab="sidebar.activeTab.value === SidebarTab.NewDM ? SidebarTab.NewDM : SidebarTab.None" :is-mobile="isMobile">
-				<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="isMobile" @close="sidebar.close()" />
+				<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="true" @close="sidebar.close()" />
 			</RoomSidebar>
 		</div>
 	</div>
@@ -106,13 +101,14 @@
 
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
-	import Button from '@hub-client/components/elements/Button.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import DirectMessageRoom from '@hub-client/components/rooms/DirectMessageRoom.vue';
 	import NewConversationPanel from '@hub-client/components/rooms/NewConversationPanel.vue';
+	import RoomSearch from '@hub-client/components/rooms/RoomSearch.vue';
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
+	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import MessagePreview from '@hub-client/components/ui/MessagePreview.vue';
 
 	// Composable
@@ -147,6 +143,7 @@
 
 	const privateRooms = ref<Array<Room>>([]); // No computed, since this uses an async method
 	const selectedRoom = ref<Room | null>(null); // Selected room for desktop view
+	const scrollToEventId = ref<string | undefined>(undefined); // For search result navigation
 
 	const newAdminMsgCount = computed(() => {
 		if (user.isAdmin) return;
@@ -164,35 +161,52 @@
 		});
 	});
 
+	// Desktop sidebar tab - only Search and NewDM (not DirectMessage)
+	const desktopSidebarTab = computed(() => {
+		if (sidebar.activeTab.value === SidebarTab.Search || sidebar.activeTab.value === SidebarTab.NewDM) {
+			return sidebar.activeTab.value;
+		}
+		return SidebarTab.None;
+	});
+
+	// Mobile conversation title - matches the title on conversation cards
+	const mobileConversationTitle = computed(() => {
+		const room = sidebar.selectedDMRoom.value;
+		if (!room) return '';
+
+		const roomType = room.getType();
+		if (roomType === RoomType.PH_MESSAGES_GROUP) return room.name;
+		if (roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('admin.support');
+		if (roomType === RoomType.PH_MESSAGE_STEWARD_CONTACT) return t('rooms.steward_support');
+
+		// For 1:1 DMs, show the other user's display name
+		// FIXME: this doesnt work yet
+		const otherMembers = room.getOtherJoinedMembers();
+		console.log(otherMembers);
+		if (otherMembers.length > 0) {
+			return otherMembers[0]?.rawDisplayName ?? t('menu.directmsg');
+		}
+		return t('menu.directmsg');
+	});
+
 	// Restore state when entering the DM page
 	onMounted(() => {
-		if (isMobile.value) {
-			sidebar.restoreDMRoom(sortedPrivateRooms.value);
-		} else {
-			// Desktop: auto-select first room if available
-			if (sortedPrivateRooms.value.length > 0 && !selectedRoom.value) {
-				selectedRoom.value = sortedPrivateRooms.value[0];
-			}
+		// Desktop: auto-select first room if available
+		if (!isMobile.value && sortedPrivateRooms.value.length > 0 && !selectedRoom.value) {
+			selectedRoom.value = sortedPrivateRooms.value[0];
 		}
+		// Mobile: don't auto-open any conversation
 	});
 
 	// Watch for rooms to become available
 	watch(
 		sortedPrivateRooms,
 		(newRooms) => {
-			if (newRooms.length > 0) {
-				if (isMobile.value) {
-					// Mobile: restore sidebar if not already open
-					if (!sidebar.isOpen.value) {
-						sidebar.restoreDMRoom(newRooms);
-					}
-				} else {
-					// Desktop: auto-select first room if none selected
-					if (!selectedRoom.value) {
-						selectedRoom.value = newRooms[0];
-					}
-				}
+			// Desktop: auto-select first room if none selected
+			if (!isMobile.value && newRooms.length > 0 && !selectedRoom.value) {
+				selectedRoom.value = newRooms[0];
 			}
+			// Mobile: don't auto-open any conversation
 		},
 		{ once: true },
 	);
@@ -205,7 +219,7 @@
 	});
 
 	async function directMessageAdmin() {
-		const userResponse = await dialog.yesno(t('admin.admin_contact_main_msg'));
+		const userResponse = await dialog.yesno(t('admin.admin_contact_title'), t('admin.admin_contact_main_msg'));
 		if (!userResponse) return;
 
 		const roomSetUpResponse = await pubhubs.setUpAdminRoom();
@@ -244,5 +258,9 @@
 			// Desktop: show directly
 			selectedRoom.value = room;
 		}
+	}
+
+	function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
+		scrollToEventId.value = ev.eventId;
 	}
 </script>

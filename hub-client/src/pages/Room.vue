@@ -34,7 +34,7 @@
 				<div class="flex items-center gap-2">
 					<!-- Close button (desktop only - on mobile the global back arrow handles sidebar close) -->
 					<button v-if="sidebar.isOpen.value && !isMobile" class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer" :aria-label="t('global.close')" @click="sidebar.close()">
-						<Icon type="arrow-right" size="base" />
+						<Icon type="sidebar" size="base" class="rotate-90" />
 					</button>
 					<RoomHeaderButtons>
 						<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
