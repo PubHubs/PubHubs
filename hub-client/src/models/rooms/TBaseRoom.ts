@@ -1,5 +1,7 @@
+// Packages
 import { IStateEvent } from 'matrix-js-sdk';
 
+// Types
 enum RoomType {
 	PH_MESSAGES_DEFAULT = 'ph.messages.default',
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
