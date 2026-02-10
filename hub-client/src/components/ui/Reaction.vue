@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-wrap gap-2" role="list" data-testid="reactions">
-		<span v-for="(item, index) in reactionSummary" :key="item.key" class="group/reaction bg-surface relative inline-flex items-center gap-1 rounded-full px-2 py-1" role="listitem">
+		<span v-for="item in reactionSummary" :key="item.key" class="group/reaction bg-surface relative inline-flex items-center gap-2 rounded-full px-3 py-1" role="listitem">
 			<span class="flex h-[1em] w-[1em] items-center justify-center" :class="item.reactions.some((r) => r.userId === currentUserId) && 'group-hover/reaction:hidden'">{{ item.key }}</span>
 
 			<!-- Show a trash icon on hovering a reaction that you made, which can be clicked to remove the reaction -->

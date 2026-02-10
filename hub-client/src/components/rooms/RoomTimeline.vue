@@ -4,7 +4,7 @@
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
 		</div>
 
-		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain pb-2" style="overflow-anchor: none">
+		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain pb-2" style="overflow-anchor: none">
 			<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
 			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
 
@@ -15,12 +15,12 @@
 				<div v-for="item in reversedTimeline" :key="item.matrixEvent.event.event_id">
 					<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
 						<RoomMessageBubble
+							class="room-event"
 							:room="room"
 							:event="item.matrixEvent.event"
 							:event-thread-length="item.threadLength"
 							:deleted-event="item.isDeleted"
 							:data-event-id="item.matrixEvent.event.event_id"
-							class="room-event"
 							:class="{ 'animate-highlight': props.eventIdToScroll === item.matrixEvent.event.event_id }"
 							:active-reaction-panel="activeReactionPanel"
 							@in-reply-to-click="onInReplyToClick"
@@ -43,7 +43,7 @@
 			</template>
 
 			<!-- Room created indicator-->
-			<div v-if="oldestEventIsLoaded" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 mx-auto flex items-center justify-center gap-2 border uppercase">
+			<div v-if="oldestEventIsLoaded" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase">
 				{{ $t('rooms.roomCreated') }}
 			</div>
 

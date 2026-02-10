@@ -1,7 +1,9 @@
 <template>
-	<div v-if="showMarker" class="text-center">
-		<div class="text-label bg-background m-auto inline-block rounded-full px-2 text-center font-medium">{{ $t('rooms.last_read_message') }}</div>
-		<div class="bg-on-surface-disabled -mt-[12px] h-[1px]"></div>
+	<div v-if="showMarker" class="mb-3">
+		<div class="bg-on-surface-disabled -mb-3 h-[1px]"></div>
+		<div class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 bg-background mx-auto flex w-fit items-center justify-center gap-2 border uppercase">
+			{{ $t('rooms.last_read_message') }}
+		</div>
 	</div>
 </template>
 
