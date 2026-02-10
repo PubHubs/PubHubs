@@ -6,7 +6,7 @@
 		data-testid="event-badges"
 		:title="label"
 	>
-		<span v-if="hasPowerPrivileges || isHubAdmin">{{ label }}</span>
+		<span v-if="hasPowerPrivileges || isHubAdmin" class="line-clamp-1 truncate">{{ label }}</span>
 		<template v-else v-for="value in roomAttributes" :key="value">
 			<span>{{ value }}</span>
 		</template>
