@@ -45,11 +45,14 @@ For reference, dependencies are in `package.json`.
  - [ ] Check the version numbers in the [yivi Dockerfile](docker_yivi/Dockerfile)
    - [ ] `FROM golang:XXX`
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` Please check that you've selected the same version as in the [hub Dockerfile](pubhubs_hub/Dockerfile).
- - [ ] Also check the version number in https://gitlab.science.ru.nl/ilab/docker-build/-/blob/main/.gitlab-ci.yml: `docker build -t ${CONTAINER_IMAGE} https://github.com/privacybydesign/irmago.git#vXXX`
-
-  (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/issue_templates/update-dependencies.md).)
 
 ## CICD
 
  - [ ] Check if  `python:3.13` can be replaced by `python:latest` in the `hub-unit-test` job of [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml) without making the tests fail.
  - [ ] Update the node version in the [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml?ref_type=heads#L190) file for global and hub client related jobs.
+
+## Nix
+
+- [ ] If you have Nix, update the Nix flake by running `nix flake update`.
+
+(The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/issue_templates/update-dependencies.md).)
