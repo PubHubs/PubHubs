@@ -15,7 +15,7 @@
 		<Label :for="id" :required="required"><slot></slot></Label>
 
 		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" role="select" tabindex="0">
-			<div class="max-h-300 grow cursor-pointer text-nowrap" @click.stop="toggle">
+			<div class="max-h-300 min-h-6 grow cursor-pointer text-nowrap" @click.stop="toggle">
 				<template v-if="model">
 					<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
 						<div v-for="item in model" class="bg-surface-subtle rounded px-100">
@@ -156,6 +156,7 @@
 	};
 
 	const toggle = () => {
+		console.info('Dropdown.toggle');
 		open.value = !open.value;
 	};
 
