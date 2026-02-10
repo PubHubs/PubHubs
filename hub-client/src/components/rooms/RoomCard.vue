@@ -7,7 +7,9 @@
 			</div>
 		</div>
 
-		<P class="line-clamp-2">{{ room.topic }}</P>
+		<div class="h-16">
+			<P class="line-clamp-2">{{ room.topic }}</P>
+		</div>
 
 		<div class="flex w-full flex-col gap-4 @sm:flex-row @sm:items-end @sm:justify-between">
 			<div class="text-on-surface-dim text-label flex flex-wrap items-center gap-2">
