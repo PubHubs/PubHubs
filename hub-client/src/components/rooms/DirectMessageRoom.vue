@@ -13,7 +13,9 @@
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
 
 	// Stores
-	import { Room } from '@hub-client/stores/rooms';
+	import { Room, useRooms } from '@hub-client/stores/rooms';
+
+	const rooms = useRooms();
 
 	// Props
 	const props = defineProps<{
@@ -21,11 +23,12 @@
 		eventIdToScroll?: string;
 	}>();
 
-	// Initialize timeline when room changes
+	// Initialize timeline and set current room when room changes
 	watch(
 		() => props.room,
 		(newRoom) => {
 			if (newRoom) {
+				rooms.changeRoom(newRoom.roomId);
 				newRoom.initTimeline();
 			}
 		},
