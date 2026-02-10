@@ -1,13 +1,5 @@
 <template>
-	<li
-		role="menuitem"
-		:class="{ 'bg-background': roomIsActive || menuItemIsActive || adminMenuIsActive }"
-		@click="
-			scrollToEnd();
-			room && menu.setActiveMenuItem(room.roomId);
-		"
-		class="hover:bg-surface-low h-fit rounded-lg px-4 py-2 transition-all duration-200 ease-in-out"
-	>
+	<li role="menuitem" :class="{ 'bg-background': roomIsActive || menuItemIsActive || adminMenuIsActive }" @click="handleClick" class="hover:bg-surface-low h-fit rounded-lg px-4 py-2 transition-all duration-200 ease-in-out">
 		<router-link :to="to" class="flex items-center gap-4">
 			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
 			<Icon v-else class="" :type="icon" :size="iconSize" />
@@ -28,6 +20,7 @@
 
 	// Composables
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Models
 	import { RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
@@ -39,6 +32,7 @@
 	const menu = useMenu();
 	const rooms = useRooms();
 	const router = useRouter();
+	const sidebar = useSidebar();
 	const { scrollToEnd } = useGlobalScroll();
 
 	const adminMenuIsActive = computed(() => {
@@ -84,6 +78,17 @@
 	function isSecuredRoom() {
 		if (!props.room) return false;
 		return SecuredRooms.includes(props.room.roomType as RoomType);
+	}
+
+	function handleClick() {
+		scrollToEnd();
+		if (props.room) {
+			menu.setActiveMenuItem(props.room.roomId);
+		}
+		// Close sidebar when navigating to DM page (so mobile shows conversation list, not last open DM)
+		if (typeof props.to === 'object' && props.to !== null && props.to.name === 'direct-msg') {
+			sidebar.close();
+		}
 	}
 
 	function click() {

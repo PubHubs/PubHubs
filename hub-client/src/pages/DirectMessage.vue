@@ -15,8 +15,13 @@
 
 			<!-- Right: Buttons -->
 			<div class="flex items-center gap-2">
-				<!-- Close button (desktop only - on mobile the global back arrow handles sidebar close) -->
-				<button v-if="sidebar.isOpen.value && !isMobile" class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer" :aria-label="t('global.close')" @click="sidebar.close()">
+				<!-- Close button (desktop only - on mobile the global back arrow handles sidebar close, hidden in DM room view) -->
+				<button
+					v-if="sidebar.isOpen.value && !isMobile && sidebar.activeTab.value !== SidebarTab.DirectMessage"
+					class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer"
+					:aria-label="t('global.close')"
+					@click="sidebar.close()"
+				>
 					<Icon type="arrow-right" size="base" />
 				</button>
 
@@ -27,7 +32,7 @@
 					:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
 					@click="directMessageAdmin()"
 				>
-					<Icon type="headset" size="sm"></Icon>
+					<Icon type="lifebuoy" />
 					<span v-if="!isMobile">{{ t('menu.contact') }}</span>
 					<span :class="isMobile ? 'absolute -top-2 -right-2' : 'absolute -top-2 -right-2 flex items-center gap-2'">
 						<Badge class="text-label-small" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
@@ -37,12 +42,12 @@
 
 				<Button
 					class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1"
-					:class="isMobile ? 'justify-center' : 'justify-between'"
+					:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
 					size="sm"
 					@click="sidebar.openTab(SidebarTab.NewDM)"
 					:disabled="sidebar.activeTab.value === SidebarTab.NewDM"
 				>
-					<Icon type="plus" size="sm" />
+					<Icon type="plus" />
 					<span v-if="!isMobile">{{ t('others.new_message') }}</span>
 				</Button>
 			</div>
@@ -54,7 +59,7 @@
 				<span v-if="privateRooms?.length === 0" class="mx-auto shrink-0">
 					{{ t('others.no_private_message') }}
 				</span>
-				<div class="w-full transition-all duration-300 ease-in-out" role="list" data-testid="conversations">
+				<div class="flex w-full flex-col gap-4 transition-all duration-300 ease-in-out" role="list" data-testid="conversations">
 					<MessagePreview
 						v-for="room in sortedPrivateRooms"
 						:key="room.roomId"
@@ -80,7 +85,7 @@
 <script setup lang="ts">
 	// Packages
 	import { EventType, NotificationCountType } from 'matrix-js-sdk';
-	import { computed, onMounted, watch } from 'vue';
+	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave } from 'vue-router';
 

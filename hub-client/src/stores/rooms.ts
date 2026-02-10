@@ -385,7 +385,7 @@ const useRooms = defineStore('rooms', {
 			const user = useUser();
 			let result = this.roomList.filter((room) => room.isHidden === false && room.roomType !== undefined && types.includes(room.roomType as RoomType));
 			if (types.includes(RoomType.PH_MESSAGES_DM)) {
-				result = result.filter((room) => room.roomType !== undefined && (room.roomType !== RoomType.PH_MESSAGES_DM || isVisiblePrivateRoom(room.name, user.user!)));
+				result = result.filter((room) => room.roomType !== undefined && (room.roomType !== RoomType.PH_MESSAGES_DM || (room.name !== undefined && isVisiblePrivateRoom(room.name, user.user!))));
 			}
 			return result;
 		},

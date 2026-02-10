@@ -1,5 +1,5 @@
 <template>
-	<div class="mx-auto h-16 rounded-xl px-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
+	<div class="w-full rounded-xl p-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
 		<div class="flex h-full min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
 			<Avatar :class="'shrink-0'" :avatar-url="avatarOverrideUrl" :user-id="otherDMUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
 			<div class="min-w-0 grow overflow-hidden">
@@ -24,12 +24,12 @@
 						</p>
 					</div>
 
-					<!-- Right Section: Message body -->
+					<!-- Right section: Message body -->
 					<div v-if="room.hasMessages()" class="mt-1 min-w-0">
-						<p v-html="event?.getContent().ph_body" class="truncate"></p>
+						<p v-html="event?.getContent().ph_body" class="line-clamp-1 truncate"></p>
 					</div>
 					<div v-if="!room.hasMessages()" class="mt-1 min-w-0">
-						<p>{{ t('rooms.no_messages_yet') }}</p>
+						<p class="line-clamp-1 truncate">{{ t('rooms.no_messages_yet') }}</p>
 					</div>
 				</div>
 			</div>
@@ -64,11 +64,7 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
-	const rooms = useRooms();
-	const userStore = useUser();
-	const { t } = useI18n();
-	const avatarOverrideUrl = ref<string | undefined>(undefined);
-
+	// Props
 	const props = defineProps({
 		room: {
 			type: Room,
@@ -83,6 +79,11 @@
 			default: false,
 		},
 	});
+
+	const rooms = useRooms();
+	const userStore = useUser();
+	const { t } = useI18n();
+	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
 	watch(
 		() => props.room,

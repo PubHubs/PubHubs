@@ -85,7 +85,7 @@
 
 								<!-- Thread Reply Button -->
 								<button
-									v-if="!viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage"
+									v-if="!viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage && !room.isDirectMessageRoom()"
 									@click="replyInThread"
 									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 									:class="threadLength > 0 ? 'bg-accent-primary hover:text-accent-primary flex hover:bg-transparent' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
@@ -464,8 +464,8 @@
 			});
 		}
 
-		// Thread reply
-		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !props.event.redactedMessage) {
+		// Thread reply (not in DM rooms)
+		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !props.event.redactedMessage && !props.room.isDirectMessageRoom()) {
 			menu.push({
 				label: t('menu.reply_in_thread'),
 				icon: 'chat-circle',
