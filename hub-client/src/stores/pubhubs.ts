@@ -447,14 +447,17 @@ const usePubhubsStore = defineStore('pubhubs', {
 			} else {
 				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
 			}
+
 			// Try joining existing by renaming
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
 				const rooms = useRooms();
 				let name = rooms.room(existingRoomId)?.name;
 				if (name) {
 					name = updatePrivateRoomName(name, me, false);
-					this.renameRoom(existingRoomId, name);
+				} else {
+					name = createNewPrivateRoomName([me]);
 				}
+				this.renameRoom(existingRoomId, name);
 				return { room_id: existingRoomId };
 			}
 
