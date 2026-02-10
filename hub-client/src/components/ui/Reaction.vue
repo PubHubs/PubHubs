@@ -1,15 +1,13 @@
 <template>
 	<div class="flex flex-wrap gap-2" role="list" data-testid="reactions">
-		<span v-for="(item, index) in reactionSummary" :key="item.key" class="group bg-surface relative inline-flex items-center gap-1 rounded-full px-2 py-1" role="listitem">
-			{{ item.key }} {{ item.count }}
-
+		<span v-for="(item, index) in reactionSummary" :key="item.key" class="group/reaction bg-surface relative inline-flex items-center gap-1 rounded-full px-2 py-1" role="listitem">
+			<span class="flex h-[1em] w-[1em] items-center justify-center" :class="item.reactions.some((r) => r.userId === currentUserId) && 'group-hover/reaction:hidden'">{{ item.key }}</span>
 			<Icon
-				v-if="item.reactions.some((r) => r.userId === currentUserId)"
 				type="trash"
-				size="sm"
-				class="bg-surface-low absolute top-0 right-0 hidden cursor-pointer rounded-2xl group-hover:inline-block"
 				@click.stop="removeReaction(item.reactions.filter((r) => r.userId === currentUserId).map((r) => r.eventId))"
+				class="text-accent-red hover:text-button-red hidden h-[1em] w-[1em] group-hover/reaction:block hover:cursor-pointer"
 			/>
+			{{ item.count }}
 		</span>
 	</div>
 </template>
