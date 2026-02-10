@@ -53,9 +53,10 @@
 			</div>
 		</div>
 
-		<!-- Content row: Message list + sidebar -->
+		<!-- Content row: Message list + DM room (desktop) or sidebar (mobile) -->
 		<div class="flex flex-1 overflow-hidden">
-			<div class="flex h-full w-full flex-col overflow-y-auto p-3 md:p-4">
+			<!-- Conversation list -->
+			<div class="flex h-full flex-col overflow-y-auto p-3 md:p-4" :class="isMobile ? 'w-full' : 'w-[412px] shrink-0'">
 				<span v-if="privateRooms?.length === 0" class="mx-auto shrink-0">
 					{{ t('others.no_private_message') }}
 				</span>
@@ -65,7 +66,7 @@
 						:key="room.roomId"
 						:room="room"
 						:isMobile="isMobile"
-						:active="sidebar.selectedDMRoom.value?.roomId === room.roomId"
+						:active="selectedRoom?.roomId === room.roomId"
 						class="hover:cursor-pointer"
 						role="listitem"
 						@click="openDMRoom(room)"
@@ -73,10 +74,24 @@
 				</div>
 			</div>
 
-			<!-- DM Sidebar -->
-			<RoomSidebar :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value">
-				<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="isMobile" @close="sidebar.close()" />
+			<!-- Desktop: DM room shown directly (not in sidebar) -->
+			<div v-if="!isMobile && selectedRoom" class="border-on-surface-disabled flex-1 border-l">
+				<DirectMessageRoom :room="selectedRoom" />
+			</div>
+
+			<!-- Desktop: Empty state when no room selected -->
+			<div v-if="!isMobile && !selectedRoom && sortedPrivateRooms.length > 0" class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l">
+				{{ t('others.select_conversation') }}
+			</div>
+
+			<!-- Mobile: DM room in sidebar -->
+			<RoomSidebar v-if="isMobile" :active-tab="sidebar.activeTab.value" :is-mobile="true">
 				<DirectMessageRoom v-if="sidebar.activeTab.value === SidebarTab.DirectMessage && sidebar.selectedDMRoom.value" :room="sidebar.selectedDMRoom.value" />
+			</RoomSidebar>
+
+			<!-- NewDM Sidebar (both mobile and desktop) -->
+			<RoomSidebar :active-tab="sidebar.activeTab.value === SidebarTab.NewDM ? SidebarTab.NewDM : SidebarTab.None" :is-mobile="isMobile">
+				<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="isMobile" @close="sidebar.close()" />
 			</RoomSidebar>
 		</div>
 	</div>
@@ -131,6 +146,7 @@
 	const isMobile = computed(() => settings.isMobileState);
 
 	const privateRooms = ref<Array<Room>>([]); // No computed, since this uses an async method
+	const selectedRoom = ref<Room | null>(null); // Selected room for desktop view
 
 	const newAdminMsgCount = computed(() => {
 		if (user.isAdmin) return;
@@ -148,18 +164,34 @@
 		});
 	});
 
-	// Restore sidebar state when entering the DM page
+	// Restore state when entering the DM page
 	onMounted(() => {
-		sidebar.restoreDMRoom(sortedPrivateRooms.value);
+		if (isMobile.value) {
+			sidebar.restoreDMRoom(sortedPrivateRooms.value);
+		} else {
+			// Desktop: auto-select first room if available
+			if (sortedPrivateRooms.value.length > 0 && !selectedRoom.value) {
+				selectedRoom.value = sortedPrivateRooms.value[0];
+			}
+		}
 	});
 
 	// Watch for rooms to become available
 	watch(
 		sortedPrivateRooms,
 		(newRooms) => {
-			// Only auto-open if sidebar is not already open and rooms just became available
-			if (!sidebar.isOpen.value && newRooms.length > 0) {
-				sidebar.restoreDMRoom(newRooms);
+			if (newRooms.length > 0) {
+				if (isMobile.value) {
+					// Mobile: restore sidebar if not already open
+					if (!sidebar.isOpen.value) {
+						sidebar.restoreDMRoom(newRooms);
+					}
+				} else {
+					// Desktop: auto-select first room if none selected
+					if (!selectedRoom.value) {
+						selectedRoom.value = newRooms[0];
+					}
+				}
 			}
 		},
 		{ once: true },
@@ -205,6 +237,12 @@
 	}
 
 	function openDMRoom(room: Room) {
-		sidebar.openDMRoom(room);
+		if (isMobile.value) {
+			// Mobile: open in sidebar
+			sidebar.openDMRoom(room);
+		} else {
+			// Desktop: show directly
+			selectedRoom.value = room;
+		}
 	}
 </script>
