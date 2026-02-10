@@ -20,7 +20,7 @@
 	import { computed } from 'vue';
 
 	// Components
-	import Icon from '@hub-client/components/elements/Icon';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Models
 	import { Redaction, RelationType } from '@hub-client/models/constants';
