@@ -7,7 +7,7 @@
 			</div>
 		</div>
 
-		<P v-if="room.topic" class="line-clamp-2">{{ room.topic }}</P>
+		<P class="line-clamp-2">{{ room.topic }}</P>
 
 		<div class="flex w-full flex-col gap-4 @sm:flex-row @sm:items-end @sm:justify-between">
 			<div class="text-on-surface-dim text-label flex flex-wrap items-center gap-2">
