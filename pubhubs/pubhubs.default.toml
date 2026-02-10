@@ -56,7 +56,7 @@ starting_epoch = 1230
 value = "2w"
 
 [[auths.yivi.card.valid_for]]
-starting_epoch = 2000
+starting_epoch = 20000
 value = "673s"
 
 [[auths.attribute_types]]

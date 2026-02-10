@@ -142,7 +142,7 @@ export default class Room {
 		return this.getType() === RoomType.SECURED;
 	}
 
-	public directMessageRoom(): boolean {
+	public isDirectMessageRoom(): boolean {
 		return this.isPrivateRoom() || this.isAdminContactRoom() || this.isStewardContactRoom() || this.isGroupRoom();
 	}
 
@@ -661,6 +661,20 @@ export default class Room {
 
 	public getTimeline(): TimelineEvent[] {
 		return this.timelineManager.getEvents();
+	}
+
+	/**
+	 * Returns timeline events sorted chronologically (oldest first)
+	 */
+	public getChronologicalTimeline(): TimelineEvent[] {
+		return this.timelineManager.getChronologicalTimeline();
+	}
+
+	/**
+	 * Returns the timeline version counter
+	 */
+	public getTimelineVersion(): number {
+		return this.timelineManager.getTimelineVersion();
 	}
 
 	public getLibraryTimeline(): TimelineEvent[] {

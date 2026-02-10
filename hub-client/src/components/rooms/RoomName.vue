@@ -4,17 +4,18 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed } from 'vue';
+	import { PropType, computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
+	import { RoomListRoom } from '@hub-client/models/rooms/TBaseRoom';
 
 	const { t } = useI18n();
 
 	const props = defineProps({
 		room: {
-			type: Room,
+			type: Object as PropType<Room | RoomListRoom>,
 		},
 	});
 

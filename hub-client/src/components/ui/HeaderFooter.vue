@@ -1,5 +1,5 @@
 <template>
-	<div :class="['relative flex h-screen w-full flex-col justify-between overflow-hidden', bgBarLow]">
+	<div :class="['relative flex h-full w-full flex-col justify-between overflow-hidden', bgBarLow]">
 		<div class="z-10 flex h-full flex-col overflow-hidden">
 			<div :class="['flex flex-col', bgBarMedium, isMobile ? 'h-[7.5rem] justify-center p-3' : 'h-[10rem] justify-start p-4']">
 				<slot name="header"></slot>

@@ -70,7 +70,6 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import NewConverationPanel from '@hub-client/components/rooms/NewConversationPanel.vue';
-	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import MessagePreview from '@hub-client/components/ui/MessagePreview.vue';
 
@@ -95,14 +94,13 @@
 	const { t } = useI18n();
 	const dialog = useDialog();
 
-	// Initialize admin contact
-	// onMounted(async () => {
-	// 	await pubhubs.initializeOrExtendAdminContactRoom();
-	// });
+	onMounted(async () => {
+		loadPrivateRooms();
+	});
 
 	const isMobile = computed(() => settings.isMobileState);
 
-	const privateRooms = computed<Array<Room>>(() => getPrivateRooms());
+	const privateRooms = ref<Array<Room>>([]); // no computed, since this uses an async method
 
 	/**
 	 *  This should not be shown when
@@ -141,8 +139,13 @@
 		}
 	}
 
-	function getPrivateRooms(): Array<Room> {
-		return rooms.fetchRoomArrayByAccessibility(DirectRooms);
+	async function loadPrivateRooms() {
+		await rooms.waitForInitialRoomsLoaded(); // we need the roomslist, so wait till its loaded
+		const roomsList = rooms.fetchRoomList(DirectRooms);
+		for (const room of roomsList) {
+			await rooms.joinRoomListRoom(room.roomId);
+			privateRooms.value = [...privateRooms.value, rooms.rooms[room.roomId]];
+		}
 	}
 
 	function lastEventTimeStamp(room: Room): number {

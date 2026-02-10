@@ -54,7 +54,8 @@ impl App {
         let api::auths::YiviNextSessionQuery { state } = query.into_inner();
 
         log::trace!(
-            "yivi server (or imposter) submits next sessions request; jwt: {result_jwt:?}; auth state: {}", state
+            "yivi server (or imposter) submits next sessions request; jwt: {result_jwt:?}; auth state: {}",
+            state
         );
 
         let result_jwt = jwt::JWT::from(result_jwt);

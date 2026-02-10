@@ -43,7 +43,7 @@
 									</div>
 									<div class="flex items-center gap-1">
 										<Icon type="trash" class="hover:text-accent-red hover:cursor-pointer" @click="removePublicRoom(item)" />
-										<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="editPublicRoom(item)" />
+										<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" v-if="isUserRoomAdmin(user.userId, item.room_id)" @click="editPublicRoom(item)" />
 										<Icon v-else type="arrow-circle-up" data-testid="promote" class="hover:text-accent-primary hover:cursor-pointer" @click="makeRoomAdmin(item.room_id, user.userId)" />
 									</div>
 								</div>
@@ -73,8 +73,8 @@
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="trash" class="hover:text-accent-red hover:cursor-pointer" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="removeSecuredRoom(item)" />
-										<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="EditSecuredRoom(item)" />
+										<Icon type="trash" class="hover:text-accent-red hover:cursor-pointer" v-if="isUserRoomAdmin(user.userId, item.room_id)" @click="removeSecuredRoom(item)" />
+										<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" v-if="isUserRoomAdmin(user.userId, item.room_id)" @click="EditSecuredRoom(item)" />
 										<Icon v-else type="arrow-circle-up" class="hover:text-accent-primary hover:cursor-pointer" @click="makeRoomAdmin(item.room_id, user.userId)" />
 									</div>
 								</div>
@@ -120,11 +120,13 @@
 	const { t } = useI18n();
 	const user = useUser();
 	const rooms = useRooms();
+	const pubhubs = usePubhubsStore();
 	const secured = ref(false);
 	const showPastMemberPanel = ref(false);
 	const currentRoomId = ref('');
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
+	const roomAdminStatus = ref<Record<string, boolean>>({});
 
 	const nonSecuredPublicRooms = computed(() => rooms.nonSecuredPublicRooms);
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
@@ -135,7 +137,22 @@
 	onMounted(async () => {
 		await rooms.fetchPublicRooms(true);
 		await rooms.fetchSecuredRooms();
+		await fetchAdminStatusForRooms();
 	});
+
+	async function fetchAdminStatusForRooms() {
+		const allRooms = [...rooms.publicRooms, ...rooms.securedRooms];
+		for (const room of allRooms) {
+			const roomId = room.room_id;
+			try {
+				const powerLevels = await pubhubs.getPoweLevelEventContent(roomId);
+				const userPowerLevel = powerLevels.users?.[user.userId] ?? powerLevels.users_default ?? 0;
+				roomAdminStatus.value[roomId] = userPowerLevel === 100;
+			} catch {
+				roomAdminStatus.value[roomId] = false;
+			}
+		}
+	}
 
 	function newPublicRoom() {
 		router.push({ name: 'editroom', params: { id: 'new_room' } });
@@ -180,12 +197,16 @@
 	}
 
 	function isUserRoomAdmin(userId: string, roomId: string): boolean {
+		// First check cached status from API
+		if (roomAdminStatus.value[roomId] !== undefined) {
+			return roomAdminStatus.value[roomId];
+		}
+		// Fallback to local room data if available
 		return rooms.room(roomId)?.getUserPowerLevel(userId) == 100 || false;
 	}
 
 	async function makeRoomAdmin(roomId: string, userId: string): Promise<void | Error> {
 		const dialog = useDialog();
-		const pubhubs = usePubhubsStore();
 		const okCancelStatus = await dialog.okcancel(t('admin.make_admin'));
 		// If the user presses cancel, then don't proceed!
 		if (!okCancelStatus) return;
@@ -196,6 +217,7 @@
 			const roomCreator = await ManagementUtils.getRoomCreator(roomId);
 			if (roomCreator === user.userId) {
 				await pubhubs.joinRoom(roomId);
+				roomAdminStatus.value[roomId] = true;
 				return;
 			}
 
@@ -210,6 +232,7 @@
 			}
 		}
 		await pubhubs.joinRoom(roomId);
+		roomAdminStatus.value[roomId] = true;
 	}
 
 	function updateTabInUrl(tab: number) {

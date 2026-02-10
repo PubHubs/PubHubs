@@ -1,9 +1,11 @@
 # PubHubs commands for local development
 
-Run these with the following command: `mask run [command name]` (ex. `mask run global`).
+To run the commands in this file, please make sure you have [Mask](https://github.com/jacobdeichert/mask) installed, as well as all the dependencies in the [Nix flake](./flake.nix). If using the Nix devshell, these are already included.
 
-For windows users, make sure you have bash installed such as for example [gitBash](https://git-scm.com/install/windows) (it is installed with git by default).
-Make sure you have [mask](https://github.com/jacobdeichert/mask) and [irma](https://github.com/privacybydesign/irmago) installed (they are already included in the Nix flake).
+To run the commands in this file, you can do `mask run <command name>`.
+You can see all available commands by running `mask help` or `mask <command> help`.
+
+> For Windows users, make sure you run these commands in bash (such as [Git Bash](https://git-scm.com/install/windows), which should be installed with Git by default).
 
 ## run
 
@@ -13,10 +15,18 @@ Make sure you have [mask](https://github.com/jacobdeichert/mask) and [irma](http
 
 > Runs everything in a TMUX session
 
-This required [tmux](https://github.com/tmux/tmux) to be installed.
+This requires [tmux](https://github.com/tmux/tmux) to be installed.
 
 ```sh
 sh run-all.sh
+```
+
+#### cleanup
+
+> Kills everything in the TMUX session.
+
+```sh
+sh run-all-cleanup.sh
 ```
 
 ### init
@@ -24,12 +34,15 @@ sh run-all.sh
 > Initializes/wipes the development environment
 
 **OPTIONS**
-* no_check
-    * flags: --no-check
-    * desc: Skip version checks
+
+- no_check
+  - flags: --no-check
+  - desc: Skip version checks
 
 ```bash
 set -e
+echo "Running setup"
+
 [[ "$no_check" != "true" ]] && mask check versions
 mask run s3 init
 mask run hub init
@@ -40,8 +53,9 @@ mask run hub init
 > Runs the Yivi server for the PubHubs servers
 
 ```sh
-cd pubhubs
 echo "Running Yivi server..."
+
+cd pubhubs
 python3 run_yivi.py
 ```
 
@@ -50,21 +64,29 @@ python3 run_yivi.py
 > Runs the Garage S3 server for the PubHubs PHC server
 
 ```sh
+echo "Running Garage S3 server..."
+
 cd pubhubs
 python3 run_garage.py
 ```
 
 #### init
 
+buildkit issues docker?
+buildx en buildkit for arch
+
 > Intializes/wipes the garage storage directory
 
 ```sh
 set -e
-cd pubhubs
 echo "removing garage data and meta directories..."
+
+cd pubhubs
 rm -rf garage/data
 rm -rf garage/meta
+
 echo "creating garage data and meta directories..."
+
 mkdir garage/data
 mkdir garage/meta
 echo "starting garage for configuration..."
@@ -108,8 +130,9 @@ echo "\033[1;32mfinished setting up garage\033[0m"
 > Runs the global PubHubs servers
 
 ```sh
-cd pubhubs
 echo "Running global servers..."
+
+cd pubhubs
 cargo run serve
 ```
 
@@ -118,8 +141,9 @@ cargo run serve
 > Runs the pubhubs global client
 
 ```sh
-cd global-client
 echo "Running pubhubs client..."
+
+cd global-client
 npx vite --host -l info --port=8080
 ```
 
@@ -137,8 +161,9 @@ Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
 ```sh
-cd pubhubs_hub
 echo "Running testhub${n}"
+
+cd pubhubs_hub
 python3 start_testhub.py "${n}"
 ```
 
@@ -157,7 +182,7 @@ env VITE_HUB_URL=$(node -e "console.log('http://localhost:' + (8008 + $n))") npx
 
 #### mainclient
 
-> Runs the hub client (local) against the main (testhub) server
+> Runs the hub client (local) against the main (staging) server
 
 Run this as a standalone command, so without the global client running.
 To log in, run `mask run mainclient enter`.
@@ -181,7 +206,7 @@ echo "Don't forget to have 'mask run hub mainclient' running"
 
 #### init
 
-> Initialize testhubs setup
+> Initialize the testhubs setup
 
 ```sh
 mask run hub init testhub-dirs
@@ -192,10 +217,11 @@ mask run hub init testhub-image
 
 > Prepares directories for running the local hubs
 
-This command is normally run via the `mask run hub init` command
+This command is normally run via the `mask run hub init` command..
 
 ```sh
 echo "Setting up testhub directories..."
+
 cd pubhubs_hub
 for i in $(seq 0 4);
 do
@@ -210,17 +236,22 @@ done
 
 > Build the PubHubs hub Docker image
 
-This command is normally run via the `mask run hub init` command
+This command is normally run via the `mask run hub init` command.
 
 ```sh
 echo  "Building hub..."
+
 cd pubhubs_hub
 docker build -t pubhubs-hub .
 ```
 
 ## check
 
-> Check your local PubHubs development environment
+> Commands for checking your local PubHubs development environment
+
+### all
+
+> Run all checkss
 
 ```sh
 mask check versions
@@ -242,4 +273,3 @@ fi
 python3 check-python3-version.py
 python3 check-versions.py
 ```
-

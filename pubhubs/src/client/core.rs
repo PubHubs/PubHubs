@@ -222,13 +222,9 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             }
 
             let result = self.url.join(&path);
-            if result.is_err() {
-                log::error!(
-                    "Could not join urls {} and {}: {}",
-                    self.url,
-                    path,
-                    result.unwrap_err()
-                );
+
+            if let Err(err) = result {
+                log::error!("Could not join urls {} and {}: {}", self.url, path, err);
                 return futures::future::Either::Left(std::future::ready(
                     EP::ResponseType::from_ec(ErrorCode::InternalError),
                 ));

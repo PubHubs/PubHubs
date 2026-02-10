@@ -10,7 +10,7 @@ roleMappings.set(actions.Invite, [roles.Admin, roles.SuperSteward]);
 roleMappings.set(actions.AdminPanel, [roles.Admin]);
 roleMappings.set(actions.StewardPanel, [roles.Steward]);
 roleMappings.set(actions.MessageSteward, [roles.User, roles.Expert]);
-roleMappings.set(actions.RoomAnnouncement, [roles.Admin]);
+roleMappings.set(actions.RoomAnnouncement, [roles.Admin, roles.Steward]);
 
 /**
  *

@@ -2,7 +2,7 @@
 name = "pubhubs"
 edition = "2024"
 license-file = "../LICENSE"
-rust-version = "1.91"
+rust-version = "1.92"
 
 [[bin]]
 name = "pubhubs"

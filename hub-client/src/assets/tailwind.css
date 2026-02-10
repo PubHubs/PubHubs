@@ -332,6 +332,10 @@
 	}
 }
 
+@utility no-callout {
+	-webkit-touch-callout: none;
+}
+
 @layer base {
 	html {
 		font-kerning: normal;
