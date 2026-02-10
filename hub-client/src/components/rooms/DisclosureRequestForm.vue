@@ -26,7 +26,7 @@
 
 			<ButtonGroup>
 				<Button variant="error" @click.stop.prevent="close()">{{ t('dialog.cancel') }}</Button>
-				<Button type="submit" :disabled="!isValidated" @click.stop.prevent="onSubmit()">{{ t('dialog.edit') }}</Button>
+				<Button type="submit" :disabled="!isValidated" @click.stop.prevent="onSubmit()">{{ t('dialog.submit') }}</Button>
 			</ButtonGroup>
 		</ValidatedForm>
 	</Dialog>
@@ -176,5 +176,6 @@
 		};
 		// Message is duplicated in body and in 'ask' object.
 		await pubhubsStore.addAskDisclosureMessage(privateRoomId, result.message, result);
+		close();
 	}
 </script>
