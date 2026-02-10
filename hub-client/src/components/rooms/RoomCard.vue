@@ -2,7 +2,7 @@
 	<div role="article" class="bg-surface-low @container flex w-full flex-col justify-between gap-4 rounded-xl p-6 shadow-md">
 		<div class="flex items-center justify-between gap-2">
 			<H2 class="line-clamp-2">{{ room.name }}</H2>
-			<div v-if="isSecured" class="bg-accent-primary text-on-accent-primary flex h-fit shrink-0 items-center justify-center rounded-lg px-2 py-1" :title="t('admin.secured_room')">
+			<div v-if="isSecured" class="bg-accent-primary text-on-accent-primary rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1" :title="t('admin.secured_room')">
 				<Icon type="shield"></Icon>
 			</div>
 		</div>

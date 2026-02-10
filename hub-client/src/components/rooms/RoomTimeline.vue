@@ -43,7 +43,7 @@
 			</template>
 
 			<!-- Room created indicator-->
-			<div v-if="oldestEventIsLoaded" class="border-on-surface-variant text-on-surface-variant text-label-small mx-auto my-4 flex w-60 items-center justify-center rounded-xl border px-4">
+			<div v-if="oldestEventIsLoaded" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 mx-auto flex items-center justify-center gap-2 border uppercase">
 				{{ $t('rooms.roomCreated') }}
 			</div>
 

@@ -1,5 +1,5 @@
 <template>
-	<span v-if="userHasBadge" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 items-center justify-center gap-2 border uppercase" data-testid="event-badges" :title="label">
+	<span v-if="userHasBadge" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 flex items-center justify-center gap-2 border uppercase" data-testid="event-badges" :title="label">
 		<span v-if="hasPowerPrivileges || isHubAdmin">{{ label }}</span>
 		<template v-else v-for="value in roomAttributes" :key="value">
 			<span>{{ value }}</span>

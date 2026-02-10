@@ -21,7 +21,7 @@
 		</div>
 
 		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
-			<div class="bg-surface-high w-full rounded-xl shadow-xs">
+			<div class="bg-surface-high rounded-base w-full shadow-xs">
 				<!-- In reply to -->
 				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
 					<div class="flex w-fit gap-2 overflow-hidden">
