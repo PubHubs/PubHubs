@@ -69,6 +69,7 @@
 
 	// Composables
 	import { useMentions } from '@hub-client/composables/useMentions';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
@@ -80,11 +81,14 @@
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
+	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
+	const settings = useSettings();
+	const sidebar = useSidebar();
 	const user = useUser();
 
 	const props = defineProps<{
@@ -143,6 +147,10 @@
 
 	function onScrollToEventId(eventId: string, threadId: string | undefined) {
 		emit('scrollToEventId', { eventId, threadId });
+		// Close sidebar on mobile after clicking a search result
+		if (settings.isMobileState) {
+			sidebar.close();
+		}
 	}
 
 	function mapSearchResult(results: SearchResult[]): TSearchResult[] {
