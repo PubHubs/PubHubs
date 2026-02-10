@@ -34,8 +34,8 @@
 						<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
 						<GlobalBarButton v-if="hasRoomMembers" type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
 						<GlobalBarButton type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
-						<!-- Thread tab indicator (shown when active) -->
-						<GlobalBarButton v-if="sidebar.activeTab.value === SidebarTab.Thread" type="chat-circle" :selected="true" />
+						<!-- Thread tab (shown when a thread is selected) -->
+						<GlobalBarButton v-if="room?.getCurrentThreadId()" type="chat-circle" :selected="sidebar.activeTab.value === SidebarTab.Thread" @click="sidebar.openTab(SidebarTab.Thread)" />
 						<!--Only show Editing icon for steward but not for administrator-->
 						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
 						<!--Except for moderator everyone should talk to room moderator-->
@@ -197,20 +197,16 @@
 		sidebar.closeInstantly();
 	});
 
-	// Close sidebar instantly before leaving this page
-	onBeforeRouteLeave(() => {
-		sidebar.closeInstantly();
-	});
-
-	// Close sidebar instantly before leaving this page
-	onBeforeRouteLeave(() => {
-		sidebar.closeInstantly();
-	});
-
-	// Close sidebar instantly before leaving this page
-	onBeforeRouteLeave(() => {
-		sidebar.closeInstantly();
-	});
+	// Clear thread when sidebar is closed
+	watch(
+		() => sidebar.isOpen.value,
+		(isOpen) => {
+			// Only clear thread when transitioning from open to closed
+			if (isOpen === false && room.value) {
+				room.value.setCurrentThreadId(undefined);
+			}
+		},
+	);
 
 	watch(route, async () => {
 		// Check for eventId in query param on route change

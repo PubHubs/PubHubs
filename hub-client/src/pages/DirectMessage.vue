@@ -180,12 +180,18 @@
 		if (roomType === RoomType.PH_MESSAGE_STEWARD_CONTACT) return t('rooms.steward_support');
 
 		// For 1:1 DMs, show the other user's display name
-		// FIXME: this doesnt work yet
 		const otherMembers = room.getOtherJoinedMembers();
-		console.log(otherMembers);
 		if (otherMembers.length > 0) {
 			return otherMembers[0]?.rawDisplayName ?? t('menu.directmsg');
 		}
+
+		// Fallback: check not-invited members (for rooms where member hasn't fully joined yet)
+		const notInvitedMemberIds = room.notInvitedMembersIdsOfPrivateRoom();
+		if (notInvitedMemberIds.length > 0) {
+			const member = room.getMember(notInvitedMemberIds[0]);
+			return member?.rawDisplayName ?? t('menu.directmsg');
+		}
+
 		return t('menu.directmsg');
 	});
 

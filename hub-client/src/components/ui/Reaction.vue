@@ -7,7 +7,8 @@
 			<Icon
 				type="trash"
 				@click.stop="removeReaction(item.reactions.filter((r) => r.userId === currentUserId).map((r) => r.eventId))"
-				class="text-accent-red hover:text-button-red hidden h-[1em] w-[1em] group-hover/reaction:block hover:cursor-pointer"
+				class="text-accent-red hover:text-button-red hidden h-[1em] w-[1em] hover:cursor-pointer"
+				:class="item.reactions.some((r) => r.userId === currentUserId) && 'group-hover/reaction:block'"
 			/>
 			{{ item.count }}
 		</span>

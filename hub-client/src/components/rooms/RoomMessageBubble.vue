@@ -184,6 +184,7 @@
 	import ReactionMiniPopUp from '@hub-client/components/ui/ReactionMiniPopUp.vue';
 
 	// Composables
+	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 
 	// Logic
@@ -214,6 +215,7 @@
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 	const pubhubs = usePubhubsStore();
+	const sidebar = useSidebar();
 	const user = useUser();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
@@ -402,6 +404,7 @@
 
 	function replyInThread() {
 		props.room.setCurrentThreadId(props.event.event_id);
+		sidebar.openTab(SidebarTab.Thread);
 	}
 
 	function resend() {
