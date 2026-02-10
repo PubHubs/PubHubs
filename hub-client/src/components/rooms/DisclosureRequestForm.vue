@@ -101,14 +101,17 @@
 		user: { userId: '' },
 		message: '',
 		attributes: [t('attribute.pbdf.sidn-pbdf.email.email')],
-		where_room: '', //t('admin.private_room'),
+		where_room: t('admin.private_room'),
 	});
 
 	const roomOptions = computed(() => {
-		return roomsStore.publicRooms.map((room) => ({
+		const publicRooms = roomsStore.publicRooms.map((room) => ({
 			value: room.room_id,
 			label: room.name || room.room_id,
 		}));
+
+		const defaultPrivateRoom = { value: '', label: t('admin.private_room') };
+		return [defaultPrivateRoom, ...publicRooms];
 	});
 
 	// function validateRoomForm() {
@@ -166,16 +169,19 @@
 	}
 
 	async function onSubmit() {
-		const privateRoom = await pubhubsStore.createPrivateRoomWith(ask.value.user as User);
-		const privateRoomId = privateRoom!.room_id;
+		let roomId = ask.value.where_room;
+		if (!roomId || roomId === t('admin.private_room')) {
+			const privateRoom = await pubhubsStore.createPrivateRoomWith(ask.value.user as User);
+			roomId = privateRoom!.room_id;
+		}
 		const result: AskDisclosureMessage = {
 			userId: ask.value.user?.userId,
-			replyToRoomId: ask.value.where_room || privateRoomId,
+			replyToRoomId: roomId,
 			message: ask.value.message,
 			attributes: ask.value.attributes,
 		};
 		// Message is duplicated in body and in 'ask' object.
-		await pubhubsStore.addAskDisclosureMessage(privateRoomId, result.message, result);
+		await pubhubsStore.addAskDisclosureMessage(roomId, result.message, result);
 		close();
 	}
 </script>
