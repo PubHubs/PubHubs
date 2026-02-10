@@ -169,6 +169,8 @@
 	--color-on-accent-error: var(--on-accent-red);
 	--color-accent-steward: var(--accent-purple);
 	--color-on-accent-steward: var(--on-accent-purple);
+	--color-accent-admin: var(--color-accent-orange);
+	--color-on-accent-admin: var(--color-on-accent-orange);
 
 	--font-*: initial;
 	--font-headings: var(--font-atkinson);

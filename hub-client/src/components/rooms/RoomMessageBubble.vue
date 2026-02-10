@@ -1,12 +1,15 @@
 <template>
 	<div ref="messageRoot" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
-		<div ref="elReactionPopUp" class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
-			<!-- Announcement Header -->
-			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
-				<Icon type="megaphone-simple" size="sm" class="mr-1"></Icon>
-				{{ getAnnouncementTitle }}
-			</div>
-
+		<div
+			ref="elReactionPopUp"
+			class="group flex flex-col py-3"
+			:class="[
+				getMessageContainerClasses,
+				isAnnouncementMessage && !redactedMessage && 'border-y-on-surface-disabled border-y border-l-4',
+				isAnnouncementMessage && !redactedMessage && props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward',
+			]"
+			role="article"
+		>
 			<!-- Message Container -->
 			<div class="relative flex w-full gap-4" :class="[getMessageContainerClasses, isMobile ? 'px-2' : 'px-5']">
 				<!-- Reaction Panel -->
@@ -16,6 +19,7 @@
 
 				<!-- Avatar -->
 				<Avatar
+					:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'ring-accent-admin/75 ring-2' : props.room.getPowerLevel(props.event.sender) >= 50 && 'ring-accent-steward/75 ring-2'"
 					v-if="hasBeenVisible"
 					:avatar-url="user.userAvatar(props.event.sender)"
 					:user-id="props.event.sender"
@@ -37,6 +41,15 @@
 									<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
 
 									<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
+
+									<!-- Announcement -->
+									<span
+										v-if="isAnnouncementMessage && !redactedMessage"
+										class="flex items-center gap-1"
+										:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
+									>
+										<span class="text-label-tiny pt-025 uppercase">{{ t('rooms.announcement') }}</span>
+									</span>
 								</div>
 
 								<span class="text-label-tiny text-on-surface-dim flex gap-1">
@@ -334,8 +347,6 @@
 
 	const isAnnouncementMessage = computed(() => props.event.content.msgtype === PubHubsMgType.AnnouncementMessage);
 
-	const getAnnouncementTitle = computed(() => getUserTitleForAnnouncement(props.event.sender));
-
 	// Styling of the event based on announcment message
 	const getMessageContainerClasses = computed(() => {
 		// Base classes
@@ -361,22 +372,6 @@
 			...commonAnnouncementClasses,
 		};
 	});
-
-	/**
-	 * Determines the announcement title based on user power level
-	 * - Power level 50 = Steward
-	 * - Power level 100 = Room Administrator
-	 */
-	function getUserTitleForAnnouncement(userId: string): string {
-		const powerLevel = props.room.getPowerLevel(userId);
-		if (powerLevel >= 50 && powerLevel < 100) return announcementTitle(t('rooms.steward'));
-		else if (powerLevel === 100) return announcementTitle(t('rooms.administrator'));
-		else return ''; // empty title will not display anything.
-	}
-
-	function announcementTitle(role: string): string {
-		return t('rooms.room') + ' ' + role + ' ' + t('rooms.announcement');
-	}
 
 	/**
 	 * Returns boolean whether the reply snippet can be shown
