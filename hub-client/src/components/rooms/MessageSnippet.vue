@@ -4,7 +4,7 @@
 			{{ t('message.in_reply_to') }}
 		</p>
 		<p :class="textColor(userColor)">
-			<UserDisplayName :userId="event.sender || t('delete.user')" />
+			<UserDisplayName :userId="event.sender || t('delete.user')" :userDisplayName="user.userDisplayName(event.sender ?? '')" />
 		</p>
 		<div class="flex w-full items-center gap-1" :class="{ 'text-accent-error': redactedMessage }" :title="snippetText">
 			<Icon v-if="redactedMessage" type="trash" :size="'sm'" />

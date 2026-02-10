@@ -97,6 +97,44 @@ const useRooms = defineStore('rooms', {
 			return rooms;
 		},
 
+		/**
+		 * Filter room displaylist based on RoomTypes
+		 * @param types Array of RoomTypes to fetch
+		 */
+		filteredRoomList() {
+			return (types: RoomType[]) => {
+				const user = useUser();
+				return this.roomList
+					.filter((room) => room.isHidden === false && room.roomType && types.includes(room.roomType as RoomType))
+					.filter((room) => {
+						if (!types.includes(RoomType.PH_MESSAGES_DM)) return true;
+						return room.roomType !== RoomType.PH_MESSAGES_DM || isVisiblePrivateRoom(room.name, user.user!);
+					});
+			};
+		},
+
+		// TODO never used. Can be deleted?
+		// sortedRoomsArrayByJoinedTime(): Array<Room> {
+		// 	const user = useUser();
+		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
+		// 	rooms.sort((a, b) => {
+		// 		const aJoined = a.getMember(user.userId!)?.getLastModifiedTime();
+		// 		const bJoined = b.getMember(user.userId!)?.getLastModifiedTime();
+		// 		return aJoined! < bJoined! ? 1 : -1;
+		// 	});
+		// 	return rooms;
+		// },
+		// sortedRoomsArray(): Array<Room> {
+		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
+		// 	rooms.sort((a, b) => (a.name > b.name ? 1 : -1));
+		// 	return rooms;
+		// },
+		// privateRooms(): Array<Room> {
+		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
+		// 	const privateRooms = rooms.filter((item) => item.getType() == RoomType.PH_MESSAGES_DM);
+		// 	return privateRooms;
+		// },
+
 		hasRooms(): boolean {
 			return this.roomsArray?.length > 0;
 		},
@@ -232,9 +270,12 @@ const useRooms = defineStore('rooms', {
 			const pubhubs = usePubhubsStore();
 			await pubhubs.joinRoom(roomId);
 
-			const lastMessageId = this.roomList.find((x) => x.roomId === roomId)?.lastMessageId;
 			const room = this.room(roomId);
+			if (room) {
+				room.setStateEvents(this.roomList.find((x) => x.roomId === roomId)?.stateEvents);
+			}
 
+			const lastMessageId = this.roomList.find((x) => x.roomId === roomId)?.lastMessageId;
 			if (lastMessageId && room) {
 				await room.loadToEvent({
 					eventId: lastMessageId,
@@ -249,9 +290,9 @@ const useRooms = defineStore('rooms', {
 		 * @param name
 		 * @param type
 		 */
-		updateRoomList(roomId: string, name: string, type: string, lastMessageId: string | undefined, isHidden: boolean) {
-			if (!this.roomList.some((room) => room.roomId === roomId)) {
-				this.roomList.push({ roomId: roomId, roomType: type, name: name, lastMessageId: lastMessageId, isHidden: isHidden });
+		updateRoomList(roomListRoom: RoomListRoom) {
+			if (!this.roomList.some((room) => room.roomId === roomListRoom.roomId)) {
+				this.roomList.push(roomListRoom);
 			}
 			this.roomList.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
 		},
@@ -551,7 +592,7 @@ const useRooms = defineStore('rooms', {
 		},
 		getTotalPrivateRoomUnreadMsgCount(): number {
 			const pubhubs = usePubhubsStore();
-			const totalPrivateRooms = this.fetchRoomList(DirectRooms).map((x) => pubhubs.client.getRoom(x.roomId));
+			const totalPrivateRooms = this.filteredRoomList(DirectRooms).map((x) => pubhubs.client.getRoom(x.roomId));
 			return totalPrivateRooms.reduce((total, room) => total + (room!.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
