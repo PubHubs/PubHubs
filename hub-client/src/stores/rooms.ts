@@ -164,6 +164,12 @@ const useRooms = defineStore('rooms', {
 			return Object.keys(state.publicRooms).length > 0;
 		},
 
+		getPublicRoom: (state) => {
+			return (roomId: string): TPublicRoom | undefined => {
+				return state.publicRooms.find((room) => room.room_id === roomId);
+			};
+		},
+
 		nonSecuredPublicRooms(state): Array<TPublicRoom> {
 			return state.publicRooms.filter((room: TPublicRoom) => {
 				return room.room_type === undefined || room.room_type !== RoomType.PH_MESSAGES_RESTRICTED;

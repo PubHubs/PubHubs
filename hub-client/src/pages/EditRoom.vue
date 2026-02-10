@@ -32,7 +32,7 @@
 									<TabPill v-for="(attr, index) in selectedAttributes">
 										{{ attr.label ? attr.label : index + 1 }}
 										<IconButton
-											v-if="selectedAttributes.length > 1 && index > 0"
+											v-if="selectedAttributes.length > 1"
 											size="sm"
 											icon="trash"
 											class="text-on-accent-red -mr-200 ml-100"
@@ -108,6 +108,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import { toEditorSettings } from 'typescript';
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -196,7 +197,7 @@
 	});
 
 	const isSecured = computed(() => {
-		return rooms.roomIsSecure(props.id) || props.id === 'new_secured_room';
+		return rooms.publicRoomIsSecure(props.id) || props.id === 'new_secured_room';
 	});
 
 	onBeforeMount(async () => {
@@ -214,10 +215,8 @@
 			if (isSecured.value) {
 				editRoom.value = Object.assign({}, rooms.securedRoom(props.id)) as TEditRoom;
 			} else {
-				editRoom.value = Object.assign({}, rooms.room(props.id)?.matrixRoom) as unknown as TEditRoom;
+				editRoom.value = Object.assign({}, rooms.getPublicRoom(props.id)) as unknown as TEditRoom;
 			}
-
-			editRoom.value.topic = rooms.getRoomTopic(props.id);
 
 			if (isSecured.value) {
 				const [labels, attributes] = editRoomComposable.getYiviLabelsAndAttributes((editRoom.value as any)?.accepted, t);
