@@ -63,6 +63,21 @@
 					/>
 				</template>
 
+				<!-- Announcement mode indicator -->
+				<div
+					v-if="isAnnouncementMode"
+					class="flex items-center justify-between gap-2 border-b px-4 py-2"
+					:class="announcementAccentClass === 'accent-admin' ? 'bg-accent-admin/10 border-accent-admin' : 'bg-accent-steward/10 border-accent-steward'"
+				>
+					<div class="flex items-center gap-2">
+						<Icon type="megaphone-simple" size="sm" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'" />
+						<span class="text-label-small" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'">{{ $t('message.announcement_mode') }}</span>
+					</div>
+					<button @click="isAnnouncementMode = false" class="hover:cursor-pointer">
+						<Icon type="x" size="sm" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'" />
+					</button>
+				</div>
+
 				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
 					<IconButton
 						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
@@ -76,7 +91,7 @@
 					<TextArea
 						ref="elTextInput"
 						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
-						:placeholder="$t('rooms.new_message')"
+						:placeholder="isAnnouncementMode ? $t('message.announcement_placeholder') : $t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
 						v-model="value"
 						@changed="changed()"
@@ -88,8 +103,10 @@
 					<!--Steward and above can broadcast only in main time line-->
 					<button
 						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isDirectMessageRoom()"
-						:class="!messageInput.state.sendButtonEnabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
-						@click="isValidMessage() ? announcementMessage() : null"
+						class="hover:cursor-pointer"
+						:class="isAnnouncementMode ? (announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
+						@click="isAnnouncementMode = !isAnnouncementMode"
+						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
 					>
 						<Icon type="megaphone-simple" size="lg"></Icon>
 					</button>
@@ -139,7 +156,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { PropType, computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
@@ -223,6 +240,13 @@
 	const filePickerEl = ref();
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
+	const isAnnouncementMode = ref(false);
+
+	// Accent color based on power level (admin = 100, steward = 50+)
+	const announcementAccentClass = computed(() => {
+		const powerLevel = props.room.getPowerLevel(user.userId);
+		return powerLevel === 100 ? 'accent-admin' : 'accent-steward';
+	});
 
 	let threadRoot: TMessageEvent | undefined = undefined;
 
@@ -362,13 +386,19 @@
 		elTextInput.value?.$el.focus();
 	}
 
-	function submitMessage() {
+	async function submitMessage() {
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 
 		if (messageInput.state.signMessage) {
 			messageInput.state.showYiviQR = true;
 			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot);
+		} else if (isAnnouncementMode.value) {
+			// Send as announcement
+			const powerLevel = props.room.getPowerLevel(user.userId);
+			await pubhubs.addAnnouncementMessage(props.room.roomId, value.value!.toString(), powerLevel);
+			value.value = '';
+			isAnnouncementMode.value = false;
 		} else if (messageActions.replyingTo && inReplyTo.value) {
 			pubhubs.addMessage(props.room.roomId, value.value!.toString(), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
@@ -396,12 +426,6 @@
 			pubhubs.submitMessage(value.value!.toString(), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';
 		}
-	}
-
-	async function announcementMessage() {
-		const powerLevel = props.room.getPowerLevel(user.userId);
-		await pubhubs.addAnnouncementMessage(props.room.roomId, value.value!.toString(), powerLevel);
-		value.value = '';
 	}
 
 	function editMessage() {
