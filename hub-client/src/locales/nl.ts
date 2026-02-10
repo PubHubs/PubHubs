@@ -55,6 +55,7 @@ const nl = {
 		cant_find: 'Sorry, we konden de pagina of kamer die u zocht niet vinden.',
 	},
 	file: {
+		upload: 'Upload',
 		file: 'Bestand',
 		upload_file: 'Bestand uploaden',
 		upload_files: 'Bestanden uploaden',
@@ -525,7 +526,7 @@ const nl = {
 		send: 'Verstuur',
 		in_reply_to: 'Antwoord op:',
 		notification: 'Nieuw bericht in hub',
-		upload_file: 'Upload bestand',
+		upload_file: 'Upload',
 		reply: 'Antwoord',
 		reply_in_thread: 'Antwoord in thread',
 		reply_emoji: 'Reageer snel',
@@ -538,7 +539,7 @@ const nl = {
 		edit: 'Bewerk',
 		pick: 'Kies',
 		sign: {
-			add_signature: 'Onderteken bericht',
+			add_signature: 'Ondertekenen',
 			heading: 'Een bericht ondertekenen',
 			info: 'Laat zien dat je achter dit bericht staat door het te ondertekenen met jouw gegegevens.',
 			warning: 'Een ondertekend bericht kan worden gedeeld. Zet er geen persoonlijke informatie in en denk aan de medegebruikers in deze kamer.',

@@ -1,7 +1,7 @@
 <template>
-	<button class="hover:bg-surface flex flex-col items-center rounded-md p-2" @click="click">
+	<button class="bg-surface-high hover:bg-surface flex h-18 w-36 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl p-4 hover:cursor-pointer" @click="click">
 		<Icon :type="icon"></Icon>
-		<p><slot></slot></p>
+		<p class="line-clamp-1 w-full"><slot></slot></p>
 	</button>
 </template>
 
@@ -9,13 +9,15 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	const emit = defineEmits(['click']);
+	// Props
+	withDefaults(
+		defineProps<{
+			icon: string;
+		}>(),
+		{},
+	);
 
-	defineProps({
-		icon: {
-			type: String,
-		},
-	});
+	const emit = defineEmits(['click']);
 
 	function click() {
 		emit('click');
