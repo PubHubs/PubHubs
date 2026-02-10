@@ -209,7 +209,14 @@ class MatrixService {
 		this.client!.getRoom(roomId); // Puts the room in the client store
 
 		const lastMessageId = timeline.findLast((x) => x.type === EventType.RoomMessage)?.event_id;
-		return this.roomsStore.updateRoomList(roomId, roomName, roomType, lastMessageId, false); // Update the roomlist with the current room
+		return this.roomsStore.updateRoomList({
+			roomId: roomId,
+			roomType: roomType,
+			name: roomName,
+			stateEvents: required_state,
+			lastMessageId: lastMessageId,
+			isHidden: false,
+		}); // Update the roomlist with the current room
 	}
 
 	/**
@@ -231,6 +238,7 @@ class MatrixService {
 				this.roomsStore.setRoomsLoaded(true);
 				return;
 			}
+			//console.error("handleLifecycleEvent roomList", roomList);
 
 			const joinPromises: Promise<any>[] = [];
 
@@ -284,6 +292,7 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
+			//console.error("handleRoomDataEvent roomData ", roomData);
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });

@@ -141,7 +141,7 @@
 
 	async function loadPrivateRooms() {
 		await rooms.waitForInitialRoomsLoaded(); // we need the roomslist, so wait till its loaded
-		const roomsList = rooms.fetchRoomList(DirectRooms);
+		const roomsList = rooms.filteredRoomList(DirectRooms);
 		for (const room of roomsList) {
 			await rooms.joinRoomListRoom(room.roomId);
 			privateRooms.value = [...privateRooms.value, rooms.rooms[room.roomId]];

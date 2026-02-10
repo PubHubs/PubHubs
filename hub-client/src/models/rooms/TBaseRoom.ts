@@ -1,3 +1,5 @@
+import { IStateEvent } from 'matrix-js-sdk';
+
 enum RoomType {
 	PH_MESSAGES_DEFAULT = 'ph.messages.default',
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
@@ -45,6 +47,7 @@ type RoomListRoom = {
 	roomId: string;
 	roomType: string;
 	name: string;
+	stateEvents: IStateEvent[];
 	lastMessageId: string | undefined; // id of the newest message, used as base for the roomtimeline (this paginates forward to catch the newly added events)
 	isHidden: boolean; // keep track of rooms that are removed from the list but are not synced yet
 };
