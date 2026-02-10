@@ -19,6 +19,7 @@ const activeTab = ref<SidebarTab>(SidebarTab.None);
 const selectedDMRoom = ref<Room | null>(null);
 const lastDMRoomId = ref<string | null>(null);
 const skipTransition = ref(false);
+const skipNextRestore = ref(false);
 
 export function useSidebar() {
 	const settings = useSettings();
@@ -36,6 +37,16 @@ export function useSidebar() {
 	function close() {
 		activeTab.value = SidebarTab.None;
 		selectedDMRoom.value = null;
+	}
+
+	// Clear last DM room ID and skip next restore (prevents auto-restore on next DM page visit)
+	function clearLastDMRoom() {
+		lastDMRoomId.value = null;
+		skipNextRestore.value = true;
+		// Reset flag after component has fully mounted and all restore attempts are done
+		setTimeout(() => {
+			skipNextRestore.value = false;
+		}, 500);
 	}
 
 	// Toggle between open/closed for a specific tab
@@ -59,6 +70,11 @@ export function useSidebar() {
 	// Restore DM sidebar state - used when returning to DM page
 	// Opens last viewed DM room, or most recent if no history
 	function restoreDMRoom(sortedRooms: Room[]) {
+		// Skip restore if explicitly requested (e.g., when clicking DM menu button)
+		if (skipNextRestore.value) {
+			return;
+		}
+
 		// If already showing a DM room, keep it
 		if (activeTab.value === SidebarTab.DirectMessage && selectedDMRoom.value) {
 			return;
@@ -104,6 +120,7 @@ export function useSidebar() {
 		isMobile,
 		openTab,
 		close,
+		clearLastDMRoom,
 		toggleTab,
 		openDMRoom,
 		restoreDMRoom,

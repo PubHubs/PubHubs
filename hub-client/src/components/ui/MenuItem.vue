@@ -85,9 +85,10 @@
 		if (props.room) {
 			menu.setActiveMenuItem(props.room.roomId);
 		}
-		// Close sidebar when navigating to DM page (so mobile shows conversation list, not last open DM)
-		if (typeof props.to === 'object' && props.to !== null && props.to.name === 'direct-msg') {
+		// Mobile only: Close sidebar when navigating to DM page (so mobile shows conversation list, not last open DM)
+		if (typeof props.to === 'object' && props.to !== null && props.to.name === 'direct-msg' && sidebar.isMobile.value) {
 			sidebar.close();
+			sidebar.clearLastDMRoom();
 		}
 	}
 
