@@ -66,7 +66,7 @@
 				<!-- Announcement mode indicator -->
 				<div
 					v-if="isAnnouncementMode"
-					class="flex items-center justify-between gap-2 border-b px-4 py-2"
+					class="rounded-t-base flex items-center justify-between gap-2 border-b px-4 py-2"
 					:class="announcementAccentClass === 'accent-admin' ? 'bg-accent-admin/10 border-accent-admin' : 'bg-accent-steward/10 border-accent-steward'"
 				>
 					<div class="flex items-center gap-2">
@@ -78,7 +78,7 @@
 					</button>
 				</div>
 
-				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
+				<div v-if="messageInput.state.textArea" class="rounded-base flex items-center gap-x-4 px-4 py-2">
 					<IconButton
 						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
 						data-testid="paperclip"
@@ -127,7 +127,7 @@
 					</button>
 				</div>
 
-				<div v-if="messageInput.state.signMessage" class="bg-surface-low m-4 mt-0 flex items-center rounded-md p-2">
+				<div v-if="messageInput.state.signMessage" class="bg-surface-low rounded-base m-4 mt-0 flex items-center p-2">
 					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>

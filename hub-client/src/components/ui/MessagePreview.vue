@@ -34,7 +34,7 @@
 				</div>
 			</div>
 
-			<Badge v-if="newMessage > 0" color="notification" class="aspect-square h-full shrink-0">
+			<Badge v-if="newMessage > 0" class="aspect-square h-1 shrink-0">
 				{{ newMessage }}
 			</Badge>
 
