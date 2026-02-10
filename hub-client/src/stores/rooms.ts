@@ -210,11 +210,13 @@ const useRooms = defineStore('rooms', {
 			return this.room(roomId);
 		},
 
-		changeRoom(roomId: string) {
+		changeRoom(roomId: string, skipNavigation = false) {
 			if (this.currentRoomId !== roomId) {
 				this.currentRoomId = roomId;
-				const messagebox = useMessageBox();
-				messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+				if (!skipNavigation) {
+					const messagebox = useMessageBox();
+					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+				}
 			}
 		},
 

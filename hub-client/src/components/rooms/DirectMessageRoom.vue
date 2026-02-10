@@ -24,11 +24,12 @@
 	}>();
 
 	// Initialize timeline and set current room when room changes
+	// skipNavigation=true prevents URL change when viewing DM rooms in the DM page
 	watch(
 		() => props.room,
 		(newRoom) => {
 			if (newRoom) {
-				rooms.changeRoom(newRoom.roomId);
+				rooms.changeRoom(newRoom.roomId, true);
 				newRoom.initTimeline();
 			}
 		},
