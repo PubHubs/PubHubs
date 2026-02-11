@@ -153,7 +153,7 @@ impl DiscoveryInfoCheck<'_> {
         }
 
         if let Some(ref ic) = inf.constellation_or_id
-            && let Some(ref sc) = self.constellation
+            && let Some(sc) = self.constellation
             && *ic.id() != sc.id
         {
             log::error!(
