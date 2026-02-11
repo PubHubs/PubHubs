@@ -1,5 +1,5 @@
 <template>
-	<li role="menuitem" :class="{ 'bg-background': roomIsActive || menuItemIsActive || adminMenuIsActive }" @click="handleClick" class="hover:bg-surface-low rounded-base h-fit px-4 py-2 transition-all duration-200 ease-in-out">
+	<li role="menuitem" :class="{ 'bg-surface-low': roomIsActive || menuItemIsActive || adminMenuIsActive }" @click="handleClick" class="hover:bg-surface-low rounded-base h-fit px-4 py-2 transition-all duration-200 ease-in-out">
 		<router-link :to="to" class="flex items-center gap-4">
 			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
 			<Icon v-else class="" :type="icon" :size="iconSize" />
@@ -37,14 +37,14 @@
 
 	const adminMenuIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
-			return props.to['name'] === router.currentRoute.value.fullPath.split('/').pop();
+			return props.to['name'] === router.currentRoute.value.path.split('/').pop();
 		}
 		return false;
 	});
 
 	const menuItemIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
-			return menu.getMenuItemPath(props.to.name) === router.currentRoute.value.fullPath;
+			return menu.getMenuItemPath(props.to.name) === router.currentRoute.value.path;
 		}
 		return false;
 	});
@@ -53,7 +53,8 @@
 
 	const roomIsActive = computed(() => {
 		if (!props.room) return false;
-		return props.room.roomId === router.currentRoute.value.fullPath.split('/').pop(); // Full path looks like /room/room_id
+		const pathRoomId = router.currentRoute.value.path.split('/').pop();
+		return props.room.roomId === decodeURIComponent(pathRoomId || '');
 	});
 
 	const props = defineProps({

@@ -38,6 +38,7 @@
 						/>
 					</div>
 
+					<!-- General menu -->
 					<Menu>
 						<template v-for="(item, index) in menu.getMenu" :key="index">
 							<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ t(item.key) }}</MenuItem>
