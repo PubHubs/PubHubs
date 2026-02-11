@@ -277,6 +277,7 @@ const nl = {
 		leave_only_admin: 'Waarschuwing: je bent de maker van de kamer en het enige lid van de kamer. Al je weggaat, wordt de kamer verwijderd.',
 		group_limit: 'Je kunt geen gebruikers meer aan de groep toevoegen.',
 		hide_sure: 'Weet je zeker dat je deze privé kamer onzichtbaar wilt maken?',
+		hide_conversation: 'Verberg gesprek',
 		try_again: 'Kan niet deelnemen aan kamer. Probeer het opnieuw.',
 		new_message: 'Bericht',
 		members: 'leden',

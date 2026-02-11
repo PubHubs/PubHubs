@@ -278,6 +278,7 @@ const en = {
 		leave_only_admin: 'Warning: You are the creator & only member of the room. If you leave, theroom will be deleted.',
 		group_limit: 'You cannot add more users to the group',
 		hide_sure: 'Do you really want to hide this private room?',
+		hide_conversation: 'Hide conversation',
 		try_again: 'Cannot join room. Please try again.',
 		new_message: 'Message',
 		members: 'members',
