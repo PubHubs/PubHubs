@@ -252,7 +252,11 @@ class MatrixService {
 				// Only handle the join when the room is not joined yet
 				if (!this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join) {
 					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? RoomType.PH_MESSAGES_DEFAULT;
-					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state, roomData.timeline));
+					// For direct rooms, use actual m.room.name state event (contains user IDs for hidden state filtering)
+					// For other rooms, use computed roomData.name from sliding sync
+					const stateRoomName = roomData.required_state.find((x) => x.type === EventType.RoomName)?.content?.name;
+					const roomName = DirectRooms.includes(roomType) && stateRoomName ? stateRoomName : roomData.name;
+					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state, roomData.timeline));
 				}
 
 				// Get the invite state

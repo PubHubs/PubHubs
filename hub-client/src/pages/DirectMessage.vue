@@ -54,7 +54,7 @@
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === room.roomId && 'bg-surface-low!'"
 						role="listitem"
 						@click="openDMRoom(room)"
-						v-context-menu="(evt: any) => openMenu(evt, [{ label: t('rooms.hide_conversation'), icon: 'x', isDelicate: true, onClick: () => hideConversation(room) }], room.roomId)"
+						v-context-menu="canHideRoom(room) ? (evt: any) => openMenu(evt, [{ label: t('rooms.hide_conversation'), icon: 'x', isDelicate: true, onClick: () => hideConversation(room) }], room.roomId) : undefined"
 					/>
 				</div>
 			</div>
@@ -280,6 +280,12 @@
 
 	function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
 		scrollToEventId.value = ev.eventId;
+	}
+
+	function canHideRoom(room: Room): boolean {
+		// Only DM and Group rooms support hiding (via name-based hidden state)
+		const roomType = room.getType();
+		return roomType === RoomType.PH_MESSAGES_DM || roomType === RoomType.PH_MESSAGES_GROUP;
 	}
 
 	async function hideConversation(room: Room) {

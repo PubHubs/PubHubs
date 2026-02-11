@@ -509,6 +509,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const me = user.user as User;
 			name = updatePrivateRoomName(name, me, hide);
 			await this.client.setRoomName(room.roomId, name);
+			rooms.setRoomListName(room.roomId, name);
 			rooms.setRoomListHidden(room.roomId, hide);
 		},
 
