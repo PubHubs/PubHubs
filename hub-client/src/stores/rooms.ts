@@ -459,7 +459,7 @@ const useRooms = defineStore('rooms', {
 			}
 
 			if (creatingAdminUser) {
-				this.roomNotices[roomId][creatingAdminUser] = ['rooms.admin_badge'];
+				this.roomNotices[roomId][creatingAdminUser] = ['admin.title_administrator'];
 			}
 			const limit = 100000;
 			const encodedObject = encodeURIComponent(

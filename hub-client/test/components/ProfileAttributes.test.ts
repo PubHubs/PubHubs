@@ -69,7 +69,7 @@ describe('ProfileAttributes.vue Test', () => {
 		rooms.$patch({
 			roomNotices: {
 				room: {
-					user: ['rooms.admin_badge'],
+					user: ['admin.title_administrator'],
 				},
 			},
 		});
