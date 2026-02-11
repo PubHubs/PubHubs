@@ -12,7 +12,7 @@
 		<div v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
 	</div>
 
-	<Dialog v-if="dialog.visible" @close="dialog.close" />
+	<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 
 	<ContextMenu />
 </template>
