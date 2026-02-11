@@ -60,6 +60,7 @@
 	// Logic
 	import device from '@hub-client/logic/core/device';
 
+	// Models
 	import { Hub } from '@global-client/models/Hubs';
 
 	// Stores
@@ -68,6 +69,7 @@
 
 	const global = useGlobal();
 	const hubs = useHubs();
+
 	const searchQuery = ref<string>('');
 
 	const filteredHubs = computed(() => {

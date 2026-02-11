@@ -7,7 +7,7 @@
 			<div class="flex h-full items-center" :class="isMobile ? 'pl-4' : 'pl-0'">
 				<div class="flex w-fit items-center gap-3 overflow-hidden">
 					<Icon type="users" />
-					<H3 class="font-headings text-h2 text-on-surface font-semibold">{{ t('menu.admin_tools_users') }}</H3>
+					<H3 class="font-headings text-h3 text-on-surface font-semibold">{{ t('menu.admin_tools_users') }}</H3>
 				</div>
 			</div>
 		</template>

@@ -298,13 +298,13 @@
 	--spacing-64: 256px;
 
 	--text-h1: 28px;
-	--text-h1--line-height: 1.28;
+	--text-h1--line-height: 1;
 	--text-h1--font-weight: 600;
 	--text-h2: 20px;
-	--text-h2--line-height: 1.35;
+	--text-h2--line-height: 1;
 	--text-h2--font-weight: 600;
 	--text-h3: 16px;
-	--text-h3--line-height: 1.35;
+	--text-h3--line-height: 1;
 	--text-h3--font-weight: 600;
 	--text-body: 16px;
 	--text-body--line-height: 1.5;

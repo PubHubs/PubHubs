@@ -21,7 +21,7 @@
 							:event-thread-length="item.threadLength"
 							:deleted-event="item.isDeleted"
 							:data-event-id="item.matrixEvent.event.event_id"
-							:class="{ 'animate-highlight': props.eventIdToScroll === item.matrixEvent.event.event_id }"
+							:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
 							:active-reaction-panel="activeReactionPanel"
 							@in-reply-to-click="onInReplyToClick"
 							@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"

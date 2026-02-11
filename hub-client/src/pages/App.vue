@@ -2,10 +2,10 @@
 	<div v-if="user.isLoggedIn && setupReady" class="bg-background font-body text-on-surface text-body flex h-screen w-full overflow-hidden">
 		<HeaderFooter class="relative shrink-0" :class="isMobile ? 'w-[calc(50%-40px)]!' : 'flex max-w-[320px]'">
 			<template #header>
-				<div class="flex h-full w-full justify-between py-2">
-					<div class="mt-1 flex items-center justify-between gap-2">
-						<div class="group hover:border-on-surface-dim hover:mt-025 relative flex cursor-pointer items-center gap-2 hover:border-b-2 hover:border-dotted" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
-							<H3 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
+				<div class="flex h-full w-full justify-between">
+					<div class="flex items-center justify-between gap-2">
+						<div class="group relative flex cursor-pointer items-center gap-2" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
+							<H2 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H2>
 							<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
 						</div>
 						<Notification />

@@ -1,17 +1,17 @@
 <template>
-	<!-- Banner -->
-	<HubBanner :banner-url="hubSettings.bannerUrl" />
-
-	<div class="mx-auto flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
-		<!-- Search bar -->
-		<div class="-mt-[5.5rem] flex flex-col gap-2">
-			<div class="flex items-center gap-2 whitespace-nowrap">
-				<div class="flex items-center gap-2 py-2">
-					<Icon class="text-surface dark:text-on-surface" type="compass" size="md" />
-					<div role="heading" class="font-headings text-h3 font-semibold">{{ $t('menu.discover') }}</div>
+	<HeaderFooter>
+		<template #header>
+			<div class="flex h-full items-center" :class="isMobile ? 'pl-4' : 'pl-0'">
+				<div class="flex w-fit items-center gap-3 overflow-hidden">
+					<Icon type="compass" />
+					<H3 class="font-headings text-h3 text-on-surface font-semibold">{{ $t('menu.discover') }}</H3>
 				</div>
 			</div>
-			<div class="relative">
+		</template>
+
+		<div class="mx-auto my-16 flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
+			<!-- Search bar -->
+			<div class="flex flex-col gap-2">
 				<input
 					type="text"
 					v-model="searchQuery"
@@ -19,61 +19,61 @@
 					class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary mb-4 w-full rounded-xs border px-4 py-2"
 					@keyup="startFilter"
 				/>
-				<Icon type="magnifying-glass" class="text-on-surface-variant pointer-events-none absolute top-[20%] right-2 z-10" size="sm" />
 			</div>
-		</div>
 
-		<div class="h-4">
-			<InlineSpinner v-if="!roomsLoaded || isFiltering" class="mx-auto w-full" />
-		</div>
+			<div class="h-4">
+				<InlineSpinner v-if="!roomsLoaded || isFiltering" class="mx-auto w-full" />
+			</div>
 
-		<!-- Room grid -->
-		<div v-if="roomsLoaded" class="@container flex w-full flex-col gap-2">
-			<div class="flex w-full justify-center rounded-xl py-8">
-				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="grid w-full grid-cols-1 gap-8 transition-all duration-300 @2xl:grid-cols-2 @7xl:grid-cols-3">
-					<RoomCard
-						v-for="room in filteredRooms"
-						:key="room.room_id"
-						:room="room"
-						:isSecured="rooms.publicRoomIsSecure(room.room_id)"
-						:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
-						:timestamp="roomTimestamps[room.room_id]"
-					/>
-				</TransitionGroup>
+			<!-- Room grid -->
+			<div v-if="roomsLoaded" class="@container flex w-full flex-col gap-2">
+				<div class="flex w-full justify-center rounded-xl py-8">
+					<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="grid w-full grid-cols-1 gap-8 transition-all duration-300 @2xl:grid-cols-2 @7xl:grid-cols-3">
+						<RoomCard
+							v-for="room in filteredRooms"
+							:key="room.room_id"
+							:room="room"
+							:isSecured="rooms.publicRoomIsSecure(room.room_id)"
+							:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
+							:timestamp="roomTimestamps[room.room_id]"
+						/>
+					</TransitionGroup>
 
-				<!-- No results message -->
-				<div v-else class="flex w-full items-center justify-center">
-					<P>{{ t('rooms.no_rooms_found') }}</P>
+					<!-- No results message -->
+					<div v-else class="flex w-full items-center justify-center">
+						<P>{{ t('rooms.no_rooms_found') }}</P>
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
+	</HeaderFooter>
 </template>
+
 <script setup lang="ts">
 	// Packages
-	import { onBeforeMount, onMounted, ref, watchEffect } from 'vue';
+	import { computed, onBeforeMount, onMounted, ref, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
 	import RoomCard from '@hub-client/components/rooms/RoomCard.vue';
-	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Stores
-	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const pubhubsStore = usePubhubsStore();
-	const hubSettings = useHubSettings();
 	const rooms = useRooms();
 	const { t } = useI18n();
 	const timestamps = ref<any[]>(rooms.roomtimestamps);
 	const roomTimestamps = ref<Record<string, Date>>({});
 	const searchQuery = ref('');
 	let roomsLoaded = ref(true);
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	type TVisiblePublicRoom = TPublicRoom & {
 		nameToLower: string;

@@ -6,11 +6,11 @@
 			<div class="flex w-fit items-center gap-3 overflow-hidden">
 				<Icon type="chat-circle-text" :class="isMobile && 'hidden'" />
 				<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">
-					<TruncatedText class="font-headings font-semibold">
-						<h2 v-if="isMobile && sidebar.isOpen.value && sidebar.selectedDMRoom.value">
+					<TruncatedText class="font-headings text-h3 font-semibold">
+						<H3 v-if="isMobile && sidebar.isOpen.value && sidebar.selectedDMRoom.value">
 							{{ mobileConversationTitle }}
-						</h2>
-						<h2 v-else>{{ t('menu.directmsg') }}</h2>
+						</H3>
+						<H3 v-else>{{ t('menu.directmsg') }}</H3>
 					</TruncatedText>
 				</H3>
 				<TruncatedText class="hidden md:inline" />
