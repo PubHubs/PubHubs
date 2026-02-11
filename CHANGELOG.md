@@ -13,7 +13,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 - [NEW] Messages can be shared.
 
-## 11 February 2025 - v3.2.0
+## 11 February 2025 - v3.2.1
 - [BUG] Memberlist is again shown
 - [BUG] Icon reply for root of thread disabled in thread timeline
 - [BUG] Removed timeout for reading of hubs for debugging
