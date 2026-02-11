@@ -1,5 +1,7 @@
 @import 'tailwindcss' source('../../../');
 
+@variant dark (&:where(.dark, .dark *));
+
 /* Fonts */
 @font-face {
 	font-display: swap;
