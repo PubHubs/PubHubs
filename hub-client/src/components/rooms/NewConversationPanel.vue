@@ -1,33 +1,34 @@
 <template>
-	<div class="flex h-full w-full flex-col px-4 py-4" data-testid="sidekick">
+	<div class="flex h-full w-full flex-col p-4" data-testid="sidekick">
+		<SidebarHeader v-if="!groupPanel" :title="t('others.new_message')" />
 		<div class="flex h-full flex-col">
-			<div v-if="!groupPanel" class="flex shrink-0 flex-col">
-				<div class="relative flex items-center px-8 py-2">
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="bg-background text-label h-8 w-full min-w-0 grow rounded-lg border px-4 py-1" />
-					<Icon class="absolute right-0 mr-5" type="magnifying-glass" size="sm" />
+			<div v-if="!groupPanel" class="flex shrink-0 flex-col gap-2">
+				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
+					<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
+					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
 				</div>
-				<div class="px-8 py-2">
+				<div class="">
 					<Button class="bg-on-surface-variant text-label-small hover:text-surface-high dark:text-surface-high flex w-full items-center justify-center gap-2" size="sm" @click="groupPanel = true">
 						<Icon type="plus"></Icon> {{ t('others.new_group') }}
 					</Button>
 				</div>
 			</div>
-			<div v-else class="mx-4 mt-2 flex flex-col">
-				<div class="bg-surface-low flex items-center justify-between rounded-lg px-1 py-1 font-bold">
+			<div v-else class="flex flex-col gap-2">
+				<div class="bg-surface-high flex items-center justify-between rounded-md px-3 py-2">
 					<Icon type="arrow-left" class="cursor-pointer" @click="groupProfile ? backToGroupPanel() : (groupPanel = false)" />
 					<span class="text-label-small mr-auto pl-2">
 						{{ t('others.new_group') }}
 					</span>
 					<Icon type="x" class="cursor-pointer" @click="$emit('close')" />
 				</div>
-				<div class="relative flex items-center pt-2">
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="bg-background text-label h-8 w-full min-w-0 grow rounded-lg border px-4 py-1" />
-					<Icon class="absolute right-1" type="magnifying-glass" />
+				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
+					<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
+					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
 				</div>
-				<div v-if="groupProfile">
-					<span class="text-label-small"> {{ t('others.select_group_name') }}</span>
-					<div class="bg-surface-low flex items-center gap-2 rounded-lg px-2 py-2">
-						<div class="bg-surface-high h-10 w-10 cursor-pointer rounded-full">
+				<div v-if="groupProfile" class="mt-4 flex flex-col gap-2">
+					<span class="text-label-small text-on-surface-dim"> {{ t('others.select_group_name') }}</span>
+					<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
+						<div class="bg-surface-variant h-10 w-10 cursor-pointer overflow-hidden rounded-full">
 							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl.url" @click="fileInput!.click()"></Avatar>
 							<Button v-else color="" @click="fileInput!.click()">
 								<Icon type="image-square" class="mt-025 -ml-[5px]" />
@@ -35,7 +36,7 @@
 						</div>
 						<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 
-						<input type="text" v-model="groupName" class="bg-background h-8 min-w-0 grow rounded-lg border px-4 py-1" :placeholder="t('others.select_group_name')" />
+						<input type="text" v-model="groupName" class="text-label-small placeholder:text-on-surface-variant min-w-0 grow border-none bg-transparent focus:ring-0 focus:outline-0" :placeholder="t('others.select_group_name')" />
 					</div>
 					<span class="mx-auto w-1/2"> {{ selectedUsers.length + ' ' + t('others.group_members') }} </span>
 				</div>
@@ -64,12 +65,17 @@
 				</Button>
 			</div>
 
-			<div v-if="!groupProfile" class="grow overflow-y-auto px-8 py-2">
+			<div v-if="!groupProfile" class="mt-4 grow overflow-y-auto">
 				<template v-if="Object.keys(categorizedUsers).length">
 					<div v-for="(usersInLetter, letter) in categorizedUsers" :key="letter" class="mb-4">
 						<h3 class="text-md text-on-surface-dim sticky top-0 z-10 py-1 font-bold uppercase">{{ letter }}</h3>
 						<ul>
-							<li v-for="user in usersInLetter" :key="user.userId" class="hover:bg-surface-low flex cursor-pointer items-center gap-2 py-1 pl-4" @click.once="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
+							<li
+								v-for="user in usersInLetter"
+								:key="user.userId"
+								class="hover:bg-surface-high flex cursor-pointer items-center gap-2 rounded-md p-2"
+								@click.once="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)"
+							>
 								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check-circle"></Icon>
 								<Avatar v-else :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
 								<div class="flex flex-col">
@@ -98,6 +104,7 @@
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';

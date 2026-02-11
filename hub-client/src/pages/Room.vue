@@ -26,20 +26,24 @@
 
 				<!-- Right: Sidebar controls -->
 				<div class="flex items-center gap-2">
-					<!-- Close button (desktop only, on mobile the global back arrow handles sidebar close) -->
-					<button v-if="sidebar.isOpen.value && !isMobile" class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer" :aria-label="t('global.close')" @click="sidebar.close()">
-						<Icon type="sidebar" size="base" class="rotate-90" />
-					</button>
 					<RoomHeaderButtons>
-						<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
-						<GlobalBarButton v-if="hasRoomMembers" type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
+						<!-- Search -->
 						<GlobalBarButton type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
+
+						<!-- Room library -->
+						<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
+
+						<!-- Members -->
+						<GlobalBarButton v-if="hasRoomMembers" type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
+
 						<!-- Thread tab (shown when a thread is selected) -->
 						<GlobalBarButton v-if="room?.getCurrentThreadId()" type="chat-circle" :selected="sidebar.activeTab.value === SidebarTab.Thread" @click="sidebar.toggleTab(SidebarTab.Thread)" />
-						<!-- Only show Editing icon for steward but not for administrator -->
+
+						<!-- Contact room steward -->
+						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.MessageSteward) && room!.getRoomStewards().length > 0" type="lifebuoy" @click="messageRoomSteward()" />
+
+						<!-- Editing icon for steward (but not for administrator) -->
 						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
-						<!-- Except for moderator everyone should talk to room moderator -->
-						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.MessageSteward) && room!.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
 					</RoomHeaderButtons>
 				</div>
 			</div>

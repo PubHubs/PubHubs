@@ -269,6 +269,7 @@ const en = {
 	},
 	rooms: {
 		room: 'Room',
+		thread: 'Thread',
 		me: 'Me',
 		just_you: 'Just you',
 		join_sure: 'Do you wish to join this room?',
@@ -615,6 +616,7 @@ const en = {
 		organize: 'Organize your hubs by dragging them.',
 	},
 	roomlibrary: {
+		library: 'Files',
 		signed: 'signed by',
 		signed_info: 'Signed with',
 		used_attribute: 'Used attribute',

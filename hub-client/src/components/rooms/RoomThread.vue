@@ -1,7 +1,8 @@
 <template>
-	<div ref="elThreadTimeline" class="flex h-full w-full flex-col" data-testid="thread-sidekick">
+	<div ref="elThreadTimeline" class="flex h-full w-full flex-col p-4" data-testid="thread-sidekick">
+		<SidebarHeader :title="t('rooms.thread')" />
 		<!-- Thread message list -->
-		<div class="h-full flex-1 overflow-y-scroll pt-4 pb-8">
+		<div class="flex-1 overflow-y-scroll pb-4">
 			<!-- Root event -->
 			<div v-if="filteredEvents.length === 0" ref="elRoomEvent" :id="props.room.currentThread?.rootEvent?.event.event_id">
 				<RoomMessageBubble
@@ -55,12 +56,14 @@
 	// Packages
 	import { EventType, MatrixEvent } from 'matrix-js-sdk';
 	import { Reactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
+	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
@@ -73,6 +76,8 @@
 	import Room from '@hub-client/models/rooms/Room';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+	const { t } = useI18n();
 
 	const props = defineProps({
 		room: {

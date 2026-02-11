@@ -1,34 +1,37 @@
 <template>
-	<div class="flex h-full flex-col gap-4 overflow-y-auto p-3">
-		<div v-if="stewardIds && stewardIds.length > 0" class="pb-8">
-			<SideKickSubHeader>
-				<div class="flex justify-between">
-					<div class="capitalize">{{ $t('rooms.stewards') }}</div>
-					<div class="flex items-center gap-2">
-						<div>{{ stewardIds.length }}</div>
-						<Icon type="user"></Icon>
+	<div class="flex h-full flex-col p-4">
+		<SidebarHeader :title="$t('rooms.members')" />
+		<div class="flex flex-1 flex-col gap-4 overflow-y-auto">
+			<div v-if="stewardIds && stewardIds.length > 0" class="pb-4">
+				<SideKickSubHeader>
+					<div class="flex justify-between">
+						<div class="capitalize">{{ $t('rooms.stewards') }}</div>
+						<div class="flex items-center gap-2">
+							<div>{{ stewardIds.length }}</div>
+							<Icon type="user"></Icon>
+						</div>
 					</div>
+				</SideKickSubHeader>
+				<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="flex w-full items-center gap-2 rounded-md p-2">
+					<Avatar :avatar-url="user.userAvatar(stewardId)" class="h-8 w-8 shrink-0"></Avatar>
+					<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)"></UserDisplayName>
 				</div>
-			</SideKickSubHeader>
-			<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="mb-2 flex w-full items-center gap-2">
-				<Avatar :avatar-url="user.userAvatar(stewardId)" class="ml-2 h-5 w-5"></Avatar>
-				<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)"></UserDisplayName>
 			</div>
-		</div>
 
-		<div v-if="memberIds && memberIds.length > 0" class="grow">
-			<SideKickSubHeader>
-				<div class="flex justify-between">
-					<div class="capitalize">{{ $t('rooms.members') }}</div>
-					<div class="flex items-center gap-2">
-						<div>{{ memberIds.length }}</div>
-						<Icon type="user"></Icon>
+			<div v-if="memberIds && memberIds.length > 0" class="grow">
+				<SideKickSubHeader>
+					<div class="flex justify-between">
+						<div class="capitalize">{{ $t('rooms.members') }}</div>
+						<div class="flex items-center gap-2">
+							<div>{{ memberIds.length }}</div>
+							<Icon type="user"></Icon>
+						</div>
 					</div>
+				</SideKickSubHeader>
+				<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="flex w-full items-center gap-2 rounded-md p-2">
+					<Avatar :avatar-url="user.userAvatar(memberId)" class="h-8 w-8 shrink-0"></Avatar>
+					<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)"></UserDisplayName>
 				</div>
-			</SideKickSubHeader>
-			<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="mb-2 flex w-full items-center gap-2">
-				<Avatar :avatar-url="user.userAvatar(memberId)" class="ml-2 h-5 w-5"></Avatar>
-				<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)"></UserDisplayName>
 			</div>
 		</div>
 	</div>
@@ -40,9 +43,11 @@
 	import { useRoute } from 'vue-router';
 
 	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import SideKickSubHeader from '@hub-client/components/rooms/SideKickSubHeader.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';

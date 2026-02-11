@@ -28,16 +28,6 @@
 				<!-- Divider between admin contact and other buttons -->
 				<div v-if="!user.isAdmin" class="bg-on-surface-disabled mx-1 h-6 w-px"></div>
 
-				<!-- Close button for sidebar (desktop only, only for Search) -->
-				<button
-					v-if="sidebar.isOpen.value && !isMobile && sidebar.activeTab.value === SidebarTab.Search"
-					class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer"
-					:aria-label="t('global.close')"
-					@click="sidebar.close()"
-				>
-					<Icon type="sidebar" size="base" class="rotate-90" />
-				</button>
-
 				<!-- Search button (desktop only, when room is selected) -->
 				<GlobalBarButton v-if="!isMobile && selectedRoom" type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
 

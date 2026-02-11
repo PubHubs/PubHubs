@@ -1,118 +1,121 @@
 <template>
-	<div class="flex h-full w-full flex-col gap-4 overflow-auto p-3">
-		<!-- Upload area -->
-		<div class="w-full">
-			<DropFiles></DropFiles>
-		</div>
-
-		<!-- Search and sort -->
-		<div class="w-full">
-			<div class="mb-4 flex w-full gap-4">
-				<div class="bg-surface-low flex w-1/2 items-center justify-end rounded-md sm:w-3/4">
-					<input
-						class="text-body placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent p-1 px-2 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-						type="text"
-						role="searchbox"
-						v-model="filter"
-						:placeholder="t('others.search')"
-						:title="t('others.search')"
-					/>
-					<button @click=""><Icon type="magnifying-glass" class="text-accent-secondary dark:text-on-surface-variant mr-1 rounded-md bg-transparent" size="md" /></button>
-				</div>
-				<div class="flex w-1/2 sm:w-1/4">
-					<PullDownMenu :title="t('roomlibrary.info.sortby')" :options="orderByOptionsNames" :selected="order" :toggleOrder="true" @select="setOrderBy($event)"></PullDownMenu>
-				</div>
+	<div class="flex h-full w-full flex-col p-4">
+		<SidebarHeader :title="t('roomlibrary.library')" />
+		<div class="flex flex-1 flex-col gap-4 overflow-auto">
+			<!-- Upload area -->
+			<div class="w-full">
+				<DropFiles></DropFiles>
 			</div>
 
-			<BarList v-if="roomTimeLineFiles.length > 0" class="max-h-fit" data-testid="filemanager">
-				<BarListItem v-if="user.isAdmin" class="!bg-background !mb-0 flex justify-end" data-testid="filemanager-admin">
-					<div class="flex items-center gap-1">
-						<IconButton v-if="hasSelection()" type="trash" class="hover:text-accent-red" @click.stop="deleteSelected()"></IconButton>
-						<IconButton v-if="!selectedAll" type="square" @click.stop="selectAll(roomTimeLineFiles)"></IconButton>
-						<IconButton v-else type="check-square" @click.stop="unselectAll()"></IconButton>
+			<!-- Search and sort -->
+			<div class="w-full">
+				<div class="mb-4 flex w-full gap-4">
+					<div class="bg-surface-high flex w-1/2 items-center gap-2 rounded-md px-3 py-2 sm:w-3/4">
+						<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
+						<input
+							class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
+							type="text"
+							role="searchbox"
+							v-model="filter"
+							:placeholder="t('others.search')"
+							:title="t('others.search')"
+						/>
 					</div>
-				</BarListItem>
-				<div data-testid="filemanager-list">
-					<template v-for="item in roomTimeLineFiles">
-						<BarListItem :class="{ '!bg-on-surface-dim': isSelected(item) && !deletingAll, '!bg-accent-error': isSelected(item) && deletingAll }">
-							<div>
-								<InlineCollapse>
-									<template #visible="{ collapsed }">
-										<div class="flex h-6 items-center gap-2">
-											<div v-if="deletingAll && isSelected(item)">
-												<InlineSpinner></InlineSpinner>
-											</div>
-											<div v-else>
-												<Icon v-if="isSigned(item.matrixEvent.getId())" type="seal-check" class="text-accent-blue"></Icon>
-												<Icon v-else type="question" @click.stop="handleSigning(item.matrixEvent.getContent().url, item.matrixEvent.getId())" class="text-on-surface-disabled cursor-pointer"></Icon>
-											</div>
-											<div>
-												<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename">
-													<FileIcon :filename="item.matrixEvent.getContent().filename"></FileIcon>
-												</FileDownload>
-											</div>
-											<div class="flex-grow truncate">
-												<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename">{{ item.matrixEvent.getContent().filename }}</FileDownload>
-											</div>
-											<div>
-												<InlineCollapseToggle>
-													<Icon type="info" :class="{ 'text-accent-blue': !collapsed }"></Icon>
-												</InlineCollapseToggle>
-											</div>
-											<div class="max-xs:hidden text-right">
-												<span v-if="order.index <= 1" class="text-label-small whitespace-nowrap">
-													{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 2) }}
-												</span>
-												<EventTimeCompact v-else-if="order.index === 2" :timestamp="item.matrixEvent.getTs()"></EventTimeCompact>
-												<AvatarDisplayNameCompact
-													v-else-if="order.index === 3"
-													:userId="item.matrixEvent.getSender()"
-													:userDisplayName="user.userDisplayName(item.matrixEvent.getSender()!)"
-												></AvatarDisplayNameCompact>
-											</div>
-											<div>
-												<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename"><IconButton type="download-simple"></IconButton></FileDownload>
-											</div>
-											<div v-if="user.isAdmin" class="flex items-center gap-2">
-												<IconButton class="hover:text-accent-red" type="trash" @click.stop="confirmDeletion(item.matrixEvent.getContent(), item.matrixEvent.getId())"></IconButton>
-												<IconButton v-if="isSelected(item)" type="check-square" @click.stop="removeFromSelection(item)"></IconButton>
-												<IconButton v-else type="square" @click.stop="addToSelection(item)"></IconButton>
-											</div>
-										</div>
-									</template>
-									<template #collapsed>
-										<div class="text-md flex flex-wrap items-center gap-2">
-											<div class="flex flex-grow">
-												<div v-if="isSigned(item.matrixEvent.getId())" class="bg-signed text-label-small flex items-center gap-2 rounded-xs px-1">
-													<Icon type="seal-check" class="text-accent-primary"></Icon>
-													<span class="text-nowrap">{{ $t('roomlibrary.signed') }}</span>
-													<DisplayNameCompact
-														v-for="signedEvent in getAllSignedEventsForFile(item.matrixEvent.getId())"
-														:userId="signedEvent.matrixEvent.getSender()"
-														:userDisplayName="user.userDisplayName(signedEvent.matrixEvent.getSender()!)"
-													></DisplayNameCompact>
+					<div class="flex w-1/2 sm:w-1/4">
+						<PullDownMenu :title="t('roomlibrary.info.sortby')" :options="orderByOptionsNames" :selected="order" :toggleOrder="true" @select="setOrderBy($event)"></PullDownMenu>
+					</div>
+				</div>
+
+				<BarList v-if="roomTimeLineFiles.length > 0" class="max-h-fit" data-testid="filemanager">
+					<BarListItem v-if="user.isAdmin" class="!bg-background !mb-0 flex justify-end" data-testid="filemanager-admin">
+						<div class="flex items-center gap-1">
+							<IconButton v-if="hasSelection()" type="trash" class="hover:text-accent-red" @click.stop="deleteSelected()"></IconButton>
+							<IconButton v-if="!selectedAll" type="square" @click.stop="selectAll(roomTimeLineFiles)"></IconButton>
+							<IconButton v-else type="check-square" @click.stop="unselectAll()"></IconButton>
+						</div>
+					</BarListItem>
+					<div data-testid="filemanager-list">
+						<template v-for="item in roomTimeLineFiles">
+							<BarListItem :class="{ '!bg-on-surface-dim': isSelected(item) && !deletingAll, '!bg-accent-error': isSelected(item) && deletingAll }">
+								<div>
+									<InlineCollapse>
+										<template #visible="{ collapsed }">
+											<div class="flex h-6 items-center gap-2">
+												<div v-if="deletingAll && isSelected(item)">
+													<InlineSpinner></InlineSpinner>
+												</div>
+												<div v-else>
+													<Icon v-if="isSigned(item.matrixEvent.getId())" type="seal-check" class="text-accent-blue"></Icon>
+													<Icon v-else type="question" @click.stop="handleSigning(item.matrixEvent.getContent().url, item.matrixEvent.getId())" class="text-on-surface-disabled cursor-pointer"></Icon>
+												</div>
+												<div>
+													<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename">
+														<FileIcon :filename="item.matrixEvent.getContent().filename"></FileIcon>
+													</FileDownload>
+												</div>
+												<div class="flex-grow truncate">
+													<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename">{{ item.matrixEvent.getContent().filename }}</FileDownload>
+												</div>
+												<div>
+													<InlineCollapseToggle>
+														<Icon type="info" :class="{ 'text-accent-blue': !collapsed }"></Icon>
+													</InlineCollapseToggle>
+												</div>
+												<div class="max-xs:hidden text-right">
+													<span v-if="order.index <= 1" class="text-label-small whitespace-nowrap">
+														{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 2) }}
+													</span>
+													<EventTimeCompact v-else-if="order.index === 2" :timestamp="item.matrixEvent.getTs()"></EventTimeCompact>
+													<AvatarDisplayNameCompact
+														v-else-if="order.index === 3"
+														:userId="item.matrixEvent.getSender()"
+														:userDisplayName="user.userDisplayName(item.matrixEvent.getSender()!)"
+													></AvatarDisplayNameCompact>
+												</div>
+												<div>
+													<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename"><IconButton type="download-simple"></IconButton></FileDownload>
+												</div>
+												<div v-if="user.isAdmin" class="flex items-center gap-2">
+													<IconButton class="hover:text-accent-red" type="trash" @click.stop="confirmDeletion(item.matrixEvent.getContent(), item.matrixEvent.getId())"></IconButton>
+													<IconButton v-if="isSelected(item)" type="check-square" @click.stop="removeFromSelection(item)"></IconButton>
+													<IconButton v-else type="square" @click.stop="addToSelection(item)"></IconButton>
 												</div>
 											</div>
-											<div class="text-label-small xs:gap-1 flex items-center md:gap-2">
-												<AvatarDisplayNameCompact
-													v-if="item.matrixEvent.getSender()"
-													:userId="item.matrixEvent.getSender()"
-													:userDisplayName="user.userDisplayName(item.matrixEvent.getSender()!)"
-												></AvatarDisplayNameCompact>
-												<EventTimeCompact :timestamp="item.matrixEvent.getTs()"></EventTimeCompact>
+										</template>
+										<template #collapsed>
+											<div class="text-md flex flex-wrap items-center gap-2">
+												<div class="flex flex-grow">
+													<div v-if="isSigned(item.matrixEvent.getId())" class="bg-signed text-label-small flex items-center gap-2 rounded-xs px-1">
+														<Icon type="seal-check" class="text-accent-primary"></Icon>
+														<span class="text-nowrap">{{ $t('roomlibrary.signed') }}</span>
+														<DisplayNameCompact
+															v-for="signedEvent in getAllSignedEventsForFile(item.matrixEvent.getId())"
+															:userId="signedEvent.matrixEvent.getSender()"
+															:userDisplayName="user.userDisplayName(signedEvent.matrixEvent.getSender()!)"
+														></DisplayNameCompact>
+													</div>
+												</div>
+												<div class="text-label-small xs:gap-1 flex items-center md:gap-2">
+													<AvatarDisplayNameCompact
+														v-if="item.matrixEvent.getSender()"
+														:userId="item.matrixEvent.getSender()"
+														:userDisplayName="user.userDisplayName(item.matrixEvent.getSender()!)"
+													></AvatarDisplayNameCompact>
+													<EventTimeCompact :timestamp="item.matrixEvent.getTs()"></EventTimeCompact>
+												</div>
 											</div>
-										</div>
-									</template>
-								</InlineCollapse>
-							</div>
-						</BarListItem>
-					</template>
-				</div>
-				<BarListItem class="!bg-background !mb-0 flex justify-between">
-					<span>{{ $t('roomlibrary.total_files', roomTimeLineFiles.length, { named: { count: roomTimeLineFiles.length } }) }}</span>
-					<span v-if="user.isAdmin && hasSelection()">{{ $t('roomlibrary.selected_files', selection.length, { named: { count: selection.length } }) }}</span>
-				</BarListItem>
-			</BarList>
+										</template>
+									</InlineCollapse>
+								</div>
+							</BarListItem>
+						</template>
+					</div>
+					<BarListItem class="!bg-background !mb-0 flex justify-between">
+						<span>{{ $t('roomlibrary.total_files', roomTimeLineFiles.length, { named: { count: roomTimeLineFiles.length } }) }}</span>
+						<span v-if="user.isAdmin && hasSelection()">{{ $t('roomlibrary.selected_files', selection.length, { named: { count: selection.length } }) }}</span>
+					</BarListItem>
+				</BarList>
+			</div>
 		</div>
 	</div>
 
@@ -137,6 +140,7 @@
 	import DropFiles from '../ui/DropFiles.vue';
 	import FileDownload from '../ui/FileDownload.vue';
 	import InlineCollapse from '../ui/InlineCollapse.vue';
+	import SidebarHeader from '../ui/SidebarHeader.vue';
 	// Composables
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';

@@ -1,5 +1,6 @@
 <template>
-	<div class="flex h-full flex-col p-3">
+	<div class="flex h-full flex-col p-4">
+		<SidebarHeader :title="t('others.search')" />
 		<!-- Search input -->
 		<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
 			<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
@@ -66,6 +67,7 @@
 	import EventTimeCompact from '@hub-client/components/rooms/EventTimeCompact.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
 	import { useMentions } from '@hub-client/composables/useMentions';

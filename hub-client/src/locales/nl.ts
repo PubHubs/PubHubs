@@ -268,6 +268,7 @@ const nl = {
 	},
 	rooms: {
 		room: 'Kamer',
+		thread: 'Thread',
 		me: 'Ik',
 		just_you: 'Alleen jij',
 		join_sure: 'Wil je deelnemen aan deze kamer?',
@@ -614,6 +615,7 @@ const nl = {
 		organize: 'Organiseer je hubs door ze te slepen.',
 	},
 	roomlibrary: {
+		library: 'Bestanden',
 		signed: 'ondertekend door',
 		signed_info: 'Ondertekend met',
 		used_attribute: 'Gebruikt attribuut',
