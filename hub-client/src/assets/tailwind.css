@@ -391,6 +391,10 @@
 		@apply bg-on-surface-dim rounded-full;
 	}
 
+	#layout-root {
+		-webkit-overflow-scrolling: touch;
+	}
+
 	.message-link {
 		@apply text-accent-blue;
 	}
