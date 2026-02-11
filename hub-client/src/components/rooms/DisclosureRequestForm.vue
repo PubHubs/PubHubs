@@ -46,10 +46,8 @@
 	// Models
 	import { AskDisclosure, AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
 	import { TUserAccount } from '@hub-client/models/users/TUser';
-	import { Attribute } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
-	// import { DialogButtonAction, buttonsSubmitCancel } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
@@ -61,7 +59,6 @@
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
-	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	const yiviStore = useYivi();
@@ -82,21 +79,6 @@
 		user: TUserAccount;
 	}>();
 
-	// // Validation
-	// const validationComposable = useValidation();
-	// const formErrors = ref<Record<string, ValidationMessage> | null>(null);
-
-	// // Customizable validation schema for each form that needs validation
-	// const disclosureConstants = {
-	// 	maxAttributesLength: 5,
-	// };
-	// const askDisclosureSchema: ValidationSchema = {
-	// 	attributes: [
-	// 		{ validator: validateRequired, args: ['admin.secured_yivi_attributes'], message: requiredMessage },
-	// 		{ validator: validateMaxLength, args: [disclosureConstants.maxAttributesLength, 'admin.secured_yivi_attributes'], message: maxItemsMessage },
-	// 	],
-	// };
-
 	const ask = ref<AskDisclosure>({
 		user: { userId: '' },
 		message: '',
@@ -113,40 +95,6 @@
 		const defaultPrivateRoom = { value: '', label: t('admin.private_room') };
 		return [defaultPrivateRoom, ...publicRooms];
 	});
-
-	// function validateRoomForm() {
-	// 	const values = {
-	// 		attributes: ask.value?.attributes,
-	// 	};
-
-	// 	// formErrors.value = validationComposable.validateBySchema(values, validationComposable.askDisclosureSchema);
-	// }
-
-	// function addAttribute() {
-	// 	if (attribute.value && ask.value && !ask.value.attributes.includes(attribute.value)) {
-	// 		if (yiviStore.getAttributes(t).find((attr: Attribute) => attr.label === attribute.value.trim())) {
-	// 			ask.value.attributes.push(attribute.value);
-
-	// 			// validateRoomForm();
-	// 		} else {
-	// 			// if (!formErrors.value) {
-	// 			// 	formErrors.value = {};
-	// 			// }
-	// 			// formErrors.value['invalidAttribute'] = {
-	// 			// 	translationKey: 'admin.error_invalid_attribute',
-	// 			// 	parameters: [attribute.value],
-	// 			// };
-	// 		}
-	// 	}
-	// 	attribute.value = '';
-	// }
-
-	// function removeAttribute(index: number) {
-	// 	if (ask.value) {
-	// 		ask.value.attributes.splice(index, 1);
-	// 		// validateRoomForm();
-	// 	}
-	// }
 
 	onBeforeMount(async () => {
 		await roomsStore.fetchPublicRooms();
