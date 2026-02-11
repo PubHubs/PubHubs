@@ -20,7 +20,7 @@
 			<div v-if="!isMobile || !sidebar.isOpen.value" class="flex items-center gap-2">
 				<!-- Admin contact button -->
 				<div v-if="!user.isAdmin" class="relative">
-					<GlobalBarButton type="lifebuoy" @click="directMessageAdmin()" />
+					<GlobalBarButton type="lifebuoy" :selected="!isMobile && isAdminRoomVisible" @click="handleAdminContact()" />
 					<Badge v-if="newAdminMsgCount > 99" class="text-label-small absolute -top-1 -right-1" color="ph">99+</Badge>
 					<Badge v-else-if="newAdminMsgCount > 0" class="text-label-small absolute -top-1 -right-1" color="ph">{{ newAdminMsgCount }}</Badge>
 				</div>
@@ -155,6 +155,10 @@
 		return adminContactRoom?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
 	});
 
+	const isAdminRoomVisible = computed(() => {
+		return privateRooms.value.some((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
+	});
+
 	const sortedPrivateRooms = computed(() => {
 		if (!privateRooms.value) {
 			return [];
@@ -220,32 +224,63 @@
 		}
 	});
 
-	async function directMessageAdmin() {
-		// Check if admin room already exists
-		const existingAdminRoom = privateRooms.value.find((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
-		if (existingAdminRoom) {
-			openDMRoom(existingAdminRoom);
+	async function handleAdminContact() {
+		// Mobile: open admin room directly in sidebar
+		if (isMobile.value) {
+			const adminRoom = await getOrCreateAdminRoom();
+			if (adminRoom) {
+				openDMRoom(adminRoom);
+			}
 			return;
 		}
 
+		// Desktop: toggle visibility in the list
+		const visibleAdminRoom = privateRooms.value.find((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
+		if (visibleAdminRoom) {
+			// Hide it from the list
+			await pubhubs.setPrivateRoomHiddenStateForUser(visibleAdminRoom, true);
+			privateRooms.value = privateRooms.value.filter((r) => r.roomId !== visibleAdminRoom.roomId);
+
+			// Clear selection if it was selected
+			if (selectedRoom.value?.roomId === visibleAdminRoom.roomId) {
+				selectedRoom.value = sortedPrivateRooms.value[0] ?? null;
+			}
+			return;
+		}
+
+		// Show admin room in list (unhide or create) and select it
+		const adminRoom = await getOrCreateAdminRoom();
+		if (adminRoom) {
+			if (!privateRooms.value.some((r) => r.roomId === adminRoom.roomId)) {
+				privateRooms.value = [...privateRooms.value, adminRoom];
+			}
+			selectedRoom.value = adminRoom;
+		}
+	}
+
+	async function getOrCreateAdminRoom(): Promise<Room | null> {
+		// Check if admin room exists (visible or hidden)
+		const existingAdminRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
+		if (existingAdminRoom) {
+			// Unhide if hidden
+			await pubhubs.setPrivateRoomHiddenStateForUser(existingAdminRoom, false);
+			return existingAdminRoom;
+		}
+
+		// No admin room exists, create one
 		const userResponse = await dialog.yesno(t('admin.admin_contact_title'), t('admin.admin_contact_main_msg'));
-		if (!userResponse) return;
+		if (!userResponse) return null;
 
 		const roomSetUpResponse = await pubhubs.setUpAdminRoom();
 		if (typeof roomSetUpResponse === 'boolean' && roomSetUpResponse === false) {
 			dialog.confirm(t('admin.if_admin_contact_not_present'));
+			return null;
 		} else if (typeof roomSetUpResponse === 'string') {
 			const roomId = roomSetUpResponse;
 			await rooms.joinRoomListRoom(roomId);
-			const room = rooms.rooms[roomId] as Room;
-
-			// Add to private rooms list if not already there
-			if (!privateRooms.value.some((r) => r.roomId === roomId)) {
-				privateRooms.value = [...privateRooms.value, room];
-			}
-
-			openDMRoom(room);
+			return rooms.rooms[roomId] as Room;
 		}
+		return null;
 	}
 
 	async function loadPrivateRooms() {
@@ -253,6 +288,8 @@
 		const roomsList = rooms.filteredRoomList(DirectRooms);
 		for (const room of roomsList) {
 			await rooms.joinRoomListRoom(room.roomId);
+			// Admin contact rooms are hidden by default, shown via lifebuoy toggle
+			if (room.roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT) continue;
 			privateRooms.value = [...privateRooms.value, rooms.rooms[room.roomId]];
 		}
 	}
@@ -283,9 +320,9 @@
 	}
 
 	function canHideRoom(room: Room): boolean {
-		// Only DM and Group rooms support hiding (via name-based hidden state)
+		// DM, Group, and Admin Contact rooms support hiding
 		const roomType = room.getType();
-		return roomType === RoomType.PH_MESSAGES_DM || roomType === RoomType.PH_MESSAGES_GROUP;
+		return roomType === RoomType.PH_MESSAGES_DM || roomType === RoomType.PH_MESSAGES_GROUP || roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT;
 	}
 
 	async function hideConversation(room: Room) {
