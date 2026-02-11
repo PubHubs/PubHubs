@@ -1,12 +1,16 @@
+// Packages
 import { type Ref, computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
+// Logic
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+// Models
 import { ScrollBehavior, ScrollPosition, TimelineScrollConstants } from '@hub-client/models/constants';
 import type { TCurrentEvent } from '@hub-client/models/events/types';
 import type Room from '@hub-client/models/rooms/Room';
 
+// Types
 export interface ScrollOptions {
 	position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End | ScrollPosition.TopWithPadding;
 	behavior?: ScrollBehavior.Smooth | ScrollBehavior.Auto;
@@ -177,7 +181,7 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 
 			// Priority 2: Last read message (returning to room)
 			if (params.lastReadEventId) {
-				const timeline = room.getTimeline();
+				const timeline = room.getChronologicalTimeline();
 				const lastReadIndex = timeline.findIndex((e) => e.matrixEvent.event.event_id === params.lastReadEventId);
 				const newestIndex = timeline.length - 1;
 

@@ -10,6 +10,12 @@ const routes = [
 		component: () => import('@global-client/pages/Onboarding.vue'),
 		meta: { requiresAuth: false },
 	},
+	{
+		path: '/escape-in-app-browser',
+		name: 'escape-in-app-browser',
+		component: () => import('@global-client/pages/EscapeInAppBrowser.vue'),
+		meta: { requiresAuth: false },
+	},
 	{ path: '/hub/:name/:roomId?', name: 'hub', component: Hub, meta: { requiresAuth: true } },
 	{
 		path: '/error',

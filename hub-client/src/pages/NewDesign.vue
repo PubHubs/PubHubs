@@ -81,17 +81,18 @@
 						title="this is a tooltip"
 						variant="primary"
 						@click="clicked()"
-						@contextmenu="
-							openMenu($event, [
-								{ label: 'Open1', icon: 'smiley', onClick: () => console.error(myProp) },
-								{ label: 'Rename1', disabled: true, onClick: () => console.error('Rename1') },
-								{ label: 'Delete1', isDelicate: true, onClick: () => clicked() },
-							])
+						v-context-menu="
+							(evt: any) =>
+								openMenu(evt, [
+									{ label: 'Open1', icon: 'smiley', onClick: () => console.error(myProp) },
+									{ label: 'Rename1', disabled: true, onClick: () => console.error('Rename1') },
+									{ label: 'Delete1', isDelicate: true, onClick: () => clicked() },
+								])
 						"
 					>
 						Right click menu test
 					</Button>
-					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu($event, items2)" variant="primary" title="this is a tooltip">Right click menu test</Button>
+					<Button icon="check-circle" @click="clicked()" v-context-menu="(evt: any) => openMenu(evt, items2)" variant="primary" title="this is a tooltip">Right click menu test</Button>
 
 					<TextField placeholder="Korte tekst" :validation="{ maxLength: 10 }" help="Hier dus een korte tekst">Korte</TextField>
 					<TextArea placeholder="Lange tekst" :validation="{ required: true, minLength: 10 }" help="Lang">Lang</TextArea>

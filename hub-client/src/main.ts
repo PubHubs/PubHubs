@@ -11,7 +11,7 @@ import '@hub-client/assets/datepicker.css';
 import '@hub-client/assets/tailwind.css';
 
 // Logic
-import { clickOutside, focus, twClass } from '@hub-client/logic/core/directives';
+import { clickOutside, contextMenu, focus, twClass } from '@hub-client/logic/core/directives';
 import { router } from '@hub-client/logic/core/router';
 
 // Pages
@@ -41,6 +41,7 @@ app.use(mavonEditor);
 app.directive('focus', focus);
 app.directive('tw-class', twClass);
 app.directive('click-outside', clickOutside);
+app.directive('context-menu', contextMenu);
 app.component('VueDatePicker', VueDatePicker);
 
 app.mount('#app');

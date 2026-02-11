@@ -1,6 +1,9 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+		<div v-if="isLoading" class="flex h-full w-full items-center justify-center">
+			<InlineSpinner />
+		</div>
+		<HeaderFooter v-else :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
 				<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
@@ -69,7 +72,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, nextTick, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
 
@@ -91,6 +94,7 @@
 	import StewardContactRoomHeader from '@hub-client/components/rooms/StewardContactRoomHeader.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
@@ -133,9 +137,10 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
-	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 	const scrollToEventId = ref<string>();
 	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
+	const isLoading = ref(true); // Keep track if the page is loading, then the template cannot be rendered yet
+	let updateVersion = 0; // Used to cancel stale update() calls
 
 	// Passed by the router
 	const props = defineProps({
@@ -148,9 +153,7 @@
 	const room = computed(() => {
 		let r = rooms.rooms[props.id];
 		if (!r) {
-			// I want the side effect that should be avoided according to the lint rule.
-			// eslint-disable-next-line
-			router.push({
+			void router.push({
 				name: 'error-page',
 				query: { errorKey: 'errors.cant_find_room' },
 			});
@@ -167,8 +170,10 @@
 		isSearchBarExpanded.value = isExpanded;
 	};
 
-	onMounted(() => {
-		update();
+	onMounted(async () => {
+		isLoading.value = true;
+		const completed = await update();
+
 		// Handle explicit scroll requests from URL parameter
 		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
 		if (eventIdFromQuery) {
@@ -179,59 +184,72 @@
 			// Clear it after reading so it doesn't persist
 			delete rooms.scrollPositions[props.id];
 		}
+		if (completed) isLoading.value = false;
 	});
 
-	watch(
-		route,
-		() => {
-			// Check for eventId in query param on route change
-			const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
-			if (eventIdFromQuery) {
-				scrollToEventId.value = eventIdFromQuery;
-			}
-
-			if (rooms.currentRoom) {
-				// Save last visible (read) event to localStorage
-				const lastEventId = rooms.currentRoom.getLastVisibleEventId();
-				if (lastEventId) {
-					const event = rooms.currentRoom.findEventById(lastEventId);
-					if (event) {
-						// Use the message's timestamp; marker can only advance to newer messages
-						const messageTimestamp = event.localTimestamp || event.getTs();
-						if (messageTimestamp) {
-							setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
-						}
+	watch(route, async () => {
+		// Check for eventId in query param on route change
+		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
+		if (eventIdFromQuery) {
+			scrollToEventId.value = eventIdFromQuery;
+		}
+		isLoading.value = true;
+		if (rooms.currentRoom) {
+			// Save last visible (read) event to localStorage
+			const lastEventId = rooms.currentRoom.getLastVisibleEventId();
+			if (lastEventId) {
+				const event = rooms.currentRoom.findEventById(lastEventId);
+				if (event) {
+					// Use the message's timestamp; marker can only advance to newer messages
+					const messageTimestamp = event.localTimestamp || event.getTs();
+					if (messageTimestamp) {
+						setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
 					}
 				}
-				rooms.currentRoom.setCurrentThreadId(undefined);
-				rooms.currentRoom.setCurrentEvent(undefined);
 			}
-			update();
-		},
-		{ immediate: true },
-	);
+			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
+			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
+		}
+		const completed = await update();
+		if (completed) isLoading.value = false;
+	});
 
 	function currentThreadLengthChanged(newLength: number) {
 		room.value!.setCurrentThreadLength(newLength);
 	}
 
-	async function update() {
+	async function update(): Promise<boolean> {
+		const currentVersion = ++updateVersion;
+
 		await rooms.waitForInitialRoomsLoaded();
+		if (currentVersion !== updateVersion) return false; // stale update
 
 		hubSettings.hideBar();
-		rooms.changeRoom(props.id);
 
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
+		if (currentVersion !== updateVersion) return false; // stale update
+
+		// if the user is a member and the room is selected from the roomList in the menu the room possibly has to be joined first: to get all the roomData in the right stores
+		if (userIsMember) {
+			await rooms.joinRoomListRoom(props.id);
+			if (currentVersion !== updateVersion) return false; // stale update
+		}
+
+		// change to the current room
+		rooms.changeRoom(props.id);
+
 		if (!userIsMember) {
 			let promise = null;
 
 			await rooms.fetchPublicRooms();
+			if (currentVersion !== updateVersion) return false; // stale update
+
 			const roomIsSecure = rooms.publicRoomIsSecure(props.id);
 
 			// For secured rooms users first have to authenticate
 			if (roomIsSecure) {
 				joinSecuredRoom.value = props.id;
-				return;
+				return true;
 			}
 			// Non-secured rooms can be joined immediately
 			else {
@@ -246,7 +264,7 @@
 			}
 		}
 
-		if (!rooms.currentRoom) return;
+		if (!rooms.currentRoom) return true;
 
 		// Initialize syncing of room
 		rooms.currentRoom.initTimeline();
@@ -254,6 +272,7 @@
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 
 		await rooms.fetchPublicRooms(); // Needed for mentions (if not loaded allready)
+		return currentVersion === updateVersion;
 	}
 
 	async function onScrollToEventId(ev: any) {

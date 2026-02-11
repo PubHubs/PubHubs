@@ -1,10 +1,14 @@
 <template>
 	<teleport to="body">
+		<!-- Backdrop -->
+		<div v-if="store.isOpen" class="fixed inset-0 z-9998 bg-transparent" @pointerdown.prevent.stop="store.close" @click.prevent.stop />
+
+		<!-- Context menu -->
 		<div
 			v-if="store.isOpen"
 			ref="menuRef"
-			class="bg-surface-elevated rounded-base flex w-fit max-w-4000 min-w-1000 flex-col shadow-xl"
-			:style="{ left: `${pos.x}px`, top: `${pos.y}px`, position: 'fixed', zIndex: 9999 }"
+			class="bg-surface-elevated rounded-base fixed z-9999 flex w-fit max-w-4000 min-w-1000 flex-col shadow-xl"
+			:style="{ left: `${pos.x}px`, top: `${pos.y}px` }"
 			role="menu"
 			tabindex="-1"
 			@keydown="onKeydown"
@@ -90,13 +94,6 @@
 		store.select(item);
 	}
 
-	// Close when clicking outside the menu
-	function onDocumentClick() {
-		if (!menuRef.value) return;
-
-		store.close();
-	}
-
 	// Handle keyboard select
 	function onKeydown(e: KeyboardEvent) {
 		const buttons = itemButtons.value;
@@ -159,14 +156,13 @@
 
 	watch(
 		() => store.isOpen,
-		(open) => {
+		async (open) => {
 			if (open) {
+				await nextTick();
 				positionMenu();
-				setTimeout(() => document.addEventListener('mousedown', onDocumentClick), 0); // So initial click doesn't immediately close the menu
 				window.addEventListener('resize', positionMenu);
 				window.addEventListener('scroll', positionMenu, true);
 			} else {
-				document.removeEventListener('mousedown', onDocumentClick);
 				window.removeEventListener('resize', positionMenu);
 				window.removeEventListener('scroll', positionMenu, true);
 			}
@@ -176,7 +172,6 @@
 
 	// Clean up on unmount
 	onUnmounted(() => {
-		document.removeEventListener('mousedown', onDocumentClick);
 		window.removeEventListener('resize', positionMenu);
 		window.removeEventListener('scroll', positionMenu, true);
 	});

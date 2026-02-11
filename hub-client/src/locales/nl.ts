@@ -167,6 +167,12 @@ const nl = {
 			almost_done: 'Top, je bent bijna klaar!',
 			hooray: 'Hoera! {0} Je bent geregistreerd en ingelogd bij PubHubs.\nJe wordt vanzelf doorgestuurd naar een overzicht met hubs. Veel plezier!',
 		},
+		inapp: {
+			in_yivi: 'Waarschijnlijk bekijkt u deze pagina vanuit de Yivi app.',
+			reobtain_not_possible: 'Het is vanuit daar momenteel niet mogelijk een PubHubs kaartje te krijgen.',
+			go_to_pubhubs_directly: 'Ga in plaats daarvan naar de PubHubs wesbite en (her)registreer.',
+			youll_get_card: 'Tijdens dit proces krijgt u een nieuwe PubHubs kaart.',
+		},
 	},
 	login: {
 		login: 'Login',
@@ -217,7 +223,13 @@ const nl = {
 		admin_tools_hub_settings: 'Hub instellingen',
 		moderation_tools: 'Toezichtsmiddelen',
 		moderation_tools_disclosure: 'Vragen informatie vrij te geven',
+		add_reaction: 'Reactie toevoegen',
+		copy_message: 'Bericht kopiëren',
 		delete_message: 'Verwijder bericht',
+		direct_message: 'Direct bericht',
+		join_room: 'Deelnemen',
+		reply: 'Beantwoorden',
+		reply_in_thread: 'Beantwoorden in thread',
 	},
 	others: {
 		step: 'Stap {0}',

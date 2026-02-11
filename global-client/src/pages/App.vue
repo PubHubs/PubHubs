@@ -1,10 +1,10 @@
 <template>
 	<div class="bg-background font-body text-on-surface text-body h-full min-w-[32rem]">
-		<MobileMenu v-if="!(route.name === 'onboarding')" />
+		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
 		<div class="flex h-full">
-			<GlobalBar v-if="!(route.name === 'onboarding')" />
-			<div class="h-[100dvh] w-full flex-1">
+			<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
+			<div class="h-dvh w-full flex-1">
 				<router-view />
 			</div>
 		</div>

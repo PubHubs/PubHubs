@@ -168,6 +168,12 @@ const en = {
 			almost_done: "Great, you're almost done!",
 			hooray: 'Hooray! {0} You are registered and logged in to PubHubs.\nYou will be redirected to an overview of hubs automatically. Have fun!',
 		},
+		inapp: {
+			in_yivi: 'You are likely viewing this page from within the Yivi app.',
+			reobtain_not_possible: '(Re)obtaining a PubHubs card is not currently not possible from there.',
+			go_to_pubhubs_directly: 'Please go to PubHubs website via your browser, and (re)register there.',
+			youll_get_card: 'You will receive a PubHubs card in this process.',
+		},
 	},
 	login: {
 		login: 'Login',
@@ -218,7 +224,13 @@ const en = {
 		admin_tools_hub_settings: 'Hub settings',
 		moderation_tools: 'Moderation tools',
 		moderation_tools_disclosure: 'Request disclosure',
+		add_reaction: 'Add reaction',
+		copy_message: 'Copy message',
 		delete_message: 'Delete message',
+		direct_message: 'Direct message',
+		join_room: 'Join',
+		reply: 'Reply',
+		reply_in_thread: 'Reply in thread',
 	},
 	others: {
 		step: 'Step {0}',

@@ -69,7 +69,6 @@
 					<TextArea
 						ref="elTextInput"
 						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
-						v-focus
 						:placeholder="$t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
 						v-model="value"
@@ -81,7 +80,7 @@
 
 					<!--Steward and above can broadcast only in main time line-->
 					<button
-						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
+						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isDirectMessageRoom()"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
@@ -119,7 +118,7 @@
 			</div>
 			<!-- Yivi signing qr popup -->
 			<div class="absolute bottom-[10%] left-1/2 min-w-64 -translate-x-1/2" v-show="messageInput.state.showYiviQR">
-				<Icon type="x" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
+				<Icon type="x" class="absolute right-2 z-10 cursor-pointer text-black" @click="messageInput.state.showYiviQR = false" />
 				<div v-if="messageInput.state.signMessage" :id="EYiviFlow.Sign"></div>
 			</div>
 		</div>
@@ -151,7 +150,7 @@
 
 	// Logic
 	import { useMessageInput } from '@hub-client/logic/messageInput';
-	import { yiviFlow, yiviSignMessage } from '@hub-client/logic/yiviHandler';
+	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	// Models
 	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';

@@ -11,11 +11,16 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not yet released
 
-- [NEW] Reintroduced Pubhubs card for login
 - [NEW] Messages can be shared.
+
+## 06 February 2025 - v3.2.0
+
+- [NEW] Room timeline scrolling experience is optimized
+- [NEW] Reintroduced Pubhubs card for login
 - [NEW] New permissions/roles for different types of users (in client).
 - [NEW] Backend: adds the option to check for a reused phone number during registration
 - [NEW] Backend: authentication publishes historic pubhubs card validity duration values
+- [NEW] Speed optimization: the roomlist in the menu does not automatically load rooms anymore
 - [BUG] Polls/datepickers were not always correctly updated
 - [BUG] Searching for rooms in Discover Rooms was too slow, especially in Firefox
 - [BUG] Direct messages were not showing group messages
