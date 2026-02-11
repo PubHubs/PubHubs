@@ -13,6 +13,12 @@ _Please add a brief description of any changes and any migrations to be performe
 
 - [NEW] Messages can be shared.
 
+## 11 February 2025 - v3.2.0
+- [BUG] Memberlist is again shown
+- [BUG] Icon reply for root of thread disabled in thread timeline
+- [BUG] Removed timeout for reading of hubs for debugging
+  - _internal_ (remove me after merge): uncomment [] 
+
 ## 06 February 2025 - v3.2.0
 
 - [NEW] Room timeline scrolling experience is optimized
@@ -24,7 +30,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Polls/datepickers were not always correctly updated
 - [BUG] Searching for rooms in Discover Rooms was too slow, especially in Firefox
 - [BUG] Direct messages were not showing group messages
-  - _internal_ (remove me after merge): uncomment []
+
 
 
 ## 09 December 2025 - v3.1.1
