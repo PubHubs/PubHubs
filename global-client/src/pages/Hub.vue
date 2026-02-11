@@ -8,9 +8,9 @@
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
+	// Logic
 	import { delay } from '@global-client/logic/utils/generalUtils';
 
-	// Logic
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';

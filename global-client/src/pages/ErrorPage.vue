@@ -24,12 +24,13 @@
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
-	const settings = useSettings();
-
-	const isMobile = computed(() => settings.isMobileState);
-
+	// Props
 	const props = defineProps({
 		errorKey: { type: String, required: true },
 		errorValues: { type: Array, required: true },
 	});
+
+	const settings = useSettings();
+
+	const isMobile = computed(() => settings.isMobileState);
 </script>

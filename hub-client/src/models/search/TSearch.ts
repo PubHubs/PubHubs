@@ -5,6 +5,7 @@ export type TSearchResult = {
 	event_type: string;
 	event_body: string;
 	event_sender: string;
+	event_timestamp: number;
 };
 
 export type TSearchParameters = {

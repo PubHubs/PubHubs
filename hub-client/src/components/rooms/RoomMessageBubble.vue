@@ -1,14 +1,17 @@
 <template>
-	<div ref="messageRoot" class="no-callout select-none" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
-		<div ref="elReactionPopUp" class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
-			<!-- Announcement Header -->
-			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
-				<Icon type="megaphone-simple" size="sm" class="mr-1"></Icon>
-				{{ getAnnouncementTitle }}
-			</div>
-
+	<div ref="messageRoot" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
+		<div
+			ref="elReactionPopUp"
+			class="group flex flex-col py-3"
+			:class="[
+				getMessageContainerClasses,
+				isAnnouncementMessage && !redactedMessage && 'border-y-on-surface-disabled border-y border-l-4',
+				isAnnouncementMessage && !redactedMessage && props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward',
+			]"
+			role="article"
+		>
 			<!-- Message Container -->
-			<div class="relative flex w-full gap-2 px-6" :class="getMessageContainerClasses">
+			<div class="relative flex w-full gap-4" :class="[getMessageContainerClasses, isMobile ? 'px-2' : 'px-5']">
 				<!-- Reaction Panel -->
 				<div v-if="showReactionPanel && hasBeenVisible" :class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
 					<ReactionMiniPopUp :eventId="props.event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, props.event.event_id)" @close-panel="emit('reactionPanelClose')" />
@@ -16,43 +19,47 @@
 
 				<!-- Avatar -->
 				<Avatar
+					:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'ring-accent-admin/75 ring-2' : props.room.getPowerLevel(props.event.sender) >= 50 && 'ring-accent-steward/75 ring-2'"
 					v-if="hasBeenVisible"
 					:avatar-url="user.userAvatar(props.event.sender)"
 					:user-id="props.event.sender"
-					@click.stop="emit('profileCardToggle', props.event.event_id)"
-					:class="['transition-all duration-500 ease-in-out', { 'ring-on-surface-dim cursor-pointer ring-1 ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
-					class="no-callout select-none"
-					v-context-menu="(evt: any) => openMenu(evt, props.event.sender !== user.userId ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])"
+					v-context-menu="
+						(evt: any) => openMenu(evt, props.event.sender !== user.userId && !room.isDirectMessageRoom() ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])
+					"
 				/>
 				<!-- Avatar placeholder -->
 				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
-
-				<!-- Profile Card -->
-				<div v-if="hasBeenVisible" class="relative">
-					<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(props.event) ? 'bottom-4' : '']">
-						<ProfileCard :event="props.event" :room="room" :room-member="roomMember" />
-					</Popover>
-				</div>
 
 				<!-- Message and Actions -->
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
-							<div class="flex w-full min-w-0 grow flex-wrap items-center gap-2">
-								<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
-								<span class="flex gap-2">
-									<span class="text-label-small">|</span>
-									<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
-									<span class="text-label-small">|</span>
+							<div class="mb-2 flex w-full min-w-0 grow flex-col gap-1">
+								<div class="flex w-full min-w-0 grow flex-wrap items-center gap-4">
+									<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
+
+									<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
+
+									<!-- Announcement -->
+									<span
+										v-if="isAnnouncementMessage && !redactedMessage"
+										class="flex items-center gap-1"
+										:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
+									>
+										<span class="text-label-tiny pt-025 uppercase">{{ t('rooms.announcement') }}</span>
+									</span>
+								</div>
+
+								<span class="text-label-tiny text-on-surface-dim flex gap-1">
 									<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
+									<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
 								</span>
-								<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
 							</div>
 
 							<!-- Message Action Buttons -->
-							<div v-if="hasBeenVisible">
+							<div class="bg-surface absolute right-0 flex rounded-md">
 								<template v-if="timerReady && !deleteMessageDialog">
 									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
 										<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
@@ -60,56 +67,55 @@
 									<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
 								</template>
 
-								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
-									<!-- <div v-if="isSupported">
+								<!-- <div v-if="isSupported">
 										<button
 											@click="copy(`${source}?eventid=${props.event.event_id}`)"
-											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
+											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										>
-											<Icon type="link" size="sm" v-if="!copied"></Icon>
-											<Icon type="check" size="sm" v-else>Copied!</Icon>
+											<Icon type="link" v-if="!copied"></Icon>
+											<Icon type="check" v-else>Copied!</Icon>
 										</button>
 									</div> -->
-									<!-- Reaction Button -->
-									<button
-										v-if="!redactedMessage && !isThreadRoot"
-										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-										:title="t('message.reply_emoji')"
-									>
-										<Icon type="smiley" size="sm"></Icon>
-									</button>
+								<!-- Reaction Button -->
+								<button
+									v-if="!redactedMessage && !isThreadRoot"
+									@click.stop="emit('reactionPanelToggle', props.event.event_id)"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+									:title="t('message.reply_emoji')"
+								>
+									<Icon type="smiley" />
+								</button>
 
-									<!-- Reply Button -->
-									<button
-										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
-										@click="reply"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-										:title="t('message.reply')"
-									>
-										<Icon type="arrow-bend-up-left" size="sm" />
-									</button>
+								<!-- Reply Button -->
+								<button
+									v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
+									@click="reply"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+									:title="t('message.reply')"
+								>
+									<Icon type="arrow-bend-up-left" />
+								</button>
 
-									<!-- Thread Reply Button -->
-									<button
-										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-										@click="replyInThread"
-										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-										:title="t('message.reply_in_thread')"
-									>
-										<Icon type="chat-circle" size="sm"></Icon>
-									</button>
+								<!-- Thread Reply Button -->
+								<button
+									v-if="!viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage && !room.isDirectMessageRoom()"
+									@click="replyInThread"
+									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
+									:class="threadLength > 0 ? 'bg-accent-primary hover:text-accent-primary flex hover:bg-transparent' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
+									:title="t('message.reply_in_thread')"
+								>
+									<Icon type="chat-circle" />
+								</button>
 
-									<!-- Delete Button -->
-									<button
-										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && props.event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
-										@click="onDeleteMessage(props.event)"
-										class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-										:title="t('menu.delete_message')"
-									>
-										<Icon type="trash" size="sm" />
-									</button>
-								</RoomEventActionsPopup>
+								<!-- Delete Button -->
+								<button
+									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && props.event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
+									@click="onDeleteMessage(props.event)"
+									class="text-on-surface-variant hover:bg-on-accent-red hover:text-accent-red hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+									:title="t('menu.delete_message')"
+								>
+									<Icon type="trash" />
+								</button>
 							</div>
 						</div>
 					</div>
@@ -142,17 +148,6 @@
 							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
 						/>
 					</template>
-
-					<!-- Thread View Button -->
-					<button
-						v-if="hasBeenVisible && !deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-						@click="replyInThread"
-						class="bg-hub-background-3 text-label-tiny inline-flex rounded-md px-2 py-1 hover:cursor-pointer hover:opacity-80"
-					>
-						<Icon type="chat-circle" size="xs"></Icon>
-						<!-- &nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }}) -->
-						&nbsp; {{ t('message.threads.view_thread') }}
-					</button>
 				</div>
 			</div>
 
@@ -166,9 +161,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import MessageDisclosed from './MessageDisclosed.vue';
-	import MessageDisclosureRequest from './MessageDisclosureRequest.vue';
-	import { useClipboard } from '@vueuse/core';
+	// import { useClipboard } from '@vueuse/core';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -178,18 +171,21 @@
 	import AnnouncementMessage from '@hub-client/components/rooms/AnnouncementMessage.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Message from '@hub-client/components/rooms/Message.vue';
+	import MessageDisclosed from '@hub-client/components/rooms/MessageDisclosed.vue';
+	import MessageDisclosureRequest from '@hub-client/components/rooms/MessageDisclosureRequest.vue';
 	import MessageFile from '@hub-client/components/rooms/MessageFile.vue';
 	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
 	import MessageSigned from '@hub-client/components/rooms/MessageSigned.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
-	import RoomEventActionsPopup from '@hub-client/components/rooms/RoomEventActionsPopup.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
-	import Popover from '@hub-client/components/ui/Popover.vue';
-	import ProfileCard from '@hub-client/components/ui/ProfileCard.vue';
 	import ReactionMiniPopUp from '@hub-client/components/ui/ReactionMiniPopUp.vue';
+
+	// Composables
+	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
+	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
@@ -219,15 +215,18 @@
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 	const pubhubs = usePubhubsStore();
+	const sidebar = useSidebar();
 	const user = useUser();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
 	const { t } = useI18n();
 	const hover = ref(false);
-	const openEmojiPanel = ref(false);
+	// const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const source = ref('');
-	const { copy, copied, isSupported } = useClipboard({ source });
+	// const { copy, copied, isSupported } = useClipboard({ source });
+	const isMobile = computed(() => settings.isMobileState);
+	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 
 	// Intersection observer
 	const messageRoot = ref<HTMLElement | null>(null);
@@ -235,7 +234,6 @@
 	const hasBeenVisible = ref(false);
 	let observer: IntersectionObserver | null = null;
 
-	let roomMember = ref();
 	let threadLength = ref(0);
 
 	const props = defineProps({
@@ -261,10 +259,6 @@
 		deleteMessageDialog: {
 			type: Boolean,
 			default: false,
-		},
-		activeProfileCard: {
-			type: String as PropType<string | null>,
-			default: null,
 		},
 		activeReactionPanel: {
 			type: String as PropType<string | null>,
@@ -334,14 +328,10 @@
 		(e: 'deleteMessage', event: TMessageEvent): void;
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
-		(e: 'profileCardToggle', eventId: string): void;
-		(e: 'profileCardClose'): void;
 		(e: 'reactionPanelToggle', eventId: string): void;
 		(e: 'reactionPanelClose'): void;
 		(e: 'clickedEmoticon', emoji: string, eventId: string): void;
 	}>();
-
-	const showProfileCard = computed(() => props.activeProfileCard === props.event.event_id);
 
 	const showReactionPanel = computed(() => props.activeReactionPanel === props.event.event_id);
 
@@ -359,13 +349,11 @@
 
 	const isAnnouncementMessage = computed(() => props.event.content.msgtype === PubHubsMgType.AnnouncementMessage);
 
-	const getAnnouncementTitle = computed(() => getUserTitleForAnnouncement(props.event.sender));
-
 	// Styling of the event based on announcment message
 	const getMessageContainerClasses = computed(() => {
 		// Base classes
 		const baseClasses = {
-			'p-2 transition-all duration-150 ease-in-out hover:bg-surface-low': !props.deleteMessageDialog,
+			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
 			'!bg-surface-low': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
@@ -386,22 +374,6 @@
 			...commonAnnouncementClasses,
 		};
 	});
-
-	/**
-	 * Determines the announcement title based on user power level
-	 * - Power level 50 = Steward
-	 * - Power level 100 = Room Administrator
-	 */
-	function getUserTitleForAnnouncement(userId: string): string {
-		const powerLevel = props.room.getPowerLevel(userId);
-		if (powerLevel >= 50 && powerLevel < 100) return announcementTitle(t('rooms.steward'));
-		else if (powerLevel === 100) return announcementTitle(t('rooms.administrator'));
-		else return ''; // empty title will not display anything.
-	}
-
-	function announcementTitle(role: string): string {
-		return t('rooms.room') + ' ' + role + ' ' + t('rooms.announcement');
-	}
 
 	/**
 	 * Returns boolean whether the reply snippet can be shown
@@ -432,6 +404,7 @@
 
 	function replyInThread() {
 		props.room.setCurrentThreadId(props.event.event_id);
+		sidebar.openTab(SidebarTab.Thread);
 	}
 
 	function resend() {
@@ -460,8 +433,8 @@
 	function getContextMenuItems() {
 		const menu: MenuItem[] = [];
 
-		// Direct message (only if sender is not current user)
-		if (props.event.sender !== user.userId) {
+		// Direct message (only if sender is not current user and not already in a DM)
+		if (props.event.sender !== user.userId && !props.room.isDirectMessageRoom()) {
 			menu.push({
 				label: t('menu.direct_message'),
 				icon: 'chat-circle',
@@ -489,8 +462,8 @@
 			});
 		}
 
-		// Thread reply
-		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !props.event.redactedMessage) {
+		// Thread reply (not in DM rooms)
+		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !props.event.redactedMessage && !props.room.isDirectMessageRoom()) {
 			menu.push({
 				label: t('menu.reply_in_thread'),
 				icon: 'chat-circle',

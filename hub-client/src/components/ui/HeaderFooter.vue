@@ -1,11 +1,11 @@
 <template>
-	<div :class="['relative flex h-full w-full flex-col justify-between overflow-hidden', bgBarLow]">
+	<div class="border-on-surface-disabled relative flex h-full w-full flex-col justify-between overflow-hidden border-r">
 		<div class="z-10 flex h-full flex-col overflow-hidden">
-			<div :class="['flex flex-col', bgBarMedium, isMobile ? 'h-[7.5rem] justify-center p-3' : 'h-[10rem] justify-start p-4']">
+			<div class="border-on-surface-disabled flex h-[80px] flex-col justify-start border-b px-8">
 				<slot name="header"></slot>
 			</div>
 			<div class="relative flex-1 overflow-x-hidden overflow-y-auto">
-				<slot class="p-3 md:p-4"></slot>
+				<slot class="p-4 md:p-4"></slot>
 			</div>
 		</div>
 		<div>
@@ -23,15 +23,4 @@
 
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
-
-	const props = defineProps({
-		bgBarLow: {
-			type: String,
-			default: 'bg-surface-low',
-		},
-		bgBarMedium: {
-			type: String,
-			default: 'bg-surface',
-		},
-	});
 </script>

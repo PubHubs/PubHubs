@@ -37,122 +37,167 @@
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const POINTER_OFFSET = 8;
+	const GLOBAL_BAR_WIDTH = 80;
 
 	const store = useContextMenuStore();
 	const menuRef = ref<HTMLElement | null>(null);
 	const itemButtons = ref<HTMLButtonElement[]>([]);
 	const pos = ref({ x: 0, y: 0 });
 
-	// Positioning helper function
-	function clampToViewport(x: number, y: number) {
+	/**
+	 * Get visible boundaries for menu positioning.
+	 * Handles mobile scroll-snap layout where the iframe is wider than the visible screen.
+	 *
+	 * @param clickX - The x-coordinate of the click
+	 */
+	const getVisibleBounds = (clickX: number) => {
+		const isInIframe = window.self !== window.top;
+		const screenWidth = window.screen.availWidth || window.screen.width;
+		const isMobileScrollSnap = isInIframe && window.innerWidth > screenWidth * 1.2;
+
+		if (isMobileScrollSnap) {
+			// Mobile scroll-snap: iframe is ~200vw wide, only one screen visible at a time
+			// Screen 1 shows iframe [0, screenWidth - GLOBAL_BAR_WIDTH]
+			// Screen 2 shows iframe [screenWidth - GLOBAL_BAR_WIDTH, end]
+			const screen1RightEdge = screenWidth - GLOBAL_BAR_WIDTH;
+			const isOnScreen1 = clickX < screen1RightEdge;
+
+			if (isOnScreen1) {
+				return { left: POINTER_OFFSET, right: screen1RightEdge - POINTER_OFFSET };
+			}
+
+			return {
+				left: screen1RightEdge + POINTER_OFFSET,
+				right: Math.min(screen1RightEdge + screenWidth, window.innerWidth) - POINTER_OFFSET,
+			};
+		}
+
+		// Desktop or normal iframe: use actual viewport/iframe width
+		const width = window.visualViewport?.width ?? window.innerWidth;
+		return { left: POINTER_OFFSET, right: width - POINTER_OFFSET };
+	};
+
+	/**
+	 * Clamp menu position to stay within visible bounds.
+	 *
+	 * @param x - The initial x position
+	 * @param y - The initial y position
+	 * @param clickX - The original click x-coordinate for bounds calculation
+	 */
+	const clampPosition = (x: number, y: number, clickX: number) => {
 		if (!menuRef.value) return { x, y };
 
-		const rect = menuRef.value.getBoundingClientRect();
-		const vw = window.innerWidth;
-		const vh = window.innerHeight;
+		const { width: menuWidth, height: menuHeight } = menuRef.value.getBoundingClientRect();
+		const bounds = getVisibleBounds(clickX);
+		const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
+		// Horizontal clamping
 		let nx = x;
+		if (x + menuWidth > bounds.right) {
+			nx = Math.max(bounds.left, bounds.right - menuWidth);
+		}
+		if (nx < bounds.left) {
+			nx = bounds.left;
+		}
+
+		// Vertical clamping
 		let ny = y;
-
-		// If menu overflows right edge, shift left
-		if (x + rect.width > vw - POINTER_OFFSET) nx = Math.max(POINTER_OFFSET, vw - rect.width - POINTER_OFFSET);
-
-		// If menu overflows bottom, shift up
-		if (y + rect.height > vh - POINTER_OFFSET) ny = Math.max(POINTER_OFFSET, vh - rect.height - POINTER_OFFSET);
-
-		// Ensure not negative
-		nx = Math.max(POINTER_OFFSET, nx);
-		ny = Math.max(POINTER_OFFSET, ny);
+		if (y + menuHeight > viewportHeight - POINTER_OFFSET) {
+			ny = Math.max(POINTER_OFFSET, viewportHeight - menuHeight - POINTER_OFFSET);
+		}
+		if (ny < POINTER_OFFSET) {
+			ny = POINTER_OFFSET;
+		}
 
 		return { x: nx, y: ny };
-	}
+	};
 
-	// Handle menu positioning and focus state
-	async function positionMenu() {
-		// Wait for DOM update
+	/**
+	 * Position the menu and set up keyboard navigation.
+	 */
+	const positionMenu = async () => {
 		await nextTick();
 
-		// Apply pointer offset so the cursor doesn't overlap the menu
 		const rawX = store.x + POINTER_OFFSET;
 		const rawY = store.y + POINTER_OFFSET;
-		const { x: nx, y: ny } = clampToViewport(rawX, rawY);
+		const { x, y } = clampPosition(rawX, rawY, store.x);
+		pos.value = { x, y };
 
-		pos.value = { x: nx, y: ny };
-
-		// Refresh item refs
+		// Collect menu item buttons for keyboard navigation
 		if (menuRef.value) {
-			const menuItems = Array.from(menuRef.value.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'));
-			itemButtons.value = menuItems;
+			itemButtons.value = Array.from(menuRef.value.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'));
 		}
 
-		// Focus the first enabled item for keyboard users
-		const firstEnabled = itemButtons.value.find((b) => !b.disabled);
-		firstEnabled?.focus();
-	}
+		// Focus first enabled item
+		itemButtons.value.find((b) => !b.disabled)?.focus();
+	};
 
-	function onItemClick(item: any) {
+	/**
+	 * Handle menu item click.
+	 *
+	 * @param item - The clicked menu item
+	 */
+	const onItemClick = (item: any) => {
 		store.select(item);
-	}
+	};
 
-	// Handle keyboard select
-	function onKeydown(e: KeyboardEvent) {
+	/**
+	 * Focus the next enabled button in the given direction.
+	 *
+	 * @param buttons - Array of menu item buttons
+	 * @param currentIndex - Current focused button index
+	 * @param direction - Direction to move (1 for forward, -1 for backward)
+	 */
+	const focusNextEnabled = (buttons: HTMLButtonElement[], currentIndex: number, direction: 1 | -1) => {
+		const len = buttons.length;
+		let index = currentIndex;
+
+		do {
+			index = (index + direction + len) % len;
+		} while (buttons[index].disabled && index !== currentIndex);
+
+		buttons[index]?.focus();
+	};
+
+	/**
+	 * Handle keyboard navigation within the menu.
+	 *
+	 * @param e - The keyboard event
+	 */
+	const onKeydown = (e: KeyboardEvent) => {
 		const buttons = itemButtons.value;
-
-		console.error(buttons);
-
 		if (!buttons.length) return;
 
-		const currentIndex = buttons.findIndex((button) => button === document.activeElement);
-		if (e.key === 'Escape') {
-			e.preventDefault();
-			store.close();
-			return;
-		}
-		if (e.key === 'ArrowDown') {
-			e.preventDefault();
-			let next = currentIndex + 1;
-			while (next < buttons.length && buttons[next].disabled) next++;
+		const currentIndex = buttons.findIndex((btn) => btn === document.activeElement);
 
-			// Focus next enabled
-			if (next >= buttons.length) next = 0;
-			buttons[next]?.focus();
-		}
-		if (e.key === 'ArrowUp') {
-			e.preventDefault();
-			let prev = currentIndex - 1;
-			while (prev >= 0 && buttons[prev].disabled) prev--;
+		switch (e.key) {
+			case 'Escape':
+				e.preventDefault();
+				store.close();
+				break;
 
-			// Focus last enabled
-			if (prev < 0) {
-				prev = buttons.length - 1;
-				while (prev >= 0 && buttons[prev].disabled) prev--;
-			}
-			if (prev >= 0) buttons[prev]?.focus();
-		}
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			const btn = document.activeElement as HTMLButtonElement | null;
-			if (btn) btn.click();
-		}
-		if (e.key === 'Tab') {
-			e.preventDefault();
-			let nextIndex = currentIndex;
+			case 'ArrowDown':
+				e.preventDefault();
+				focusNextEnabled(buttons, currentIndex, 1);
+				break;
 
-			if (e.shiftKey) {
-				// Move backward
-				do {
-					nextIndex = (nextIndex - 1 + buttons.length) % buttons.length;
-				} while (buttons[nextIndex].disabled && nextIndex !== currentIndex);
-			} else {
-				// Move forward
-				do {
-					nextIndex = (nextIndex + 1) % buttons.length;
-				} while (buttons[nextIndex].disabled && nextIndex !== currentIndex);
-			}
+			case 'ArrowUp':
+				e.preventDefault();
+				focusNextEnabled(buttons, currentIndex, -1);
+				break;
 
-			buttons[nextIndex]?.focus();
+			case 'Enter':
+			case ' ':
+				e.preventDefault();
+				(document.activeElement as HTMLButtonElement)?.click();
+				break;
+
+			case 'Tab':
+				e.preventDefault();
+				focusNextEnabled(buttons, currentIndex, e.shiftKey ? -1 : 1);
+				break;
 		}
-	}
+	};
 
 	watch(
 		() => store.isOpen,
@@ -170,7 +215,6 @@
 		{ immediate: true },
 	);
 
-	// Clean up on unmount
 	onUnmounted(() => {
 		window.removeEventListener('resize', positionMenu);
 		window.removeEventListener('scroll', positionMenu, true);
