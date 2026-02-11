@@ -76,6 +76,6 @@ describe('ProfileAttributes.vue Test', () => {
 
 		await flushPromises();
 
-		expect(wrapper.text()).toBe('Admin');
+		expect(wrapper.text()).toBe('Administrator');
 	});
 });
