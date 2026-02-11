@@ -51,8 +51,10 @@
 						:isMobile="isMobile"
 						:active="selectedRoom?.roomId === room.roomId"
 						class="hover:cursor-pointer"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === room.roomId && 'bg-surface-low!'"
 						role="listitem"
 						@click="openDMRoom(room)"
+						v-context-menu="(evt: any) => openMenu(evt, [{ label: t('rooms.hide_conversation'), icon: 'x', isDelicate: true, onClick: () => hideConversation(room) }], room.roomId)"
 					/>
 				</div>
 			</div>
@@ -113,9 +115,6 @@
 	// Composable
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
-	// Logic
-	import { router } from '@hub-client/logic/core/router';
-
 	// Models
 	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
@@ -126,6 +125,12 @@
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// New design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+
+	const { openMenu } = useContextMenu();
+	const contextMenuStore = useContextMenuStore();
 	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const rooms = useRooms();
@@ -216,6 +221,13 @@
 	});
 
 	async function directMessageAdmin() {
+		// Check if admin room already exists
+		const existingAdminRoom = privateRooms.value.find((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
+		if (existingAdminRoom) {
+			openDMRoom(existingAdminRoom);
+			return;
+		}
+
 		const userResponse = await dialog.yesno(t('admin.admin_contact_title'), t('admin.admin_contact_main_msg'));
 		if (!userResponse) return;
 
@@ -223,7 +235,16 @@
 		if (typeof roomSetUpResponse === 'boolean' && roomSetUpResponse === false) {
 			dialog.confirm(t('admin.if_admin_contact_not_present'));
 		} else if (typeof roomSetUpResponse === 'string') {
-			await router.push({ name: 'room', params: { id: roomSetUpResponse } });
+			const roomId = roomSetUpResponse;
+			await rooms.joinRoomListRoom(roomId);
+			const room = rooms.rooms[roomId] as Room;
+
+			// Add to private rooms list if not already there
+			if (!privateRooms.value.some((r) => r.roomId === roomId)) {
+				privateRooms.value = [...privateRooms.value, room];
+			}
+
+			openDMRoom(room);
 		}
 	}
 
@@ -259,5 +280,24 @@
 
 	function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
 		scrollToEventId.value = ev.eventId;
+	}
+
+	async function hideConversation(room: Room) {
+		if (!(await dialog.okcancel(t('rooms.hide_sure')))) return;
+
+		await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
+
+		// Remove from private rooms list
+		privateRooms.value = privateRooms.value.filter((r) => r.roomId !== room.roomId);
+
+		// Clear selected room if it was the hidden one
+		if (selectedRoom.value?.roomId === room.roomId) {
+			selectedRoom.value = sortedPrivateRooms.value[0] ?? null;
+		}
+
+		// Close sidebar if it was showing the hidden room
+		if (sidebar.selectedDMRoom.value?.roomId === room.roomId) {
+			sidebar.close();
+		}
 	}
 </script>
