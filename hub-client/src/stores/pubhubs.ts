@@ -1,4 +1,3 @@
-// Models
 // Packages
 import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -20,6 +19,7 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
+// Models
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { SystemDefaults } from '@hub-client/models/constants';
@@ -509,7 +509,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const me = user.user as User;
 			name = updatePrivateRoomName(name, me, hide);
 			await this.client.setRoomName(room.roomId, name);
-			rooms.setRoomListName(room.roomId, name);
 			rooms.setRoomListHidden(room.roomId, hide);
 		},
 

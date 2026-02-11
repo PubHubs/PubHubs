@@ -3,10 +3,14 @@ import { EventType, IStateEvent, Room as MatrixRoom, NotificationCountType, Room
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
+// Composables
+import { useSidebar } from '@hub-client/composables/useSidebar';
+
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 import { propCompare } from '@hub-client/logic/core/extensions';
 import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
+import { router } from '@hub-client/logic/core/router';
 
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
@@ -624,6 +628,7 @@ const useRooms = defineStore('rooms', {
 		async createStewardRoomOrModify(roomId: string, members: Array<RoomMember>): Promise<void> {
 			const user = useUser();
 			const pubhubs = usePubhubsStore();
+			const sidebar = useSidebar();
 			const stewardIds = members.map((member) => member.userId);
 			const stewardRoom: Room | undefined = this.currentStewardRoom(roomId);
 
@@ -647,11 +652,18 @@ const useRooms = defineStore('rooms', {
 						});
 					}
 				});
-				await pubhubs.routeToRoomPage({ room_id: stewardRoom.roomId });
+				sidebar.openDMRoom(stewardRoom);
+				router.push({ name: 'dm' });
 			} else {
 				const pubhubs = usePubhubsStore();
 				const privateRoom = await pubhubs.createPrivateRoomWith(members, false, true, roomId);
-				privateRoom && (await pubhubs.routeToRoomPage(privateRoom));
+				if (privateRoom) {
+					const storeRoom = this.rooms[privateRoom.room_id];
+					if (storeRoom) {
+						sidebar.openDMRoom(storeRoom);
+						router.push({ name: 'dm' });
+					}
+				}
 			}
 		},
 	},

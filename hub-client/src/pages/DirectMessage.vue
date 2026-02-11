@@ -54,7 +54,6 @@
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === room.roomId && 'bg-surface-low!'"
 						role="listitem"
 						@click="openDMRoom(room)"
-						v-context-menu="canHideRoom(room) ? (evt: any) => openMenu(evt, [{ label: t('rooms.hide_conversation'), icon: 'x', isDelicate: true, onClick: () => hideConversation(room) }], room.roomId) : undefined"
 					/>
 				</div>
 			</div>
@@ -317,30 +316,5 @@
 
 	function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
 		scrollToEventId.value = ev.eventId;
-	}
-
-	function canHideRoom(room: Room): boolean {
-		// DM, Group, and Admin Contact rooms support hiding
-		const roomType = room.getType();
-		return roomType === RoomType.PH_MESSAGES_DM || roomType === RoomType.PH_MESSAGES_GROUP || roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT;
-	}
-
-	async function hideConversation(room: Room) {
-		if (!(await dialog.okcancel(t('rooms.hide_sure')))) return;
-
-		await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
-
-		// Remove from private rooms list
-		privateRooms.value = privateRooms.value.filter((r) => r.roomId !== room.roomId);
-
-		// Clear selected room if it was the hidden one
-		if (selectedRoom.value?.roomId === room.roomId) {
-			selectedRoom.value = sortedPrivateRooms.value[0] ?? null;
-		}
-
-		// Close sidebar if it was showing the hidden room
-		if (sidebar.selectedDMRoom.value?.roomId === room.roomId) {
-			sidebar.close();
-		}
 	}
 </script>
