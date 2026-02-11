@@ -104,11 +104,13 @@ const useRooms = defineStore('rooms', {
 		filteredRoomList() {
 			return (types: RoomType[]) => {
 				const user = useUser();
+				// Room types that encode hidden state in room name (user IDs with _ prefix)
+				const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 				return this.roomList
 					.filter((room) => room.isHidden === false && room.roomType && types.includes(room.roomType as RoomType))
 					.filter((room) => {
-						if (!types.includes(RoomType.PH_MESSAGES_DM)) return true;
-						return room.roomType !== RoomType.PH_MESSAGES_DM || isVisiblePrivateRoom(room.name, user.user!);
+						if (!hiddenNameRoomTypes.includes(room.roomType as RoomType)) return true;
+						return isVisiblePrivateRoom(room.name, user.user!);
 					});
 			};
 		},
@@ -411,12 +413,11 @@ const useRooms = defineStore('rooms', {
 			const user = useUser();
 			// TODO sorting should be done during adding of room so the roomsArray always is sorted!
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
-			// filter all the rooms by type
-			// filter OUT every room that is a PH_MESSAGES_DM where !isVisiblePrivateRoom
+			// Room types that encode hidden state in room name (user IDs with _ prefix)
+			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
+			// filter all the rooms by type, filter OUT hidden rooms
 			let result = rooms.filter((room) => !room.isHidden() && room.getType() !== undefined && types.includes(room.getType() as RoomType));
-			if (types.includes(RoomType.PH_MESSAGES_DM)) {
-				result = result.filter((room) => room.getType() !== undefined && (room.getType() !== RoomType.PH_MESSAGES_DM || isVisiblePrivateRoom(room.name, user.user!)));
-			}
+			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.getType() as RoomType) || isVisiblePrivateRoom(room.name, user.user!));
 			return result;
 		},
 
@@ -426,10 +427,10 @@ const useRooms = defineStore('rooms', {
 		 */
 		fetchRoomList(types: RoomType[]): Array<RoomListRoom> {
 			const user = useUser();
+			// Room types that encode hidden state in room name (user IDs with _ prefix)
+			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 			let result = this.roomList.filter((room) => room.isHidden === false && room.roomType !== undefined && types.includes(room.roomType as RoomType));
-			if (types.includes(RoomType.PH_MESSAGES_DM)) {
-				result = result.filter((room) => room.roomType !== undefined && (room.roomType !== RoomType.PH_MESSAGES_DM || (room.name !== undefined && isVisiblePrivateRoom(room.name, user.user!))));
-			}
+			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.roomType as RoomType) || isVisiblePrivateRoom(room.name, user.user!));
 			return result;
 		},
 
