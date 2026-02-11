@@ -1,12 +1,15 @@
 <template>
 	<div id="layout-root" class="bg-background font-body text-on-surface text-body flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth">
-		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login')" />
+		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
 		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
-		<router-view class="flex h-full shrink-0 overflow-y-auto" :class="isMobile && !(route.name === 'onboarding' || route.name === 'home' || route.name === 'login') ? '!w-[calc(200vw_-_80px)]' : '!w-[calc(100vw_-_80px)] flex-1'" />
+		<router-view
+			class="flex h-full shrink-0 overflow-y-auto"
+			:class="isMobile && !(route.name === 'onboarding' || route.name === 'home' || route.name === 'login' || route.name === 'error') ? '!w-[calc(200vw_-_80px)]' : '!w-[calc(100vw_-_80px)] flex-1'"
+		/>
 
 		<!-- 0-width element for snapping -->
-		<div v-if="!(route.name === 'onboarding')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
+		<div v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
 	</div>
 
 	<Dialog v-if="dialog.visible" @close="dialog.close" />
