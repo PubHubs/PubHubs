@@ -385,7 +385,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
 				const roomName = publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-				rooms.updateRoomList(room_id, roomName, roomType, undefined, false);
+
+				// when a room is joined after startup the roomlist has to be updated, does nothing when room was already in the roomlist
+				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], lastMessageId: undefined, isHidden: false });
 			} catch (err) {
 				throw err;
 			}
@@ -397,6 +399,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		async createRoom(options: any): Promise<{ room_id: string }> {
 			const room = await this.client.createRoom(options);
+			await this.joinRoom(room.room_id);
 			return room;
 		},
 

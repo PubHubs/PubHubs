@@ -159,8 +159,8 @@
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
 
-	const hasPublicRooms = computed(() => rooms.fetchRoomList(PublicRooms).length > 0 || !rooms.roomsLoaded);
-	const hasSecuredRooms = computed(() => rooms.fetchRoomList(SecuredRooms).length > 0 || !rooms.roomsLoaded);
+	const hasPublicRooms = computed(() => rooms.filteredRoomList(PublicRooms).length > 0 || !rooms.roomsLoaded);
+	const hasSecuredRooms = computed(() => rooms.filteredRoomList(SecuredRooms).length > 0 || !rooms.roomsLoaded);
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
