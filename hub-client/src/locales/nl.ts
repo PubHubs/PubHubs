@@ -259,6 +259,7 @@ const nl = {
 		work_in_progress: 'PubHubs is nog in ontwikkeling. We zijn nog bezig met het maken van een handleiding. Stel je vraag voorlopig in een van de kamers.',
 		no_private_message: 'Het is hier nog wat stil. Laten we iets nieuws beginnen! Tik gewoon op het +-icoon om je eerste gesprek te starten.',
 		select_conversation: 'Selecteer een gesprek om te beginnen met berichten',
+		start_new_conversation: 'Start een nieuw gesprek met de + knop',
 		filter_users: 'filter',
 		select_value: 'selecteer een waarde',
 	},

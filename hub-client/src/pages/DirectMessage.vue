@@ -28,9 +28,9 @@
 				<!-- Divider between admin contact and other buttons -->
 				<div v-if="!user.isAdmin" class="bg-on-surface-disabled mx-1 h-6 w-px"></div>
 
-				<!-- Close button for sidebar (desktop only, not for DM rooms) -->
+				<!-- Close button for sidebar (desktop only, only for Search) -->
 				<button
-					v-if="sidebar.isOpen.value && !isMobile && sidebar.activeTab.value !== SidebarTab.DirectMessage"
+					v-if="sidebar.isOpen.value && !isMobile && sidebar.activeTab.value === SidebarTab.Search"
 					class="hover:bg-surface-variant rounded-md p-2 transition-colors hover:cursor-pointer"
 					:aria-label="t('global.close')"
 					@click="sidebar.close()"
@@ -71,10 +71,9 @@
 			<div v-if="!isMobile && selectedRoom" class="border-on-surface-disabled flex min-w-0 flex-1 border-l">
 				<DirectMessageRoom :room="selectedRoom" :event-id-to-scroll="scrollToEventId" class="min-w-0 flex-1" />
 
-				<!-- Desktop: Search/NewDM Sidebar -->
-				<RoomSidebar :active-tab="desktopSidebarTab" :is-mobile="false">
-					<RoomSearch v-if="sidebar.activeTab.value === SidebarTab.Search && selectedRoom" :room="selectedRoom" @scroll-to-event-id="onScrollToEventId" />
-					<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="false" @close="sidebar.close()" />
+				<!-- Desktop: Search Sidebar (only when room selected) -->
+				<RoomSidebar v-if="sidebar.activeTab.value === SidebarTab.Search" :active-tab="SidebarTab.Search" :is-mobile="false">
+					<RoomSearch :room="selectedRoom" @scroll-to-event-id="onScrollToEventId" />
 				</RoomSidebar>
 			</div>
 
@@ -82,6 +81,16 @@
 			<div v-if="!isMobile && !selectedRoom && sortedPrivateRooms.length > 0" class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l">
 				{{ t('others.select_conversation') }}
 			</div>
+
+			<!-- Desktop: Placeholder when no conversations exist yet -->
+			<div v-if="!isMobile && sortedPrivateRooms.length === 0" class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l">
+				{{ t('others.start_new_conversation') }}
+			</div>
+
+			<!-- Desktop: NewDM Sidebar (can appear without room selected) -->
+			<RoomSidebar v-if="!isMobile && sidebar.activeTab.value === SidebarTab.NewDM" :active-tab="SidebarTab.NewDM" :is-mobile="false">
+				<NewConversationPanel :isMobile="false" @close="sidebar.close()" />
+			</RoomSidebar>
 
 			<!-- Mobile: DM room in sidebar -->
 			<RoomSidebar v-if="isMobile" :active-tab="sidebar.activeTab.value" :is-mobile="true">
@@ -159,14 +168,6 @@
 		return [...privateRooms.value].sort((r1, r2) => {
 			return lastEventTimeStamp(r2) - lastEventTimeStamp(r1);
 		});
-	});
-
-	// Desktop sidebar tab - only Search and NewDM (not DirectMessage)
-	const desktopSidebarTab = computed(() => {
-		if (sidebar.activeTab.value === SidebarTab.Search || sidebar.activeTab.value === SidebarTab.NewDM) {
-			return sidebar.activeTab.value;
-		}
-		return SidebarTab.None;
 	});
 
 	// Mobile conversation title - matches the title on conversation cards
