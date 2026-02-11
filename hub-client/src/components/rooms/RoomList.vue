@@ -121,9 +121,7 @@
 		},
 	});
 
-	const currentJoinedRooms = computed(() => {
-		return rooms.fetchRoomList(props.roomTypes);
-	});
+	const currentJoinedRooms = computed(() => rooms.filteredRoomList(props.roomTypes));
 
 	const roomsLoaded = computed(() => {
 		return rooms.roomsLoaded;

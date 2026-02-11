@@ -104,11 +104,7 @@
 
 		messagebox.init(MessageBoxType.Parent);
 
-		await addHubs();
-
-		if (!hubs.hasHubs) {
-			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
-		}
+		addHubs();
 
 		// Watch for changes in the permission for notifications by the user to reflect these changes once the user opens the settings dialog
 		if ('permissions' in navigator) {

@@ -667,16 +667,35 @@ impl PrepareConfig<Pcc> for auths::YiviConfig {
         if self.server_key.is_none() {
             let pk_url = self.requestor_url.as_ref().join("publickey")?.to_string();
             log::debug!("yivi server key not set; retrieving from {pk_url}");
-            let mut res = awc::Client::default()
-                .get(&pk_url)
-                .send()
-                .await
-                .map_err(|err| {
-                    log::error!("could not reach yivi server at {}", self.requestor_url);
-                    anyhow::anyhow!("getting Yivi server's public key from {pk_url} failed: {err}")
-                })?;
 
-            let payload: bytes::Bytes = res.body().await?;
+            let client = awc::Client::default();
+            let payload: bytes::Bytes = crate::misc::task::retry(|| async {
+                match client.get(&pk_url).send().await {
+                    Ok(mut res) => match res.body().await {
+                        Ok(body) => Ok::<_, std::convert::Infallible>(Some(body)),
+                        Err(err) => {
+                            log::warn!(
+                                "error reading yivi server response at {}, retrying: {err}",
+                                self.requestor_url
+                            );
+                            Ok(None)
+                        }
+                    },
+                    Err(err) => {
+                        log::warn!(
+                            "could not reach yivi server at {}, retrying: {err}",
+                            self.requestor_url
+                        );
+                        Ok(None)
+                    }
+                }
+            })
+            .await
+            .expect("retry does not fail")
+            .ok_or_else(|| {
+                log::error!("could not reach yivi server at {}", self.requestor_url);
+                anyhow::anyhow!("getting Yivi server's public key from {pk_url} failed after retries")
+            })?;
 
             self.server_key = Some(yivi::VerifyingKey::RS256(
                 jwt::RS256Vk::from_public_key_pem(std::str::from_utf8(&payload)?)

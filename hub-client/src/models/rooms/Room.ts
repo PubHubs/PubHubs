@@ -188,6 +188,10 @@ export default class Room {
 		this.currentEvent = event;
 	}
 
+	public setStateEvents(stateEvents: IStateEvent[] | undefined) {
+		this.stateEvents = stateEvents ?? [];
+	}
+
 	/**
 	 * Used within reactions to show only one instance of multiple together with counter
 	 */
