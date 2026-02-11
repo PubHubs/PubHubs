@@ -42,7 +42,6 @@ impl Deref for Constellation {
         &self.inner
     }
 }
-
 // NOTE: When adding a new field to the constellation make sure it has a default value in the first
 // version so that when the new version of PHC contacts the old versions of the transcryptor and
 // the authentication server, PHC will not crash on missing fields at the transcryptor and the
@@ -130,5 +129,39 @@ impl Inner {
 
     pub fn derive_id(&self) -> id::Id {
         phcrypto::constellation_id(self)
+    }
+}
+
+/// A full [`Constellation`], or just the [`id::Id`].
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum ConstellationOrId {
+    Constellation(Box<Constellation>),
+    Id { id: id::Id },
+}
+
+impl ConstellationOrId {
+    /// Returns the [`Constellation`], if any.
+    pub fn constellation(&self) -> Option<&Constellation> {
+        if let Self::Constellation(c) = self {
+            return Some(c);
+        }
+        None
+    }
+
+    /// Returns underlying [`Constellation`], if any.
+    pub fn into_constellation(self) -> Option<Constellation> {
+        if let Self::Constellation(c) = self {
+            return Some(*c);
+        }
+        None
+    }
+
+    /// Returns the [`id::Id`]
+    pub fn id(&self) -> &id::Id {
+        match self {
+            Self::Constellation(c) => &c.id,
+            Self::Id { id } => id,
+        }
     }
 }

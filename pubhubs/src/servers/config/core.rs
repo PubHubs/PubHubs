@@ -385,6 +385,9 @@ pub mod phc {
 
         /// Deprecated.
         pub card: serde_ext::Skip,
+
+        #[serde(default)]
+        pub hub_cache: crate::servers::phc::HubCacheConfig,
     }
 
     fn default_auth_token_validity() -> core::time::Duration {
