@@ -31,6 +31,9 @@
 				<!-- Search button (desktop only, when room is selected) -->
 				<GlobalBarButton v-if="!isMobile && selectedRoom" type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
 
+				<!-- Members button (desktop only, for group DMs) -->
+				<GlobalBarButton v-if="!isMobile && isGroupDM" type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
+
 				<!-- New message button -->
 				<GlobalBarButton type="plus" :selected="sidebar.activeTab.value === SidebarTab.NewDM" @click="sidebar.toggleTab(SidebarTab.NewDM)" />
 			</div>
@@ -65,6 +68,11 @@
 				<!-- Desktop: Search Sidebar (only when room selected) -->
 				<RoomSidebar v-if="sidebar.activeTab.value === SidebarTab.Search" :active-tab="SidebarTab.Search" :is-mobile="false">
 					<RoomSearch :room="selectedRoom" @scroll-to-event-id="onScrollToEventId" />
+				</RoomSidebar>
+
+				<!-- Desktop: Members Sidebar (only for group DMs) -->
+				<RoomSidebar v-if="sidebar.activeTab.value === SidebarTab.Members && isGroupDM" :active-tab="SidebarTab.Members" :is-mobile="false">
+					<RoomMemberList :room="selectedRoom" :disable-d-m="true" />
 				</RoomSidebar>
 			</div>
 
@@ -106,6 +114,7 @@
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import DirectMessageRoom from '@hub-client/components/rooms/DirectMessageRoom.vue';
 	import NewConversationPanel from '@hub-client/components/rooms/NewConversationPanel.vue';
+	import RoomMemberList from '@hub-client/components/rooms/RoomMemberList.vue';
 	import RoomSearch from '@hub-client/components/rooms/RoomSearch.vue';
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
@@ -158,6 +167,10 @@
 		return privateRooms.value.some((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
 	});
 
+	const isGroupDM = computed(() => {
+		return selectedRoom.value?.getType() === RoomType.PH_MESSAGES_GROUP;
+	});
+
 	const sortedPrivateRooms = computed(() => {
 		if (!privateRooms.value) {
 			return [];
@@ -196,24 +209,57 @@
 
 	// Restore state when entering the DM page
 	onMounted(() => {
+		// Desktop: check if sidebar has a pre-selected room (from router navigation)
+		if (!isMobile.value && sidebar.selectedDMRoom.value) {
+			selectedRoom.value = sidebar.selectedDMRoom.value;
+			return;
+		}
 		// Desktop: auto-select first room if available
 		if (!isMobile.value && sortedPrivateRooms.value.length > 0 && !selectedRoom.value) {
 			selectedRoom.value = sortedPrivateRooms.value[0];
 		}
-		// Mobile: don't auto-open any conversation
+		// Mobile: don't auto-open any conversation (sidebar handles it)
 	});
 
 	// Watch for rooms to become available
 	watch(
 		sortedPrivateRooms,
 		(newRooms) => {
+			// Desktop: check if sidebar has a pre-selected room (from router navigation)
+			if (!isMobile.value && sidebar.selectedDMRoom.value && !selectedRoom.value) {
+				// Find the room in the loaded rooms list
+				const preSelectedRoom = newRooms.find((r) => r.roomId === sidebar.selectedDMRoom.value?.roomId);
+				if (preSelectedRoom) {
+					selectedRoom.value = preSelectedRoom;
+					return;
+				}
+			}
 			// Desktop: auto-select first room if none selected
 			if (!isMobile.value && newRooms.length > 0 && !selectedRoom.value) {
 				selectedRoom.value = newRooms[0];
 			}
-			// Mobile: don't auto-open any conversation
+			// Mobile: don't auto-open any conversation (sidebar handles it)
 		},
 		{ once: true },
+	);
+
+	// Sync selectedRoom when sidebar's selectedDMRoom changes
+	// This handles the case when we're already on the DM page and a new room is selected via sidebar.openDMRoom
+	watch(
+		() => sidebar.selectedDMRoom.value,
+		(newRoom) => {
+			if (!newRoom) return;
+
+			// Desktop: set as selected room
+			if (!isMobile.value) {
+				selectedRoom.value = newRoom;
+			}
+
+			// Add to privateRooms if not already present (for newly created rooms)
+			if (!privateRooms.value.some((r) => r.roomId === newRoom.roomId)) {
+				privateRooms.value = [...privateRooms.value, newRoom];
+			}
+		},
 	);
 
 	// Close sidebar instantly before leaving to prevent animation when entering room pages

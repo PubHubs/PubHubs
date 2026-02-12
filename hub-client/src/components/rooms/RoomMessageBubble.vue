@@ -25,10 +25,8 @@
 					:user-id="props.event.sender"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
-					v-context-menu="
-						(evt: any) => openMenu(evt, props.event.sender !== user.userId && !room.isDirectMessageRoom() ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])
-					"
 				/>
+
 				<!-- Avatar placeholder -->
 				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
 

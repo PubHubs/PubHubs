@@ -4,13 +4,12 @@ import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/slidin
 import { defineStore } from 'pinia';
 
 // Composables
-import { useSidebar } from '@hub-client/composables/useSidebar';
+import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 import { propCompare } from '@hub-client/logic/core/extensions';
 import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
-import { router } from '@hub-client/logic/core/router';
 
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
@@ -464,8 +463,9 @@ const useRooms = defineStore('rooms', {
 			}
 
 			if (creatingAdminUser) {
-				this.roomNotices[roomId][creatingAdminUser] = ['admin.title_administrator'];
+				this.roomNotices[roomId][creatingAdminUser] = ['title_administrator'];
 			}
+
 			const limit = 100000;
 			const encodedObject = encodeURIComponent(
 				JSON.stringify({
@@ -628,7 +628,7 @@ const useRooms = defineStore('rooms', {
 		async createStewardRoomOrModify(roomId: string, members: Array<RoomMember>): Promise<void> {
 			const user = useUser();
 			const pubhubs = usePubhubsStore();
-			const sidebar = useSidebar();
+			const dm = useDirectMessage();
 			const stewardIds = members.map((member) => member.userId);
 			const stewardRoom: Room | undefined = this.currentStewardRoom(roomId);
 
@@ -652,18 +652,9 @@ const useRooms = defineStore('rooms', {
 						});
 					}
 				});
-				sidebar.openDMRoom(stewardRoom);
-				router.push({ name: 'dm' });
+				dm.goToRoom(stewardRoom);
 			} else {
-				const pubhubs = usePubhubsStore();
-				const privateRoom = await pubhubs.createPrivateRoomWith(members, false, true, roomId);
-				if (privateRoom) {
-					const storeRoom = this.rooms[privateRoom.room_id];
-					if (storeRoom) {
-						sidebar.openDMRoom(storeRoom);
-						router.push({ name: 'dm' });
-					}
-				}
+				await dm.goToStewardRoom(roomId, members);
 			}
 		},
 	},

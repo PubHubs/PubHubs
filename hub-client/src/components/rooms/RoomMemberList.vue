@@ -12,9 +12,15 @@
 						</div>
 					</div>
 				</SideKickSubHeader>
-				<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="flex w-full items-center gap-2 rounded-md p-2">
-					<Avatar :avatar-url="user.userAvatar(stewardId)" class="h-8 w-8 shrink-0"></Avatar>
-					<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)"></UserDisplayName>
+				<div
+					v-for="stewardId in stewardIds"
+					:key="stewardId"
+					class="flex w-full items-center gap-2 rounded-md p-2"
+					:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === stewardId && 'bg-surface-low'"
+					v-context-menu="stewardId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(stewardId) }], stewardId) : undefined"
+				>
+					<Avatar :avatar-url="user.userAvatar(stewardId)" :userId="stewardId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
+					<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)" :enableDM="false"></UserDisplayName>
 				</div>
 			</div>
 
@@ -28,9 +34,15 @@
 						</div>
 					</div>
 				</SideKickSubHeader>
-				<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="flex w-full items-center gap-2 rounded-md p-2">
-					<Avatar :avatar-url="user.userAvatar(memberId)" class="h-8 w-8 shrink-0"></Avatar>
-					<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)"></UserDisplayName>
+				<div
+					v-for="memberId in memberIds"
+					:key="memberId"
+					class="flex w-full items-center gap-2 rounded-md p-2"
+					:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === memberId && 'bg-surface-low'"
+					v-context-menu="memberId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }], memberId) : undefined"
+				>
+					<Avatar :avatar-url="user.userAvatar(memberId)" :userId="memberId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
+					<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)" :enableDM="false"></UserDisplayName>
 				</div>
 			</div>
 		</div>
@@ -40,6 +52,7 @@
 <script setup lang="ts">
 	// Packages
 	import { onMounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
 	// Components
@@ -49,19 +62,34 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
+	// Composables
+	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
+
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 
 	// Store
 	import { useUser } from '@hub-client/stores/user';
 
+	// New design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+
+	const { t } = useI18n();
 	const route = useRoute();
 	const user = useUser();
+	const dm = useDirectMessage();
+	const { openMenu } = useContextMenu();
+	const contextMenuStore = useContextMenuStore();
 
 	const props = defineProps({
 		room: {
 			type: Room,
 			required: true,
+		},
+		disableDM: {
+			type: Boolean,
+			default: false,
 		},
 	});
 
@@ -96,5 +124,9 @@
 			stewardIds.value = filterMembersByPowerLevel(50, 99);
 			memberIds.value = [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])]; // only steards matter as distinction, so the admin is treated as common member
 		}
+	}
+
+	async function startDM(userId: string) {
+		await dm.goToUserDM(userId);
 	}
 </script>
