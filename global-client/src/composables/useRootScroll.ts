@@ -51,7 +51,7 @@ const useRootScroll = () => {
 	const scrollToEnd = () => {
 		const layoutRoot = document.getElementById('layout-root');
 		if (layoutRoot) {
-			smoothScrollTo(layoutRoot, layoutRoot.scrollWidth);
+			smoothScrollTo(layoutRoot, layoutRoot.scrollWidth - layoutRoot.clientWidth);
 		}
 	};
 
