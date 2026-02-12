@@ -53,7 +53,6 @@
 	// Packages
 	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRoute } from 'vue-router';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -76,7 +75,6 @@
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const { t } = useI18n();
-	const route = useRoute();
 	const user = useUser();
 	const dm = useDirectMessage();
 	const { openMenu } = useContextMenu();
@@ -100,9 +98,12 @@
 		loadMembers();
 	});
 
-	watch(route, () => {
-		loadMembers();
-	});
+	watch(
+		() => props.room,
+		() => {
+			loadMembers();
+		},
+	);
 
 	function loadMembers() {
 		const joinedMembers = props.room.getStateJoinedMembers();
