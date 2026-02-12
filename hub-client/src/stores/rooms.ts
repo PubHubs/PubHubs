@@ -307,12 +307,10 @@ const useRooms = defineStore('rooms', {
 		 * @param roomId
 		 */
 		async joinRoomListRoom(roomId: string) {
-			if (this.rooms[roomId]) {
-				return; // Already joined
+			if (!this.rooms[roomId]) {
+				const pubhubs = usePubhubsStore();
+				await pubhubs.joinRoom(roomId);
 			}
-
-			const pubhubs = usePubhubsStore();
-			await pubhubs.joinRoom(roomId);
 
 			const room = this.room(roomId);
 			if (room) {
