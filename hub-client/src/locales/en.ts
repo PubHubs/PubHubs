@@ -326,6 +326,7 @@ const en = {
 		event: 'Event',
 		discussion: 'Discussion',
 		roomCreated: 'Room created',
+		no_messages_yet: 'There are no messages in this room yet',
 		discover: 'Discover rooms',
 		room_library: 'Library for room:',
 		no_rooms_found: 'No rooms were found',

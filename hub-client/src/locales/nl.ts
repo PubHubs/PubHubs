@@ -325,6 +325,7 @@ const nl = {
 		event: 'Evenement',
 		discussion: 'Discussie',
 		roomCreated: 'Kamer aangemaakt',
+		no_messages_yet: 'Er zijn nog geen berichten in deze kamer',
 		discover: 'Ontdek kamers',
 		room_library: 'Bibliotheek voor kamer:',
 		no_rooms_found: 'Geen kamers gevonden',

@@ -9,7 +9,11 @@
 			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
 
 			<!-- Expands if the timeline height < the vieport, to top-align the content -->
-			<div class="h-full" />
+			<div class="flex h-full items-center justify-center px-4 md:px-16">
+				<P v-if="initialLoadComplete && reversedTimeline.length === 0" class="text-on-surface-dim text-center">
+					{{ $t('rooms.no_messages_yet') }}
+				</P>
+			</div>
 
 			<template v-if="reversedTimeline.length > 0">
 				<div v-for="item in reversedTimeline" :key="item.matrixEvent.event.event_id">
@@ -108,6 +112,7 @@
 	const eventToBeDeleted = ref<TMessageEvent>();
 	const editingPoll = ref<{ poll: Poll; eventId: string } | undefined>(undefined);
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
+	const initialLoadComplete = ref(false);
 
 	const { DELAY_RECEIPT_MESSAGE, PAGINATION_COOLDOWN } = TimelineScrollConstants;
 
@@ -205,6 +210,7 @@
 
 		if (roomTimeLine.value.length === 0) {
 			LOGGER.warn(SMI.ROOM_TIMELINE, 'Timeline still empty after waiting');
+			initialLoadComplete.value = true;
 			return;
 		}
 
@@ -216,6 +222,7 @@
 		});
 
 		setupEventIntersectionObserver();
+		initialLoadComplete.value = true;
 	});
 
 	watch(() => roomTimeLine.value.length, onTimelineChange);
