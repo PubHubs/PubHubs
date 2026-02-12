@@ -84,7 +84,7 @@
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 
 	// Models
-	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { DirectRooms, PublicRooms, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
 	// Stores
@@ -121,7 +121,18 @@
 		},
 	});
 
-	const currentJoinedRooms = computed(() => rooms.filteredRoomList(props.roomTypes));
+	// Use the appropriate getter based on room types for proper reactivity
+	const currentJoinedRooms = computed(() => {
+		// Check which category of rooms is requested
+		if (props.roomTypes.every((t) => PublicRooms.includes(t))) {
+			return rooms.loadedPublicRooms;
+		}
+		if (props.roomTypes.every((t) => SecuredRooms.includes(t))) {
+			return rooms.loadedSecuredRooms;
+		}
+		// Fallback to filtered list (shouldn't happen with current usage)
+		return rooms.filteredRoomList(props.roomTypes);
+	});
 
 	const roomsLoaded = computed(() => {
 		return rooms.roomsLoaded;
