@@ -153,9 +153,12 @@
 
 	const isMobile = computed(() => settings.isMobileState);
 
-	const privateRooms = ref<Array<Room>>([]); // No computed, since this uses an async method
 	const selectedRoom = ref<Room | null>(null); // Selected room for desktop view
 	const scrollToEventId = ref<string | undefined>(undefined); // For search result navigation
+
+	// Reactive list of private rooms from the store
+	// This includes admin contact rooms when they're visible (not hidden)
+	const privateRooms = computed(() => rooms.loadedPrivateRooms);
 
 	const newAdminMsgCount = computed(() => {
 		if (user.isAdmin) return;
@@ -163,8 +166,9 @@
 		return adminContactRoom?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
 	});
 
+	// Check if admin room is currently visible (not hidden) in the store
 	const isAdminRoomVisible = computed(() => {
-		return privateRooms.value.some((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
+		return rooms.loadedPrivateRooms.some((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
 	});
 
 	const isGroupDM = computed(() => {
@@ -172,10 +176,6 @@
 	});
 
 	const sortedPrivateRooms = computed(() => {
-		if (!privateRooms.value) {
-			return [];
-		}
-
 		return [...privateRooms.value].sort((r1, r2) => {
 			return lastEventTimeStamp(r2) - lastEventTimeStamp(r1);
 		});
@@ -254,11 +254,7 @@
 			if (!isMobile.value) {
 				selectedRoom.value = newRoom;
 			}
-
-			// Add to privateRooms if not already present (for newly created rooms)
-			if (!privateRooms.value.some((r) => r.roomId === newRoom.roomId)) {
-				privateRooms.value = [...privateRooms.value, newRoom];
-			}
+			// Note: No need to manually add to privateRooms - the computed handles it automatically
 		},
 	);
 
@@ -282,9 +278,8 @@
 		// Desktop: toggle visibility in the list
 		const visibleAdminRoom = privateRooms.value.find((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
 		if (visibleAdminRoom) {
-			// Hide it from the list
+			// Hide it from the list (computed will automatically update)
 			await pubhubs.setPrivateRoomHiddenStateForUser(visibleAdminRoom, true);
-			privateRooms.value = privateRooms.value.filter((r) => r.roomId !== visibleAdminRoom.roomId);
 
 			// Clear selection if it was selected
 			if (selectedRoom.value?.roomId === visibleAdminRoom.roomId) {
@@ -296,9 +291,6 @@
 		// Show admin room in list (unhide or create) and select it
 		const adminRoom = await getOrCreateAdminRoom();
 		if (adminRoom) {
-			if (!privateRooms.value.some((r) => r.roomId === adminRoom.roomId)) {
-				privateRooms.value = [...privateRooms.value, adminRoom];
-			}
 			selectedRoom.value = adminRoom;
 		}
 	}
@@ -331,11 +323,10 @@
 	async function loadPrivateRooms() {
 		await rooms.waitForInitialRoomsLoaded(); // we need the roomslist, so wait till its loaded
 		const roomsList = rooms.filteredRoomList(DirectRooms);
+		// Join all rooms to ensure they're loaded in the store
+		// The computed privateRooms will automatically pick them up
 		for (const room of roomsList) {
 			await rooms.joinRoomListRoom(room.roomId);
-			// Admin contact rooms are hidden by default, shown via lifebuoy toggle
-			if (room.roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT) continue;
-			privateRooms.value = [...privateRooms.value, rooms.rooms[room.roomId]];
 		}
 	}
 

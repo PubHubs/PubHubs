@@ -14,7 +14,7 @@ import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
 import Room from '@hub-client/models/rooms/Room';
-import { DirectRooms, RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { DirectRooms, PublicRooms, RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -116,6 +116,45 @@ const useRooms = defineStore('rooms', {
 						return isVisiblePrivateRoom(room.name, user.user!);
 					});
 			};
+		},
+
+		/**
+		 * Get loaded private Room objects (DMs, group DMs, admin/steward contact).
+		 * Returns actual Room instances that are loaded in the store.
+		 */
+		loadedPrivateRooms(): Room[] {
+			const user = useUser();
+			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
+			return this.roomList
+				.filter((room) => {
+					// Must be a direct room type and not hidden
+					if (room.isHidden || !DirectRooms.includes(room.roomType as RoomType)) return false;
+					// Must be loaded in the rooms store
+					if (!this.rooms[room.roomId]) return false;
+					// Check visibility for private rooms
+					if (hiddenNameRoomTypes.includes(room.roomType as RoomType)) {
+						return isVisiblePrivateRoom(room.name, user.user!);
+					}
+					return true;
+				})
+				.map((room) => this.rooms[room.roomId])
+				.filter((room): room is Room => room !== undefined);
+		},
+
+		/**
+		 * Get public rooms from roomList (reactive).
+		 * Returns RoomListRoom objects for the menu.
+		 */
+		loadedPublicRooms(): RoomListRoom[] {
+			return this.roomList.filter((room) => room.isHidden === false && room.roomType && PublicRooms.includes(room.roomType as RoomType));
+		},
+
+		/**
+		 * Get secured rooms from roomList (reactive).
+		 * Returns RoomListRoom objects for the menu.
+		 */
+		loadedSecuredRooms(): RoomListRoom[] {
+			return this.roomList.filter((room) => room.isHidden === false && room.roomType && SecuredRooms.includes(room.roomType as RoomType));
 		},
 
 		// TODO never used. Can be deleted?
