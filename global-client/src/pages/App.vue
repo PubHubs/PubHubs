@@ -1,5 +1,5 @@
 <template>
-	<div id="layout-root" class="bg-background font-body text-on-surface text-body flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden">
+	<div id="layout-root" class="bg-background font-body text-on-surface text-body flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-none">
 		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
 		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
@@ -9,7 +9,7 @@
 		/>
 
 		<!-- 0-width element for snapping -->
-		<div v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" class="w-0 shrink-0 snap-end snap-always" :class="!isMobile && 'hidden'" />
+		<div v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
 	</div>
 
 	<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
