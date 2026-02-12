@@ -567,6 +567,13 @@ const useRooms = defineStore('rooms', {
 			await this.fetchPublicRooms(true); // Force refresh so the new room is recognised as a secured room
 			const pubhubs = usePubhubsStore();
 			await pubhubs.joinRoom(newRoom.room_id);
+			// joinRoom may detect the wrong roomType (defaults to PH_MESSAGES_DEFAULT when
+			// the create event isn't in the timeline yet). Correct it so the room appears
+			// in loadedSecuredRooms immediately.
+			const roomListEntry = this.roomList.find((r) => r.roomId === newRoom.room_id);
+			if (roomListEntry) {
+				roomListEntry.roomType = RoomType.PH_MESSAGES_RESTRICTED;
+			}
 			return { result: newRoom };
 		},
 
