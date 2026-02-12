@@ -63,20 +63,8 @@
 					/>
 				</template>
 
-				<!-- Announcement mode indicator -->
-				<div
-					v-if="isAnnouncementMode"
-					class="rounded-t-base flex items-center justify-between gap-2 border-b px-4 py-2"
-					:class="announcementAccentClass === 'accent-admin' ? 'bg-accent-admin/10 border-accent-admin' : 'bg-accent-steward/10 border-accent-steward'"
-				>
-					<div class="flex items-center gap-2">
-						<Icon type="megaphone-simple" size="sm" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'" />
-						<span class="text-label-small" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'">{{ $t('message.announcement_mode') }}</span>
-					</div>
-					<button @click="isAnnouncementMode = false" class="hover:cursor-pointer">
-						<Icon type="x" size="sm" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'" />
-					</button>
-				</div>
+				<InputModeBar v-if="isAnnouncementMode" icon="megaphone-simple" :label="$t('message.announcement_mode')" :variant="announcementVariant" @close="isAnnouncementMode = false" />
+				<InputModeBar v-if="messageInput.state.signMessage" icon="pen-nib" :label="$t('message.sign.signed_message_email')" :tooltip="$t('message.sign.signed_message_tooltip')" variant="sign" @close="messageInput.resetAll(true)" />
 
 				<div v-if="messageInput.state.textArea" class="rounded-base flex items-center gap-x-4 px-4 py-2">
 					<IconButton
@@ -104,7 +92,7 @@
 					<button
 						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isDirectMessageRoom()"
 						class="hover:cursor-pointer"
-						:class="isAnnouncementMode ? (announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
+						:class="isAnnouncementMode ? (announcementVariant === 'admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
 						@click="isAnnouncementMode = !isAnnouncementMode"
 						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
 					>
@@ -126,48 +114,38 @@
 						<Icon type="paper-plane-right" size="lg" />
 					</button>
 				</div>
-
-				<div v-if="messageInput.state.signMessage" class="bg-surface-low rounded-base m-4 mt-0 flex items-center p-2">
-					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
-					<div class="ml-2 flex max-w-3xl flex-col justify-between">
-						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
-						<p>{{ $t('message.sign.info') }}</p>
-						<div class="mt-2 flex items-center">
-							<Icon type="warning" size="sm" class="mb-025 mt-1 mr-2 shrink-0 self-start" />
-							<p class="italic">{{ $t('message.sign.warning') }}</p>
-						</div>
-						<Line class="mb-2" />
-						<p>{{ $t('message.sign.selected_attributes') }}</p>
-						<div class="mt-1 flex w-20 justify-center rounded-full">
-							<p>Email</p>
-						</div>
-					</div>
-					<IconButton type="x" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
-				</div>
-			</div>
-			<!-- Yivi signing qr popup -->
-			<div class="absolute bottom-[10%] left-1/2 min-w-64 -translate-x-1/2" v-show="messageInput.state.showYiviQR">
-				<Icon type="x" class="absolute right-2 z-10 cursor-pointer text-black" @click="messageInput.state.showYiviQR = false" />
-				<div v-if="messageInput.state.signMessage" :id="EYiviFlow.Sign"></div>
 			</div>
 		</div>
 	</div>
+
+	<!-- Yivi signing dialog -->
+	<Teleport to="body">
+		<div v-if="messageInput.state.showYiviQR" class="fixed inset-0 z-50 flex items-center justify-center">
+			<div class="bg-surface-high absolute inset-0 opacity-80" @click="messageInput.state.showYiviQR = false" />
+			<div class="relative z-10 min-w-64 rounded-lg bg-white">
+				<button class="absolute top-2 right-2 z-10 cursor-pointer" @click="messageInput.state.showYiviQR = false">
+					<Icon type="x" class="text-black" />
+				</button>
+				<div :id="EYiviFlow.Sign"></div>
+			</div>
+		</div>
+	</Teleport>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { PropType, computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Line from '@hub-client/components/elements/Line.vue';
 	import TextArea from '@hub-client/components/forms/TextArea.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
+	import InputModeBar from '@hub-client/components/ui/InputModeBar.vue';
 	import MentionAutoComplete from '@hub-client/components/ui/MentionAutoComplete.vue';
 	import Popover from '@hub-client/components/ui/Popover.vue';
 	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
@@ -242,10 +220,9 @@
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 	const isAnnouncementMode = ref(false);
 
-	// Accent color based on power level (admin = 100, steward = 50+)
-	const announcementAccentClass = computed(() => {
+	const announcementVariant = computed<'admin' | 'steward'>(() => {
 		const powerLevel = props.room.getPowerLevel(user.userId);
-		return powerLevel === 100 ? 'accent-admin' : 'accent-steward';
+		return powerLevel === 100 ? 'admin' : 'steward';
 	});
 
 	let threadRoot: TMessageEvent | undefined = undefined;
@@ -392,6 +369,7 @@
 
 		if (messageInput.state.signMessage) {
 			messageInput.state.showYiviQR = true;
+			await nextTick();
 			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot);
 		} else if (isAnnouncementMode.value) {
 			// Send as announcement

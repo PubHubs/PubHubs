@@ -553,6 +553,8 @@ const en = {
 			info: "Go 'on the record' by signing your message with your information.",
 			warning: 'A signed message can be shared. Do not include personal information and consider other users in this room.',
 			selected_attributes: 'Your message will be signed with this information:',
+			signed_message_email: 'Signed message (email)',
+			signed_message_tooltip: 'Your message will be signed with your email address so others can verify it came from you.',
 			send: 'Sign & send',
 			edit: 'Sign & edit',
 		},

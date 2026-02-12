@@ -552,6 +552,8 @@ const nl = {
 			info: 'Laat zien dat je achter dit bericht staat door het te ondertekenen met jouw gegegevens.',
 			warning: 'Een ondertekend bericht kan worden gedeeld. Zet er geen persoonlijke informatie in en denk aan de medegebruikers in deze kamer.',
 			selected_attributes: 'Met deze informatie onderteken jij je bericht:',
+			signed_message_email: 'Ondertekend bericht (e-mail)',
+			signed_message_tooltip: 'Je bericht wordt ondertekend met je e-mailadres, zodat anderen kunnen verifiëren dat het van jou afkomstig is.',
 			send: 'Onderteken & verstuur',
 			edit: 'Onderteken & bewerk',
 		},
