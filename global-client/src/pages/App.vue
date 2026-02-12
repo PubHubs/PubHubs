@@ -52,6 +52,7 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const LOGGER = new Logger('GC', CONFIG);
 	const { locale, availableLocales } = useI18n();
+	const { scrollToEnd, scrollToStart, setupSnapEnforcement, cleanupSnapEnforcement } = useRootScroll();
 	const messagebox = useMessageBox();
 	const settings = useSettings();
 	const dialog = useDialog();
@@ -66,8 +67,6 @@
 
 	// Function to initialize settings and language
 	async function initializeSettings() {
-		const { scrollToEnd, scrollToStart } = useRootScroll();
-
 		LOGGER.log(SMI.STARTUP, 'App.vue onMounted...');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
@@ -139,6 +138,8 @@
 			});
 		}
 
+		setupSnapEnforcement();
+
 		LOGGER.log(SMI.STARTUP, 'App.vue onMounted done', { language: settings.getActiveLanguage });
 	}
 
@@ -167,5 +168,6 @@
 
 	onUnmounted(() => {
 		settings.stopListeningMobile();
+		cleanupSnapEnforcement();
 	});
 </script>
