@@ -120,15 +120,9 @@
 
 	<!-- Yivi signing dialog -->
 	<Teleport to="body">
-		<div v-if="messageInput.state.showYiviQR" class="fixed inset-0 z-50 flex items-center justify-center">
-			<div class="bg-surface-high absolute inset-0 opacity-80" @click="messageInput.state.showYiviQR = false" />
-			<div class="relative z-10 min-w-64 rounded-lg bg-white">
-				<button class="absolute top-2 right-2 z-10 cursor-pointer" @click="messageInput.state.showYiviQR = false">
-					<Icon type="x" class="text-black" />
-				</button>
-				<div :id="EYiviFlow.Sign"></div>
-			</div>
-		</div>
+		<Dialog v-if="messageInput.state.showYiviQR" @close="messageInput.state.showYiviQR = false" :title="$t('message.sign.heading')" :buttons="signingDialogButtons">
+			<div :id="EYiviFlow.Sign"></div>
+		</Dialog>
 	</Teleport>
 </template>
 
@@ -138,12 +132,13 @@
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
-	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TextArea from '@hub-client/components/forms/TextArea.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
+	// Components
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
 	import InputModeBar from '@hub-client/components/ui/InputModeBar.vue';
 	import MentionAutoComplete from '@hub-client/components/ui/MentionAutoComplete.vue';
@@ -169,6 +164,7 @@
 	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
+	import { buttonsCancel } from '@hub-client/stores/dialog';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { TPublicRoom, TRoomMember, useRooms } from '@hub-client/stores/rooms';
@@ -226,6 +222,8 @@
 	});
 
 	let threadRoot: TMessageEvent | undefined = undefined;
+
+	const signingDialogButtons = buttonsCancel;
 
 	watch(route, () => {
 		reset();
