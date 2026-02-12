@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { onMounted, ref, watch } from 'vue';
+	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -91,41 +91,31 @@
 		},
 	});
 
-	const stewardIds = ref();
-	const memberIds = ref();
-
-	onMounted(() => {
-		loadMembers();
+	const realMembers = computed(() => {
+		return props.room.getStateJoinedMembers().filter((m) => !m.state_key.startsWith('@notices_user:'));
 	});
 
-	watch(
-		() => props.room,
-		() => {
-			loadMembers();
-		},
-	);
+	function filterMembersByPowerLevel(min: number, max: number) {
+		return realMembers.value
+			.filter(({ sender }) => {
+				const powerLevel = props.room.getStateMemberPowerLevel(sender);
+				return powerLevel !== null && powerLevel >= min && powerLevel <= max;
+			})
+			.map(({ sender }) => sender);
+	}
 
-	function loadMembers() {
-		const joinedMembers = props.room.getStateJoinedMembers();
+	const stewardIds = computed(() => {
+		if (props.room.isDirectMessageRoom()) return [];
+		return filterMembersByPowerLevel(50, 99);
+	});
 
-		const realMembers = joinedMembers.filter((m) => !m.state_key.startsWith('@notices_user:'));
-
-		const filterMembersByPowerLevel = (min: number, max: number) =>
-			realMembers
-				.filter(({ sender }) => {
-					const powerLevel = props.room.getStateMemberPowerLevel(sender);
-					return powerLevel !== null && powerLevel >= min && powerLevel <= max;
-				})
-				.map(({ sender }) => sender);
-
+	const memberIds = computed(() => {
 		// direct messages do not have stewards, only members with powerlevel 100, so show only the members
 		if (props.room.isDirectMessageRoom()) {
-			memberIds.value = [...new Set(realMembers.map((x) => x.sender))]; // Set only stores unique values
-		} else {
-			stewardIds.value = filterMembersByPowerLevel(50, 99);
-			memberIds.value = [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])]; // only steards matter as distinction, so the admin is treated as common member
+			return [...new Set(realMembers.value.map((x) => x.sender))]; // Set only stores unique values
 		}
-	}
+		return [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])]; // only stewards matter as distinction, so the admin is treated as common member
+	});
 
 	async function startDM(userId: string) {
 		await dm.goToUserDM(userId);

@@ -213,6 +213,11 @@
 	);
 
 	watch(route, async () => {
+		// On mobile, close sidebar when switching rooms
+		if (sidebar.isMobile.value) {
+			sidebar.closeInstantly();
+		}
+
 		// Check for eventId in query param on route change
 		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
 		if (eventIdFromQuery) {
