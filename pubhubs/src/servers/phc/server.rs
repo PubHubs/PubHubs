@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
-use digest::Digest as _;
+use sha2::digest::Digest as _;
 
 use crate::api::{self, ApiResultExt as _, EndpointDetails as _, NoPayload};
 use crate::client;

@@ -16,7 +16,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use actix_web::web;
-use digest::Digest as _;
+use sha2::digest::Digest as _;
 
 use super::server::*;
 use api::phc::user::*;

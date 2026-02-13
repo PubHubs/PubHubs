@@ -12,7 +12,7 @@ use crate::{
 };
 
 use curve25519_dalek::Scalar;
-use digest::Digest as _;
+use sha2::digest::Digest;
 
 /// Computes the `x B` from `x_T * B` and `x_PHC`, used by PHC to create the constellation
 pub fn combine_master_enc_key_parts(

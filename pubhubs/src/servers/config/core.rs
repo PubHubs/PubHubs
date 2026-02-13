@@ -697,7 +697,9 @@ impl PrepareConfig<Pcc> for auths::YiviConfig {
             .expect("retry does not fail")
             .ok_or_else(|| {
                 log::error!("could not reach yivi server at {}", self.requestor_url);
-                anyhow::anyhow!("getting Yivi server's public key from {pk_url} failed after retries")
+                anyhow::anyhow!(
+                    "getting Yivi server's public key from {pk_url} failed after retries"
+                )
             })?;
 
             self.server_key = Some(yivi::VerifyingKey::RS256(
