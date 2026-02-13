@@ -82,6 +82,7 @@
 
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
+	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Models
 	import { DirectRooms, PublicRooms, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
@@ -109,6 +110,7 @@
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
 	const { copyRoomUrl } = useClipboard();
+	const { scrollToEnd } = useGlobalScroll();
 	const messageValues = ref<(string | number)[]>([]);
 	const dialogOpen = ref<string | null>(null);
 	const dialog = useDialog();
@@ -151,6 +153,7 @@
 	async function leaveRoom(roomId: string) {
 		const room = currentJoinedRooms.value.find((room) => room.roomId === roomId);
 		if (room) {
+			scrollToEnd();
 			const leaveMsg = await leaveMessageContext(roomId);
 			if (DirectRooms.includes(room.roomType as RoomType)) {
 				if (await dialog.okcancel(t('rooms.hide_sure'))) {
