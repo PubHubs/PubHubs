@@ -40,6 +40,13 @@ impl App {
         })
     }
 
+    /// Implements [`CachedHubInfoEP`]
+    pub(super) async fn handle_cached_hub_info(
+        app: web::Data<Rc<App>>,
+    ) -> impl actix_web::Responder {
+        app.cached_hub_info.borrow().clone()
+    }
+
     /// Implements [`StateEP`]
     pub(super) async fn handle_user_state(
         app: Rc<Self>,
