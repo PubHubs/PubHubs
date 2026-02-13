@@ -337,7 +337,6 @@ const nl = {
 		jump_to_bottom: 'Ga naar beneden',
 		loading_older_messages: 'Oudere berichten laden...',
 		loading_newer_messages: 'Nieuwere berichten laden...',
-		no_messages_yet: 'Er zijn nog geen berichten in deze kamer',
 		announcement: 'aankondiging',
 		steward: 'steward',
 		stewards: 'stewards',

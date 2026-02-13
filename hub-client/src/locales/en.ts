@@ -338,7 +338,6 @@ const en = {
 		jump_to_bottom: 'Jump to bottom',
 		loading_older_messages: 'Loading older messages...',
 		loading_newer_messages: 'Loading newer messages...',
-		no_messages_yet: 'There are no messages yet in this room',
 		announcement: 'announcement',
 		steward: 'steward',
 		stewards: 'stewards',
