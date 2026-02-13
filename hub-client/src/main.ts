@@ -20,7 +20,6 @@ import App from '@hub-client/pages/App.vue';
 import { ReplaceConsole } from '@hub-client/console';
 import { setUpi18n } from '@hub-client/i18n';
 import { registerComponents } from '@hub-client/registerComponents';
-import '@hub-client/registerServiceWorker';
 
 // Other
 
