@@ -41,20 +41,21 @@
 	// Packages
 	import { onMounted, ref, watch } from 'vue';
 
+	// Composables
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
+	// Models
 	import { FieldInputType, FieldOptions, FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
+	// Composables
 	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
-	// Composables
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
-
+	// Props
 	const props = withDefaults(
 		defineProps<{
 			options: FieldOptions;
@@ -75,15 +76,15 @@
 		},
 	);
 
-	const model = defineModel<FieldInputType>();
-	const selection = ref<FieldSelection>([]); // selection of choosen indexes
-
-	// Validation etc.
+	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 	const { fieldName, update, changed } = useFormInput(props, model);
+
+	const model = defineModel<FieldInputType>();
+	const selection = ref<FieldSelection>([]); // Selection of choosen indexes
 
 	onMounted(() => {
 		setItems(props.options as Array<any>);
-		// set selection
+		// Set selection
 		if (model.value) {
 			if (props.multiple) {
 				for (let i = 0; i < model.value.length; i++) {
@@ -99,7 +100,7 @@
 				}
 			}
 		}
-		// set cursor off until it is used
+		// Set cursor off until it is used
 		cursor.value = -1;
 	});
 
@@ -130,10 +131,10 @@
 			}
 		}
 
-		// sort selection
+		// Sort selection
 		selection.value = selection.value.sort();
 
-		// update model
+		// Update model
 		if (props.multiple) {
 			let newModel = [] as Array<any> | undefined;
 			for (let i = 0; i < selection.value.length; i++) {
@@ -156,7 +157,6 @@
 	};
 
 	const toggle = () => {
-		console.info('Dropdown.toggle');
 		open.value = !open.value;
 	};
 
