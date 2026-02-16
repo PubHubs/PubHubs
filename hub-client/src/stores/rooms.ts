@@ -131,8 +131,7 @@ const useRooms = defineStore('rooms', {
 					}
 					return true;
 				})
-				.map((room) => this.rooms[room.roomId])
-				.filter((room): room is Room => room !== undefined);
+				.map((room) => this.rooms[room.roomId] as Room);
 		},
 
 		loadedPublicRooms(): RoomListRoom[] {
@@ -488,7 +487,7 @@ const useRooms = defineStore('rooms', {
 			}
 
 			if (creatingAdminUser) {
-				this.roomNotices[roomId][creatingAdminUser] = ['title_administrator'];
+				this.roomNotices[roomId][creatingAdminUser] = ['admin.title_administrator'];
 			}
 
 			const limit = 100000;

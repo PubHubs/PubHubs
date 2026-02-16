@@ -22,6 +22,14 @@ export function useDirectMessage() {
 
 	const isMobile = computed(() => settings.isMobileState);
 
+	// Creates/finds a private room, joins it, and returns the Room from the store.
+	async function ensureDMRoom(...args: Parameters<typeof pubhubs.createPrivateRoomWith>): Promise<Room | null> {
+		const result = await pubhubs.createPrivateRoomWith(...args);
+		if (!result) return null;
+		await rooms.joinRoomListRoom(result.room_id);
+		return (rooms.rooms[result.room_id] as Room) ?? null;
+	}
+
 	function goToRoom(room: Room) {
 		sidebar.openDMRoom(room);
 		router.push({ name: 'direct-msg' });
@@ -32,48 +40,27 @@ export function useDirectMessage() {
 		const otherUser = user.client?.getUser(userId);
 		if (!otherUser || user.userId === otherUser.userId) return;
 
-		const result = await pubhubs.createPrivateRoomWith(otherUser as User);
-		if (result) {
-			await rooms.joinRoomListRoom(result.room_id);
-			const storeRoom = rooms.rooms[result.room_id];
-			if (storeRoom) {
-				goToRoom(storeRoom);
-			}
-		}
+		const room = await ensureDMRoom(otherUser as User);
+		if (room) goToRoom(room);
 	}
 
 	// Creates a DM (1:1 or group) and selects it in the sidebar.
 	async function createDMWithUsers(users: User | User[]): Promise<Room | null> {
-		const result = await pubhubs.createPrivateRoomWith(users);
-		if (result) {
-			await rooms.joinRoomListRoom(result.room_id);
-			const storeRoom = rooms.rooms[result.room_id];
-			if (storeRoom) {
-				sidebar.openDMRoom(storeRoom);
-				return storeRoom;
-			}
-		}
-		return null;
+		const room = await ensureDMRoom(users);
+		if (room) sidebar.openDMRoom(room);
+		return room;
 	}
 
 	// Creates a DM and navigates to the DM page.
 	async function createAndGoToDM(users: User | User[]): Promise<void> {
 		const room = await createDMWithUsers(users);
-		if (room) {
-			router.push({ name: 'direct-msg' });
-		}
+		if (room) router.push({ name: 'direct-msg' });
 	}
 
 	// Creates a DM with the steward
 	async function goToStewardRoom(roomId: string, members: User[]): Promise<void> {
-		const result = await pubhubs.createPrivateRoomWith(members, false, true, roomId);
-		if (result) {
-			await rooms.joinRoomListRoom(result.room_id);
-			const storeRoom = rooms.rooms[result.room_id];
-			if (storeRoom) {
-				goToRoom(storeRoom);
-			}
-		}
+		const room = await ensureDMRoom(members, false, true, roomId);
+		if (room) goToRoom(room);
 	}
 
 	return {

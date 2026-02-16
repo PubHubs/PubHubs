@@ -145,10 +145,6 @@
 	const dialog = useDialog();
 	const sidebar = useSidebar();
 
-	onMounted(async () => {
-		loadPrivateRooms();
-	});
-
 	const isMobile = computed(() => settings.isMobileState);
 
 	const selectedRoom = ref<Room | null>(null);
@@ -208,6 +204,8 @@
 	}
 
 	onMounted(() => {
+		loadPrivateRooms();
+
 		if (isMobile.value) return;
 
 		const target = findTargetRoom(sortedPrivateRooms.value);
@@ -265,7 +263,7 @@
 		if (visibleAdminRoom) {
 			await pubhubs.setPrivateRoomHiddenStateForUser(visibleAdminRoom, true);
 			if (selectedRoom.value?.roomId === visibleAdminRoom.roomId) {
-				selectedRoom.value = sortedPrivateRooms.value[0] ?? null;
+				selectedRoom.value = sortedPrivateRooms.value.find((r) => r.roomId !== visibleAdminRoom.roomId) ?? null;
 			}
 			return;
 		}
@@ -310,7 +308,7 @@
 		const messageEvents = room.getLiveTimelineEvents().filter((event) => event.getType() === EventType.RoomMessage);
 
 		if (messageEvents.length === 0) {
-			return 0;
+			return Date.now();
 		}
 
 		messageEvents.sort((a, b) => b.localTimestamp - a.localTimestamp);
