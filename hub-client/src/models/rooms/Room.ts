@@ -193,6 +193,20 @@ export default class Room {
 	}
 
 	/**
+	 * Merges new state events into stateEvents, keyed by (type, state_key).
+	 */
+	private mergeStateEvents(newEvents: IStateEvent[]) {
+		for (const newEvent of newEvents) {
+			const existingIndex = this.stateEvents.findIndex((e) => e.type === newEvent.type && e.state_key === newEvent.state_key);
+			if (existingIndex >= 0) {
+				this.stateEvents[existingIndex] = newEvent;
+			} else {
+				this.stateEvents.push(newEvent);
+			}
+		}
+	}
+
+	/**
 	 * Used within reactions to show only one instance of multiple together with counter
 	 */
 	public addCurrentEventToRelatedEvent(event: MatrixEvent) {
@@ -627,6 +641,12 @@ export default class Room {
 	}
 
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
+		// Merge state events from sliding sync (e.g. member events) into our stateEvents.
+		// This ensures stateEvents are populated even when a room is joined after initial sync.
+		if (roomData.required_state && roomData.required_state.length > 0) {
+			this.mergeStateEvents(roomData.required_state);
+		}
+
 		if (!roomData.timeline || roomData.timeline.length === 0) return;
 		const eventList = roomData.timeline.map((event) => {
 			return new MatrixEvent(event);

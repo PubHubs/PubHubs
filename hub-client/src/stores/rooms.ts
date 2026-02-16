@@ -309,7 +309,8 @@ const useRooms = defineStore('rooms', {
 		async joinRoomListRoom(roomId: string) {
 			if (!this.rooms[roomId]) {
 				const pubhubs = usePubhubsStore();
-				await pubhubs.joinRoom(roomId);
+				const roomListEntry = this.roomList.find((x) => x.roomId === roomId);
+				await pubhubs.joinRoom(roomId, roomListEntry?.roomType, roomListEntry?.name);
 			}
 
 			const room = this.room(roomId);
@@ -333,7 +334,14 @@ const useRooms = defineStore('rooms', {
 		 * @param type
 		 */
 		updateRoomList(roomListRoom: RoomListRoom) {
-			if (!this.roomList.some((room) => room.roomId === roomListRoom.roomId)) {
+			const existing = this.roomList.find((room) => room.roomId === roomListRoom.roomId);
+			if (existing) {
+				// Update existing entry — fixes race between sliding sync and local joinRoom
+				existing.roomType = roomListRoom.roomType;
+				existing.name = roomListRoom.name;
+				if (roomListRoom.stateEvents.length > 0) existing.stateEvents = roomListRoom.stateEvents;
+				if (roomListRoom.lastMessageId) existing.lastMessageId = roomListRoom.lastMessageId;
+			} else {
 				this.roomList.push(roomListRoom);
 			}
 			this.roomList.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
@@ -566,14 +574,7 @@ const useRooms = defineStore('rooms', {
 			this.securedRooms.push(newRoom);
 			await this.fetchPublicRooms(true); // Force refresh so the new room is recognised as a secured room
 			const pubhubs = usePubhubsStore();
-			await pubhubs.joinRoom(newRoom.room_id);
-			// joinRoom may detect the wrong roomType (defaults to PH_MESSAGES_DEFAULT when
-			// the create event isn't in the timeline yet). Correct it so the room appears
-			// in loadedSecuredRooms immediately.
-			const roomListEntry = this.roomList.find((r) => r.roomId === newRoom.room_id);
-			if (roomListEntry) {
-				roomListEntry.roomType = RoomType.PH_MESSAGES_RESTRICTED;
-			}
+			await pubhubs.joinRoom(newRoom.room_id, RoomType.PH_MESSAGES_RESTRICTED);
 			return { result: newRoom };
 		},
 

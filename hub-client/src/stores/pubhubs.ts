@@ -375,15 +375,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @throws error - an error when something goes wrong joining the room. For example a forbidden respons or a rate limited
 		 * response
 		 */
-		async joinRoom(room_id: string): Promise<void> {
+		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<void> {
 			const rooms = useRooms();
 
 			try {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				const roomType: string = getRoomType(matrixRoom);
+				const roomType: string = knownRoomType ?? getRoomType(matrixRoom);
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
-				const roomName = publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
+				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
 
 				// when a room is joined after startup the roomlist has to be updated, does nothing when room was already in the roomlist
@@ -399,7 +399,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		async createRoom(options: any): Promise<{ room_id: string }> {
 			const room = await this.client.createRoom(options);
-			await this.joinRoom(room.room_id);
+			await this.joinRoom(room.room_id, options.creation_content?.type, options.name);
 			return room;
 		},
 

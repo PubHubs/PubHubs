@@ -85,6 +85,8 @@
 	const { t } = useI18n();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
+	const roomType = computed(() => props.room.getType());
+
 	watch(
 		() => props.room,
 		async (room) => {
@@ -104,8 +106,6 @@
 		},
 		{ immediate: true },
 	);
-
-	const roomType = computed(() => props.room.getType());
 
 	const otherDMUserId = computed(() => {
 		if (roomType.value === RoomType.PH_MESSAGES_DM) {

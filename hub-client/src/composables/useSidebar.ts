@@ -115,6 +115,7 @@ export function useSidebar() {
 	return {
 		activeTab: computed(() => activeTab.value),
 		selectedDMRoom: computed(() => selectedDMRoom.value),
+		lastDMRoomId: computed(() => lastDMRoomId.value),
 		skipTransition: computed(() => skipTransition.value),
 		isOpen,
 		isMobile,

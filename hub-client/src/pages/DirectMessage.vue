@@ -207,38 +207,44 @@
 		return t('menu.directmsg');
 	});
 
+	// Find the target room to select — uses sidebar state or lastDMRoomId as fallback
+	// (lastDMRoomId survives closeInstantly() which clears selectedDMRoom during route leave)
+	function findTargetRoom(roomList: Room[]): Room | undefined {
+		if (sidebar.selectedDMRoom.value) return sidebar.selectedDMRoom.value;
+		if (sidebar.lastDMRoomId.value) return roomList.find((r) => r.roomId === sidebar.lastDMRoomId.value);
+		return undefined;
+	}
+
 	// Restore state when entering the DM page
 	onMounted(() => {
-		// Desktop: check if sidebar has a pre-selected room (from router navigation)
-		if (!isMobile.value && sidebar.selectedDMRoom.value) {
-			selectedRoom.value = sidebar.selectedDMRoom.value;
+		if (isMobile.value) return;
+
+		const target = findTargetRoom(sortedPrivateRooms.value);
+		if (target) {
+			selectedRoom.value = target;
 			return;
 		}
 		// Desktop: auto-select first room if available
-		if (!isMobile.value && sortedPrivateRooms.value.length > 0 && !selectedRoom.value) {
+		if (sortedPrivateRooms.value.length > 0) {
 			selectedRoom.value = sortedPrivateRooms.value[0];
 		}
-		// Mobile: don't auto-open any conversation (sidebar handles it)
 	});
 
 	// Watch for rooms to become available
 	watch(
 		sortedPrivateRooms,
 		(newRooms) => {
-			// Desktop: check if sidebar has a pre-selected room (from router navigation)
-			if (!isMobile.value && sidebar.selectedDMRoom.value && !selectedRoom.value) {
-				// Find the room in the loaded rooms list
-				const preSelectedRoom = newRooms.find((r) => r.roomId === sidebar.selectedDMRoom.value?.roomId);
-				if (preSelectedRoom) {
-					selectedRoom.value = preSelectedRoom;
-					return;
-				}
+			if (isMobile.value || selectedRoom.value) return;
+
+			const target = findTargetRoom(newRooms);
+			if (target) {
+				selectedRoom.value = target;
+				return;
 			}
 			// Desktop: auto-select first room if none selected
-			if (!isMobile.value && newRooms.length > 0 && !selectedRoom.value) {
+			if (newRooms.length > 0) {
 				selectedRoom.value = newRooms[0];
 			}
-			// Mobile: don't auto-open any conversation (sidebar handles it)
 		},
 		{ once: true },
 	);
@@ -342,11 +348,8 @@
 	}
 
 	function openDMRoom(room: Room) {
-		if (isMobile.value) {
-			// Mobile: open in sidebar
-			sidebar.openDMRoom(room);
-		} else {
-			// Desktop: show directly
+		sidebar.openDMRoom(room); // Track selection for restoration after navigation
+		if (!isMobile.value) {
 			selectedRoom.value = room;
 		}
 	}
