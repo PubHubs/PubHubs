@@ -3,7 +3,7 @@
 		<template #header>
 			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
 				<span class="font-semibold uppercase">{{ $t('admin.title_administrator') }}</span>
-				<hr class="bg-on-surface-dim h-[2px] grow" />
+				<hr class="bg-on-surface-dim h-025 grow" />
 			</div>
 			<div class="flex h-full items-center">
 				<div class="flex w-fit items-center gap-3">
@@ -108,7 +108,6 @@
 
 <script setup lang="ts">
 	// Packages
-	import { toEditorSettings } from 'typescript';
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
