@@ -1,35 +1,41 @@
 <template>
 	<div class="flex flex-wrap gap-2" role="list" data-testid="reactions">
-		<span v-for="(item, index) in reactionSummary" :key="item.key" class="group bg-surface relative inline-flex items-center gap-1 rounded-full px-2 py-1" role="listitem">
-			{{ item.key }} {{ item.count }}
+		<span v-for="item in reactionSummary" :key="item.key" class="group/reaction bg-surface relative inline-flex items-center gap-2 rounded-full px-3 py-1" role="listitem">
+			<span class="flex h-[1em] w-[1em] items-center justify-center" :class="item.reactions.some((r) => r.userId === currentUserId) && 'group-hover/reaction:hidden'">{{ item.key }}</span>
 
+			<!-- Show a trash icon on hovering a reaction that you made, which can be clicked to remove the reaction -->
 			<Icon
-				v-if="item.reactions.some((r) => r.userId === currentUserId)"
 				type="trash"
-				size="sm"
-				class="bg-surface-low absolute top-0 right-0 hidden cursor-pointer rounded-2xl group-hover:inline-block"
 				@click.stop="removeReaction(item.reactions.filter((r) => r.userId === currentUserId).map((r) => r.eventId))"
+				class="text-accent-red hover:text-button-red hidden h-[1em] w-[1em] hover:cursor-pointer"
+				:class="item.reactions.some((r) => r.userId === currentUserId) && 'group-hover/reaction:block'"
 			/>
+			{{ item.count }}
 		</span>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import Icon from '../elements/Icon.vue';
+	// Packages
 	import { MatrixEvent } from 'matrix-js-sdk';
 	import { computed } from 'vue';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// Models
 	import { Redaction, RelationType } from '@hub-client/models/constants';
 
+	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 
+	// Props
+	const props = defineProps<{ reactEvent: MatrixEvent[]; messageEventId: string }>();
+
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
-
 	const currentUserId = pubhubs.client.getUserId();
-
-	const props = defineProps<{ reactEvent: MatrixEvent[]; messageEventId: string }>();
 
 	const reactionSummary = computed(() => {
 		if (!props.reactEvent) return;
@@ -58,7 +64,7 @@
 		return Object.entries(map).map(([key, reactions]) => ({
 			key,
 			count: reactions.length,
-			reactions, // array of { eventId, userId }
+			reactions, // Array of { eventId, userId }
 		}));
 	});
 

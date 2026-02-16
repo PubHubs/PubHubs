@@ -5,7 +5,7 @@
 				:to="{ name: 'room', params: { id: room.roomId } }"
 				:room="room"
 				class="no-callout group inline-block w-full select-none"
-				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-background!'"
+				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
 				icon="chats-circle"
 				@click="hubSettings.hideBar()"
 				v-context-menu="

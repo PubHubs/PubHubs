@@ -1,5 +1,5 @@
 <template>
-	<span>{{ name }}</span>
+	<span :title="name">{{ name }}</span>
 </template>
 
 <script setup lang="ts">

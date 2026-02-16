@@ -1,28 +1,18 @@
 <template>
-	<div ref="elThreadTimeline" class="border-surface-high bg-background relative flex h-full w-full shrink-0 flex-col border-l md:w-[33%]" data-testid="thread-sidekick">
-		<!-- Thread header -->
-		<div class="bg-surface-low m-3 mb-0 flex items-center gap-2 rounded-md p-2">
-			<button @click="closeThread" class="rounded-md p-1">
-				<Icon type="arrow-left" :size="'sm'"></Icon>
-			</button>
-			<p class="text-label-tiny truncate text-nowrap">Thread ({{ numberOfThreadEvents }})</p>
-		</div>
-
+	<div ref="elThreadTimeline" class="flex h-full w-full flex-col p-4" data-testid="thread-sidekick">
+		<SidebarHeader :title="t('rooms.thread')" />
 		<!-- Thread message list -->
-		<div class="h-full flex-1 overflow-y-scroll pt-4 pb-8">
+		<div class="flex-1 overflow-y-scroll pb-4">
 			<!-- Root event -->
 			<div v-if="filteredEvents.length === 0" ref="elRoomEvent" :id="props.room.currentThread?.rootEvent?.event.event_id">
 				<RoomMessageBubble
 					:room="room"
 					:event="props.room.currentThread?.rootEvent?.event"
 					:viewFromThread="true"
-					:active-profile-card="activeProfileCard"
 					:active-reaction-panel="activeReactionPanel"
 					class="room-event"
 					@in-reply-to-click="onInReplyToClick"
 					@delete-message="confirmDeleteMessage"
-					@profile-card-toggle="toggleProfileCard"
-					@profile-card-close="closeProfileCard"
 					@reaction-panel-toggle="toggleReactionPanel"
 					@reaction-panel-close="closeReactionPanel"
 					@clicked-emoticon="sendEmoji"
@@ -37,14 +27,11 @@
 						:room="room"
 						:event="item.matrixEvent.event"
 						:viewFromThread="true"
-						:active-profile-card="activeProfileCard"
 						:active-reaction-panel="activeReactionPanel"
 						class="room-event"
 						@clicked-emoticon="sendEmoji"
 						@in-reply-to-click="onInReplyToClick"
 						@delete-message="confirmDeleteMessage"
-						@profile-card-toggle="toggleProfileCard"
-						@profile-card-close="closeProfileCard"
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
 					></RoomMessageBubble>
@@ -69,12 +56,14 @@
 	// Packages
 	import { EventType, MatrixEvent } from 'matrix-js-sdk';
 	import { Reactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
+	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
@@ -87,6 +76,8 @@
 	import Room from '@hub-client/models/rooms/Room';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+	const { t } = useI18n();
 
 	const props = defineProps({
 		room: {
@@ -102,7 +93,6 @@
 	let threadEvents: Reactive<TimelineEvent[]> = reactive<TimelineEvent[]>([]);
 	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
 
-	const activeProfileCard = ref<string | null>(null);
 	const activeReactionPanel = ref<string | null>(null);
 
 	const filteredEvents = computed(() => {
@@ -225,14 +215,6 @@
 				deletedEvents.push(deletedEvent.matrixEvent as MatrixEvent);
 			}
 		}
-	}
-
-	function toggleProfileCard(eventId: string) {
-		activeProfileCard.value = activeProfileCard.value === eventId ? null : eventId;
-	}
-
-	function closeProfileCard() {
-		activeProfileCard.value = null;
 	}
 
 	function toggleReactionPanel(eventId: string) {

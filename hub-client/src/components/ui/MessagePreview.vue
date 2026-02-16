@@ -1,8 +1,8 @@
 <template>
-	<div class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'" @click="goToRoom">
-		<div class="flex min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
-			<Avatar :class="'flex-shrink-0'" :avatar-url="avatarOverrideUrl" icon="users" />
-			<div class="min-w-0 flex-grow overflow-hidden">
+	<div class="w-full rounded-xl p-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
+		<div class="flex h-full min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
+			<Avatar :class="'shrink-0'" :avatar-url="avatarOverrideUrl" :user-id="otherDMUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
+			<div class="min-w-0 grow overflow-hidden">
 				<div class="flex flex-col gap-1">
 					<div class="flex flex-row items-center gap-2">
 						<p class="truncate leading-tight font-bold" :class="{ truncate: !isMobile }">
@@ -24,21 +24,21 @@
 						</p>
 					</div>
 
-					<!-- Right Section: Message Body -->
+					<!-- Right section: Message body -->
 					<div v-if="room.hasMessages()" class="mt-1 min-w-0">
-						<p v-html="event?.getContent().ph_body" class="truncate"></p>
+						<p v-html="event?.getContent().ph_body" class="line-clamp-1 truncate"></p>
 					</div>
 					<div v-if="!room.hasMessages()" class="mt-1 min-w-0">
-						<p>{{ t('rooms.no_messages_yet') }}</p>
+						<p class="line-clamp-1 truncate">{{ t('rooms.no_messages_yet') }}</p>
 					</div>
 				</div>
 			</div>
 
-			<Badge v-if="newMessage > 0" color="notification" class="aspect-square h-full flex-shrink-0">
+			<Badge v-if="newMessage > 0" class="aspect-square h-1 shrink-0">
 				{{ newMessage }}
 			</Badge>
 
-			<EventTime v-if="lastMessageTimestamp !== undefined && lastMessageTimestamp !== 0" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="flex-shrink-0" />
+			<EventTime v-if="lastMessageTimestamp !== undefined && lastMessageTimestamp !== 0" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="shrink-0" />
 		</div>
 	</div>
 </template>
@@ -48,7 +48,6 @@
 	import { EventType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRouter } from 'vue-router';
 
 	// Components
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
@@ -63,12 +62,9 @@
 
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
 
-	const router = useRouter();
-	const rooms = useRooms();
-	const { t } = useI18n();
-	const avatarOverrideUrl = ref<string | undefined>(undefined);
-
+	// Props
 	const props = defineProps({
 		room: {
 			type: Room,
@@ -78,15 +74,31 @@
 			type: Boolean,
 			default: false,
 		},
+		active: {
+			type: Boolean,
+			default: false,
+		},
 	});
 
-	// Could also be done in onMounted, but in the future perhaps the avatar of a groupsmessage is editable
+	const rooms = useRooms();
+	const userStore = useUser();
+	const { t } = useI18n();
+	const avatarOverrideUrl = ref<string | undefined>(undefined);
+
 	watch(
 		() => props.room,
 		async (room) => {
 			if (!room) {
 				avatarOverrideUrl.value = undefined;
 				return;
+			}
+			// For 1:1 DMs, use the other user's avatar
+			if (room.getType() === RoomType.PH_MESSAGES_DM) {
+				const otherUser = getOtherDMUser();
+				if (otherUser?.userId) {
+					avatarOverrideUrl.value = userStore.userAvatar(otherUser.userId);
+					return;
+				}
 			}
 			avatarOverrideUrl.value = await props.room.getRoomAvatarAuthorizedUrl();
 		},
@@ -95,29 +107,28 @@
 
 	const roomType = computed(() => props.room.getType());
 
+	const otherDMUserId = computed(() => {
+		if (roomType.value === RoomType.PH_MESSAGES_DM) {
+			return getOtherDMUser()?.userId;
+		}
+		return undefined;
+	});
+
 	const newMessage = computed(() => props.room.getUnreadNotificationCount(NotificationCountType.Total));
 
-	// In your script setup
 	const latestMessageEvent = computed(() => {
-		// Replace with actual SDK method if available
 		const events = props.room.getLiveTimelineEvents();
+
 		// Find the latest message event
 		const messageEvents = events.filter((event) => event.getType() === EventType.RoomMessage);
 		if (messageEvents.length === 0) return undefined;
 		return [...messageEvents].sort((a, b) => b.localTimestamp - a.localTimestamp)[0];
 	});
 
-	const event = latestMessageEvent; // This would now be the latest message event
+	const event = latestMessageEvent;
 
 	const lastMessageTimestamp = computed(() => {
 		return event.value?.localTimestamp || 0;
-	});
-
-	// No user is needed for Room Avatar, we just override img url. We don't have a Room Avatar.
-	const avatarUser = computed(() => {
-		const sender = getOtherDMUser()?.userId;
-		if (!sender || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return undefined;
-		return props.room.getMember(sender, true);
 	});
 
 	const displayName = computed(() => {
@@ -131,12 +142,7 @@
 
 	const isGroupOrContact = computed(() => roomType.value === RoomType.PH_MESSAGES_GROUP || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT || roomType.value === RoomType.PH_MESSAGE_STEWARD_CONTACT);
 
-	function goToRoom() {
-		router.push({ name: 'room', params: { id: props.room.roomId } });
-	}
-
 	function getOtherDMUser(): RoomMember | null | undefined {
-		// Due to how avatar is implemented  this is a quick fix for group avatar.
 		// For avatars - there needs to be a valid user if the override url needs to work.
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return event.value?.sender;
 

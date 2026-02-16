@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, test } from 'vitest';
 // Packages
 import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test } from 'vitest';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -12,7 +12,6 @@ describe('PubHubs Store', () => {
 
 	describe('_constructMessageContent', () => {
 		test('public rooms listing', async () => {
-
 			//Pretend to be the client.
 			function mockClient(more) {
 				return {

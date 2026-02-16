@@ -1,16 +1,18 @@
 <template>
-	<div class="bg-background font-body text-on-surface text-body h-full min-w-[32rem]">
-		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login')" />
+	<div id="layout-root" class="bg-background font-body text-on-surface text-body flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth">
+		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
+		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
-		<div class="flex h-full">
-			<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
-			<div class="h-dvh w-full flex-1">
-				<router-view />
-			</div>
-		</div>
+		<router-view
+			class="flex h-full shrink-0 overflow-y-auto"
+			:class="isMobile && !(route.name === 'onboarding' || route.name === 'home' || route.name === 'login' || route.name === 'error') ? '!w-[calc(200vw_-_80px)]' : '!w-[calc(100vw_-_80px)] flex-1'"
+		/>
+
+		<!-- 0-width element for snapping -->
+		<div v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
 	</div>
 
-	<Dialog v-if="dialog.visible" @close="dialog.close" />
+	<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 
 	<ContextMenu />
 </template>
@@ -23,6 +25,12 @@
 
 	// Components
 	import GlobalBar from '@global-client/components/ui/GlobalBar.vue';
+	import MobileMenu from '@global-client/components/ui/MobileMenu.vue';
+
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+	// Composables
+	import useRootScroll from '@global-client/composables/useRootScroll';
 
 	// Logic
 	import { CONFIG } from '@hub-client/logic/logging/Config';
@@ -41,6 +49,7 @@
 	// New design
 	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 
+	const isMobile = computed(() => settings.isMobileState);
 	const LOGGER = new Logger('GC', CONFIG);
 	const { locale, availableLocales } = useI18n();
 	const messagebox = useMessageBox();
@@ -57,6 +66,8 @@
 
 	// Function to initialize settings and language
 	async function initializeSettings() {
+		const { scrollToEnd, scrollToStart } = useRootScroll();
+
 		LOGGER.log(SMI.STARTUP, 'App.vue onMounted...');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
@@ -91,7 +102,18 @@
 		);
 
 		// Update isMobile state on initial load
-		settings.startListening();
+		settings.startListeningMobile();
+
+		// Update root scroll state on iframe message
+		window.addEventListener('message', (event) => {
+			if (event.data?.handleGlobalScroll !== undefined) {
+				if (event.data.handleGlobalScroll === 'scrollToStart') {
+					scrollToStart();
+				} else if (event.data.handleGlobalScroll === 'scrollToEnd') {
+					scrollToEnd();
+				}
+			}
+		});
 
 		// Watch for saved state changes and save to backend
 		watch(
@@ -144,6 +166,6 @@
 	onMounted(initializeSettings);
 
 	onUnmounted(() => {
-		settings.stopListening();
+		settings.stopListeningMobile();
 	});
 </script>

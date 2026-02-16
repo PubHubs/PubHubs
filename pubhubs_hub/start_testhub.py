@@ -28,6 +28,10 @@ def main():
                         nargs="?",
                         help="Which of the five testhubs to run.")
 
+    parser.add_argument("passed_to_docker",
+                        nargs="*",
+                        help="Arguments passed to docker run")
+
     args = parser.parse_args()
 
     networkhost = args.networkhost
@@ -65,6 +69,7 @@ def main():
                     "-v", f"{os.path.join(".","modules")}:/conf/modules:ro",
                     "-v", f"{os.path.join(".","boot")}:/conf/boot:ro",
                     "-v", f"{os.path.join(".",f"testhub{args.number}")}:/data:rw",
+                    *args.passed_to_docker,
                     "--add-host", "host.docker.internal:host-gateway",
                     "pubhubs-hub",
                     "--environment", "development",

@@ -1,7 +1,7 @@
 <template>
-	<div class="w-full max-w-screen">
+	<div class="w-full max-w-screen flex-col">
 		<!-- Header -->
-		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
+		<div class="bg-surface flex h-[80px] w-full items-center px-6 py-4">
 			<div class="flex h-full w-full items-center justify-between gap-16">
 				<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer" class="h-full py-2">
 					<Logo />
@@ -14,7 +14,7 @@
 			</div>
 		</div>
 
-		<div class="overflow-y-auto" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
+		<div class="h-[calc(100svh_-_80px)] overflow-y-auto">
 			<!-- Registration section -->
 			<section class="bg-background flex flex-col overflow-x-hidden" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)] gap-4 py-4' : 'gap-8 py-16'">
 				<div class="flex shrink-0 flex-col" :class="isMobile ? 'h-full gap-4' : 'gap-8'">
@@ -27,7 +27,7 @@
 					</div>
 
 					<!-- Carousel -->
-					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
+					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_80px)]'">
 						<!-- Mobile -->
 						<div v-if="isMobile" ref="carouselMobile" class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4">
 							<!-- Card 1 -->

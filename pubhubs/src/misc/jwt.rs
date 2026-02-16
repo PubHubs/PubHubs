@@ -8,7 +8,6 @@ use std::borrow::{Borrow as _, Cow};
 use std::fmt;
 
 use base64ct::{Base64UrlUnpadded, Encoding as _};
-use digest::Digest as _;
 use hmac::Mac as _;
 use rsa::{
     pkcs8::{
@@ -516,6 +515,7 @@ impl JWT {
     }
 
     pub fn sha256(&self) -> sha2::Sha256 {
+        use sha2::Digest as _;
         sha2::Sha256::new().chain_update(&self.inner)
     }
 
@@ -821,12 +821,12 @@ pub struct HS256(#[serde(with = "serde_bytes")] pub Vec<u8>);
 ///     "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
 /// ```
 impl SigningKey for HS256 {
-    type Signature = digest::generic_array::GenericArray<u8, typenum::U32>;
+    type Signature = sha2::digest::generic_array::GenericArray<
+        u8,
+        <sha2::Sha256 as sha2::digest::OutputSizeUser>::OutputSize,
+    >;
 
-    fn sign(
-        &self,
-        s: &[u8],
-    ) -> anyhow::Result<digest::generic_array::GenericArray<u8, typenum::U32>> {
+    fn sign(&self, s: &[u8]) -> anyhow::Result<Self::Signature> {
         let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(&self.0)?;
         mac.update(s);
         Ok(mac.finalize().into_bytes())

@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface-subtle relative min-h-full overflow-hidden rounded-md">
+	<div class="bg-surface-subtle rounded-base relative min-h-full overflow-hidden">
 		<div class="relative">
 			<div class="bg-on-surface-dim absolute top-0 left-0 h-[50%] w-full"></div>
 			<div class="relative z-10 flex items-end justify-between px-4 py-4">

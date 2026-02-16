@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
-use digest::Digest as _;
+use sha2::digest::Digest as _;
 
 use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
 use crate::{
@@ -270,6 +270,8 @@ impl DerefMut for AppCreator {
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
+    type ContextT = ();
+
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let base = AppCreatorBase::<Server>::new(config)?;
 
@@ -318,9 +320,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn into_app(self, handle: &Handle<Server>) -> App {
+    fn into_app(
+        self,
+        handle: &Handle<Server>,
+        _context: &Self::ContextT,
+        generation: usize,
+    ) -> App {
         App {
-            base: AppBase::new(self.base, handle),
+            base: AppBase::new(self.base, handle, generation),
             attribute_types: self.attribute_types,
             yivi: self.yivi,
             auth_state_secret: self.auth_state_secret,

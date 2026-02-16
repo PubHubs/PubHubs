@@ -15,16 +15,41 @@ use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
 
+static SETUP_ONCE: std::sync::Once = std::sync::Once::new();
+
+/// Lock to make sure only one test runs at once.  This prevents tests from using the same ports.
+static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+async fn setup() -> tokio::sync::MutexGuard<'static, ()> {
+    SETUP_ONCE.call_once(|| {
+        env_logger::init();
+    });
+    LOCK.lock().await
+}
+
+#[tokio::test]
+async fn main_once() {
+    let _lock_guard = setup().await;
+    main_integration_test().await
+}
+
+#[tokio::test]
+#[ignore]
+async fn main_100() {
+    let _lock_guard = setup().await;
+
+    for _i in 1..100 {
+        main_integration_test().await
+    }
+}
+
 /// Integration test of the APIs provided by the different PubHubs core servers.
 ///  
 ///  - Does not test any client browser app
 ///  - Does not run against any actual hubs.  Instead a mock hub is used.
 ///  - Does not use any Yivi server.  Instead the result of the Yivi server is simulated.
 ///
-#[tokio::test]
 async fn main_integration_test() {
-    env_logger::init();
-
     // Load configuration
     let mut config = servers::Config::load_from_path(std::path::Path::new(CONFIG_FILE_PATH))
         .unwrap()
@@ -76,7 +101,9 @@ async fn main_integration_test() {
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
 
-    let yivi_server_sk = yivi::SigningKey::RS256(Box::new(jwt::RS256Sk::random(512).unwrap()));
+    // Generating an RSA key, even a small 512-bit one, is quite expensive, so we use a
+    // hardcoded key (for this test) instead.
+    let yivi_server_sk : yivi::SigningKey = serde_json::from_str(r#"{"rs256":"-----BEGIN PRIVATE KEY-----\nMIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAy80kqWqcEe95noNs\nD51BJOcHpMWq0qXHAm8cF7QTlToj+IaXOzFy1yBTY7aZ8gV5x/YbNdl/rqhgYsjT\nHrjZ9QIDAQABAkBZ3IV60hAo9F+63hXquJr9y4SaSbItmX0rfJR1eyhbVnMBQWdH\nBQPoA+yWYARC2VDuuP0hZL3V+yuvYWtILtFtAiEA6jsLrssA6TLqfCJQfCOPIj4e\n565nQl707tsbZcsHqr8CIQDevhsBBvfSmrTAEZTMSWTrCpJ7oSgGcx6PrCY0mx8s\nSwIgDaVG9vXopa1Lr9On8LN5oTsRPdoRNfKmPkwReoqrda0CIQCyFjCk+5s8qTCG\nuAfN5YhoW8WOTuUfcv8mQ68wNC4STQIgAa3PPfSKP8v4kGom1UIrOT6BShf735jQ\n6XWkFMj0gfk=\n-----END PRIVATE KEY-----\n"}"#).unwrap();
 
     config
         .auths
@@ -119,6 +146,8 @@ async fn main_integration_test_local(
     let constellation: servers::Constellation = client
         .get_constellation(&config.phc_url.as_ref())
         .await
+        .unwrap()
+        .into_constellation()
         .unwrap();
 
     // To test discovery, change transcryptor's and phc's encryption key
@@ -211,6 +240,8 @@ async fn main_integration_test_local(
     let constellation: servers::Constellation = client
         .get_constellation(&config.phc_url.as_ref())
         .await
+        .unwrap()
+        .into_constellation()
         .unwrap();
 
     let welcome_resp = client
@@ -874,6 +905,10 @@ async fn main_integration_test_local(
     // The mock hub stores the pseudonym in the access token;
     // let's check we got the same pseudonym in both cases.
     assert_eq!(first_access_token, access_token);
+
+    // clean-up
+    mock_hub.actix_server_handle.stop(false).await;
+    js.join_all().await;
 }
 
 /// Contents of a disclosure session request JWT
@@ -886,6 +921,7 @@ struct DisclosureRequestClaims {
 /// Simulates a hub.
 struct MockHub {
     pub actix_server: actix_web::dev::Server,
+    pub actix_server_handle: actix_web::dev::ServerHandle,
     pub context: Arc<MockHubContext>,
 }
 
@@ -941,8 +977,12 @@ impl MockHub {
         }
         .unwrap_or_else(|err| panic!("failed to bind to {host}:{port}: {err:#}"));
 
+        let actix_server = server_builder.run();
+        let actix_server_handle = actix_server.handle();
+
         Self {
-            actix_server: server_builder.run(),
+            actix_server,
+            actix_server_handle,
             context: context.clone(),
         }
     }

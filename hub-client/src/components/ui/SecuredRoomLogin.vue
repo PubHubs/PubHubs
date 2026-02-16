@@ -1,7 +1,7 @@
 <template>
 	<div class="absolute top-16 flex flex-col text-center">
 		<!-- Popup Container -->
-		<div class="z-20 box-border min-h-[333px] w-[255px] rounded-lg bg-white p-0 drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]">
+		<div class="z-20 box-border h-fit w-[255px] rounded-lg bg-white p-0 drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]">
 			<!-- Close Button Inside the Popup (Top-Right) -->
 			<IconButton v-if="showClose" type="x" size="base" class="absolute top-2 right-2 z-10 p-2 text-black" @click="closePopOver" />
 			<QRCode v-if="!loginFail" :securedRoomId="securedRoomId" @error="loginError" @success="emit('success')" />

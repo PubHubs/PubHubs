@@ -325,10 +325,12 @@ mod rs256sk_encoding {
     where
         D: serde::Deserializer<'de>,
     {
-        let s: &'de str = <&'de str>::deserialize(d)?;
+        use std::borrow::Cow;
+
+        let s: Cow<'de, str> = Cow::<'de, str>::deserialize(d)?;
 
         Ok(Box::new(
-            jwt::RS256Sk::from_pkcs8_pem(s).map_err(D::Error::custom)?,
+            jwt::RS256Sk::from_pkcs8_pem(&s).map_err(D::Error::custom)?,
         ))
     }
 

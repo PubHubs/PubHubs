@@ -7,7 +7,7 @@ import { Message, MessageType, iframeHubId, useMessageBox } from '@hub-client/st
 const useToggleMenu = defineStore('toggleMenu', {
 	state: () => {
 		return {
-			globalIsActive: false,
+			globalIsActive: true,
 		};
 	},
 	actions: {
@@ -23,7 +23,7 @@ const useToggleMenu = defineStore('toggleMenu', {
 		},
 		hideMenuAndSendToHub() {
 			const messageBox = useMessageBox();
-			this.globalIsActive = false;
+			this.globalIsActive = true;
 			messageBox.sendMessage(new Message(MessageType.BarHide, this.globalIsActive), iframeHubId);
 		},
 	},

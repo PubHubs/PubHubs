@@ -61,8 +61,9 @@ class DialogProperties {
 	modalonly: boolean;
 	close: boolean;
 	message: boolean;
+	type: 'global' | 'hub';
 
-	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true) {
+	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true, type: 'global' | 'hub' = 'hub') {
 		this.title = title;
 		this.content = content;
 		this.buttons = buttons;
@@ -70,6 +71,7 @@ class DialogProperties {
 		this.modalonly = false;
 		this.close = close;
 		this.message = false;
+		this.type = type;
 	}
 }
 
@@ -149,13 +151,14 @@ const useDialog = defineStore('dialog', {
 		 *
 		 * @param title Text in the header of the dialog (prefixed by an error)
 		 * @param content @default[''] Text in the main area of the dialog
+		 * @param type @default['hub'] Type of dialog ('global' or 'hub')
 		 * @returns
 		 */
-		showError(title: string, content: string = '') {
+		showError(title: string, content: string = '', type: 'global' | 'hub' = 'hub') {
 			const i18n = setUpi18n();
 			const { t } = i18n.global;
 			const message = t('errors.error', title);
-			return this.show(new DialogProperties(message, content, buttonsOk));
+			return this.show(new DialogProperties(message, content, buttonsOk, true, true, type));
 		},
 
 		disableButton(nr: number) {
@@ -171,10 +174,11 @@ const useDialog = defineStore('dialog', {
 		 *
 		 * @param title Text in the header of the dialog
 		 * @param content @default[''] Text in the main area of the dialog
+		 * @param type @default['hub'] Type of dialog ('global' or 'hub')
 		 * @returns
 		 */
-		confirm(title: string, content: string = '') {
-			return this.show(new DialogProperties(title, content, buttonsOk));
+		confirm(title: string, content: string = '', type: 'global' | 'hub' = 'hub') {
+			return this.show(new DialogProperties(title, content, buttonsOk, true, true, type));
 		},
 
 		/**
@@ -182,10 +186,11 @@ const useDialog = defineStore('dialog', {
 		 *
 		 * @param title Text in the header of the dialog
 		 * @param content @default[''] Text in the main area of the dialog
+		 * @param type @default['hub'] Type of dialog ('global' or 'hub')
 		 * @returns
 		 */
-		okcancel(title: string, content: string = '') {
-			return this.show(new DialogProperties(title, content, buttonsOkCancel));
+		okcancel(title: string, content: string = '', type: 'global' | 'hub' = 'hub') {
+			return this.show(new DialogProperties(title, content, buttonsOkCancel, true, true, type));
 		},
 
 		/**
@@ -193,10 +198,11 @@ const useDialog = defineStore('dialog', {
 		 *
 		 * @param title Text in the header of the dialog
 		 * @param content @default[''] Text in the main area of the dialog
+		 * @param type @default['hub'] Type of dialog ('global' or 'hub')
 		 * @returns
 		 */
-		yesno(title: string, content: string = '') {
-			return this.show(new DialogProperties(title, content, buttonsYesNo));
+		yesno(title: string, content: string = '', type: 'global' | 'hub' = 'hub') {
+			return this.show(new DialogProperties(title, content, buttonsYesNo, true, true, type));
 		},
 
 		addCallback(action: DialogButtonAction, callback: Function) {

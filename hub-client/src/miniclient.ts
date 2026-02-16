@@ -14,7 +14,6 @@ import Miniclient from '@hub-client/pages/Miniclient.vue';
 
 // Other
 import { setUpi18n } from '@hub-client/i18n';
-import '@hub-client/registerServiceWorker';
 
 adjustClientConfig();
 

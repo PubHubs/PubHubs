@@ -83,6 +83,7 @@ enum MessageType {
 	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
 	BarHide = 'visibilityBar-hide',
 	EventChange = 'eventchange',
+	CloseSidebar = 'closesidebar', // Close the sidebar in the hub client
 }
 
 /**

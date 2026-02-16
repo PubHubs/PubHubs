@@ -1,25 +1,24 @@
 <template>
-	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+	<HeaderFooter>
 		<template #header>
-			<div class="hidden items-center gap-4 md:flex">
-				<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
-				<hr class="bg-accent-secondary h-[2px] grow" />
-			</div>
-			<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-12' : 'pl-0'">
-				<H3 class="text-on-surface">{{ $t('settings.title') }}</H3>
+			<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-4' : 'pl-0'">
+				<div class="flex w-fit items-center gap-3 overflow-hidden">
+					<Icon type="sliders-horizontal" />
+					<H3 class="font-headings text-h3 text-on-surface font-semibold">{{ $t('settings.title') }}</H3>
+				</div>
 			</div>
 		</template>
 
-		<form @submit.prevent class="flex h-full max-w-screen-2xl flex-col px-4 py-4 md:px-16 md:py-10">
+		<form @submit.prevent class="flex h-full max-w-screen-2xl flex-col gap-8 px-4 py-4 md:gap-12 md:px-16 md:py-16">
 			<!-- Description Section -->
-			<div class="editor mb-8 flex flex-col gap-y-2">
+			<div class="editor flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.description_heading') }}</H3>
 				<P>{{ $t('hub_settings.description_description') }}</P>
 				<mavon-editor v-model="hubDescription" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.description')" />
 			</div>
 
 			<!-- Summary Section -->
-			<div class="editor mb-2 flex flex-col gap-y-2">
+			<div class="editor flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.summary_heading') }}</H3>
 				<P>{{ $t('hub_settings.summary_description') }}</P>
 				<TextArea v-model="hubSummary" class="border-hub-border max-h-16 w-full rounded-md border p-3" rows="4" :placeholder="t('hub_settings.summary')" :maxlength="maxSummaryLength"></TextArea>
@@ -27,7 +26,7 @@
 			</div>
 
 			<!-- Contact Section -->
-			<div class="editor mb-8 flex flex-col gap-y-2">
+			<div class="editor flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.contact_heading') }}</H3>
 				<P>{{ $t('hub_settings.contact_description') }}</P>
 				<mavon-editor v-model="hubContact" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.contact')" />
@@ -64,13 +63,13 @@
 			</MediaUploadSection>
 
 			<!-- Consent Section -->
-			<div class="mb-8">
-				<div class="editor mb-32 flex flex-col gap-y-2">
-					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.consent_heading') }}</H3>
-					<P>{{ $t('hub_settings.consent_description') }}</P>
-					<mavon-editor v-model="hubConsent" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.consent')" />
-				</div>
+			<div class="editor flex flex-col gap-y-2 pb-4 md:pb-16">
+				<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.consent_heading') }}</H3>
+				<P>{{ $t('hub_settings.consent_description') }}</P>
+				<mavon-editor v-model="hubConsent" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.consent')" />
 			</div>
+
+			<!-- Submit button -->
 			<div class="fixed right-10 bottom-5 z-20 ml-auto flex items-center">
 				<P v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</P>
 				<Button @click="saveChanges()" :disabled="!settingsChanged">{{ $t('hub_settings.save') }}</Button>

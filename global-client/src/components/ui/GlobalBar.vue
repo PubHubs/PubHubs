@@ -1,29 +1,22 @@
 <template>
-	<div id="pubhubs-bar" class="bg-surface h-[100svh] flex-none flex-shrink-0 flex-col" :class="[{ hidden: !toggleMenu.globalIsActive && isMobile }, isMobile ? 'w-[7.5rem]' : 'flex w-[10rem]']">
+	<div class="border-on-surface-disabled relative flex h-full w-[80px] shrink-0 snap-start snap-always flex-col border-r">
 		<Modal :show="global.isModalVisible">
 			<div class="flex h-full w-full max-w-[100svh] flex-col overflow-y-hidden">
-				<!-- Global top bar (discover) -->
-				<div class="bg-surface-high flex aspect-square w-full items-center justify-center">
-					<router-link to="/">
-						<Icon type="compass" @click="toggleMenu.hideMenuAndSendToHub()" size="3xl"></Icon>
+				<div class="border-on-surface-disabled flex aspect-square h-[80px] items-center justify-center border-b p-2">
+					<router-link to="/" class="h-full">
+						<img alt="PubHubs logo" :src="logoUrl" class="h-full w-full object-contain" />
 					</router-link>
 				</div>
 
-				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden py-3 md:gap-4 md:py-6">
-					<!-- Global middle bar (hub menu) -->
+				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden">
 					<HubMenu :hubOrderingIsActive="hubOrdering && global.loggedIn" />
 
-					<!-- Global bottom bar (settings) -->
-					<div class="flex h-fit w-full flex-col gap-8 self-end px-4">
+					<div class="flex h-fit w-full flex-col gap-8 self-end p-4">
 						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
-							<GlobalbarButton type="dots-three-vertical" size="xl" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
-							<GlobalbarButton type="sliders-horizontal" size="xl" @click="settingsDialog = true" />
-							<!-- <GlobalbarButton type="question_mark" @click="showHelp" /> -->
-							<GlobalbarButton type="sign-out" size="xl" @click="logout" />
+							<GlobalbarButton type="dots-three-vertical" @click="toggleHubOrdering" />
+							<GlobalbarButton type="sliders-horizontal" @click="settingsDialog = true" />
+							<GlobalbarButton type="sign-out" @click="logout" />
 						</div>
-						<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer">
-							<Logo />
-						</a>
 					</div>
 				</div>
 			</div>
@@ -36,7 +29,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, ref, watch } from 'vue';
+	import { ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -50,20 +43,17 @@
 	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
 	import { useDialog } from '@hub-client/stores/dialog';
-	import { useSettings } from '@hub-client/stores/settings';
 
+	const logoUrl = '/client/img/icons/512x512.svg';
 	const dialog = useDialog();
 	const { t } = useI18n();
 	const global = useGlobal();
 	const toggleMenu = useToggleMenu();
-	const settings = useSettings();
 
 	const settingsDialog = ref(false);
 	const hubOrdering = ref(false);
 
 	const globalClientUrl = _env.PUBHUBS_URL;
-
-	const isMobile = computed(() => settings.isMobileState);
 
 	// Make sure that the hubOrdering mode is switched off when a user gets logged out
 	watch(
@@ -76,7 +66,7 @@
 	);
 
 	async function logout() {
-		if (await dialog.yesno(t('logout.logout_sure'))) {
+		if (await dialog.yesno(t('logout.logout_sure'), '', 'global')) {
 			await global.logout();
 		}
 	}

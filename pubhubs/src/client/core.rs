@@ -82,6 +82,7 @@ pub struct QuerySetup<EP, BU, BR, PP, HV> {
     path_params: PP,
     auth_header: Option<HV>,
     timeout: Option<core::time::Duration>,
+    quiet: bool,
 }
 
 impl<'a, EP, BU, BR, PP, HV> IntoFuture for QuerySetup<EP, BU, BR, PP, HV>
@@ -122,6 +123,7 @@ where
             url: self.url.borrow(),
             auth_header: self.auth_header.as_ref().map(|v| v.borrow()),
             timeout: self.timeout,
+            quiet: self.quiet,
         }
     }
 
@@ -143,6 +145,13 @@ impl<EP, BU, BR, HV, PP> QuerySetup<EP, BU, BR, PP, HV> {
     pub fn timeout(mut self, duration: core::time::Duration) -> Self {
         self.timeout = Some(duration);
 
+        self
+    }
+
+    /// Reduces logging for common errors, like not being able to connect.
+    /// Use this to prevent errors in recurrring querries from swamping the log.
+    pub fn quiet(mut self) -> Self {
+        self.quiet = true;
         self
     }
 }
@@ -197,6 +206,7 @@ impl<EP: EndpointDetails + 'static> Clone for BorrowedQuerySetup<'_, EP> {
             url: self.url,
             auth_header: self.auth_header,
             timeout: self.timeout,
+            quiet: self.quiet,
         }
     }
 }
@@ -232,9 +242,9 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             result.unwrap()
         };
 
-        let payload = self.request.clone().into_payload(); // TODO: remove clone
+        let payload = self.request.to_payload();
 
-        if log::log_enabled!(log::Level::Debug) {
+        if !self.quiet {
             log::debug!(
                 "{}: Querying {} {} {payload}",
                 self.client.inner.agent,
@@ -270,7 +280,7 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             Ok(payload_bytes_maybe) => payload_bytes_maybe,
             Err(err) => {
                 log::error!(
-                    "{agent}: Failed to query {method} {url}: could serialize payload: {err:#}",
+                    "{agent}: Failed to query {method} {url}: could not serialize payload: {err:#}",
                     agent = self.client.inner.agent,
                     method = EP::METHOD,
                     url = &ep_url
@@ -289,7 +299,7 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
         futures::future::Either::Right(
             self.client
                 .clone()
-                .query_inner::<EP>(ep_url, send_client_req)
+                .query_inner::<EP>(ep_url, send_client_req, self.quiet)
                 .map(EP::ResponseType::from_result),
         )
     }
@@ -332,6 +342,7 @@ impl Client {
             path_params: HashMap::new(),
             auth_header: None::<http::header::HeaderValue>,
             timeout: None,
+            quiet: false,
         }
         .with_retry()
     }
@@ -356,6 +367,7 @@ impl Client {
             path_params: HashMap::new(),
             auth_header: None,
             timeout: None,
+            quiet: false,
         }
     }
 
@@ -363,6 +375,7 @@ impl Client {
         self,
         url: url::Url,
         req: awc::SendClientRequest,
+        quiet: bool,
     ) -> Result<EP::ResponseType> {
         let mut resp = {
             let result = req.await;
@@ -375,16 +388,22 @@ impl Client {
                     }
                     awc::error::SendRequestError::Connect(err) => match err {
                         awc::error::ConnectError::Timeout => {
-                            log::warn!("connecting to {url} timed out");
+                            if !quiet {
+                                log::warn!("connecting to {url} timed out");
+                            }
                             ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Resolver(err) => {
-                            log::warn!("resolving {url}: {err}");
+                            if !quiet {
+                                log::warn!("resolving {url}: {err}");
+                            }
                             ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Io(err) => {
                             // might happen when the port is closed
-                            log::warn!("io error while connecting to {url}: {err}");
+                            if !quiet {
+                                log::warn!("io error while connecting to {url}: {err}");
+                            }
                             ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Disconnected => {
@@ -407,10 +426,12 @@ impl Client {
                     }
                     awc::error::SendRequestError::Response(err) => match err {
                         actix_web::error::ParseError::Timeout => {
-                            log::warn!(
-                                "getting response to request to {} {url} timed out",
-                                EP::METHOD
-                            );
+                            if !quiet {
+                                log::warn!(
+                                    "getting response to request to {} {url} timed out",
+                                    EP::METHOD
+                                );
+                            }
                             ErrorCode::PleaseRetry
                         }
                         actix_web::error::ParseError::Io(io_err) => {
@@ -452,7 +473,9 @@ impl Client {
                         ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::Timeout => {
-                        log::warn!("request to {} {url} timed out", EP::METHOD);
+                        if !quiet {
+                            log::warn!("request to {} {url} timed out", EP::METHOD);
+                        }
                         ErrorCode::PleaseRetry
                     }
                     awc::error::SendRequestError::TunnelNotSupported => {
@@ -492,12 +515,14 @@ impl Client {
                 .unwrap_or_else(|_| bytes::Bytes::from_static(b"<failed to load body>"))
                 .to_vec();
 
-            log::warn!(
-                "{agent}: {method} {url} was not succesfull: {status} {body:.100}",
-                method = EP::METHOD,
-                body = fmt_ext::Bytes(&body),
-                agent = self.inner.agent,
-            );
+            if !quiet {
+                log::warn!(
+                    "{agent}: {method} {url} was not succesfull: {status} {body:.100}",
+                    method = EP::METHOD,
+                    body = fmt_ext::Bytes(&body),
+                    agent = self.inner.agent,
+                );
+            }
 
             return Result::Err(match status {
                 // Caddy returns 502 Bad Gateway when the service proxied to is (temporarily) down
@@ -518,11 +543,13 @@ impl Client {
                     ErrorCode::InternalError
                 })?;
 
-        log::debug!(
-            "{agent}: {method} {url} returned {payload}",
-            agent = self.inner.agent,
-            method = EP::METHOD,
-        );
+        if !quiet {
+            log::debug!(
+                "{agent}: {method} {url} returned {payload}",
+                agent = self.inner.agent,
+                method = EP::METHOD,
+            );
+        }
 
         EP::ResponseType::from_payload(payload).map_err(|err| {
             log::error!(

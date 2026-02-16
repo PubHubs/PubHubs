@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 
 use crate::api::{self};
 use crate::cli;
@@ -83,10 +83,14 @@ impl AdminContext {
                     server_name = self.server
                 );
 
-                let constellation = self
+                let constellation_or_id = self
                     .client
                     .get_constellation(self.config.phc_url.as_ref())
                     .await?;
+
+                let constellation = constellation_or_id
+                    .constellation()
+                    .context("phc did not return a constellation; just an id")?;
 
                 Ok(constellation.url(self.server).clone())
             })

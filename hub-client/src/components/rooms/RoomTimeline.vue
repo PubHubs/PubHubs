@@ -1,10 +1,10 @@
 <template>
 	<div class="relative flex h-full flex-col">
-		<div>
+		<div class="shrink-0">
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
 		</div>
 
-		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-contain pb-2" style="overflow-anchor: none">
+		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain pb-2" style="overflow-anchor: none">
 			<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
 			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
 
@@ -15,21 +15,18 @@
 				<div v-for="item in reversedTimeline" :key="item.matrixEvent.event.event_id">
 					<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
 						<RoomMessageBubble
+							class="room-event"
 							:room="room"
 							:event="item.matrixEvent.event"
 							:event-thread-length="item.threadLength"
 							:deleted-event="item.isDeleted"
 							:data-event-id="item.matrixEvent.event.event_id"
-							class="room-event"
-							:class="{ 'animate-highlight': props.eventIdToScroll === item.matrixEvent.event.event_id }"
-							:active-profile-card="activeProfileCard"
+							:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
 							:active-reaction-panel="activeReactionPanel"
 							@in-reply-to-click="onInReplyToClick"
 							@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
 							@edit-poll="onEditPoll"
 							@edit-scheduler="onEditScheduler"
-							@profile-card-toggle="toggleProfileCard"
-							@profile-card-close="closeProfileCard"
 							@reaction-panel-toggle="toggleReactionPanel"
 							@reaction-panel-close="closeReactionPanel"
 							@clicked-emoticon="sendEmoji"
@@ -46,7 +43,7 @@
 			</template>
 
 			<!-- Room created indicator-->
-			<div v-if="oldestEventIsLoaded" class="border-on-surface-variant text-on-surface-variant text-label-small mx-auto my-4 flex w-60 items-center justify-center rounded-xl border px-4">
+			<div v-if="oldestEventIsLoaded" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase">
 				{{ $t('rooms.roomCreated') }}
 			</div>
 
@@ -55,7 +52,7 @@
 		</div>
 
 		<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
-		<MessageInput class="z-10" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler"></MessageInput>
+		<MessageInput class="z-10 shrink-0" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler" />
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage" />
 </template>
@@ -107,7 +104,6 @@
 	const topSentinel = ref<HTMLElement | null>(null);
 	const bottomSentinel = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
-	const activeProfileCard = ref<string | null>(null);
 	const activeReactionPanel = ref<string | null>(null);
 	const eventToBeDeleted = ref<TMessageEvent>();
 	const editingPoll = ref<{ poll: Poll; eventId: string } | undefined>(undefined);
@@ -440,14 +436,6 @@
 
 	function onEditScheduler(scheduler: Scheduler, eventId: string) {
 		editingScheduler.value = { scheduler, eventId };
-	}
-
-	function toggleProfileCard(eventId: string) {
-		activeProfileCard.value = activeProfileCard.value === eventId ? null : eventId;
-	}
-
-	function closeProfileCard() {
-		activeProfileCard.value = null;
 	}
 
 	function toggleReactionPanel(eventId: string) {

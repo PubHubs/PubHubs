@@ -60,7 +60,9 @@ pub struct DiscoveryInfoResp {
 
     /// Details of the other PubHubs servers, according to this server
     /// `None` when discovery has not been completed.
-    pub constellation: Option<crate::servers::Constellation>,
+    /// TODO: rename to `constellation_or_id`
+    #[serde(rename = "constellation")]
+    pub constellation_or_id: Option<crate::servers::constellation::ConstellationOrId>,
 }
 
 /// Result of the `.ph/discovery/run` endpoint

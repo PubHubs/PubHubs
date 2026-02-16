@@ -68,13 +68,15 @@ class Core:
                     'hub_version': version_string,
                     'dynamic': { 'last_reload': 0 }
         }
+
+        if self._config != None:
+            hub_info['hub_client_url'] = self._config.hub_client_url
+
         api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP({ 'Ok': hub_info }, self._config.hub_info_update_interval))
 
         # new, multi-server setup
         if self._config == None:
             return
-
-        hub_info['hub_client_url'] = self._config.hub_client_url
 
         self._secret_box = nacl.secret.Aead(nacl.utils.random(nacl.secret.Aead.KEY_SIZE))
 

@@ -1,15 +1,15 @@
 <template>
-	<span v-if="userHasBadge" class="flex flex-wrap text-nowrap" data-testid="event-badges" :title="label">
-		<span class="text-label-small flex h-4 items-center gap-1 rounded-xl bg-black p-2 text-white lowercase">
-			<template v-if="hasPowerPrivileges || isHubAdmin">
-				<Icon type="user" size="sm"></Icon>
-				<span>{{ label }}</span>
-			</template>
-			<template v-else v-for="value in roomAttributes" :key="value">
-				<Icon type="check-circle" size="sm"></Icon>
-				<span>{{ value }}</span>
-			</template>
-		</span>
+	<span
+		v-if="userHasBadge"
+		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-050 flex items-center justify-center gap-2 border uppercase"
+		:class="userPowerLevel === 100 ? 'border-accent-admin' : userPowerLevel >= 50 ? 'border-accent-steward' : 'border-on-surface-dim'"
+		data-testid="event-badges"
+		:title="label"
+	>
+		<span v-if="hasPowerPrivileges || isHubAdmin" class="line-clamp-1 truncate">{{ label }}</span>
+		<template v-else v-for="value in roomAttributes" :key="value">
+			<span>{{ value }}</span>
+		</template>
 	</span>
 </template>
 
@@ -17,9 +17,6 @@
 	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-
-	// Components
-	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
@@ -31,15 +28,17 @@
 		isHubAdmin?: boolean;
 	}
 
+	// Props
+	const props = defineProps<Props>();
+
 	const { t } = useI18n();
 	const rooms = useRooms();
-	const props = defineProps<Props>();
+
 	const roomAttributes = ref<string[]>([]);
 
-	const hasPowerPrivileges = computed(() => rooms.currentRoom?.getPowerLevel(props.user) ?? 0 >= 50);
-
+	const userPowerLevel = computed(() => rooms.currentRoom?.getPowerLevel(props.user) ?? 0);
+	const hasPowerPrivileges = computed(() => userPowerLevel.value >= 50);
 	const userHasBadge = computed(() => roomAttributes.value.length > 0 || hasPowerPrivileges.value || props.isHubAdmin);
-
 	const powerLevelLabel = computed(() => (rooms.currentRoom?.getPowerLevel(props.user) === 100 ? t('admin.title_room_administrator') : t('admin.title_room_steward')));
 	const hubAdminLabel = computed(() => (props.isHubAdmin ? t('admin.title_hub_administrator') : ''));
 	const label = computed(() => {

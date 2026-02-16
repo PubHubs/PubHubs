@@ -2,7 +2,7 @@
 use std::borrow::Cow;
 
 use anyhow::Context as _;
-use object_store::ObjectStore as _;
+use object_store::{ObjectStore as _, ObjectStoreExt as _};
 
 use crate::api;
 use crate::id::Id;
