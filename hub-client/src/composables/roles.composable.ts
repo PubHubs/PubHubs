@@ -1,6 +1,5 @@
 import { assert } from 'chai';
 
-import { roles } from '@hub-client/models/constants';
 import { TUserRole, UserAction, UserPowerLevel, roleActions } from '@hub-client/models/users/TUser';
 
 import { useRooms } from '@hub-client/stores/rooms';
@@ -28,7 +27,7 @@ function useRoles() {
 			room = roomsStore.room(roomId);
 		}
 		const powerLevel = room?.getPowerLevel(user.userId) ?? 0;
-		assert(powerLevel in roles, 'Powerlevel not one of the predefined powerlevels');
+		assert(powerLevel in UserPowerLevel, 'Powerlevel not one of the predefined powerlevels');
 		return powerLevel;
 	};
 
@@ -48,7 +47,7 @@ function useRoles() {
 	};
 
 	const userHasRole = (role: TUserRole, roomId: string | undefined = undefined): boolean => {
-		assert(role in roles, 'Given role not a defined role');
+		assert(role in TUserRole, 'Given role not a defined role');
 		return role === userRole(roomId);
 	};
 

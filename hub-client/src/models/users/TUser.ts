@@ -59,7 +59,7 @@ export const roleActions = {
 	[TUserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement],
 	[TUserRole.Expert]: [UserAction.MessageSteward],
 	[TUserRole.User]: [],
-} as Record<TUserRole, UserAction[]>;
+};
 
 export type TUserJoinedRooms = {
 	joined_rooms: string[];

@@ -17,7 +17,7 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 // Models
-import { MatrixType, OnboardingType, actions } from '@hub-client/models/constants';
+import { MatrixType, OnboardingType } from '@hub-client/models/constants';
 import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
 
 // Stores
