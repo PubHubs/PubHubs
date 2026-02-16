@@ -27,7 +27,9 @@ export type TUserAccountList = {
 
 export enum TUserRole {
 	User = 'User',
+	Expert = 'Expert',
 	Steward = 'Steward',
+	SuperSteward = 'SuperSteward',
 	Administrator = 'Administrator',
 }
 

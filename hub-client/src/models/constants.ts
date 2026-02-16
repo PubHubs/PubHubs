@@ -110,7 +110,7 @@ enum OnboardingType {
 	full = 'full',
 }
 
-// Different roles for users in PubHubs. Add new user type here.
+// Different roles for users in PubHubs, apart from Admin all depends on the room. Add new user type here.
 enum roles {
 	Admin = 100,
 	SuperSteward = 75,

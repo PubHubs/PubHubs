@@ -19,9 +19,7 @@ import { SMI } from '@hub-client/logic/logging/StatusMessage';
 // Models
 import { MatrixType, OnboardingType, actions } from '@hub-client/models/constants';
 import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
-import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 
-import { useRooms } from '@hub-client/stores/rooms';
 // Stores
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
@@ -118,15 +116,6 @@ const useUser = defineStore('user', {
 		userAvatar: (state) => {
 			return (userId: string): string | undefined => {
 				return state.usersProfile.get(userId)?.avatarUrl;
-			};
-		},
-
-		isStewardOfRoom: (state) => {
-			return (roomId: string): boolean => {
-				const roomsStore = useRooms();
-				const room = roomsStore.room(roomId);
-				if (!room) return false;
-				return hasRoomPermission(room!.getUserPowerLevel(state.userId), actions.StewardPanel);
 			};
 		},
 	},
