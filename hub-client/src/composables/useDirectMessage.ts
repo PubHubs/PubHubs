@@ -13,9 +13,6 @@ import { Room, useRooms } from '@hub-client/stores/rooms';
 import { useSettings } from '@hub-client/stores/settings';
 import { User, useUser } from '@hub-client/stores/user';
 
-// Types
-import { MatrixUser } from '@hub-client/types/types';
-
 export function useDirectMessage() {
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
@@ -30,7 +27,7 @@ export function useDirectMessage() {
 		router.push({ name: 'direct-msg' });
 	}
 
-	/** Opens or creates a 1:1 DM with the given user and navigates to it. */
+	// Opens or creates a 1:1 DM with the given user and navigates to it.
 	async function goToUserDM(userId: string): Promise<void> {
 		const otherUser = user.client?.getUser(userId);
 		if (!otherUser || user.userId === otherUser.userId) return;
@@ -45,8 +42,8 @@ export function useDirectMessage() {
 		}
 	}
 
-	/** Creates a DM (1:1 or group) and selects it in the sidebar. */
-	async function createDMWithUsers(users: User | MatrixUser[]): Promise<Room | null> {
+	// Creates a DM (1:1 or group) and selects it in the sidebar.
+	async function createDMWithUsers(users: User | User[]): Promise<Room | null> {
 		const result = await pubhubs.createPrivateRoomWith(users);
 		if (result) {
 			await rooms.joinRoomListRoom(result.room_id);
@@ -59,15 +56,16 @@ export function useDirectMessage() {
 		return null;
 	}
 
-	/** Creates a DM and navigates to the DM page. */
-	async function createAndGoToDM(users: User | MatrixUser[]): Promise<void> {
+	// Creates a DM and navigates to the DM page.
+	async function createAndGoToDM(users: User | User[]): Promise<void> {
 		const room = await createDMWithUsers(users);
 		if (room) {
 			router.push({ name: 'direct-msg' });
 		}
 	}
 
-	async function goToStewardRoom(roomId: string, members: MatrixUser[]): Promise<void> {
+	// Creates a DM with the steward
+	async function goToStewardRoom(roomId: string, members: User[]): Promise<void> {
 		const result = await pubhubs.createPrivateRoomWith(members, false, true, roomId);
 		if (result) {
 			await rooms.joinRoomListRoom(result.room_id);
