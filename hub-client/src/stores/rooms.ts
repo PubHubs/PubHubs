@@ -118,20 +118,14 @@ const useRooms = defineStore('rooms', {
 			};
 		},
 
-		/**
-		 * Get loaded private Room objects (DMs, group DMs, admin/steward contact).
-		 * Returns actual Room instances that are loaded in the store.
-		 */
+		/** Loaded private Room instances (DMs, group DMs, admin/steward contact). */
 		loadedPrivateRooms(): Room[] {
 			const user = useUser();
 			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 			return this.roomList
 				.filter((room) => {
-					// Must be a direct room type and not hidden
 					if (room.isHidden || !DirectRooms.includes(room.roomType as RoomType)) return false;
-					// Must be loaded in the rooms store
 					if (!this.rooms[room.roomId]) return false;
-					// Check visibility for private rooms
 					if (hiddenNameRoomTypes.includes(room.roomType as RoomType)) {
 						return isVisiblePrivateRoom(room.name, user.user!);
 					}
@@ -141,18 +135,10 @@ const useRooms = defineStore('rooms', {
 				.filter((room): room is Room => room !== undefined);
 		},
 
-		/**
-		 * Get public rooms from roomList (reactive).
-		 * Returns RoomListRoom objects for the menu.
-		 */
 		loadedPublicRooms(): RoomListRoom[] {
 			return this.roomList.filter((room) => room.isHidden === false && room.roomType && PublicRooms.includes(room.roomType as RoomType));
 		},
 
-		/**
-		 * Get secured rooms from roomList (reactive).
-		 * Returns RoomListRoom objects for the menu.
-		 */
 		loadedSecuredRooms(): RoomListRoom[] {
 			return this.roomList.filter((room) => room.isHidden === false && room.roomType && SecuredRooms.includes(room.roomType as RoomType));
 		},
@@ -458,9 +444,7 @@ const useRooms = defineStore('rooms', {
 			const user = useUser();
 			// TODO sorting should be done during adding of room so the roomsArray always is sorted!
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
-			// Room types that encode hidden state in room name (user IDs with _ prefix)
 			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
-			// filter all the rooms by type, filter OUT hidden rooms
 			let result = rooms.filter((room) => !room.isHidden() && room.getType() !== undefined && types.includes(room.getType() as RoomType));
 			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.getType() as RoomType) || isVisiblePrivateRoom(room.name, user.user!));
 			return result;
@@ -472,7 +456,6 @@ const useRooms = defineStore('rooms', {
 		 */
 		fetchRoomList(types: RoomType[]): Array<RoomListRoom> {
 			const user = useUser();
-			// Room types that encode hidden state in room name (user IDs with _ prefix)
 			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 			let result = this.roomList.filter((room) => room.isHidden === false && room.roomType !== undefined && types.includes(room.roomType as RoomType));
 			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.roomType as RoomType) || isVisiblePrivateRoom(room.name, user.user!));

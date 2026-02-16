@@ -25,26 +25,18 @@ export function useDirectMessage() {
 
 	const isMobile = computed(() => settings.isMobileState);
 
-	/**
-	 * Navigate to a DM room that's already loaded in the store.
-	 * Handles mobile (sidebar) vs desktop (direct selection) differently.
-	 */
 	function goToRoom(room: Room) {
 		sidebar.openDMRoom(room);
 		router.push({ name: 'direct-msg' });
 	}
 
-	/**
-	 * Open a DM with a user by their userId.
-	 * Creates the room if it doesn't exist, or opens the existing one.
-	 */
+	/** Opens or creates a 1:1 DM with the given user and navigates to it. */
 	async function goToUserDM(userId: string): Promise<void> {
 		const otherUser = user.client?.getUser(userId);
 		if (!otherUser || user.userId === otherUser.userId) return;
 
 		const result = await pubhubs.createPrivateRoomWith(otherUser as User);
 		if (result) {
-			// Ensure room is loaded in store (might be an existing room that wasn't loaded yet)
 			await rooms.joinRoomListRoom(result.room_id);
 			const storeRoom = rooms.rooms[result.room_id];
 			if (storeRoom) {
@@ -53,14 +45,10 @@ export function useDirectMessage() {
 		}
 	}
 
-	/**
-	 * Create a DM room with one or more users and navigate to it.
-	 * For single user, creates a 1:1 DM. For multiple users, creates a group DM.
-	 */
+	/** Creates a DM (1:1 or group) and selects it in the sidebar. */
 	async function createDMWithUsers(users: User | MatrixUser[]): Promise<Room | null> {
 		const result = await pubhubs.createPrivateRoomWith(users);
 		if (result) {
-			// Ensure room is loaded in store
 			await rooms.joinRoomListRoom(result.room_id);
 			const storeRoom = rooms.rooms[result.room_id];
 			if (storeRoom) {
@@ -71,10 +59,7 @@ export function useDirectMessage() {
 		return null;
 	}
 
-	/**
-	 * Create a DM room with users and navigate to it.
-	 * Similar to createDMWithUsers but also handles navigation.
-	 */
+	/** Creates a DM and navigates to the DM page. */
 	async function createAndGoToDM(users: User | MatrixUser[]): Promise<void> {
 		const room = await createDMWithUsers(users);
 		if (room) {
@@ -82,9 +67,6 @@ export function useDirectMessage() {
 		}
 	}
 
-	/**
-	 * Create a steward contact room for a specific room and navigate to it.
-	 */
 	async function goToStewardRoom(roomId: string, members: MatrixUser[]): Promise<void> {
 		const result = await pubhubs.createPrivateRoomWith(members, false, true, roomId);
 		if (result) {

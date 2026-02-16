@@ -110,11 +110,11 @@
 	});
 
 	const memberIds = computed(() => {
-		// direct messages do not have stewards, only members with powerlevel 100, so show only the members
 		if (props.room.isDirectMessageRoom()) {
-			return [...new Set(realMembers.value.map((x) => x.sender))]; // Set only stores unique values
+			return [...new Set(realMembers.value.map((x) => x.sender))];
 		}
-		return [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])]; // only stewards matter as distinction, so the admin is treated as common member
+		// Admins (100) and regular users (0-49) are shown as members; stewards (50-99) are separate
+		return [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])];
 	});
 
 	async function startDM(userId: string) {

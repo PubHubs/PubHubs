@@ -123,16 +123,13 @@
 		},
 	});
 
-	// Use the appropriate getter based on room types for proper reactivity
 	const currentJoinedRooms = computed(() => {
-		// Check which category of rooms is requested
 		if (props.roomTypes.every((t) => PublicRooms.includes(t))) {
 			return rooms.loadedPublicRooms;
 		}
 		if (props.roomTypes.every((t) => SecuredRooms.includes(t))) {
 			return rooms.loadedSecuredRooms;
 		}
-		// Fallback to filtered list (shouldn't happen with current usage)
 		return rooms.filteredRoomList(props.roomTypes);
 	});
 

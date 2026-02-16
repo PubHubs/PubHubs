@@ -241,7 +241,6 @@
 	}
 
 	async function groupCreationDone(other: User | MatrixUser[]) {
-		// Should not create if selection is still not completed
 		const room = await dm.createDMWithUsers(other);
 		if (room) {
 			await uploadAvatar(room.roomId);

@@ -132,12 +132,12 @@
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
+	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TextArea from '@hub-client/components/forms/TextArea.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
-	// Components
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
 	import InputModeBar from '@hub-client/components/ui/InputModeBar.vue';
