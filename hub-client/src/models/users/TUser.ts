@@ -26,12 +26,40 @@ export type TUserAccountList = {
 };
 
 export enum TUserRole {
-	User = 'User',
-	Expert = 'Expert',
-	Steward = 'Steward',
+	Admin = 'Admin',
 	SuperSteward = 'SuperSteward',
-	Administrator = 'Administrator',
+	Steward = 'Steward',
+	Expert = 'Expert',
+	User = 'User',
+	NoRole = '',
 }
+
+export enum UserPowerLevel {
+	Admin = 100,
+	SuperSteward = 75,
+	Steward = 50,
+	Expert = 25,
+	User = 0,
+}
+
+// Actions that the user can carry out
+export enum UserAction {
+	Invite = 'Invite',
+	AdminPanel = 'AdminPanel',
+	StewardPanel = 'StewardPanel',
+	MessageAdmin = 'MessageAdmin',
+	MessageSteward = 'MessageSteward',
+	RoomAnnouncement = 'RoomAnnouncement',
+}
+
+// Which actions which role can perform
+export const roleActions = {
+	[TUserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel, UserAction.RoomAnnouncement],
+	[TUserRole.SuperSteward]: [UserAction.Invite],
+	[TUserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement],
+	[TUserRole.Expert]: [UserAction.MessageSteward],
+	[TUserRole.User]: [],
+} as Record<TUserRole, UserAction[]>;
 
 export type TUserJoinedRooms = {
 	joined_rooms: string[];

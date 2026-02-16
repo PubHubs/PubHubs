@@ -31,19 +31,19 @@ const routes = [
 		path: '/admin',
 		name: 'admin',
 		component: () => import('@hub-client/pages/Admin.vue'),
-		meta: { accessFor: [TUserRole.Administrator], hideBar: true, onboarding: true },
+		meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/manage-users',
 		name: 'manage-users',
 		component: () => import('@hub-client/pages/ManageUsers.vue'),
-		meta: { accessFor: [TUserRole.Administrator], hideBar: true, onboarding: true },
+		meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/hub-settings',
 		name: 'hub-settings',
 		component: () => import('@hub-client/pages/HubSettings.vue'),
-		meta: { accessFor: [TUserRole.Administrator], hideBar: true, onboarding: true },
+		meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/direct-msg',
@@ -75,13 +75,13 @@ const routes = [
 		path: '/icons',
 		name: 'icons',
 		component: () => import('@hub-client/pages/Icons.vue'),
-		// meta: { accessFor: [TUserRole.Administrator], hideBar: true, onboarding: true },
+		// meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/design',
 		name: 'design',
 		component: () => import('@hub-client/pages/NewDesign.vue'),
-		// meta: { accessFor: [TUserRole.Administrator], hideBar: true, onboarding: true },
+		// meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
 	},
 
 	{
@@ -132,7 +132,7 @@ router.beforeEach((to, from) => {
 		if (to.params.id) {
 			roomId = to.params.id as string;
 		}
-		if (roles.accessForRoles(to.meta.accessFor as Array<TUserRole>, roomId)) {
+		if (roles.userHasAccessForRoles(to.meta.accessFor as Array<TUserRole>, roomId)) {
 			return true;
 		}
 		console.error('ONLY FOR ROLES: ', to.meta.accessFor, roomId);

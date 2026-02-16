@@ -26,7 +26,7 @@
 			<div v-for="room in listUserRooms" :key="room.room_id" class="border-on-surface-dim grid w-full grid-cols-3 border-t">
 				<div class="truncate px-2 py-2 sm:px-6 sm:py-4">{{ room.room_name }}</div>
 				<div class="px-1 py-2 sm:py-4">
-					<span :class="'inline-block rounded-md px-1 sm:px-2 ' + getTagBasedOnRole(room.room_pl)">{{ showPermissionRole(room.room_pl) }}</span>
+					<span :class="'inline-block rounded-md px-1 sm:px-2 ' + getTagClassBasedOnRole(room.room_pl)">{{ roles.getRoleByPowerLevel(room.room_pl) }}</span>
 				</div>
 				<div class="px-4 py-2 sm:px-6 sm:py-4">
 					<div v-if="adminIsMember(room.room_id)" class="ml-0 sm:ml-2">
@@ -59,25 +59,25 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { FormDataType, useFormState } from '@hub-client/composables/useFormState';
 
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiHubManagement';
 
-	import { roles } from '@hub-client/models/constants';
 	// Models
 	import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
 	import { UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
-	import { TUserJoinedRooms } from '@hub-client/models/users/TUser';
-	import { TUserRole } from '@hub-client/models/users/TUser';
+	import { TUserJoinedRooms, TUserRole, UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Stores
-	import { DialogButton, DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
+	import { DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const pubhubs = usePubhubsStore();
+	const roles = useRoles();
 	const dialog = useDialog();
 	const user = useUser();
 
@@ -144,19 +144,6 @@
 		return publicRoomsPerm;
 	}
 
-	function showPermissionRole(powerLevel: number): string {
-		switch (powerLevel) {
-			case 50:
-				return TUserRole.Steward;
-
-			case 100:
-				return TUserRole.Administrator;
-
-			default:
-				return TUserRole.User;
-		}
-	}
-
 	// Admin Room Status Methods //
 
 	function adminIsMember(roomId: string) {
@@ -176,18 +163,15 @@
 	}
 
 	function isRoomAdmin(roomId: string) {
-		return listUserRooms.value.find((room) => room.room_id === roomId)!.room_pl === roles.Admin;
+		return listUserRooms.value.find((room) => room.room_id === roomId)!.room_pl === UserPowerLevel.Admin;
 	}
 
 	// Presentation methods //
 
-	function getTagBasedOnRole(powerLevel: number) {
-		const currentRole = showPermissionRole(powerLevel);
-
-		if (currentRole === 'Administrator') return 'bg-accent-red';
-
-		if (currentRole === 'Steward') return 'bg-accent-lime';
-
+	function getTagClassBasedOnRole(powerLevel: number) {
+		const currentRole = roles.getRoleByPowerLevel(powerLevel);
+		if (currentRole === TUserRole.Admin) return 'bg-accent-red';
+		if (currentRole === TUserRole.Steward) return 'bg-accent-lime';
 		return 'bg-accent-yellow';
 	}
 </script>
