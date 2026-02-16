@@ -134,6 +134,24 @@ pub mod user {
         pub hubs: HashMap<handle::Handle, crate::hub::BasicInfo>,
     }
 
+    /// Provides the global client with cached details about the hubs
+    #[derive(Debug)]
+    pub struct CachedHubInfoEP {}
+    impl EndpointDetails for CachedHubInfoEP {
+        type RequestType = NoPayload;
+        type ResponseType = Result<CachedHubInfoResp>;
+
+        const METHOD: http::Method = http::Method::GET;
+        const PATH: &'static str = ".ph/user/cached-hub-info";
+    }
+
+    /// Returned by [`CachedHubInfoEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct CachedHubInfoResp {
+        pub hubs: HashMap<handle::Handle, Option<crate::api::hub::InfoResp>>,
+    }
+
     /// Login (and register if needed)
     pub struct EnterEP {}
     impl EndpointDetails for EnterEP {

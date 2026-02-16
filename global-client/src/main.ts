@@ -38,7 +38,6 @@ import { useGlobal } from '@global-client/stores/global';
 
 // Other
 import { registerComponents } from '@global-client/registerComponents';
-import '@global-client/registerServiceWorker';
 
 import { ReplaceConsole } from '@hub-client/console';
 import { setUpi18n } from '@hub-client/i18n';

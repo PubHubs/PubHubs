@@ -53,7 +53,6 @@
 		},
 	});
 
-	// Could also be done in onMounted, but in the future perhaps the avatar of a groupsmessage is editable
 	watch(
 		() => props.room,
 		async (room) => {

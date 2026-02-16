@@ -248,11 +248,13 @@ const useRooms = defineStore('rooms', {
 			return this.room(roomId);
 		},
 
-		changeRoom(roomId: string) {
+		changeRoom(roomId: string, skipNavigation = false) {
 			if (this.currentRoomId !== roomId) {
 				this.currentRoomId = roomId;
-				const messagebox = useMessageBox();
-				messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+				if (!skipNavigation) {
+					const messagebox = useMessageBox();
+					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+				}
 			}
 		},
 
@@ -414,6 +416,19 @@ const useRooms = defineStore('rooms', {
 			let result = rooms.filter((room) => !room.isHidden() && room.getType() !== undefined && types.includes(room.getType() as RoomType));
 			if (types.includes(RoomType.PH_MESSAGES_DM)) {
 				result = result.filter((room) => room.getType() !== undefined && (room.getType() !== RoomType.PH_MESSAGES_DM || isVisiblePrivateRoom(room.name, user.user!)));
+			}
+			return result;
+		},
+
+		/**
+		 * Filter room displaylist based on RoomTypes
+		 * @param types Array of RoomTypes to fetch
+		 */
+		fetchRoomList(types: RoomType[]): Array<RoomListRoom> {
+			const user = useUser();
+			let result = this.roomList.filter((room) => room.isHidden === false && room.roomType !== undefined && types.includes(room.roomType as RoomType));
+			if (types.includes(RoomType.PH_MESSAGES_DM)) {
+				result = result.filter((room) => room.roomType !== undefined && (room.roomType !== RoomType.PH_MESSAGES_DM || (room.name !== undefined && isVisiblePrivateRoom(room.name, user.user!))));
 			}
 			return result;
 		},

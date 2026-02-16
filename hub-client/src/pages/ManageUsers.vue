@@ -2,14 +2,13 @@
 	<!-- When user selects a user account, show UserInRoomsForm page-->
 	<UserInRoomsForm v-if="showUserInRoomForm" :administrator="currentAdministrator" :userId="selectedUserById" :displayName="selectedUserDisplayName" @close="closeUserRoomForm()" />
 
-	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+	<HeaderFooter>
 		<template #header>
-			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
-				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
-				<hr class="bg-on-surface-dim h-025 grow" />
-			</div>
-			<div class="flex h-full items-center" :class="isMobile ? 'pl-12' : 'pl-0'">
-				<H3 class="font-headings text-on-surface font-semibold">{{ t('menu.admin_tools_users') }}</H3>
+			<div class="flex h-full items-center" :class="isMobile ? 'pl-4' : 'pl-0'">
+				<div class="flex w-fit items-center gap-3 overflow-hidden">
+					<Icon type="users" />
+					<H3 class="font-headings text-h3 text-on-surface font-semibold">{{ t('menu.admin_tools_users') }}</H3>
+				</div>
 			</div>
 		</template>
 
@@ -28,9 +27,9 @@
 					<div class="hover:bg-surface-low md:gap-8p box-border flex w-full justify-between gap-4 rounded-2xl px-2 py-1 hover:cursor-pointer" :title="item.room_id" @click="selectUser(item.name, item.displayname)">
 						<div class="flex min-w-0 flex-1 items-center gap-4">
 							<Avatar :avatar-url="user.userAvatar(item.name)" :user-id="item.name"></Avatar>
-							<p class="min-w-0 truncate font-semibold">{{ item.displayname }}</p>
-							<p class="text-on-surface-dim line-clamp-1 min-w-0 pr-1 italic md:inline" :class="item.displayname ? '' : '-ml-4'">{{ item.name }}</p>
-							<RoomBadge :user="item.name" :room_id="item.room_id" :is-hub-admin="item.admin"></RoomBadge>
+							<p class="w-full min-w-0 truncate font-semibold">{{ item.displayname }}</p>
+							<p class="text-on-surface-dim w-full min-w-0 truncate italic">{{ item.name }}</p>
+							<RoomBadge v-if="!isMobile" :user="item.name" :room_id="item.room_id" :is-hub-admin="item.admin" />
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">

@@ -3,7 +3,7 @@
 		<!-- Floating -->
 		<div class="relative">
 			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
-				<div class="flex items-center">
+				<div class="flex items-center gap-2">
 					<PopoverButton icon="upload-simple" data-testid="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
 						<PopoverButton icon="chart-bar" data-testid="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
@@ -21,7 +21,7 @@
 		</div>
 
 		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
-			<div class="bg-surface-high w-full rounded-xl shadow-xs">
+			<div class="bg-surface-high rounded-base w-full shadow-xs">
 				<!-- In reply to -->
 				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
 					<div class="flex w-fit gap-2 overflow-hidden">
@@ -63,13 +63,35 @@
 					/>
 				</template>
 
-				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
-					<IconButton type="plus-circle" data-testid="paperclip" size="lg" @click.stop="messageInput.togglePopover()" />
+				<!-- Announcement mode indicator -->
+				<div
+					v-if="isAnnouncementMode"
+					class="rounded-t-base flex items-center justify-between gap-2 border-b px-4 py-2"
+					:class="announcementAccentClass === 'accent-admin' ? 'bg-accent-admin/10 border-accent-admin' : 'bg-accent-steward/10 border-accent-steward'"
+				>
+					<div class="flex items-center gap-2">
+						<Icon type="megaphone-simple" size="sm" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'" />
+						<span class="text-label-small" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'">{{ $t('message.announcement_mode') }}</span>
+					</div>
+					<button @click="isAnnouncementMode = false" class="hover:cursor-pointer">
+						<Icon type="x" size="sm" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'" />
+					</button>
+				</div>
+
+				<div v-if="messageInput.state.textArea" class="rounded-base flex items-center gap-x-4 px-4 py-2">
+					<IconButton
+						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
+						data-testid="paperclip"
+						size="lg"
+						@click.stop="messageInput.togglePopover()"
+						class="transition-transform duration-200 hover:cursor-pointer"
+						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
+					/>
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
 						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
-						:placeholder="$t('rooms.new_message')"
+						:placeholder="isAnnouncementMode ? $t('message.announcement_placeholder') : $t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
 						v-model="value"
 						@changed="changed()"
@@ -81,30 +103,37 @@
 					<!--Steward and above can broadcast only in main time line-->
 					<button
 						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isDirectMessageRoom()"
-						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
-						@click="isValidMessage() ? announcementMessage() : null"
+						class="hover:cursor-pointer"
+						:class="isAnnouncementMode ? (announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
+						@click="isAnnouncementMode = !isAnnouncementMode"
+						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
 					>
 						<Icon type="megaphone-simple" size="lg"></Icon>
 					</button>
 
 					<!-- Emoji picker -->
-					<button>
+					<button class="hover:cursor-pointer">
 						<Icon type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" />
 					</button>
 
 					<!-- Sendbutton -->
-					<button :title="$t('message.send')" :class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'" :disabled="!messageInput.state.sendButtonEnabled" @click="submitMessage">
+					<button
+						:title="$t('message.send')"
+						:class="!messageInput.state.sendButtonEnabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
+						:disabled="!messageInput.state.sendButtonEnabled"
+						@click="submitMessage"
+					>
 						<Icon type="paper-plane-right" size="lg" />
 					</button>
 				</div>
 
-				<div v-if="messageInput.state.signMessage" class="bg-surface-low m-4 mt-0 flex items-center rounded-md p-2">
+				<div v-if="messageInput.state.signMessage" class="bg-surface-low rounded-base m-4 mt-0 flex items-center p-2">
 					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 						<p>{{ $t('message.sign.info') }}</p>
 						<div class="mt-2 flex items-center">
-							<Icon type="warning" size="sm" class="mt-1 mr-2 mb-[2px] shrink-0 self-start" />
+							<Icon type="warning" size="sm" class="mb-025 mt-1 mr-2 shrink-0 self-start" />
 							<p class="italic">{{ $t('message.sign.warning') }}</p>
 						</div>
 						<Line class="mb-2" />
@@ -127,7 +156,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { PropType, computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
@@ -211,6 +240,13 @@
 	const filePickerEl = ref();
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
+	const isAnnouncementMode = ref(false);
+
+	// Accent color based on power level (admin = 100, steward = 50+)
+	const announcementAccentClass = computed(() => {
+		const powerLevel = props.room.getPowerLevel(user.userId);
+		return powerLevel === 100 ? 'accent-admin' : 'accent-steward';
+	});
 
 	let threadRoot: TMessageEvent | undefined = undefined;
 
@@ -234,7 +270,7 @@
 			messageActions.replyingTo = undefined;
 
 			if (props.room.getCurrentThreadId()) {
-				threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
+				threadRoot = (await pubhubs.getEvent(props.room.roomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 			} else {
 				threadRoot = undefined;
 			}
@@ -247,7 +283,7 @@
 		async () => {
 			if (props.inThread) {
 				if (props.room.getCurrentThreadId()) {
-					threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
+					threadRoot = (await pubhubs.getEvent(props.room.roomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 				} else {
 					threadRoot = undefined;
 				}
@@ -292,7 +328,7 @@
 		// if the message is in a thread we can only set inReplyTo if we are in a thread
 		// if the message is not in a thread we can only set inReplyTo if we are not in a thread
 		if (messageActions.replyingTo) {
-			const message = ((await pubhubs.getEvent(rooms.currentRoomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
+			const message = ((await pubhubs.getEvent(props.room.roomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
 			if (message?.content[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				inReplyTo.value = props.inThread ? message : undefined;
 			} else {
@@ -350,15 +386,21 @@
 		elTextInput.value?.$el.focus();
 	}
 
-	function submitMessage() {
+	async function submitMessage() {
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 
 		if (messageInput.state.signMessage) {
 			messageInput.state.showYiviQR = true;
 			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot);
+		} else if (isAnnouncementMode.value) {
+			// Send as announcement
+			const powerLevel = props.room.getPowerLevel(user.userId);
+			await pubhubs.addAnnouncementMessage(props.room.roomId, value.value!.toString(), powerLevel);
+			value.value = '';
+			isAnnouncementMode.value = false;
 		} else if (messageActions.replyingTo && inReplyTo.value) {
-			pubhubs.addMessage(rooms.currentRoomId, value.value!.toString(), threadRoot, inReplyTo.value);
+			pubhubs.addMessage(props.room.roomId, value.value!.toString(), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
 			value.value = '';
 		} else if (messageInput.state.poll) {
@@ -375,30 +417,24 @@
 				},
 			} as unknown as Event;
 			fileUpload(t('errors.file_upload'), pubhubs.Auth.getAccessToken(), uploadUrl, allTypes, syntheticEvent, (url) => {
-				pubhubs.addFile(rooms.currentRoomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string);
+				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string);
 				URL.revokeObjectURL(uri.value);
 				value.value = '';
 				messageInput.cancelFileUpload();
 			});
 		} else {
-			pubhubs.submitMessage(value.value!.toString(), rooms.currentRoomId, threadRoot, inReplyTo.value);
+			pubhubs.submitMessage(value.value!.toString(), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';
 		}
-	}
-
-	async function announcementMessage() {
-		const powerLevel = props.room.getPowerLevel(user.userId);
-		await pubhubs.addAnnouncementMessage(rooms.currentRoomId, value.value!.toString(), powerLevel);
-		value.value = '';
 	}
 
 	function editMessage() {
 		if (messageInput.state.poll && pollObject.value.canSend()) {
 			pollObject.value.removeEmptyOptions();
-			pubhubs.editPoll(rooms.currentRoomId, messageInput.state.editEventId as string, pollObject.value as Poll);
+			pubhubs.editPoll(props.room.roomId, messageInput.state.editEventId as string, pollObject.value as Poll);
 			messageInput.openTextArea();
 		} else if (messageInput.state.scheduler && schedulerObject.value.canSend()) {
-			pubhubs.editScheduler(rooms.currentRoomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
+			pubhubs.editScheduler(props.room.roomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
 			messageInput.openTextArea();
 		}
 	}
@@ -408,7 +444,7 @@
 	}
 
 	function finishedSigningMessage(result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
-		pubhubs.addSignedMessage(rooms.currentRoomId, result, threadRoot);
+		pubhubs.addSignedMessage(props.room.roomId, result, threadRoot);
 		messageInput.state.showYiviQR = false;
 		messageInput.state.signMessage = false;
 		value.value = '';
@@ -420,7 +456,7 @@
 	};
 
 	function sendScheduler() {
-		pubhubs.addScheduler(rooms.currentRoomId, schedulerObject.value as Scheduler);
+		pubhubs.addScheduler(props.room.roomId, schedulerObject.value as Scheduler);
 		messageInput.openTextArea();
 	}
 
@@ -431,7 +467,7 @@
 
 	function sendPoll() {
 		pollObject.value.removeEmptyOptions();
-		pubhubs.addPoll(rooms.currentRoomId, pollObject.value as Poll);
+		pubhubs.addPoll(props.room.roomId, pollObject.value as Poll);
 		messageInput.openTextArea();
 	}
 

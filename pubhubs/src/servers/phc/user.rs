@@ -16,7 +16,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use actix_web::web;
-use digest::Digest as _;
+use sha2::digest::Digest as _;
 
 use super::server::*;
 use api::phc::user::*;
@@ -38,6 +38,13 @@ impl App {
             constellation: (*running_state.constellation).clone(),
             hubs,
         })
+    }
+
+    /// Implements [`CachedHubInfoEP`]
+    pub(super) async fn handle_cached_hub_info(
+        app: web::Data<Rc<App>>,
+    ) -> impl actix_web::Responder {
+        app.cached_hub_info.borrow().clone()
     }
 
     /// Implements [`StateEP`]

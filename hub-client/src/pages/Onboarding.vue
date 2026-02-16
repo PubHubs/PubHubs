@@ -1,8 +1,8 @@
 <template>
-	<div class="overflow-none flex h-full max-h-screen w-full">
+	<div class="overflow-none flex h-screen max-h-screen w-full">
 		<!-- Mobile Layout -->
 		<div v-if="isMobile" class="flex flex-col">
-			<HubBanner :class="'!h-[20svh] shrink-0'" :banner-url="hubSettings.bannerUrl" />
+			<HubBanner :class="'h-[20svh]! shrink-0'" :banner-url="hubSettings.bannerUrl" />
 
 			<div class="relative flex h-full flex-col gap-8 px-4 pt-20">
 				<!-- Hub Icon -->
@@ -24,7 +24,7 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="!placeholder-on-surface-dim text-label h-10" maxlength="24" />
+								<TextInput v-model="inputValue" :placeholder="pseudonym" class="placeholder-on-surface-dim! text-label h-10" maxlength="24" />
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square"></Icon>
 								</Button>
@@ -95,8 +95,8 @@
 		</div>
 
 		<!-- Desktop Layout -->
-		<div v-else class="overflow-none relative flex max-h-screen w-full items-center justify-center">
-			<div class="relative flex aspect-auto h-auto max-h-full w-3/4 rounded-3xl shadow-sm xl:aspect-[3/2] xl:h-2/3 xl:w-auto">
+		<div v-else class="overflow-none relative flex h-auto w-full items-center justify-center">
+			<div class="relative flex aspect-auto h-auto max-h-full w-3/4 rounded-3xl shadow-sm xl:aspect-3/2 xl:h-2/3 xl:w-auto">
 				<!-- Step 1 -->
 				<div v-if="step === 1" class="bg-surface-low flex w-full flex-col overflow-hidden rounded-3xl lg:flex-row">
 					<!-- Left Image -->

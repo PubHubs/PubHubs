@@ -2,8 +2,7 @@ use aead::{Aead as _, AeadCore as _, KeyInit as _};
 use anyhow::Context as _;
 use base64ct::{Base64Url, Encoding as _};
 use chacha20poly1305::XChaCha20Poly1305;
-use rand::Rng as _;
-use rand::TryRngCore as _;
+use rand::TryRng as _;
 
 /// Key used by [`seal`] and co.
 ///
@@ -14,8 +13,9 @@ pub type SealingKey = chacha20poly1305::Key;
 /// Generates a random 22 character alphanumeric string (`[a-zA-Z0-9]{22}`),
 /// having > 128 bits of randomness.
 pub fn random_alphanumeric() -> String {
-    rand::rngs::OsRng
-        .unwrap_mut()
+    use rand::RngExt as _;
+
+    rand::rand_core::UnwrapErr(rand::rngs::SysRng)
         .sample_iter(&rand::distr::Alphanumeric)
         .take(22)
         .map(char::from)
@@ -25,7 +25,7 @@ pub fn random_alphanumeric() -> String {
 pub fn random_32_bytes() -> [u8; 32] {
     let mut bytes: [u8; 32] = [0; 32];
 
-    rand::rngs::OsRng::try_fill_bytes(&mut rand::rngs::OsRng, bytes.as_mut_slice()).unwrap();
+    rand::rngs::SysRng::try_fill_bytes(&mut rand::rngs::SysRng, bytes.as_mut_slice()).unwrap();
 
     bytes
 }

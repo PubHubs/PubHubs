@@ -1,5 +1,7 @@
 @import 'tailwindcss' source('../../../');
 
+@variant dark (&:where(.dark, .dark *));
+
 /* Fonts */
 @font-face {
 	font-display: swap;
@@ -169,6 +171,8 @@
 	--color-on-accent-error: var(--on-accent-red);
 	--color-accent-steward: var(--accent-purple);
 	--color-on-accent-steward: var(--on-accent-purple);
+	--color-accent-admin: var(--color-accent-orange);
+	--color-on-accent-admin: var(--color-on-accent-orange);
 
 	--font-*: initial;
 	--font-headings: var(--font-atkinson);
@@ -294,13 +298,13 @@
 	--spacing-64: 256px;
 
 	--text-h1: 28px;
-	--text-h1--line-height: 1.28;
+	--text-h1--line-height: 1;
 	--text-h1--font-weight: 600;
 	--text-h2: 20px;
-	--text-h2--line-height: 1.35;
+	--text-h2--line-height: 1;
 	--text-h2--font-weight: 600;
 	--text-h3: 16px;
-	--text-h3--line-height: 1.35;
+	--text-h3--line-height: 1;
 	--text-h3--font-weight: 600;
 	--text-body: 16px;
 	--text-body--line-height: 1.5;
@@ -316,14 +320,14 @@
 	--text-label-tiny--font-weight: 500;
 
 	/* Animations */
-	--animate-highlight: highlight 5s ease-in-out;
+	--animate-highlight: highlight 2s ease-in-out;
 	@keyframes highlight {
 		0% {
 			background: none;
 		}
 
-		70% {
-			background: var(--color-surface-subtle);
+		50% {
+			background: var(--color-surface-base);
 		}
 
 		100% {
@@ -404,13 +408,13 @@
 		list-style-type: square !important;
 	}
 	.v-note-wrapper {
-		@apply !z-10;
+		@apply z-10!;
 	}
 	.editor .v-note-wrapper .v-note-op {
-		@apply !bg-surface-high;
+		@apply bg-surface-high!;
 	}
 	.editor .v-note-wrapper {
-		@apply relative !z-10 !max-h-[400px] !min-h-20 !resize-y overflow-y-auto;
+		@apply relative z-10! max-h-[400px]! min-h-20! resize-y! overflow-y-auto;
 	}
 	.dark .editor .auto-textarea-wrapper .auto-textarea-input {
 		color: white !important;
@@ -427,11 +431,11 @@
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper,
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper,
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper .auto-textarea-input {
-		@apply !bg-surface-low !font-body text-on-surface !text-body rounded-xl !border-none p-4 !pt-[15px];
+		@apply bg-surface-low! font-body! text-on-surface text-body! rounded-xl border-none! p-4 pt-[15px]!;
 	}
 	.editor .v-note-wrapper .v-note-show,
 	.editor .v-note-wrapper .v-note-show .v-show-content {
-		@apply !bg-surface relative z-10 overflow-y-auto !rounded-none;
+		@apply bg-surface relative z-10 overflow-y-auto rounded-none!;
 	}
 	.v-note-wrapper,
 	.v-note-wrapper .v-note-panel,
@@ -440,7 +444,7 @@
 	.v-note-wrapper .v-note-show .v-show-content,
 	.v-note-wrapper .v-note-show .v-show-content-html,
 	div[class='scroll-style scroll-style-border-radius v-show-content'] {
-		@apply !bg-surface-low font-body text-on-surface text-body !relative !min-h-20 overflow-y-auto rounded-xl !border-none;
+		@apply bg-surface-low! font-body text-on-surface text-body relative! min-h-20! overflow-y-auto rounded-xl border-none!;
 	}
 	.global-preview .v-note-wrapper,
 	.global-preview .v-note-wrapper .v-note-panel,

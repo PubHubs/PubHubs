@@ -1,7 +1,7 @@
 <template>
 	<!-- Notification Bell Button -->
-	<div v-if="notifications.length > 0" class="flex h-full flex-col items-end" :class="isMobile ? 'top-4' : 'top-10'">
-		<button @click.stop="showNotifications = !showNotifications" class="bg-surface-low hover:bg-surface relative rounded-2xl p-2 shadow-sm">
+	<div v-if="notifications.length > 0" class="flex h-full flex-col items-end justify-center">
+		<button @click.stop="showNotifications = !showNotifications" class="bg-surface-low hover:bg-surface absolute rounded-2xl p-2 shadow-sm">
 			<Icon type="bell" size="md" />
 			<span v-if="notifications.length > 0" class="bg-accent-red text-on-accent-red absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs">
 				{{ notifications.length }}
@@ -51,15 +51,12 @@
 
 	// Stores
 	import { useNotifications } from '@hub-client/stores/notifications';
-	import { useSettings } from '@hub-client/stores/settings';
 
 	const { t } = useI18n();
 	const notificationsStore = useNotifications();
 	const showNotifications = ref(false);
 	const notifications = computed<TNotification[]>(() => notificationsStore.notifications);
 	const panelOpen = ref<string | null>(null);
-	const settings = useSettings();
-	const isMobile = computed(() => settings.isMobileState);
 
 	onMounted(async () => {
 		document.addEventListener('click', handleGlobalClick);

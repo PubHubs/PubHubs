@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use anyhow::Context as _;
 use bytes::BufMut as _;
-use digest::Digest as _;
+use sha2::digest::Digest as _;
 
 use super::user::UserState;
 use crate::id::Id;

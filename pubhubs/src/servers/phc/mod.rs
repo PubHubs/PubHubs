@@ -6,5 +6,5 @@ mod user_card;
 mod user_object_store;
 mod user_sso;
 
-pub use server::{Details, Server};
+pub use server::{Details, HubCacheConfig, Server};
 pub(crate) use user::UserState;

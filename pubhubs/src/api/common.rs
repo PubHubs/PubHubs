@@ -18,29 +18,22 @@ use crate::servers::server;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
-/// The [`actix_web::Responder`] used for all API endpoints, [`EndpointDetails`] together with an
+/// The [`actix_web::Responder`] used for almost all API endpoints, [`EndpointDetails`] together with an
 /// instance of [`Result<EndpointDetails::ResponseType>`].
 pub struct Responder<EP: EndpointDetails>(pub EP::ResponseType);
 
 impl<EP: EndpointDetails> actix_web::Responder for Responder<EP> {
-    type Body = actix_web::body::BoxBody;
+    type Body = <CachedResponse<EP> as actix_web::Responder>::Body;
 
-    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        let (body, mut rb) = self.into_cached()();
-
-        match body {
-            Some(bytes) => rb.body(bytes),
-            None => rb.finish(),
-        }
+    fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        self.into_cached().respond_to(req)
     }
 }
 
 impl<EP: EndpointDetails> Responder<EP> {
-    pub fn into_cached(
-        self,
-    ) -> impl Fn() -> (Option<bytes::Bytes>, actix_web::HttpResponseBuilder) + Clone {
+    pub fn into_cached(self) -> CachedResponse<EP> {
         let payload = self.0.into_payload();
-        let mut ct = payload.content_type();
+        let mut content_type = payload.content_type();
 
         let body = payload.into_body().unwrap_or_else(|err| {
             log::error!(
@@ -49,7 +42,7 @@ impl<EP: EndpointDetails> Responder<EP> {
                 url = EP::PATH
             );
 
-            ct = Some(header::ContentType::json());
+            content_type = Some(header::ContentType::json());
             Some(
                 serde_json::to_vec_pretty(&Result::<()>::Err(ErrorCode::InternalError))
                     .unwrap()
@@ -57,22 +50,62 @@ impl<EP: EndpointDetails> Responder<EP> {
             )
         });
 
-        move || {
-            let mut rb = actix_web::HttpResponse::Ok();
+        CachedResponse {
+            body,
+            content_type,
+            ep: std::marker::PhantomData,
+        }
+    }
+}
 
-            if let Some(ct) = &ct {
-                rb.content_type(ct.clone());
-            }
+/// Cached response
+#[derive(Debug)]
+pub struct CachedResponse<EP: EndpointDetails> {
+    content_type: Option<header::ContentType>,
+    body: Option<bytes::Bytes>,
+    ep: std::marker::PhantomData<EP>,
+}
 
-            if EP::immutable_response() {
-                rb.insert_header(header::CacheControl(vec![
-                    header::CacheDirective::MaxAge(i32::MAX as u32),
-                    // https://github.com/actix/actix-web/issues/2666
-                    header::CacheDirective::Extension("immutable".to_string(), None),
-                ]));
-            }
+impl<EP: EndpointDetails> Clone for CachedResponse<EP> {
+    fn clone(&self) -> Self {
+        Self {
+            content_type: self.content_type.clone(),
+            body: self.body.clone(),
+            ep: std::marker::PhantomData::<EP>,
+        }
+    }
+}
 
-            (body.clone(), rb)
+impl<EP: EndpointDetails> CachedResponse<EP> {
+    /// Returns a response builder appropriate for this response
+    pub fn response_builder(&self) -> actix_web::HttpResponseBuilder {
+        let mut rb = actix_web::HttpResponse::Ok();
+
+        if let Some(ct) = &self.content_type {
+            rb.content_type(ct.clone());
+        }
+
+        if EP::immutable_response() {
+            rb.insert_header(header::CacheControl(vec![
+                header::CacheDirective::MaxAge(i32::MAX as u32),
+                // https://github.com/actix/actix-web/issues/2666
+                header::CacheDirective::Extension("immutable".to_string(), None),
+            ]));
+        }
+
+        rb
+    }
+}
+
+impl<EP: EndpointDetails> actix_web::Responder for CachedResponse<EP> {
+    type Body = actix_web::body::BoxBody;
+
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        let mut rb = self.response_builder();
+
+        match self.body {
+            Some(bytes) => rb.body(bytes),
+            None => rb.finish(),
         }
     }
 }
@@ -208,18 +241,21 @@ impl ErrorCode {
     }
 }
 
-// TODO: remove Clone, needed for current query impl
 /// What's expected from a [`EndpointDetails::RequestType`].
-pub trait PayloadTrait: Clone {
+pub trait PayloadTrait: Sized {
     type JsonType: Serialize + DeserializeOwned + core::fmt::Debug;
 
+    /// Used when creating requests
+    fn to_payload(&self) -> Payload<&Self::JsonType>;
+
+    /// Used when forming responses
     fn into_payload(self) -> Payload<Self::JsonType>;
 
     fn from_payload(payload: Payload<Self::JsonType>) -> anyhow::Result<Self>;
 }
 
 /// Payload of a request or response to an api endpoint.
-#[derive(Debug, Clone)] // TODO: remove Clone
+#[derive(Debug)]
 pub enum Payload<JsonType> {
     None,
 
@@ -323,9 +359,17 @@ where
 
 impl<T> PayloadTrait for Payload<T>
 where
-    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone, // TODO: remove Clone
+    T: Serialize + DeserializeOwned + core::fmt::Debug,
 {
     type JsonType = T;
+
+    fn to_payload(&self) -> Payload<&T> {
+        match self {
+            Payload::None => Payload::None,
+            Payload::Json(t) => Payload::Json(t),
+            Payload::Octets(b) => Payload::Octets(b.clone()), // cheap clone
+        }
+    }
 
     fn into_payload(self) -> Payload<T> {
         self
@@ -338,9 +382,13 @@ where
 
 impl<T> PayloadTrait for T
 where
-    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+    T: Serialize + DeserializeOwned + core::fmt::Debug,
 {
     type JsonType = T;
+
+    fn to_payload(&self) -> Payload<&T> {
+        Payload::Json(self)
+    }
 
     fn into_payload(self) -> Payload<T> {
         Payload::Json(self)
@@ -356,11 +404,14 @@ where
 }
 
 /// Use [`NoPayload`] as [`EndpointDetails::RequestType`] to indicate no payload is expected.
-#[derive(Clone, Copy)]
 pub struct NoPayload;
 
 impl PayloadTrait for NoPayload {
     type JsonType = ();
+
+    fn to_payload(&self) -> Payload<&()> {
+        Payload::None
+    }
 
     fn into_payload(self) -> Payload<()> {
         Payload::None
@@ -377,11 +428,14 @@ impl PayloadTrait for NoPayload {
 
 /// A payload (see [`PayloadTrait`]) that can only hold bytes. Probably only useful for as
 /// [`EndpointDetails::RequestType`].
-#[derive(Clone)]
 pub struct BytesPayload(pub bytes::Bytes);
 
 impl PayloadTrait for BytesPayload {
     type JsonType = ();
+
+    fn to_payload(&self) -> Payload<&()> {
+        Payload::Octets(self.0.clone()) // cheap clone
+    }
 
     fn into_payload(self) -> Payload<()> {
         Payload::Octets(self.0)
@@ -402,7 +456,7 @@ impl PayloadTrait for BytesPayload {
 /// `Result<T>`, and for which `Self::from_payload(Payload::Json(Err(..)))`
 /// and `Self::from_payload(Self::into_payload())` never fail.
 pub trait ResultPayloadTrait: PayloadTrait<JsonType = Result<Self::OkType>> {
-    type OkType: Serialize + DeserializeOwned + core::fmt::Debug + Clone;
+    type OkType: Serialize + DeserializeOwned + core::fmt::Debug;
 
     /// Create an instance of this result payload type from the given [`ErrorCode`] infallibly.
     fn from_ec(ec: ErrorCode) -> Self {
@@ -424,14 +478,14 @@ pub trait ResultPayloadTrait: PayloadTrait<JsonType = Result<Self::OkType>> {
 
 impl<T> ResultPayloadTrait for Result<T>
 where
-    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+    T: Serialize + DeserializeOwned + core::fmt::Debug,
 {
     type OkType = T;
 }
 
 impl<T> ResultPayloadTrait for Payload<Result<T>>
 where
-    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+    T: Serialize + DeserializeOwned + core::fmt::Debug,
 {
     type OkType = T;
 }
@@ -499,18 +553,12 @@ pub trait EndpointDetails {
     {
         let cached = Responder::<Self>(handler(app)).into_cached();
 
+        // TODO: etag
         sc.route(
             Self::PATH,
             web::method(Self::METHOD).to(move || {
-                // TODO: etag ?
-                let (body, mut rb) = cached();
-
-                let http_resp = match body {
-                    None => rb.finish(),
-                    Some(bytes) => rb.body(bytes),
-                };
-
-                async { http_resp }
+                let cached = cached.clone(); // cheap clone
+                async { cached }
             }),
         );
     }
