@@ -134,10 +134,8 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
-	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
 	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
@@ -153,11 +151,9 @@
 
 	const isMobile = computed(() => settings.isMobileState);
 
-	const selectedRoom = ref<Room | null>(null); // Selected room for desktop view
-	const scrollToEventId = ref<string | undefined>(undefined); // For search result navigation
+	const selectedRoom = ref<Room | null>(null);
+	const scrollToEventId = ref<string | undefined>(undefined);
 
-	// Reactive list of private rooms from the store
-	// This includes admin contact rooms when they're visible (not hidden)
 	const privateRooms = computed(() => rooms.loadedPrivateRooms);
 
 	const newAdminMsgCount = computed(() => {
@@ -166,7 +162,6 @@
 		return adminContactRoom?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
 	});
 
-	// Check if admin room is currently visible (not hidden) in the store
 	const isAdminRoomVisible = computed(() => {
 		return rooms.loadedPrivateRooms.some((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
 	});
@@ -181,7 +176,6 @@
 		});
 	});
 
-	// Mobile conversation title - matches the title on conversation cards
 	const mobileConversationTitle = computed(() => {
 		const room = sidebar.selectedDMRoom.value;
 		if (!room) return '';
@@ -191,13 +185,12 @@
 		if (roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('admin.support');
 		if (roomType === RoomType.PH_MESSAGE_STEWARD_CONTACT) return t('rooms.steward_support');
 
-		// For 1:1 DMs, show the other user's display name
 		const otherMembers = room.getOtherJoinedMembers();
 		if (otherMembers.length > 0) {
 			return otherMembers[0]?.rawDisplayName ?? t('menu.directmsg');
 		}
 
-		// Fallback: check not-invited members (for rooms where member hasn't fully joined yet)
+		// Fallback for members not fully joined yet
 		const notInvitedMemberIds = room.notInvitedMembersIdsOfPrivateRoom();
 		if (notInvitedMemberIds.length > 0) {
 			const member = room.getMember(notInvitedMemberIds[0]);
@@ -207,15 +200,13 @@
 		return t('menu.directmsg');
 	});
 
-	// Find the target room to select — uses sidebar state or lastDMRoomId as fallback
-	// (lastDMRoomId survives closeInstantly() which clears selectedDMRoom during route leave)
+	// Uses sidebar state, falling back to lastDMRoomId (which survives closeInstantly)
 	function findTargetRoom(roomList: Room[]): Room | undefined {
 		if (sidebar.selectedDMRoom.value) return sidebar.selectedDMRoom.value;
 		if (sidebar.lastDMRoomId.value) return roomList.find((r) => r.roomId === sidebar.lastDMRoomId.value);
 		return undefined;
 	}
 
-	// Restore state when entering the DM page
 	onMounted(() => {
 		if (isMobile.value) return;
 
@@ -230,7 +221,6 @@
 		}
 	});
 
-	// Watch for rooms to become available
 	watch(
 		sortedPrivateRooms,
 		(newRooms) => {
@@ -241,7 +231,6 @@
 				selectedRoom.value = target;
 				return;
 			}
-			// Desktop: auto-select first room if none selected
 			if (newRooms.length > 0) {
 				selectedRoom.value = newRooms[0];
 			}
@@ -249,22 +238,15 @@
 		{ once: true },
 	);
 
-	// Sync selectedRoom when sidebar's selectedDMRoom changes
-	// This handles the case when we're already on the DM page and a new room is selected via sidebar.openDMRoom
+	// Sync desktop selectedRoom when a new DM is opened via sidebar
 	watch(
 		() => sidebar.selectedDMRoom.value,
 		(newRoom) => {
-			if (!newRoom) return;
-
-			// Desktop: set as selected room
-			if (!isMobile.value) {
-				selectedRoom.value = newRoom;
-			}
-			// Note: No need to manually add to privateRooms - the computed handles it automatically
+			if (!newRoom || isMobile.value) return;
+			selectedRoom.value = newRoom;
 		},
 	);
 
-	// Close sidebar instantly before leaving to prevent animation when entering room pages
 	onBeforeRouteLeave((to) => {
 		if (to.name === 'room') {
 			sidebar.closeInstantly();
@@ -272,29 +254,22 @@
 	});
 
 	async function handleAdminContact() {
-		// Mobile: open admin room directly in sidebar
 		if (isMobile.value) {
 			const adminRoom = await getOrCreateAdminRoom();
-			if (adminRoom) {
-				openDMRoom(adminRoom);
-			}
+			if (adminRoom) openDMRoom(adminRoom);
 			return;
 		}
 
-		// Desktop: toggle visibility in the list
+		// Desktop: toggle admin room visibility
 		const visibleAdminRoom = privateRooms.value.find((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
 		if (visibleAdminRoom) {
-			// Hide it from the list (computed will automatically update)
 			await pubhubs.setPrivateRoomHiddenStateForUser(visibleAdminRoom, true);
-
-			// Clear selection if it was selected
 			if (selectedRoom.value?.roomId === visibleAdminRoom.roomId) {
 				selectedRoom.value = sortedPrivateRooms.value[0] ?? null;
 			}
 			return;
 		}
 
-		// Show admin room in list (unhide or create) and select it
 		const adminRoom = await getOrCreateAdminRoom();
 		if (adminRoom) {
 			selectedRoom.value = adminRoom;
@@ -302,15 +277,12 @@
 	}
 
 	async function getOrCreateAdminRoom(): Promise<Room | null> {
-		// Check if admin room exists (visible or hidden)
 		const existingAdminRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
 		if (existingAdminRoom) {
-			// Unhide if hidden
 			await pubhubs.setPrivateRoomHiddenStateForUser(existingAdminRoom, false);
 			return existingAdminRoom;
 		}
 
-		// No admin room exists, create one
 		const userResponse = await dialog.yesno(t('admin.admin_contact_title'), t('admin.admin_contact_main_msg'));
 		if (!userResponse) return null;
 
@@ -327,10 +299,8 @@
 	}
 
 	async function loadPrivateRooms() {
-		await rooms.waitForInitialRoomsLoaded(); // we need the roomslist, so wait till its loaded
+		await rooms.waitForInitialRoomsLoaded();
 		const roomsList = rooms.filteredRoomList(DirectRooms);
-		// Join all rooms to ensure they're loaded in the store
-		// The computed privateRooms will automatically pick them up
 		for (const room of roomsList) {
 			await rooms.joinRoomListRoom(room.roomId);
 		}
@@ -348,7 +318,7 @@
 	}
 
 	function openDMRoom(room: Room) {
-		sidebar.openDMRoom(room); // Track selection for restoration after navigation
+		sidebar.openDMRoom(room);
 		if (!isMobile.value) {
 			selectedRoom.value = room;
 		}

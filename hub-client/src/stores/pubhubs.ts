@@ -369,11 +369,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		/**
-		 * Uses the client to join a room (a no op when already a member) and updates the rooms in the store. Can throw
-		 * an error.
-		 * @param room_id - a room id
-		 * @throws error - an error when something goes wrong joining the room. For example a forbidden respons or a rate limited
-		 * response
+		 * Joins a room (no-op if already a member) and updates the rooms store.
+		 * @param room_id - Room ID to join
+		 * @param knownRoomType - Pre-known room type, avoids unreliable detection from live timeline
+		 * @param knownRoomName - Pre-known room name
 		 */
 		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<void> {
 			const rooms = useRooms();
@@ -385,8 +384,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
 				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-
-				// when a room is joined after startup the roomlist has to be updated, does nothing when room was already in the roomlist
 				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], lastMessageId: undefined, isHidden: false });
 			} catch (err) {
 				throw err;

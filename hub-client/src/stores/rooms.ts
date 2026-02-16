@@ -309,6 +309,7 @@ const useRooms = defineStore('rooms', {
 		async joinRoomListRoom(roomId: string) {
 			if (!this.rooms[roomId]) {
 				const pubhubs = usePubhubsStore();
+				// Pass known type/name to avoid unreliable detection from live timeline
 				const roomListEntry = this.roomList.find((x) => x.roomId === roomId);
 				await pubhubs.joinRoom(roomId, roomListEntry?.roomType, roomListEntry?.name);
 			}
@@ -328,15 +329,11 @@ const useRooms = defineStore('rooms', {
 		},
 
 		/**
-		 * Updates the roomList with a new room and keeps it sorted on name
-		 * @param roomId
-		 * @param name
-		 * @param type
+		 * Upserts a room into the roomList and keeps it sorted by name.
 		 */
 		updateRoomList(roomListRoom: RoomListRoom) {
 			const existing = this.roomList.find((room) => room.roomId === roomListRoom.roomId);
 			if (existing) {
-				// Update existing entry — fixes race between sliding sync and local joinRoom
 				existing.roomType = roomListRoom.roomType;
 				existing.name = roomListRoom.name;
 				if (roomListRoom.stateEvents.length > 0) existing.stateEvents = roomListRoom.stateEvents;

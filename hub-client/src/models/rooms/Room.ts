@@ -641,8 +641,6 @@ export default class Room {
 	}
 
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
-		// Merge state events from sliding sync (e.g. member events) into our stateEvents.
-		// This ensures stateEvents are populated even when a room is joined after initial sync.
 		if (roomData.required_state && roomData.required_state.length > 0) {
 			this.mergeStateEvents(roomData.required_state);
 		}
