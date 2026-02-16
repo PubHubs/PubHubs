@@ -1,7 +1,7 @@
 <template>
 	<span
 		v-if="userHasBadge"
-		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-050 flex items-center justify-center gap-2 border uppercase"
+		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-2 border uppercase"
 		:class="userPowerLevel === 100 ? 'border-accent-admin' : userPowerLevel >= 50 ? 'border-accent-steward' : 'border-on-surface-dim'"
 		data-testid="event-badges"
 		:title="label"
