@@ -11,8 +11,8 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-import { Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 // Models
+import { Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
@@ -52,7 +52,6 @@ const BotName = {
 /**
  * Our model of a room based on matrix rooms with some added functionality.
  * It uses the matrix-js-sdk's Room class under the hood.
- *
  */
 export default class Room {
 	public matrixRoom: MatrixRoom;
@@ -147,6 +146,7 @@ export default class Room {
 	}
 
 	// #region getters and setters
+
 	get roomId(): string {
 		return this.matrixRoom.roomId;
 	}
@@ -192,9 +192,7 @@ export default class Room {
 		this.stateEvents = stateEvents ?? [];
 	}
 
-	/**
-	 * Merges new state events into stateEvents, keyed by (type, state_key).
-	 */
+	// Merges new state events into stateEvents, keyed by (type, state_key)
 	private mergeStateEvents(newEvents: IStateEvent[]) {
 		for (const newEvent of newEvents) {
 			const existingIndex = this.stateEvents.findIndex((e) => e.type === newEvent.type && e.state_key === newEvent.state_key);
