@@ -18,15 +18,12 @@
 
 			<!-- Right: Buttons (hidden on mobile when sidebar is open) -->
 			<div v-if="!isMobile || !sidebar.isOpen.value" class="flex items-center gap-2">
-				<!-- Admin contact button -->
-				<div v-if="!user.isAdmin" class="relative">
-					<GlobalBarButton type="lifebuoy" :selected="!isMobile && isAdminRoomVisible" @click="handleAdminContact()" />
-					<Badge v-if="newAdminMsgCount > 99" class="text-label-small absolute -top-1 -right-1" color="ph">99+</Badge>
-					<Badge v-else-if="newAdminMsgCount > 0" class="text-label-small absolute -top-1 -right-1" color="ph">{{ newAdminMsgCount }}</Badge>
+				<!-- Admin contact button (hidden once room exists) -->
+				<div v-if="!user.isAdmin && !adminRoomExists" class="relative">
+					<GlobalBarButton type="lifebuoy" @click="handleAdminContact()" />
 				</div>
 
-				<!-- Divider between admin contact and other buttons -->
-				<div v-if="!user.isAdmin" class="bg-on-surface-disabled mx-1 h-6 w-px"></div>
+				<div v-if="!user.isAdmin && !adminRoomExists" class="bg-on-surface-disabled mx-1 h-6 w-px"></div>
 
 				<!-- Search button (desktop only, when room is selected) -->
 				<GlobalBarButton v-if="!isMobile && selectedRoom" type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
@@ -158,6 +155,8 @@
 		return adminContactRoom?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
 	});
 
+	const adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
+
 	const isAdminRoomVisible = computed(() => {
 		return rooms.loadedPrivateRooms.some((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
 	});
@@ -203,38 +202,20 @@
 		return undefined;
 	}
 
-	onMounted(() => {
-		loadPrivateRooms();
+	onMounted(async () => {
+		await loadPrivateRooms();
 
 		if (isMobile.value) return;
 
 		const target = findTargetRoom(sortedPrivateRooms.value);
 		if (target) {
-			selectedRoom.value = target;
+			openDMRoom(target);
 			return;
 		}
-		// Desktop: auto-select first room if available
 		if (sortedPrivateRooms.value.length > 0) {
-			selectedRoom.value = sortedPrivateRooms.value[0];
+			openDMRoom(sortedPrivateRooms.value[0]);
 		}
 	});
-
-	watch(
-		sortedPrivateRooms,
-		(newRooms) => {
-			if (isMobile.value || selectedRoom.value) return;
-
-			const target = findTargetRoom(newRooms);
-			if (target) {
-				selectedRoom.value = target;
-				return;
-			}
-			if (newRooms.length > 0) {
-				selectedRoom.value = newRooms[0];
-			}
-		},
-		{ once: true },
-	);
 
 	// Sync desktop selectedRoom when a new DM is opened via sidebar
 	watch(
@@ -263,14 +244,19 @@
 		if (visibleAdminRoom) {
 			await pubhubs.setPrivateRoomHiddenStateForUser(visibleAdminRoom, true);
 			if (selectedRoom.value?.roomId === visibleAdminRoom.roomId) {
-				selectedRoom.value = sortedPrivateRooms.value.find((r) => r.roomId !== visibleAdminRoom.roomId) ?? null;
+				const next = sortedPrivateRooms.value.find((r) => r.roomId !== visibleAdminRoom.roomId);
+				if (next) {
+					openDMRoom(next);
+				} else {
+					selectedRoom.value = null;
+				}
 			}
 			return;
 		}
 
 		const adminRoom = await getOrCreateAdminRoom();
 		if (adminRoom) {
-			selectedRoom.value = adminRoom;
+			openDMRoom(adminRoom);
 		}
 	}
 
