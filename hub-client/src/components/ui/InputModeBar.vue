@@ -1,13 +1,14 @@
 <template>
-	<div class="rounded-t-base flex items-center justify-between gap-2 border-b px-4 py-2" :class="containerClass">
-		<div class="flex items-center gap-2">
-			<Icon :type="icon" size="sm" :class="textClass" />
-			<span class="text-label-small" :class="textClass">{{ label }}</span>
-			<span v-if="tooltip" :title="tooltip" class="hover:cursor-help">
+	<div class="rounded-t-base flex h-500 items-center justify-between gap-100 border-b px-200" :class="containerClass">
+		<div class="flex min-w-0 items-center gap-100">
+			<Icon :type="icon" size="sm" class="shrink-0" :class="textClass" />
+			<span class="text-label-small shrink-0" :class="textClass">{{ label }}</span>
+			<span v-if="tooltip" :title="tooltip" class="shrink-0 hover:cursor-help">
 				<Icon type="info" size="sm" class="text-on-surface-dim" />
 			</span>
+			<slot />
 		</div>
-		<button @click="$emit('close')" class="hover:cursor-pointer">
+		<button @click="$emit('close')" class="shrink-0 hover:cursor-pointer">
 			<Icon type="x" size="sm" :class="textClass" />
 		</button>
 	</div>
@@ -24,7 +25,7 @@
 	const props = defineProps<{
 		icon: string;
 		label: string;
-		variant: 'admin' | 'steward' | 'sign';
+		variant: 'admin' | 'steward' | 'sign' | 'reply';
 		tooltip?: string;
 	}>();
 
@@ -40,6 +41,8 @@
 				return 'bg-accent-steward/10 border-accent-steward';
 			case 'sign':
 				return 'bg-accent-blue/10 border-accent-blue';
+			case 'reply':
+				return 'bg-accent-green/10 border-accent-green';
 		}
 	});
 
@@ -51,6 +54,8 @@
 				return 'text-accent-steward';
 			case 'sign':
 				return 'text-accent-blue';
+			case 'reply':
+				return 'text-accent-green';
 		}
 	});
 </script>

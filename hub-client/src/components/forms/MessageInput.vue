@@ -23,22 +23,14 @@
 		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
 			<div class="bg-surface-high rounded-base w-full shadow-xs">
 				<!-- In reply to -->
-				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
-					<div class="flex w-fit gap-2 overflow-hidden">
-						<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
-						<Suspense>
-							<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room" />
-							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
-									<p>{{ $t('state.loading_message') }}</p>
-								</div>
-							</template>
-						</Suspense>
-					</div>
-					<button @click="messageActions.replyingTo = undefined">
-						<Icon type="x" size="sm" />
-					</button>
-				</div>
+				<InputModeBar v-if="inReplyTo" icon="arrow-bend-up-left" :label="$t('message.in_reply_to')" variant="reply" @close="messageActions.replyingTo = undefined">
+					<Suspense>
+						<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room" />
+						<template #fallback>
+							<p class="text-on-surface-dim text-label-small">{{ $t('state.loading_message') }}</p>
+						</template>
+					</Suspense>
+				</InputModeBar>
 
 				<FilePicker ref="filePickerEl" :messageInput="messageInput"></FilePicker>
 

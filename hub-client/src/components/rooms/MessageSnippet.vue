@@ -1,5 +1,5 @@
 <template>
-	<div class="mb-2 flex w-fit cursor-pointer items-center gap-3 truncate rounded-md px-2 text-nowrap" :class="showInReplyTo ? 'bg-surface-high' : 'bg-surface-low'">
+	<div class="flex w-fit cursor-pointer items-center gap-3 truncate rounded-md px-2 text-nowrap" :class="showInReplyTo ? 'bg-surface-high' : 'bg-surface-low'">
 		<p v-if="showInReplyTo" class="text-nowrap">
 			{{ t('message.in_reply_to') }}
 		</p>
