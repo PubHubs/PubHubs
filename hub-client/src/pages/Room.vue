@@ -51,7 +51,7 @@
 			<!-- Content row: Timeline + Sidebar -->
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-					<RoomTimeline v-if="room" :key="props.id" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="getLastReadMessage(props.id)?.eventId ?? undefined" />
+					<RoomTimeline v-if="room" :key="props.id" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
 				</div>
 
 				<!-- Room sidebar -->
@@ -107,7 +107,6 @@
 
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
-	import { useLastReadMessages } from '@hub-client/composables/useLastReadMessages';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
@@ -144,7 +143,6 @@
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
 	const scrollToEventId = ref<string>();
-	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
 	const isLoading = ref(true); // Keep track if the page is loading, then the template cannot be rendered yet
 	let updateVersion = 0; // Used to cancel stale update() calls
 
@@ -164,6 +162,11 @@
 			r.name = '';
 		}
 		return r;
+	});
+
+	const lastReadEventId = computed(() => {
+		if (!room.value || !user.userId) return undefined;
+		return room.value.getLastVisibleEventId() || room.value.getEventReadUpTo(user.userId) || undefined;
 	});
 
 	// Check if there are room members to show
@@ -225,16 +228,12 @@
 		}
 		isLoading.value = true;
 		if (rooms.currentRoom) {
-			// Save last visible (read) event to localStorage
+			// Send read receipt for last visible event before leaving
 			const lastEventId = rooms.currentRoom.getLastVisibleEventId();
-			if (lastEventId) {
+			if (lastEventId && settings.isFeatureEnabled(FeatureFlag.notifications)) {
 				const event = rooms.currentRoom.findEventById(lastEventId);
 				if (event) {
-					// Use the message's timestamp; marker can only advance to newer messages
-					const messageTimestamp = event.localTimestamp || event.getTs();
-					if (messageTimestamp) {
-						setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
-					}
+					pubhubs.sendPrivateReceipt(event, rooms.currentRoom.roomId);
 				}
 			}
 			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread

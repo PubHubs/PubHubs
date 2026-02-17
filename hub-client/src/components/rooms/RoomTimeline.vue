@@ -114,7 +114,7 @@
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
 	const initialLoadComplete = ref(false);
 
-	const { DELAY_RECEIPT_MESSAGE, PAGINATION_COOLDOWN } = TimelineScrollConstants;
+	const { READ_DELAY_MS, PAGINATION_COOLDOWN } = TimelineScrollConstants;
 
 	let dateInformation = ref<number>(0);
 	let eventToBeDeletedIsThreadRoot: boolean = false;
@@ -137,7 +137,7 @@
 	// Initialize composables
 	const { scrollToEvent, scrollToNewest, performInitialScroll, handleNewMessage, isInitialScrollComplete, showJumpToBottomButton, newMessageCount } = useTimelineScroll(elRoomTimeline, props.room, user.userId || '');
 	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded, timelineVersion, refreshTimelineVersion } = useTimelinePagination(elRoomTimeline, props.room);
-	const { displayedReadMarker, initialize: initializeReadMarker, persist: persistReadMarker, update: updateReadMarker } = useReadMarker(props.room);
+	const { displayedReadMarker, initialize: initializeReadMarker, update: updateReadMarker } = useReadMarker(props.room, user.userId || '');
 	const userHasScrolled = ref(true);
 
 	/**
@@ -172,8 +172,14 @@
 	}
 
 	onBeforeUnmount(() => {
-		// Persist read marker
-		persistReadMarker();
+		// Send final read receipt for last visible event
+		const lastEventId = props.room.getLastVisibleEventId();
+		if (lastEventId && settings.isFeatureEnabled(FeatureFlag.notifications)) {
+			const lastEvent = props.room.findEventById(lastEventId);
+			if (lastEvent) {
+				pubhubs.sendPrivateReceipt(lastEvent, props.room.roomId);
+			}
+		}
 
 		// Cleanup event observer
 		if (eventObserver) {
@@ -356,7 +362,7 @@
 					}
 				}
 			}
-		}, DELAY_RECEIPT_MESSAGE);
+		}, READ_DELAY_MS);
 	};
 
 	const handleDateDisplayer = (entries: IntersectionObserverEntry[]) => {
