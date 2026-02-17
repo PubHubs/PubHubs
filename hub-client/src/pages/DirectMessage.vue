@@ -99,7 +99,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { EventType, NotificationCountType } from 'matrix-js-sdk';
+	import { EventTimeline, EventType, NotificationCountType } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave } from 'vue-router';
@@ -294,7 +294,10 @@
 		const messageEvents = room.getLiveTimelineEvents().filter((event) => event.getType() === EventType.RoomMessage);
 
 		if (messageEvents.length === 0) {
-			return Date.now();
+			// Fall back to room creation date so empty rooms correctly order
+			const timeline = room.matrixRoom.getLiveTimeline();
+			const createEvent = timeline?.getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomCreate, '');
+			return createEvent?.event?.origin_server_ts ?? 0;
 		}
 
 		messageEvents.sort((a, b) => b.localTimestamp - a.localTimestamp);
