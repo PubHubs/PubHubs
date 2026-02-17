@@ -1,11 +1,11 @@
 <template>
-	<div class="flex h-full w-full flex-col p-4" data-testid="sidekick">
+	<div class="flex h-full w-full flex-col overflow-hidden p-4" data-testid="sidekick">
 		<SidebarHeader v-if="!groupPanel" :title="t('others.new_message')" />
-		<div class="flex h-full flex-col">
+		<div class="flex min-h-0 flex-1 flex-col">
 			<div v-if="!groupPanel" class="flex shrink-0 flex-col gap-2">
 				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
 					<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
+					<input type="text" v-model="userFilter" :placeholder="t('others.search')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
 				</div>
 				<div class="">
 					<Button class="bg-on-surface-variant text-label-small hover:text-surface-high dark:text-surface-high flex w-full items-center justify-center gap-2" size="sm" @click="groupPanel = true">

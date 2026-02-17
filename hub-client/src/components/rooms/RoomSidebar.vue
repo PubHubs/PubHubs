@@ -1,9 +1,9 @@
 <template>
-	<div class="bg-surface-background shrink-0 overflow-hidden" :class="[sidebarClasses, { 'transition-all duration-300 ease-in-out': !sidebar.skipTransition.value }]">
+	<div class="bg-surface-background h-full shrink-0 overflow-hidden" :class="[sidebarClasses, { 'transition-all duration-300 ease-in-out': !sidebar.skipTransition.value }]">
 		<!-- Only render content when open to prevent layout issues -->
 		<template v-if="isOpen">
 			<!-- Content Area -->
-			<div class="h-full overflow-y-auto">
+			<div class="h-full">
 				<slot></slot>
 			</div>
 		</template>

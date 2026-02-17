@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-full flex-col p-4">
+	<div class="flex h-full flex-col overflow-y-hidden p-4">
 		<SidebarHeader :title="$t('rooms.members')" />
 		<div class="flex flex-1 flex-col gap-4 overflow-y-auto">
 			<div v-if="stewardIds && stewardIds.length > 0" class="pb-4">
