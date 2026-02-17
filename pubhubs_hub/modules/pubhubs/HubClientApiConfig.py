@@ -1,32 +1,57 @@
 import logging
+from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
-from ._constants import CLIENT_URL, GLOBAL_CLIENT_URL
+from ._constants import CLIENT_URL, GLOBAL_CLIENT_URL, DEV_URL, YIVI_URL, CLIENT_YIVI_URL, PUBLIC_YIVI_URL
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
 class HubClientApiConfig(object):
-    _hub_client_url: str
-    _global_client_url: str
+    _config: dict
+    _module_api: ModuleApi
     _assets_dir_path: str
     _media_dir_path: str
 
-    def __init__(self, module_config_from_file: dict):
-        self.init_module_config_from_file(module_config_from_file)
-
+    def __init__(self, config: dict, module_api: ModuleApi):
+        self._config = config
+        self._module_api = module_api
         # Data in assets directory should not be persistent, so we can update the contents without server admins needing to do anything.
         self._assets_dir_path = '/non-persistent-data/assets'
-
         # Data in media directory should be persistent, so user-uploaded media files are not lost when rebuilding the docker images.
         self._media_dir_path = '/data/media'
 
     @property
-    def hub_client_url(self) -> str:
-        return self._hub_client_url
+    def client_url(self) -> str:
+        return self._config[CLIENT_URL]
     
-
     @property
     def global_client_url(self) -> str:
-        return self._global_client_url
+        return self._config[GLOBAL_CLIENT_URL]
+    
+    @property
+    def allowed_origins(self) -> list:
+        if isinstance(self._config.get(DEV_URL), str):
+            return [self._config[CLIENT_URL], self._config[DEV_URL]]
+        else:
+            return [self._config[CLIENT_URL]]
+
+    @property
+    def yivi_url_web(self) -> str:
+        return self._config.get(YIVI_URL, 'http://localhost:8089')
+
+    @property
+    def yivi_url_proxy(self) -> str:
+        return self._config.get(CLIENT_YIVI_URL, 'http://localhost:8088')
+
+    @property
+    def public_yivi_url(self) -> str:
+        return self._config.get(PUBLIC_YIVI_URL, self._module_api.public_baseurl)
+    
+    @property
+    def server_notices_user(self) -> str:
+        server_notices_user = self._module_api._hs.get_server_notices_manager().server_notices_mxid
+        if not isinstance(server_notices_user, str):
+            raise ConfigError("server_notices_user must be a string")
+        return server_notices_user
     
     @property
     def hub_description_path(self) -> str:
@@ -63,16 +88,5 @@ class HubClientApiConfig(object):
     @property
     def media_dir_path(self) -> str:
         return self._media_dir_path
-
-    def init_module_config_from_file(self, module_config_from_file: dict) -> dict:
-        logger.debug(f"Initializing module config from synapse configuration file: '{module_config_from_file}'")
-
-        if module_config_from_file.get(CLIENT_URL) is None or not isinstance(module_config_from_file.get(CLIENT_URL), str):
-            raise ConfigError(f"'{CLIENT_URL}' should be a string in the config")
-        self._hub_client_url = module_config_from_file.get(CLIENT_URL)
-
-        if module_config_from_file.get(GLOBAL_CLIENT_URL) is None or not isinstance(module_config_from_file.get(GLOBAL_CLIENT_URL), str):
-            raise ConfigError(f"'{GLOBAL_CLIENT_URL}' should be a string in the config")
-        self._global_client_url = module_config_from_file.get(GLOBAL_CLIENT_URL)
 
 

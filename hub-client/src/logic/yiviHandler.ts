@@ -70,6 +70,7 @@ export function yiviFlow(flowtype: EYiviFlow, onFinish: (result: any, threadRoot
 							message,
 						}),
 					}),
+				headers: { Authorization: `Bearer ${accessToken}` },
 			},
 			result: {
 				url: (_o: any, obj: any) => {

@@ -1,4 +1,5 @@
 import json
+import re
 import logging
 from json.decoder import JSONDecodeError
 
@@ -16,7 +17,7 @@ from twisted.web.client import Agent
 
 from twisted.web.iweb import IResponse, UNKNOWN_LENGTH
 
-from ._constants import CLIENT_URL
+from ._cors import set_allow_origin_header
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
@@ -26,32 +27,41 @@ class ProxyServlet(DirectServeJsonResource):
     so required configuration is minimized and the Yivi server to disclose can run in the same image as the Synapse server.
     """
 
-    def __init__(self, config: dict, api: ModuleApi):
+    def __init__(self, config: dict, module_api: ModuleApi):
         super().__init__()
-        self.config = config
-        self.module_api = api
+        self._config = config
+        self._module_api = module_api
         # Always get entire path
         self.isLeaf = True
 
     async def _async_render(self, request: SynapseRequest):
-        http_client = self.module_api.http_client
+        set_allow_origin_header(request, self._config.allowed_origins)
         content = request.content.read()
 
-        about_statusevents = request.path.decode().endswith("statusevents")
+        path = request.path.decode()
+
+        # Define allowed path patterns
+        ALLOWED_PATTERNS = [
+            r'^/_synapse/client/yiviproxy/irma/session/[a-zA-Z0-9_-]{20}/frontend/statusevents$',
+            r'^/_synapse/client/yiviproxy/irma/session/[a-zA-Z0-9_-]{20}/frontend/status$',
+            r'^/_synapse/client/yiviproxy/irma/session/[a-zA-Z0-9_-]{20}/',
+        ]
+        
+        # Check if the request path matches any allowed pattern
+        if not any(re.match(pattern, path) for pattern in ALLOWED_PATTERNS):
+            logger.warning(f"Rejected proxy request to disallowed path: {path}")
+            respond_with_json(request, 403, {"error": "Path not allowed"})
+            return
+
+        about_statusevents = path.endswith("statusevents")
 
         if about_statusevents:
-            request.setHeader(
-                b"Access-Control-Allow-Origin",
-                f"{self.config[CLIENT_URL]}".encode())
             await self.handle_status_events(request)
         else:
-            resp: IResponse = await http_client.request(request.method.decode(),
-                                                        f"{self.config.get('yivi_client_url', 'http://localhost:8088')}/{'/'.join(request.path.decode().split('/')[4:])}",
+            resp: IResponse = await self._module_api.http_client.request(request.method.decode(),
+                                                        f"{self._config.yivi_url_proxy}/{'/'.join(path.split('/')[4:])}",
                                                         content, request.requestHeaders)
 
-            request.setHeader(
-                b"Access-Control-Allow-Origin",
-                f"{self.config[CLIENT_URL]}".encode())
 
             resp_content = await resp.content()
 
@@ -65,16 +75,13 @@ class ProxyServlet(DirectServeJsonResource):
     async def handle_status_events(self, request):
         agent = Agent(reactor)
         url = bytes(
-            f"{self.config.get('yivi_client_url', 'http://localhost:8088')}/{'/'.join(request.path.decode().split('/')[4:])}",
+            f"{self._config.yivi_url_proxy}/{'/'.join(request.path.decode().split('/')[4:])}",
             "utf-8")
         d = agent.request(request.method, url, request.requestHeaders)
 
         def cb_response(response: twisted.web._newclient.Response):
             request.responseHeaders = response.headers
 
-            request.setHeader(
-                b"Access-Control-Allow-Origin",
-                f"{self.config[CLIENT_URL]}".encode())
             request.setResponseCode(response.code)
 
             proto = ProxyStatusEvents(request)

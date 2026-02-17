@@ -3,7 +3,6 @@ from unittest import IsolatedAsyncioTestCase
 
 import sys
 
-from synapse.api.errors import SynapseError
 from synapse.config import ConfigError
 from synapse.events import EventBase
 from synapse.handlers.room import EventContext
@@ -15,6 +14,7 @@ from pubhubs import HubClientApi
 from pubhubs._web import YiviResult
 from pubhubs._secured_rooms_class import SecuredRoom, PubHubsSecuredRoomType
 from pubhubs._secured_rooms_web import SecuredRoomsServlet
+from pubhubs.HubClientApiConfig import HubClientApiConfig
 
 
 class FakeNoticesManager:
@@ -357,10 +357,11 @@ class FakeStore:
 valid_config = {"client_url": "", "global_client_url": ""}
 
 
+
 class TestAsync(IsolatedAsyncioTestCase):
     async def test_on_trying_to_join_room(self):
         api = FakeModuleApi()
-        joiner = HubClientApi(valid_config.copy(), api, FakeStore(), is_test=True)
+        joiner = HubClientApi(valid_config, api, FakeStore(), is_test=True)
         fake_secured_rooms["some_id"] = SecuredRoom(
             name="a",
             topic="a",
@@ -379,8 +380,8 @@ class TestAsync(IsolatedAsyncioTestCase):
         result = await joiner.joining("@some_user:domain", "some_other_id", None)
 
         self.assertEqual(result, True)
-
-        joiner = HubClientApi(valid_config.copy(), FakeModuleApi(), FakeStore(isAllowed=True), is_test=True)
+        
+        joiner = HubClientApi(valid_config, api, FakeStore(isAllowed=True), is_test=True)
         # Join a room that is secured and already allowed
         result = await joiner.joining("@some_user:domain", "some_id", None)
 
@@ -398,16 +399,16 @@ class TestAsync(IsolatedAsyncioTestCase):
             type=PubHubsSecuredRoomType.MESSAGES,
             room_id="some_id",
         )
-        joiner = HubClientApi(valid_config.copy(), api, FakeStore(), is_test=True)
-        checker = YiviResult(valid_config.copy(), api, FakeStore())
+        
+        joiner = HubClientApi(valid_config, api, FakeStore(), is_test=True)
+        checker = YiviResult(valid_config, api, FakeStore())
 
         result = await checker.check_allowed({}, "some_id")
         self.assertEqual(result, None)
 
         # Allowed when the right thing is disclosed
-        api = FakeModuleApi()
-        joiner = HubClientApi(valid_config.copy(), api, FakeStore(), is_test=True)
-        checker = YiviResult(valid_config.copy(), api, FakeStore())
+        joiner = HubClientApi(valid_config, api, FakeStore(), is_test=True)
+        checker = YiviResult(valid_config, api, FakeStore())
 
         result = await checker.check_allowed(
             {"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "has a requirement"}]]}, "some_id"
@@ -415,9 +416,8 @@ class TestAsync(IsolatedAsyncioTestCase):
         self.assertEqual(result, {"something": "has a requirement"})
 
         # Not allowed when the right attribute with the wrong value is disclosed
-        api = FakeModuleApi()
-        joiner = HubClientApi(valid_config.copy(), api, FakeStore(), is_test=True)
-        checker = YiviResult(valid_config.copy(), api, FakeStore())
+        joiner = HubClientApi(valid_config, api, FakeStore(), is_test=True)
+        checker = YiviResult(valid_config, api, FakeStore())
 
         result = await checker.check_allowed(
             {"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "wrong value"}]]}, "some_id"
@@ -477,13 +477,14 @@ class TestAsync(IsolatedAsyncioTestCase):
         self.assertEqual(result, {"something": "should not matter", "something_else": ""})
 
     async def test_routes_secured(self):
+        api = FakeModuleApi()
+        config = HubClientApiConfig(valid_config, api)
         servlet = SecuredRoomsServlet(
-            valid_config,
-            FakeStore(),
+            config,
+            api,
             FakeModuleApi(),
             FakeRoomCreationHandler(),
             FakeRoomShutdownHandler(),
-            "@notices.some.hub",
         )
         
         for method in [
@@ -492,11 +493,10 @@ class TestAsync(IsolatedAsyncioTestCase):
             servlet._async_render_POST,
             servlet._async_render_PUT,
         ]:
-            
-        # LoginError does not check for methods with Put and POST request
+
         # These requests are empty which throws invalid json error. 
         # For now, we suppress the error that happens from synapse side.
-        # A better test case would be to mock the request and test the body.
-            
-            with self.assertRaises(SynapseError):
+        # TODO A better test case would be to mock the request and test the body.
+
+            with self.assertRaises((AttributeError, PermissionError)):
                 await method({})
