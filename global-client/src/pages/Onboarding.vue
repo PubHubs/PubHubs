@@ -238,6 +238,7 @@
 	// Logic
 	import { useMSS } from '@global-client/stores/mss';
 
+	import { DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
@@ -246,6 +247,7 @@
 	const router = useRouter();
 	const route = useRoute();
 	const error = ref();
+	const dialog = useDialog();
 
 	// Logging
 	const LOGGER = new Logger('GC', CONFIG);
@@ -286,12 +288,6 @@
 			answer: t('register.yivi_faq_5_answer'),
 		},
 	]);
-
-	// Toggles Faq
-	function toggle(index: number) {
-		faqIndex.value = faqIndex.value === index ? null : index;
-	}
-
 	// Get the correct carousel container depending on screen size.
 	const getCarouselRef = (): HTMLDivElement | null => (isMobile.value ? carouselMobile.value : carouselDesktop.value);
 
@@ -337,37 +333,6 @@
 			currentIndex.value = closestIndex;
 		});
 	};
-
-	// Lifecycle
-	function debounce(fn: () => void, delay: number) {
-		let timer: number;
-		return () => {
-			clearTimeout(timer);
-			timer = window.setTimeout(fn, delay);
-		};
-	}
-
-	async function startYiviSessionMSS() {
-		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
-
-		try {
-			const mss = useMSS();
-			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister);
-			if (errorMessage) {
-				error.value = errorMessage;
-				return;
-			}
-			if (redirectPath) {
-				await router.push({ path: decodeURI(redirectPath) });
-			} else {
-				await router.push({ name: 'home' });
-			}
-		} catch (error) {
-			router.push({ name: 'error' });
-			LOGGER.error(SMI.ERROR, 'Error during MSS Registration', { error });
-		}
-	}
-
 	const handleResize = debounce(async () => {
 		await startYiviSessionMSS();
 	}, 300);
@@ -393,4 +358,63 @@
 	onUnmounted(() => {
 		window.removeEventListener('resize', handleResize);
 	});
+
+	// Toggles Faq
+	function toggle(index: number) {
+		faqIndex.value = faqIndex.value === index ? null : index;
+	}
+
+	// Lifecycle
+	function debounce(fn: () => void, delay: number) {
+		let timer: number;
+		return () => {
+			clearTimeout(timer);
+			timer = window.setTimeout(fn, delay);
+		};
+	}
+
+	async function startYiviSessionMSS(registerOnlyWithUniqueAttrs = true) {
+		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
+
+		try {
+			const mss = useMSS();
+			let errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister, registerOnlyWithUniqueAttrs);
+			if (errorMessage?.key === 'errors.notid_attribute_already_taken') {
+				handleDuplicateAttributeError();
+				return;
+			} else if (errorMessage) {
+				error.value = errorMessage;
+				return;
+			}
+			if (redirectPath) {
+				await router.push({ path: decodeURI(redirectPath) });
+			} else {
+				await router.push({ name: 'home' });
+			}
+		} catch (error) {
+			router.push({ name: 'error' });
+			LOGGER.error(SMI.ERROR, 'Error during MSS Registration', { error });
+		}
+	}
+	async function handleDuplicateAttributeError() {
+		dialog.okcancel(t('errors.notid_taken_title'), t('errors.notid_attribute_already_taken'));
+
+		const handleOk = async () => {
+			cleanup();
+			startYiviSessionMSS(false);
+		};
+
+		const handleCancel = async () => {
+			cleanup();
+			startYiviSessionMSS(true);
+		};
+
+		const cleanup = () => {
+			dialog.removeCallback(DialogOk);
+			dialog.removeCallback(DialogCancel);
+		};
+
+		dialog.addCallback(DialogOk, handleOk);
+		dialog.addCallback(DialogCancel, handleCancel);
+	}
 </script>
