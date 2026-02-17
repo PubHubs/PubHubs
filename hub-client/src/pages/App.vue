@@ -177,9 +177,14 @@
 			},
 		);
 
-		// Listen to isMobileState from global client
-		window.parent.postMessage({ type: 'viewport-ready' }, '*');
-		window.addEventListener('message', handleViewport);
+		// When running solo (no global client wrapper), detect mobile state directly.
+		// Otherwise, listen for viewport updates from the global client.
+		if (hubSettings.isSolo) {
+			settings.startListeningMobile();
+		} else {
+			window.parent.postMessage({ type: 'viewport-ready' }, '*');
+			window.addEventListener('message', handleViewport);
+		}
 
 		await startMessageBox();
 
