@@ -10,7 +10,7 @@ from ._yivi_proxy import ProxyServlet
 from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomExtraServlet
 from ._store import HubStore
 from ._web import JoinServlet
-from ._constants import CLIENT_URL, SERVER_NOTICES_USER, GLOBAL_CLIENT_URL, METHOD_POLLING_INTERVAL
+from ._constants import  METHOD_POLLING_INTERVAL, CLIENT_URL, GLOBAL_CLIENT_URL
 from .HubResource import HubResource
 from .HubClientApiConfig import HubClientApiConfig
 
@@ -74,7 +74,7 @@ class HubClientApi(object):
     This configuration is parsed and wrapped by the HubClientApiConfig which also provides configuration that is the same for all Hubs.
     """
 
-    _module_config: HubClientApiConfig
+    _config: HubClientApiConfig
     _is_test: bool
 
     def __init__(self, config: dict, api: ModuleApi, store=None, is_test=False):
@@ -83,29 +83,20 @@ class HubClientApi(object):
             config: The configuration for this module.
             isTest: If true, we are running in a test environment and do some hacks to make it work.
         """
+        self._config = HubClientApiConfig(config, api)
 
         synapse.http.server.set_clickjacking_protection_headers = modify_set_clickjacking_protection_headers(
-            synapse.http.server.set_clickjacking_protection_headers, config.get(GLOBAL_CLIENT_URL)
+            synapse.http.server.set_clickjacking_protection_headers, self._config.global_client_url
         )
         synapse.http.server.set_cors_headers = modify_set_cors_headers(synapse.http.server.set_cors_headers)
 
-        # Deprecated: use HubClientApiConfig class instead
-        self.config = config
-
-        self._module_config = HubClientApiConfig(config)
         self._is_test = is_test
-        self._create_media_dir(self._module_config.media_dir_path)
+        self._create_media_dir(self._config.media_dir_path)
 
-        # Assert the server notices user exists, we have to make this mandatory
-        server_notices_user = api._hs.get_server_notices_manager().server_notices_mxid
-
-        assert isinstance(server_notices_user, str)
-
-        self.config[SERVER_NOTICES_USER] = server_notices_user
         if store:
             self.store = store
         else:
-            self.store = HubStore(api, config)
+            self.store = HubStore(api, self._config)
             # self.store = YiviRoomJoinStore(api)
         self.module_api = api
         # We need the private fields for account data to set widgets
@@ -116,26 +107,25 @@ class HubClientApi(object):
 
         self.module_api.looping_background_call(self.store.remove_from_room, METHOD_POLLING_INTERVAL)
 
-        api.register_web_resource("/_synapse/client/ph", JoinServlet(self.config, self.module_api, self.store))
-        api.register_web_resource("/_synapse/client/yiviproxy", ProxyServlet(self.config, self.module_api))
+        api.register_web_resource("/_synapse/client/ph", JoinServlet(self._config, self.module_api, self.store))
+        api.register_web_resource("/_synapse/client/yiviproxy", ProxyServlet(self._config, self.module_api))
 
         api.register_web_resource(
             "/_synapse/client/secured_rooms",
             SecuredRoomsServlet(
-                self.config,
+                self._config,
                 self.store,
                 self.module_api,
                 self.room_creation_handler,
                 self.room_shutdown_handler,
-                self.config[SERVER_NOTICES_USER],
             ),
         )
 
-        api.register_web_resource("/_synapse/client/notices", NoticesServlet(self.config[SERVER_NOTICES_USER]))
+        api.register_web_resource("/_synapse/client/notices", NoticesServlet(self._config.server_notices_user))
 
         api.register_web_resource("/_synapse/client/srextra", SecuredRoomExtraServlet(self.store, self.module_api))
 
-        api.register_web_resource("/_synapse/client/hub", HubResource(api, self._module_config, self.store))
+        api.register_web_resource("/_synapse/client/hub", HubResource(api, self._config, self.store))
         
         api.register_spam_checker_callbacks(user_may_join_room=self.joining)
 
@@ -147,7 +137,7 @@ class HubClientApi(object):
         waiting room if it doesn't exist or refresh the waiting room token if it's expired.
         """
         logger.debug(
-            f"hi I am the joining method user is '{user}' and I want to join '{room}' config is '{self.config}'"
+            f"hi I am the joining method user is '{user}' and I want to join '{room}' config is '{self._config}'"
         )
 
         secured_room = await self.store.get_secured_room(room)
@@ -172,10 +162,10 @@ class HubClientApi(object):
             
         return media_dir_path
 
-    # Deprecated: use HubClientApiConfig class instead
     @staticmethod
     def parse_config(config: dict) -> dict:
-        logger.debug(f"Getting the config: '{config}'")
+        logger.debug(f"Initializing module config from synapse configuration file: '{config}'")
+
         if config.get(CLIENT_URL) is None or not isinstance(config.get(CLIENT_URL), str):
             raise ConfigError(f"'{CLIENT_URL}' should be a string in the config")
 
