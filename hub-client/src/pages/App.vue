@@ -1,6 +1,6 @@
 <template>
 	<div v-if="user.isLoggedIn && setupReady" class="bg-background font-body text-on-surface text-body flex h-screen w-full overflow-hidden">
-		<HeaderFooter class="relative shrink-0" :class="isMobile ? 'w-[calc(50%-40px)]!' : 'flex max-w-[320px]'">
+		<HeaderFooter class="relative shrink-0" :class="isMobile && !hubSettings.isSolo ? 'w-[calc(50%-40px)]!' : 'flex max-w-[320px]'">
 			<template #header>
 				<div class="flex h-full w-full justify-between">
 					<div class="flex items-center justify-between gap-2">
