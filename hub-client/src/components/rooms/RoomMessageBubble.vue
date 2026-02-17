@@ -121,7 +121,7 @@
 
 					<!-- Message Snippet -->
 					<Suspense v-if="hasBeenVisible">
-						<MessageSnippet v-if="showReplySnippet(props.event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
+						<MessageSnippet v-if="showReplySnippet(props.event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" class="mb-2" :showInReplyTo="true" :room="room" />
 						<template #fallback>
 							<div class="flex items-center gap-3 rounded-md px-2">
 								<p>{{ t('state.loading_message') }}</p>
