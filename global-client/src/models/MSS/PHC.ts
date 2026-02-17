@@ -132,6 +132,8 @@ export default class PHCServer {
 			return { entered: false, errorMessage: { key: 'errors.retry_with_new_attr' }, enterResp: null };
 		} else if ('AttributeBanned' in enterResp) {
 			return { entered: false, errorMessage: { key: 'errors.attribute_banned', values: [enterResp.AttributeBanned.value] }, enterResp: null };
+		} else if ('AttributeAlreadyTaken' in enterResp && enterResp.AttributeAlreadyTaken.not_identifying) {
+			return { entered: false, errorMessage: { key: 'errors.notid_attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] }, enterResp: null };
 		} else if ('AttributeAlreadyTaken' in enterResp) {
 			return { entered: false, errorMessage: { key: 'errors.attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] }, enterResp: null };
 		} else if ('RetryWithNewAddAttr' in enterResp) {
@@ -150,19 +152,21 @@ export default class PHCServer {
 	 * Request to enter PubHubs, depending on the enterMode registering a new account or logging into an existing account.
 	 *
 	 * @param identifyingAttr The attribute identifying the user when registering or logging in.
-	 * @param signedAddAttrs The attributes that have to be added to the account, required when registering a new account or when no bannable attribute is registered for this account.
+	 * @param addAttrs The attributes that have to be added to the account, required when registering a new account or when no bannable attribute is registered for this account.
 	 * @param enterMode The mode determines whether we want to create an account if none exists and whether we expect an account to exist.
 	 * @returns An object with a boolean to know whether the user successfully entered PubHubs or not and an error message (which is null if no error occured).
 	 */
 	public async enter(
-		signedAddAttrs: string[],
+		addAttrs: string[],
 		enterMode: TPHC.PHCEnterMode,
 		identifyingAttr?: string,
+		registerOnlyWithUniqueAttrs: boolean = false,
 	): Promise<{ entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } | { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }> {
 		const requestPayload: TPHC.PHCEnterReq = {
 			identifying_attr: identifyingAttr,
 			mode: enterMode,
-			add_attrs: signedAddAttrs,
+			add_attrs: addAttrs,
+			register_only_with_unique_attrs: registerOnlyWithUniqueAttrs,
 		};
 		let authorization: string | undefined;
 		if (!identifyingAttr) authorization = await this._getAuthToken();
