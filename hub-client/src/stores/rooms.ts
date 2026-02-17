@@ -233,11 +233,13 @@ const useRooms = defineStore('rooms', {
 			return state.securedRooms.sort(propCompare('room_name'));
 		},
 
-		totalUnreadMessages() {
+		totalUnreadMessages(): number {
+			// Read unreadCountVersion to trigger reactive updates when Matrix SDK counts change
+			void this.unreadCountVersion;
 			let total = 0;
 			this.roomsArray.forEach((room) => {
 				if (!room.isHidden()) {
-					total += room.getRoomUnreadNotificationCount(NotificationCountType.Total);
+					total += room.getUnreadNotificationCount(NotificationCountType.Total);
 				}
 			});
 			return total;
