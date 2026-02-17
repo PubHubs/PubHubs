@@ -76,10 +76,11 @@
 		},
 	);
 
+	const model = defineModel<FieldInputType>();
+
 	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 	const { fieldName, update, changed } = useFormInput(props, model);
 
-	const model = defineModel<FieldInputType>();
 	const selection = ref<FieldSelection>([]); // Selection of choosen indexes
 
 	onMounted(() => {
