@@ -33,6 +33,16 @@
 				<!-- Message and Actions -->
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
+						<!-- Message Snippet -->
+						<Suspense v-if="hasBeenVisible">
+							<MessageSnippet v-if="showReplySnippet(props.event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" class="mb-2" :showInReplyTo="true" :room="room" />
+							<template #fallback>
+								<div class="flex items-center gap-3 rounded-md px-2">
+									<p>{{ t('state.loading_message') }}</p>
+								</div>
+							</template>
+						</Suspense>
+
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
 							<div class="mb-2 flex w-full min-w-0 grow flex-col gap-1">
 								<div class="flex w-full min-w-0 grow flex-wrap items-center gap-4">
@@ -118,16 +128,6 @@
 							</div>
 						</div>
 					</div>
-
-					<!-- Message Snippet -->
-					<Suspense v-if="hasBeenVisible">
-						<MessageSnippet v-if="showReplySnippet(props.event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" class="mb-2" :showInReplyTo="true" :room="room" />
-						<template #fallback>
-							<div class="flex items-center gap-3 rounded-md px-2">
-								<p>{{ t('state.loading_message') }}</p>
-							</div>
-						</template>
-					</Suspense>
 
 					<Message :event="props.event" :deleted="redactedMessage" />
 

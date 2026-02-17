@@ -1,8 +1,6 @@
 <template>
-	<div class="flex w-fit cursor-pointer items-center gap-3 truncate rounded-md px-2 text-nowrap" :class="showInReplyTo ? 'bg-surface-high' : 'bg-surface-low'">
-		<p v-if="showInReplyTo" class="text-nowrap">
-			{{ t('message.in_reply_to') }}
-		</p>
+	<div class="flex w-fit cursor-pointer items-center gap-3 truncate rounded-md px-2 text-nowrap" :class="showInReplyTo ? 'bg-surface-elevated' : 'bg-surface-background'">
+		<Icon v-if="showInReplyTo" type="arrow-bend-up-left" size="sm" class="text-on-surface-dim shrink-0" />
 		<p :class="textColor(userColor)">
 			<UserDisplayName :userId="event.sender || t('delete.user')" :userDisplayName="user.userDisplayName(event.sender ?? '')" />
 		</p>
@@ -21,8 +19,8 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	import { useMentions } from '@hub-client/composables/useMentions';
 	// Composables
+	import { useMentions } from '@hub-client/composables/useMentions';
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
 	// Models

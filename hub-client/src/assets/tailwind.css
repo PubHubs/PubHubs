@@ -340,6 +340,17 @@
 	-webkit-touch-callout: none;
 }
 
+/* Highlight applied programmatically by useTimelineScroll.applyHighlight */
+.highlighted {
+	background: var(--color-surface-base);
+	transition: background 0.2s ease-in;
+}
+
+.highlighted.unhighlighted {
+	background: none;
+	transition: background 1s ease-out;
+}
+
 @layer base {
 	html {
 		font-kerning: normal;
