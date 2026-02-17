@@ -2,7 +2,7 @@
 
 use std::ops::Deref;
 
-use digest::Digest;
+use sha2::digest::Digest;
 
 use crate::api;
 use crate::elgamal;

@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
-use digest::Digest as _;
+use sha2::digest::Digest as _;
 
 use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
 use crate::{

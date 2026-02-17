@@ -53,6 +53,8 @@ const nl = {
 		retry_with_new_attr: 'Voeg uw attribuuten opnieuw toe in Yivi en probeer het nog een keer.',
 		no_hubs_found: 'Helaas konden we geen hubs tonen.  Probeer het later opnieuw en neem contact op met de ontwikkelaars als het probleem blijft bestaan.',
 		cant_find: 'Sorry, we konden de pagina of kamer die u zocht niet vinden.',
+		notid_attribute_already_taken: 'Je hebt het telefoonnummer al voor een ander account gebruikt, wil je toch een nieuw account aanmaken klik dan op ok en probeer het opnieuw',
+		notid_taken_title: 'Telefoonnummer is al in gebruik',
 	},
 	file: {
 		upload: 'Upload',

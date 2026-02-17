@@ -26,16 +26,15 @@ serde_repr = { version = "0.1" }
 serde_bytes = { version = "0.11" }
 serde_json = { version = "1.0" }
 serde_urlencoded = { version = "0.7" }
-toml = { version = "0.9" }
+toml = { version = "1.0" }
 postcard = { version = "1.1", features = [ "use-std" ] }
 
 # better hashmap/hashset, supported by serde_json & toml
 indexmap = { version = "2.11", features = [ "serde" ] }
 
-# Database interaction
-rand = { version = "0.9" } 
+rand = { version = "0" } 
 # note: object_store is used by crates.io
-object_store = { version = "0.12", features = ["aws"] } 
+object_store = { version = "0.13", features = ["aws"] } 
 
 # Yivi interaction
 qrcode = { version = "0.14" }
@@ -56,7 +55,7 @@ awc = { version = "3.8", features = ["rustls-0_23-webpki-roots"] }
 
 # RustCrypto packages
 aead = { version = "0.5", features=["getrandom"] }
-base16ct = { version = "0.3", features = ["alloc"] } # hex
+base16ct = { version = "1.0", features = ["alloc"] } # hex
 base64ct = { version = "1.8", features = ["alloc"] }
 chacha20poly1305 = { version = "0.10" }
 curve25519-dalek = { version = "4.1.3", features = ["rand_core", "digest", "serde", "zeroize"] }
@@ -64,10 +63,9 @@ ed25519-dalek = { version = "2.2", features = ["rand_core", "serde"] }
 rsa = { version = "0.9", features = ["sha2"] }
 hmac = { version = "0.12" }
 zeroize = { version = "1.8", features = [ "zeroize_derive" ] }
-sha2 = { version = "0.10" }
+sha2 = { version = "0" }
 subtle = { version = "2.6" }
 typenum = { version = "1.19" }
-digest = { version = "0" }
 
 #metrics
 futures = { version = "0.3" }

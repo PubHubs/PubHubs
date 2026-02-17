@@ -54,6 +54,8 @@ const en = {
 		retry_with_new_attr: 'Please add your attributes again in Yivi and retry.',
 		no_hubs_found: 'Unfortunately we could not show any hubs. Try again later and contact the developers if the problem persists.',
 		cant_find: 'Sorry, we could not find the page or room that you were looking for.',
+		notid_attribute_already_taken: 'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
+		notid_taken_title: 'Phone number already in use',
 	},
 	file: {
 		upload: 'Upload',
