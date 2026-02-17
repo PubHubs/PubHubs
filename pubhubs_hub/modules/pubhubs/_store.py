@@ -28,8 +28,8 @@ class HubStore:
     """
 
     def __init__(self, module_api: ModuleApi, config: dict):
-        self.config = config
-        self.module_api = module_api
+        self._config = config
+        self._module_api = module_api
 
 
     async def create_tables(self) -> None:
@@ -93,7 +93,7 @@ class HubStore:
                 (),
             )
 
-        await self.module_api.run_db_interaction(
+        await self._module_api.run_db_interaction(
             "allowed_and_secured_rooms_create_tables",
             create_tables_txn,
         )
@@ -119,7 +119,7 @@ class HubStore:
             row = txn.fetchone()
             return row is not None
 
-        return await self.module_api.run_db_interaction(
+        return await self._module_api.run_db_interaction(
             "allowed_to_join_room_select",
             is_allowed_txn,
             user_id,
@@ -170,7 +170,7 @@ class HubStore:
                 )
 
 
-        await self.module_api.run_db_interaction(
+        await self._module_api.run_db_interaction(
             "allowed_to_join_room_insert",
             allow_txn,
             user_id,
@@ -197,7 +197,7 @@ class HubStore:
             )
             return txn.fetchall()
 
-        result = await self.module_api.run_db_interaction(
+        result = await self._module_api.run_db_interaction(
             "set_expiry_from_user_txn",
             set_expiry_from_user_txn,
 
@@ -206,7 +206,7 @@ class HubStore:
         for row in result:
             user_id, room_id =  row
             try:
-                await self.module_api.update_room_membership(user_id, user_id, room_id, "leave")
+                await self._module_api.update_room_membership(user_id, user_id, room_id, "leave")
             except Exception as e:
                 logger.error(f"Could not remove user with id {user_id} from room {room_id} after the user was expired, Error: {e}")
            
@@ -226,7 +226,7 @@ class HubStore:
             return txn.fetchone()
 
 
-        return await self.module_api.run_db_interaction(
+        return await self._module_api.run_db_interaction(
             "get_room_expiration_time_days",
             get_room_expiration_time_days_txn,
             room_id,
@@ -245,7 +245,7 @@ class HubStore:
 
             return txn.fetchall()
 
-        rooms = await self.module_api.run_db_interaction(
+        rooms = await self._module_api.run_db_interaction(
             "get_secured_rooms",
             get_secured_rooms_txn
         )
@@ -270,7 +270,7 @@ class HubStore:
 
             return txn.fetchone()
 
-        room = await self.module_api.run_db_interaction(
+        room = await self._module_api.run_db_interaction(
             "get_secured_room",
             get_secured_room_txn,
             id
@@ -292,7 +292,7 @@ class HubStore:
                         (room_tx.room_id, json.dumps(room_tx.accepted, default=RoomAttributeEncoder().default), room_tx.user_txt,room_tx.expiration_time_days )
                     )
 
-        await self.module_api.run_db_interaction(
+        await self._module_api.run_db_interaction(
             "create secured room",
             create_secured_room_txn,
             room
@@ -314,7 +314,7 @@ class HubStore:
                  room_tx.room_id)
             )
 
-        await self.module_api.run_db_interaction(
+        await self._module_api.run_db_interaction(
             "update_secured_room",
             update_secured_room_txn,
             room,
@@ -334,7 +334,7 @@ class HubStore:
                 (json.dumps(room_tx.accepted, default=RoomAttributeEncoder().default), room_tx.expiration_time_days  ,room_tx.user_txt, room_tx.room_id)
             )
 
-        await self.module_api.run_db_interaction(
+        await self._module_api.run_db_interaction(
             "delete_secured_room",
             delete_secured_room_txn,
             room,
@@ -357,7 +357,7 @@ class HubStore:
                     )
                 return txn.fetchall()
             
-            return await self.module_api.run_db_interaction(
+            return await self._module_api.run_db_interaction(
                     "retrieve_room_timestamps",
                     all_rooms_latest_timestamp_txn
         ) 
@@ -379,7 +379,7 @@ class HubStore:
                 )
                 return txn.fetchall()
             
-            return await self.module_api.run_db_interaction(
+            return await self._module_api.run_db_interaction(
                     "user_join_time",
                     user_join_time_txn,
                     user_id,
@@ -401,7 +401,7 @@ class HubStore:
                 (room_id_txn,),
             )
 
-        await self.module_api.run_db_interaction(
+        await self._module_api.run_db_interaction(
             "remove_users_from_secured_room",
             remove_users_from_secured_room_txn,
             room_id,
@@ -427,7 +427,7 @@ class HubStore:
                 (room_id_txn, user_id_txn),
             )
 
-        await self.module_api.run_db_interaction(
+        await self._module_api.run_db_interaction(
             "remove_allowed_join_room_row",
             remove_allowed_join_room_row_txn,
             room_id,
@@ -454,7 +454,7 @@ class HubStore:
                 row = txn.fetchone()
                 return row is not None
 
-            return await self.module_api.run_db_interaction(
+            return await self._module_api.run_db_interaction(
                 "has_join_hub_select",
                 has_joined_txn,
                 user_id,
@@ -471,7 +471,7 @@ class HubStore:
             
             return txn.fetchall()
 
-        return await self.module_api.run_db_interaction(
+        return await self._module_api.run_db_interaction(
             "get_hub_admins",
             get_hub_admins_txn
         )
@@ -486,7 +486,7 @@ class HubStore:
             )
             return txn.fetchone()
     
-        return await self.module_api.run_db_interaction(
+        return await self._module_api.run_db_interaction(
             "Getting user consent version",
             get_user_consent_version_txn,
             user_id
@@ -501,7 +501,7 @@ class HubStore:
                 (accepted_consent_version, user_id)
             )
     
-        await self.module_api.run_db_interaction(
+        await self._module_api.run_db_interaction(
             "Setting user consent version",
             set_user_consent_version_txn,
             accepted_consent_version,
