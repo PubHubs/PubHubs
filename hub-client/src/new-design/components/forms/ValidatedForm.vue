@@ -1,7 +1,6 @@
 <template>
 	<form class="relative flex flex-col gap-200">
-		<div v-if="disabled" class="absolute z-50 h-full w-full cursor-not-allowed"></div>
-		<slot :isValidated="isValidated" :isDisabled="disabled"></slot>
+		<slot :isValidated="isValidated"></slot>
 	</form>
 </template>
 
@@ -31,6 +30,7 @@
 	const emit = defineEmits(['validated']);
 
 	const isValidated = computed(() => {
+		if (props.disabled) return false;
 		let changed = false;
 		let validated = true;
 		fields.value.forEach((field) => {
@@ -53,4 +53,5 @@
 	};
 
 	provide('addField', addField);
+	provide('formDisabled', props.disabled);
 </script>

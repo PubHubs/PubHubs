@@ -13,7 +13,7 @@
 			</div>
 		</template>
 
-		<ValidatedForm v-if="roomLoaded" @keydown.enter.stop v-slot="{ isValidated }" :disabled="pDrop" class="p-200">
+		<ValidatedForm v-if="roomLoaded" @keydown.enter.stop v-slot="{ isValidated }" :disabled="waitForServer" class="p-200">
 			<TextField v-model="editRoom.name" :validation="{ required: true, maxLength: roomValidations.maxNameLength }" :placeholder="t('admin.name_placeholder')" :show-length="true">{{ t('admin.name') }}</TextField>
 			<TextField v-model="editRoom.topic" :validation="{ maxLength: roomValidations.maxTopicLength }" :placeholder="t('admin.topic_placeholder')" :show-length="true">{{ t('admin.topic') }}</TextField>
 			<TextField v-if="!isSecured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
@@ -98,7 +98,7 @@
 			</ButtonGroup>
 		</ValidatedForm>
 
-		<div v-if="pDrop" class="mt-200 flex w-full">
+		<div v-if="waitForServer" class="mt-200 flex w-full">
 			<div class="mx-auto">
 				<InlineSpinner></InlineSpinner>
 			</div>
@@ -164,7 +164,7 @@
 	let OriginalAttributes: Array<TEditRoomFormAttributes> = [{ label: '', attribute: '', accepted: [], profile: false }];
 	const errorMessage = ref<string | undefined>(undefined);
 	const roomLoaded = ref(false);
-	const pDrop = ref(false);
+	const waitForServer = ref(false);
 
 	// editRoom typed as union; we'll narrow when submitting
 	const editRoom = ref<TEditRoom | TSecuredRoom>({
@@ -201,12 +201,12 @@
 
 	onBeforeMount(async () => {
 		// Make sure rooms are loaded, probably they are, but not if a stewards edits
-		pDrop.value = true;
+		waitForServer.value = true;
 		await rooms.fetchPublicRooms();
 		if (isSecured.value) {
 			await rooms.fetchSecuredRooms();
 		}
-		pDrop.value = false;
+		waitForServer.value = false;
 		roomLoaded.value = true;
 
 		editRoom.value = emptyNewRoom as TEditRoom;
@@ -237,7 +237,7 @@
 				await editRoomComposable.updateSecuredRoom(isNewRoom.value, editRoom.value as TEditRoom, selectedAttributes.value, attributeChanged.value, props.id);
 				back();
 			} catch (error) {
-				waitForServer.value = false;
+				waitForServer.value = true;
 				errorMessage.value = t((error as Error).message);
 			}
 		}
