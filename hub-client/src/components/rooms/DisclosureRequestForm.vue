@@ -68,7 +68,6 @@
 
 	const { t } = useI18n();
 	const emit = defineEmits(['close']);
-	// const attribute = ref<string>('');
 	const selectUser = ref<boolean>(false);
 	const dropdown = ref<string | null>('notNull');
 	const yiviAttributes = yiviStore.getAttributes(t).map((item) => item.label);

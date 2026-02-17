@@ -3,12 +3,12 @@ type FieldInputType = any | Array<any>;
 
 type FieldOptionType = string | undefined;
 
-interface FieldOption {
+type FieldOption = {
 	label: string;
 	value: FieldOptionType;
 	icon?: string;
 	avatar?: string;
-}
+};
 
 type FieldOptions = Array<FieldOption | string>;
 
