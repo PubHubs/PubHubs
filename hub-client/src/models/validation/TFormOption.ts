@@ -1,5 +1,5 @@
 // Types
-type FieldInputType = any | Array<any>;
+type FieldInputType = string | number | boolean | undefined | Array<string | number | boolean>;
 
 type FieldOptionType = string | undefined;
 

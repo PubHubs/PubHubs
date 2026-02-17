@@ -151,7 +151,7 @@
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
-	import { FieldInputType, FieldOption, FieldOptions, FieldSelection } from '@hub-client/models/validation/TFormOption';
+	import { FieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { ValidationRule } from '@hub-client/models/validation/TValidate';
 
 	import { useUser } from '@hub-client/stores/user';

@@ -14,7 +14,7 @@
 	const props = withDefaults(
 		defineProps<{
 			variant?: TVariant;
-			icon?: string;
+			icon: string;
 			disabled?: boolean;
 			title?: string;
 			size?: 'base' | 'sm';

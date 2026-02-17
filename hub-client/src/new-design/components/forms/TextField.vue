@@ -1,6 +1,6 @@
 <template>
 	<ValidateField v-model="model" :name="fieldName" :validation="validation" :help="help" :info="lenText" v-slot="{ id, validated, required }" class="gap-075 mb-100 flex w-full flex-col items-start justify-start">
-		<Label :for="id" :required="required"><slot></slot></Label>
+		<Label :for="id"><slot></slot></Label>
 
 		<!-- Input element -->
 		<div class="flex w-full items-center">
@@ -16,7 +16,7 @@
 					:name="name"
 					:id="id"
 					:placeholder="placeholder"
-					@keypress="update()"
+					@input="update()"
 				/>
 				<input
 					v-else
@@ -30,7 +30,7 @@
 					:id="id"
 					:placeholder="placeholder"
 					:type="type"
-					@keypress="update()"
+					@input="update()"
 				/>
 			</div>
 		</div>

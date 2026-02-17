@@ -15,11 +15,9 @@
 	const props = withDefaults(
 		defineProps<{
 			for?: string;
-			required?: boolean;
 		}>(),
 		{
 			for: '',
-			required: false,
 		},
 	);
 </script>

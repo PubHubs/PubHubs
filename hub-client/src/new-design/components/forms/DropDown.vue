@@ -12,7 +12,7 @@
 		@keydown.enter.prevent="select(cursor)"
 		@keydown.esc.prevent="close"
 	>
-		<Label :for="id" :required="required"><slot></slot></Label>
+		<Label :for="id"><slot></slot></Label>
 
 		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" role="combobox" tabindex="0">
 			<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
@@ -87,7 +87,7 @@
 		setItems(props.options as Array<any>);
 		// Set selection
 		if (model.value) {
-			if (props.multiple) {
+			if (props.multiple && typeof model.value === 'object') {
 				for (let i = 0; i < model.value.length; i++) {
 					const idx = (props.options as Array<any>).findIndex((item) => item == model.value[i]);
 					if (idx >= 0) {
