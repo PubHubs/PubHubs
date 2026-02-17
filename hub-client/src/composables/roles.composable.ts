@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 
-import { TUserRole, UserAction, UserPowerLevel, roleActions } from '@hub-client/models/users/TUser';
+import { UserAction, UserPowerLevel, UserRole, UserRoleActions } from '@hub-client/models/users/TUser';
 
 import { useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
@@ -31,23 +31,23 @@ function useRoles() {
 		return powerLevel;
 	};
 
-	const getRoleByPowerLevel = (powerLevel: number): TUserRole => {
-		if (powerLevel == UserPowerLevel.Admin) return TUserRole.Admin;
-		if (powerLevel == UserPowerLevel.SuperSteward) return TUserRole.SuperSteward;
-		if (powerLevel == UserPowerLevel.Steward) return TUserRole.Steward;
-		if (powerLevel == UserPowerLevel.Expert) return TUserRole.Expert;
-		if (powerLevel == UserPowerLevel.User) return TUserRole.User;
-		return TUserRole.NoRole;
+	const getRoleByPowerLevel = (powerLevel: number): UserRole => {
+		if (powerLevel == UserPowerLevel.Admin) return UserRole.Admin;
+		if (powerLevel == UserPowerLevel.SuperSteward) return UserRole.SuperSteward;
+		if (powerLevel == UserPowerLevel.Steward) return UserRole.Steward;
+		if (powerLevel == UserPowerLevel.Expert) return UserRole.Expert;
+		if (powerLevel == UserPowerLevel.User) return UserRole.User;
+		return UserRole.User;
 	};
 
-	const userRole = (roomId: string | undefined = undefined): TUserRole => {
-		if (userIsSuperAdmin()) return TUserRole.Admin;
+	const userRole = (roomId: string | undefined = undefined): UserRole => {
+		if (userIsSuperAdmin()) return UserRole.Admin;
 		const powerLevel = userPowerLevel(roomId);
 		return getRoleByPowerLevel(powerLevel);
 	};
 
-	const userHasRole = (role: TUserRole, roomId: string | undefined = undefined): boolean => {
-		assert(role in TUserRole, 'Given role not a defined role');
+	const userHasRole = (role: UserRole, roomId: string | undefined = undefined): boolean => {
+		assert(role in UserRole, 'Given role not a defined role');
 		return role === userRole(roomId);
 	};
 
@@ -56,29 +56,29 @@ function useRoles() {
 	};
 
 	const userIsAdmin = (roomId: string | undefined = undefined): boolean => {
-		return userHasRole(TUserRole.Admin, roomId);
+		return userHasRole(UserRole.Admin, roomId);
 	};
 
 	const userIsSuperSteward = (roomId: string | undefined = undefined): boolean => {
-		return userHasRole(TUserRole.SuperSteward, roomId);
+		return userHasRole(UserRole.SuperSteward, roomId);
 	};
 
 	const userIsSteward = (roomId: string | undefined = undefined): boolean => {
-		return userHasRole(TUserRole.Steward, roomId);
+		return userHasRole(UserRole.Steward, roomId);
 	};
 
 	const userIsUser = (roomId: string | undefined = undefined): boolean => {
-		return userHasRole(TUserRole.User, roomId);
+		return userHasRole(UserRole.User, roomId);
 	};
 
-	const userHasAccessForRoles = (roles: Array<TUserRole>, roomId: string | undefined = undefined): boolean => {
+	const userHasAccessForRoles = (roles: Array<UserRole>, roomId: string | undefined = undefined): boolean => {
 		return roles.includes(userRole(roomId));
 	};
 
 	const userHasPermissionForAction = (action: UserAction, roomId: string | undefined = undefined): boolean => {
 		assert(action in UserAction, 'Given action not a defined action');
 		const role = userRole(roomId);
-		return roleActions[role].includes(action);
+		return UserRoleActions[role].includes(action);
 	};
 
 	return {

@@ -1,9 +1,9 @@
-export type TUser = {
+type TUser = {
 	userId: string;
 	rawDisplayName?: string;
 };
 
-export type TUserAccount = {
+type TUserAccount = {
 	name: string;
 	user_type: string | null;
 	is_guest: boolean;
@@ -19,22 +19,21 @@ export type TUserAccount = {
 	locked: boolean;
 };
 
-export type TUserAccountList = {
+type TUserAccountList = {
 	users: TUserAccount[];
 	next_token: string;
 	total: number;
 };
 
-export enum TUserRole {
+enum UserRole {
 	Admin = 'Admin',
 	SuperSteward = 'SuperSteward',
 	Steward = 'Steward',
 	Expert = 'Expert',
 	User = 'User',
-	NoRole = '',
 }
 
-export enum UserPowerLevel {
+enum UserPowerLevel {
 	Admin = 100,
 	SuperSteward = 75,
 	Steward = 50,
@@ -43,7 +42,7 @@ export enum UserPowerLevel {
 }
 
 // Actions that the user can carry out
-export enum UserAction {
+enum UserAction {
 	Invite = 'Invite',
 	AdminPanel = 'AdminPanel',
 	StewardPanel = 'StewardPanel',
@@ -53,15 +52,17 @@ export enum UserAction {
 }
 
 // Which actions which role can perform
-export const roleActions = {
-	[TUserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel, UserAction.RoomAnnouncement],
-	[TUserRole.SuperSteward]: [UserAction.Invite],
-	[TUserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement],
-	[TUserRole.Expert]: [UserAction.MessageSteward],
-	[TUserRole.User]: [],
-};
+const UserRoleActions = {
+	[UserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel, UserAction.RoomAnnouncement],
+	[UserRole.SuperSteward]: [UserAction.Invite],
+	[UserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement],
+	[UserRole.Expert]: [UserAction.MessageSteward],
+	[UserRole.User]: [],
+} as Record<UserRole, UserAction[]>;
 
-export type TUserJoinedRooms = {
+type TUserJoinedRooms = {
 	joined_rooms: string[];
 	total: number;
 };
+
+export { TUser, TUserAccount, TUserAccountList, UserRole, UserPowerLevel, UserAction, UserRoleActions, TUserJoinedRooms };

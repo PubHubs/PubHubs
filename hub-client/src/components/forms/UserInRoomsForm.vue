@@ -68,7 +68,7 @@
 	// Models
 	import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
 	import { UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
-	import { TUserJoinedRooms, TUserRole, UserPowerLevel } from '@hub-client/models/users/TUser';
+	import { TUserJoinedRooms, UserPowerLevel, UserRole } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
@@ -170,8 +170,8 @@
 
 	function getTagClassBasedOnRole(powerLevel: number) {
 		const currentRole = roles.getRoleByPowerLevel(powerLevel);
-		if (currentRole === TUserRole.Admin) return 'bg-accent-red';
-		if (currentRole === TUserRole.Steward) return 'bg-accent-lime';
+		if (currentRole === UserRole.Admin) return 'bg-accent-red';
+		if (currentRole === UserRole.Steward) return 'bg-accent-lime';
 		return 'bg-accent-yellow';
 	}
 </script>

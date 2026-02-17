@@ -6,7 +6,7 @@ import { useRoles } from '@hub-client/composables/roles.composable';
 
 // Models
 import { OnboardingType } from '@hub-client/models/constants';
-import { TUserRole } from '@hub-client/models/users/TUser';
+import { UserRole } from '@hub-client/models/users/TUser';
 
 import { useHubSettings } from '@hub-client/stores/hub-settings';
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
@@ -31,19 +31,19 @@ const routes = [
 		path: '/admin',
 		name: 'admin',
 		component: () => import('@hub-client/pages/Admin.vue'),
-		meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/manage-users',
 		name: 'manage-users',
 		component: () => import('@hub-client/pages/ManageUsers.vue'),
-		meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/hub-settings',
 		name: 'hub-settings',
 		component: () => import('@hub-client/pages/HubSettings.vue'),
-		meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/direct-msg',
@@ -75,13 +75,13 @@ const routes = [
 		path: '/icons',
 		name: 'icons',
 		component: () => import('@hub-client/pages/Icons.vue'),
-		// meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
+		// meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/design',
 		name: 'design',
 		component: () => import('@hub-client/pages/NewDesign.vue'),
-		// meta: { accessFor: [TUserRole.Admin], hideBar: true, onboarding: true },
+		// meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
 
 	{
@@ -132,7 +132,7 @@ router.beforeEach((to, from) => {
 		if (to.params.id) {
 			roomId = to.params.id as string;
 		}
-		if (roles.userHasAccessForRoles(to.meta.accessFor as Array<TUserRole>, roomId)) {
+		if (roles.userHasAccessForRoles(to.meta.accessFor as Array<UserRole>, roomId)) {
 			return true;
 		}
 		console.error('ONLY FOR ROLES: ', to.meta.accessFor, roomId);
