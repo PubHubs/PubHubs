@@ -99,9 +99,10 @@
 									v-if="!viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage && !room.isDirectMessageRoom()"
 									@click="replyInThread"
 									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-									:class="threadLength > 0 ? 'bg-accent-primary hover:text-accent-primary flex hover:bg-transparent' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
+									:class="threadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
 									:title="t('message.reply_in_thread')"
 								>
+									<span v-if="threadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ threadLength }}</span>
 									<Icon type="chat-circle" />
 								</button>
 
