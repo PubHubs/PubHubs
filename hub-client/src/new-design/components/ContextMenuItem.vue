@@ -15,24 +15,13 @@
 	</button>
 </template>
 
-<script lang="ts">
-	// Types
-	export type ContextMenuItemProps = {
-		ariaLabel?: string;
-		disabled?: boolean;
-		icon?: string;
-		isDelicate?: boolean;
-		label: string;
-		title?: string;
-	};
-</script>
-
 <script setup lang="ts">
 	// Packages
 	import { computed } from 'vue';
 
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
+	import type { ContextMenuItemProps } from '@hub-client/new-design/models/contextMenu.models';
 
 	// Props
 	const props = withDefaults(defineProps<ContextMenuItemProps>(), {

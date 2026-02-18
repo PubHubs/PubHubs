@@ -2,7 +2,8 @@
 import { SystemDefaults } from '@hub-client/models/constants';
 
 // New design
-import { type MenuItem, useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 export function useContextMenu() {
 	const store = useContextMenuStore();

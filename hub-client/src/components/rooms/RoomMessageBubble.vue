@@ -208,7 +208,8 @@
 
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { MenuItem, useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+	import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const contextMenuStore = useContextMenuStore();
 	const { openMenu } = useContextMenu();
