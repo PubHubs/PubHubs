@@ -12,7 +12,7 @@
 			<div class="h-full" />
 
 			<template v-if="reversedTimeline.length > 0">
-				<div v-for="item in reversedTimeline" :key="item.matrixEvent.event.event_id">
+				<div v-for="(item, index) in reversedTimeline" :key="item.matrixEvent.event.event_id">
 					<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
 						<RoomMessageBubble
 							class="room-event"
@@ -20,6 +20,8 @@
 							:event="item.matrixEvent.event"
 							:event-thread-length="item.threadLength"
 							:deleted-event="item.isDeleted"
+							:is-grouped="isGroupedMessage(index)"
+							:is-followed-by-grouped="isFollowedByGrouped(index)"
 							:data-event-id="item.matrixEvent.event.event_id"
 							:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
 							:active-reaction-panel="activeReactionPanel"
@@ -32,8 +34,8 @@
 							@clicked-emoticon="sendEmoji"
 						>
 							<template #reactions>
-								<div class="mt-2 ml-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
+								<div v-if="reactionExistsForMessage(item)" class="mt-2 mb-1 flex flex-wrap gap-2" :class="isMobile ? 'px-2' : 'px-5'">
+									<Reaction :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!" class="pl-16"></Reaction>
 								</div>
 							</template>
 						</RoomMessageBubble>
@@ -77,12 +79,12 @@
 
 	// Logic
 	import { ElementObserver } from '@hub-client/logic/core/elementObserver';
-	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
+	import { PubHubsInvisibleMsgType, PubHubsMgType } from '@hub-client/logic/core/events';
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RelationType, ScrollPosition, TimelineScrollConstants } from '@hub-client/models/constants';
+	import { RelationType, ScrollPosition, SystemDefaults, TimelineScrollConstants } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
@@ -110,10 +112,12 @@
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
 
 	const { DELAY_RECEIPT_MESSAGE, PAGINATION_COOLDOWN } = TimelineScrollConstants;
+	const { messageGroupGap } = SystemDefaults;
 
 	let dateInformation = ref<number>(0);
 	let eventToBeDeletedIsThreadRoot: boolean = false;
 	let eventObserver: ElementObserver | null = null;
+	const isMobile = computed(() => settings.isMobileState);
 
 	const props = defineProps({
 		room: {
@@ -145,8 +149,33 @@
 	});
 
 	/**
-	 * Timeline in chronological order [oldest, ..., newest]
+	 * Whether the message at `index` in `reversedTimeline` is a visual continuation
+	 * of the previous message (same sender, no special types, within time gap).
 	 */
+	function isGroupedMessage(index: number): boolean {
+		const current = reversedTimeline.value[index];
+		const previous = reversedTimeline.value[index + 1]; // Previous chronologically = next index in reversed array
+
+		if (!current || !previous) return false;
+		if (current.matrixEvent.event.sender !== previous.matrixEvent.event.sender) return false;
+
+		const currentMsgType = current.matrixEvent.event.content?.msgtype;
+		const previousMsgType = previous.matrixEvent.event.content?.msgtype;
+		if (currentMsgType === PubHubsMgType.AnnouncementMessage || previousMsgType === PubHubsMgType.AnnouncementMessage) return false;
+
+		const currentTs = current.matrixEvent.event.origin_server_ts || 0;
+		const previousTs = previous.matrixEvent.event.origin_server_ts || 0;
+		if (currentTs - previousTs > messageGroupGap) return false;
+
+		return true;
+	}
+
+	// Whether the next chronological message continues the same group
+	function isFollowedByGrouped(index: number): boolean {
+		return index > 0 && isGroupedMessage(index - 1);
+	}
+
+	// Timeline in chronological order [oldest, ..., newest]
 	const roomTimeLine = computed(() => {
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		timelineVersion.value; // Dependency to trigger re-computation
