@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, watch } from 'vue';
+	import { computed, onMounted, ref } from 'vue';
 
 	// Composables
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
@@ -53,10 +53,15 @@
 		disabled: undefined,
 	});
 
-	// const emit = defineEmits(usedEvents);
-	const search = defineModel<InputType>();
+	const search = ref<InputType>();
+	const selected = defineModel<InputType>();
+
 	const { slotDefault, update } = useFormInput(props, search);
 	const { setItems, cursor, cursorDown, cursorUp, reset, selectItemByEnter } = useKeyStrokes();
+
+	onMounted(() => {
+		search.value = selected.value;
+	});
 
 	const label = computed(() => {
 		return props.name ? props.name : slotDefault.value;
@@ -81,6 +86,7 @@
 		let matches = 0;
 		const result = labeledOptions.value.filter((item) => {
 			const searchValue = (search.value?.toString() || '').toLowerCase();
+			// Make sure that only searched in alphabetical characters, so 'email' will find 'e-mail'.
 			const label = item.label.replace(/[^a-zA-Z ]/g, '').toLowerCase();
 			if (label.includes(searchValue) && matches < 10 && label.toLowerCase() !== searchValue) {
 				matches++;
@@ -101,18 +107,12 @@
 	};
 
 	const select = (item: any) => {
-		if (item.value) {
-			search.value = item.value;
+		selected.value = item;
+		if (item.label) {
+			search.value = item.label;
 		} else {
 			search.value = item;
 		}
 		update();
 	};
-
-	// Watch for manual input and update output value even if not in the list
-	watch(search, (newValue) => {
-		if (typeof newValue === 'string') {
-			update();
-		}
-	});
 </script>
