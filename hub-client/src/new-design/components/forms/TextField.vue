@@ -1,5 +1,5 @@
 <template>
-	<ValidateField v-model="model" :name="fieldName" :validation="validation" :help="help" :info="lenText" v-slot="{ id, validated, required }" class="gap-075 mb-100 flex w-full flex-col items-start justify-start">
+	<ValidateField :help="help" :info="lenText" :name="fieldName" :validation="validation" v-model="model" v-slot="{ id, validated, required }" class="gap-075 mb-100 flex w-full flex-col items-start justify-start">
 		<Label :for="id"><slot></slot></Label>
 
 		<!-- Input element -->
@@ -41,33 +41,33 @@
 	// Packages
 	import { computed, onMounted, ref, useAttrs, watch } from 'vue';
 
+	// Models
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
-	// Composables
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	// New design
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			name?: string;
-			id?: string;
-			placeholder?: string;
-			help?: string;
-			validation?: FieldValidations;
-			type?: string;
 			disabled?: boolean;
+			help?: string;
+			id?: string;
+			name?: string;
+			placeholder?: string;
 			showLength?: boolean;
+			type?: string;
+			validation?: FieldValidations;
 		}>(),
 		{
-			placeholder: '',
-			help: '',
-			validation: undefined,
-			type: 'text',
 			disabled: false,
+			help: '',
+			placeholder: '',
 			showLength: false,
+			type: 'text',
+			validation: undefined,
 		},
 	);
 
@@ -75,24 +75,9 @@
 	const model = defineModel<string | number>();
 	const modelLen = ref(0);
 
-	watch(model, () => {
-		calculateLen();
-	});
-
 	const { slotDefault, fieldName, update } = useFormInput(props, model);
 
-	onMounted(() => {
-		// Accessibility
-		if (process.env.NODE_ENV !== 'production') {
-			const hasVisibleLabel = !!slotDefault.value || !!props.name;
-			const hasAriaLabel = !!(attrs as any)['aria-label'];
-			if (!hasVisibleLabel && !hasAriaLabel) {
-				console.warn('[TextInput] Accessible name missing. Provide either a visible label (slot / name prop) or `aria-label` attribute.');
-			}
-		}
-		calculateLen();
-	});
-
+	// Computed
 	const maxLen = computed(() => {
 		if (!props.validation) return false;
 		if (!props.validation.maxLength) return false;
@@ -112,5 +97,21 @@
 	const lenText = computed(() => {
 		if (maxLen.value === false) return false;
 		return modelLen.value + ' / ' + maxLen.value;
+	});
+
+	// Lifecycle
+	watch(model, () => {
+		calculateLen();
+	});
+
+	onMounted(() => {
+		if (process.env.NODE_ENV !== 'production') {
+			const hasVisibleLabel = !!slotDefault.value || !!props.name;
+			const hasAriaLabel = !!(attrs as any)['aria-label'];
+			if (!hasVisibleLabel && !hasAriaLabel) {
+				console.warn('[TextField] Accessible name missing. Provide either a visible label (slot / name prop) or `aria-label` attribute.');
+			}
+		}
+		calculateLen();
 	});
 </script>
