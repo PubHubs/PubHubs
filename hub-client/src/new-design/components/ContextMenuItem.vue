@@ -3,7 +3,6 @@
 		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex w-full flex-row gap-150 px-175 py-100 not-focus:pl-[17.5px] first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer focus:border-l-4 disabled:cursor-not-allowed"
 		role="menuitem"
 		type="button"
-		v-bind="attrs"
 		:aria-disabled="props.disabled ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
 		:class="disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface'"
@@ -30,7 +29,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, useAttrs } from 'vue';
+	import { computed } from 'vue';
 
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
@@ -40,8 +39,6 @@
 		disabled: false,
 		isDelicate: false,
 	});
-
-	const attrs = useAttrs();
 
 	// Computed
 	const computedAriaLabel = computed(() => {
