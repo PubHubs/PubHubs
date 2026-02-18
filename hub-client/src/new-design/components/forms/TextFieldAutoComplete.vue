@@ -10,21 +10,22 @@
 		@keydown.arrow-up.prevent="cursorUp()"
 		@keydown.enter.stop="enter()"
 		@keydown.esc.stop="stop()"
-		@focusout.stop.prevent="stop()"
+		@focusin="focus(true)"
+		@focusout="focus(false, 100)"
 	>
 		<Label :for="id"><slot></slot></Label>
 
-		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" role="combobox" tabindex="0">
+		<div :id="id" class="bg-surface-low outline-offset-thin ring-on-accent-primary flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" role="combobox" tabindex="0">
 			<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap">
 				<DropDownValue :input="true" :value="selected" :placeholder="placeholder" @filter="searched($event)"></DropDownValue>
 			</div>
 		</div>
 
 		<ul
-			v-if="result.length > 0"
-			class="text-on-surface-dim bg-surface-base outline-offset-thin outline-on-accent-primary ring-on-accent-primary absolute top-800 z-50 w-full justify-start rounded-lg rounded-t-none border border-t-0 px-175 py-100 ring-3 outline"
+			v-if="result.length > 0 && hasFocus"
+			class="text-on-surface-dim bg-surface-base outline-offset-thin outline-on-accent-primary absolute top-800 z-50 w-full justify-start rounded-lg rounded-t-none border border-t-0 px-175 py-100 outline"
 		>
-			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="hover:text-on-surface-bright cursor-pointer" :class="{ '': cursor === index }">
+			<li v-for="(item, index) in result" :key="index" @click="select(item)" class="hover:text-on-surface-bright cursor-pointer" :class="{ '': cursor === index }">
 				<DropDownValue :value="item" role="option"></DropDownValue>
 			</li>
 		</ul>
@@ -42,10 +43,8 @@
 	import { FieldOption, FieldOptions, InputType, LabeledFieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
-	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
-	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	// New design
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
@@ -70,6 +69,7 @@
 	);
 
 	const search = ref<InputType>('');
+	const hasFocus = ref(false);
 	const selected = defineModel<InputType>();
 
 	const { fieldName, slotDefault, update } = useFormInput(props, search);
@@ -129,22 +129,29 @@
 		} else {
 			search.value = item as unknown as InputType;
 		}
-		console.info('select', selected.value);
 		update();
 	};
 
 	const searched = (event: string) => {
-		console.info('searched', event);
 		search.value = event;
 	};
 
+	const focus = (focus: boolean, wait: number = 0) => {
+		const doFocus = (focus: boolean) => {
+			hasFocus.value = focus;
+		};
+		if (wait) {
+			setTimeout(() => {
+				doFocus(focus);
+			}, wait);
+		} else {
+			doFocus(focus);
+		}
+	};
+
 	const stop = () => {
-		// reset();
-		// if (selected.value) {
-		// 	search.value = selected.value;
-		// } else {
-		search.value = undefined;
-		// }
-		// search.value = '';
+		reset();
+		hasFocus.value = false;
+		search.value = '';
 	};
 </script>

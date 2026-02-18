@@ -44,7 +44,6 @@
 			if (props.input) {
 				filter.value = label.value;
 				hasChoosenOption.value = true;
-				console.info('watch');
 			}
 		},
 	);
@@ -73,7 +72,6 @@
 
 	const changedFilter = () => {
 		if (props.input) {
-			console.info('changedFilter');
 			hasChoosenOption.value = false;
 			emit('filter', filter.value);
 		}
