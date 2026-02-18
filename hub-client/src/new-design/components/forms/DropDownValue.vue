@@ -9,40 +9,35 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
 
+	// Components
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
+	// Models
 	import { FieldOption } from '@hub-client/models/validation/TFormOption';
 
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	// Props
-	const props = withDefaults(
-		defineProps<{
-			value: FieldOption | string;
-		}>(),
-		{},
-	);
+	const props = defineProps<{
+		value: FieldOption | string;
+	}>();
 
-	const label = computed(() => {
-		if (props.value) {
-			if (props.value.label) return props.value.label;
-		}
-		return props.value;
+	// Computed
+	const avatar = computed(() => {
+		if (typeof props.value === 'string') return undefined;
+		return props.value?.avatar;
 	});
 
 	const icon = computed(() => {
-		if (props.value) {
-			if (props.value.icon) return props.value.icon;
-		}
-		return undefined;
+		if (typeof props.value === 'string') return undefined;
+		return props.value?.icon;
 	});
 
-	const avatar = computed(() => {
-		if (props.value) {
-			if (typeof props.value.avatar !== 'undefined') return props.value.avatar;
-		}
-		return undefined;
+	const label = computed(() => {
+		if (typeof props.value === 'string') return props.value;
+		return props.value?.label ?? props.value;
 	});
 </script>

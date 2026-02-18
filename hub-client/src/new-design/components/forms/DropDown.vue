@@ -1,12 +1,12 @@
 <template>
 	<ValidateField
-		v-model="model"
 		:name="fieldName"
 		:validation="validation"
 		:help="help"
+		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
 		v-slot="{ id, validated, required }"
 		v-click-outside="close"
-		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+		v-model="model"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
 		@keydown.enter.prevent="select(cursor)"
@@ -48,7 +48,7 @@
 	import { FieldInputType, FieldOptions, FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
-	// Composables
+	// New design
 	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
@@ -58,21 +58,21 @@
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			options: FieldOptions;
+			disabled?: boolean;
+			help?: string;
+			id?: string;
 			multiple?: boolean;
 			name?: string;
-			id?: string;
+			options: FieldOptions;
 			placeholder?: string;
-			help?: string;
 			validation?: FieldValidations;
-			disabled?: boolean;
 		}>(),
 		{
+			disabled: false,
+			help: '',
 			multiple: false,
 			placeholder: '',
-			help: '',
 			validation: undefined,
-			disabled: false,
 		},
 	);
 
@@ -81,7 +81,7 @@
 	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 	const { fieldName, update, changed } = useFormInput(props, model);
 
-	const selection = ref<FieldSelection>([]); // Selection of choosen indexes
+	const selection = ref<FieldSelection>([]); // Selection of chosen indexes
 
 	onMounted(() => {
 		setItems(props.options as Array<any>);
