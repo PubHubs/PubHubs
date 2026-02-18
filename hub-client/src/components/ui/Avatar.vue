@@ -9,6 +9,8 @@
 	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// Composables
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 

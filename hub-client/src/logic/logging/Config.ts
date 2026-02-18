@@ -30,7 +30,7 @@ export default class Config {
 				this._env[key] = import.meta.env[vite_key];
 			}
 		}
-		console.log('CONFIG', this._env);
+		if (this._productionMode !== 'testing') console.log('CONFIG', this._productionMode, this._env);
 	}
 
 	public get productionMode(): ProductionMode {

@@ -62,7 +62,7 @@ class Api {
 			}
 			options.headers['Authorization'] = 'Bearer ' + this.accessToken;
 		}
-		console.log(url);
+		// console.log(url);
 		const response = await fetch(url, options as RequestInit);
 		if (!response.ok) {
 			try {
