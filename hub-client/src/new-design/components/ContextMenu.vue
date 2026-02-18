@@ -21,7 +21,7 @@
 				:is-delicate="item.isDelicate"
 				:label="item.label"
 				:title="item.title"
-				@click="onItemClick(item)"
+				@click="store.select(item)"
 				@mousedown.stop
 			/>
 		</div>
@@ -36,13 +36,17 @@
 	import ContextMenuItem from '@hub-client/new-design/components/ContextMenuItem.vue';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
+	// Constants
 	const POINTER_OFFSET = 8;
 	const GLOBAL_BAR_WIDTH = 80;
 
+	// State
 	const store = useContextMenuStore();
 	const menuRef = ref<HTMLElement | null>(null);
 	const itemButtons = ref<HTMLButtonElement[]>([]);
 	const pos = ref({ x: 0, y: 0 });
+
+	// Positioning
 
 	/**
 	 * Get visible boundaries for menu positioning.
@@ -132,14 +136,7 @@
 		itemButtons.value.find((b) => !b.disabled)?.focus();
 	};
 
-	/**
-	 * Handle menu item click.
-	 *
-	 * @param item - The clicked menu item
-	 */
-	const onItemClick = (item: any) => {
-		store.select(item);
-	};
+	// Keyboard navigation
 
 	/**
 	 * Focus the next enabled button in the given direction.
@@ -199,6 +196,7 @@
 		}
 	};
 
+	// Lifecycle
 	watch(
 		() => store.isOpen,
 		async (open) => {
