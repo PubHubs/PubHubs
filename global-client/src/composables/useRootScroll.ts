@@ -1,8 +1,7 @@
 /**
- * Layout root scroll helpers with Safari snap enforcement.
+ * Layout root scroll helpers with Safari snap enforcement
  */
 
-// Module-level state shared across all callers (global-client and hub-client)
 const SCROLL_DURATION = 150;
 let isProgrammaticScroll = false;
 let animationFrameId: number | null = null;
@@ -38,7 +37,7 @@ const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
 	animationFrameId = requestAnimationFrame(animateScroll);
 };
 
-/** Snaps to the nearest snap point — workaround for Safari ignoring scroll-snap-type: mandatory. */
+// Snaps to the nearest snap point (workaround for Safari ignoring scroll-snap-type: mandatory)
 const enforceSnap = () => {
 	const layoutRoot = document.getElementById('layout-root');
 	if (!layoutRoot || isProgrammaticScroll) return;
@@ -71,7 +70,7 @@ const useRootScroll = () => {
 		}
 	};
 
-	/** Listens for scroll-end to enforce snapping. Falls back to debounced scroll for older browsers. */
+	// Listens for scroll-end to enforce snapping
 	const setupSnapEnforcement = () => {
 		const layoutRoot = document.getElementById('layout-root');
 		if (!layoutRoot) return;
