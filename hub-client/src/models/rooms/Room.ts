@@ -652,11 +652,30 @@ export default class Room {
 		if (currentThreadEvents.length > 0 || redactions.length > 0) {
 			this.threadUpdated = !this.threadUpdated;
 		}
+
+		// Events in threads that are NOT in the currentThread only need to update the specific counters
+		// This is done by notifying them the length has changed
+		const otherThreadEvents = eventList.filter(
+			(event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread && this.currentThread?.threadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
+		);
+		if (otherThreadEvents.length > 0) {
+			// make a set of all the rootIds of the otherThreadEvents
+			const otherThreadEventIds = new Set(otherThreadEvents.map((x) => x.getContent()[RelationType.RelatesTo]![RelationType.EventId]));
+
+			const currentEvents = this.timelineManager.getEvents();
+
+			// get the visible other threads by checking on the id
+			const visibleOtherThreads = currentEvents.filter((x) => otherThreadEventIds.has(x.matrixEvent.event.event_id));
+			visibleOtherThreads.forEach((event) => {
+				event.thread.setMatrixThread(this.getOrCreateMatrixThread(event.matrixEvent.event.event_id!));
+				event.thread.getEvents(this.matrixRoom.client).then((x) => event.thread.notifyLengthChange());
+			});
+		}
+
 		// END THREADS
 
-		// Handle all other events and redactions, not in a thread
-		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread).slice(-SystemDefaults.roomTimelineLimit);
-		this.timelineManager.loadFromSlidingSync(nonThreadEvents).then((scrollToEventId) => {
+		const nonCurrentThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
+		this.timelineManager.loadFromSlidingSync(nonCurrentThreadEvents).then((scrollToEventId) => {
 			if (scrollToEventId) {
 				this.setCurrentEvent({ eventId: scrollToEventId });
 			}
@@ -702,7 +721,11 @@ export default class Room {
 		await this.timelineManager?.loadToEvent(currentEvent);
 	}
 
-	public findEventById(eventId: string): MatrixEvent | undefined {
+	public findTimelinEventById(eventId: string): TimelineEvent | undefined {
+		return this.timelineManager?.findTimelineEventById(eventId);
+	}
+
+	public findEventById(eventId: string | undefined): MatrixEvent | undefined {
 		return this.timelineManager?.findEventById(eventId);
 	}
 
@@ -794,29 +817,16 @@ export default class Room {
 		this.matrixRoom.off(ThreadEvent.Update, updateReplyListener);
 	}
 
-	public getThread(eventId: string | undefined): TRoomThread | undefined {
-		if (eventId) {
-			const thread = this.matrixRoom.getThread(eventId);
-			if (thread) {
-				return new TRoomThread(thread);
-			}
-		}
-		return undefined;
+	public getMatrixThread(eventId: string): Thread | undefined {
+		return this.matrixRoom.getThread(eventId) ?? undefined;
 	}
 
-	public getOrCreateThread(eventId: string | undefined): TRoomThread | undefined {
-		if (eventId) {
-			const thread = this.getThread(eventId);
-			if (thread) {
-				return thread;
-			} else {
-				const createdThread = this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
-				if (createdThread) {
-					return new TRoomThread(createdThread);
-				}
-			}
-		}
-		return undefined;
+	public createMatrixThread(eventId: string): Thread {
+		return this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
+	}
+
+	public getOrCreateMatrixThread(eventId: string) {
+		return this.getMatrixThread(eventId) ?? this.createMatrixThread(eventId);
 	}
 
 	public async getCurrentThreadEvents(): Promise<TimelineEvent[]> {
@@ -847,8 +857,8 @@ export default class Room {
 			this.currentThread = {
 				threadId: threadId,
 				rootEvent: this.findEventById(threadId),
-				thread: this.getOrCreateThread(threadId),
-				threadLength: this.getThread(threadId)?.length ?? 1,
+				thread: this.findTimelinEventById(threadId)?.thread,
+				threadLength: this.findTimelinEventById(threadId)?.thread.length ?? 1,
 			};
 			return true;
 		}

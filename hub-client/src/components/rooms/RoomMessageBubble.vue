@@ -98,7 +98,7 @@
 
 								<!-- Thread Reply Button -->
 								<button
-									v-if="!viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage && !room.isDirectMessageRoom()"
+									v-if="!viewFromThread && eventThreadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage && !room.isDirectMessageRoom()"
 									@click="replyInThread"
 									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 									:class="threadLength > 0 ? 'bg-accent-primary hover:text-accent-primary flex hover:bg-transparent' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
@@ -132,6 +132,15 @@
 
 					<Message :event="props.event" :deleted="redactedMessage" />
 
+					<!-- Thread View Button -->
+					<button
+						@click="replyInThread"
+						class="bg-hub-background-3 text-label-tiny inline-flex rounded-md px-2 py-1 hover:opacity-80"
+						v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
+					>
+						<Icon type="chat-circle" size="xs"></Icon>
+						&nbsp; {{ t('message.threads.view_thread') }} ({{ eventThreadLength }})
+					</button>
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
 						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)" :event="props.event.content" />
@@ -224,6 +233,7 @@
 	// const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const source = ref('');
+
 	// const { copy, copied, isSupported } = useClipboard({ source });
 	const isMobile = computed(() => settings.isMobileState);
 	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
@@ -309,19 +319,7 @@
 		}
 	});
 
-	/**
-	 * Watch the threadUpdated for new events coming from slidingsync
-	 */
-	watch(
-		() => props.room.threadUpdated,
-		() => {
-			if (props.event.event_id === props.room.currentThread?.rootEvent?.event.event_id) {
-				threadLength.value = (props.room.currentThread?.rootEvent?.getThread()?.length ?? 0) + 1; // length does not include rootEvent
-			}
-		},
-	);
-
-	const inReplyToId = props.event.content[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
+	const inReplyToId = props.event.content![RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
 
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
