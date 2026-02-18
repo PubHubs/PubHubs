@@ -77,6 +77,11 @@
 				<TextArea placeholder="Typ opmerking" :validation="{ required: true, minLength: 10, maxLength: 100 }" :show-length="true">Opmerking</TextArea>
 				<TextArea placeholder="Type veel" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 				<TextArea placeholder="Extra" :show-length="true">Nog meer</TextArea>
+
+				<h2 class="my-200">Autocomplete</h2>
+				<TextFieldAutoComplete placeholder="start typen" :options="options">Autocomplete simple</TextFieldAutoComplete>
+				<TextFieldAutoComplete placeholder="start typen" :options="iconOptions">Autocomplete iconen</TextFieldAutoComplete>
+				<TextFieldAutoComplete placeholder="start typen" :options="userOptions">Autocomplete users</TextFieldAutoComplete>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -151,6 +156,7 @@
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+	import { InputType, MultipleInputType } from '@hub-client/models/validation/TFormOption';
 	import { FieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { ValidationRule } from '@hub-client/models/validation/TValidate';
 
@@ -167,6 +173,7 @@
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
+	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
@@ -214,10 +221,10 @@
 	] as FieldOptions;
 	const userOptions = ref<FieldOptions>([]);
 	const dropDownValues = reactive({
-		simple: options[0],
-		multiple: [options[2], options[4]],
-		simpleIcon: iconOptions[0],
-		multipleIcons: [iconOptions[0], iconOptions[4]],
+		simple: options[0] as InputType,
+		multiple: [options[2], options[4]] as MultipleInputType,
+		simpleIcon: iconOptions[0] as InputType,
+		multipleIcons: [iconOptions[0], iconOptions[4]] as MultipleInputType,
 	});
 
 	onMounted(() => {

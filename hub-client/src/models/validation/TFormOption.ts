@@ -1,6 +1,7 @@
 // Form Types
 
 type InputType = string | number | boolean | undefined;
+type MultipleInputType = Array<InputType>;
 type FieldInputType = InputType | Array<InputType>;
 
 type FieldOptionType = string | undefined;
@@ -16,4 +17,4 @@ type LabeledFieldOptions = Array<FieldOption>;
 
 type FieldSelection = Array<number>;
 
-export { InputType, FieldInputType, FieldOptionType, FieldOption, LabeledFieldOptions, FieldOptions, FieldSelection };
+export { InputType, MultipleInputType, FieldInputType, FieldOptionType, FieldOption, LabeledFieldOptions, FieldOptions, FieldSelection };

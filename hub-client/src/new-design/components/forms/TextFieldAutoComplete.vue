@@ -1,25 +1,34 @@
 <template>
-	<div
+	<ValidateField
+		v-model="selected"
+		:name="fieldName"
+		:validation="validation"
+		:help="help"
+		v-slot="{ id, validated, required }"
+		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
 		@keydown.enter.stop="enter()"
-		@keydown.esc.stop="
-			reset();
-			search = undefined;
-		"
-		class="relative w-full"
+		@keydown.esc.stop="stop()"
+		@focusout.stop.prevent="stop()"
 	>
-		<TextField v-model="search" :placeholder="placeholder" :disabled="disabled" :validation="validation">{{ label }}</TextField>
+		<Label :for="id"><slot></slot></Label>
+
+		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" role="combobox" tabindex="0">
+			<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap">
+				<DropDownValue :input="true" :value="selected" :placeholder="placeholder" @filter="searched($event)"></DropDownValue>
+			</div>
+		</div>
 
 		<ul
 			v-if="result.length > 0"
-			class="text-on-surface-dim bg-surface-base outline-offset-thin -mt-075 outline-on-accent-primary ring-on-accent-primary absolute z-50 w-full justify-start rounded-lg rounded-t-none border border-t-0 px-175 py-100 ring-3 outline"
+			class="text-on-surface-dim bg-surface-base outline-offset-thin outline-on-accent-primary ring-on-accent-primary absolute top-800 z-50 w-full justify-start rounded-lg rounded-t-none border border-t-0 px-175 py-100 ring-3 outline"
 		>
-			<li v-for="(item, index) in result" :key="index" @click="select(item)" class="hover:text-on-surface-bright cursor-pointer">
-				{{ item.label }}
+			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="hover:text-on-surface-bright cursor-pointer" :class="{ '': cursor === index }">
+				<DropDownValue :value="item" role="option"></DropDownValue>
 			</li>
 		</ul>
-	</div>
+	</ValidateField>
 </template>
 
 <script setup lang="ts">
@@ -33,32 +42,45 @@
 	import { FieldOption, FieldOptions, InputType, LabeledFieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
-	// New design
+	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
+	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
+	// New design
+	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			disabled?: boolean;
 			name?: string;
 			options: FieldOptions;
 			placeholder?: string;
+			help?: string;
 			validation?: FieldValidations;
+			disabled?: boolean;
 		}>(),
 		{
-			disabled: false,
 			name: '',
 			placeholder: '',
+			help: '',
 			validation: undefined,
+			disabled: false,
 		},
 	);
 
-	const search = ref<InputType>();
+	const search = ref<InputType>('');
 	const selected = defineModel<InputType>();
 
-	const { slotDefault, update } = useFormInput(props, search);
+	const { fieldName, slotDefault, update } = useFormInput(props, search);
 	const { setItems, cursor, cursorDown, cursorUp, reset, selectItemByEnter } = useKeyStrokes();
+
+	// Lifecycle
+	onMounted(() => {
+		if (selected.value) {
+			search.value = selected.value;
+		}
+	});
 
 	// Computed
 	const label = computed(() => {
@@ -107,11 +129,22 @@
 		} else {
 			search.value = item as unknown as InputType;
 		}
+		console.info('select', selected.value);
 		update();
 	};
 
-	// Lifecycle
-	onMounted(() => {
-		search.value = selected.value;
-	});
+	const searched = (event: string) => {
+		console.info('searched', event);
+		search.value = event;
+	};
+
+	const stop = () => {
+		// reset();
+		// if (selected.value) {
+		// 	search.value = selected.value;
+		// } else {
+		search.value = undefined;
+		// }
+		// search.value = '';
+	};
 </script>

@@ -4,7 +4,7 @@
 		:validation="validation"
 		:help="help"
 		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
-		v-slot="{ id, validated, required }"
+		v-slot="{ id }"
 		v-click-outside="close"
 		v-model="model"
 		@keydown.arrow-down.prevent="cursorDown()"
