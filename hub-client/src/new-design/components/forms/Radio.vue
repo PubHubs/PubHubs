@@ -18,12 +18,10 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, inject } from 'vue';
+	import { computed } from 'vue';
 
 	// New design
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
-
-	// const id = inject('id') as string;
 
 	// Props
 	const props = defineProps({
