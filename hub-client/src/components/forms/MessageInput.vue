@@ -479,7 +479,7 @@
 
 	// START workaround for #1173, that iOS app links do not work in an iframe.
 	//
-	// NOTE: Please remove when e.g. https://github.com/privacybydesign/yivi-frontend-packages/pull/34 is merged
+	// NOTE: Please remove when e.g. https://github.com/privacybydesign/yivi-frontend-packages/pull/34 is merged (does not seem like it will be merged)
 	//
 	// Idea: we wait for the "Open Yivi app" anchor <a class="yivi-web-button-link" ...>
 	//       to be created using a MutationObserver, and add target="_top" attribute to it.
