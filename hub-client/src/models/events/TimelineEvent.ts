@@ -1,5 +1,6 @@
 import { RelationType } from '../constants';
 import { MatrixEvent } from 'matrix-js-sdk';
+import { ref } from 'vue';
 
 import { Events } from '@hub-client/logic/core/events';
 
@@ -14,9 +15,10 @@ import { useRooms } from '@hub-client/stores/rooms';
  */
 class TimelineEvent {
 	public matrixEvent: MatrixEvent;
+	public threadLength = ref(0);
 
 	private roomId: string;
-	private thread: TRoomThread | undefined;
+	private _thread: TRoomThread = new TRoomThread(undefined);
 	private rooms = useRooms();
 	private eventsHandler: Events = new Events();
 	private _isDeleted: boolean = false;
@@ -30,6 +32,22 @@ class TimelineEvent {
 
 		// load the thread if this event is a root of a thread, this is an async call, but we don't await it here
 		this.loadThread();
+
+		this.threadLength.value = this.thread?.length ?? 0;
+		// set a listener on the threadlength for when it changes. so the ref field can pass it to the vue components
+		this.thread?.onLengthChange(() => {
+			if (!this.thread.isMatrixThreadSet && matrixEvent.event.event_id) {
+				const room = useRooms()?.room(roomId);
+				if (room) {
+					this._thread.setMatrixThread(room.getOrCreateMatrixThread(matrixEvent.event.event_id));
+				}
+			}
+			this.threadLength.value = this.thread?.length ?? 0;
+		});
+	}
+
+	get thread() {
+		return this._thread;
 	}
 
 	set isDeleted(value: boolean) {
@@ -41,25 +59,28 @@ class TimelineEvent {
 	}
 
 	get isThreadRoot(): boolean {
-		return this.matrixEvent.isThreadRoot;
+		return this._thread !== undefined;
 	}
 
 	get isThreadEvent(): boolean {
 		return this.matrixEvent.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread;
 	}
 
-	get threadLength(): number {
-		return this.thread?.length ?? 0;
-	}
-
 	get threadEventThreadroot(): string | undefined {
 		return this.matrixEvent.getContent()[RelationType.RelatesTo]?.[RelationType.EventId];
 	}
 
-	private async loadThread() {
+	isEventInThread(eventId: string): boolean {
+		return this._thread?.findEventById(eventId) !== undefined;
+	}
+
+	async loadThread() {
 		const room = this.rooms.room(this.roomId);
 		if (!room) return;
-		this.thread = room.getThread(this.matrixEvent.event.event_id!);
+		const thread = room.getMatrixThread(this.matrixEvent.event.event_id!);
+		if (thread) {
+			this._thread.setMatrixThread(thread);
+		}
 	}
 }
 

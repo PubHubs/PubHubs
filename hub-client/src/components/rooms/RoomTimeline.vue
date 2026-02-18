@@ -153,18 +153,18 @@
 		return props.room.getChronologicalTimeline();
 	});
 
-	defineExpose({ elRoomTimeline });
-
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			if (activeReactionPanel.value) {
 				closeReactionPanel();
 			}
-			if (activeProfileCard.value) {
-				closeProfileCard();
-			}
+			// if (activeProfileCard.value) {
+			// 	closeProfileCard();
+			// }
 		}
 	}
+
+	defineExpose({ elRoomTimeline }); // Expose timeline to parent to save and restore scrollposition when leaving room
 
 	onBeforeUnmount(() => {
 		// Persist read marker
@@ -439,9 +439,7 @@
 	}
 
 	function toggleReactionPanel(eventId: string) {
-		console.error('toggleReactionPanel called with:', eventId, 'current:', activeReactionPanel.value);
 		activeReactionPanel.value = activeReactionPanel.value === eventId ? null : eventId;
-		console.error('activeReactionPanel now:', activeReactionPanel.value);
 	}
 
 	function closeReactionPanel() {
