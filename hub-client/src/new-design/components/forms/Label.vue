@@ -6,18 +6,10 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { inject } from 'vue';
 
+	// Injected
 	const id = inject('id', '') as string;
 	const required = inject('required', false) as boolean;
-
-	// Props
-	const props = withDefaults(
-		defineProps<{
-			for?: string;
-		}>(),
-		{
-			for: '',
-		},
-	);
 </script>
