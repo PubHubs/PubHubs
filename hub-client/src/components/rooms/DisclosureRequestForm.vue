@@ -21,7 +21,7 @@
 			<ChooseFromUsersList v-if="selectUser" :header="$t('admin.ask_disclosure_choose_user')" @chosen-user="onChosenUser" @click.stop @keydown.esc.stop="selectUser = false" />
 
 			<DropDown v-model="ask.attributes" :options="yiviAttributes" :multiple="true" :validation="{ required: true }">{{ $t('admin.secured_yivi_attributes') }}</DropDown>
-			<DropDown v-model="ask.where_room" :options="roomOptions" :validation="{ required: true }">{{ $t('rooms.room') }}</DropDown>
+			<TextFieldAutoComplete v-model="ask.where_room" :options="roomOptions" :validation="{ required: true }">{{ $t('rooms.room') }}</TextFieldAutoComplete>
 			<TextArea placeholder="Add a message to your disclosure request" :validation="{ required: true, maxLength: 100 }" v-model="ask.message" @keydown.esc.stop>{{ $t('admin.ask_disclosure_message_title') }}</TextArea>
 
 			<ButtonGroup>
@@ -59,6 +59,7 @@
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
+	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	const yiviStore = useYivi();
@@ -78,6 +79,8 @@
 		user: TUserAccount;
 	}>();
 
+	const defaultPrivateRoom = { value: '', label: t('admin.private_room') };
+
 	const ask = ref<AskDisclosure>({
 		user: { userId: '' },
 		message: '',
@@ -88,10 +91,8 @@
 	const roomOptions = computed(() => {
 		const publicRooms = roomsStore.publicRooms.map((room) => ({
 			value: room.room_id,
-			label: room.name || room.room_id,
+			label: room.name,
 		}));
-
-		const defaultPrivateRoom = { value: '', label: t('admin.private_room') };
 		return [defaultPrivateRoom, ...publicRooms];
 	});
 
