@@ -42,7 +42,7 @@ const routes = [
 				props: true,
 				name: 'editroom',
 				component: () => import('@hub-client/pages/EditRoom.vue'),
-				meta: { accessFor: [UserRole.Steward], hideBar: true, onboarding: true },
+				meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
 			},
 		],
 	},
