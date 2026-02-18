@@ -17,7 +17,7 @@
 			<div class="bg-accent-blue h-150 w-150 rounded-full"></div>
 		</div>
 
-		<input ref="input" type="checkbox" class="sr-only" :disabled="props.disabled" :value="model" />
+		<input type="checkbox" class="sr-only" :disabled="disabled" :value="model" />
 
 		<div class="pt-thin">
 			<label class="justify-start" :class="disabled ? 'text-on-surface-disabled' : 'text-surface-on-surface cursor-pointer'"><slot></slot></label>
@@ -26,18 +26,20 @@
 </template>
 
 <script setup lang="ts">
-	// new design
+	// New design
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
-	const props = defineProps({
-		disabled: {
-			type: Boolean,
-			default: false,
+	const props = withDefaults(
+		defineProps<{
+			disabled?: boolean;
+		}>(),
+		{
+			disabled: false,
 		},
-	});
+	);
 
-	const model = defineModel();
+	const model = defineModel<boolean>();
 
 	const { setFocus, hasFocus, toggle } = useFormInput(props, model);
 </script>
