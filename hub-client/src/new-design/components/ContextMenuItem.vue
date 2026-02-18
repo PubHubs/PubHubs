@@ -16,13 +16,7 @@
 	</button>
 </template>
 
-<script setup lang="ts">
-	// Packages
-	import { computed, useAttrs } from 'vue';
-
-	// New design
-	import Icon from '@hub-client/new-design/components/Icon.vue';
-
+<script lang="ts">
 	// Types
 	export type ContextMenuItemProps = {
 		ariaLabel?: string;
@@ -32,6 +26,14 @@
 		label: string;
 		title?: string;
 	};
+</script>
+
+<script setup lang="ts">
+	// Packages
+	import { computed, useAttrs } from 'vue';
+
+	// New design
+	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	// Props
 	const props = withDefaults(defineProps<ContextMenuItemProps>(), {
@@ -41,22 +43,20 @@
 
 	const attrs = useAttrs();
 
-	const { ariaLabel, disabled, icon, isDelicate, label, title } = props;
-
-	// Computed props
+	// Computed
 	const computedAriaLabel = computed(() => {
-		if (label) return label;
-		if (title) return title;
-		return ariaLabel ?? undefined;
+		if (props.label) return props.label;
+		if (props.title) return props.title;
+		return props.ariaLabel ?? undefined;
 	});
 
 	const computedTitle = computed(() => {
-		if (title) return title;
-		if (label) return label;
+		if (props.title) return props.title;
+		if (props.label) return props.label;
 		return undefined;
 	});
 
-	//  Lifecycle
+	// Lifecycle
 	const emit = defineEmits<{
 		(e: 'click', evt: MouseEvent): void;
 	}>();

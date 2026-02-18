@@ -2,8 +2,7 @@
 import { SystemDefaults } from '@hub-client/models/constants';
 
 // New design
-import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
-import type { MenuItem } from '@hub-client/new-design/stores/contextMenu.store';
+import { type MenuItem, useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 export function useContextMenu() {
 	const store = useContextMenuStore();
@@ -22,13 +21,11 @@ export function useContextMenu() {
 		evt.preventDefault();
 		evt.stopPropagation();
 
-		// If it's a touch, start long press timer
 		if (isTouch) {
 			longPressTimer = setTimeout(() => {
-				_openMenuAtEvent(evt, items, targetId);
+				openMenuAtEvent(evt, items, targetId);
 			}, SystemDefaults.longPressDuration);
 
-			// Cancel long press if touch ends or moves
 			const clearTimer = () => {
 				if (longPressTimer) clearTimeout(longPressTimer);
 				longPressTimer = null;
@@ -40,9 +37,9 @@ export function useContextMenu() {
 			window.addEventListener('touchmove', clearTimer);
 
 			return;
-		} else {
-			_openMenuAtEvent(evt, items, targetId);
 		}
+
+		openMenuAtEvent(evt, items, targetId);
 	};
 
 	/**
@@ -52,7 +49,7 @@ export function useContextMenu() {
 	 * @param items - The context menu item array
 	 * @param targetId - The unique id for the context menu
 	 */
-	const _openMenuAtEvent = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null): void => {
+	const openMenuAtEvent = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null): void => {
 		const isTouch = 'touches' in evt;
 
 		let x = 0;
@@ -69,17 +66,17 @@ export function useContextMenu() {
 		store.open(items, Math.round(x), Math.round(y), targetId);
 	};
 
-	function close() {
+	const close = () => {
 		store.close();
-	}
+	};
 
-	function select(item: MenuItem) {
+	const select = (item: MenuItem) => {
 		store.select(item);
-	}
+	};
 
 	return {
-		openMenu,
 		close,
+		openMenu,
 		select,
 	};
 }
