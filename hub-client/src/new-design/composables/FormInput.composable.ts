@@ -4,6 +4,8 @@ import { computed, getCurrentInstance, ref, useSlots } from 'vue';
 // Logic
 import { firstToUpper } from '@hub-client/logic/core/extensions';
 
+import { InputType } from '@hub-client/models/validation/TFormOption';
+
 export function useFormInput(props: any, model: any | undefined = undefined) {
 	const changed = ref(false);
 	const hasFocus = ref(false);

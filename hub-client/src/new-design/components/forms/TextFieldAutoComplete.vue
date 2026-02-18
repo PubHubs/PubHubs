@@ -24,11 +24,13 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, watch } from 'vue';
+	import { computed, watch } from 'vue';
 
 	// Composables
-	import { InputType, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
+
+	// Models
+	import { FieldOption, FieldOptions, InputType, LabeledFieldOptions } from '@hub-client/models/validation/TFormOption';
 
 	// New design
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
@@ -39,7 +41,7 @@
 		name?: string;
 		placeholder?: string;
 		validation?: Object;
-		options: Array<any>;
+		options: FieldOptions;
 		disabled?: Boolean;
 	};
 
@@ -51,15 +53,10 @@
 		disabled: undefined,
 	});
 
-	const emit = defineEmits(usedEvents);
-	const search = defineModel<string | number>();
-	const { slotDefault } = useFormInput(props, search);
-	const { setValue, update } = useFormInputEvents(emit);
-	const { setItems, cursor, cursorDown, cursorUp, reset, selectItem, selectItemByEnter } = useKeyStrokes();
-
-	onMounted(() => {
-		setValue(search.value as InputType);
-	});
+	// const emit = defineEmits(usedEvents);
+	const search = defineModel<InputType>();
+	const { slotDefault, update } = useFormInput(props, search);
+	const { setItems, cursor, cursorDown, cursorUp, reset, selectItemByEnter } = useKeyStrokes();
 
 	const label = computed(() => {
 		return props.name ? props.name : slotDefault.value;
@@ -70,9 +67,9 @@
 	});
 
 	const labeledOptions = computed(() => {
-		if (props.options[0].label) return props.options;
+		if (typeof props.options[0] === 'object') return props.options as LabeledFieldOptions;
 		return props.options.map((item) => {
-			return { label: item, value: item };
+			return { label: item, value: item } as FieldOption;
 		});
 	});
 
@@ -99,21 +96,23 @@
 		select(item);
 	};
 
-	const select = (item: any) => {
-		selectItem(item);
-		setValue(item.label);
-		update(item.label);
+	const click = (item: any) => {
+		select(item);
 	};
 
-	const click = (item: any) => {
-		setValue(item.label);
-		update(item.label);
+	const select = (item: any) => {
+		if (item.value) {
+			search.value = item.value;
+		} else {
+			search.value = item;
+		}
+		update();
 	};
 
 	// Watch for manual input and update output value even if not in the list
 	watch(search, (newValue) => {
 		if (typeof newValue === 'string') {
-			update(newValue);
+			update();
 		}
 	});
 </script>
