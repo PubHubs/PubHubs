@@ -75,7 +75,7 @@
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 
 	// Composables
-	import { useReadMarker } from '@hub-client/composables/useReadMarker';
+	import useReadMarker from '@hub-client/composables/useReadMarker';
 	import { useTimelinePagination } from '@hub-client/composables/useTimelinePagination';
 	import { useTimelineScroll } from '@hub-client/composables/useTimelineScroll';
 

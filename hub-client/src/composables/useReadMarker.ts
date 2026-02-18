@@ -1,8 +1,10 @@
+// Packages
 import { computed, ref } from 'vue';
 
+// Models
 import type Room from '@hub-client/models/rooms/Room';
 
-export function useReadMarker(room: Room, userId: string) {
+function useReadMarker(room: Room, userId: string) {
 	const displayedReadMarker = ref<string | null>(null);
 
 	function initialize() {
@@ -40,3 +42,5 @@ export function useReadMarker(room: Room, userId: string) {
 		update,
 	};
 }
+
+export default useReadMarker;
