@@ -75,13 +75,13 @@ const routes = [
 		path: '/icons',
 		name: 'icons',
 		component: () => import('@hub-client/pages/Icons.vue'),
-		// meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
+		meta: { hideBar: true, onboarding: true },
 	},
 	{
 		path: '/design',
 		name: 'design',
 		component: () => import('@hub-client/pages/NewDesign.vue'),
-		// meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
+		meta: { hideBar: true, onboarding: true },
 	},
 
 	{

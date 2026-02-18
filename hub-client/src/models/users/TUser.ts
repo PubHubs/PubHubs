@@ -54,10 +54,10 @@ enum UserAction {
 // Which actions which role can perform
 const UserRoleActions = {
 	[UserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel, UserAction.RoomAnnouncement],
-	[UserRole.SuperSteward]: [UserAction.Invite],
+	[UserRole.SuperSteward]: [UserAction.Invite, UserAction.StewardPanel, UserAction.RoomAnnouncement],
 	[UserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement],
 	[UserRole.Expert]: [UserAction.MessageSteward],
-	[UserRole.User]: [],
+	[UserRole.User]: [UserAction.MessageSteward],
 } as Record<UserRole, UserAction[]>;
 
 type TUserJoinedRooms = {
