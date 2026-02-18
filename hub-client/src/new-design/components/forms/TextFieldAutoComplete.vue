@@ -9,13 +9,13 @@
 		"
 		class="relative w-full"
 	>
-		<TextField v-model="search" :placeholder="placeholder" :disabled="disabled === true" :validation="validation">{{ label }}</TextField>
+		<TextField v-model="search" :placeholder="placeholder" :disabled="disabled" :validation="validation">{{ label }}</TextField>
 
 		<ul
 			v-if="result.length > 0"
 			class="text-on-surface-dim bg-surface-base outline-offset-thin -mt-075 outline-on-accent-primary ring-on-accent-primary absolute z-50 w-full justify-start rounded-lg rounded-t-none border border-t-0 px-175 py-100 ring-3 outline"
 		>
-			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="hover:text-on-surface-bright cursor-pointer" :class="{ '': cursor === index }">
+			<li v-for="(item, index) in result" :key="index" @click="select(item)" class="hover:text-on-surface-bright cursor-pointer">
 				{{ item.label }}
 			</li>
 		</ul>
@@ -31,27 +31,28 @@
 
 	// Models
 	import { FieldOption, FieldOptions, InputType, LabeledFieldOptions } from '@hub-client/models/validation/TFormOption';
+	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// New design
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	// Types
-	type Props = {
-		name?: string;
-		placeholder?: string;
-		validation?: Object;
-		options: FieldOptions;
-		disabled?: Boolean;
-	};
-
 	// Props
-	const props = withDefaults(defineProps<Props>(), {
-		name: '',
-		placeholder: '',
-		validation: undefined,
-		disabled: undefined,
-	});
+	const props = withDefaults(
+		defineProps<{
+			disabled?: boolean;
+			name?: string;
+			options: FieldOptions;
+			placeholder?: string;
+			validation?: FieldValidations;
+		}>(),
+		{
+			disabled: false,
+			name: '',
+			placeholder: '',
+			validation: undefined,
+		},
+	);
 
 	const search = ref<InputType>();
 	const selected = defineModel<InputType>();
@@ -59,10 +60,7 @@
 	const { slotDefault, update } = useFormInput(props, search);
 	const { setItems, cursor, cursorDown, cursorUp, reset, selectItemByEnter } = useKeyStrokes();
 
-	onMounted(() => {
-		search.value = selected.value;
-	});
-
+	// Computed
 	const label = computed(() => {
 		return props.name ? props.name : slotDefault.value;
 	});
@@ -102,17 +100,18 @@
 		select(item);
 	};
 
-	const click = (item: any) => {
-		select(item);
-	};
-
-	const select = (item: any) => {
+	const select = (item: FieldOption) => {
 		selected.value = item;
 		if (item.label) {
 			search.value = item.label;
 		} else {
-			search.value = item;
+			search.value = item as unknown as InputType;
 		}
 		update();
 	};
+
+	// Lifecycle
+	onMounted(() => {
+		search.value = selected.value;
+	});
 </script>
