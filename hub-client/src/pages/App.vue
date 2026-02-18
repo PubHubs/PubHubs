@@ -61,7 +61,7 @@
 				</RoomListHeader>
 
 				<!-- When user is admin, show the admin tools menu -->
-				<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
+				<RoomListHeader v-if="roles.userIsAdmin()" label="menu.admin_tools">
 					<template #roomlist>
 						<Menu>
 							<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
@@ -96,7 +96,6 @@
 
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
-	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
 	import RoomList from '@hub-client/components/rooms/RoomList.vue';
@@ -108,6 +107,7 @@
 	import Notification from '@hub-client/components/ui/Notification.vue';
 	import RoomListHeader from '@hub-client/components/ui/RoomListHeader.vue';
 
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
@@ -142,6 +142,7 @@
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
 	const user = useUser();
+	const roles = useRoles();
 	const rooms = useRooms();
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
