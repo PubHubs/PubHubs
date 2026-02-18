@@ -1,13 +1,13 @@
-// Models
-import { computed, ref } from 'vue';
-
-import { FieldValidations, ValidationMessage, ValidationRule } from '@hub-client/models/validation/TValidate';
-
 /**
  * useValidation provides a framework for form validation.
  * It includes core validation functions that validate the schemas with the form input, validation rules, and error message generation.
  * Create a new schema for each form and try to reuse generic validation rules and error messages.
  */
+// Packages
+import { computed, ref } from 'vue';
+
+// Models
+import { FieldValidations, ValidationMessage, ValidationRule } from '@hub-client/models/validation/TValidate';
 
 const validateFunctions: { [key: string]: Function } = {
 	required: (value: string | any[]): boolean => {
@@ -70,31 +70,30 @@ const validateMessageFunctions: { [key: string]: Function } = {
 function useFieldValidation(name: string, model: any, validation?: FieldValidations) {
 	const changed = ref(false);
 	const required = ref(false);
-	const rules = [] as ValidationRule[];
+	const rules: ValidationRule[] = [];
 
 	if (validation) {
 		const keys = Object.keys(validation);
 		required.value = keys.includes('required');
-		if (keys.length > 0) {
-			keys.forEach((key) => {
-				let rule = undefined;
-				if (key === 'custom') {
-					rule = validation[key] as ValidationRule;
-				} else {
-					rule = {
-						validator: validateFunctions[key],
-						args: [] as any[],
-						message: validateMessageFunctions[key],
-					} as ValidationRule;
-					if (validation[key] && typeof validation[key] !== 'boolean') {
-						rule.args = [validation[key]];
-					}
+		keys.forEach((key) => {
+			let rule: ValidationRule;
+			if (key === 'custom') {
+				rule = validation[key] as ValidationRule;
+			} else {
+				rule = {
+					validator: validateFunctions[key],
+					args: [] as any[],
+					message: validateMessageFunctions[key],
+				} as ValidationRule;
+				if (validation[key] && typeof validation[key] !== 'boolean') {
+					rule.args = [validation[key]];
 				}
-				rules.push(rule);
-			});
-		}
+			}
+			rules.push(rule);
+		});
 	}
 
+	// Computed
 	const validateField = computed(() => {
 		if (!changed.value && model.value !== undefined) {
 			changed.value = true;
@@ -105,7 +104,6 @@ function useFieldValidation(name: string, model: any, validation?: FieldValidati
 				if (typeof rule.message === 'function') {
 					return rule.message(model.value, ...(rule.args || []), name) as ValidationMessage;
 				}
-				// The ValidationMessage is returned directly if message is not a function
 				return rule.message as ValidationMessage;
 			}
 		}

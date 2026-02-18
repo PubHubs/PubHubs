@@ -4,17 +4,19 @@
 	</form>
 </template>
 
+<script lang="ts">
+	// Types
+	type FieldType = {
+		changed: boolean;
+		model: any;
+		name: string;
+		validated: boolean;
+	};
+</script>
+
 <script setup lang="ts">
 	// Packages
 	import { computed, provide, ref } from 'vue';
-
-	// Types
-	type fieldType = {
-		name: string;
-		model: any;
-		changed: boolean;
-		validated: boolean;
-	};
 
 	// Props
 	const props = withDefaults(
@@ -26,30 +28,25 @@
 		},
 	);
 
-	const fields = ref([] as fieldType[]);
-	const emit = defineEmits(['validated']);
+	const fields = ref<FieldType[]>([]);
 
+	// Lifecycle
+	const emit = defineEmits<{
+		(e: 'validated', value: boolean): void;
+	}>();
+
+	// Computed
 	const isValidated = computed(() => {
 		if (props.disabled) return false;
-		let changed = false;
-		let validated = true;
-		fields.value.forEach((field) => {
-			changed = changed || field.changed;
-		});
-		fields.value.forEach((field) => {
-			validated = validated && field.validated;
-		});
-		if (!changed || fields.value.length === 0) {
-			validated = false;
-		}
-		emit('validated', validated);
-		return validated;
+		const changed = fields.value.some((field) => field.changed);
+		const validated = fields.value.every((field) => field.validated);
+		const result = changed && fields.value.length > 0 && validated;
+		emit('validated', result);
+		return result;
 	});
 
 	const addField = (name: string, model: any, changed: boolean, validated: boolean) => {
-		let tmpFields = [...fields.value];
-		tmpFields.push({ name: name, model: model, changed: changed, validated: validated } as fieldType);
-		fields.value = tmpFields;
+		fields.value = [...fields.value, { name, model, changed, validated }];
 	};
 
 	provide('addField', addField);

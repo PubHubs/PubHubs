@@ -10,16 +10,17 @@
 </template>
 
 <script setup lang="ts">
-	// This is a wrapper component to make any custom made input field to a validated field
-	//
 	// Packages
 	import { inject, onMounted, provide, ref, watch } from 'vue';
 
 	// Composables
 	import { useFieldValidation } from '@hub-client/composables/validation.composable';
 
-	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
+	// Models
+	import { FieldValidations } from '@hub-client/models/validation/TValidate';
+
 	// New design
+	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
 	import FieldInfoBox from '@hub-client/new-design/components/forms/FieldInfoBox.vue';
 	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
@@ -27,33 +28,31 @@
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			name?: string;
-			label?: string;
-			validation?: Object;
 			help?: string;
 			info?: string | boolean;
+			label?: string;
+			name?: string;
+			validation?: FieldValidations;
 		}>(),
 		{
-			name: '',
-			label: '',
-			validation: undefined,
 			help: '',
 			info: false,
+			label: '',
+			name: '',
+			validation: undefined,
 		},
 	);
 
 	const model = defineModel<any>();
 	const originalValue = ref<any>(undefined);
 
-	// Validation etc.
-	const { id, fieldName, update, changed } = useFormInput(props, model);
+	const { id, fieldName, changed } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(props.name, model, props.validation);
 
+	// Lifecycle
 	onMounted(() => {
-		// Keep original value
 		originalValue.value = Object.assign({}, model);
 
-		// Add field for form validation
 		if (props.validation) {
 			const addField = inject('addField', () => {}) as Function;
 			if (typeof addField === 'function') {
