@@ -9,7 +9,7 @@
 			<div class="bg-surface-base border-surface-on-surface-dim border-thin h-200 w-200 rounded-[999px]" :class="{ 'ring-button-blue ring-3': hasFocus }"></div>
 		</div>
 
-		<input ref="input" type="radio" :id="uniqueValueId" class="sr-only" :value="model" />
+		<input type="radio" :id="uniqueValueId" class="sr-only" :value="model" />
 
 		<div class="pt-thin inline-flex flex-col items-start justify-center">
 			<label :for="uniqueValueId" class="text-surface-on-surface cursor-pointer justify-start" @click="select(value)"><slot></slot></label>
@@ -18,31 +18,31 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
 
 	// New design
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
-	const props = defineProps({
-		value: {
-			type: String,
-			default: '',
+	const props = withDefaults(
+		defineProps<{
+			name?: string;
+			value?: string;
+		}>(),
+		{
+			name: '',
+			value: '',
 		},
-		name: {
-			type: String,
-			default: '',
-		},
-	});
+	);
 
 	const model = defineModel();
 
 	const { id, setFocus, hasFocus, select } = useFormInput(props, model);
 
+	// Computed
 	const uniqueValueId = computed(() => {
-		if (id) {
-			return id.value + '_' + props.value.toString();
-		}
+		if (id) return id.value + '_' + props.value.toString();
 		return props.value.toString();
 	});
 </script>

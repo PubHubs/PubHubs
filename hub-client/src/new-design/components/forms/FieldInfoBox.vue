@@ -8,7 +8,9 @@
 		</div>
 	</div>
 </template>
+
 <script setup lang="ts">
+	// Props
 	const props = withDefaults(
 		defineProps<{
 			info?: string | boolean;

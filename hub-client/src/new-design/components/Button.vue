@@ -1,6 +1,5 @@
 <template>
 	<button
-		v-bind="attrs"
 		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-4000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:aria-busy="loading ? 'true' : undefined"
 		:aria-disabled="disabled || loading ? 'true' : undefined"
@@ -56,7 +55,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, useAttrs, useSlots } from 'vue';
+	import { computed, onMounted, useSlots } from 'vue';
 
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
@@ -85,7 +84,6 @@
 		},
 	);
 
-	const attrs = useAttrs();
 	const slots = useSlots();
 
 	const isIconOnly = computed(() => !slots.default && props.icon);

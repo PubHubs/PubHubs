@@ -154,8 +154,10 @@
 	import { FieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { ValidationRule } from '@hub-client/models/validation/TValidate';
 
+	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
+	// New design
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
@@ -169,7 +171,7 @@
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { MenuItem } from '@hub-client/new-design/stores/contextMenu.store';
+	import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 
 	// Types
 	type formType = {
