@@ -65,7 +65,7 @@
 
 			<div v-if="!groupProfile" class="mt-4 grow overflow-y-auto">
 				<!-- Admin contact -->
-				<div v-if="!userStore.isAdmin && !groupPanel && !adminRoomExists" class="mb-4">
+				<div v-if="!userStore.isAdmin && !groupPanel" class="mb-4">
 					<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="handleAdminContact">
 						<div class="bg-accent-admin/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
 							<Icon type="lifebuoy" size="md" class="text-accent-admin" />
