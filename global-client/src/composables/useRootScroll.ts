@@ -1,7 +1,6 @@
 /**
  * Layout root scroll helpers with Safari snap enforcement
  */
-
 const SCROLL_DURATION = 150;
 let isProgrammaticScroll = false;
 let animationFrameId: number | null = null;
@@ -12,6 +11,7 @@ const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
 	if (animationFrameId !== null) {
 		cancelAnimationFrame(animationFrameId);
 	}
+
 	isProgrammaticScroll = true;
 	const startLeft = element.scrollLeft;
 	const distance = targetLeft - startLeft;
@@ -72,6 +72,8 @@ const useRootScroll = () => {
 
 	// Listens for scroll-end to enforce snapping
 	const setupSnapEnforcement = () => {
+		if (cleanupFn) return;
+
 		const layoutRoot = document.getElementById('layout-root');
 		if (!layoutRoot) return;
 
