@@ -76,18 +76,23 @@ class Program:
                         "-l", "0.0.0.0",
                         "-p", "8089",
                         "--client-listen-addr", "0.0.0.0",
-                        "--client-port", "8088"),
-                        stderr=subprocess.DEVNULL,
-                        stdout=subprocess.DEVNULL))
+                        "--client-port", "8088")))
 
         if self._args.environment == "development":
             os.putenv("AUTHLIB_INSECURE_TRANSPORT", "for_development_only_of_course")
 
         if self._args.replace_sqlite3_by_postgres:
+            # NOTE: postgres command have a bad habit of changing TTY options, such as 'onlcr', so
+            # that the terminal output looks
+            #                               like this, because \n is no longer
+            #                                                                 translated to \r\n.
+            # Setting stdin=subprocess.DEVNULL seems to prevent this.
+
             # find postres executable path
             pg_data_dir = "/data/postgres"
             pg_bindir = subprocess.run(('sudo', '-u', 'postgres',
                                      'pg_config', '--bindir'),
+                                    stdin=subprocess.DEVNULL,
                                     check=True, capture_output=True).stdout.strip().decode('utf-8')
 
             fresh_db = self.prepare_pg_data_dir(pg_data_dir=pg_data_dir, pg_bindir=pg_bindir)
@@ -97,25 +102,25 @@ class Program:
                              subprocess.Popen(('sudo', '-u', 'postgres',
                                                os.path.join(pg_bindir, "postgres"),
                                                '-D', pg_data_dir),
-                                               stdout=subprocess.DEVNULL,
-                                               stderr=subprocess.DEVNULL,
-                                               ))
+                                               stdin=subprocess.DEVNULL))
             countdown = 5
             while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q")).returncode != 0:
-                eprint(f"waiting {countdown} seconds for the postgres server to come up")
+                print(f"waiting {countdown} seconds for the postgres server to come up")
                 time.sleep(1)
                 countdown -= 1
                 if countdown == 0:
                     raise RuntimeError("postgres server did not start properly; the reason might be in the logs above")
 
             if fresh_db:
-                subprocess.run(("sudo", "-u", "postgres", "createuser", "synapse"), check=True)
+                subprocess.run(("sudo", "-u", "postgres", "createuser", "synapse"), 
+                               stdin=subprocess.DEVNULL, check=True)
                 subprocess.run(("sudo", "-u", "postgres", 
                                 "createdb", "hub",
                                 "--encoding=UTF8",
                                 "--locale=C",
                                 "--template=template0",
-                                "--owner=synapse"), check=True)
+                                "--owner=synapse"), 
+                               stdin=subprocess.DEVNULL, check=True)
 
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
@@ -130,7 +135,7 @@ class Program:
 
         subprocess.run(("sudo", "-u", "postgres", 
                         os.path.join(pg_bindir, "initdb"), pg_data_dir),
-                       check=True)
+                       stdin=subprocess.DEVNULL, check=True)
 
         return True
 
