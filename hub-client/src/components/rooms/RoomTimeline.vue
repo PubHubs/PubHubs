@@ -1,61 +1,64 @@
 <template>
-	<div class="relative flex h-full flex-col">
+	<div class="flex h-full flex-col">
 		<div class="shrink-0">
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
 		</div>
 
-		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain pb-2" style="overflow-anchor: none">
-			<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
-			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
+		<div class="relative min-h-0 flex-1">
+			<div v-if="room" ref="elRoomTimeline" class="flex h-full flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain" style="overflow-anchor: none">
+				<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
+				<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
 
-			<!-- Expands if the timeline height < the vieport, to top-align the content -->
-			<div class="flex h-full items-center justify-center px-4 md:px-16">
-				<P v-if="initialLoadComplete && reversedTimeline.length === 0" class="text-on-surface-dim text-center">
-					{{ $t('rooms.no_messages_yet') }}
-				</P>
-			</div>
-
-			<template v-if="reversedTimeline.length > 0">
-				<div v-for="item in reversedTimeline" :key="item.matrixEvent.event.event_id">
-					<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
-						<RoomMessageBubble
-							class="room-event"
-							:room="room"
-							:event="item.matrixEvent.event"
-							:event-thread-length="item.threadLength"
-							:deleted-event="item.isDeleted"
-							:data-event-id="item.matrixEvent.event.event_id"
-							:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
-							:active-reaction-panel="activeReactionPanel"
-							@in-reply-to-click="onInReplyToClick"
-							@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
-							@edit-poll="onEditPoll"
-							@edit-scheduler="onEditScheduler"
-							@reaction-panel-toggle="toggleReactionPanel"
-							@reaction-panel-close="closeReactionPanel"
-							@clicked-emoticon="sendEmoji"
-						>
-							<template #reactions>
-								<div class="mt-2 ml-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
-								</div>
-							</template>
-						</RoomMessageBubble>
-						<LastReadMarker :currentEventId="item.matrixEvent.event.event_id ?? ''" :lastReadEventId="displayedReadMarker ?? undefined" :room="props.room" />
-					</div>
+				<!-- Expands if the timeline height < the vieport, to top-align the content -->
+				<div class="flex h-full items-center justify-center px-4 md:px-16">
+					<P v-if="initialLoadComplete && reversedTimeline.length === 0" class="text-on-surface-dim text-center">
+						{{ $t('rooms.no_messages_yet') }}
+					</P>
 				</div>
-			</template>
 
-			<!-- Room created indicator-->
-			<div v-if="oldestEventIsLoaded" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase">
-				{{ $t('rooms.roomCreated') }}
+				<template v-if="reversedTimeline.length > 0">
+					<div v-for="item in reversedTimeline" :key="item.matrixEvent.event.event_id">
+						<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
+							<RoomMessageBubble
+								class="room-event"
+								:room="room"
+								:event="item.matrixEvent.event"
+								:event-thread-length="item.threadLength"
+								:deleted-event="item.isDeleted"
+								:data-event-id="item.matrixEvent.event.event_id"
+								:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
+								:active-reaction-panel="activeReactionPanel"
+								@in-reply-to-click="onInReplyToClick"
+								@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
+								@edit-poll="onEditPoll"
+								@edit-scheduler="onEditScheduler"
+								@reaction-panel-toggle="toggleReactionPanel"
+								@reaction-panel-close="closeReactionPanel"
+								@clicked-emoticon="sendEmoji"
+							>
+								<template #reactions>
+									<div class="mt-2 ml-2 flex flex-wrap gap-2 px-20">
+										<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
+									</div>
+								</template>
+							</RoomMessageBubble>
+							<LastReadMarker :currentEventId="item.matrixEvent.event.event_id ?? ''" :lastReadEventId="displayedReadMarker ?? undefined" :room="props.room" />
+						</div>
+					</div>
+				</template>
+
+				<!-- Room created indicator-->
+				<div v-if="oldestEventIsLoaded" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase">
+					{{ $t('rooms.roomCreated') }}
+				</div>
+
+				<!-- Top sentinel (appears at visual top, near oldest messages) -->
+				<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"></div>
 			</div>
 
-			<!-- Top sentinel (appears at visual top, near oldest messages) -->
-			<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"></div>
+			<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
 		</div>
 
-		<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
 		<MessageInput class="z-10 shrink-0" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler" />
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage" />

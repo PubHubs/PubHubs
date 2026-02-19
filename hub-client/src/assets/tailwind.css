@@ -71,9 +71,7 @@
 	--surface: #e3e5e8; /* Used for the hub top bar and global bar */
 	--surface-subtle: #d4d4d4; /* Used for the voting widget */
 	--surface-high: #d9dbde; /* Used for the global top bar */
-	--on-surface: #000000; /* Used for text */
 	--on-surface-variant: #333333; /* Used for secondary text */
-	--on-surface-dim: #666666; /* Used for dimmed text */
 	--on-surface-disabled: #aaaaaa; /* Used for disabled text */
 	--accent-primary: #00adee; /* Used for theming */
 	--on-accent-primary: #ffffff; /* Used for text on primary accent */
@@ -87,14 +85,8 @@
 	--on-accent-pink: #ffffff;
 	--accent-yellow: #e7d63d;
 	--on-accent-yellow: #000000;
-	--accent-red: #e45959;
-	--on-accent-red: #ffffff;
 	--accent-teal: #27e0bf;
 	--on-accent-teal: #000000;
-	--accent-blue: #26ccf0;
-	--on-accent-blue: #000000;
-	--accent-orange: #fcba6d;
-	--on-accent-orange: #000000;
 }
 
 .dark {
@@ -126,9 +118,7 @@
 	--surface: #2f2e2e;
 	--surface-subtle: #686868;
 	--surface-high: #202020;
-	--on-surface: #ffffff;
 	--on-surface-variant: #cccccc;
-	--on-surface-dim: #999999;
 	--on-surface-disabled: #555555;
 }
 

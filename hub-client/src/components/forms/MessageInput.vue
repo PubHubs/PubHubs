@@ -20,7 +20,7 @@
 			</div>
 		</div>
 
-		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
+		<div class="flex max-h-[50vh] items-end justify-between gap-2">
 			<div class="bg-surface-high rounded-base w-full shadow-xs">
 				<!-- In reply to -->
 				<InputModeBar v-if="inReplyTo" icon="arrow-bend-up-left" :label="$t('message.in_reply_to')" variant="reply" @close="messageActions.replyingTo = undefined">
