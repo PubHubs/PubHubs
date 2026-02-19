@@ -11,7 +11,7 @@
 							{{ displayName }}
 						</p>
 						<p v-if="isGroupOrContact" class="text-on-surface-dim hidden items-center gap-1 leading-tight @xs:flex">
-							<span v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT" class="truncate">({{ rooms.fetchRoomById(props.room.name.split(',')[0])?.name ?? '' }})</span>
+							<span v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT" class="truncate">({{ stewardSourceRoomName(props.room) }})</span>
 							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
 								<span class="text-label-small">{{ props.room.getRoomMembers() }}</span>
 								<Icon type="user" size="sm" />
@@ -48,6 +48,9 @@
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
+	// Composables
+	import { useModeration } from '@hub-client/composables/moderation.composable';
+
 	// Logic
 	import filters from '@hub-client/logic/core/filters';
 
@@ -78,6 +81,7 @@
 	const rooms = useRooms();
 	const userStore = useUser();
 	const { t } = useI18n();
+	const { stewardSourceRoomName } = useModeration();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
 	const roomType = computed(() => props.room.getType());
