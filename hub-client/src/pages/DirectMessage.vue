@@ -99,13 +99,12 @@
 
 <script setup lang="ts">
 	// Packages
-	import { EventTimeline, EventType, NotificationCountType } from 'matrix-js-sdk';
+	import { EventTimeline, EventType } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave } from 'vue-router';
 
 	// Components
-	import Badge from '@hub-client/components/elements/Badge.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
@@ -149,17 +148,7 @@
 
 	const privateRooms = computed(() => rooms.privateRooms);
 
-	const newAdminMsgCount = computed(() => {
-		if (user.isAdmin) return;
-		const adminContactRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
-		return adminContactRoom?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
-	});
-
 	const adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
-
-	const isAdminRoomVisible = computed(() => {
-		return rooms.loadedPrivateRooms.some((r) => r.roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT);
-	});
 
 	const isGroupDM = computed(() => {
 		return selectedRoom.value?.getType() === RoomType.PH_MESSAGES_GROUP;
