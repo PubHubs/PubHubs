@@ -1,12 +1,16 @@
 // Packages
 import { createRouter, createWebHashHistory } from 'vue-router';
 
+// Composables
+import { useRoles } from '@hub-client/composables/roles.composable';
+
 // Models
 import { OnboardingType } from '@hub-client/models/constants';
+import { UserRole } from '@hub-client/models/users/TUser';
 
-// Stores
 import { useHubSettings } from '@hub-client/stores/hub-settings';
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
+// Stores
 import { useUser } from '@hub-client/stores/user';
 
 // Route definitions
@@ -27,21 +31,26 @@ const routes = [
 		path: '/admin',
 		name: 'admin',
 		component: () => import('@hub-client/pages/Admin.vue'),
-		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/manage-users',
 		name: 'manage-users',
 		component: () => import('@hub-client/pages/ManageUsers.vue'),
-		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/hub-settings',
 		name: 'hub-settings',
 		component: () => import('@hub-client/pages/HubSettings.vue'),
-		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
-	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@hub-client/pages/DirectMessage.vue'), meta: { hideBar: true, onboarding: true } },
+	{
+		path: '/direct-msg',
+		name: 'direct-msg',
+		component: () => import('@hub-client/pages/DirectMessage.vue'),
+		meta: { hideBar: true, onboarding: true },
+	},
 	{
 		path: '/room/:id',
 		name: 'room',
@@ -66,13 +75,13 @@ const routes = [
 		path: '/icons',
 		name: 'icons',
 		component: () => import('@hub-client/pages/Icons.vue'),
-		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { hideBar: true, onboarding: true },
 	},
 	{
 		path: '/design',
 		name: 'design',
 		component: () => import('@hub-client/pages/NewDesign.vue'),
-		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { hideBar: true, onboarding: true },
 	},
 
 	{
@@ -115,19 +124,26 @@ router.beforeEach((to, from) => {
 		}
 	}
 
-	// Restrict access to admin-only routes
-	if (to.meta.onlyAdmin) {
-		const { isAdmin, administrator } = useUser();
-		if (isAdmin && administrator) {
+	// Restrict access
+	if (to.meta.accessFor) {
+		const roles = useRoles();
+		// for specific room?
+		let roomId = roles.currentRoomId();
+		if (to.params.id) {
+			roomId = to.params.id as string;
+		}
+		if (roles.userHasAccessForRoles(to.meta.accessFor as Array<UserRole>, roomId)) {
 			return true;
 		}
-		console.log('ONLY FOR ADMINS', isAdmin);
+		console.error('ONLY FOR ROLES: ', to.meta.accessFor, roomId);
 		return { name: 'home' };
 	}
+
+	// Redirect to home if coming from a browser refresh (undefined)
 	if (to.name === 'error-page' && from.name === undefined) {
-		// Redirect to home if coming from a browser refresh (undefined)
 		return { name: 'home' };
 	}
+
 	// Default allow navigation
 	return true;
 });

@@ -82,7 +82,7 @@
 
 					<!--Steward and above can broadcast only in main time line-->
 					<button
-						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isDirectMessageRoom()"
+						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
 						class="hover:cursor-pointer"
 						:class="isAnnouncementMode ? (announcementVariant === 'admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
 						@click="isAnnouncementMode = !isAnnouncementMode"
@@ -139,6 +139,7 @@
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
@@ -151,8 +152,8 @@
 	import { RelationType, actions } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
-	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import Room from '@hub-client/models/rooms/Room';
+	import { UserAction } from '@hub-client/models/users/TUser';
 	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
@@ -166,6 +167,7 @@
 	const { t } = useI18n();
 	const user = useUser();
 	const route = useRoute();
+	const roles = useRoles();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
 	const settings = useSettings();

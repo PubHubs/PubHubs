@@ -39,7 +39,7 @@
 						<GlobalBarButton v-if="room?.getCurrentThreadId()" type="chat-circle" :selected="sidebar.activeTab.value === SidebarTab.Thread" @click="sidebar.toggleTab(SidebarTab.Thread)" />
 
 						<!-- Editing icon for steward (but not for administrator) -->
-						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
+						<GlobalBarButton v-if="roles.userHasPermissionForAction(UserAction.StewardPanel, props.id)" type="dots-three-vertical" @click="stewardCanEdit()" />
 					</RoomHeaderButtons>
 				</div>
 			</div>
@@ -101,6 +101,7 @@
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
@@ -110,10 +111,10 @@
 
 	// Models
 	import { QueryParameterKey, actions } from '@hub-client/models/constants';
-	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 	import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
+	import { UserAction } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -126,6 +127,7 @@
 	const route = useRoute();
 	const rooms = useRooms();
 	const user = useUser();
+	const roles = useRoles();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
