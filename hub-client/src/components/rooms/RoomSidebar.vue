@@ -25,7 +25,7 @@
 	const sidebar = useSidebar();
 	const isOpen = computed(() => props.activeTab !== SidebarTab.None);
 
-	// DM sidebar takes more space (100% - 412px) to show conversation
+	// DM sidebar takes more space (100% - 360px) to show conversation
 	const isDMSidebar = computed(() => props.activeTab === SidebarTab.DirectMessage || props.activeTab === SidebarTab.NewDM);
 
 	const sidebarClasses = computed(() => {
@@ -36,6 +36,6 @@
 			return 'relative z-40 w-0 border-l-0';
 		}
 
-		return 'border-on-surface-disabled relative z-40 w-[412px] border-l';
+		return 'border-on-surface-disabled relative z-40 w-[360px] border-l';
 	});
 </script>

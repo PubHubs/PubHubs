@@ -32,7 +32,7 @@
 		<!-- Content row: Message list + DM room (desktop) or sidebar (mobile) -->
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Conversation list -->
-			<div class="flex h-full flex-col overflow-y-auto p-3 md:p-4" :class="isMobile ? 'w-full' : 'w-[412px] shrink-0'">
+			<div class="flex h-full flex-col overflow-y-auto p-3 md:p-4" :class="isMobile ? 'w-full' : 'w-[360px] shrink-0'">
 				<span v-if="privateRooms?.length === 0" class="mx-auto shrink-0">
 					{{ t('others.no_private_message') }}
 				</span>
