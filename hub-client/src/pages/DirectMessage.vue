@@ -121,7 +121,7 @@
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Models
-	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Store
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -147,7 +147,7 @@
 	const selectedRoom = ref<Room | null>(null);
 	const scrollToEventId = ref<string | undefined>(undefined);
 
-	const privateRooms = computed(() => rooms.loadedPrivateRooms);
+	const privateRooms = computed(() => rooms.privateRooms);
 
 	const newAdminMsgCount = computed(() => {
 		if (user.isAdmin) return;
@@ -158,7 +158,7 @@
 	const adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
 
 	const isAdminRoomVisible = computed(() => {
-		return rooms.loadedPrivateRooms.some((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
+		return rooms.loadedPrivateRooms.some((r) => r.roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT);
 	});
 
 	const isGroupDM = computed(() => {
@@ -284,7 +284,7 @@
 
 	async function loadPrivateRooms() {
 		await rooms.waitForInitialRoomsLoaded();
-		const roomsList = rooms.filteredRoomList(DirectRooms);
+		const roomsList = rooms.loadedPrivateRooms;
 		for (const room of roomsList) {
 			await rooms.joinRoomListRoom(room.roomId);
 		}

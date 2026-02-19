@@ -100,38 +100,24 @@ const useRooms = defineStore('rooms', {
 			return rooms;
 		},
 
-		/**
-		 * Filter room displaylist based on RoomTypes
-		 * @param types Array of RoomTypes to fetch
-		 */
-		filteredRoomList() {
-			return (types: RoomType[]) => {
-				const user = useUser();
-				// Room types that encode hidden state in room name (user IDs with _ prefix)
-				const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
-				return this.roomList
-					.filter((room) => room.isHidden === false && room.roomType && types.includes(room.roomType as RoomType))
-					.filter((room) => {
-						if (!hiddenNameRoomTypes.includes(room.roomType as RoomType)) return true;
-						return isVisiblePrivateRoom(room.name, user.user!);
-					});
-			};
-		},
-
-		/** Loaded private Room instances (DMs, group DMs, admin/steward contact). */
-		loadedPrivateRooms(): Room[] {
+		/** Private rooms (DMs, group DMs, admin/steward contact) from the room list. */
+		loadedPrivateRooms(): RoomListRoom[] {
 			const user = useUser();
 			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
-			return this.roomList
-				.filter((room) => {
-					if (room.isHidden || !DirectRooms.includes(room.roomType as RoomType)) return false;
-					if (!this.rooms[room.roomId]) return false;
+			return this.roomList.filter((room) => {
+				if (room.isHidden === false && room.roomType && DirectRooms.includes(room.roomType as RoomType)) {
 					if (hiddenNameRoomTypes.includes(room.roomType as RoomType)) {
 						return isVisiblePrivateRoom(room.name, user.user!);
 					}
 					return true;
-				})
-				.map((room) => this.rooms[room.roomId] as Room);
+				}
+				return false;
+			});
+		},
+
+		/** Private Room instances for consumers that need full Room objects (e.g. DirectMessage). */
+		privateRooms(): Room[] {
+			return this.loadedPrivateRooms.filter((r) => this.rooms[r.roomId]).map((r) => this.rooms[r.roomId] as Room);
 		},
 
 		loadedPublicRooms(): RoomListRoom[] {
@@ -623,7 +609,7 @@ const useRooms = defineStore('rooms', {
 		},
 		getTotalPrivateRoomUnreadMsgCount(): number {
 			const pubhubs = usePubhubsStore();
-			const totalPrivateRooms = this.filteredRoomList(DirectRooms).map((x) => pubhubs.client.getRoom(x.roomId));
+			const totalPrivateRooms = this.loadedPrivateRooms.map((x) => pubhubs.client.getRoom(x.roomId));
 			return totalPrivateRooms.reduce((total, room) => total + (room!.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {

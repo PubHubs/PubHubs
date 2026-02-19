@@ -130,7 +130,7 @@
 		if (props.roomTypes.every((t) => SecuredRooms.includes(t))) {
 			return rooms.loadedSecuredRooms;
 		}
-		return rooms.filteredRoomList(props.roomTypes);
+		return rooms.loadedPrivateRooms;
 	});
 
 	const roomsLoaded = computed(() => {
