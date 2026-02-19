@@ -8,6 +8,7 @@ import os
 import sys
 import shutil
 import time
+import yaml
 
 def main():
     parser = argparse.ArgumentParser(
@@ -27,7 +28,10 @@ def main():
     parser.add_argument("--global-client-url", default=None,
                         help="Overwrites the global client url in the homeserver configuration")
     parser.add_argument("--replace-sqlite3-by-postgres",
-                        help="Replaces the configured sqlite3 database by a postgres database running inside this container.  Performs a migration, if necessary.",
+                        help="Replaces the configured sqlite3 database by a postgres database running inside this container."
+                             "Performs a migration, if necessary, moving homeserver.db to homeserver.db.bak "
+                             "to indicate a succefull migration.  Will abort when a postgres data directory is present, "
+                             "but homeserver.db.bak is not.",
                         action=argparse.BooleanOptionalAction,
                         default=True)
 
@@ -97,14 +101,32 @@ class Program:
 
             fresh_db = self.prepare_pg_data_dir(pg_data_dir=pg_data_dir, pg_bindir=pg_bindir)
 
-            # run postgres
+            sqlite3_path = uc._rsbp_sqlite3_path
+            if not fresh_db and not os.path.exists(sqlite3_backup_path := sqlite3_path + '.bak'):
+                time.sleep(1)
+                print()
+                print(f"WARNING: found postgres data directory at {pg_data_dir} (inside the container),")
+                print(f"         but did not find {sqlite3_backup_path} (inside the container) indicating")
+                print( "         a successful migration to the postgres directory.)")
+                print( "")
+                print(f"If you removed the {sqlite3_backup_path} file to safe space,")
+                print( "just put a placeholder there.")
+                print()
+                print( "If the migration did not succeed yet, remove the postgres data directory,")
+                print( "and restart this container.")
+                print()
+                time.sleep(5)
+                sys.exit(1)
+
+            # run postgres, so we can issue commands to it
             self._waiter.add("postgres", 
                              subprocess.Popen(('sudo', '-u', 'postgres',
                                                os.path.join(pg_bindir, "postgres"),
                                                '-D', pg_data_dir),
                                                stdin=subprocess.DEVNULL))
             countdown = 5
-            while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q")).returncode != 0:
+            while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"), 
+                                 stdin=subprocess.DEVNULL).returncode != 0:
                 print(f"waiting {countdown} seconds for the postgres server to come up")
                 time.sleep(1)
                 countdown -= 1
@@ -121,6 +143,22 @@ class Program:
                                 "--template=template0",
                                 "--owner=synapse"), 
                                stdin=subprocess.DEVNULL, check=True)
+
+                # Run vanilla synapse migration; we want to run this on a homeserver without any of our modules,
+                # because our code is definitely not written with the possibility of a migration running
+
+                migration_config_path = live_config_path + "-for_migration"
+
+                with open(live_config_path, "r") as f:
+                    config = yaml.safe_load(f)
+                config['modules'] = []
+                with open(migration_config_path, "w") as f:
+                    yaml.dump(config, f)
+
+                subprocess.run(("synapse_port_db", 
+                                "--sqlite-database", sqlite3_path,
+                                "--postgres-config", migration_config_path),
+                               check=True)
 
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
