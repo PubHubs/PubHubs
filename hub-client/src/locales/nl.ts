@@ -472,9 +472,11 @@ const nl = {
 		add_tip: 'Gebruik "," om meerdere waardes tegelijk toe te voegen',
 		editroom_typing: 'Selecteer hier het beveiligde attribuut dat je wilt controleren',
 		value: 'Waardes',
-		admin_contact_title: 'Contact Hub Beheerder',
-		admin_contact_main_msg: 'Voor vragen over de kamer kunt u contact opnemen met de kamer steward. Wilt u nog steeds contact opnemen met de Administrator?',
-		if_admin_contact_not_present: 'De Administrator is niet beschikbaar. Neem contact op met de kamer steward voor hulp.',
+		admin_contact_title: 'Contact hub beheerder',
+		admin_contact_subtitle: 'Alleen voor hub-brede zaken',
+		admin_contact_main_msg:
+			'Voor kamergerelateerde vragen kunt u het beste eerst de kamersteward benaderen. De steward is te bereiken via het reddingsboei-icoon in de rechts-bovenhoek van de kamer. De hub beheerder is alleen bedoeld voor hub-brede zaken of wanneer de steward niet kan helpen. Wilt u doorgaan?',
+		if_admin_contact_not_present: 'De Hub Beheerder is momenteel niet beschikbaar. Voor kamergerelateerde vragen kunt u de kamersteward bereiken via het reddingsboei-icoon in de kop van de kamer.',
 	},
 
 	themes: {

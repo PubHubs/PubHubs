@@ -18,13 +18,6 @@
 
 			<!-- Right: Buttons (hidden on mobile when sidebar is open) -->
 			<div v-if="!isMobile || !sidebar.isOpen.value" class="flex items-center gap-2">
-				<!-- Admin contact button (hidden once room exists) -->
-				<div v-if="!user.isAdmin && !adminRoomExists" class="relative">
-					<GlobalBarButton type="lifebuoy" @click="handleAdminContact()" />
-				</div>
-
-				<div v-if="!user.isAdmin && !adminRoomExists" class="bg-on-surface-disabled mx-1 h-6 w-px"></div>
-
 				<!-- Search button (desktop only, when room is selected) -->
 				<GlobalBarButton v-if="!isMobile && selectedRoom" type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
 
@@ -123,8 +116,6 @@
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Store
-	import { useDialog } from '@hub-client/stores/dialog';
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { Room, useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
@@ -133,12 +124,10 @@
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const contextMenuStore = useContextMenuStore();
-	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
 	const { t } = useI18n();
-	const dialog = useDialog();
 	const sidebar = useSidebar();
 
 	const isMobile = computed(() => settings.isMobileState);
@@ -147,8 +136,6 @@
 	const scrollToEventId = ref<string | undefined>(undefined);
 
 	const privateRooms = computed(() => rooms.privateRooms);
-
-	const adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
 
 	const isGroupDM = computed(() => {
 		return selectedRoom.value?.getType() === RoomType.PH_MESSAGES_GROUP;
@@ -220,56 +207,6 @@
 			sidebar.closeInstantly();
 		}
 	});
-
-	async function handleAdminContact() {
-		if (isMobile.value) {
-			const adminRoom = await getOrCreateAdminRoom();
-			if (adminRoom) openDMRoom(adminRoom);
-			return;
-		}
-
-		// Desktop: toggle admin room visibility
-		const visibleAdminRoom = privateRooms.value.find((r) => r.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT);
-		if (visibleAdminRoom) {
-			await pubhubs.setPrivateRoomHiddenStateForUser(visibleAdminRoom, true);
-			if (selectedRoom.value?.roomId === visibleAdminRoom.roomId) {
-				const next = sortedPrivateRooms.value.find((r) => r.roomId !== visibleAdminRoom.roomId);
-				if (next) {
-					openDMRoom(next);
-				} else {
-					selectedRoom.value = null;
-				}
-			}
-			return;
-		}
-
-		const adminRoom = await getOrCreateAdminRoom();
-		if (adminRoom) {
-			openDMRoom(adminRoom);
-		}
-	}
-
-	async function getOrCreateAdminRoom(): Promise<Room | null> {
-		const existingAdminRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
-		if (existingAdminRoom) {
-			await pubhubs.setPrivateRoomHiddenStateForUser(existingAdminRoom, false);
-			return existingAdminRoom;
-		}
-
-		const userResponse = await dialog.yesno(t('admin.admin_contact_title'), t('admin.admin_contact_main_msg'));
-		if (!userResponse) return null;
-
-		const roomSetUpResponse = await pubhubs.setUpAdminRoom();
-		if (typeof roomSetUpResponse === 'boolean' && roomSetUpResponse === false) {
-			dialog.confirm(t('admin.if_admin_contact_not_present'));
-			return null;
-		} else if (typeof roomSetUpResponse === 'string') {
-			const roomId = roomSetUpResponse;
-			await rooms.joinRoomListRoom(roomId);
-			return rooms.rooms[roomId] as Room;
-		}
-		return null;
-	}
 
 	async function loadPrivateRooms() {
 		await rooms.waitForInitialRoomsLoaded();
