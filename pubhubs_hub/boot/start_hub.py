@@ -247,7 +247,7 @@ class Program:
         # All potential sequence-stream pairs (according to claude, beware!) are listed below.
         # Only the ones that actually cause a problem are uncommmented.
         STREAM_TO_SEQUENCE = {
-            #"account_data":                   "account_data_sequence",
+            "account_data":                   "account_data_sequence",
             #"caches":                         "cache_invalidation_stream_seq",
             #"device_lists_stream":            "device_lists_sequence",
             #"e2e_cross_signing_keys":         "e2e_cross_signing_keys_sequence",
