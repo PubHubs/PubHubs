@@ -202,6 +202,7 @@ class Program:
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
         self._waiter.wait()
+        print("waiting for 10 seconds to kill all remaining processes")
 
     def migrate_ph_tables(self, sqlite_conn, pg_conn):
         sqlite_cur = sqlite_conn.cursor()
@@ -225,6 +226,26 @@ class Program:
             sql = f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})"
             print(f"Executing in postgres: {sql} ...")
             pg_cur.executemany(sql, rows)
+
+        # Without the following line Synapse fails with the error
+        #
+        #    Postgres sequence 'device_inbox_sequence' is inconsistent with associated stream position
+        #    of 'to_device' in the 'stream_positions' table.
+        #
+        # This is probably because synapse_port_db computes device_inbox_sequence incorrectly.
+        #
+        # The fix (hopefully) is to set device_inbox_sequence manually the same way it is checked:
+        #   <https://github.com/element-hq/synapse/blob/v1.146.0/synapse/storage/util/sequence.py#L153>
+
+        sql = ("SELECT setval("
+               "'device_inbox_sequence', "
+                "( SELECT COALESCE(MAX(stream_id), 1) "
+                     "FROM stream_positions "
+                     "WHERE stream_name = 'to_device' )"
+            ")")
+
+        print(f"Executing in postgres: {sql} ...")
+        pg_cur.execute(sql)
 
         pg_conn.commit()
 
