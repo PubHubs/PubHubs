@@ -198,6 +198,8 @@ class Program:
                     print(f"Renaming {sqlite3_path} -> {sqlite3_backup_path} ...")
                     os.rename(sqlite3_path, sqlite3_backup_path)
                     print("Migration to postgres completed!")
+                    print("Sleeping 5 seconds...")
+                    time.sleep(5)
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
@@ -231,6 +233,8 @@ class Program:
         #
         #    Postgres sequence 'device_inbox_sequence' is inconsistent with associated stream position
         #    of 'to_device' in the 'stream_positions' table.
+        # 
+        # See also <https://github.com/element-hq/synapse/issues/18544>
         #
         # This is probably because synapse_port_db computes device_inbox_sequence incorrectly.
         #
