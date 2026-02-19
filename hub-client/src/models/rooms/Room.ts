@@ -793,30 +793,6 @@ export default class Room {
 
 	// #region Threads
 
-	/**
-	 * Passes listener to client
-	 * @param newReplyListener Method to perform on ThreadEvent.NewReply
-	 */
-	public listenToThreadNewReply(newReplyListener: NewReplyListener) {
-		this.matrixRoom.on(ThreadEvent.NewReply, newReplyListener);
-	}
-
-	public stopListeningToThreadNewReply(newReplyListener: NewReplyListener) {
-		this.matrixRoom.off(ThreadEvent.NewReply, newReplyListener);
-	}
-
-	/**
-	 * Passes listener to client.
-	 * @param updateReplyListener Method to perform on ThreadEvent.Update
-	 */
-	public listenToThreadUpdate(updateReplyListener: UpdateReplyListener) {
-		this.matrixRoom.on(ThreadEvent.Update, updateReplyListener);
-	}
-
-	public stopListeningToThreadUpdate(updateReplyListener: UpdateReplyListener) {
-		this.matrixRoom.off(ThreadEvent.Update, updateReplyListener);
-	}
-
 	public getMatrixThread(eventId: string): Thread | undefined {
 		return this.matrixRoom.getThread(eventId) ?? undefined;
 	}
