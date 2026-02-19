@@ -108,6 +108,10 @@ class Program:
 
                 print(f"Creating {pg_data_dir} ...")
                 os.mkdir(pg_data_dir)
+                
+                print(f"Changing owner and group of {pg_data_dir} to postgres")
+                shutil.chown(pg_data_dir, user="postgres", group="postgres") 
+                # If we don't do this, the next command might fail.
 
                 print(f"Initializing postgres data directory at {pg_data_dir} ...")
                 subprocess.run(("sudo", "-u", "postgres", 
