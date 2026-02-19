@@ -9,6 +9,9 @@ import sys
 import shutil
 import time
 import yaml
+import sqlite3
+import psycopg2
+import contextlib
 
 def main():
     parser = argparse.ArgumentParser(
@@ -99,10 +102,21 @@ class Program:
                                     stdin=subprocess.DEVNULL,
                                     check=True, capture_output=True).stdout.strip().decode('utf-8')
 
-            fresh_db = self.prepare_pg_data_dir(pg_data_dir=pg_data_dir, pg_bindir=pg_bindir)
+            fresh_db = False
+            if not os.path.exists(pg_data_dir):
+                fresh_db = True
+
+                print(f"Creating {pg_data_dir} ...")
+                os.mkdir(pg_data_dir)
+
+                print(f"Initializing postgres data directory at {pg_data_dir} ...")
+                subprocess.run(("sudo", "-u", "postgres", 
+                                os.path.join(pg_bindir, "initdb"), pg_data_dir),
+                               stdin=subprocess.DEVNULL, check=True)
 
             sqlite3_path = uc._rsbp_sqlite3_path
-            if not fresh_db and not os.path.exists(sqlite3_backup_path := sqlite3_path + '.bak'):
+            sqlite3_backup_path = sqlite3_path + '.bak'
+            if not fresh_db and not os.path.exists(sqlite3_backup_path):
                 time.sleep(1)
                 print()
                 print(f"WARNING: found postgres data directory at {pg_data_dir} (inside the container),")
@@ -119,6 +133,7 @@ class Program:
                 sys.exit(1)
 
             # run postgres, so we can issue commands to it
+            print("Starting postgres ...")
             self._waiter.add("postgres", 
                              subprocess.Popen(('sudo', '-u', 'postgres',
                                                os.path.join(pg_bindir, "postgres"),
@@ -127,15 +142,17 @@ class Program:
             countdown = 5
             while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"), 
                                  stdin=subprocess.DEVNULL).returncode != 0:
-                print(f"waiting {countdown} seconds for the postgres server to come up")
+                print(f"Waiting {countdown} seconds for the postgres server to come up ...")
                 time.sleep(1)
                 countdown -= 1
                 if countdown == 0:
                     raise RuntimeError("postgres server did not start properly; the reason might be in the logs above")
 
             if fresh_db:
+                print("Creating `synapse` postgres user ...")
                 subprocess.run(("sudo", "-u", "postgres", "createuser", "synapse"), 
                                stdin=subprocess.DEVNULL, check=True)
+                print("Creating `hub` database ...")
                 subprocess.run(("sudo", "-u", "postgres", 
                                 "createdb", "hub",
                                 "--encoding=UTF8",
@@ -144,38 +161,66 @@ class Program:
                                 "--owner=synapse"), 
                                stdin=subprocess.DEVNULL, check=True)
 
-                # Run vanilla synapse migration; we want to run this on a homeserver without any of our modules,
-                # because our code is definitely not written with the possibility of a migration running
+                # only run migration if there is a sqlite3 database
+                if os.path.exists(sqlite3_path):
+                    # Run vanilla synapse migration; we want to run this on a homeserver without any of our modules,
+                    # because our code is definitely not written with the possibility of a migration running
+                    migration_config_path = live_config_path + "-for_migration"
 
-                migration_config_path = live_config_path + "-for_migration"
+                    print(f"Creating {migration_config_path} ...")
+                    with open(live_config_path, "r") as f:
+                        config = yaml.safe_load(f)
+                    config['modules'] = []
+                    with open(migration_config_path, "w") as f:
+                        yaml.dump(config, f)
 
-                with open(live_config_path, "r") as f:
-                    config = yaml.safe_load(f)
-                config['modules'] = []
-                with open(migration_config_path, "w") as f:
-                    yaml.dump(config, f)
+                    print(f"Running vanilla Synapse migration {sqlite3_path} -> postgres (this might take a while!) ...")
+                    subprocess.run(("synapse_port_db", 
+                                    "--sqlite-database", sqlite3_path,
+                                    "--postgres-config", migration_config_path),
+                                   check=True)
 
-                subprocess.run(("synapse_port_db", 
-                                "--sqlite-database", sqlite3_path,
-                                "--postgres-config", migration_config_path),
-                               check=True)
+                    print(f"Removing {migration_config_path} ...")
+                    os.unlink(migration_config_path)
+                    
+                    print("Migrating pubhubs-specific tables ...")
+                    with contextlib.ExitStack() as exit_stack:
+                        sqlite_conn = exit_stack.enter_context(sqlite3.connect(sqlite3_path))
+                        pg_conn = exit_stack.enter_context(psycopg2.connect("postgresql://synapse@localhost:5432/hub"))
+                        self.migrate_ph_tables(sqlite_conn=sqlite_conn, pg_conn=pg_conn)
 
+                    print(f"Renaming {sqlite3_path} -> {sqlite3_backup_path} ...")
+                    os.rename(sqlite3_path, sqlite3_backup_path)
+                    print("Migration to postgres completed!")
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
         self._waiter.wait()
 
-    def prepare_pg_data_dir(self, pg_data_dir, pg_bindir):
-        if os.path.exists(pg_data_dir):
-            return False
+    def migrate_ph_tables(self, sqlite_conn, pg_conn):
+        sqlite_cur = sqlite_conn.cursor()
+        pg_cur = pg_conn.cursor()
 
-        os.mkdir(pg_data_dir)
+        for table_name in ('allowed_to_join_room', 'secured_rooms', 'joined_hub'):
+            print(f"Migrating table {table_name} ...")
+            sqlite_cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+            sql = sqlite_cur.fetchone()[0]
+            print(f"Executing in postgres: {sql} ...")
+            pg_cur.execute(sql)
 
-        subprocess.run(("sudo", "-u", "postgres", 
-                        os.path.join(pg_bindir, "initdb"), pg_data_dir),
-                       stdin=subprocess.DEVNULL, check=True)
+            sqlite_cur.execute(f"SELECT * FROM {table_name}")
 
-        return True
+            rows = sqlite_cur.fetchall()
+
+            column_names = [desc[0] for desc in sqlite_cur.description]
+            cols = ', '.join(column_names)
+            placeholders = ', '.join(("%s",)*len(column_names))
+
+            sql = f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})"
+            print(f"Executing in postgres: {sql} ...")
+            pg_cur.executemany(sql, rows)
+
+        pg_conn.commit()
 
 
 # wait() waits for any of the processes added to Waiter to quit
