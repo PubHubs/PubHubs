@@ -21,6 +21,9 @@ def main():
     parser.add_argument("--networkhost", 
                         default=None,
                         help="Use this networkhost (e.g. '1.2.3.4', '[1::2]') instead of trying to autodetect it. Used e.g. by the yivi app to contact the hub.")
+    parser.add_argument("--replace-sqlite3-by-postgres",
+                        help="Passed to start_hub.py",
+                        action=argparse.BooleanOptionalAction)
     parser.add_argument("number", 
                         choices=range(0,5),
                         type=int,
@@ -61,6 +64,11 @@ def main():
     global_client_url = f"http://{host}:8080"
     phc_url = f"http://{host}:5050"
 
+    replace_sqlite3_by_postgres = ()
+    if args.replace_sqlite3_by_postgres != None: 
+        prefix = "" if args.replace_sqlite3_by_postgres else "no-"
+        replace_sqlite3_by_postgres = (f"--{prefix}replace-sqlite3-by-postgres",)
+
     subprocess.run(("docker", "run", 
                     "-it",
                     "--rm",
@@ -77,6 +85,7 @@ def main():
                     "--hub-server-url", hub_server_url,
                     "--hub-server-url-for-yivi", hub_server_url_for_yivi,
                     "--global-client-url", global_client_url,
+                    *replace_sqlite3_by_postgres,
                     ))
 
 if __name__=="__main__":
