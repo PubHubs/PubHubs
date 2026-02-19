@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional
 from synapse.module_api import ModuleApi
 from synapse.storage.database import LoggingTransaction
+from synapse.storage.engines import PostgresEngine, Sqlite3Engine
 from ._secured_rooms_class import SecuredRoom, RoomAttributeEncoder
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,9 @@ class HubStore:
         def create_tables_txn(txn: LoggingTransaction) -> None:
             # No functionality yet for expired Yivi attributes, now able to join room forever.
             # Make some background check for it see: https://github.com/matrix-org/synapse-email-account-validity for an example.
+            # WARNING!  When adding a new table, make sure you consider modifying the
+            #           sqlite3 -> postgres migration code in start_hub.py.
+            
             txn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS allowed_to_join_room(
@@ -184,9 +188,27 @@ class HubStore:
                 txn: LoggingTransaction,
                 ) -> Optional[list[tuple]]:
 
+            # c.f. https://github.com/element-hq/synapse/blob/04206aebdf2444f189a5744b5cb62d419ff83e8b/synapse/storage/databases/main/search.py#L86
+            if isinstance(txn.database_engine, PostgresEngine):
+                # https://www.postgresql.org/docs/current/functions-datetime.html
+                unix_now = "EXTRACT(EPOCH FROM NOW())"
+                cast_col = "CAST(join_time AS DOUBLE PRECISION)"
+            elif isinstance(txn.database_engine, Sqlite3Engine):
+                unix_now = "CAST(strftime('%s', 'now') AS REAL)"
+                cast_col = "CAST(join_time AS REAL)"
+            else:
+                raise NotImplementedError(f"Unsupported database engine: {type(txn.database_engine)}")
+
+            # NOTE: the CAST(expiration_time_days as INTEGER) is needed because (for some reason)
+            #       expiration_time_days has type TEXT.
             txn.execute(
-                """
-                UPDATE allowed_to_join_room SET user_expired = 1 WHERE CAST(join_time AS REAL) <= strftime('%s', 'now') - (SELECT expiration_time_days * 24 * 60 * 60 FROM secured_rooms WHERE room_id = allowed_to_join_room.room_id);
+                f"""
+                UPDATE allowed_to_join_room SET user_expired = 1
+                WHERE {cast_col} <= {unix_now} - (
+                    SELECT CAST(expiration_time_days AS INTEGER) * 24 * 60 * 60
+                    FROM secured_rooms
+                    WHERE room_id = allowed_to_join_room.room_id
+                )
                 """,
             )
 
@@ -240,7 +262,7 @@ class HubStore:
                         """
                         SELECT sr.room_id, rss.name, rss.topic, accepted, expiration_time_days, user_txt, rss.room_type
                         FROM secured_rooms AS sr
-                        INNER JOIN room_stats_state AS rss ON sr.room_id = rss.room_id AND rss.name NOT NULL
+                        INNER JOIN room_stats_state AS rss ON sr.room_id = rss.room_id AND rss.name IS NOT NULL
                         """)
 
             return txn.fetchall()
@@ -263,7 +285,7 @@ class HubStore:
                 """
                     SELECT sr.room_id, rss.name, rss.topic, accepted,expiration_time_days,user_txt, rss.room_type
                     FROM secured_rooms AS sr
-                    INNER JOIN room_stats_state AS rss ON sr.room_id = rss.room_id AND rss.name NOT NULL
+                    INNER JOIN room_stats_state AS rss ON sr.room_id = rss.room_id AND rss.name IS NOT NULL
                     WHERE sr.room_id = ?
                     """,
                 [id_tx])
