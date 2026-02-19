@@ -197,14 +197,14 @@ class Program:
 
                     print(f"Renaming {sqlite3_path} -> {sqlite3_backup_path} ...")
                     os.rename(sqlite3_path, sqlite3_backup_path)
-                    print("Migration to postgres completed!")
-                    print("Sleeping 5 seconds...")
-                    time.sleep(5)
+                    print("Migration to postgres completed!", flush=True)
+                    # flushing here to make sure Synapse's output comes after
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
         self._waiter.wait()
         print("waiting for 10 seconds to kill all remaining processes")
+        time.sleep(10)
 
     def migrate_ph_tables(self, sqlite_conn, pg_conn):
         sqlite_cur = sqlite_conn.cursor()
@@ -229,7 +229,7 @@ class Program:
             print(f"Executing in postgres: {sql} ...")
             pg_cur.executemany(sql, rows)
 
-        # Without the following line Synapse fails with the error
+        # Without the following fix Synapse fails with an error such as:
         #
         #    Postgres sequence 'device_inbox_sequence' is inconsistent with associated stream position
         #    of 'to_device' in the 'stream_positions' table.
@@ -240,16 +240,34 @@ class Program:
         #
         # The fix (hopefully) is to set device_inbox_sequence manually the same way it is checked:
         #   <https://github.com/element-hq/synapse/blob/v1.146.0/synapse/storage/util/sequence.py#L153>
+        #
+        # This problem occurs not only for the device_inbox_sequence-to_device sequence-stream pair,
+        # but also for other sequence-streams pairs.
+        #
+        # All potential sequence-stream pairs (according to claude) are listed below.
+        # Only the ones that actually cause a problem are uncommmented.
+        STREAM_TO_SEQUENCE = {
+            # "account_data": "account_data_sequence",
+            #"caches": "cache_invalidation_stream_seq",
+            "to_device": "device_inbox_sequence",
+            #"events": "events_stream_seq",
+            #"presence_stream": "presence_stream_sequence",
+            "receipts": "receipts_sequence",
+            #"push_rules_stream": "push_rules_stream_sequence",
+            #"un_partial_stated_event_stream":  "un_partial_stated_event_stream_sequence",
+        }
 
-        sql = ("SELECT setval("
-               "'device_inbox_sequence', "
-                "( SELECT COALESCE(MAX(stream_id), 1) "
-                     "FROM stream_positions "
-                     "WHERE stream_name = 'to_device' )"
-            ")")
+        for stream_name, seq_name in STREAM_TO_SEQUENCE.items():
+            sql = ( f"SELECT setval('{seq_name}', "
+                     "GREATEST( "
+                      f"(SELECT last_value FROM {seq_name}), "
+                       "(SELECT COALESCE(MAX(stream_id), 1) "
+                                "FROM stream_positions "
+                                "WHERE stream_name = %s)"
+                             ")    )" )
 
-        print(f"Executing in postgres: {sql} ...")
-        pg_cur.execute(sql)
+            print(f"Executing in postgres: {sql} on {stream_name} ...")
+            pg_cur.execute(sql, (stream_name,))
 
         pg_conn.commit()
 
