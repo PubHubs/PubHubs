@@ -244,17 +244,22 @@ class Program:
         # This problem occurs not only for the device_inbox_sequence-to_device sequence-stream pair,
         # but also for other sequence-streams pairs.
         #
-        # All potential sequence-stream pairs (according to claude) are listed below.
+        # All potential sequence-stream pairs (according to claude, beware!) are listed below.
         # Only the ones that actually cause a problem are uncommmented.
         STREAM_TO_SEQUENCE = {
-            # "account_data": "account_data_sequence",
-            #"caches": "cache_invalidation_stream_seq",
-            "to_device": "device_inbox_sequence",
-            #"events": "events_stream_seq",
-            #"presence_stream": "presence_stream_sequence",
-            "receipts": "receipts_sequence",
-            #"push_rules_stream": "push_rules_stream_sequence",
-            #"un_partial_stated_event_stream":  "un_partial_stated_event_stream_sequence",
+            #"account_data":                   "account_data_sequence",
+            #"caches":                         "cache_invalidation_stream_seq",
+            #"device_lists_stream":            "device_lists_sequence",
+            #"e2e_cross_signing_keys":         "e2e_cross_signing_keys_sequence",
+            #"events":                         "events_stream_seq",
+            #"presence_stream":                "presence_stream_sequence",
+            #"push_rules_stream":              "push_rules_stream_sequence",
+            "pushers":                        "pushers_sequence",
+            "receipts":                       "receipts_sequence",
+            #"thread_subscriptions":           "thread_subscriptions_sequence",
+            "to_device":                      "device_inbox_sequence",
+            #"un_partial_stated_event_stream": "un_partial_stated_event_stream_sequence",
+            #"un_partial_stated_room_stream":  "un_partial_stated_room_stream_sequence",
         }
 
         for stream_name, seq_name in STREAM_TO_SEQUENCE.items():
