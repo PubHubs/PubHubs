@@ -51,7 +51,7 @@
 			<!-- Content row: Timeline + Sidebar -->
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-					<RoomTimeline v-if="room" :key="props.id" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
+					<RoomTimeline v-if="room" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
 				</div>
 
 				<!-- Room sidebar -->
@@ -175,10 +175,6 @@
 		const members = room.value.getStateJoinedMembersIds();
 		return members.filter((id) => !id.startsWith('@notices_user:')).length > 0;
 	});
-
-	const handleToggleSearchbar = (isExpanded: boolean) => {
-		isSearchBarExpanded.value = isExpanded;
-	};
 
 	onMounted(async () => {
 		// Ensure sidebar is closed instantly when entering a room page
