@@ -125,13 +125,15 @@ class Program:
                 print()
                 print(f"WARNING: found postgres data directory at {pg_data_dir} (inside the container),")
                 print(f"         but did not find {sqlite3_backup_path} (inside the container) indicating")
-                print( "         a successful migration to the postgres directory.)")
-                print( "")
-                print(f"If you removed the {sqlite3_backup_path} file to safe space,")
-                print( "just put a placeholder there.")
+                print( "         a successful migration to the postgres directory.")
                 print()
-                print( "If the migration did not succeed yet, remove the postgres data directory,")
-                print( "and restart this container.")
+                print(f"         If you removed the {sqlite3_backup_path} file to safe space,")
+                print( "         just put a placeholder there.")
+                print()
+                print( "         If the migration did not succeed yet, remove the postgres data directory,")
+                print( "         and restart this container to try again.")
+                print()
+                print( "         If you want to opt out, pass --no-replace-sqlite3-by-postgres to the hub.")
                 print()
                 time.sleep(5)
                 sys.exit(1)
@@ -143,7 +145,7 @@ class Program:
                                                os.path.join(pg_bindir, "postgres"),
                                                '-D', pg_data_dir),
                                                stdin=subprocess.DEVNULL))
-            countdown = 5
+            countdown = 300
             while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"), 
                                  stdin=subprocess.DEVNULL).returncode != 0:
                 print(f"Waiting {countdown} seconds for the postgres server to come up ...")
