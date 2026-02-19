@@ -478,8 +478,8 @@ const en = {
 		admin_contact_title: 'Contact hub administrator',
 		admin_contact_subtitle: 'For hub-wide issues only',
 		admin_contact_main_msg:
-			'For room-related questions, please contact the room steward first. You can find the steward contact button (lifebuoy icon) in the room header. The hub administrator is only for hub-wide issues or when the steward cannot help. Do you want to continue?',
-		if_admin_contact_not_present: 'The Hub Administrator is not available at the moment. For room-related questions, you can contact the room steward via the lifebuoy icon in the room header.',
+			'For room-related questions, please contact the room steward first. You can find the steward contact in the members panel of the room. The hub administrator is only for hub-wide issues or when the steward cannot help. Do you want to continue?',
+		if_admin_contact_not_present: 'The Hub Administrator is not available at the moment. For room-related questions, you can contact the room steward via the members panel in the room.',
 	},
 	themes: {
 		dark: 'Dark',
