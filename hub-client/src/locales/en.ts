@@ -344,6 +344,8 @@ const en = {
 		steward: 'steward',
 		stewards: 'stewards',
 		steward_support: 'Steward Contact',
+		contact_steward_title: 'Contact room steward',
+		contact_steward_subtitle: 'For room-related questions',
 		memberlist: 'Member list',
 		administrator: 'administrator',
 		votes: 'votes',

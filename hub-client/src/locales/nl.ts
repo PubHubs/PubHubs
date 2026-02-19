@@ -343,6 +343,8 @@ const nl = {
 		steward: 'steward',
 		stewards: 'stewards',
 		steward_support: 'Steward Contact',
+		contact_steward_title: 'Contact kamersteward',
+		contact_steward_subtitle: 'Voor kamergerelateerde vragen',
 		memberlist: 'Leden',
 		administrator: 'beheerder',
 		votes: 'stemmen',

@@ -39,9 +39,6 @@
 						<!-- Thread tab (shown when a thread is selected) -->
 						<GlobalBarButton v-if="room?.getCurrentThreadId()" type="chat-circle" :selected="sidebar.activeTab.value === SidebarTab.Thread" @click="sidebar.toggleTab(SidebarTab.Thread)" />
 
-						<!-- Contact room steward -->
-						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.MessageSteward) && room!.getRoomStewards().length > 0" type="lifebuoy" @click="messageRoomSteward()" />
-
 						<!-- Editing icon for steward (but not for administrator) -->
 						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
 					</RoomHeaderButtons>
@@ -347,10 +344,5 @@
 
 	function notPrivateRoom() {
 		return !room.value!.isPrivateRoom() && !room.value!.isGroupRoom() && !room.value!.isAdminContactRoom() && !room.value!.isStewardContactRoom();
-	}
-
-	async function messageRoomSteward() {
-		const members = room.value!.getRoomStewards();
-		await rooms.createStewardRoomOrModify(props.id, members);
 	}
 </script>

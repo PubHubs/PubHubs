@@ -2,6 +2,17 @@
 	<div class="flex h-full flex-col overflow-y-hidden p-4">
 		<SidebarHeader :title="$t('rooms.members')" />
 		<div class="flex flex-1 flex-col gap-4 overflow-y-auto">
+			<!-- Contact steward card -->
+			<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="contactSteward">
+				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+					<Icon type="lifebuoy" size="md" class="text-accent-steward" />
+				</div>
+				<div class="flex flex-col">
+					<span class="font-bold">{{ t('rooms.contact_steward_title') }}</span>
+					<span class="text-on-surface-dim text-label-small">{{ t('rooms.contact_steward_subtitle') }}</span>
+				</div>
+			</div>
+
 			<div v-if="stewardIds && stewardIds.length > 0" class="pb-4">
 				<SideKickSubHeader>
 					<div class="flex justify-between">
@@ -68,6 +79,7 @@
 	import Room from '@hub-client/models/rooms/Room';
 
 	// Store
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
 	// New design
@@ -76,6 +88,7 @@
 
 	const { t } = useI18n();
 	const user = useUser();
+	const rooms = useRooms();
 	const dm = useDirectMessage();
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
@@ -116,6 +129,11 @@
 		// Admins (100) and regular users (0-49) are shown as members; stewards (50-99) are separate
 		return [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])];
 	});
+
+	async function contactSteward() {
+		const stewards = props.room.getRoomStewards();
+		await rooms.createStewardRoomOrModify(props.room.roomId, stewards);
+	}
 
 	async function startDM(userId: string) {
 		await dm.goToUserDM(userId);

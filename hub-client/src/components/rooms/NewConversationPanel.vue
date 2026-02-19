@@ -65,7 +65,7 @@
 
 			<div v-if="!groupProfile" class="mt-4 grow overflow-y-auto">
 				<!-- Admin contact -->
-				<div v-if="!userStore.isAdmin && !groupPanel" class="mb-4">
+				<div v-if="!userStore.isAdmin && !groupPanel && !adminRoomExists" class="mb-4">
 					<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="handleAdminContact">
 						<div class="bg-accent-admin/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
 							<Icon type="lifebuoy" class="text-accent-admin" />
@@ -121,10 +121,14 @@
 	import { fileUpload } from '@hub-client/composables/fileUpload';
 	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -137,6 +141,7 @@
 	const userStore = useUser();
 	const rooms = useRooms();
 	const dm = useDirectMessage();
+	const sidebar = useSidebar();
 	const groupPanel = ref<boolean>(false);
 	const groupProfile = ref<boolean>(false);
 	const groupPanelButton = ref<boolean>(true);
@@ -158,6 +163,8 @@
 			default: false,
 		},
 	});
+
+	const adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
 
 	onBeforeUnmount(() => {
 		avatarPreviewUrl.value?.revoke();
@@ -222,6 +229,10 @@
 		}
 		if (typeof roomSetUpResponse === 'string') {
 			await rooms.joinRoomListRoom(roomSetUpResponse);
+			const room = rooms.rooms[roomSetUpResponse];
+			if (room) {
+				sidebar.openDMRoom(room);
+			}
 			emit('close');
 		}
 	}
