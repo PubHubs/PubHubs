@@ -13,7 +13,7 @@ import { SMI } from '@hub-client/logic/logging/StatusMessage';
 // Idea: we wait for the "Open Yivi app" anchor <a class="yivi-web-button-link" ...>
 //       to be created using a MutationObserver, and add target="_top" attribute to it.
 //
-export function useYiviIosWorkaround(yiviLoginRef: ReturnType<typeof useTemplateRef>) {
+function useYiviIosWorkaround(yiviLoginRef: ReturnType<typeof useTemplateRef>) {
 	function onYiviNodeChange() {
 		LOGGER.trace(SMI.OTHER, "Changes to Yivi div's subtree");
 		const yiviAnchor = yiviLoginRef.value?.querySelector('.yivi-web-button-link');
@@ -51,3 +51,5 @@ export function useYiviIosWorkaround(yiviLoginRef: ReturnType<typeof useTemplate
 		});
 	});
 }
+
+export { useYiviIosWorkaround };
