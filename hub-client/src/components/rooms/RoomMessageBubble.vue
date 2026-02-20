@@ -118,32 +118,11 @@
 								v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 								@click="replyInThread"
 								class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-								:class="threadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
-								:title="t('message.reply_in_thread')"
-							>
-								<span v-if="threadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ threadLength }}</span>
-								<Icon type="chat-circle" />
-							</button>
-							<!-- Thread Reply Button -->
-							<button
-								v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-								@click="replyInThread"
-								class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 								:class="eventThreadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
 								:title="t('message.reply_in_thread')"
 							>
 								<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ eventThreadLength }}</span>
 								<Icon type="chat-circle" />
-							</button>
-
-							<!-- Delete Button -->
-							<button
-								v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && props.event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
-								@click="onDeleteMessage(props.event)"
-								class="text-on-surface-variant hover:bg-on-accent-red hover:text-accent-red hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
-								:title="t('menu.delete_message')"
-							>
-								<Icon type="trash" />
 							</button>
 						</div>
 					</div>
@@ -288,10 +267,6 @@
 			default: null,
 		},
 	});
-
-	// Set the ref variable to the url to be shared.
-
-	// ${baseUrl}#/hub/${hubName}/${roomId}
 
 	onMounted(() => {
 		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
