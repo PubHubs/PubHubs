@@ -1,44 +1,39 @@
 <template>
-	<div class="w-full rounded-xl p-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
-		<div class="flex h-full min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
-			<Avatar :class="'shrink-0'" :avatar-url="avatarOverrideUrl" :user-id="otherDMUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
-			<div class="min-w-0 grow overflow-hidden">
-				<div class="flex flex-col gap-1">
-					<div class="flex flex-row items-center gap-2">
-						<p class="truncate leading-tight font-bold" :class="{ truncate: !isMobile }">
+	<div class="@container w-full rounded-xl p-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
+		<div class="flex min-w-0 gap-3">
+			<Avatar class="shrink-0" :avatar-url="avatarOverrideUrl" :user-id="otherDMUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
+
+			<div class="flex min-w-0 flex-1 flex-col gap-1">
+				<!-- Top row: name + meta -->
+				<div class="flex items-baseline justify-between gap-2">
+					<div class="flex min-w-0 items-baseline gap-2">
+						<p class="truncate leading-tight font-bold">
 							{{ displayName }}
 						</p>
-						<p v-if="isGroupOrContact" class="flex items-center leading-tight">
-							<span class="mr-2 truncate leading-tight font-bold" v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT">({{ rooms.fetchRoomById(props.room.name.split(',')[0])?.name ?? '' }})</span>
+						<p v-if="isGroupOrContact" class="text-on-surface-dim hidden items-center gap-1 leading-tight @xs:flex">
+							<span v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT" class="truncate">({{ stewardSourceRoomName(props.room) }})</span>
 							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
 								<span class="text-label-small">{{ props.room.getRoomMembers() }}</span>
-								<Icon type="user" size="sm" class="mr-1" />
-								<span class="text-label-small">{{ $t('others.group_members') }}</span>
+								<Icon type="user" size="sm" />
 							</template>
 							<template v-else>
-								<span class="truncate font-bold" v-if="getOtherUserDisplayName()"> - {{ getOtherUserDisplayName() }}</span>
+								<span v-if="getOtherUserDisplayName()" class="truncate"> - {{ getOtherUserDisplayName() }}</span>
 							</template>
 						</p>
-						<p v-else class="text-label-small leading-tight" :class="{ 'mt-[0.1rem] truncate': isMobile }">
+						<p v-else-if="pseudonym" class="text-on-surface-dim text-label-small hidden truncate leading-tight @xs:block">
 							{{ pseudonym }}
 						</p>
 					</div>
+					<EventTime v-if="lastMessageTimestamp !== undefined && lastMessageTimestamp !== 0" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="text-on-surface-dim shrink-0" />
+				</div>
 
-					<!-- Right section: Message body -->
-					<div v-if="room.hasMessages()" class="mt-1 min-w-0">
-						<p v-html="event?.getContent().ph_body" class="line-clamp-1 truncate"></p>
-					</div>
-					<div v-if="!room.hasMessages()" class="mt-1 min-w-0">
-						<p class="line-clamp-1 truncate">{{ t('rooms.no_messages_yet') }}</p>
-					</div>
+				<!-- Bottom row: message preview + badge -->
+				<div class="flex items-center justify-between gap-2">
+					<p v-if="room.hasMessages()" v-html="event?.getContent().ph_body" class="text-on-surface-dim min-w-0 flex-1 truncate"></p>
+					<p v-else class="text-on-surface-dim min-w-0 flex-1 truncate">{{ t('rooms.no_messages_yet') }}</p>
+					<Badge v-if="newMessage > 0" class="shrink-0">{{ newMessage }}</Badge>
 				</div>
 			</div>
-
-			<Badge v-if="newMessage > 0" class="aspect-square h-1 shrink-0">
-				{{ newMessage }}
-			</Badge>
-
-			<EventTime v-if="lastMessageTimestamp !== undefined && lastMessageTimestamp !== 0" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="shrink-0" />
 		</div>
 	</div>
 </template>
@@ -52,6 +47,9 @@
 	// Components
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
+
+	// Composables
+	import { useModeration } from '@hub-client/composables/moderation.composable';
 
 	// Logic
 	import filters from '@hub-client/logic/core/filters';
@@ -83,7 +81,10 @@
 	const rooms = useRooms();
 	const userStore = useUser();
 	const { t } = useI18n();
+	const { stewardSourceRoomName } = useModeration();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
+
+	const roomType = computed(() => props.room.getType());
 
 	watch(
 		() => props.room,
@@ -104,8 +105,6 @@
 		},
 		{ immediate: true },
 	);
-
-	const roomType = computed(() => props.room.getType());
 
 	const otherDMUserId = computed(() => {
 		if (roomType.value === RoomType.PH_MESSAGES_DM) {

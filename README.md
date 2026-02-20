@@ -51,20 +51,21 @@ Our main repository is on the Radboud University's GitLab, but external develope
 
 ### 2. Install dependencies
 
-See the [Nix flake](./flake.nix) for the required dependencies. You can use the Nix package manager to install these, or install them manually.
+See the [Nix flake](./flake.nix) for the required dependencies and their version. You can use the Nix package manager to install these, or install them manually.
 
-For Nix, use:
+With Nix installed, use the following command to enter a development shell:
 
 ```sh
 # If using Nix:
 nix develop
+
 # Or, with direnv enabled:
 direnv allow
 ```
 
 ### 3. Development commands
 
-We use the the [Mask](https://github.com/jacobdeichert/mask) CLI task runner to document and provide shortcuts to the development commands we use. See the [Maskfile](./maskfile.md) for all available commands, or run `mask run help` to see what is available.
+We use the the [Mask CLI task runner](https://github.com/jacobdeichert/mask) to document and provide shortcuts to the development commands we use. See the [Maskfile](./maskfile.md) for all available commands, or run `mask run help` to see what is available.
 
 > On Windows, make sure to run these in Git bash, instead of the normal terminal.
 
@@ -77,16 +78,10 @@ mask run init
 ```
 
 ```sh
-# In ./hub_client
 npm install
 ```
 
-```sh
-# In ./global_client
-npm install
-```
-
-Optionally, cou can run `npm install` in the root directory to install our pre-commit hook that handles formatting before committing.
+This will setup all Node modules and install our pre-commit hook that handles formatting before committing.
 
 Now you're ready to start developing.
 
@@ -119,7 +114,7 @@ You can run these all at once in the following way:
 mask run all
 ```
 
-Alternatively, if you are only making changes to the hub, you can run the hub client agains our [staging server](https://main.pubhubs.ihub.ru.nl). To do so, you can run:
+Alternatively, if you are only making changes to the hub, you can run the hub client against our [staging server](https://main.pubhubs.ihub.ru.nl). To do so, you can run:
 
 ```sh
 mask run hub mainclient
@@ -144,8 +139,8 @@ After the first login on your local development, there won't be any rooms in the
 ```sh
 sudo sqlite3 homeserver.db
 
-# Insude sqlite
-UPDDATE users SET admin = 1;
+# Inside sqlite
+UPDATE users SET admin = 1; # Note that this will make all the existing users admin, use 'WHERE' to specify
 
 # Afterwards, quit with ctrl + d, or:
 quit;

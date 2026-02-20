@@ -1,7 +1,7 @@
 <template>
 	<div class="flex flex-wrap gap-2" role="list" data-testid="reactions">
 		<span v-for="item in reactionSummary" :key="item.key" class="group/reaction bg-surface relative inline-flex items-center gap-2 rounded-full px-3 py-1" role="listitem">
-			<span class="flex h-[1em] w-[1em] items-center justify-center" :class="item.reactions.some((r) => r.userId === currentUserId) && 'group-hover/reaction:hidden'">{{ item.key }}</span>
+			<span class="flex h-[1em] w-[1em] items-center justify-center group-hover/reaction:hidden">{{ item.key }}</span>
 
 			<!-- Show a trash icon on hovering a reaction that you made, which can be clicked to remove the reaction -->
 			<Icon
@@ -9,6 +9,14 @@
 				@click.stop="removeReaction(item.reactions.filter((r) => r.userId === currentUserId).map((r) => r.eventId))"
 				class="text-accent-red hover:text-button-red hidden h-[1em] w-[1em] hover:cursor-pointer"
 				:class="item.reactions.some((r) => r.userId === currentUserId) && 'group-hover/reaction:block'"
+			/>
+
+			<!-- Show a + icon on hovering a reaction that someone else made, but you didn't make, which can be clicked to add a reaction with the same emoji -->
+			<Icon
+				type="plus-circle"
+				@click.stop="addReaction(item.key)"
+				class="text-accent-blue hover:text-button-blue hidden h-[1em] w-[1em] hover:cursor-pointer"
+				:class="!item.reactions.some((r) => r.userId === currentUserId) && 'group-hover/reaction:block'"
 			/>
 			{{ item.count }}
 		</span>
@@ -67,6 +75,15 @@
 			reactions, // Array of { eventId, userId }
 		}));
 	});
+
+	async function addReaction(emoji: string) {
+		if (!rooms.currentRoom?.roomId) return;
+		try {
+			await pubhubs.addReactEvent(rooms.currentRoom.roomId, props.messageEventId, emoji);
+		} catch (e) {
+			console.error('Failed to add reaction', e);
+		}
+	}
 
 	async function removeReaction(eventIds: string[]) {
 		if (!rooms.currentRoom?.roomId) return;

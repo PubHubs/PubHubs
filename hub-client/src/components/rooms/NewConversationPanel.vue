@@ -1,17 +1,15 @@
 <template>
-	<div class="flex h-full w-full flex-col p-4" data-testid="sidekick">
+	<div class="flex h-full w-full flex-col overflow-hidden p-4" data-testid="sidekick">
 		<SidebarHeader v-if="!groupPanel" :title="t('others.new_message')" />
-		<div class="flex h-full flex-col">
+		<div class="flex min-h-0 flex-1 flex-col">
 			<div v-if="!groupPanel" class="flex shrink-0 flex-col gap-2">
 				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
 					<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
+					<input type="text" v-model="userFilter" :placeholder="t('others.search')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
 				</div>
-				<div class="">
-					<Button class="bg-on-surface-variant text-label-small hover:text-surface-high dark:text-surface-high flex w-full items-center justify-center gap-2" size="sm" @click="groupPanel = true">
-						<Icon type="plus"></Icon> {{ t('others.new_group') }}
-					</Button>
-				</div>
+				<Button class="bg-on-surface-variant text-label-small hover:text-surface-high dark:text-surface-high flex w-full items-center justify-center gap-2" size="sm" @click="groupPanel = true">
+					<Icon type="plus"></Icon> {{ t('others.new_group') }}
+				</Button>
 			</div>
 			<div v-else class="flex flex-col gap-2">
 				<div class="bg-surface-high flex items-center justify-between rounded-md px-3 py-2">
@@ -66,6 +64,19 @@
 			</div>
 
 			<div v-if="!groupProfile" class="mt-4 grow overflow-y-auto">
+				<!-- Admin contact -->
+				<div v-if="!userStore.isAdmin && !groupPanel" class="mb-4">
+					<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="handleAdminContact">
+						<div class="bg-accent-admin/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+							<Icon type="lifebuoy" size="md" class="text-accent-admin" />
+						</div>
+						<div class="flex flex-col">
+							<span class="font-bold">{{ t('admin.admin_contact_title') }}</span>
+							<span class="text-on-surface-dim text-label-small">{{ t('admin.admin_contact_subtitle') }}</span>
+						</div>
+					</div>
+				</div>
+
 				<template v-if="Object.keys(categorizedUsers).length">
 					<div v-for="(usersInLetter, letter) in categorizedUsers" :key="letter" class="mb-4">
 						<h3 class="text-md text-on-surface-dim sticky top-0 z-10 py-1 font-bold uppercase">{{ letter }}</h3>
@@ -108,12 +119,16 @@
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -125,6 +140,7 @@
 	const pubhubs = usePubhubsStore();
 	const userStore = useUser();
 	const rooms = useRooms();
+	const dm = useDirectMessage();
 	const sidebar = useSidebar();
 	const groupPanel = ref<boolean>(false);
 	const groupProfile = ref<boolean>(false);
@@ -147,6 +163,8 @@
 			default: false,
 		},
 	});
+
+	const adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
 
 	onBeforeUnmount(() => {
 		avatarPreviewUrl.value?.revoke();
@@ -198,15 +216,30 @@
 		return categories;
 	});
 
-	async function gotToPrivateRoom(other: User | MatrixUser[]) {
-		const room = await pubhubs.createPrivateRoomWith(other);
-		if (room) {
-			// Open in sidebar instead of navigating to room page
-			const storeRoom = rooms.rooms[room.room_id];
-			if (storeRoom) {
-				sidebar.openDMRoom(storeRoom);
+	const emit = defineEmits(['close']);
+
+	async function handleAdminContact() {
+		const userResponse = await dialog.yesno(t('admin.admin_contact_title'), t('admin.admin_contact_main_msg'));
+		if (!userResponse) return;
+
+		const roomSetUpResponse = await pubhubs.setUpAdminRoom();
+		if (typeof roomSetUpResponse === 'boolean' && roomSetUpResponse === false) {
+			dialog.confirm(t('admin.if_admin_contact_not_present'));
+			return;
+		}
+		if (typeof roomSetUpResponse === 'string') {
+			await rooms.joinRoomListRoom(roomSetUpResponse);
+			const room = rooms.rooms[roomSetUpResponse];
+			if (room) {
+				sidebar.openDMRoom(room);
 			}
-		} else {
+			emit('close');
+		}
+	}
+
+	async function gotToPrivateRoom(other: User | MatrixUser[]) {
+		const room = await dm.createDMWithUsers(other);
+		if (!room) {
 			dialog.confirm(t('errors.cant_find_room'));
 		}
 	}
@@ -247,17 +280,10 @@
 	}
 
 	async function groupCreationDone(other: User | MatrixUser[]) {
-		// Should not create if selection is still not completed
-
-		const room = await pubhubs.createPrivateRoomWith(other);
+		const room = await dm.createDMWithUsers(other);
 		if (room) {
-			await uploadAvatar(room.room_id);
-			await setRoomName(room.room_id, groupName.value);
-			// Open in sidebar instead of navigating to room page
-			const storeRoom = rooms.rooms[room.room_id];
-			if (storeRoom) {
-				sidebar.openDMRoom(storeRoom);
-			}
+			await uploadAvatar(room.roomId);
+			await setRoomName(room.roomId, groupName.value);
 		}
 	}
 

@@ -1,15 +1,15 @@
 <template>
 	<div v-if="user.isLoggedIn && setupReady" class="bg-background font-body text-on-surface text-body flex h-screen w-full overflow-hidden">
-		<HeaderFooter class="relative shrink-0" :class="isMobile && !hubSettings.isSolo ? 'w-[calc(50%-40px)]!' : 'flex max-w-[320px]'">
+		<HeaderFooter class="relative shrink-0" :class="isMobile && !hubSettings.isSolo ? 'w-[calc(50%-40px)]!' : 'flex max-w-[280px]'">
 			<template #header>
-				<div class="flex h-full w-full justify-between">
+				<div class="flex h-full w-full items-center justify-between">
 					<div class="flex items-center justify-between gap-2">
 						<div class="group relative flex cursor-pointer items-center gap-2" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
 							<H2 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H2>
 							<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
 						</div>
 					</div>
-					<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
+					<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square">{{ rooms.totalUnreadMessages }}</Badge>
 					<Notification />
 				</div>
 			</template>
@@ -155,8 +155,8 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const { scrollToEnd, scrollToStart } = useGlobalScroll();
 
-	const hasPublicRooms = computed(() => rooms.filteredRoomList(PublicRooms).length > 0 || !rooms.roomsLoaded);
-	const hasSecuredRooms = computed(() => rooms.filteredRoomList(SecuredRooms).length > 0 || !rooms.roomsLoaded);
+	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
+	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || !rooms.roomsLoaded);
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
