@@ -17,6 +17,11 @@ FROM ghcr.io/element-hq/synapse:v1.146.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 
+RUN apt-get update && \
+	apt-get install -y -q postgresql sudo && \
+	rm -rf /var/lib/apt/lists/* && \
+	rm -rf /etc/postgres # the database goes in /data/postgres instead
+
 COPY modules /conf/modules
 COPY assets /non-persistent-data/assets
 COPY --chmod=755 boot /conf/boot

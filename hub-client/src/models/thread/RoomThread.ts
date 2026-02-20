@@ -4,20 +4,44 @@ import { MatrixClient, MatrixEvent, Thread } from 'matrix-js-sdk';
 
 import { Redaction } from '@hub-client/models/constants';
 
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
 export default class TRoomThread {
-	private matrixThread: Thread;
+	private matrixThread: Thread | undefined;
 	private threadEvents: TimelineEvent[] | undefined = undefined;
 	private redactedEvents: MatrixEvent[] = [];
+	private listeners = new Set<() => void>();
+	private pubhubsStore = usePubhubsStore();
 
-	constructor(matrixThread: Thread) {
+	constructor(matrixThread: Thread | undefined) {
 		this.matrixThread = matrixThread;
+	}
+
+	/**
+	 * adds a listener with a callbackfunction
+	 */
+	onLengthChange(callback: () => void) {
+		this.listeners.add(callback);
+	}
+
+	public notifyLengthChange() {
+		this.listeners.forEach((cbf) => cbf());
 	}
 
 	get length(): number {
 		if (this.threadEvents) {
 			return Math.max(this.threadEvents.filter((x) => !x.isDeleted).length, 1); // length does not include rootEvent
 		}
-		return this.matrixThread.length + 1;
+		return this.matrixThread?.events.length ?? 0;
+	}
+
+	get isMatrixThreadSet() {
+		return this.matrixThread !== undefined;
+	}
+
+	public setMatrixThread(thread: Thread) {
+		this.matrixThread = thread;
+		this.getEvents(this.pubhubsStore.client as MatrixClient); // to initialize with the correct number of events
 	}
 
 	/**
@@ -27,6 +51,11 @@ export default class TRoomThread {
 	 * @returns
 	 */
 	public async getEvents(matrixClient: MatrixClient): Promise<TimelineEvent[]> {
+		if (!this.matrixThread) {
+			this.notifyLengthChange();
+			return [];
+		}
+
 		// get events from liveTimeline and paginate to get them all
 		const events = this.matrixThread.liveTimeline.getEvents();
 		while (await matrixClient.paginateEventTimeline(this.matrixThread.liveTimeline, { backwards: true, limit: 100 })) {
@@ -37,12 +66,14 @@ export default class TRoomThread {
 		// using console.trace('events voor sorted: ', events); shows that this method is called to often
 		// which in the end can lead to multiple instances of the same event in the thread
 
-		// This is a quick fix to remove duplicates
-		const uniqueEvents = new Map();
-		events.forEach((event) => {
-			uniqueEvents.set(event.event.event_id, event); // use eventId as unique key
-		});
-		const timelineEvents = Array.from(uniqueEvents.values()).map((event) => new TimelineEvent(event, this.matrixThread.roomId));
+		// add events to current timelineEvents and filter unique events
+		let timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.matrixThread!.roomId, inThread: true }));
+		timelineEvents = [...(this.threadEvents ?? []), ...timelineEvents];
+
+		// filter unique events
+		const uniqueEvents = new Map<string, TimelineEvent>();
+		timelineEvents.forEach((event) => uniqueEvents.set(event.matrixEvent.event.event_id!, event));
+		timelineEvents = Array.from(uniqueEvents.values());
 
 		// check for deletions
 		timelineEvents.forEach((event) => {
@@ -53,6 +84,7 @@ export default class TRoomThread {
 
 		// sort events by localTimestamp
 		this.threadEvents = this.sortThreadEvents(timelineEvents);
+		this.notifyLengthChange();
 		return this.threadEvents;
 	}
 
@@ -61,7 +93,8 @@ export default class TRoomThread {
 	 * @param events
 	 */
 	public addEvents(events: MatrixEvent[]) {
-		this.matrixThread.addEvents(events, false);
+		this.matrixThread?.addEvents(events, false);
+		this.notifyLengthChange();
 	}
 
 	public addRedactions(redactions: MatrixEvent[]) {
@@ -74,18 +107,10 @@ export default class TRoomThread {
 	 * @returns event in current thread with eventId
 	 */
 	public findEventById(eventId: string | undefined): MatrixEvent | undefined {
-		return this.matrixThread.timelineSet
+		return this.matrixThread?.timelineSet
 			.getLiveTimeline()
 			.getEvents()
 			?.find((x) => x.getId() === eventId);
-	}
-
-	/**
-	 * Deletes the metadata of a threadevent (that is the id of the root of the thread)
-	 * @param event Event to clear data from
-	 */
-	public clearEventMetaData(event: MatrixEvent) {
-		this.matrixThread.clearEventMetadata(event);
 	}
 
 	/**

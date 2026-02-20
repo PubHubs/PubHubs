@@ -250,7 +250,7 @@ class MatrixService {
 
 				// The roomlist is initially send twice: on sync start and later during the sync
 				// Only handle the join when the room is not joined yet
-				if (!this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join) {
+				if (!(this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join)) {
 					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? RoomType.PH_MESSAGES_DEFAULT;
 					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state, roomData.timeline));
 				}
@@ -292,7 +292,7 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
-			//console.error("handleRoomDataEvent roomData ", roomData);
+			//console.error("handleroomdataevent subscriptions ", this.slidingSync?.getRoomSubscriptions());
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });

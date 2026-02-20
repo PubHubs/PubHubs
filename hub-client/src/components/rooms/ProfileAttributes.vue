@@ -3,11 +3,11 @@
 		<span
 			v-for="value in roomAttributes"
 			:key="value"
-			:class="value === 'rooms.admin_badge' ? 'bg-accent-primary' : 'bg-surface text-on-surface-variant'"
+			:class="value === 'admin.title_administrator' ? 'bg-accent-primary' : 'bg-surface text-on-surface-variant'"
 			class="text-background text-label-small flex w-fit items-center gap-1 rounded-full px-2 lowercase"
 		>
-			<Icon type="check-circle" size="xs" :class="value === 'rooms.admin_badge' ? 'text-background' : 'text-on-surface-variant'" class="py-1" />
-			<span v-if="value === 'rooms.admin_badge'" class="line-clamp-1">{{ $t(value) }}</span>
+			<Icon type="check-circle" size="xs" :class="value === 'admin.title_administrator' ? 'text-background' : 'text-on-surface-variant'" class="py-1" />
+			<span v-if="value === 'admin.title_administrator'" class="line-clamp-1">{{ $t(value) }}</span>
 			<span v-else class="line-clamp-1">{{ value }}</span>
 		</span>
 	</span>

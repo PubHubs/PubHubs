@@ -14,6 +14,7 @@ import { MatrixEventType, Redaction, RelatedEventsOptions, RelationType, SystemD
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TCurrentEvent } from '@hub-client/models/events/types';
+import TRoomThread from '@hub-client/models/thread/RoomThread';
 
 // Stores
 import { useUser } from '@hub-client/stores/user';
@@ -137,20 +138,39 @@ class TimelineManager {
 	// Add events to the relatedEvents
 	// only when the event is not in there already
 	// The array of relatedEvents is sorted on timestamp (oldest -> newest)
-	private addRelatedEvents(events: MatrixEvent[]) {
+	private async addRelatedEvents(events: MatrixEvent[]) {
 		if (events.length <= 0) return;
-		events.forEach((eventToAdd) => {
-			const relatesToEvent = eventToAdd.event.content?.[RelationType.RelatesTo]?.event_id;
-			const relatedEventsEntry = this.relatedEvents.find((x) => x.eventId === relatesToEvent);
-			if (relatedEventsEntry) {
-				if (!relatedEventsEntry.relatedEvents.find((y) => y.event.event_id === eventToAdd.event.event_id)) {
-					relatedEventsEntry.relatedEvents.push(eventToAdd);
-					relatedEventsEntry.relatedEvents.sort((a, b) => a.getTs() - b.getTs());
+
+		for (const eventToAdd of events) {
+			if (eventToAdd.event.content?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
+				// Fetch thread for newly created threads that are not the currentthread and ar not yet recognized as thread in this client
+				const rootId = eventToAdd.event.content?.[RelationType.RelatesTo].event_id;
+				const rootEvent = this.timelineEvents.find((x) => rootId === x.matrixEvent.event.event_id);
+				if (rootEvent) {
+					const room = this.client?.getRoom(this.roomId);
+					if (room) {
+						const alreadyExists = room.findEventById(eventToAdd.getId() ?? '');
+						const alreadyInThread = rootEvent.isEventInThread(eventToAdd.getId() ?? '');
+						if (!alreadyExists && !alreadyInThread) {
+							await room.addLiveEvents([eventToAdd], { addToState: false });
+							rootEvent.loadThread();
+						}
+					}
 				}
 			} else {
-				this.relatedEvents.push({ eventId: relatesToEvent!, isFetched: false, relatedEvents: [eventToAdd] });
+				// Handle all other related events
+				const relatesToEvent = eventToAdd.event.content?.[RelationType.RelatesTo]?.event_id;
+				const relatedEventsEntry = this.relatedEvents.find((x) => x.eventId === relatesToEvent);
+				if (relatedEventsEntry) {
+					if (!relatedEventsEntry.relatedEvents.find((y) => y.event.event_id === eventToAdd.event.event_id)) {
+						relatedEventsEntry.relatedEvents.push(eventToAdd);
+						relatedEventsEntry.relatedEvents.sort((a, b) => a.getTs() - b.getTs());
+					}
+				} else {
+					this.relatedEvents.push({ eventId: relatesToEvent!, isFetched: false, relatedEvents: [eventToAdd] });
+				}
 			}
-		});
+		}
 	}
 
 	// Fetches the relations of an event. First check if it has not been done yet.
@@ -194,7 +214,7 @@ class TimelineManager {
 	}
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
-		return this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent(x, this.roomId)) ?? [];
+		return this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })) ?? [];
 	}
 
 	// Gets related events, either all (defined in this.relatedEventTypes) or of one specific type and or contenttype (for instance EvenType.Reaction, RelationType.Annotation)
@@ -212,6 +232,7 @@ class TimelineManager {
 	 * actual adding of events to the timeline
 	 * used for adding events arriving with sliding sync when there is already a roomtimeline
 	 * @param eventList List of events to add
+	 * @param threadrootIds List of threat rootIds coming from sliding sync
 	 * @returns string | undefined - the Id of the event to scroll the roomtimeline to
 	 */
 	private async addEventList(eventList: TimelineEvent[]): Promise<string | undefined> {
@@ -263,7 +284,7 @@ class TimelineManager {
 			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
 		}
 
-		let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+		let mappedEvents = tempEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
 		this.timelineEvents = mappedEvents;
@@ -287,7 +308,7 @@ class TimelineManager {
 
 		// Redacted Events
 		const redactedEvents = matrixEvents.filter((event) => event.getType() === EventType.RoomRedaction);
-		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent(x, this.roomId))];
+		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
 
 		// TODO this is now necessary for reactions that use RedactedEventIds, in the future refactor to use standard redactions
 		// if the redacted event concerns a deleted reaction, put the id in the redactedEventIds
@@ -304,17 +325,19 @@ class TimelineManager {
 		const libraryEvents = matrixEvents.filter(
 			(x) => (x.getType() === PubHubsMgType.LibraryFileMessage || x.getType() === PubHubsMgType.SignedFileMessage) && x.getType() !== Redaction.DeletedFromLibrary && x.getType() !== Redaction.Redacts,
 		);
-		this.libraryEvents = [...this.libraryEvents, ...libraryEvents.map((x) => new TimelineEvent(x, this.roomId))];
+		this.libraryEvents = [...this.libraryEvents, ...libraryEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
 		// Filter out double, sometimes after sync items get doubled
 		this.libraryEvents = this.libraryEvents.filter((item, index, self) => self.findIndex((innerItem) => innerItem.matrixEvent.getId() === item.matrixEvent.getId()) === index);
 
 		this.applyIsDeleted([...this.timelineEvents, ...this.libraryEvents]);
 
+		matrixEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
+
 		// Filters out the visible events, so from now on we are working on the visible timeline
 		matrixEvents = this.prepareEvents(matrixEvents);
 		if (matrixEvents.length === 0) return undefined;
 
-		const eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
+		const eventList = matrixEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
 		// if the lastMessageId is undefined
 		// or this events contains the lastMessageId
@@ -521,7 +544,7 @@ class TimelineManager {
 			const newOnly = allEvents.filter((e) => !beforeIds.has(e.event.event_id));
 
 			if (newOnly.length > 0) {
-				let timeLineEvents = newOnly.map((event) => new TimelineEvent(event, this.roomId));
+				let timeLineEvents = newOnly.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
 				// Remove duplicates already in the managed timeline
 				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((existing) => existing.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
@@ -593,13 +616,23 @@ class TimelineManager {
 	}
 
 	/**
+	 *
+	 * @param eventId eventId to find
+	 * @returns TimelineEvent | undefined
+	 */
+	public findTimelineEventById(eventId: string | undefined): TimelineEvent | undefined {
+		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `find timelineEvent by eventId ${eventId}...`, { eventId });
+		return this.timelineEvents?.find((x) => x.matrixEvent.event.event_id === eventId);
+	}
+
+	/**
 	 * Tries to find an event in the timeline by its Id
 	 * @param eventId eventId to find
-	 * @returns
+	 * @returns MatrixEvent | undefined
 	 */
 	public findEventById(eventId: string | undefined): MatrixEvent | undefined {
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `find by eventId ${eventId}...`, { eventId });
-		return this.timelineEvents?.find((x) => x.matrixEvent.event.event_id === eventId)?.matrixEvent;
+		return this.findTimelineEventById(eventId)?.matrixEvent;
 	}
 
 	/**

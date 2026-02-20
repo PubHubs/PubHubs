@@ -17,7 +17,8 @@ export enum SidebarTab {
 
 const activeTab = ref<SidebarTab>(SidebarTab.None);
 const selectedDMRoom = ref<Room | null>(null);
-const lastDMRoomId = ref<string | null>(null);
+const LAST_DM_ROOM_KEY = 'pubhubs_lastDMRoomId';
+const lastDMRoomId = ref<string | null>(sessionStorage.getItem(LAST_DM_ROOM_KEY));
 const skipTransition = ref(false);
 const skipNextRestore = ref(false);
 
@@ -42,6 +43,7 @@ export function useSidebar() {
 	// Clear last DM room ID and skip next restore (prevents auto-restore on next DM page visit)
 	function clearLastDMRoom() {
 		lastDMRoomId.value = null;
+		sessionStorage.removeItem(LAST_DM_ROOM_KEY);
 		skipNextRestore.value = true;
 		// Reset flag after component has fully mounted and all restore attempts are done
 		setTimeout(() => {
@@ -64,6 +66,7 @@ export function useSidebar() {
 	function openDMRoom(room: Room) {
 		selectedDMRoom.value = room;
 		lastDMRoomId.value = room.roomId;
+		sessionStorage.setItem(LAST_DM_ROOM_KEY, room.roomId);
 		activeTab.value = SidebarTab.DirectMessage;
 	}
 
@@ -115,6 +118,7 @@ export function useSidebar() {
 	return {
 		activeTab: computed(() => activeTab.value),
 		selectedDMRoom: computed(() => selectedDMRoom.value),
+		lastDMRoomId: computed(() => lastDMRoomId.value),
 		skipTransition: computed(() => skipTransition.value),
 		isOpen,
 		isMobile,

@@ -36,9 +36,9 @@
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiHubManagement';
 
-	import { roles } from '@hub-client/models/constants';
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -153,6 +153,6 @@
 		const powerLevelsEvent = roomState.state.find((event) => event.type === EventType.RoomPowerLevels);
 		if (!powerLevelsEvent) return undefined;
 		const userPowerLevel = powerLevelsEvent.content.users || {};
-		return userPowerLevel[userId] === roles.Admin;
+		return userPowerLevel[userId] === UserPowerLevel.Admin;
 	}
 </script>

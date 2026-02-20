@@ -16,7 +16,6 @@
 								<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 								<GroupRoomHeader v-else-if="room!.isGroupRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 								<AdminContactRoomHeader v-else-if="room!.isAdminContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-								<StewardContactRoomHeader v-else-if="room!.isStewardContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 								<RoomName v-else :room="rooms.currentRoom" :title="t('menu.copy_room_url')" />
 							</TruncatedText>
 						</H3>
@@ -39,11 +38,8 @@
 						<!-- Thread tab (shown when a thread is selected) -->
 						<GlobalBarButton v-if="room?.getCurrentThreadId()" type="chat-circle" :selected="sidebar.activeTab.value === SidebarTab.Thread" @click="sidebar.toggleTab(SidebarTab.Thread)" />
 
-						<!-- Contact room steward -->
-						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.MessageSteward) && room!.getRoomStewards().length > 0" type="lifebuoy" @click="messageRoomSteward()" />
-
 						<!-- Editing icon for steward (but not for administrator) -->
-						<GlobalBarButton v-if="hasRoomPermission(room!.getUserPowerLevel(user.userId), actions.StewardPanel)" type="dots-three-vertical" @click="stewardCanEdit()" />
+						<GlobalBarButton v-if="roles.userHasPermissionForAction(UserAction.StewardPanel, props.id)" type="dots-three-vertical" @click="stewardCanEdit()" />
 					</RoomHeaderButtons>
 				</div>
 			</div>
@@ -51,7 +47,7 @@
 			<!-- Content row: Timeline + Sidebar -->
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-					<RoomTimeline v-if="room" :key="props.id" ref="roomTimeLineComponent" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="getLastReadMessage(props.id)?.eventId ?? undefined" />
+					<RoomTimeline v-if="room" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
 				</div>
 
 				<!-- Room sidebar -->
@@ -100,14 +96,13 @@
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
-	import StewardContactRoomHeader from '@hub-client/components/rooms/StewardContactRoomHeader.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
-	import { useLastReadMessages } from '@hub-client/composables/useLastReadMessages';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
@@ -116,10 +111,10 @@
 
 	// Models
 	import { QueryParameterKey, actions } from '@hub-client/models/constants';
-	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 	import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
+	import { UserAction } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -132,6 +127,7 @@
 	const route = useRoute();
 	const rooms = useRooms();
 	const user = useUser();
+	const roles = useRoles();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
@@ -144,7 +140,6 @@
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
 	const scrollToEventId = ref<string>();
-	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
 	const isLoading = ref(true); // Keep track if the page is loading, then the template cannot be rendered yet
 	let updateVersion = 0; // Used to cancel stale update() calls
 
@@ -166,16 +161,17 @@
 		return r;
 	});
 
+	const lastReadEventId = computed(() => {
+		if (!room.value || !user.userId) return undefined;
+		return room.value.getLastVisibleEventId() || room.value.getEventReadUpTo(user.userId) || undefined;
+	});
+
 	// Check if there are room members to show
 	const hasRoomMembers = computed(() => {
 		if (!room.value) return false;
 		const members = room.value.getStateJoinedMembersIds();
 		return members.filter((id) => !id.startsWith('@notices_user:')).length > 0;
 	});
-
-	const handleToggleSearchbar = (isExpanded: boolean) => {
-		isSearchBarExpanded.value = isExpanded;
-	};
 
 	onMounted(async () => {
 		// Ensure sidebar is closed instantly when entering a room page
@@ -213,6 +209,11 @@
 	);
 
 	watch(route, async () => {
+		// On mobile, close sidebar when switching rooms
+		if (sidebar.isMobile.value) {
+			sidebar.closeInstantly();
+		}
+
 		// Check for eventId in query param on route change
 		const eventIdFromQuery = route.query[QueryParameterKey.EventId] as string | undefined;
 		if (eventIdFromQuery) {
@@ -220,16 +221,12 @@
 		}
 		isLoading.value = true;
 		if (rooms.currentRoom) {
-			// Save last visible (read) event to localStorage
+			// Send read receipt for last visible event before leaving
 			const lastEventId = rooms.currentRoom.getLastVisibleEventId();
-			if (lastEventId) {
+			if (lastEventId && settings.isFeatureEnabled(FeatureFlag.notifications)) {
 				const event = rooms.currentRoom.findEventById(lastEventId);
 				if (event) {
-					// Use the message's timestamp; marker can only advance to newer messages
-					const messageTimestamp = event.localTimestamp || event.getTs();
-					if (messageTimestamp) {
-						setLastReadMessage(rooms.currentRoom.roomId, lastEventId, messageTimestamp);
-					}
+					pubhubs.sendPrivateReceipt(event, rooms.currentRoom.roomId);
 				}
 			}
 			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
@@ -347,10 +344,5 @@
 
 	function notPrivateRoom() {
 		return !room.value!.isPrivateRoom() && !room.value!.isGroupRoom() && !room.value!.isAdminContactRoom() && !room.value!.isStewardContactRoom();
-	}
-
-	async function messageRoomSteward() {
-		const members = room.value!.getRoomStewards();
-		await rooms.createStewardRoomOrModify(props.id, members);
 	}
 </script>

@@ -25,16 +25,24 @@
 					:user-id="props.event.sender"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
-					v-context-menu="
-						(evt: any) => openMenu(evt, props.event.sender !== user.userId && !room.isDirectMessageRoom() ? [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => user.goToUserRoom(props.event.sender) }] : [])
-					"
 				/>
+
 				<!-- Avatar placeholder -->
 				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
 
 				<!-- Message and Actions -->
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
+						<!-- Message Snippet -->
+						<Suspense v-if="hasBeenVisible">
+							<MessageSnippet v-if="showReplySnippet(props.event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" class="mb-2" :showInReplyTo="true" :room="room" />
+							<template #fallback>
+								<div class="flex items-center gap-3 rounded-md px-2">
+									<p>{{ t('state.loading_message') }}</p>
+								</div>
+							</template>
+						</Suspense>
+
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
 							<div class="mb-2 flex w-full min-w-0 grow flex-col gap-1">
 								<div class="flex w-full min-w-0 grow flex-wrap items-center gap-4">
@@ -76,6 +84,7 @@
 											<Icon type="check" v-else>Copied!</Icon>
 										</button>
 									</div> -->
+
 								<!-- Reaction Button -->
 								<button
 									v-if="!redactedMessage && !isThreadRoot"
@@ -98,12 +107,13 @@
 
 								<!-- Thread Reply Button -->
 								<button
-									v-if="!viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage && !room.isDirectMessageRoom()"
+									v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 									@click="replyInThread"
 									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-									:class="threadLength > 0 ? 'bg-accent-primary hover:text-accent-primary flex hover:bg-transparent' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
+									:class="eventThreadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
 									:title="t('message.reply_in_thread')"
 								>
+									<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ eventThreadLength }}</span>
 									<Icon type="chat-circle" />
 								</button>
 
@@ -119,16 +129,6 @@
 							</div>
 						</div>
 					</div>
-
-					<!-- Message Snippet -->
-					<Suspense v-if="hasBeenVisible">
-						<MessageSnippet v-if="showReplySnippet(props.event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
-						<template #fallback>
-							<div class="flex items-center gap-3 rounded-md px-2">
-								<p>{{ t('state.loading_message') }}</p>
-							</div>
-						</template>
-					</Suspense>
 
 					<Message :event="props.event" :deleted="redactedMessage" />
 
@@ -224,6 +224,7 @@
 	// const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const source = ref('');
+
 	// const { copy, copied, isSupported } = useClipboard({ source });
 	const isMobile = computed(() => settings.isMobileState);
 	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
@@ -233,8 +234,6 @@
 	const isVisible = ref(false);
 	const hasBeenVisible = ref(false);
 	let observer: IntersectionObserver | null = null;
-
-	let threadLength = ref(0);
 
 	const props = defineProps({
 		event: {
@@ -272,7 +271,6 @@
 
 	onMounted(() => {
 		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
-		threadLength.value = props.eventThreadLength;
 
 		// Set up intersection observer for lazy rendering
 		if (messageRoot.value) {
@@ -309,19 +307,7 @@
 		}
 	});
 
-	/**
-	 * Watch the threadUpdated for new events coming from slidingsync
-	 */
-	watch(
-		() => props.room.threadUpdated,
-		() => {
-			if (props.event.event_id === props.room.currentThread?.rootEvent?.event.event_id) {
-				threadLength.value = (props.room.currentThread?.rootEvent?.getThread()?.length ?? 0) + 1; // length does not include rootEvent
-			}
-		},
-	);
-
-	const inReplyToId = props.event.content[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
+	const inReplyToId = props.event.content![RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
 
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
