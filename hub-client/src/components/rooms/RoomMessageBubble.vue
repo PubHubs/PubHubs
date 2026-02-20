@@ -84,6 +84,7 @@
 											<Icon type="check" v-else>Copied!</Icon>
 										</button>
 									</div> -->
+
 								<!-- Reaction Button -->
 								<button
 									v-if="!redactedMessage && !isThreadRoot"
@@ -106,13 +107,13 @@
 
 								<!-- Thread Reply Button -->
 								<button
-									v-if="!viewFromThread && eventThreadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage && !room.isDirectMessageRoom()"
+									v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 									@click="replyInThread"
 									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-									:class="threadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
+									:class="eventThreadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
 									:title="t('message.reply_in_thread')"
 								>
-									<span v-if="threadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ threadLength }}</span>
+									<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ eventThreadLength }}</span>
 									<Icon type="chat-circle" />
 								</button>
 
@@ -131,15 +132,6 @@
 
 					<Message :event="props.event" :deleted="redactedMessage" />
 
-					<!-- Thread View Button -->
-					<button
-						@click="replyInThread"
-						class="bg-hub-background-3 text-label-tiny inline-flex rounded-md px-2 py-1 hover:opacity-80"
-						v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-					>
-						<Icon type="chat-circle" size="xs"></Icon>
-						&nbsp; {{ t('message.threads.view_thread') }} ({{ eventThreadLength }})
-					</button>
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
 						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)" :event="props.event.content" />
@@ -243,8 +235,6 @@
 	const hasBeenVisible = ref(false);
 	let observer: IntersectionObserver | null = null;
 
-	let threadLength = ref(0);
-
 	const props = defineProps({
 		event: {
 			type: Object,
@@ -281,7 +271,6 @@
 
 	onMounted(() => {
 		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
-		threadLength.value = props.eventThreadLength;
 
 		// Set up intersection observer for lazy rendering
 		if (messageRoot.value) {

@@ -147,7 +147,6 @@
 	 * Timeline in reverse order [newest, ..., oldest] for column-reverse rendering
 	 */
 	const reversedTimeline = computed(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		timelineVersion.value; // Dependency to trigger re-computation
 		return [...props.room.getChronologicalTimeline()].reverse();
 	});
@@ -156,7 +155,6 @@
 	 * Timeline in chronological order [oldest, ..., newest]
 	 */
 	const roomTimeLine = computed(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		timelineVersion.value; // Dependency to trigger re-computation
 		return props.room.getChronologicalTimeline();
 	});
