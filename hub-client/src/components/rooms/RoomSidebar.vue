@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface-background h-full shrink-0 overflow-hidden" :class="[sidebarClasses, { 'transition-all duration-300 ease-in-out': !sidebar.skipTransition.value }]">
+	<div class="bg-surface-background shrink-0 overflow-hidden" :class="[sidebarClasses, { 'transition-all duration-300 ease-in-out': !sidebar.skipTransition.value }]">
 		<!-- Only render content when open to prevent layout issues -->
 		<template v-if="isOpen">
 			<!-- Content Area -->
@@ -17,6 +17,7 @@
 	// Composables
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
+	// Props
 	const props = defineProps<{
 		activeTab: SidebarTab;
 		isMobile: boolean;
