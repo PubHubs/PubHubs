@@ -6,6 +6,7 @@ import { MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
 // Composables
+import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 // Logic
@@ -240,14 +241,8 @@ const useUser = defineStore('user', {
 		},
 
 		async goToUserRoom(userId: string) {
-			const pubhubs = usePubhubsStore();
-			const otherUser = this.client!.getUser(userId);
-			if (otherUser && this.userId !== otherUser.userId) {
-				const userRoom = await pubhubs.createPrivateRoomWith(otherUser as User);
-				if (userRoom) {
-					await pubhubs.routeToRoomPage(userRoom);
-				}
-			}
+			const dm = useDirectMessage();
+			await dm.goToUserDM(userId);
 		},
 
 		// #endregion

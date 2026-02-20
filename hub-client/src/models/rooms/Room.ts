@@ -11,8 +11,8 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-import { Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 // Models
+import { Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
@@ -52,7 +52,6 @@ const BotName = {
 /**
  * Our model of a room based on matrix rooms with some added functionality.
  * It uses the matrix-js-sdk's Room class under the hood.
- *
  */
 export default class Room {
 	public matrixRoom: MatrixRoom;
@@ -147,6 +146,7 @@ export default class Room {
 	}
 
 	// #region getters and setters
+
 	get roomId(): string {
 		return this.matrixRoom.roomId;
 	}
@@ -190,6 +190,18 @@ export default class Room {
 
 	public setStateEvents(stateEvents: IStateEvent[] | undefined) {
 		this.stateEvents = stateEvents ?? [];
+	}
+
+	// Merges new state events into stateEvents, keyed by (type, state_key)
+	private mergeStateEvents(newEvents: IStateEvent[]) {
+		for (const newEvent of newEvents) {
+			const existingIndex = this.stateEvents.findIndex((e) => e.type === newEvent.type && e.state_key === newEvent.state_key);
+			if (existingIndex >= 0) {
+				this.stateEvents[existingIndex] = newEvent;
+			} else {
+				this.stateEvents.push(newEvent);
+			}
+		}
 	}
 
 	/**
@@ -627,6 +639,10 @@ export default class Room {
 	}
 
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
+		if (roomData.required_state && roomData.required_state.length > 0) {
+			this.mergeStateEvents(roomData.required_state);
+		}
+
 		if (!roomData.timeline || roomData.timeline.length === 0) return;
 		const eventList = roomData.timeline.map((event) => {
 			return new MatrixEvent(event);
@@ -792,30 +808,6 @@ export default class Room {
 	// #endregion
 
 	// #region Threads
-
-	/**
-	 * Passes listener to client
-	 * @param newReplyListener Method to perform on ThreadEvent.NewReply
-	 */
-	public listenToThreadNewReply(newReplyListener: NewReplyListener) {
-		this.matrixRoom.on(ThreadEvent.NewReply, newReplyListener);
-	}
-
-	public stopListeningToThreadNewReply(newReplyListener: NewReplyListener) {
-		this.matrixRoom.off(ThreadEvent.NewReply, newReplyListener);
-	}
-
-	/**
-	 * Passes listener to client.
-	 * @param updateReplyListener Method to perform on ThreadEvent.Update
-	 */
-	public listenToThreadUpdate(updateReplyListener: UpdateReplyListener) {
-		this.matrixRoom.on(ThreadEvent.Update, updateReplyListener);
-	}
-
-	public stopListeningToThreadUpdate(updateReplyListener: UpdateReplyListener) {
-		this.matrixRoom.off(ThreadEvent.Update, updateReplyListener);
-	}
 
 	public getMatrixThread(eventId: string): Thread | undefined {
 		return this.matrixRoom.getThread(eventId) ?? undefined;

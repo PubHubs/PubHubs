@@ -1,9 +1,9 @@
 <template>
-	<div class="bg-surface-background shrink-0 overflow-hidden" :class="[sidebarClasses, { 'transition-all duration-300 ease-in-out': !sidebar.skipTransition.value }]">
+	<div class="bg-surface-background h-full shrink-0 overflow-hidden" :class="[sidebarClasses, { 'transition-all duration-300 ease-in-out': !sidebar.skipTransition.value }]">
 		<!-- Only render content when open to prevent layout issues -->
 		<template v-if="isOpen">
 			<!-- Content Area -->
-			<div class="h-full overflow-y-auto">
+			<div class="h-full">
 				<slot></slot>
 			</div>
 		</template>
@@ -25,7 +25,7 @@
 	const sidebar = useSidebar();
 	const isOpen = computed(() => props.activeTab !== SidebarTab.None);
 
-	// DM sidebar takes more space (100% - 412px) to show conversation
+	// DM sidebar takes more space (100% - 360px) to show conversation
 	const isDMSidebar = computed(() => props.activeTab === SidebarTab.DirectMessage || props.activeTab === SidebarTab.NewDM);
 
 	const sidebarClasses = computed(() => {
@@ -36,6 +36,6 @@
 			return 'relative z-40 w-0 border-l-0';
 		}
 
-		return 'border-on-surface-disabled relative z-40 w-[412px] border-l';
+		return 'border-on-surface-disabled relative z-40 w-[360px] border-l';
 	});
 </script>

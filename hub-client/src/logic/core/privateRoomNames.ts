@@ -14,6 +14,7 @@ const refreshPrivateRoomName = (name: string): string => {
 };
 
 const updatePrivateRoomName = (name: string, member: TUser, hideMe: boolean): string => {
+	if (!name) return '';
 	const userId = member.userId;
 	return name
 		.split(',')
@@ -30,11 +31,13 @@ const updatePrivateRoomName = (name: string, member: TUser, hideMe: boolean): st
 };
 
 const isVisiblePrivateRoom = (name: string, member: TUser): boolean => {
+	if (!name) return false;
 	const userId = member.userId;
 	return name.split(',').some((memberName) => memberName === userId);
 };
 
 const fetchMemberIdsFromPrivateRoomName = (name: string): Array<string> => {
+	if (!name) return [];
 	let memberIDs = name.split(',');
 	// Matrix names specification https://spec.matrix.org/latest/appendices/#user-identifiers
 	memberIDs = memberIDs.map((m) => {

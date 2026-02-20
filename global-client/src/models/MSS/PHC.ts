@@ -65,7 +65,7 @@ export default class PHCServer {
 		const language = useSettings().language;
 		setLanguage(i18n, language);
 		const { t } = i18n.global;
-		dialog.confirm(t('login.not_logged_in'), t('login.login_again'));
+		dialog.confirm(t('login.not_logged_in'), t('login.login_again'), 'global');
 		dialog.addCallback(DialogOk, async () => {
 			await global.logout();
 			dialog.removeCallback(DialogOk);

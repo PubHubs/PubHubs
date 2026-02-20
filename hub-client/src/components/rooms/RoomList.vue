@@ -82,9 +82,10 @@
 
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
+	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Models
-	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { DirectRooms, PublicRooms, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
 	// Stores
@@ -109,6 +110,7 @@
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
 	const { copyRoomUrl } = useClipboard();
+	const { scrollToEnd } = useGlobalScroll();
 	const messageValues = ref<(string | number)[]>([]);
 	const dialogOpen = ref<string | null>(null);
 	const dialog = useDialog();
@@ -121,7 +123,15 @@
 		},
 	});
 
-	const currentJoinedRooms = computed(() => rooms.filteredRoomList(props.roomTypes));
+	const currentJoinedRooms = computed(() => {
+		if (props.roomTypes.every((t) => PublicRooms.includes(t))) {
+			return rooms.loadedPublicRooms;
+		}
+		if (props.roomTypes.every((t) => SecuredRooms.includes(t))) {
+			return rooms.loadedSecuredRooms;
+		}
+		return rooms.loadedPrivateRooms;
+	});
 
 	const roomsLoaded = computed(() => {
 		return rooms.roomsLoaded;
@@ -132,7 +142,7 @@
 		void rooms.unreadCountVersion;
 		const room = pubhubs.client.getRoom(roomId);
 		if (room) {
-			return room.getRoomUnreadNotificationCount(countType);
+			return room.getUnreadNotificationCount(countType);
 		}
 		return 0;
 	}
@@ -140,6 +150,7 @@
 	async function leaveRoom(roomId: string) {
 		const room = currentJoinedRooms.value.find((room) => room.roomId === roomId);
 		if (room) {
+			scrollToEnd();
 			const leaveMsg = await leaveMessageContext(roomId);
 			if (DirectRooms.includes(room.roomType as RoomType)) {
 				if (await dialog.okcancel(t('rooms.hide_sure'))) {

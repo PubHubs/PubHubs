@@ -67,7 +67,7 @@ export default class TRoomThread {
 		// which in the end can lead to multiple instances of the same event in the thread
 
 		// add events to current timelineEvents and filter unique events
-		let timelineEvents = events.map((x) => new TimelineEvent(x, this.matrixThread!.roomId));
+		let timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.matrixThread!.roomId, inThread: true }));
 		timelineEvents = [...(this.threadEvents ?? []), ...timelineEvents];
 
 		// filter unique events

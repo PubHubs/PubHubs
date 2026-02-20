@@ -18,18 +18,11 @@
 
 			<!-- Right: Buttons (hidden on mobile when sidebar is open) -->
 			<div v-if="!isMobile || !sidebar.isOpen.value" class="flex items-center gap-2">
-				<!-- Admin contact button -->
-				<div v-if="!user.isAdmin" class="relative">
-					<GlobalBarButton type="lifebuoy" @click="directMessageAdmin()" />
-					<Badge v-if="newAdminMsgCount > 99" class="text-label-small absolute -top-1 -right-1" color="ph">99+</Badge>
-					<Badge v-else-if="newAdminMsgCount > 0" class="text-label-small absolute -top-1 -right-1" color="ph">{{ newAdminMsgCount }}</Badge>
-				</div>
-
-				<!-- Divider between admin contact and other buttons -->
-				<div v-if="!user.isAdmin" class="bg-on-surface-disabled mx-1 h-6 w-px"></div>
-
 				<!-- Search button (desktop only, when room is selected) -->
 				<GlobalBarButton v-if="!isMobile && selectedRoom" type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
+
+				<!-- Members button (desktop only, for group DMs) -->
+				<GlobalBarButton v-if="!isMobile && isGroupDM" type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
 
 				<!-- New message button -->
 				<GlobalBarButton type="plus" :selected="sidebar.activeTab.value === SidebarTab.NewDM" @click="sidebar.toggleTab(SidebarTab.NewDM)" />
@@ -39,7 +32,7 @@
 		<!-- Content row: Message list + DM room (desktop) or sidebar (mobile) -->
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Conversation list -->
-			<div class="flex h-full flex-col overflow-y-auto p-3 md:p-4" :class="isMobile ? 'w-full' : 'w-[412px] shrink-0'">
+			<div class="flex h-full flex-col overflow-y-auto p-3 md:p-4" :class="isMobile ? 'w-full' : 'w-[360px] shrink-0'">
 				<span v-if="privateRooms?.length === 0" class="mx-auto shrink-0">
 					{{ t('others.no_private_message') }}
 				</span>
@@ -51,6 +44,7 @@
 						:isMobile="isMobile"
 						:active="selectedRoom?.roomId === room.roomId"
 						class="hover:cursor-pointer"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === room.roomId && 'bg-surface-low!'"
 						role="listitem"
 						@click="openDMRoom(room)"
 					/>
@@ -64,6 +58,11 @@
 				<!-- Desktop: Search Sidebar (only when room selected) -->
 				<RoomSidebar v-if="sidebar.activeTab.value === SidebarTab.Search" :active-tab="SidebarTab.Search" :is-mobile="false">
 					<RoomSearch :room="selectedRoom" @scroll-to-event-id="onScrollToEventId" />
+				</RoomSidebar>
+
+				<!-- Desktop: Members Sidebar (only for group DMs) -->
+				<RoomSidebar v-if="sidebar.activeTab.value === SidebarTab.Members && isGroupDM" :active-tab="SidebarTab.Members" :is-mobile="false">
+					<RoomMemberList :room="selectedRoom" :disable-d-m="true" />
 				</RoomSidebar>
 			</div>
 
@@ -93,18 +92,18 @@
 
 <script setup lang="ts">
 	// Packages
-	import { EventType, NotificationCountType } from 'matrix-js-sdk';
+	import { EventTimeline, EventType } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave } from 'vue-router';
 
 	// Components
-	import Badge from '@hub-client/components/elements/Badge.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import DirectMessageRoom from '@hub-client/components/rooms/DirectMessageRoom.vue';
 	import NewConversationPanel from '@hub-client/components/rooms/NewConversationPanel.vue';
+	import RoomMemberList from '@hub-client/components/rooms/RoomMemberList.vue';
 	import RoomSearch from '@hub-client/components/rooms/RoomSearch.vue';
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
@@ -113,54 +112,41 @@
 	// Composable
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
-	// Logic
-	import { router } from '@hub-client/logic/core/router';
-
 	// Models
-	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Store
-	import { useDialog } from '@hub-client/stores/dialog';
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { Room, useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	const pubhubs = usePubhubsStore();
+	// New design
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+
+	const contextMenuStore = useContextMenuStore();
 	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
 	const { t } = useI18n();
-	const dialog = useDialog();
 	const sidebar = useSidebar();
-
-	onMounted(async () => {
-		loadPrivateRooms();
-	});
 
 	const isMobile = computed(() => settings.isMobileState);
 
-	const privateRooms = ref<Array<Room>>([]); // No computed, since this uses an async method
-	const selectedRoom = ref<Room | null>(null); // Selected room for desktop view
-	const scrollToEventId = ref<string | undefined>(undefined); // For search result navigation
+	const selectedRoom = ref<Room | null>(null);
+	const scrollToEventId = ref<string | undefined>(undefined);
 
-	const newAdminMsgCount = computed(() => {
-		if (user.isAdmin) return;
-		const adminContactRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
-		return adminContactRoom?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
+	const privateRooms = computed(() => rooms.privateRooms);
+
+	const isGroupDM = computed(() => {
+		return selectedRoom.value?.getType() === RoomType.PH_MESSAGES_GROUP;
 	});
 
 	const sortedPrivateRooms = computed(() => {
-		if (!privateRooms.value) {
-			return [];
-		}
-
 		return [...privateRooms.value].sort((r1, r2) => {
 			return lastEventTimeStamp(r2) - lastEventTimeStamp(r1);
 		});
 	});
 
-	// Mobile conversation title - matches the title on conversation cards
 	const mobileConversationTitle = computed(() => {
 		const room = sidebar.selectedDMRoom.value;
 		if (!room) return '';
@@ -170,13 +156,12 @@
 		if (roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('admin.support');
 		if (roomType === RoomType.PH_MESSAGE_STEWARD_CONTACT) return t('rooms.steward_support');
 
-		// For 1:1 DMs, show the other user's display name
 		const otherMembers = room.getOtherJoinedMembers();
 		if (otherMembers.length > 0) {
 			return otherMembers[0]?.rawDisplayName ?? t('menu.directmsg');
 		}
 
-		// Fallback: check not-invited members (for rooms where member hasn't fully joined yet)
+		// Fallback for members not fully joined yet
 		const notInvitedMemberIds = room.notInvitedMembersIdsOfPrivateRoom();
 		if (notInvitedMemberIds.length > 0) {
 			const member = room.getMember(notInvitedMemberIds[0]);
@@ -186,53 +171,48 @@
 		return t('menu.directmsg');
 	});
 
-	// Restore state when entering the DM page
-	onMounted(() => {
-		// Desktop: auto-select first room if available
-		if (!isMobile.value && sortedPrivateRooms.value.length > 0 && !selectedRoom.value) {
-			selectedRoom.value = sortedPrivateRooms.value[0];
+	// Uses sidebar state, falling back to lastDMRoomId (which survives closeInstantly)
+	function findTargetRoom(roomList: Room[]): Room | undefined {
+		if (sidebar.selectedDMRoom.value) return sidebar.selectedDMRoom.value;
+		if (sidebar.lastDMRoomId.value) return roomList.find((r) => r.roomId === sidebar.lastDMRoomId.value);
+		return undefined;
+	}
+
+	onMounted(async () => {
+		await loadPrivateRooms();
+
+		if (isMobile.value) return;
+
+		const target = findTargetRoom(sortedPrivateRooms.value);
+		if (target) {
+			openDMRoom(target);
+			return;
 		}
-		// Mobile: don't auto-open any conversation
+		if (sortedPrivateRooms.value.length > 0) {
+			openDMRoom(sortedPrivateRooms.value[0]);
+		}
 	});
 
-	// Watch for rooms to become available
+	// Sync desktop selectedRoom when a new DM is opened via sidebar
 	watch(
-		sortedPrivateRooms,
-		(newRooms) => {
-			// Desktop: auto-select first room if none selected
-			if (!isMobile.value && newRooms.length > 0 && !selectedRoom.value) {
-				selectedRoom.value = newRooms[0];
-			}
-			// Mobile: don't auto-open any conversation
+		() => sidebar.selectedDMRoom.value,
+		(newRoom) => {
+			if (!newRoom || isMobile.value) return;
+			selectedRoom.value = newRoom;
 		},
-		{ once: true },
 	);
 
-	// Close sidebar instantly before leaving to prevent animation when entering room pages
 	onBeforeRouteLeave((to) => {
 		if (to.name === 'room') {
 			sidebar.closeInstantly();
 		}
 	});
 
-	async function directMessageAdmin() {
-		const userResponse = await dialog.yesno(t('admin.admin_contact_title'), t('admin.admin_contact_main_msg'));
-		if (!userResponse) return;
-
-		const roomSetUpResponse = await pubhubs.setUpAdminRoom();
-		if (typeof roomSetUpResponse === 'boolean' && roomSetUpResponse === false) {
-			dialog.confirm(t('admin.if_admin_contact_not_present'));
-		} else if (typeof roomSetUpResponse === 'string') {
-			await router.push({ name: 'room', params: { id: roomSetUpResponse } });
-		}
-	}
-
 	async function loadPrivateRooms() {
-		await rooms.waitForInitialRoomsLoaded(); // we need the roomslist, so wait till its loaded
-		const roomsList = rooms.filteredRoomList(DirectRooms);
+		await rooms.waitForInitialRoomsLoaded();
+		const roomsList = rooms.loadedPrivateRooms;
 		for (const room of roomsList) {
 			await rooms.joinRoomListRoom(room.roomId);
-			privateRooms.value = [...privateRooms.value, rooms.rooms[room.roomId]];
 		}
 	}
 
@@ -240,7 +220,10 @@
 		const messageEvents = room.getLiveTimelineEvents().filter((event) => event.getType() === EventType.RoomMessage);
 
 		if (messageEvents.length === 0) {
-			return 0;
+			// Fall back to room creation date so empty rooms correctly order
+			const timeline = room.matrixRoom.getLiveTimeline();
+			const createEvent = timeline?.getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomCreate, '');
+			return createEvent?.event?.origin_server_ts ?? 0;
 		}
 
 		messageEvents.sort((a, b) => b.localTimestamp - a.localTimestamp);
@@ -248,11 +231,8 @@
 	}
 
 	function openDMRoom(room: Room) {
-		if (isMobile.value) {
-			// Mobile: open in sidebar
-			sidebar.openDMRoom(room);
-		} else {
-			// Desktop: show directly
+		sidebar.openDMRoom(room);
+		if (!isMobile.value) {
 			selectedRoom.value = room;
 		}
 	}
