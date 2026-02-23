@@ -265,6 +265,7 @@ const nl = {
 		select_conversation: 'Selecteer een gesprek om te beginnen met berichten',
 		start_new_conversation: 'Start een nieuw gesprek met de + knop',
 		filter_users: 'filter',
+		filter_values: 'Type om te zoeken',
 		select_value: 'selecteer een waarde',
 	},
 	hubs: {

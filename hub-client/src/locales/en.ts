@@ -266,6 +266,7 @@ const en = {
 		select_conversation: 'Select a conversation to start messaging',
 		start_new_conversation: 'Start a new conversation using the + button',
 		filter_users: 'filter',
+		filter_values: 'Type to search',
 		select_value: 'select value',
 	},
 	hubs: {

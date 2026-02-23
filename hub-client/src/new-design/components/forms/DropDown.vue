@@ -9,37 +9,42 @@
 		v-model="model"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
-		@keydown.enter.prevent="select(cursor)"
+		@keydown.enter.prevent="selectCursor(cursor)"
 		@keydown.esc.prevent="close"
 	>
 		<Label :for="id"><slot></slot></Label>
 
-		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" role="combobox" tabindex="0">
-			<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
-				<template v-if="model">
-					<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
-						<div v-for="item in model" class="bg-surface-subtle rounded px-100" role="listbox">
-							<DropDownValue :value="item" role="option"></DropDownValue>
-						</div>
-					</div>
-					<DropDownValue v-else :value="model"></DropDownValue>
-				</template>
-				<span v-else class="text-surface-subtle">{{ placeholder }}</span>
+		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0">
+			<div v-if="filtered" class="border-b px-175 py-100">
+				<input v-model="filter" :placeholder="$t('others.filter_values')" />
 			</div>
-			<div class="cursor-pointer rounded-md bg-transparent" @click.stop="toggle">
-				<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
+			<div class="flex w-full items-center justify-start px-175 py-100">
+				<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
+					<template v-if="model">
+						<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
+							<div v-for="item in model" class="bg-surface-subtle rounded px-100" role="listbox">
+								<DropDownValue :value="item" role="option"></DropDownValue>
+							</div>
+						</div>
+						<DropDownValue v-else :value="model"></DropDownValue>
+					</template>
+					<span v-else class="text-surface-subtle">{{ placeholder }}</span>
+				</div>
+				<div class="cursor-pointer rounded-md bg-transparent" @click.stop="toggle">
+					<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
+				</div>
 			</div>
 		</div>
 
 		<div v-show="open" class="bg-surface-low outline-offset-thin absolute top-800 z-50 flex w-full grow flex-col rounded outline">
-			<DropDownOption v-for="(option, index) in options" :value="option" :highlighted="cursor === index" :active="selection.includes(index)" @click.stop="select(index)" class="-ml-[1px]"></DropDownOption>
+			<DropDownOption v-for="(option, index) in filteredOptions" :value="option.item" :highlighted="cursor === index" :active="selection.includes(option.index)" @click.stop="select(option.index)" class="-ml-[1px]"></DropDownOption>
 		</div>
 	</ValidateField>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref, watch } from 'vue';
 
 	// Composables
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
@@ -66,6 +71,7 @@
 			options: FieldOptions;
 			placeholder?: string;
 			validation?: FieldValidations;
+			filtered?: boolean;
 		}>(),
 		{
 			disabled: false,
@@ -73,6 +79,7 @@
 			multiple: false,
 			placeholder: '',
 			validation: undefined,
+			filtered: false,
 		},
 	);
 
@@ -82,9 +89,10 @@
 	const { fieldName, update, changed } = useFormInput(props, model);
 
 	const selection = ref<FieldSelection>([]); // Selection of chosen indexes
+	const filter = ref('');
 
 	onMounted(() => {
-		setItems(props.options as Array<any>);
+		setItems(filteredOptions.value as Array<any>);
 		// Set selection
 		if (model.value) {
 			if (props.multiple && typeof model.value === 'object') {
@@ -113,6 +121,46 @@
 			open.value = true;
 		}
 	});
+
+	const filteredOptions = computed(() => {
+		let idx = 0;
+		let filtered = props.options.map((item) => {
+			const indexed = {
+				index: idx,
+				item: item,
+			};
+			idx++;
+			return indexed;
+		});
+		if (filter.value.length > 0) {
+			let matches = 0;
+			const searchValue = (filter.value?.toString() || '').toLowerCase();
+			filtered = filtered.filter((item) => {
+				let label = item.item;
+				if (item.item.label) {
+					label = item.item.label;
+				}
+				// Make sure that only searched in alphabetical characters, so 'email' will find 'e-mail'.
+				label = label
+					.toString()
+					.replace(/[^a-zA-Z ]/g, '')
+					.toLowerCase();
+				if (label.includes(searchValue) && matches < 10 && label.toLowerCase() !== searchValue) {
+					matches++;
+					return item;
+				}
+			});
+			open.value = true;
+		}
+		setItems(filtered as Array<any>);
+		cursor.value = -1;
+		return filtered;
+	});
+
+	const selectCursor = (cursor: number) => {
+		const index = filteredOptions.value[cursor].index;
+		select(index);
+	};
 
 	const select = (index: number) => {
 		if (props.multiple) {
@@ -153,6 +201,7 @@
 			}
 		}
 
+		filter.value = '';
 		update();
 		close();
 	};

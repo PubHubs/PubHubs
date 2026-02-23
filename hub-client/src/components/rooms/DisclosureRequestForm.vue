@@ -21,7 +21,8 @@
 			<ChooseFromUsersList v-if="selectUser" :header="$t('admin.ask_disclosure_choose_user')" @chosen-user="onChosenUser" @click.stop @keydown.esc.stop="selectUser = false" />
 
 			<DropDown v-model="ask.attributes" :options="yiviAttributes" :multiple="true" :validation="{ required: true }">{{ $t('admin.secured_yivi_attributes') }}</DropDown>
-			<TextFieldAutoComplete v-model="ask.where_room" :options="roomOptions" :validation="{ required: true }">{{ $t('rooms.room') }}</TextFieldAutoComplete>
+			<DropDown v-model="ask.where_room" :options="roomOptions" :filtered="true" :validation="{ required: true }">{{ $t('rooms.room') }}</DropDown>
+
 			<TextArea placeholder="Add a message to your disclosure request" :validation="{ required: true, maxLength: 100 }" v-model="ask.message" @keydown.esc.stop>{{ $t('admin.ask_disclosure_message_title') }}</TextArea>
 
 			<ButtonGroup>
