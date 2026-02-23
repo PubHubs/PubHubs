@@ -36,7 +36,7 @@ def main():
                              "to indicate a succefull migration.  Will abort when a postgres data directory is present, "
                              "but homeserver.db.bak is not.",
                         action=argparse.BooleanOptionalAction,
-                        default=True)
+                        default=False)
 
     Program(parser.parse_args()).run()
 
