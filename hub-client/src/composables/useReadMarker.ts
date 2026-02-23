@@ -1,19 +1,29 @@
-import { computed, onBeforeUnmount, ref } from 'vue';
+// Packages
+import { computed, ref } from 'vue';
 
-import { useLastReadMessages } from '@hub-client/composables/useLastReadMessages';
-
+// Models
 import type Room from '@hub-client/models/rooms/Room';
 
-export function useReadMarker(room: Room) {
-	const { getLastReadMessage, setLastReadMessage } = useLastReadMessages();
+function useReadMarker(room: Room, userId: string) {
 	const displayedReadMarker = ref<string | null>(null);
 
 	function initialize() {
-		const lastRead = getLastReadMessage(room.roomId);
-		if (lastRead) {
-			displayedReadMarker.value = lastRead.eventId;
-			room.setLastVisibleEventId(lastRead.eventId);
-			room.setLastVisibleTimeStamp(lastRead.timestamp);
+		// In-session cache (survives navigation within same session)
+		const inSessionEventId = room.getLastVisibleEventId();
+		if (inSessionEventId) {
+			displayedReadMarker.value = inSessionEventId;
+			return;
+		}
+
+		// Server-synced read receipt
+		const serverEventId = room.getEventReadUpTo(userId);
+		if (serverEventId) {
+			displayedReadMarker.value = serverEventId;
+			const event = room.findEventById(serverEventId);
+			if (event) {
+				room.setLastVisibleEventId(serverEventId);
+				room.setLastVisibleTimeStamp(event.localTimestamp || event.getTs());
+			}
 		}
 	}
 
@@ -24,26 +34,13 @@ export function useReadMarker(room: Room) {
 
 		room.setLastVisibleEventId(eventId);
 		room.setLastVisibleTimeStamp(timestamp);
-		setLastReadMessage(room.roomId, eventId, timestamp);
 	}
-
-	function persist() {
-		const lastVisibleEventId = room.getLastVisibleEventId();
-		const lastVisibleTimestamp = room.getLastVisibleTimeStamp();
-
-		if (lastVisibleEventId && lastVisibleTimestamp > 0) {
-			setLastReadMessage(room.roomId, lastVisibleEventId, lastVisibleTimestamp);
-		}
-	}
-
-	onBeforeUnmount(() => {
-		persist();
-	});
 
 	return {
 		displayedReadMarker: computed(() => displayedReadMarker.value),
 		initialize,
 		update,
-		persist,
 	};
 }
+
+export default useReadMarker;

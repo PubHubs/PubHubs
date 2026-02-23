@@ -1,5 +1,5 @@
 <template>
-	<div class="animate-fade-in absolute right-3 bottom-20 z-50 flex w-fit transform md:right-6">
+	<div class="animate-fade-in absolute right-3 bottom-4 z-50 flex w-fit transform md:right-6">
 		<button
 			@click="$emit('click')"
 			class="bg-surface-high text-on-surface hover:bg-surface shadow-elevation-2 flex items-center justify-center rounded-full transition-all hover:cursor-pointer motion-safe:hover:scale-105 motion-safe:active:scale-95"

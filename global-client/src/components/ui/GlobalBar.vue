@@ -1,5 +1,5 @@
 <template>
-	<div class="border-on-surface-disabled relative flex h-full w-[80px] shrink-0 snap-start snap-always flex-col border-r">
+	<div class="border-on-surface-disabled relative flex h-full w-[80px] shrink-0 snap-start flex-col border-r">
 		<Modal :show="global.isModalVisible">
 			<div class="flex h-full w-full max-w-[100svh] flex-col overflow-y-hidden">
 				<div class="border-on-surface-disabled flex aspect-square h-[80px] items-center justify-center border-b p-2">

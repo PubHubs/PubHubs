@@ -10,7 +10,7 @@
 		</template>
 
 		<div class="mx-auto my-16 flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
-			<div class="mx-auto mt-20 flex w-8/12 flex-col items-center gap-4">
+			<div class="mt-20 flex flex-col items-center gap-4">
 				<H1 v-if="hubSettings.hubName" class="text-center">{{ $t('home.hub_homepage_welcome_auth', [hubSettings.hubName]) }}</H1>
 				<div class="mx-auto my-10 max-h-20 w-fit max-w-24 rounded-md">
 					<HubIcon class="h-auto w-fit" v-if="hubSettings.hubName" :hub-name="hubSettings.hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" />

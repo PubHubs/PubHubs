@@ -90,11 +90,14 @@ class UpdateConfig:
         },
     }
 
-    def __init__(self, config_env: str, hub_client_url, hub_server_url, hub_server_url_for_yivi, global_client_url):
+    def __init__(self, config_env: str, hub_client_url, hub_server_url, hub_server_url_for_yivi, global_client_url,
+                 replace_sqlite3_by_postgres):
         self._hub_client_url = hub_client_url
         self._hub_server_url = hub_server_url
         self._hub_server_url_for_yivi = hub_server_url_for_yivi
         self._global_client_url = global_client_url
+        self._replace_sqlite3_by_postgres = replace_sqlite3_by_postgres
+        self._rsbp_sqlite3_path = None
 
         match config_env:
             case "production":
@@ -145,6 +148,35 @@ class UpdateConfig:
                 if module['module'] != "conf.modules.pubhubs.HubClientApi":
                     continue
                 module['config']['global_client_url'] = self._global_client_url
+
+        if self._replace_sqlite3_by_postgres:
+            if 'database' not in homeserver:
+                raise ConfigError("❌  no 'database' configured in homeserver.yaml")
+            db = homeserver['database']
+            dbname = db.get('name')
+            if dbname != 'sqlite3':
+                raise ConfigError("❌  for --replace-sqlite3-by-postgres, "
+                                  f"the database must be 'sqlite3', but is {dbname}")
+            if 'args' not in db:
+                raise ConfigError("❌  no 'database.args' configured in homeserver.yaml")
+            dbargs = db['args']
+            dbpath = dbargs.get('database')
+            if dbpath == None:
+                raise ConfigError("❌  no 'database.args.database' configured in homeserver.yaml")
+            self._rsbp_sqlite3_path = dbpath
+
+            db['name'] = 'psycopg2'
+            to_remove = set()
+            for key in dbargs:
+                if not key.startswith('cp_'):
+                    to_remove.add(key)
+            for key in to_remove:
+                del dbargs[key]
+            dbargs['user'] = 'synapse'
+            dbargs['dbname'] = 'hub'
+            dbargs['host'] = 'localhost'
+            dbargs['port'] = 5432
+            logger.info(f" - ✅ replaced sqlite3 with postgres configuration")
 
         homeserver_live = self._update_and_check_dont_change_config(homeserver)
 
@@ -515,7 +547,8 @@ def main():
 
 
 def run(input_file, output_file, environment, 
-        hub_client_url=None, hub_server_url=None, hub_server_url_for_yivi=None, global_client_url=None):
+        hub_client_url=None, hub_server_url=None, hub_server_url_for_yivi=None, global_client_url=None,
+        replace_sqlite3_by_postgres=None):
 
     homeserver_file_path = input_file
     homeserver_live_file_path = output_file
@@ -526,7 +559,8 @@ def run(input_file, output_file, environment,
                                         hub_client_url=hub_client_url, 
                                         hub_server_url=hub_server_url, 
                                         hub_server_url_for_yivi=hub_server_url_for_yivi, 
-                                        global_client_url=global_client_url)
+                                        global_client_url=global_client_url,
+                                        replace_sqlite3_by_postgres=replace_sqlite3_by_postgres)
     homeserver_live = update_config_module.load_and_update_config(homeserver_file_path)
 
     # Write updated config homeser.live to config path
@@ -553,6 +587,7 @@ def run(input_file, output_file, environment,
             raise yaml.YAMLError(f"❌  Error while saving homeserver.live dict to YAML: {e}") from e
 
     logger.info(f" - INFO ✅  Generated updated configuration of homeserver.yaml at {homeserver_live_file_path}")
+    return update_config_module
 
 if __name__ == "__main__":
     main()

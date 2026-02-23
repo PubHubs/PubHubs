@@ -1,6 +1,6 @@
 <template>
-	<div ref="elThreadTimeline" class="flex h-full w-full flex-col p-4" data-testid="thread-sidekick">
-		<SidebarHeader :title="t('rooms.thread')" />
+	<div ref="elThreadTimeline" class="flex h-full w-full flex-col pt-4" data-testid="thread-sidekick">
+		<SidebarHeader :title="t('rooms.thread')" class="px-4" />
 		<!-- Thread message list -->
 		<div class="flex-1 overflow-y-scroll pb-4">
 			<!-- Root event -->

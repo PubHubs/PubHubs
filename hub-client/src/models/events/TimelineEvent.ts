@@ -23,27 +23,29 @@ class TimelineEvent {
 	private eventsHandler: Events = new Events();
 	private _isDeleted: boolean = false;
 
-	public constructor(matrixEvent: MatrixEvent, roomId: string) {
+	public constructor({ matrixEvent, roomId, inThread = false }: { matrixEvent: MatrixEvent; roomId: string; inThread?: boolean }) {
 		this.matrixEvent = matrixEvent;
 		this.roomId = roomId;
 
 		// calls eventhandler to adapt event to PubHubs event
 		this.eventsHandler.eventRoomTimeline(this.matrixEvent, false);
 
-		// load the thread if this event is a root of a thread, this is an async call, but we don't await it here
-		this.loadThread();
+		// if this event is a root of a thread: load the thread, make the callbackfunction for length reactivity
+		if (!inThread) {
+			this.loadThread();
 
-		this.threadLength.value = this.thread?.length ?? 0;
-		// set a listener on the threadlength for when it changes. so the ref field can pass it to the vue components
-		this.thread?.onLengthChange(() => {
-			if (!this.thread.isMatrixThreadSet && matrixEvent.event.event_id) {
-				const room = useRooms()?.room(roomId);
-				if (room) {
-					this._thread.setMatrixThread(room.getOrCreateMatrixThread(matrixEvent.event.event_id));
-				}
-			}
 			this.threadLength.value = this.thread?.length ?? 0;
-		});
+			// set a listener on the threadlength for when it changes. so the ref field can pass it to the vue components
+			this.thread?.onLengthChange(() => {
+				if (!this.thread.isMatrixThreadSet && matrixEvent.event.event_id) {
+					const room = useRooms()?.room(roomId);
+					if (room) {
+						this._thread.setMatrixThread(room.getOrCreateMatrixThread(matrixEvent.event.event_id));
+					}
+				}
+				this.threadLength.value = this.thread?.length ?? 0;
+			});
+		}
 	}
 
 	get thread() {

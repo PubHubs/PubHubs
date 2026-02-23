@@ -110,7 +110,7 @@ class ProxyStatusEvents(Protocol):
             maybeJson = json.loads(d)
             status = maybeJson.get("status")
             if status in ["CANCELLED", "DONE", "TIMEOUT"]:
-                self.connectionLost()
+                self.transport.loseConnection()
         except JSONDecodeError:
             pass
 

@@ -11,14 +11,14 @@
 		:disabled="disabled === true"
 		@input="update(($event.target as HTMLTextAreaElement).value)"
 		@keyup="onKeyUp"
-		@keydown.enter.exact="submit()"
+		@keydown.enter.exact.prevent="submit()"
 		@keydown.esc="cancel()"
 	/>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { Ref, ref } from 'vue';
+	import { Ref, nextTick, ref, watch } from 'vue';
 
 	// Composables
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
@@ -42,6 +42,14 @@
 	const emit = defineEmits([...usedEvents, 'caretPos']);
 	const { update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);
 
+	// Resize when value changes programmatically (e.g., after sending a message)
+	watch(
+		() => props.modelValue,
+		() => {
+			nextTick(() => resize());
+		},
+	);
+
 	function onKeyUp() {
 		changed();
 		emit('caretPos', caretPos());
@@ -59,10 +67,8 @@
 	 */
 	function resize() {
 		if (!elTextarea.value) return;
-		if (props.modelValue === '') {
-			elTextarea.value.style.height = 'auto';
-		} else {
-			elTextarea.value.style.height = 'auto';
+		elTextarea.value.style.height = 'auto';
+		if (props.modelValue && props.modelValue.length > 0) {
 			elTextarea.value.style.height = elTextarea.value.scrollHeight + 'px';
 		}
 	}

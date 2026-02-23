@@ -3,7 +3,7 @@
 		<!-- Floating -->
 		<div class="relative">
 			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
-				<div class="flex items-center gap-2">
+				<div class="flex flex-wrap items-center gap-2">
 					<PopoverButton icon="upload-simple" data-testid="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
 						<PopoverButton icon="chart-bar" data-testid="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
@@ -20,25 +20,17 @@
 			</div>
 		</div>
 
-		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
+		<div class="flex max-h-[50vh] items-end justify-between gap-2">
 			<div class="bg-surface-high rounded-base w-full shadow-xs">
 				<!-- In reply to -->
-				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
-					<div class="flex w-fit gap-2 overflow-hidden">
-						<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
-						<Suspense>
-							<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room" />
-							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
-									<p>{{ $t('state.loading_message') }}</p>
-								</div>
-							</template>
-						</Suspense>
-					</div>
-					<button @click="messageActions.replyingTo = undefined">
-						<Icon type="x" size="sm" />
-					</button>
-				</div>
+				<InputModeBar v-if="inReplyTo" icon="arrow-bend-up-left" :label="$t('message.in_reply_to')" variant="reply" @close="messageActions.replyingTo = undefined">
+					<Suspense>
+						<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room" />
+						<template #fallback>
+							<p class="text-on-surface-dim text-label-small">{{ $t('state.loading_message') }}</p>
+						</template>
+					</Suspense>
+				</InputModeBar>
 
 				<FilePicker ref="filePickerEl" :messageInput="messageInput"></FilePicker>
 
@@ -63,20 +55,8 @@
 					/>
 				</template>
 
-				<!-- Announcement mode indicator -->
-				<div
-					v-if="isAnnouncementMode"
-					class="rounded-t-base flex items-center justify-between gap-2 border-b px-4 py-2"
-					:class="announcementAccentClass === 'accent-admin' ? 'bg-accent-admin/10 border-accent-admin' : 'bg-accent-steward/10 border-accent-steward'"
-				>
-					<div class="flex items-center gap-2">
-						<Icon type="megaphone-simple" size="sm" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'" />
-						<span class="text-label-small" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'">{{ $t('message.announcement_mode') }}</span>
-					</div>
-					<button @click="isAnnouncementMode = false" class="hover:cursor-pointer">
-						<Icon type="x" size="sm" :class="announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward'" />
-					</button>
-				</div>
+				<InputModeBar v-if="isAnnouncementMode" icon="megaphone-simple" :label="$t('message.announcement_mode')" :variant="announcementVariant" @close="isAnnouncementMode = false" />
+				<InputModeBar v-if="messageInput.state.signMessage" icon="pen-nib" :label="$t('message.sign.signed_message_email')" :tooltip="$t('message.sign.signed_message_tooltip')" variant="sign" @close="messageInput.resetAll(true)" />
 
 				<div v-if="messageInput.state.textArea" class="rounded-base flex items-center gap-x-4 px-4 py-2">
 					<IconButton
@@ -104,7 +84,7 @@
 					<button
 						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
 						class="hover:cursor-pointer"
-						:class="isAnnouncementMode ? (announcementAccentClass === 'accent-admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
+						:class="isAnnouncementMode ? (announcementVariant === 'admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
 						@click="isAnnouncementMode = !isAnnouncementMode"
 						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
 					>
@@ -126,48 +106,33 @@
 						<Icon type="paper-plane-right" size="lg" />
 					</button>
 				</div>
-
-				<div v-if="messageInput.state.signMessage" class="bg-surface-low rounded-base m-4 mt-0 flex items-center p-2">
-					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
-					<div class="ml-2 flex max-w-3xl flex-col justify-between">
-						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
-						<p>{{ $t('message.sign.info') }}</p>
-						<div class="mt-2 flex items-center">
-							<Icon type="warning" size="sm" class="mb-025 mt-1 mr-2 shrink-0 self-start" />
-							<p class="italic">{{ $t('message.sign.warning') }}</p>
-						</div>
-						<Line class="mb-2" />
-						<p>{{ $t('message.sign.selected_attributes') }}</p>
-						<div class="mt-1 flex w-20 justify-center rounded-full">
-							<p>Email</p>
-						</div>
-					</div>
-					<IconButton type="x" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
-				</div>
-			</div>
-			<!-- Yivi signing qr popup -->
-			<div class="absolute bottom-[10%] left-1/2 min-w-64 -translate-x-1/2" v-show="messageInput.state.showYiviQR">
-				<Icon type="x" class="absolute right-2 z-10 cursor-pointer text-black" @click="messageInput.state.showYiviQR = false" />
-				<div v-if="messageInput.state.signMessage" :id="EYiviFlow.Sign"></div>
 			</div>
 		</div>
 	</div>
+
+	<!-- Yivi signing dialog -->
+	<Teleport to="body">
+		<Dialog v-if="messageInput.state.showYiviQR" @close="messageInput.state.showYiviQR = false" :title="$t('message.sign.heading')" :buttons="signingDialogButtons">
+			<div :id="EYiviFlow.Sign"></div>
+		</Dialog>
+	</Teleport>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { PropType, computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Line from '@hub-client/components/elements/Line.vue';
 	import TextArea from '@hub-client/components/forms/TextArea.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
+	import InputModeBar from '@hub-client/components/ui/InputModeBar.vue';
 	import MentionAutoComplete from '@hub-client/components/ui/MentionAutoComplete.vue';
 	import Popover from '@hub-client/components/ui/Popover.vue';
 	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
@@ -192,6 +157,7 @@
 	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
+	import { buttonsCancel } from '@hub-client/stores/dialog';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { TPublicRoom, TRoomMember, useRooms } from '@hub-client/stores/rooms';
@@ -244,13 +210,14 @@
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 	const isAnnouncementMode = ref(false);
 
-	// Accent color based on power level (admin = 100, steward = 50+)
-	const announcementAccentClass = computed(() => {
+	const announcementVariant = computed<'admin' | 'steward'>(() => {
 		const powerLevel = props.room.getPowerLevel(user.userId);
-		return powerLevel === 100 ? 'accent-admin' : 'accent-steward';
+		return powerLevel === 100 ? 'admin' : 'steward';
 	});
 
 	let threadRoot: TMessageEvent | undefined = undefined;
+
+	const signingDialogButtons = buttonsCancel;
 
 	watch(route, () => {
 		reset();
@@ -394,6 +361,7 @@
 
 		if (messageInput.state.signMessage) {
 			messageInput.state.showYiviQR = true;
+			await nextTick();
 			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot);
 		} else if (isAnnouncementMode.value) {
 			// Send as announcement

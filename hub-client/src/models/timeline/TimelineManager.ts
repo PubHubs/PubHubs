@@ -214,7 +214,7 @@ class TimelineManager {
 	}
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
-		return this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent(x, this.roomId)) ?? [];
+		return this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })) ?? [];
 	}
 
 	// Gets related events, either all (defined in this.relatedEventTypes) or of one specific type and or contenttype (for instance EvenType.Reaction, RelationType.Annotation)
@@ -284,7 +284,7 @@ class TimelineManager {
 			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
 		}
 
-		let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+		let mappedEvents = tempEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
 		this.timelineEvents = mappedEvents;
@@ -308,7 +308,7 @@ class TimelineManager {
 
 		// Redacted Events
 		const redactedEvents = matrixEvents.filter((event) => event.getType() === EventType.RoomRedaction);
-		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent(x, this.roomId))];
+		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
 
 		// TODO this is now necessary for reactions that use RedactedEventIds, in the future refactor to use standard redactions
 		// if the redacted event concerns a deleted reaction, put the id in the redactedEventIds
@@ -325,7 +325,7 @@ class TimelineManager {
 		const libraryEvents = matrixEvents.filter(
 			(x) => (x.getType() === PubHubsMgType.LibraryFileMessage || x.getType() === PubHubsMgType.SignedFileMessage) && x.getType() !== Redaction.DeletedFromLibrary && x.getType() !== Redaction.Redacts,
 		);
-		this.libraryEvents = [...this.libraryEvents, ...libraryEvents.map((x) => new TimelineEvent(x, this.roomId))];
+		this.libraryEvents = [...this.libraryEvents, ...libraryEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
 		// Filter out double, sometimes after sync items get doubled
 		this.libraryEvents = this.libraryEvents.filter((item, index, self) => self.findIndex((innerItem) => innerItem.matrixEvent.getId() === item.matrixEvent.getId()) === index);
 
@@ -337,7 +337,7 @@ class TimelineManager {
 		matrixEvents = this.prepareEvents(matrixEvents);
 		if (matrixEvents.length === 0) return undefined;
 
-		const eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
+		const eventList = matrixEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
 		// if the lastMessageId is undefined
 		// or this events contains the lastMessageId
@@ -544,7 +544,7 @@ class TimelineManager {
 			const newOnly = allEvents.filter((e) => !beforeIds.has(e.event.event_id));
 
 			if (newOnly.length > 0) {
-				let timeLineEvents = newOnly.map((event) => new TimelineEvent(event, this.roomId));
+				let timeLineEvents = newOnly.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
 				// Remove duplicates already in the managed timeline
 				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((existing) => existing.matrixEvent.event.event_id === x.matrixEvent.event.event_id));

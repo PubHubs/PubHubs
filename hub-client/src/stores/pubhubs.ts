@@ -1,4 +1,3 @@
-// Models
 // Packages
 import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -20,6 +19,7 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
+// Models
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { SystemDefaults } from '@hub-client/models/constants';
@@ -369,24 +369,21 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		/**
-		 * Uses the client to join a room (a no op when already a member) and updates the rooms in the store. Can throw
-		 * an error.
-		 * @param room_id - a room id
-		 * @throws error - an error when something goes wrong joining the room. For example a forbidden respons or a rate limited
-		 * response
+		 * Joins a room (no-op if already a member) and updates the rooms store.
+		 * @param room_id - Room ID to join
+		 * @param knownRoomType - Pre-known room type, avoids unreliable detection from live timeline
+		 * @param knownRoomName - Pre-known room name
 		 */
-		async joinRoom(room_id: string): Promise<void> {
+		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<void> {
 			const rooms = useRooms();
 
 			try {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				const roomType: string = getRoomType(matrixRoom);
+				const roomType: string = knownRoomType ?? getRoomType(matrixRoom);
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
-				const roomName = publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
+				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-
-				// when a room is joined after startup the roomlist has to be updated, does nothing when room was already in the roomlist
 				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], lastMessageId: undefined, isHidden: false });
 			} catch (err) {
 				throw err;
@@ -399,7 +396,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		async createRoom(options: any): Promise<{ room_id: string }> {
 			const room = await this.client.createRoom(options);
-			await this.joinRoom(room.room_id);
+			await this.joinRoom(room.room_id, options.creation_content?.type, options.name);
 			return room;
 		},
 

@@ -1,5 +1,5 @@
 <template>
-	<div v-if="show" class="bg-surface-high absolute top-0 z-10 h-full w-24 opacity-80"></div>
+	<div v-if="show" class="bg-surface-high absolute top-0 z-10 h-full w-[80px] opacity-80"></div>
 	<slot></slot>
 </template>
 

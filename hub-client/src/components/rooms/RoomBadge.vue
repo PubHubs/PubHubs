@@ -1,15 +1,16 @@
 <template>
 	<span
 		v-if="userHasBadge"
-		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-050 flex items-center justify-center gap-2 border uppercase"
+		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-2 border uppercase"
 		:class="userPowerLevel === 100 ? 'border-accent-admin' : userPowerLevel >= 50 ? 'border-accent-steward' : 'border-on-surface-dim'"
 		data-testid="event-badges"
 		:title="label"
 	>
 		<span v-if="hasPowerPrivileges || isHubAdmin" class="line-clamp-1 truncate">{{ label }}</span>
-		<template v-else v-for="value in roomAttributes" :key="value">
+
+		<!-- <template v-else v-for="value in roomAttributes" :key="value">
 			<span>{{ value }}</span>
-		</template>
+		</template> -->
 	</span>
 </template>
 
