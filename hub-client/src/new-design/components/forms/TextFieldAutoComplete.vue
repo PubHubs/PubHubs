@@ -1,10 +1,8 @@
 <template>
-	<ValidateField
-		v-model="selected"
+	<div
 		:name="fieldName"
 		:validation="validation"
 		:help="help"
-		v-slot="{ id, validated, required }"
 		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
@@ -13,13 +11,7 @@
 		@focusin="focus(true)"
 		@focusout="focus(false, 100)"
 	>
-		<Label :for="id"><slot></slot></Label>
-
-		<div :id="id" class="bg-surface-low outline-offset-thin ring-on-accent-primary flex w-full items-center justify-start rounded px-175 py-100 outline focus:ring-3" role="combobox" tabindex="0">
-			<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap">
-				<DropDownValue :input="true" :value="selected" :placeholder="placeholder" @filter="searched($event)"></DropDownValue>
-			</div>
-		</div>
+		<TextField v-model="search" :placeholder="placeholder" :disabled="disabled" :validation="validation">{{ label }}</TextField>
 
 		<ul
 			v-if="result.length > 0 && hasFocus"
@@ -29,7 +21,7 @@
 				<DropDownValue :value="item" role="option"></DropDownValue>
 			</li>
 		</ul>
-	</ValidateField>
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -44,9 +36,8 @@
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	// New design
-	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
+	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
@@ -130,10 +121,6 @@
 			search.value = item as unknown as InputType;
 		}
 		update();
-	};
-
-	const searched = (event: string) => {
-		search.value = event;
 	};
 
 	const focus = (focus: boolean, wait: number = 0) => {

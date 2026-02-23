@@ -4,13 +4,12 @@
 		<span v-if="icon" class="mr-075 h-100 w-100">
 			<Icon :type="icon" size="sm" class="-mt-050"></Icon>
 		</span>
-		<input v-if="input" v-model="filter" class="text-surface-on-surface justify-start text-nowrap" :placeholder="placeholder" @input="changedFilter()" />
-		<span v-else class="text-surface-on-surface justify-start text-nowrap">{{ label }}</span>
+		<span class="text-surface-on-surface justify-start text-nowrap">{{ label }}</span>
 	</span>
 </template>
 
 <script setup lang="ts">
-	import { computed, ref, watch } from 'vue';
+	import { computed } from 'vue';
 
 	// Components
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
@@ -26,26 +25,8 @@
 	const props = withDefaults(
 		defineProps<{
 			value: FieldOption | string;
-			input?: boolean;
-			placeholder?: string;
 		}>(),
-		{
-			input: false,
-			placeholder: '',
-		},
-	);
-
-	const filter = defineModel<string>('');
-	const hasChoosenOption = ref(!props.input);
-
-	watch(
-		() => props.value,
-		() => {
-			if (props.input) {
-				filter.value = label.value;
-				hasChoosenOption.value = true;
-			}
-		},
+		{},
 	);
 
 	// Computed
@@ -55,7 +36,6 @@
 	});
 
 	const icon = computed(() => {
-		if (hasChoosenOption.value === false) return undefined;
 		if (props.value) {
 			if (props.value.icon) return props.value.icon;
 		}
@@ -63,17 +43,9 @@
 	});
 
 	const avatar = computed(() => {
-		if (hasChoosenOption.value === false) return undefined;
 		if (props.value) {
 			if (typeof props.value.avatar !== 'undefined') return props.value.avatar;
 		}
 		return undefined;
 	});
-
-	const changedFilter = () => {
-		if (props.input) {
-			hasChoosenOption.value = false;
-			emit('filter', filter.value);
-		}
-	};
 </script>
