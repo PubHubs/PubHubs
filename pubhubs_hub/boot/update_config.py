@@ -174,8 +174,7 @@ class UpdateConfig:
                 del dbargs[key]
             dbargs['user'] = 'synapse'
             dbargs['dbname'] = 'hub'
-            dbargs['host'] = 'localhost'
-            dbargs['port'] = 5432
+            dbargs['host'] = '/var/run/postgresql'
             logger.info(f" - ✅ replaced sqlite3 with postgres configuration")
 
         homeserver_live = self._update_and_check_dont_change_config(homeserver)

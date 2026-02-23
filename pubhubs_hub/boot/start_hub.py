@@ -36,7 +36,7 @@ def main():
                              "to indicate a succefull migration.  Will abort when a postgres data directory is present, "
                              "but homeserver.db.bak is not.",
                         action=argparse.BooleanOptionalAction,
-                        default=False)
+                        default=True)
 
     Program(parser.parse_args()).run()
 
@@ -140,11 +140,20 @@ class Program:
 
             # run postgres, so we can issue commands to it
             print("Starting postgres ...")
-            self._waiter.add("postgres", 
+            self._waiter.add("postgres",
                              subprocess.Popen(('sudo', '-u', 'postgres',
                                                os.path.join(pg_bindir, "postgres"),
-                                               '-D', pg_data_dir),
-                                               stdin=subprocess.DEVNULL))
+                                               '-D', pg_data_dir,
+                                               # Tuning: don't have postgres wait for data to be written to disk.
+                                               # Risks loss of the last transaction, but there's no risk
+                                               # of corruption.
+                                               # <https://www.postgresql.org/docs/current/wal-async-commit.html>
+                                               '-c', 'synchronous_commit=off',
+                                               # When more tuning is needed:
+                                               #  - <https://element-hq.github.io/synapse/latest/postgres.html#tuning-postgres>
+                                               #  - <https://pgtune.leopard.in.ua/>
+                                               ),
+                                              stdin=subprocess.DEVNULL))
             countdown = 300
             while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"), 
                                  stdin=subprocess.DEVNULL).returncode != 0:
@@ -192,7 +201,7 @@ class Program:
                     print("Migrating pubhubs-specific tables ...")
                     with contextlib.ExitStack() as exit_stack:
                         sqlite_conn = exit_stack.enter_context(sqlite3.connect(sqlite3_path))
-                        pg_conn = exit_stack.enter_context(psycopg2.connect("postgresql://synapse@localhost:5432/hub"))
+                        pg_conn = exit_stack.enter_context(psycopg2.connect(host='/var/run/postgresql', user='synapse', dbname='hub'))
                         self.migrate_ph_tables(sqlite_conn=sqlite_conn, pg_conn=pg_conn)
 
                     print(f"Renaming {sqlite3_path} -> {sqlite3_backup_path} ...")
