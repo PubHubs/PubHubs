@@ -1,5 +1,5 @@
 <template>
-	<div>
+	<div ref="fieldRef" :class="'max-w-[' + fixedWidth + 'px]'">
 		<slot :id="id" :validated="validated" :changed="changed" :required="required"></slot>
 
 		<FieldInfoBox :info="info">
@@ -43,6 +43,9 @@
 		},
 	);
 
+	const fieldRef = ref();
+	const fixedWidth = ref(0);
+
 	const model = defineModel<any>();
 	const originalValue = ref<any>(undefined);
 
@@ -51,6 +54,8 @@
 
 	// Lifecycle
 	onMounted(() => {
+		fixedWidth.value = fieldRef.value.clientWidth;
+
 		originalValue.value = Object.assign({}, model);
 
 		if (props.validation) {
