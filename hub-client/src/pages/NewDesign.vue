@@ -79,9 +79,7 @@
 				<TextArea placeholder="Extra" :show-length="true">Nog meer</TextArea>
 
 				<h2 class="my-200">Autocomplete</h2>
-				<TextFieldAutoComplete v-model="options[0]" placeholder="start typen" :options="options">Autocomplete simple</TextFieldAutoComplete>
-				<TextFieldAutoComplete v-model="iconOptions[1]" placeholder="start typen" :options="iconOptions">Autocomplete iconen</TextFieldAutoComplete>
-				<TextFieldAutoComplete v-model="userOptions[0]" placeholder="start typen" :options="userOptions">Autocomplete users</TextFieldAutoComplete>
+				<TextFieldAutoComplete placeholder="start typen" :options="options">Autocomplete simple</TextFieldAutoComplete>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
