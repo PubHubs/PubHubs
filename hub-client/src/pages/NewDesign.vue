@@ -64,7 +64,7 @@
 				<DropDown v-model="dropDownValues.multiple" :options="options" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Eenvoudig Multiple</DropDown>
 				<DropDown v-model="dropDownValues.simpleIcon" :options="iconOptions" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Met Ikonen en Labels</DropDown>
 				<DropDown v-model="dropDownValues.multipleIcons" :options="iconOptions" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Multiple Ikonen en Labels</DropDown>
-				<DropDown v-if="userOptions.length > 0" :options="userOptions" placeholder="Selecteer een user" :validation="{ required: true }" help="Users">Userlist</DropDown>
+				<DropDown v-if="userOptions.length > 0" :options="userOptions" placeholder="Selecteer een user" :filtered="true" :validation="{ required: true }" help="Users">Userlist</DropDown>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
