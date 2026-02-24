@@ -37,29 +37,26 @@ export function useDirectMessage() {
 
 	// Opens or creates a 1:1 DM with the given user and navigates to it.
 	async function goToUserDM(userId: string): Promise<void> {
-		const otherUser = user.client?.getUser(userId);
-		if (!otherUser || user.userId === otherUser.userId) return;
-
-		const room = await ensureDMRoom(otherUser as User);
+		const room = await ensureDMRoom(userId);
 		if (room) goToRoom(room);
 	}
 
 	// Creates a DM (1:1 or group) and selects it in the sidebar.
-	async function createDMWithUsers(users: User | User[]): Promise<Room | null> {
+	async function createDMWithUsers(users: string | string[]): Promise<Room | null> {
 		const room = await ensureDMRoom(users);
 		if (room) sidebar.openDMRoom(room);
 		return room;
 	}
 
 	// Creates a DM and navigates to the DM page.
-	async function createAndGoToDM(users: User | User[]): Promise<void> {
+	async function createAndGoToDM(users: string | string[]): Promise<void> {
 		const room = await createDMWithUsers(users);
 		if (room) router.push({ name: 'direct-msg' });
 	}
 
 	// Creates a DM with the steward
-	async function goToStewardRoom(roomId: string, members: User[]): Promise<void> {
-		const room = await ensureDMRoom(members, false, true, roomId);
+	async function goToStewardRoom(roomId: string, stewardIds: Array<string>): Promise<void> {
+		const room = await ensureDMRoom(stewardIds, false, true, roomId);
 		if (room) goToRoom(room);
 	}
 

@@ -1,8 +1,8 @@
 // Models
 import { TUser } from '@hub-client/models/users/TUser';
 
-const createNewPrivateRoomName = (members: Array<TUser>): string => {
-	return members.map((m) => `${m.userId}`).join(',');
+const createNewPrivateRoomName = (members: Array<string>): string => {
+	return members.join(',');
 };
 
 // Show private room name for all members

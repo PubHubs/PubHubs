@@ -132,7 +132,8 @@
 
 	async function contactSteward() {
 		const stewards = props.room.getRoomStewards();
-		await rooms.createStewardRoomOrModify(props.room.roomId, stewards);
+		const stewardIds = stewards.map((steward) => steward.userId);
+		await rooms.createStewardRoomOrModify(props.room.roomId, stewardIds);
 	}
 
 	async function startDM(userId: string) {
