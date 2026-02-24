@@ -36,8 +36,17 @@
 			</div>
 		</div>
 
-		<div v-show="open" class="bg-surface-low outline-offset-thin absolute top-800 z-50 flex w-full grow flex-col rounded outline">
-			<DropDownOption v-for="(option, index) in filteredOptions" :value="option.item" :highlighted="cursor === index" :active="selection.includes(option.index)" @click.stop="select(option.index)" class="-ml-[1px]"></DropDownOption>
+		<div v-show="open" class="absolute top-800 z-50 flex w-full grow flex-col pb-300">
+			<div class="bg-surface-low outline-offset-thin rounded outline">
+				<DropDownOption
+					v-for="(option, index) in filteredOptions"
+					:value="option.item"
+					:highlighted="cursor === index"
+					:active="selection.includes(option.index)"
+					@click.stop="select(option.index)"
+					class="-ml-[1px]"
+				></DropDownOption>
+			</div>
 		</div>
 	</ValidateField>
 </template>

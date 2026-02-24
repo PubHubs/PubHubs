@@ -60,9 +60,7 @@
 								</TabHeader>
 								<TabContainer>
 									<div class="pt-2" role="tabpanel" v-if="selectedAttributes.length >= activeTab">
-										<TextFieldAutoComplete v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" class="text-label placeholder:text-surface-subtle">{{
-											t('admin.secured_attribute')
-										}}</TextFieldAutoComplete>
+										<DropDown v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" class="text-label placeholder:text-surface-subtle">{{ t('admin.secured_attribute') }}</DropDown>
 
 										<Label>{{ t('admin.secured_values') }}</Label>
 										<div class="bg-on-surface-disabled mb-100 rounded p-100">
@@ -140,10 +138,10 @@
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
+	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
-	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
