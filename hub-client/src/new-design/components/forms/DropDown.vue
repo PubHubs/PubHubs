@@ -19,10 +19,10 @@
 			<Label :for="id"><slot></slot></Label>
 
 			<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0">
-				<div v-if="filtered" class="py-075 border-b px-175">
-					<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-label-small" />
+				<div :class="showFilter ? 'py-075 h-500 border-b px-175' : 'h-0 overflow-hidden border-0 p-0'">
+					<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-on-surface-dim" />
 				</div>
-				<div class="flex w-full items-center justify-start px-175 py-100">
+				<div v-if="!showFilter" class="flex w-full items-center justify-start px-175 py-100">
 					<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
 						<template v-if="model">
 							<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
@@ -40,7 +40,7 @@
 				</div>
 			</div>
 
-			<div v-show="open && filteredOptions.length > 0" class="absolute z-50 flex w-full grow flex-col pb-300" :class="filtered ? 'top-[100px]' : 'top-800'">
+			<div v-show="open && filteredOptions.length > 0" class="absolute top-800 z-50 flex w-full grow flex-col pb-300">
 				<div class="bg-surface-low outline-offset-thin rounded outline">
 					<DropDownOption
 						v-for="(option, index) in filteredOptions"
@@ -147,29 +147,35 @@
 			idx++;
 			return indexed;
 		});
-		if (filter.value.length > 0) {
-			let matches = 0;
-			const searchValue = (filter.value?.toString() || '').toLowerCase();
-			filtered = filtered.filter((item) => {
-				let label = item.item;
-				if (item.item.label) {
-					label = item.item.label;
-				}
-				// Make sure that only searched in alphabetical characters, so 'email' will find 'e-mail'.
-				label = label
-					.toString()
-					.replace(/[^a-zA-Z ]/g, '')
-					.toLowerCase();
-				if (label.includes(searchValue) && matches < 10 && label.toLowerCase() !== searchValue) {
-					matches++;
-					return item;
-				}
-			});
-			open.value = true;
+		if (props.filtered) {
+			if (filter.value.length > 0) {
+				let matches = 0;
+				const searchValue = (filter.value?.toString() || '').toLowerCase();
+				filtered = filtered.filter((item) => {
+					let label = item.item;
+					if (item.item.label) {
+						label = item.item.label;
+					}
+					// Make sure that only searched in alphabetical characters, so 'email' will find 'e-mail'.
+					label = label
+						.toString()
+						.replace(/[^a-zA-Z ]/g, '')
+						.toLowerCase();
+					if (label.includes(searchValue) && matches < 10 && label.toLowerCase() !== searchValue) {
+						matches++;
+						return item;
+					}
+				});
+				open.value = true;
+			}
 		}
 		setItems(filtered as Array<any>);
 		cursor.value = -1;
 		return filtered;
+	});
+
+	const showFilter = computed(() => {
+		return props.filtered && filter.value !== '';
 	});
 
 	const resetFilter = () => {
