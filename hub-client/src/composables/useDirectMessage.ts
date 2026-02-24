@@ -11,10 +11,12 @@ import { router } from '@hub-client/logic/core/router';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { Room, useRooms } from '@hub-client/stores/rooms';
 import { useSettings } from '@hub-client/stores/settings';
+import { useUser } from '@hub-client/stores/user';
 
 export function useDirectMessage() {
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
+	const user = useUser();
 	const sidebar = useSidebar();
 	const settings = useSettings();
 
@@ -35,6 +37,9 @@ export function useDirectMessage() {
 
 	// Opens or creates a 1:1 DM with the given user and navigates to it.
 	async function goToUserDM(userId: string): Promise<void> {
+		const otherUser = user.client?.getUser(userId);
+		if (!otherUser || user.userId === otherUser.userId) return;
+
 		const room = await ensureDMRoom([userId]);
 		if (room) goToRoom(room);
 	}

@@ -449,7 +449,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const rooms = useRooms();
 				let name = rooms.room(existingRoomId)?.name;
 				if (name) {
-					name = updatePrivateRoomName(name, me.userId!, false);
+					name = updatePrivateRoomName(name, me.userId, false);
 					this.renameRoom(existingRoomId, name);
 				}
 				return { room_id: existingRoomId };
@@ -499,7 +499,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			let name = room.name;
 			const user = useUser();
 			const me = user.user as User;
-			name = updatePrivateRoomName(name, me, hide);
+			name = updatePrivateRoomName(name, me.userId, hide);
 			await this.client.setRoomName(room.roomId, name);
 			rooms.setRoomListHidden(room.roomId, hide);
 		},

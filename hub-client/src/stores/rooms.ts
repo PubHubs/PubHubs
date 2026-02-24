@@ -107,7 +107,7 @@ const useRooms = defineStore('rooms', {
 			return this.roomList.filter((room) => {
 				if (room.isHidden === false && room.roomType && DirectRooms.includes(room.roomType as RoomType)) {
 					if (hiddenNameRoomTypes.includes(room.roomType as RoomType)) {
-						return isVisiblePrivateRoom(room.name, user.user!);
+						return isVisiblePrivateRoom(room.name, user.user.userId);
 					}
 					return true;
 				}
@@ -417,7 +417,7 @@ const useRooms = defineStore('rooms', {
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
 			// visibility is based on a prefix on room names when the room is joined or left.
 			if (type === RoomType.PH_MESSAGES_DM) {
-				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user.user));
+				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user.user.userId));
 			}
 			return rooms.filter((room) => room.getType() === type);
 		},
@@ -433,7 +433,7 @@ const useRooms = defineStore('rooms', {
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
 			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 			let result = rooms.filter((room) => !room.isHidden() && room.getType() !== undefined && types.includes(room.getType() as RoomType));
-			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.getType() as RoomType) || isVisiblePrivateRoom(room.name, user.user!));
+			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.getType() as RoomType) || isVisiblePrivateRoom(room.name, user.user.userId));
 			return result;
 		},
 
@@ -445,7 +445,7 @@ const useRooms = defineStore('rooms', {
 			const user = useUser();
 			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 			let result = this.roomList.filter((room) => room.isHidden === false && room.roomType !== undefined && types.includes(room.roomType as RoomType));
-			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.roomType as RoomType) || isVisiblePrivateRoom(room.name, user.user!));
+			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.roomType as RoomType) || isVisiblePrivateRoom(room.name, user.user.userId));
 			return result;
 		},
 
