@@ -1,62 +1,64 @@
 <template>
-	<ValidateField
-		:name="fieldName"
-		:validation="validation"
-		:help="help"
-		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
-		v-slot="{ id }"
-		v-model="model"
-		v-click-outside="close()"
-		@keydown.arrow-down.prevent="cursorDown()"
-		@keydown.arrow-up.prevent="cursorUp()"
-		@keydown.enter.prevent="selectCursor(cursor)"
-		@keydown.esc.stop.prevent="
-			resetFilter();
-			close();
-		"
-		@keydown="focusFilter($event)"
-	>
-		<Label :for="id"><slot></slot></Label>
+	<OnClickOutside @trigger="close()">
+		<ValidateField
+			:name="fieldName"
+			:validation="validation"
+			:help="help"
+			class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+			v-slot="{ id }"
+			v-model="model"
+			@keydown.arrow-down.prevent="cursorDown()"
+			@keydown.arrow-up.prevent="cursorUp()"
+			@keydown.enter.prevent="selectCursor(cursor)"
+			@keydown.esc.stop.prevent="
+				resetFilter();
+				close();
+			"
+			@keydown="focusFilter($event)"
+		>
+			<Label :for="id"><slot></slot></Label>
 
-		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0">
-			<div v-if="filtered" class="py-075 border-b px-175">
-				<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-label-small" />
-			</div>
-			<div class="flex w-full items-center justify-start px-175 py-100">
-				<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
-					<template v-if="model">
-						<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
-							<div v-for="item in model" class="bg-surface-subtle rounded px-100" role="listbox">
-								<DropDownValue :value="item" role="option"></DropDownValue>
+			<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0">
+				<div v-if="filtered" class="py-075 border-b px-175">
+					<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-label-small" />
+				</div>
+				<div class="flex w-full items-center justify-start px-175 py-100">
+					<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
+						<template v-if="model">
+							<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
+								<div v-for="item in model" class="bg-surface-subtle rounded px-100" role="listbox">
+									<DropDownValue :value="item" role="option"></DropDownValue>
+								</div>
 							</div>
-						</div>
-						<DropDownValue v-else :value="model"></DropDownValue>
-					</template>
-					<span v-else class="text-surface-subtle">{{ placeholder }}</span>
-				</div>
-				<div class="cursor-pointer rounded-md bg-transparent" @click.stop="toggle">
-					<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
+							<DropDownValue v-else :value="model"></DropDownValue>
+						</template>
+						<span v-else class="text-surface-subtle">{{ placeholder }}</span>
+					</div>
+					<div class="cursor-pointer rounded-md bg-transparent" @click.stop="toggle">
+						<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
+					</div>
 				</div>
 			</div>
-		</div>
 
-		<div v-show="open && filteredOptions.length > 0" class="absolute z-50 flex w-full grow flex-col pb-300" :class="filtered ? 'top-[100px]' : 'top-800'">
-			<div class="bg-surface-low outline-offset-thin rounded outline">
-				<DropDownOption
-					v-for="(option, index) in filteredOptions"
-					:value="option.item"
-					:highlighted="cursor === index"
-					:active="selection.includes(option.index)"
-					@click.stop="select(option.index)"
-					class="-ml-[1px]"
-				></DropDownOption>
+			<div v-show="open && filteredOptions.length > 0" class="absolute z-50 flex w-full grow flex-col pb-300" :class="filtered ? 'top-[100px]' : 'top-800'">
+				<div class="bg-surface-low outline-offset-thin rounded outline">
+					<DropDownOption
+						v-for="(option, index) in filteredOptions"
+						:value="option.item"
+						:highlighted="cursor === index"
+						:active="selection.includes(option.index)"
+						@click.stop="select(option.index)"
+						class="-ml-[1px]"
+					></DropDownOption>
+				</div>
 			</div>
-		</div>
-	</ValidateField>
+		</ValidateField>
+	</OnClickOutside>
 </template>
 
 <script setup lang="ts">
 	// Packages
+	import { OnClickOutside } from '@vueuse/components';
 	import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
 
 	// Composables
@@ -101,6 +103,7 @@
 	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 	const { fieldName, update } = useFormInput(props, model);
 
+	const open = ref(false);
 	const selection = ref<FieldSelection>([]); // Selection of chosen indexes
 	const filter = ref('');
 	const filterEl = useTemplateRef('filterInput');
@@ -126,8 +129,6 @@
 		// Set cursor off until it is used
 		cursor.value = -1;
 	});
-
-	const open = ref(false);
 
 	// Make sure dropdown is opened when cursorkey is used
 	watch(cursor, () => {
