@@ -220,7 +220,7 @@
 	}
 	async function onSubmit(result: AskDisclosure) {
 		// Get a private room with recipient
-		const privateRoom = await pubhubsStore.createPrivateRoomWith(result.user as User);
+		const privateRoom = await pubhubsStore.createPrivateRoomWith([result.user.userId]);
 		const privateRoomId = privateRoom!.room_id;
 		const ask: AskDisclosureMessage = {
 			userId: result.user?.userId,

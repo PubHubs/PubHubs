@@ -425,17 +425,14 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return false;
 		},
 
-		async createPrivateRoomWith(other: string | string[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
+		async createPrivateRoomWith(otherUsers: string[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user;
-			let otherUsers: string[];
 			let roomType: RoomType;
 
-			if (other instanceof Array) {
-				otherUsers = other;
+			if (otherUsers.length > 1) {
 				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_GROUP;
 			} else {
-				otherUsers = [other];
 				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_DM;
 			}
 

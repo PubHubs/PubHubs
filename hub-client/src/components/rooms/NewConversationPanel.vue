@@ -242,7 +242,7 @@
 	}
 
 	async function gotToPrivateRoom(other: string) {
-		const room = await dm.createDMWithUsers(other);
+		const room = await dm.createDMWithUsers([other]);
 		if (!room) {
 			dialog.confirm(t('errors.cant_find_room'));
 		}
