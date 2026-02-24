@@ -5,13 +5,13 @@ import { expect, test } from 'vitest';
 import { createNewPrivateRoomName, fetchMemberIdsFromPrivateRoomName, isVisiblePrivateRoom, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 
 test('createNewPrivateRoomName', () => {
-	expect(createNewPrivateRoomName([{ userId: '@IK' }, { userId: '@JIJ' }])).toBe('@IK,@JIJ');
-	expect(createNewPrivateRoomName([{ userId: '@ik.dus:domain.net' }, { userId: '@jij.dus:domain.net' }])).toBe('@ik.dus:domain.net,@jij.dus:domain.net');
+	expect(createNewPrivateRoomName(['@IK', '@JIJ'])).toBe('@IK,@JIJ');
+	expect(createNewPrivateRoomName(['@ik.dus:domain.net', '@jij.dus:domain.net'])).toBe('@ik.dus:domain.net,@jij.dus:domain.net');
 });
 
 test('updatePrivateRoomName', () => {
-	const me = { userId: '@me.dus:domain.net' };
-	const other = { userId: '@other.dus:domain.net' };
+	const me = '@me.dus:domain.net';
+	const other = '@other.dus:domain.net';
 	let name = createNewPrivateRoomName([me, other]);
 	expect(name).toBe('@me.dus:domain.net,@other.dus:domain.net');
 	name = updatePrivateRoomName(name, me, false);
@@ -24,13 +24,13 @@ test('updatePrivateRoomName', () => {
 	expect(name).toBe('_@me.dus:domain.net,@other.dus:domain.net');
 	name = updatePrivateRoomName(name, me, false);
 	expect(name).toBe('@me.dus:domain.net,@other.dus:domain.net');
-	name = updatePrivateRoomName('_@some_bot:d.lol,@x:d.lol', { userId: '@some_bot:d.lol' }, false);
+	name = updatePrivateRoomName('_@some_bot:d.lol,@x:d.lol', '@some_bot:d.lol', false);
 	expect(name).toBe('@some_bot:d.lol,@x:d.lol');
 });
 
 test('isVisiblePrivateRoom', () => {
-	const me = { userId: '@me.dus:domain.net' };
-	const other = { userId: '@other.dus:domain.net' };
+	const me = '@me.dus:domain.net';
+	const other = '@other.dus:domain.net';
 	let name = createNewPrivateRoomName([me, other]);
 	expect(isVisiblePrivateRoom(name, me)).toBe(true);
 	expect(isVisiblePrivateRoom(name, other)).toBe(true);

@@ -41,12 +41,12 @@
 
 				<span v-if="selectedUsers.length === 0" class="text-label-small mx-auto mt-4"> {{ t('others.group_select') }} </span>
 				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
-					<div v-for="user in usersSelected" :key="user.userId" class="flex flex-col items-center">
+					<div v-for="userId in usersSelected" :key="userId" class="flex flex-col items-center">
 						<div class="relative">
 							<Icon type="x" size="sm" class="bg-surface-subtle absolute right-0 bottom-0 cursor-pointer rounded-full" @click.stop="removeUserFromSelection(user as User)" />
-							<Avatar :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
+							<Avatar :avatarUrl="userStore.userAvatar(userId)" :user-id="userId"></Avatar>
 						</div>
-						<span class="mt-1 w-16 truncate text-center text-sm">{{ user.displayName || user.userId }}</span>
+						<span class="mt-1 w-16 truncate text-center text-sm">{{ userStore.userDisplayName(userId) }}</span>
 					</div>
 				</div>
 				<Button v-if="groupPanelButton" class="bg-on-surface-variant text-surface-high hover:bg-surface-subtle mt-6 flex items-center justify-between" :disabled="selectionNotCompleted" @click="usersSelectionDone()">
@@ -85,7 +85,7 @@
 								v-for="user in usersInLetter"
 								:key="user.userId"
 								class="hover:bg-surface-high flex cursor-pointer items-center gap-2 rounded-md p-2"
-								@click.once="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)"
+								@click.once="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
 							>
 								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check-circle"></Icon>
 								<Avatar v-else :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
@@ -107,7 +107,6 @@
 
 <script setup lang="ts">
 	// Packages
-	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onBeforeUnmount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -170,7 +169,12 @@
 		avatarPreviewUrl.value?.revoke();
 	});
 
-	const usersSelected = computed(() => pubhubs.client.getUsers().filter((user) => selectedUsers.value.includes(user.userId)));
+	const usersSelected = computed(() =>
+		pubhubs.client
+			.getUsers()
+			.filter((user) => selectedUsers.value.includes(user.userId))
+			.map((user) => user.userId),
+	);
 
 	// New ref for the filter input
 	const userFilter = ref<string>('');
@@ -237,8 +241,8 @@
 		}
 	}
 
-	async function gotToPrivateRoom(other: User | MatrixUser[]) {
-		const room = await dm.createDMWithUsers(other);
+	async function gotToPrivateRoom(other: string) {
+		const room = await dm.createDMWithUsers([other]);
 		if (!room) {
 			dialog.confirm(t('errors.cant_find_room'));
 		}
@@ -279,7 +283,7 @@
 		}
 	}
 
-	async function groupCreationDone(other: User | MatrixUser[]) {
+	async function groupCreationDone(other: string[]) {
 		const room = await dm.createDMWithUsers(other);
 		if (room) {
 			await uploadAvatar(room.roomId);

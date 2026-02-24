@@ -637,11 +637,10 @@ const useRooms = defineStore('rooms', {
 		 * @param roomId - The ID of the room to create or modify.
 		 * @param members - An array of RoomMember objects representing the members of the room.
 		 */
-		async createStewardRoomOrModify(roomId: string, members: Array<RoomMember>): Promise<void> {
+		async createStewardRoomOrModify(roomId: string, stewardIds: Array<string>): Promise<void> {
 			const user = useUser();
 			const pubhubs = usePubhubsStore();
 			const dm = useDirectMessage();
-			const stewardIds = members.map((member) => member.userId);
 			const stewardRoom: Room | undefined = this.currentStewardRoom(roomId);
 
 			if (stewardRoom) {
@@ -666,7 +665,7 @@ const useRooms = defineStore('rooms', {
 				});
 				dm.goToRoom(stewardRoom);
 			} else {
-				await dm.goToStewardRoom(roomId, members);
+				await dm.goToStewardRoom(roomId, stewardIds);
 			}
 		},
 	},
