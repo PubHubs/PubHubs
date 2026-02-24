@@ -5,18 +5,22 @@
 		:help="help"
 		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
 		v-slot="{ id }"
-		v-click-outside="close"
 		v-model="model"
+		v-click-outside="close()"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
 		@keydown.enter.prevent="selectCursor(cursor)"
-		@keydown.esc.prevent="close"
+		@keydown.esc.stop.prevent="
+			resetFilter();
+			close();
+		"
+		@keydown="focusFilter($event)"
 	>
 		<Label :for="id"><slot></slot></Label>
 
 		<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0">
-			<div v-if="filtered" class="border-b px-175 py-100">
-				<input v-model="filter" :placeholder="$t('others.filter_values')" />
+			<div v-if="filtered" class="py-075 border-b px-175">
+				<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-label-small" />
 			</div>
 			<div class="flex w-full items-center justify-start px-175 py-100">
 				<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
@@ -36,7 +40,7 @@
 			</div>
 		</div>
 
-		<div v-show="open" class="absolute top-800 z-50 flex w-full grow flex-col pb-300">
+		<div v-show="open && filteredOptions.length > 0" class="absolute z-50 flex w-full grow flex-col pb-300" :class="filtered ? 'top-[100px]' : 'top-800'">
 			<div class="bg-surface-low outline-offset-thin rounded outline">
 				<DropDownOption
 					v-for="(option, index) in filteredOptions"
@@ -53,7 +57,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
 
 	// Composables
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
@@ -95,10 +99,11 @@
 	const model = defineModel<FieldInputType>();
 
 	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
-	const { fieldName, update, changed } = useFormInput(props, model);
+	const { fieldName, update } = useFormInput(props, model);
 
 	const selection = ref<FieldSelection>([]); // Selection of chosen indexes
 	const filter = ref('');
+	const filterEl = useTemplateRef('filterInput');
 
 	onMounted(() => {
 		setItems(filteredOptions.value as Array<any>);
@@ -166,9 +171,33 @@
 		return filtered;
 	});
 
+	const resetFilter = () => {
+		filter.value = '';
+	};
+
+	const focusFilter = (key) => {
+		if (props.filtered) {
+			if (!['Escape', 'ArrowUp', 'ArrowDown', 'Enter'].includes(key.key)) {
+				filterEl.value?.focus();
+			}
+		}
+	};
+
 	const selectCursor = (cursor: number) => {
-		const index = filteredOptions.value[cursor].index;
-		select(index);
+		if (filteredOptions.value.length > 0) {
+			let index = -1;
+			// If just pressed enter and not used cursor yet, select first one
+			if (cursor === -1) {
+				index = filteredOptions.value[0].index;
+			} else {
+				if (filteredOptions.value[cursor]) {
+					const index = filteredOptions.value[cursor].index;
+				}
+			}
+			if (index >= 0) {
+				select(index);
+			}
+		}
 	};
 
 	const select = (index: number) => {
@@ -210,7 +239,7 @@
 			}
 		}
 
-		filter.value = '';
+		resetFilter();
 		update();
 		close();
 	};
