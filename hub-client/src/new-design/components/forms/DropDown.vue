@@ -191,16 +191,16 @@
 				index = filteredOptions.value[0].index;
 			} else {
 				if (filteredOptions.value[cursor]) {
-					const index = filteredOptions.value[cursor].index;
+					index = filteredOptions.value[cursor].index;
 				}
 			}
 			if (index >= 0) {
-				select(index);
+				select(index, true);
 			}
 		}
 	};
 
-	const select = (index: number) => {
+	const select = (index: number, force: boolean = false) => {
 		if (props.multiple) {
 			if (selection.value.includes(index)) {
 				const idx = selection.value.findIndex((item: any) => item == index);
@@ -211,7 +211,7 @@
 				selection.value.push(index);
 			}
 		} else {
-			if (selection.value.includes(index)) {
+			if (selection.value.includes(index) && !force) {
 				selection.value = [];
 			} else {
 				selection.value = [index];
