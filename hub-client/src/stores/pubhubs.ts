@@ -449,7 +449,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const rooms = useRooms();
 				let name = rooms.room(existingRoomId)?.name;
 				if (name) {
-					name = updatePrivateRoomName(name, me, false);
+					name = updatePrivateRoomName(name, me.userId!, false);
 					this.renameRoom(existingRoomId, name);
 				}
 				return { room_id: existingRoomId };
