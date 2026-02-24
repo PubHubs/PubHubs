@@ -12,7 +12,7 @@ _Please add a brief description of any changes and any migrations to be performe
 ## Changes not yet released
 
 - [NEW] Messages can be shared.
-- [NEW] Hubs now use postgres as database instead of sqlite.
+- [NEW, behind a feature flag for now] Hubs now use postgres as database instead of sqlite.
   - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,
     during which the hub is not reachable.  Keep a close eye on the hub's output.
   - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
