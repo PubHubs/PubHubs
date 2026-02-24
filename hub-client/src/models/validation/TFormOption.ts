@@ -11,6 +11,7 @@ type FieldOption = {
 	value: FieldOptionType;
 	icon?: string;
 	avatar?: string;
+	data?: any; // Optional data before transformed for form elements
 };
 type FieldOptions = Array<FieldOption | string>;
 type LabeledFieldOptions = Array<FieldOption>;

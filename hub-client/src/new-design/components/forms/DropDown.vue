@@ -27,10 +27,10 @@
 						<template v-if="model">
 							<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
 								<div v-for="item in model" class="bg-surface-subtle rounded px-100" role="listbox">
-									<DropDownValue :value="item" role="option"></DropDownValue>
+									<DropDownValue :value="transform(item)" role="option"></DropDownValue>
 								</div>
 							</div>
-							<DropDownValue v-else :value="model"></DropDownValue>
+							<DropDownValue v-else :value="transform(model)"></DropDownValue>
 						</template>
 						<span v-else class="text-surface-subtle">{{ placeholder }}</span>
 					</div>
@@ -73,6 +73,7 @@
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
+	import { transformBack } from '@hub-client/new-design/composables/DropDownData.composable';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
@@ -87,6 +88,7 @@
 			placeholder?: string;
 			validation?: FieldValidations;
 			filtered?: boolean;
+			transformer?: Function; // Give a transformer function to transform given data/options to FieldOption(s) for DropDown
 		}>(),
 		{
 			disabled: false,
@@ -137,9 +139,23 @@
 		}
 	});
 
+	const transform = (item: any) => {
+		if (typeof props.transformer === 'function') {
+			return (props.transformer as Function)(item);
+		}
+		return item;
+	};
+
+	const transformedOptions = computed(() => {
+		if (typeof props.transformer === 'function') {
+			return props.options.map((item) => (props.transformer as Function)(item));
+		}
+		return props.options;
+	});
+
 	const filteredOptions = computed(() => {
 		let idx = 0;
-		let filtered = props.options.map((item) => {
+		let filtered = transformedOptions.value.map((item) => {
 			const indexed = {
 				index: idx,
 				item: item,

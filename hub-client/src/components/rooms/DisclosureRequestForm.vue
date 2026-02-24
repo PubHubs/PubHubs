@@ -1,25 +1,7 @@
 <template>
 	<Dialog :title="$t('admin.ask_disclosure_title')" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close($event)">
 		<ValidatedForm @submit.prevent class="flex flex-col p-200" :class="isMobile ? 'w-full' : 'w-[450px]'" v-slot="{ isValidated }">
-			<div
-				class="mb-2 flex w-full flex-col gap-x-2 gap-y-1"
-				@click.stop="
-					selectUser = true;
-					dropdown = null;
-				"
-			>
-				<Label>{{ $t('admin.ask_disclosure_user_title') }}</Label>
-
-				<span class="bg-background flex cursor-pointer justify-between gap-x-2 rounded-xl border p-1">
-					<div class="flex flex-row items-center gap-x-2">
-						<Avatar :avatar-url="userStore.userAvatar(ask.user.userId)" :user-id="ask.user.userId"></Avatar>
-						<span v-if="ask.user.displayName" :title="ask.user.displayName">{{ ask.user.displayName }}</span>
-					</div>
-					<div class="flex items-center justify-center"><Icon type="pencil-simple" class="float-right" /></div>
-				</span>
-			</div>
-			<ChooseFromUsersList v-if="selectUser" :header="$t('admin.ask_disclosure_choose_user')" @chosen-user="onChosenUser" @click.stop @keydown.esc.stop="selectUser = false" />
-
+			<DropDown v-model="ask.user" :options="userOptions" :filtered="true" :validation="{ required: true }">{{ $t('admin.ask_disclosure_user_title') }}</DropDown>
 			<DropDown v-model="ask.attributes" :options="yiviAttributes" :multiple="true" :validation="{ required: true }">{{ $t('admin.secured_yivi_attributes') }}</DropDown>
 			<DropDown v-model="ask.where_room" :options="roomOptions" :filtered="true" :validation="{ required: true }">{{ $t('rooms.room') }}</DropDown>
 
@@ -39,18 +21,15 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import Icon from '@hub-client/components/elements/Icon.vue';
-	import ChooseFromUsersList from '@hub-client/components/rooms/ChooseFromUsersList.vue';
-	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Models
 	import { AskDisclosure, AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
 	import { TUserAccount } from '@hub-client/models/users/TUser';
+	import { FieldOptions } from '@hub-client/models/validation/TFormOption';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { User, useUser } from '@hub-client/stores/user';
 	import { useYivi } from '@hub-client/stores/yivi';
@@ -58,20 +37,18 @@
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
-	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
+	import { transformBack, transformUser, useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 
 	const yiviStore = useYivi();
-	const userStore = useUser();
-	const roomsStore = useRooms();
 	const pubhubsStore = usePubhubsStore();
 
 	const { t } = useI18n();
 	const emit = defineEmits(['close']);
 	const selectUser = ref<boolean>(false);
-	const dropdown = ref<string | null>('notNull');
+	const roomOptions = ref<FieldOptions>([]);
+	const userOptions = ref<FieldOptions>([]);
 	const yiviAttributes = yiviStore.getAttributes(t).map((item) => item.label);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
@@ -89,16 +66,12 @@
 		where_room: t('admin.private_room'),
 	});
 
-	const roomOptions = computed(() => {
-		const publicRooms = roomsStore.publicRooms.map((room) => ({
-			value: room.room_id,
-			label: room.name,
-		}));
-		return [defaultPrivateRoom, ...publicRooms];
-	});
-
 	onBeforeMount(async () => {
-		await roomsStore.fetchPublicRooms();
+		const dropDownData = useDropDownData();
+		roomOptions.value = await dropDownData.publicRoomList();
+		roomOptions.value = [defaultPrivateRoom, ...roomOptions.value];
+		userOptions.value = await dropDownData.userList();
+
 		ask.value.user = {
 			userId: props.user.name,
 			displayName: props.user.displayname,
@@ -107,14 +80,6 @@
 
 	async function close() {
 		emit('close');
-	}
-
-	function onChosenUser(other: User) {
-		selectUser.value = false;
-		ask.value.user = {
-			userId: other.userId,
-			displayName: other.displayName,
-		};
 	}
 
 	async function onSubmit() {
