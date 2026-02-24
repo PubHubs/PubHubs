@@ -2,8 +2,10 @@
 	<div ref="messageRoot" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
 		<div
 			ref="elReactionPopUp"
-			class="group flex flex-col py-3"
+			class="group hover:bg-surface-low flex flex-col"
 			:class="[
+				props.isGrouped ? 'pt-1!' : 'pt-4!',
+				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
 				getMessageContainerClasses,
 				isAnnouncementMessage && !redactedMessage && 'border-y-on-surface-disabled border-y border-l-4',
 				isAnnouncementMessage && !redactedMessage && props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward',
@@ -11,7 +13,7 @@
 			role="article"
 		>
 			<!-- Message Container -->
-			<div class="relative flex w-full gap-4" :class="[getMessageContainerClasses, isMobile ? 'px-2' : 'px-5']">
+			<div class="relative flex w-full gap-4 py-0!" :class="[getMessageContainerClasses, isMobile ? 'px-2' : 'px-5']">
 				<!-- Reaction Panel -->
 				<div v-if="showReactionPanel && hasBeenVisible" :class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
 					<ReactionMiniPopUp :eventId="props.event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, props.event.event_id)" @close-panel="emit('reactionPanelClose')" />
@@ -19,8 +21,8 @@
 
 				<!-- Avatar -->
 				<Avatar
+					v-if="!props.isGrouped && hasBeenVisible"
 					:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'ring-accent-admin/75 ring-2' : props.room.getPowerLevel(props.event.sender) >= 50 && 'ring-accent-steward/75 ring-2'"
-					v-if="hasBeenVisible"
 					:avatar-url="user.userAvatar(props.event.sender)"
 					:user-id="props.event.sender"
 					@mouseover="hover = true"
@@ -28,7 +30,12 @@
 				/>
 
 				<!-- Avatar placeholder -->
-				<div v-else class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
+				<div v-else-if="!props.isGrouped" class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
+
+				<!-- Grouped spacer with hover time -->
+				<div v-else class="flex w-12 shrink-0 items-center justify-center">
+					<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" class="text-on-surface-dim hidden text-[10px] group-hover:block" />
+				</div>
 
 				<!-- Message and Actions -->
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
@@ -43,94 +50,82 @@
 							</template>
 						</Suspense>
 
-						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
-							<div class="mb-2 flex w-full min-w-0 grow flex-col gap-1">
-								<div class="flex w-full min-w-0 grow flex-wrap items-center gap-4">
-									<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
+						<div v-if="!props.isGrouped" class="mb-2 flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+							<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
 
-									<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
+							<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
 
-									<!-- Announcement -->
-									<span
-										v-if="isAnnouncementMessage && !redactedMessage"
-										class="flex items-center gap-1"
-										:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
-									>
-										<span class="text-label-tiny pt-025 uppercase">{{ t('rooms.announcement') }}</span>
-									</span>
-								</div>
+							<!-- Announcement -->
+							<span
+								v-if="isAnnouncementMessage && !redactedMessage"
+								class="flex items-center gap-1"
+								:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
+							>
+								<span class="text-label-tiny pt-025 uppercase">{{ t('rooms.announcement') }}</span>
+							</span>
 
-								<span class="text-label-tiny text-on-surface-dim flex gap-1">
-									<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
-									<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
-								</span>
-							</div>
-
-							<!-- Message Action Buttons -->
-							<div class="bg-surface absolute right-0 flex rounded-md">
-								<template v-if="timerReady && !deleteMessageDialog">
-									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
-										<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
-									</button>
-									<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
-								</template>
-
-								<!-- <div v-if="isSupported">
-										<button
-											@click="copy(`${source}?eventid=${props.event.event_id}`)"
-											class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
-										>
-											<Icon type="link" v-if="!copied"></Icon>
-											<Icon type="check" v-else>Copied!</Icon>
-										</button>
-									</div> -->
-
-								<!-- Reaction Button -->
-								<button
-									v-if="!redactedMessage && !isThreadRoot"
-									@click.stop="emit('reactionPanelToggle', props.event.event_id)"
-									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
-									:title="t('message.reply_emoji')"
-								>
-									<Icon type="smiley" />
-								</button>
-
-								<!-- Reply Button -->
-								<button
-									v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
-									@click="reply"
-									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
-									:title="t('message.reply')"
-								>
-									<Icon type="arrow-bend-up-left" />
-								</button>
-
-								<!-- Thread Reply Button -->
-								<button
-									v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
-									@click="replyInThread"
-									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-									:class="eventThreadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
-									:title="t('message.reply_in_thread')"
-								>
-									<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ eventThreadLength }}</span>
-									<Icon type="chat-circle" />
-								</button>
-
-								<!-- Delete Button -->
-								<button
-									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && props.event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
-									@click="onDeleteMessage(props.event)"
-									class="text-on-surface-variant hover:bg-on-accent-red hover:text-accent-red hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
-									:title="t('menu.delete_message')"
-								>
-									<Icon type="trash" />
-								</button>
-							</div>
+							<span class="text-label-tiny text-on-surface-dim flex gap-1">
+								<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
+								<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
+							</span>
 						</div>
 					</div>
 
-					<Message :event="props.event" :deleted="redactedMessage" />
+					<div class="relative">
+						<Message :event="props.event" :deleted="redactedMessage" />
+
+						<!-- Message Action Buttons -->
+						<div class="bg-surface absolute right-0 flex rounded-md" :class="actionButtonPosition">
+							<template v-if="timerReady && !deleteMessageDialog">
+								<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
+									<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
+								</button>
+								<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
+							</template>
+
+							<!-- <div v-if="isSupported">
+								<button
+									@click="copy(`${source}?eventid=${props.event.event_id}`)"
+									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+								>
+									<Icon type="link" v-if="!copied"></Icon>
+									<Icon type="check" v-else>Copied!</Icon>
+								</button>
+							</div> -->
+
+							<!-- Reaction Button -->
+							<button
+								v-if="!redactedMessage && !isThreadRoot"
+								@click.stop="emit('reactionPanelToggle', props.event.event_id)"
+								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								:title="t('message.reply_emoji')"
+							>
+								<Icon type="smiley" />
+							</button>
+
+							<!-- Reply Button -->
+							<button
+								v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
+								@click="reply"
+								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								:title="t('message.reply')"
+							>
+								<Icon type="arrow-bend-up-left" />
+							</button>
+
+							<!-- Thread Reply Button -->
+							<button
+								v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
+								@click="replyInThread"
+								class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
+								:class="eventThreadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
+								:title="t('message.reply_in_thread')"
+							>
+								<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ eventThreadLength }}</span>
+								<Icon type="chat-circle" />
+							</button>
+						</div>
+					</div>
 
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
@@ -255,6 +250,14 @@
 		deletedEvent: {
 			type: Boolean,
 		},
+		isGrouped: {
+			type: Boolean,
+			default: false,
+		},
+		isFollowedByGrouped: {
+			type: Boolean,
+			default: false,
+		},
 		deleteMessageDialog: {
 			type: Boolean,
 			default: false,
@@ -264,10 +267,6 @@
 			default: null,
 		},
 	});
-
-	// Set the ref variable to the url to be shared.
-
-	// ${baseUrl}#/hub/${hubName}/${roomId}
 
 	onMounted(() => {
 		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
@@ -335,9 +334,16 @@
 
 	const isAnnouncementMessage = computed(() => props.event.content.msgtype === PubHubsMgType.AnnouncementMessage);
 
-	// Styling of the event based on announcment message
+	const isFirstInGroup = computed(() => props.isFollowedByGrouped && !props.isGrouped);
+	const isLastInGroup = computed(() => props.isGrouped && !props.isFollowedByGrouped);
+
+	const actionButtonPosition = computed(() => {
+		if (isFirstInGroup.value) return 'bottom-0 mb-1';
+		if (isLastInGroup.value) return 'top-0 mt-1';
+		return 'top-0';
+	});
+
 	const getMessageContainerClasses = computed(() => {
-		// Base classes
 		const baseClasses = {
 			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
@@ -345,19 +351,13 @@
 			'!bg-surface-low': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
 		};
 
-		// Return base classes if not an announcement or is redacted
 		if (!isAnnouncementMessage.value || redactedMessage.value) {
 			return baseClasses;
 		}
 
-		// Common announcement classes
-		const commonAnnouncementClasses = {
-			'bg-surface-low': true,
-		};
-
 		return {
 			...baseClasses,
-			...commonAnnouncementClasses,
+			'bg-surface-low': true,
 		};
 	});
 
