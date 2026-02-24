@@ -1,28 +1,22 @@
-// Models
-import { TUser } from '@hub-client/models/users/TUser';
-
 const createNewPrivateRoomName = (members: Array<string>): string => {
 	return members.join(',');
 };
 
 // Show private room name for all members
 const refreshPrivateRoomName = (name: string): string => {
-	const members = fetchMemberIdsFromPrivateRoomName(name).map((n) => ({
-		userId: n,
-	}));
+	const members = fetchMemberIdsFromPrivateRoomName(name);
 	return createNewPrivateRoomName(members);
 };
 
-const updatePrivateRoomName = (name: string, member: TUser, hideMe: boolean): string => {
+const updatePrivateRoomName = (name: string, memberId: string, hideMe: boolean): string => {
 	if (!name) return '';
-	const userId = member.userId;
 	return name
 		.split(',')
 		.map((memberName) => {
-			if (hideMe && userId === memberName) {
-				return '_' + userId;
-			} else if (!hideMe && userId === memberName.substring(1)) {
-				return userId;
+			if (hideMe && memberId === memberName) {
+				return '_' + memberId;
+			} else if (!hideMe && memberId === memberName.substring(1)) {
+				return memberId;
 			} else {
 				return memberName;
 			}
@@ -30,10 +24,9 @@ const updatePrivateRoomName = (name: string, member: TUser, hideMe: boolean): st
 		.join(',');
 };
 
-const isVisiblePrivateRoom = (name: string, member: TUser): boolean => {
+const isVisiblePrivateRoom = (name: string, memberId: string): boolean => {
 	if (!name) return false;
-	const userId = member.userId;
-	return name.split(',').some((memberName) => memberName === userId);
+	return name.split(',').some((memberName) => memberName === memberId);
 };
 
 const fetchMemberIdsFromPrivateRoomName = (name: string): Array<string> => {
