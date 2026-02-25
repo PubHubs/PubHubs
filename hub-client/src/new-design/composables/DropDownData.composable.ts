@@ -5,7 +5,7 @@ import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/manage
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { TUser, TUserAccount } from '@hub-client/models/users/TUser';
-import { FieldOption, FieldOptions } from '@hub-client/models/validation/TFormOption';
+import { FieldOption } from '@hub-client/models/validation/TFormOption';
 import { Attribute } from '@hub-client/models/yivi/Tyivi';
 
 // Stores

@@ -150,14 +150,14 @@
 
 	const transformedOptions = computed(() => {
 		if (typeof props.transformer === 'function') {
-			return props.options.map((item) => (props.transformer as Function)(item));
+			return props.options.map((item: any) => (props.transformer as Function)(item));
 		}
 		return props.options;
 	});
 
 	const filteredOptions = computed(() => {
 		let idx = 0;
-		let filtered = transformedOptions.value.map((item) => {
+		let filtered = transformedOptions.value.map((item: any) => {
 			const indexed = {
 				index: idx,
 				item: item,
@@ -169,7 +169,7 @@
 			if (filter.value.length > 0) {
 				let matches = 0;
 				const searchValue = (filter.value?.toString() || '').toLowerCase();
-				filtered = filtered.filter((item) => {
+				filtered = filtered.filter((item: any) => {
 					let label = item.item;
 					if (item.item.label) {
 						label = item.item.label;
