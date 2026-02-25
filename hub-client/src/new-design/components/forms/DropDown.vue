@@ -10,6 +10,7 @@
 			@keydown.arrow-down.prevent="cursorDown()"
 			@keydown.arrow-up.prevent="cursorUp()"
 			@keydown.enter.prevent="selectCursor(cursor)"
+			@keydown.delete.prevent="resetAll()"
 			@keydown.esc.stop.prevent="
 				resetFilter();
 				close();
@@ -26,15 +27,23 @@
 					<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
 						<template v-if="model">
 							<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
-								<div v-for="item in model" class="bg-surface-subtle rounded px-100" role="listbox">
-									<DropDownValue :value="transform(item)" role="option"></DropDownValue>
+								<div v-for="(item, index) in model" class="bg-surface-subtle flex items-center rounded px-100" role="listbox">
+									<div class="grow">
+										<DropDownValue :value="transform(item)" role="option"></DropDownValue>
+									</div>
+									<div class="ml-100">
+										<Icon type="x" size="sm" class="" @click.stop="removeItem(transform(item))"></Icon>
+									</div>
 								</div>
 							</div>
 							<DropDownValue v-else :value="transform(model)"></DropDownValue>
 						</template>
 						<span v-else class="text-surface-subtle">{{ placeholder }}</span>
 					</div>
-					<div class="cursor-pointer rounded-md bg-transparent" @click.stop="toggle">
+					<div v-if="model" class="pr-050 ml-100 cursor-pointer border-r bg-transparent" @click.stop="resetAll()">
+						<Icon type="x" size="md" class="h-200 w-200"></Icon>
+					</div>
+					<div class="cursor-pointer bg-transparent" @click.stop="toggle">
 						<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
 					</div>
 				</div>
@@ -65,7 +74,7 @@
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
 	// Models
-	import { FieldSelection } from '@hub-client/models/validation/TFormOption';
+	import { FieldOption, FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// New design
@@ -114,7 +123,6 @@
 		// Set selection
 		if (model.value) {
 			if (props.multiple) {
-				console.info('set selection multiple', model.value.length);
 				for (let i = 0; i < model.value.length; i++) {
 					const idx = (props.options as Array<any>).findIndex((item) => {
 						return item == toRaw(model.value[i]);
@@ -225,6 +233,17 @@
 		}
 	};
 
+	const removeItem = (item: FieldOption) => {
+		const index = transformedOptions.value.findIndex((option: FieldOption) => toRaw(option).value === toRaw(item).value);
+		if (index >= 0) {
+			const selectedIndex = selection.value[index];
+			console.info('removeItem', item, index, selectedIndex);
+			if (selectedIndex >= 0) {
+				select(selectedIndex);
+			}
+		}
+	};
+
 	const select = (index: number, force: boolean = false) => {
 		if (props.multiple) {
 			if (selection.value.includes(index)) {
@@ -264,6 +283,14 @@
 			}
 		}
 
+		resetFilter();
+		update();
+		close();
+	};
+
+	const resetAll = () => {
+		model.value = undefined;
+		selection.value = [];
 		resetFilter();
 		update();
 		close();
