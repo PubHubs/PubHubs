@@ -326,13 +326,14 @@ impl ChainedSessionsCtl {
     }
 }
 
+// TODO: add expiry
 enum ChainedSessionState {
     WaitingForYiviServer {
         waiters: Vec<WaitForResultCrs>,
     },
     YiviServerWaiting {
         disclosure: jwt::JWT,
-        waiter: WaitForNextSessionCrs,
+        waiters: Vec<WaitForNextSessionCrs>,
     },
 }
 
@@ -469,13 +470,27 @@ impl ChainedSessionsBackend {
         // check session is ready for the yivi server
         match session {
             ChainedSessionState::WaitingForYiviServer { .. } => {
-                // this is what we want
+                // this is what we want; handled below
             }
-            ChainedSessionState::YiviServerWaiting { .. } => {
-                log::warn!(
-                    "a second yivi server wanted to wait for chained session {chained_session_id}"
+            ChainedSessionState::YiviServerWaiting {
+                disclosure: stored_disclosure,
+                waiters,
+            } => {
+                if &disclosure != stored_disclosure {
+                    log::warn!(
+                        "second yivi server submitted a different disclosure for chained session {chained_session_id}"
+                    );
+                    Self::respond_to(
+                        resp_sender,
+                        Err(api::ErrorCode::BadRequest),
+                        chained_session_id,
+                    );
+                    return;
+                }
+                log::trace!(
+                    "an additional yivi server is waiting for chained session {chained_session_id}"
                 );
-                Self::respond_to(resp_sender, Ok(None), chained_session_id);
+                waiters.push(resp_sender);
                 return;
             }
         }
@@ -484,7 +499,7 @@ impl ChainedSessionsBackend {
             session,
             ChainedSessionState::YiviServerWaiting {
                 disclosure: disclosure.clone(),
-                waiter: resp_sender,
+                waiters: vec![resp_sender],
             },
         );
 
@@ -550,13 +565,15 @@ impl ChainedSessionsBackend {
         log::trace!(
             "yivi server is about to be released from chained session {chained_session_id}"
         );
-        let Some(ChainedSessionState::YiviServerWaiting { waiter, .. }) =
+        let Some(ChainedSessionState::YiviServerWaiting { waiters, .. }) =
             self.sessions.remove(&chained_session_id)
         else {
             panic!("chained session state changed unexpectedly");
         };
 
-        Self::respond_to(waiter, Ok(next_session_request), chained_session_id);
+        for waiter in waiters {
+            Self::respond_to(waiter, Ok(next_session_request.clone()), chained_session_id);
+        }
 
         Self::respond_to(
             resp_sender,
