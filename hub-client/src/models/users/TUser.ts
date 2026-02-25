@@ -4,7 +4,7 @@ type TUser = {
 };
 
 type TUserAccount = {
-	name: string;
+	name: string; // This is the userId, a bit strange that synapse calls it name here.
 	user_type: string | null;
 	is_guest: boolean;
 	admin: boolean;
