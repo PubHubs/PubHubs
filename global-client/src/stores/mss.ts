@@ -105,7 +105,7 @@ const useMSS = defineStore('mss', {
 			// 9. Issue a Pubhubs card if registering a new account
 			if (isRegistering && cardFeature) {
 				const comment = 'via\n' + attributeValues.join('\n');
-				const { cardAttr, errorMessage } = await this.issueCard(true, comment);
+				const { cardAttr, errorMessage } = await this.issueCard(true, comment, identifyingAttr);
 				if (!cardAttr) return errorMessage;
 				identifying['ph_card'] = cardAttr;
 			}

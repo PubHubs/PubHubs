@@ -1,3 +1,4 @@
+// Models
 // Packages
 import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -19,7 +20,6 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
-// Models
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { SystemDefaults } from '@hub-client/models/constants';
@@ -425,21 +425,18 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return false;
 		},
 
-		async createPrivateRoomWith(other: User | MatrixUser[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
+		async createPrivateRoomWith(otherUsers: string[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user;
-			let otherUsers: (User | MatrixUser)[];
 			let roomType: RoomType;
 
-			if (other instanceof Array) {
-				otherUsers = other;
+			if (otherUsers.length > 1) {
 				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_GROUP;
 			} else {
-				otherUsers = [other];
 				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_DM;
 			}
 
-			const memberIds = [me.userId!, ...otherUsers.map((u) => u.userId)];
+			const memberIds = [me.userId!, ...otherUsers];
 			const allRoomsByType = this.getAllRooms().filter((room) => room.getType() === roomType);
 			let existingRoomId;
 			if (roomIdForStewardRoomCreate) {
@@ -453,9 +450,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const rooms = useRooms();
 				let name = rooms.room(existingRoomId)?.name;
 				if (name) {
-					name = updatePrivateRoomName(name, me, false);
+					name = updatePrivateRoomName(name, me.userId, false);
 				} else {
-					name = createNewPrivateRoomName([me, ...otherUsers]);
+					name = createNewPrivateRoomName([me.userId, ...otherUsers]);
 				}
 				this.renameRoom(existingRoomId, name);
 				return { room_id: existingRoomId };
@@ -463,19 +460,17 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			// Create new room
 			if (existingRoomId === false) {
-				const otherUserForName = otherUsers;
-				const privateRoomName = createNewPrivateRoomName([me, ...otherUserForName]);
+				const privateRoomName = createNewPrivateRoomName([me.userId!, ...otherUsers]);
 				const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
-				const inviteIds = otherUsers.map((u) => u.userId);
 
 				const room = await this.createRoom({
 					preset: 'trusted_private_chat',
 					name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
 					visibility: 'private',
-					invite: inviteIds,
+					invite: otherUsers,
 					is_direct: true,
 					creation_content: { type: roomType },
-					topic: `PRIVATE: ${me.userId}, ${inviteIds.join(', ')}`,
+					topic: `PRIVATE: ${me.userId}, ${otherUsers.join(', ')}`,
 					history_visibility: 'shared',
 					guest_can_join: false,
 				});
@@ -507,7 +502,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			let name = room.name;
 			const user = useUser();
 			const me = user.user as User;
-			name = updatePrivateRoomName(name, me, hide);
+			name = updatePrivateRoomName(name, me.userId, hide);
 			await this.client.setRoomName(room.roomId, name);
 			rooms.setRoomListHidden(room.roomId, hide);
 		},
@@ -1176,11 +1171,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * Creates a new admin contact room if none exists
 		 */
 		async createNewAdminRoom(adminIds: string[]): Promise<string | undefined> {
-			const adminUsers = adminIds.map((adminId) => this.client.getUser(adminId)).filter((user) => user !== null);
+			const adminUsers = adminIds.map((adminId) => this.client.getUser(adminId)!.userId).filter((user) => user !== null);
 
-			// This condition is to satisfy the createPrivateRoomWith function - It takes either a User or MatrixUser[] as argument
-			const oneOrManyAdmins = adminUsers.length === 1 ? (adminUsers.pop() as User) : adminUsers;
-			const room = await this.createPrivateRoomWith(oneOrManyAdmins, true);
+			const room = await this.createPrivateRoomWith(adminUsers, true);
 			// Returns room_id if it exists
 			return room ? room.room_id : undefined;
 		},

@@ -85,7 +85,7 @@
 	async function onSubmit() {
 		let roomId = ask.value.where_room;
 		if (!roomId || roomId === t('admin.private_room')) {
-			const privateRoom = await pubhubsStore.createPrivateRoomWith(ask.value.user as User);
+			const privateRoom = await pubhubsStore.createPrivateRoomWith([ask.value.user.userId]);
 			roomId = privateRoom!.room_id;
 		}
 		const result: AskDisclosureMessage = {

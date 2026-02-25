@@ -1,7 +1,7 @@
 <template>
 	<div class="flex flex-row items-center gap-1 wrap-break-word">
 		<!-- Deleted Message -->
-		<Icon v-if="deleted" type="trash" size="sm" />
+		<Icon v-if="deleted" type="trash" size="sm" class="text-on-surface-dim" />
 		<p v-if="deleted" class="text-on-surface-dim overflow-hidden text-ellipsis">
 			{{ t('message.delete.message_deleted') }}
 		</p>

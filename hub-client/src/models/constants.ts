@@ -13,6 +13,7 @@ enum SystemDefaults {
 	MaxNumberFileUploads = 50, // Maximum number of files that can be dropped/uploaded
 	mainRoomListRange = 40, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
 	longPressDuration = 250, // Amount of milliseconds for a long-press
+	messageGroupGap = 60 * 1000, // Amount of miliseconds for the message group threshold
 }
 
 // options for sliding sync

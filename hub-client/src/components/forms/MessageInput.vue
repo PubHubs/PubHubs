@@ -113,14 +113,14 @@
 	<!-- Yivi signing dialog -->
 	<Teleport to="body">
 		<Dialog v-if="messageInput.state.showYiviQR" @close="messageInput.state.showYiviQR = false" :title="$t('message.sign.heading')" :buttons="signingDialogButtons">
-			<div :id="EYiviFlow.Sign"></div>
+			<div :id="EYiviFlow.Sign" ref="yivi-login-ref"></div>
 		</Dialog>
 	</Teleport>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { PropType, computed, nextTick, onMounted, onUnmounted, onWatcherCleanup, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
@@ -142,6 +142,7 @@
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useYiviIosWorkaround } from '@hub-client/composables/yiviIosWorkaround.composable';
 
 	// Logic
 	import { useMessageInput } from '@hub-client/logic/messageInput';
@@ -149,7 +150,7 @@
 
 	// Models
 	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-	import { RelationType, actions } from '@hub-client/models/constants';
+	import { RelationType } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
@@ -444,4 +445,9 @@
 	function setCaretPos(pos: { top: number; left: number }) {
 		caretPos.value = pos;
 	}
+
+	// START workaround for #1173, that iOS app links do not work in an iframe.
+	const yiviLoginRef = useTemplateRef('yivi-login-ref');
+	useYiviIosWorkaround(yiviLoginRef);
+	// END workaround
 </script>
