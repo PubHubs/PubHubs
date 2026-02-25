@@ -32,7 +32,7 @@
 										<DropDownValue :value="transform(item)" role="option"></DropDownValue>
 									</div>
 									<div class="ml-100">
-										<Icon type="x" size="sm" class="" @click.stop="removeItem(transform(item))"></Icon>
+										<Icon type="x" size="sm" class="" @click.stop="removeItem(index)"></Icon>
 									</div>
 								</div>
 							</div>
@@ -233,15 +233,9 @@
 		}
 	};
 
-	const removeItem = (item: FieldOption) => {
-		const index = transformedOptions.value.findIndex((option: FieldOption) => toRaw(option).value === toRaw(item).value);
-		if (index >= 0) {
-			const selectedIndex = selection.value[index];
-			console.info('removeItem', item, index, selectedIndex);
-			if (selectedIndex >= 0) {
-				select(selectedIndex);
-			}
-		}
+	const removeItem = (index: number) => {
+		model.value.splice(index, 1);
+		selection.value.splice(index, 1);
 	};
 
 	const select = (index: number, force: boolean = false) => {
