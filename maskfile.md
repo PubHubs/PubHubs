@@ -17,6 +17,8 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 This requires [tmux](https://github.com/tmux/tmux) to be installed.
 
+> Windows users should run the lines in `run-all.sh` separately, as TMUX is not available on Windows.
+
 ```sh
 sh run-all.sh
 ```
