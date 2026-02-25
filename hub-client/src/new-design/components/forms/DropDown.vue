@@ -59,13 +59,13 @@
 <script setup lang="ts">
 	// Packages
 	import { OnClickOutside } from '@vueuse/components';
-	import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
+	import { computed, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
 
 	// Composables
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
 	// Models
-	import { FieldInputType, FieldOptions, FieldSelection } from '@hub-client/models/validation/TFormOption';
+	import { FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// New design
@@ -73,7 +73,6 @@
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
-	import { transformBack } from '@hub-client/new-design/composables/DropDownData.composable';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
@@ -84,7 +83,7 @@
 			id?: string;
 			multiple?: boolean;
 			name?: string;
-			options: FieldOptions;
+			options: any;
 			placeholder?: string;
 			validation?: FieldValidations;
 			filtered?: boolean;
@@ -100,7 +99,7 @@
 		},
 	);
 
-	const model = defineModel<FieldInputType>();
+	const model = defineModel<any>();
 
 	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 	const { fieldName, update } = useFormInput(props, model);
@@ -114,15 +113,18 @@
 		setItems(filteredOptions.value as Array<any>);
 		// Set selection
 		if (model.value) {
-			if (props.multiple && typeof model.value === 'object') {
+			if (props.multiple) {
+				console.info('set selection multiple', model.value.length);
 				for (let i = 0; i < model.value.length; i++) {
-					const idx = (props.options as Array<any>).findIndex((item) => item == model.value[i]);
+					const idx = (props.options as Array<any>).findIndex((item) => {
+						return item == toRaw(model.value[i]);
+					});
 					if (idx >= 0) {
 						selection.value.push(idx);
 					}
 				}
 			} else {
-				const idx = (props.options as Array<any>).findIndex((item) => item == model.value);
+				const idx = (props.options as Array<any>).findIndex((item) => item == toRaw(model.value));
 				if (idx >= 0) {
 					selection.value = (props.options as Array<any>)[idx];
 				}

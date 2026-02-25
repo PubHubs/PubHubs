@@ -1,19 +1,27 @@
 // Models
+import { useI18n } from 'vue-i18n';
+
 import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { TUser, TUserAccount } from '@hub-client/models/users/TUser';
 import { FieldOption, FieldOptions } from '@hub-client/models/validation/TFormOption';
+import { Attribute } from '@hub-client/models/yivi/Tyivi';
 
-import { useRooms } from '@hub-client/stores/rooms';
 // Stores
+import { useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
+import { useYivi } from '@hub-client/stores/yivi';
 
-export const transformBack = (item: FieldOption): any => {
+/**
+ * Every transformed data object (to FieldOption) keeps the original object inside `.data`, so it is easy to transform back for whatever form the original data had.
+ */
+const transformBack = (item: FieldOption): any => {
 	if (item.data) return item.data;
 	return item;
 };
 
-export const transformUser = (user: TUserAccount | TUser): FieldOption => {
+const transformUser = (user: TUserAccount | TUser): FieldOption => {
 	const userStore = useUser();
 	let userId = '';
 	let displayname = '';
@@ -34,38 +42,33 @@ export const transformUser = (user: TUserAccount | TUser): FieldOption => {
 	};
 };
 
-export const transformUsers = (users: TUserAccount[] | TUser[]): FieldOptions => {
-	const userOptions = users.map((user) => {
-		return transformUser(user);
-	});
-	return userOptions;
-};
-
-export const transformRoom = (room: TPublicRoom): FieldOption => {
+const transformRoom = (room: TPublicRoom): FieldOption => {
 	return {
 		value: room.room_id,
 		label: room.name as string,
+		icon: room.room_type === RoomType.PH_MESSAGES_RESTRICTED ? 'shield' : 'chats-circle',
 		data: room,
 	};
 };
 
-export const transformRooms = (rooms: Array<TPublicRoom>): FieldOptions => {
-	const roomOptions = rooms.map((room) => {
-		return transformRoom(room);
-	});
-	return roomOptions;
+const transformYiviAttribute = (attribute: Attribute): FieldOption => {
+	return {
+		value: attribute.attribute,
+		label: attribute.label,
+		data: attribute,
+	};
 };
 
-export function useDropDownData() {
+const useDropDownData = () => {
 	// Users
-	const userList = async (excludeUserIds: Array<string> | undefined = undefined): Promise<FieldOptions> => {
+	const userList = async (excludeUserIds: Array<string> | undefined = undefined): Promise<TUserAccount[]> => {
 		let users = await ManagementUtils.getUsersAccounts();
 		if (excludeUserIds) {
 			users = users.filter((user) => {
 				return !excludeUserIds.includes(user.name);
 			});
 		}
-		return transformUsers(users);
+		return users;
 	};
 
 	const userListWithoutMe = async () => {
@@ -77,22 +80,23 @@ export function useDropDownData() {
 	// Members of a room
 	// const memberList = (roomId:string) => {
 	// }
-
 	// const memberListWithoutMe = (roomId:string) => {
 	// }
 
 	// Rooms
-
-	const publicRoomList = async (addedRoom = {}): Promise<FieldOptions> => {
+	const publicRoomList = async (addedRoom = {}): Promise<Array<TPublicRoom>> => {
 		const roomsStore = useRooms();
 		await roomsStore.fetchPublicRooms();
 		const rooms = roomsStore.publicRooms;
-		if (rooms) {
-			const roomOptions = transformRooms(rooms);
-			return roomOptions;
-		}
-		return [];
+		return rooms;
 	};
 
-	return { userList, userListWithoutMe, publicRoomList };
-}
+	const yiviAttributes = (): Array<Attribute> => {
+		const { t } = useI18n();
+		return useYivi().getAttributes(t);
+	};
+
+	return { userList, userListWithoutMe, publicRoomList, yiviAttributes };
+};
+
+export { transformBack, transformUser, transformRoom, transformYiviAttribute, useDropDownData };

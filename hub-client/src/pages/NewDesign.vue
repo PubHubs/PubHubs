@@ -64,8 +64,8 @@
 				<DropDown v-model="dropDownValues.multiple" :options="options" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Eenvoudig Multiple</DropDown>
 				<DropDown v-model="dropDownValues.simpleIcon" :options="iconOptions" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Met Ikonen en Labels</DropDown>
 				<DropDown v-model="dropDownValues.multipleIcons" :options="iconOptions" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Multiple Ikonen en Labels</DropDown>
-				<DropDown :options="userOptions" placeholder="Selecteer een user" :filtered="true" :validation="{ required: true }" help="Users">Userlist</DropDown>
-				<DropDown :options="roomOptions" placeholder="Selecteer een Kamer" :filtered="true" help="Rooms">RoomList</DropDown>
+				<DropDown :options="userOptions" :transformer="transformUser" placeholder="Selecteer een user" :filtered="true" :validation="{ required: true }" help="Users">Userlist</DropDown>
+				<DropDown :options="roomOptions" :transformer="transformRoom" placeholder="Selecteer een Kamer" :filtered="true" help="Rooms">RoomList</DropDown>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -154,9 +154,12 @@
 	import { onMounted, reactive, ref } from 'vue';
 
 	// Models
+	import { TUserAccount } from '@hub-client/models/users/TUser';
 	import { InputType, MultipleInputType } from '@hub-client/models/validation/TFormOption';
 	import { FieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { ValidationRule } from '@hub-client/models/validation/TValidate';
+
+	import { TPublicRoom } from '@hub-client/stores/rooms';
 
 	// New design
 	import Button from '@hub-client/new-design/components/Button.vue';
@@ -173,7 +176,7 @@
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 	// Composables
-	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
+	import { transformRoom, transformUser, useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 
@@ -216,8 +219,8 @@
 		{ icon: 'key', value: 'vier', label: 'Quattro' },
 		{ icon: 'shield', value: 'vijf', label: 'Meer dan vijf is niet nodig' },
 	] as FieldOptions;
-	const userOptions = ref<FieldOptions>([]);
-	const roomOptions = ref<FieldOptions>([]);
+	const userOptions = ref<TUserAccount[]>([]);
+	const roomOptions = ref<TPublicRoom[]>([]);
 	const dropDownValues = reactive({
 		simple: options[0] as InputType,
 		multiple: [options[2], options[4]] as MultipleInputType,
