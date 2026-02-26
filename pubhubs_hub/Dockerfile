@@ -11,11 +11,21 @@ RUN git clone https://github.com/privacybydesign/irmago . --branch v0.19.1 --dep
 RUN GO111MODULE=auto go install ./irma
 
 
+### BUILD STAGE: synapse_auto_compressor
+# Should be the same debian version as the version on which synapse is based.
+FROM rust:trixie AS compress_state_build
+
+RUN cargo install --git https://github.com/matrix-org/rust-synapse-compress-state \
+    synapse_auto_compressor
+
+
 ## FINAL CONTAINER STAGE
 
 FROM ghcr.io/element-hq/synapse:v1.146.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
+COPY --from=compress_state_build /usr/local/cargo/bin/synapse_auto_compressor \
+     /usr/local/bin/synapse_auto_compressor
 
 RUN apt-get update && \
 	apt-get install -y -q postgresql sudo && \
