@@ -79,7 +79,7 @@ pub fn hub_key_part_blind(
     shared_secret.derive_scalar(ticket_digest.inner, "pubhubs-hub-key-part-blinding")
 }
 
-/// Wrapper around a [digest::Digest] that's obtained from a [api::phc::hub::Ticket].
+/// Wrapper around a [`sha2::Sha512`] that's obtained from a [`api::phc::hub::Ticket`].
 #[derive(Clone)]
 pub struct TicketDigest {
     inner: sha2::Sha512,
