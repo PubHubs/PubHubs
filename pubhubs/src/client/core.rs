@@ -311,6 +311,11 @@ impl Client {
         Builder::default()
     }
 
+    /// Returns the underlying [`awc::Client`], for making raw HTTP requests.
+    pub fn http_client(&self) -> &awc::Client {
+        &self.inner.http_client
+    }
+
     /// Like [`Client::query`], but retries the query when it fails with a [`crate::api::ErrorInfo::retryable`] [`ErrorCode`].
     ////
     /// When `A` queries `B` and `B` queries `C`, the `B` should, in general, not use

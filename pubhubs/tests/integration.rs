@@ -1,6 +1,7 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
+use awc;
 use indexmap::IndexMap;
 
 use pubhubs::{
@@ -356,6 +357,22 @@ async fn main_integration_test_local(
     let phone4 = attrs
         .get::<handle::Handle>(&"phone".parse().unwrap())
         .unwrap();
+
+    // Test chained session flow
+    let attrs = request_attributes_chained(
+        &client,
+        &constellation,
+        &yivi_server_sk,
+        "user4@example.com",
+        "0645678901",
+    )
+    .await;
+    assert!(attrs
+        .get::<handle::Handle>(&"email".parse().unwrap())
+        .is_some());
+    assert!(attrs
+        .get::<handle::Handle>(&"phone".parse().unwrap())
+        .is_some());
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
@@ -1070,6 +1087,145 @@ async fn request_attributes(
                 proof: api::auths::AuthProof::Yivi {
                     disclosure: result_jwt,
                 },
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    attrs
+}
+
+/// Like [`request_attributes`], but uses a chained yivi session.
+async fn request_attributes_chained(
+    client: &client::Client,
+    constellation: &pubhubs::servers::Constellation,
+    yivi_server_sk: &yivi::SigningKey,
+    email_value: &str,
+    phone_value: &str,
+) -> IndexMap<handle::Handle, api::Signed<attr::Attr>> {
+    let api::auths::AuthStartResp::Success {
+        task: auth_task,
+        state: auth_state,
+    } = client
+        .query_with_retry::<api::auths::AuthStartEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthStartReq {
+                source: attr::Source::Yivi,
+                attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+                attr_type_choices: Default::default(),
+                yivi_chained_session: true,
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    let jwt: jwt::JWT = match auth_task {
+        api::auths::AuthTask::Yivi {
+            disclosure_request, ..
+        } => disclosure_request,
+    };
+
+    let jwt_claims: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
+
+    let claims: DisclosureRequestClaims = jwt_claims
+        .check_iss(jwt::expecting::exactly("ph_auths"))
+        .unwrap()
+        .check_sub(jwt::expecting::exactly("verification_request"))
+        .unwrap()
+        .into_custom()
+        .unwrap();
+
+    let next_session_url = claims
+        .sprequest
+        .next_session
+        .as_ref()
+        .expect("chained session should have a nextSession url")
+        .url
+        .clone();
+
+    let yivi_server_creds = yivi::Credentials {
+        name: "yivi-server".to_string(),
+        key: yivi_server_sk.clone(),
+    };
+
+    let result_jwt = claims
+        .sprequest
+        .mock_disclosure_response(|ati: &yivi::AttributeTypeIdentifier| -> String {
+            match ati.as_str() {
+                "irma-demo.sidn-pbdf.email.email" => email_value.to_string(),
+                "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" => phone_value.to_string(),
+                _ => {
+                    panic!("unexpected yivi attribute type {}", ati.as_str());
+                }
+            }
+        })
+        .sign(&yivi_server_creds, Duration::from_secs(60))
+        .unwrap();
+
+    // Spawn two tasks to simulate multiple Yivi servers posting the same disclosure to the
+    // next-session endpoint.  The server keeps both requests open until release_next_session
+    // is called below; both should then receive 204.
+    let spawn_yivi_task = |result_jwt_str: String| {
+        let http_client = client.http_client().clone();
+        let next_session_url = next_session_url.clone();
+        tokio::task::spawn_local(async move {
+            let resp = http_client
+                .post(next_session_url.as_str())
+                .send_body(result_jwt_str)
+                .await
+                .expect("next-session request failed");
+            assert_eq!(resp.status(), awc::http::StatusCode::NO_CONTENT);
+        })
+    };
+    let result_jwt_str = result_jwt.to_string();
+    let yivi_task1 = spawn_yivi_task(result_jwt_str.clone());
+    let yivi_task2 = spawn_yivi_task(result_jwt_str);
+
+    // Wait for the disclosure (the Yivi tasks run concurrently and provide it)
+    let api::auths::YiviWaitForResultResp::Success { disclosure } = client
+        .query_with_retry::<api::auths::YiviWaitForResultEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::YiviWaitForResultReq {
+                state: auth_state.clone(),
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Release both Yivi servers with no next session
+    let api::auths::YiviReleaseNextSessionResp::Success {} = client
+        .query_with_retry::<api::auths::YiviReleaseNextSessionEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::YiviReleaseNextSessionReq {
+                state: auth_state.clone(),
+                next_session: None,
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Both Yivi server tasks should have received 204
+    yivi_task1.await.unwrap();
+    yivi_task2.await.unwrap();
+
+    let api::auths::AuthCompleteResp::Success { attrs } = client
+        .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthCompleteReq {
+                state: auth_state,
+                proof: api::auths::AuthProof::Yivi { disclosure },
             },
         )
         .await

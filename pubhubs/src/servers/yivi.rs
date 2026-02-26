@@ -25,13 +25,13 @@ pub struct ExtendedSessionRequest {
     /// <https://docs.yivi.app/chained-sessions#the-nextsession-url>
     #[serde(rename = "nextSession")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    next_session: Option<NextSessionData>,
+    pub next_session: Option<NextSessionData>,
 }
 
 /// <https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/requests.go#L139>
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct NextSessionData {
-    url: url::Url,
+    pub url: url::Url,
 }
 
 /// A session request sent by a requestor to a yivi server
