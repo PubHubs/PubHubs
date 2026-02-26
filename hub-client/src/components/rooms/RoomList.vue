@@ -36,23 +36,29 @@
 		</template>
 		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications.notifications" :key="notification.room_id" class="relative flex flex-row">
 			<MenuItem
+				v-if="notification.type === 'removed_from_secured_room' && notification.room_id"
 				icon="shield"
-				v-if="notification.room_id"
 				class="group text-on-surface-dim inline-block w-full"
 				@click="
 					dialogOpen = notification.room_id;
 					messageValues = notification.message_values;
+				"
+				v-context-menu="
+					(evt: any) =>
+						openMenu(
+							evt,
+							[
+								{ label: t('menu.enter_room'), icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: notification.room_id! } }) },
+								{ label: t('menu.leave_room'), icon: 'x', isDelicate: true, onClick: () => dismissNotification(notification.room_id!) },
+							],
+							notification.room_id,
+						)
 				"
 			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
 						<span>{{ notification.message_values[0] }}</span>
 					</TruncatedText>
-					<Icon
-						type="unlink"
-						class="text-on-surface-variant hover:text-accent-error relative cursor-pointer stroke-2 transition-all duration-200 ease-in-out md:hidden md:group-hover:inline-block"
-						@click.prevent="dismissNotification(notification.room_id, $event)"
-					/>
 				</span>
 			</MenuItem>
 		</template>
@@ -176,8 +182,7 @@
 		return isSingleAdmin ? 'rooms.leave_admin' : 'rooms.leave_sure';
 	}
 
-	async function dismissNotification(room_id: string, event: Event) {
-		event.stopPropagation();
+	async function dismissNotification(room_id: string) {
 		if (await dialog.okcancel(t('rooms.leave_sure'))) {
 			notifications.removeNotification(room_id, TNotificationType.RemovedFromSecuredRoom);
 		}
