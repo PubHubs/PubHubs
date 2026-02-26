@@ -49,7 +49,7 @@
 						<span>{{ notification.message_values[0] }}</span>
 					</TruncatedText>
 					<Icon
-						type="unlink"
+						type="trash"
 						class="text-on-surface-variant hover:text-accent-error relative cursor-pointer stroke-2 transition-all duration-200 ease-in-out md:hidden md:group-hover:inline-block"
 						@click.prevent="dismissNotification(notification.room_id, $event)"
 					/>
