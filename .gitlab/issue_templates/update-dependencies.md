@@ -16,7 +16,6 @@ Also make sure to not squash the commits so we can search for them later.
      - [ ] `matrix-synapse==XXXX` in [python dependencies file](pubhubs_hub/requirements.txt) should be same version as synapse in dockerfile. NOTE: check if there is a new synapse version > 1.144.0. Remove prometheus-client==0.23.1  from requirement file and see if the pipeline succeeds for the hub. If the pipeline fails keeps the current version.
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)
    - [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same as for golang and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found".
-   - [ ] `FROM rust:<debian_version>` should use the same debian version as above.
 
 
 ## Global Client

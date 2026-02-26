@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import re
 import subprocess
 import threading
 import update_config
@@ -37,7 +36,7 @@ def main():
                              "to indicate a succefull migration.  Will abort when a postgres data directory is present, "
                              "but homeserver.db.bak is not.",
                         action=argparse.BooleanOptionalAction,
-                        default=False)
+                        default=True)
     parser.add_argument("--server-name", default=None,
                         help="Overwrites server_name; useful when running a copy of a production server locally.")
 
@@ -213,32 +212,24 @@ class Program:
                     print("Migration to postgres completed!", flush=True)
                     # flushing here to make sure Synapse's output comes after
 
-            # Compress state groups to avoid slow sliding sync queries after migration.
-            # Each run processes at most 1000 chunks; loop until a pass saves no rows.
-            print("Compressing state groups to speed up sliding sync queries (this may take a while) ...")
-            while True:
-                proc = subprocess.Popen(
-                    ("synapse_auto_compressor",
-                     "-p", "host=/var/run/postgresql user=synapse dbname=hub",
-                     "-c", "500",   # state groups per chunk
-                     "-n", "1000"), # chunks per pass
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    stdin=subprocess.DEVNULL)
-                output = []
-                for line in proc.stderr:
-                    print(line, end='')
-                    output.append(line)
-                if (returncode := proc.wait()) != 0:
-                    raise RuntimeError(f"synapse_auto_compressor failed with return code {returncode}")
-                match = re.search(r'Saved (\d+) rows', ''.join(output))
-                if not match:
-                    raise RuntimeError("synapse_auto_compressor output did not contain 'Saved N rows'")
-                rows_saved = int(match.group(1))
-                if rows_saved == 0:
-                    break
-                print(f"  Compression pass complete: saved {rows_saved} rows. Running another pass ...")
-            print("State group compression complete.", flush=True)
+            # Workaround for a slow query plan in Synapse's
+            # _get_state_groups_from_groups: PostgreSQL picks a Merge Join
+            # that scans millions of state_groups_state rows instead of a
+            # Nested Loop with indexed lookups.  Setting this at the role
+            # level avoids modifying Synapse's source code.
+            print("Disabling merge joins for synapse role ...")
+            subprocess.run(("sudo", "-u", "postgres", "psql", "--dbname=hub",
+                            "-c", "ALTER ROLE synapse SET enable_mergejoin = off"),
+                           stdin=subprocess.DEVNULL, check=True)
+
+            # Force a checkpoint so that PostgreSQL does not run it in the
+            # background while Synapse is already serving clients, which would
+            # saturate I/O and block database connections for minutes.
+            print("Running CHECKPOINT before starting Synapse ...")
+            subprocess.run(("sudo", "-u", "postgres", "psql", "--dbname=hub",
+                            "-c", "CHECKPOINT"),
+                           stdin=subprocess.DEVNULL, check=True)
+            print("CHECKPOINT complete.", flush=True)
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
