@@ -358,6 +358,9 @@ async fn main_integration_test_local(
         .get::<handle::Handle>(&"phone".parse().unwrap())
         .unwrap();
 
+    // Test expiry of chained sessions
+    test_chained_session_expiry(&client, &constellation, &yivi_server_sk).await;
+
     // Test chained session flow
     let attrs = request_attributes_chained(
         &client,
@@ -1235,6 +1238,178 @@ async fn request_attributes_chained(
     };
 
     attrs
+}
+
+/// Tests that chained sessions are cleaned up on expiry in two scenarios.
+async fn test_chained_session_expiry(
+    client: &client::Client,
+    constellation: &pubhubs::servers::Constellation,
+    yivi_server_sk: &yivi::SigningKey,
+) {
+    // Scenario 1: session expires while a client is waiting for the yivi server to call in.
+    // The waiting YiviWaitForResultEP call should return SessionGone.
+    {
+        let api::auths::AuthStartResp::Success {
+            state: auth_state, ..
+        } = client
+            .query_with_retry::<api::auths::AuthStartEP, _, _>(
+                &constellation.auths_url,
+                &api::auths::AuthStartReq {
+                    source: attr::Source::Yivi,
+                    attr_types: vec!["email".parse().unwrap()],
+                    attr_type_choices: Default::default(),
+                    yivi_chained_session: true,
+                },
+            )
+            .await
+            .unwrap()
+        else {
+            panic!()
+        };
+
+        // Spawn a waiter; it blocks since no yivi server has posted yet.
+        // Use a long timeout so tokio::time::advance doesn't fire awc's default timeout.
+        let wait_task = {
+            let client = client.clone();
+            let auths_url = constellation.auths_url.clone();
+            tokio::task::spawn_local(async move {
+                client
+                    .query::<api::auths::YiviWaitForResultEP>(
+                        &auths_url,
+                        &api::auths::YiviWaitForResultReq { state: auth_state },
+                    )
+                    .timeout(Duration::from_secs(20 * 60))
+                    .with_retry()
+                    .await
+                    .unwrap()
+            })
+        };
+
+        tokio::time::pause();
+        tokio::time::advance(Duration::from_secs(11 * 60)).await;
+        tokio::time::resume();
+
+        assert!(matches!(
+            wait_task.await.unwrap(),
+            api::auths::YiviWaitForResultResp::SessionGone
+        ));
+    }
+
+    // Scenario 2: session expires while the yivi server is waiting for the next session.
+    // The yivi server should receive HTTP 204 (no next session), and late callers of
+    // YiviWaitForResultEP should receive SessionGone.
+    {
+        let api::auths::AuthStartResp::Success {
+            task: auth_task,
+            state: auth_state,
+        } = client
+            .query_with_retry::<api::auths::AuthStartEP, _, _>(
+                &constellation.auths_url,
+                &api::auths::AuthStartReq {
+                    source: attr::Source::Yivi,
+                    attr_types: vec!["email".parse().unwrap()],
+                    attr_type_choices: Default::default(),
+                    yivi_chained_session: true,
+                },
+            )
+            .await
+            .unwrap()
+        else {
+            panic!()
+        };
+
+        let jwt: jwt::JWT = match auth_task {
+            api::auths::AuthTask::Yivi {
+                disclosure_request, ..
+            } => disclosure_request,
+        };
+
+        let claims: DisclosureRequestClaims = jwt
+            .open(&jwt::HS256("secret".into()))
+            .unwrap()
+            .check_iss(jwt::expecting::exactly("ph_auths"))
+            .unwrap()
+            .check_sub(jwt::expecting::exactly("verification_request"))
+            .unwrap()
+            .into_custom()
+            .unwrap();
+
+        let next_session_url = claims
+            .sprequest
+            .next_session
+            .as_ref()
+            .expect("chained session should have a nextSession url")
+            .url
+            .clone();
+
+        let result_jwt = claims
+            .sprequest
+            .mock_disclosure_response(|ati: &yivi::AttributeTypeIdentifier| -> String {
+                match ati.as_str() {
+                    "irma-demo.sidn-pbdf.email.email" => "expiry-test@example.com".to_string(),
+                    _ => panic!("unexpected yivi attribute type {}", ati.as_str()),
+                }
+            })
+            .sign(
+                &yivi::Credentials {
+                    name: "yivi-server".to_string(),
+                    key: yivi_server_sk.clone(),
+                },
+                Duration::from_secs(60),
+            )
+            .unwrap();
+
+        // Spawn yivi server: posts disclosure and waits for next session.
+        // Use a long-timeout awc client so tokio::time::advance doesn't fire the default timeout.
+        let yivi_task = {
+            let http_client = awc::Client::builder()
+                .timeout(Duration::from_secs(20 * 60))
+                .finish();
+            let result_jwt_str = result_jwt.to_string();
+            tokio::task::spawn_local(async move {
+                let resp = http_client
+                    .post(next_session_url.as_str())
+                    .send_body(result_jwt_str)
+                    .await
+                    .expect("next-session request failed");
+                assert_eq!(resp.status(), awc::http::StatusCode::NO_CONTENT);
+            })
+        };
+
+        // Wait for disclosure (yivi task runs concurrently and provides it)
+        let api::auths::YiviWaitForResultResp::Success { .. } = client
+            .query_with_retry::<api::auths::YiviWaitForResultEP, _, _>(
+                &constellation.auths_url,
+                &api::auths::YiviWaitForResultReq {
+                    state: auth_state.clone(),
+                },
+            )
+            .await
+            .unwrap()
+        else {
+            panic!()
+        };
+
+        // Advance time; the yivi server is still waiting for a next session
+        tokio::time::pause();
+        tokio::time::advance(Duration::from_secs(11 * 60)).await;
+        tokio::time::resume();
+
+        // Yivi server should be released with no next session (204)
+        yivi_task.await.unwrap();
+
+        // Late callers see SessionGone
+        assert!(matches!(
+            client
+                .query_with_retry::<api::auths::YiviWaitForResultEP, _, _>(
+                    &constellation.auths_url,
+                    &api::auths::YiviWaitForResultReq { state: auth_state },
+                )
+                .await
+                .unwrap(),
+            api::auths::YiviWaitForResultResp::SessionGone
+        ));
+    }
 }
 
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
