@@ -36,8 +36,8 @@
 		</template>
 		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications.notifications" :key="notification.room_id" class="relative flex flex-row">
 			<MenuItem
+				v-if="notification.type === 'removed_from_secured_room' && notification.room_id"
 				icon="shield"
-				v-if="notification.room_id"
 				class="group text-on-surface-dim inline-block w-full"
 				@click="
 					dialogOpen = notification.room_id;
