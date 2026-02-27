@@ -212,16 +212,6 @@ class Program:
                     print("Migration to postgres completed!", flush=True)
                     # flushing here to make sure Synapse's output comes after
 
-            # Workaround for a slow query plan in Synapse's
-            # _get_state_groups_from_groups: PostgreSQL picks a Merge Join
-            # that scans millions of state_groups_state rows instead of a
-            # Nested Loop with indexed lookups.  Setting this at the role
-            # level avoids modifying Synapse's source code.
-            print("Disabling merge joins for synapse role ...")
-            subprocess.run(("sudo", "-u", "postgres", "psql", "--dbname=hub",
-                            "-c", "ALTER ROLE synapse SET enable_mergejoin = off"),
-                           stdin=subprocess.DEVNULL, check=True)
-
             # Force a checkpoint so that PostgreSQL does not run it in the
             # background while Synapse is already serving clients, which would
             # saturate I/O and block database connections for minutes.
