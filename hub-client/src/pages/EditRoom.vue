@@ -60,7 +60,7 @@
 								</TabHeader>
 								<TabContainer>
 									<div class="pt-2" role="tabpanel" v-if="selectedAttributes.length >= activeTab">
-										<DropDown v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" class="text-label placeholder:text-surface-subtle">{{ t('admin.secured_attribute') }}</DropDown>
+										<DropDown v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" :filtered="true" class="text-label placeholder:text-surface-subtle">{{ t('admin.secured_attribute') }}</DropDown>
 
 										<Label>{{ t('admin.secured_values') }}</Label>
 										<div class="bg-on-surface-disabled mb-100 rounded p-100">
