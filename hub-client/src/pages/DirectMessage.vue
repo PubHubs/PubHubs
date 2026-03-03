@@ -7,10 +7,10 @@
 				<Icon type="chat-circle-text" :class="isMobile && 'hidden'" />
 				<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">
 					<TruncatedText class="font-headings text-h3 font-semibold">
-						<H3 v-if="isMobile && sidebar.isOpen.value && sidebar.selectedDMRoom.value">
+						<span v-if="isMobile && sidebar.isOpen.value && sidebar.selectedDMRoom.value">
 							{{ mobileConversationTitle }}
-						</H3>
-						<H3 v-else>{{ t('menu.directmsg') }}</H3>
+						</span>
+						<span v-else>{{ t('menu.directmsg') }}</span>
 					</TruncatedText>
 				</H3>
 				<TruncatedText class="hidden md:inline" />
