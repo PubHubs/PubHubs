@@ -74,7 +74,7 @@
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
 	// Models
-	import { FieldOption, FieldSelection } from '@hub-client/models/validation/TFormOption';
+	import { FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// New design
@@ -134,7 +134,7 @@
 			} else {
 				const idx = (props.options as Array<any>).findIndex((item) => item == toRaw(model.value));
 				if (idx >= 0) {
-					selection.value = (props.options as Array<any>)[idx];
+					selection.value.push(idx);
 				}
 			}
 		}
