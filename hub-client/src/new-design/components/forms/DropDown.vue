@@ -4,7 +4,7 @@
 			:name="fieldName"
 			:validation="validation"
 			:help="help"
-			class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+			class="form-dropdown gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
 			v-slot="{ id }"
 			v-model="model"
 			@keydown.arrow-down.prevent="cursorDown()"
@@ -24,7 +24,7 @@
 					<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-on-surface-dim" />
 				</div>
 				<div v-if="!showFilter" class="flex w-full items-center justify-start px-175 py-100">
-					<div class="max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
+					<div class="dropdown-value max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
 						<template v-if="model">
 							<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
 								<div v-for="(item, index) in model" class="bg-surface-subtle flex items-center rounded px-100" role="listbox">
@@ -40,10 +40,10 @@
 						</template>
 						<span v-else class="text-surface-subtle">{{ placeholder }}</span>
 					</div>
-					<div v-if="model" class="pr-050 ml-100 cursor-pointer border-r bg-transparent" @click.stop="resetAll()">
+					<div v-if="model" class="dropdown-remove-all pr-050 ml-100 cursor-pointer border-r bg-transparent" @click.stop="resetAll()">
 						<Icon type="x" size="md" class="h-200 w-200"></Icon>
 					</div>
-					<div class="cursor-pointer bg-transparent" @click.stop="toggle">
+					<div class="dropdown-toggler cursor-pointer bg-transparent" @click.stop="toggle">
 						<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
 					</div>
 				</div>
