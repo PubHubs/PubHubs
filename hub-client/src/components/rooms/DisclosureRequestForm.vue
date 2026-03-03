@@ -1,9 +1,11 @@
 <template>
 	<Dialog :title="$t('admin.ask_disclosure_title')" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close($event)">
 		<ValidatedForm @submit.prevent class="flex flex-col p-200" :class="isMobile ? 'w-full' : 'w-[450px]'" v-slot="{ isValidated }">
-			<DropDown v-model="form.user" :transformer="transformUser" :options="userOptions" :filtered="true" :validation="{ required: true }">{{ $t('admin.ask_disclosure_user_title') }}</DropDown>
-			<DropDown v-model="form.attributes" :transformer="transformYiviAttribute" :options="yiviAttributes" :multiple="true" :filtered="true" :validation="{ required: true }">{{ $t('admin.secured_yivi_attributes') }}</DropDown>
-			<DropDown v-model="form.where_room" :transformer="transformRoom" :options="roomOptions" :filtered="true" :validation="{ required: true }">{{ $t('rooms.room') }}</DropDown>
+			<DropDown v-model="form.user" :transformer="dropDownData.transformUser" :options="userOptions" :filtered="true" :validation="{ required: true }">{{ $t('admin.ask_disclosure_user_title') }}</DropDown>
+			<DropDown v-model="form.attributes" :transformer="dropDownData.transformYiviAttribute" :options="yiviAttributes" :multiple="true" :filtered="true" :validation="{ required: true }">{{
+				$t('admin.secured_yivi_attributes')
+			}}</DropDown>
+			<DropDown v-model="form.where_room" :transformer="dropDownData.transformRoom" :options="roomOptions" :filtered="true" :validation="{ required: true }">{{ $t('rooms.room') }}</DropDown>
 
 			<TextArea placeholder="Add a message to your disclosure request" :validation="{ required: true, maxLength: 100 }" v-model="form.message" @keydown.esc.stop>{{ $t('admin.ask_disclosure_message_title') }}</TextArea>
 
@@ -38,7 +40,7 @@
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
-	import { transformBack, transformRoom, transformUser, transformYiviAttribute, useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
+	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 
 	// const yiviStore = useYivi();
 	const pubhubsStore = usePubhubsStore();

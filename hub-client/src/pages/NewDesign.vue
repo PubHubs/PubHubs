@@ -64,8 +64,8 @@
 				<DropDown v-model="dropDownValues.multiple" :options="options" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Eenvoudig Multiple</DropDown>
 				<DropDown v-model="dropDownValues.simpleIcon" :options="iconOptions" placeholder="Kies hier iets" :validation="{ required: true }" help="Maak een keuze">Met Ikonen en Labels</DropDown>
 				<DropDown v-model="dropDownValues.multipleIcons" :options="iconOptions" placeholder="Kies hier iets" :multiple="true" :validation="{ required: true }" help="Maak een keuze">Multiple Ikonen en Labels</DropDown>
-				<DropDown :options="userOptions" :transformer="transformUser" placeholder="Selecteer een user" :filtered="true" :validation="{ required: true }" help="Users">Userlist</DropDown>
-				<DropDown :options="roomOptions" :transformer="transformRoom" placeholder="Selecteer een Kamer" :filtered="true" help="Rooms">RoomList</DropDown>
+				<DropDown :options="userOptions" :transformer="dropDownData.transformUser" placeholder="Selecteer een user" :filtered="true" :validation="{ required: true }" help="Users">Userlist</DropDown>
+				<DropDown :options="roomOptions" :transformer="dropDownData.transformRoom" placeholder="Selecteer een Kamer" :filtered="true" help="Rooms">RoomList</DropDown>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -176,9 +176,11 @@
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 	// Composables
-	import { transformRoom, transformUser, useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
+	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+
+	const dropDownData = useDropDownData();
 
 	// Types
 	type formType = {
@@ -238,7 +240,6 @@
 	});
 
 	onMounted(async () => {
-		const dropDownData = useDropDownData();
 		userOptions.value = await dropDownData.userList();
 		roomOptions.value = await dropDownData.publicRoomList();
 	});
