@@ -1,5 +1,5 @@
 <template>
-	<ValidateField :help="help" :info="lenText" :name="fieldName" :validation="validation" v-model="model" v-slot="{ id, validated, required }" class="gap-075 mb-100 flex w-full flex-col items-start justify-start">
+	<ValidateField :help="help" :info="lenText" :name="fieldName" :validation="validation" v-model="model" v-slot="{ id, validated, required }" class="form-textfield gap-075 mb-100 flex w-full flex-col items-start justify-start">
 		<Label :for="id"><slot></slot></Label>
 
 		<!-- Input element -->
