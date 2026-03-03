@@ -6,8 +6,7 @@
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Buttons</h2>
 				<div class="gap-050 flex flex-col">
-					<Button icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">Primary<template v-slot:sr-label>Hi!</template></Button>
-					<Button icon="check-circle" @click="clicked()">Primary</Button>
+					<Button icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">Primary</Button>
 					<Button icon="check-circle" variant="secondary" @click="clicked()">Secondary</Button>
 					<Button secondary-icon="smiley" variant="tertiary" @click="clicked()">Tertiary</Button>
 					<Button icon="warning" secondary-icon="warning" variant="error" @click="clicked()">Error</Button>
@@ -42,10 +41,11 @@
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Radio</h2>
-
-				<Radio v-model="formValues.radio" value="first">Eerste</Radio>
-				<Radio v-model="formValues.radio" value="second">Tweede</Radio>
-				<Radio v-model="formValues.radio" value="third">Derde</Radio>
+				<RadioGroup data-testid="radiogroup1">
+					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
+					<Radio v-model="formValues.radio" value="second">Tweede</Radio>
+					<Radio v-model="formValues.radio" value="third">Derde</Radio>
+				</RadioGroup>
 
 				<h2 class="my-200">Checkbox</h2>
 				<Checkbox>Checkbox 0</Checkbox>
@@ -122,12 +122,12 @@
 				<TextArea v-model="formValues.text" placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 
 				<div class="mb-200">
-					<ValidateField v-model="formValues.radio" :validation="{ required: true, custom: customRadioValidation() }">
+					<RadioGroup v-model="formValues.radio" :validation="{ required: true, custom: customRadioValidation() }">
 						<Label>Keuze:</Label>
 						<Radio v-model="formValues.radio" value="first">Eerste</Radio>
 						<Radio v-model="formValues.radio" value="second">Tweede</Radio>
 						<Radio v-model="formValues.radio" value="third">Derde</Radio>
-					</ValidateField>
+					</RadioGroup>
 				</div>
 
 				<div class="flex gap-12">
@@ -169,11 +169,11 @@
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
+	import RadioGroup from '@hub-client/new-design/components/forms/RadioGroup.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
-	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 	// Composables
 	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
