@@ -7,7 +7,7 @@
 FROM golang:trixie AS yivi_build
 
 WORKDIR /irmago
-RUN git clone https://github.com/privacybydesign/irmago . --branch v0.19.1 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago . --branch v0.19.2 --depth 1
 RUN GO111MODULE=auto go install ./irma
 
 

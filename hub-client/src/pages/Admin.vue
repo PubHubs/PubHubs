@@ -108,6 +108,7 @@
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -140,17 +141,17 @@
 	});
 
 	async function fetchAdminStatusForRooms() {
-		const allRooms = [...rooms.publicRooms, ...rooms.securedRooms];
-		for (const room of allRooms) {
-			const roomId = room.room_id;
-			try {
-				const powerLevels = await pubhubs.getPoweLevelEventContent(roomId);
-				const userPowerLevel = powerLevels.users?.[user.userId] ?? powerLevels.users_default ?? 0;
-				roomAdminStatus.value[roomId] = userPowerLevel === 100;
-			} catch {
-				roomAdminStatus.value[roomId] = false;
-			}
-		}
+		const allRooms = [...rooms.fetchRoomList(PublicRooms), ...rooms.fetchRoomList(SecuredRooms)];
+		const roomStatePromises = allRooms.map((room) =>
+			pubhubs
+				.getPoweLevelEventContent(room.roomId)
+				.then((powerLevels) => {
+					const userPowerLevel = powerLevels.users?.[user.userId!] ?? powerLevels.users_default ?? 0;
+					roomAdminStatus.value[room.roomId] = userPowerLevel === 100;
+				})
+				.catch(() => (roomAdminStatus.value[room.roomId] = false)),
+		);
+		await Promise.all(roomStatePromises);
 	}
 
 	function newPublicRoom() {

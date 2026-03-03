@@ -94,7 +94,6 @@ pub struct YiviCtx {
     pub requestor_creds: yivi::Credentials<yivi::SigningKey>,
     pub server_creds: yivi::Credentials<yivi::VerifyingKey>,
 
-    #[expect(dead_code)]
     pub chained_sessions_config: super::yivi::ChainedSessionsConfig,
     pub card_config: super::card::CardConfig,
 }

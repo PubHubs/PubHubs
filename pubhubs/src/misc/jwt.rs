@@ -28,7 +28,7 @@ use crate::phcrypto;
 /// Wrapper around [`String`] to indicate it should be interpretted as a JWT.
 ///
 /// Use [`JWT::from`] turn a [`String`] into a [`JWT`]..
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(transparent)]
 pub struct JWT {
     inner: String,

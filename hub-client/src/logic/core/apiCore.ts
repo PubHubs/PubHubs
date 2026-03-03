@@ -57,10 +57,7 @@ class Api {
 
 	async api<T>(url: string, options: ApiOptions = this.options.GET): Promise<T> {
 		if (this.accessToken) {
-			if (!options.headers) {
-				options.headers = {};
-			}
-			options.headers['Authorization'] = 'Bearer ' + this.accessToken;
+			options.headers = { ...options.headers, Authorization: 'Bearer ' + this.accessToken };
 		}
 		// console.log(url);
 		const response = await fetch(url, options as RequestInit);

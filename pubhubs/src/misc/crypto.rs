@@ -123,7 +123,7 @@ pub fn unseal<T: serde::de::DeserializeOwned>(
 /// Implements the `generic_array` version `1.2`
 /// [`len()`](https://docs.rs/generic-array/latest/generic_array/struct.GenericArray.html#method.len)
 /// method for the older `generic_array` version currently(?) used by
-/// rust crypto (e.g. [`aead`] and [`digest`]).
+/// rust crypto (e.g. [`aead`]).
 pub trait GenericArrayExt {
     fn len() -> usize;
 }

@@ -37,6 +37,8 @@ def main():
                              "but homeserver.db.bak is not.",
                         action=argparse.BooleanOptionalAction,
                         default=False)
+    parser.add_argument("--server-name", default=None,
+                        help="Overwrites server_name; useful when running a copy of a production server locally.")
 
     Program(parser.parse_args()).run()
 
@@ -69,7 +71,8 @@ class Program:
                           hub_server_url=self._args.hub_server_url,
                           hub_server_url_for_yivi=self._args.hub_server_url_for_yivi,
                           global_client_url=self._args.global_client_url,
-                          replace_sqlite3_by_postgres=self._args.replace_sqlite3_by_postgres)
+                          replace_sqlite3_by_postgres=self._args.replace_sqlite3_by_postgres,
+                          server_name=self._args.server_name)
 
         self._waiter.add("yivi", subprocess.Popen(("/usr/bin/irma", 
                         "server",
@@ -208,6 +211,15 @@ class Program:
                     os.rename(sqlite3_path, sqlite3_backup_path)
                     print("Migration to postgres completed!", flush=True)
                     # flushing here to make sure Synapse's output comes after
+
+            # Force a checkpoint so that PostgreSQL does not run it in the
+            # background while Synapse is already serving clients, which would
+            # saturate I/O and block database connections for minutes.
+            print("Running CHECKPOINT before starting Synapse ...")
+            subprocess.run(("sudo", "-u", "postgres", "psql", "--dbname=hub",
+                            "-c", "CHECKPOINT"),
+                           stdin=subprocess.DEVNULL, check=True)
+            print("CHECKPOINT complete.", flush=True)
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
