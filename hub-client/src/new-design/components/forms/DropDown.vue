@@ -29,7 +29,7 @@
 							<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
 								<div v-for="(item, index) in model" class="bg-surface-subtle flex items-center rounded px-100" role="listbox">
 									<div class="grow">
-										<DropDownValue :value="transform(item)" role="option"></DropDownValue>
+										<DropDownValue :value="transform(item)"></DropDownValue>
 									</div>
 									<div class="ml-100">
 										<Icon type="x" size="sm" class="" @click.stop="removeItem(index)"></Icon>
