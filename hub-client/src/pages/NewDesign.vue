@@ -42,10 +42,10 @@
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Radio</h2>
 				<RadioGroup class="radiogroup1">
-					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
-					<Radio v-model="formValues.radio" value="second">Tweede</Radio>
-					<Radio v-model="formValues.radio" value="third">Derde</Radio>
-					<Radio v-model="formValues.radio" value="fourth">Vierde</Radio>
+					<Radio v-model="radioModel" value="first">Eerste</Radio>
+					<Radio v-model="radioModel" value="second">Tweede</Radio>
+					<Radio v-model="radioModel" value="third">Derde</Radio>
+					<Radio v-model="radioModel" value="fourth">Vierde</Radio>
 				</RadioGroup>
 
 				<h2 class="my-200">Checkbox</h2>
@@ -200,6 +200,8 @@
 		option1: boolean;
 		option2: boolean;
 	};
+
+	const radioModel = defineModel('');
 
 	const formValues = reactive({
 		firstname: '',
