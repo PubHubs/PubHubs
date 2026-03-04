@@ -1,5 +1,5 @@
 <template>
-	<div ref="fieldRef" :class="'max-w-[' + fixedWidth + 'px]'">
+	<div ref="fieldRef" :class="fieldClass">
 		<slot :id="id" :validated="validated" :changed="changed" :required="required"></slot>
 
 		<FieldInfoBox :info="info">
@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { inject, onMounted, provide, ref, watch } from 'vue';
+	import { computed, inject, onMounted, provide, ref, watch } from 'vue';
 
 	// Composables
 	import { useFieldValidation } from '@hub-client/composables/validation.composable';
@@ -45,6 +45,7 @@
 
 	const fieldRef = ref();
 	const fixedWidth = ref(0);
+	// const fieldClass = ref('');
 
 	const model = defineModel<any>();
 	const originalValue = ref<any>(undefined);
@@ -73,6 +74,14 @@
 		},
 		{ deep: true },
 	);
+
+	const fieldClass = computed(() => {
+		let c = 'max-w-[' + fixedWidth.value + 'px]'; // Max Width
+		if (validated.value) {
+			c += ' validated';
+		}
+		return c;
+	});
 
 	provide('id', id);
 	provide('required', required);

@@ -41,10 +41,11 @@
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Radio</h2>
-				<RadioGroup data-testid="radiogroup1">
+				<RadioGroup class="radiogroup1">
 					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
 					<Radio v-model="formValues.radio" value="second">Tweede</Radio>
 					<Radio v-model="formValues.radio" value="third">Derde</Radio>
+					<Radio v-model="formValues.radio" value="fourth">Vierde</Radio>
 				</RadioGroup>
 
 				<h2 class="my-200">Checkbox</h2>
@@ -116,13 +117,13 @@
 
 			<ValidatedForm v-slot="{ isValidated }">
 				<TextField v-model="formValues.firstname" placeholder="Type voornaam">Voornaam</TextField>
-				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, maxLength: 20 }" help="Hier dus je achternaam">{{ $t('roomlibrary.info.name') }}</TextField>
+				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, maxLength: 20 }" help="Hier dus je achternaam">Achternaam</TextField>
 				<TextField v-model="formValues.age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
 				<TextField v-model="formValues.specific" placeholder="Type Yes or No" :validation="{ custom: mustBeYesOrNo() }">Yes or No</TextField>
 				<TextArea v-model="formValues.text" placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 
 				<div class="mb-200">
-					<RadioGroup v-model="formValues.radio" :validation="{ required: true, custom: customRadioValidation() }">
+					<RadioGroup v-model="formValues.radio" :validation="{ required: true, custom: customRadioValidation() }" class="radiogroup-in-form">
 						<Label>Keuze:</Label>
 						<Radio v-model="formValues.radio" value="first">Eerste</Radio>
 						<Radio v-model="formValues.radio" value="second">Tweede</Radio>
@@ -179,6 +180,12 @@
 	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+
+	/**
+	 *
+	 * IMPORTANT: Leave all constants and fields (validations) as they are, some of them are used by the e2e test!
+	 *
+	 */
 
 	const dropDownData = useDropDownData();
 
