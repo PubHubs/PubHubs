@@ -33,9 +33,8 @@ export class APIService {
 	 * @param roomId
 	 * @returns Returns the entire state of the room:
 	 */
-
 	static async adminGetRoomState(roomId: string): Promise<TState> {
-		return await api_synapse.apiGET<TState>(api_synapse.apiURLS.roomsAPIV1 + roomId + '/state');
+		return await api_synapse.apiGET<TState>(`${api_synapse.apiURLS.roomsAPIV1}${roomId}/state`);
 	}
 
 	/**
@@ -43,9 +42,8 @@ export class APIService {
 	 * @param roomId
 	 * @returns Returns the entire state of the room:
 	 */
-
 	static async adminGetRoomMembers(roomId: string): Promise<RoomMembers> {
-		return await api_synapse.apiGET<RoomMembers>(api_synapse.apiURLS.roomsAPIV1 + roomId + '/members');
+		return await api_synapse.apiGET<RoomMembers>(`${api_synapse.apiURLS.roomsAPIV1}${roomId}/members`);
 	}
 
 	/**
@@ -56,7 +54,7 @@ export class APIService {
 	 * TODO: Make object type - A service response type of status and message.
 	 */
 	static async makeRoomAdmin(roomId: string, userId: string): Promise<void> {
-		await api_synapse.apiPOST(api_synapse.apiURLS.roomsAPIV1 + roomId + '/make_room_admin', { user_id: userId });
+		await api_synapse.apiPOST(`${api_synapse.apiURLS.roomsAPIV1}${roomId}/make_room_admin`, { user_id: userId });
 	}
 
 	/**
