@@ -26,10 +26,6 @@
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
-	import { RelationType } from '@hub-client/models/constants';
-
-	// Pages
-
 	// Stores
 	import { DialogButtonAction, buttonsYesNo } from '@hub-client/stores/dialog';
 	import { Room } from '@hub-client/stores/rooms';

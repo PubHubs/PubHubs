@@ -26,7 +26,7 @@ function useRoles() {
 		if (roomId) {
 			room = roomsStore.room(roomId);
 		}
-		const powerLevel = room?.getPowerLevel(user.userId) ?? 0;
+		const powerLevel = room?.getStateMemberPowerLevel(user.userId) ?? 0;
 		assert(powerLevel in UserPowerLevel, 'Powerlevel not one of the predefined powerlevels');
 		return powerLevel;
 	};

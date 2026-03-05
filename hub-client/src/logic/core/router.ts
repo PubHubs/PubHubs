@@ -64,6 +64,7 @@ const routes = [
 		component: () => import('@hub-client/pages/DiscoverRoomsPage.vue'),
 		meta: { hideBar: true, onboarding: true },
 	},
+
 	{
 		path: '/error-page',
 		name: 'error-page',
