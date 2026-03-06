@@ -308,7 +308,7 @@ const useRooms = defineStore('rooms', {
 			const existing = this.roomList.find((room) => room.roomId === roomListRoom.roomId);
 			if (existing) {
 				existing.roomType = roomListRoom.roomType;
-				existing.name = roomListRoom.name;
+				if (roomListRoom.name) existing.name = roomListRoom.name;
 				if (roomListRoom.stateEvents.length > 0) existing.stateEvents = roomListRoom.stateEvents;
 				if (roomListRoom.lastMessageId) existing.lastMessageId = roomListRoom.lastMessageId;
 			} else {
