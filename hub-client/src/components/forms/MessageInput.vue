@@ -1,5 +1,5 @@
 <template>
-	<div class="w-full px-3 pb-3 md:px-6">
+	<div class="w-full px-3 pb-3 md:px-6" v-bind="$attrs">
 		<!-- Floating -->
 		<div class="relative">
 			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
@@ -164,6 +164,8 @@
 	import { TPublicRoom, TRoomMember, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+
+	defineOptions({ inheritAttrs: false });
 
 	const { t } = useI18n();
 	const user = useUser();
