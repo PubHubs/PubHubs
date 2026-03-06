@@ -1,5 +1,5 @@
 <template>
-	<iframe v-if="hubs.currentHubExists" :src="hubUrl" class="h-full w-full" name="hub" :id="iframeHubId"></iframe>
+	<iframe v-if="hubs.currentHubExists" :src="hubUrl" class="h-full w-full" name="hub" :id="iframeHubId" allow="clipboard-write"></iframe>
 </template>
 
 <script setup lang="ts">
