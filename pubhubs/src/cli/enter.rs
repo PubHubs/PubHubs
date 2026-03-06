@@ -56,6 +56,15 @@ pub struct EnterArgs {
     #[arg(short, long)]
     wait_for_card: bool,
 
+    /// Whether to use 'chained session drip', AuthStartReq::yivi_chained_session_drip
+    #[arg(long)]
+    chained_session_drip: bool,
+
+    /// Ask for confirmation before proceeding at certain points.  Useful for letting something
+    /// time out.
+    #[arg(long)]
+    confirm: bool,
+
     /// Comment to use on the pubhubs card, provided a card is requested
     #[arg(long, value_name = "COMMENT")]
     card_comment: Option<String>,
@@ -139,6 +148,18 @@ impl EnterArgs {
             .parse()
             .unwrap(),
         )
+    }
+
+    async fn confirm(&self, msg: &str) {
+        if !self.confirm {
+            return;
+        }
+
+        use tokio::io::AsyncBufReadExt as _;
+
+        let mut stdin = tokio::io::BufReader::new(tokio::io::stdin());
+        println!("{msg} - press <ENTER> to continue");
+        let _ = stdin.read_line(&mut String::new()).await;
     }
 
     async fn run_async(self) -> Result<()> {
@@ -361,6 +382,7 @@ impl EnterArgs {
                 api::auths::AuthStartReq {
                     source: attr::Source::Yivi,
                     yivi_chained_session: self.wait_for_card,
+                    yivi_chained_session_drip: self.chained_session_drip,
                     attr_types: Default::default(),
                     attr_type_choices,
                 },
@@ -571,6 +593,8 @@ impl EnterArgs {
                     }
                 }
             }
+
+            self.confirm("releasing yivi server").await;
 
             let api::auths::YiviReleaseNextSessionResp::Success {} = client
                 .query_with_retry::<api::auths::YiviReleaseNextSessionEP, _, _>(

@@ -28,6 +28,13 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         }
 
+        if req.yivi_chained_session_drip && !req.yivi_chained_session {
+            log::debug!(
+                "yivi_chained_session_drip set on authentication request  while yivi_chained_session is not"
+            );
+            return Err(api::ErrorCode::BadRequest);
+        }
+
         if !req.attr_type_choices.is_empty() && !req.attr_types.is_empty() {
             log::debug!("both attr_types and attr_type_choices set on AuthStartReq");
             return Err(api::ErrorCode::BadRequest);
@@ -43,13 +50,19 @@ impl App {
             source: req.source,
             attr_type_choices,
             exp: api::NumericDate::now() + app.auth_window,
-            yivi_chained_session_id: None,
+            yivi_chained_session: None,
             yivi_ati2at: Default::default(),
         };
 
         match req.source {
             attr::Source::Yivi => {
-                Self::handle_auth_start_yivi(app, state, req.yivi_chained_session).await
+                Self::handle_auth_start_yivi(
+                    app,
+                    state,
+                    req.yivi_chained_session,
+                    req.yivi_chained_session_drip,
+                )
+                .await
             }
         }
     }
@@ -113,6 +126,7 @@ impl App {
         app: Rc<Self>,
         mut state: AuthState,
         yivi_chained_session: bool,
+        yivi_chained_session_drip: bool,
     ) -> api::Result<api::auths::AuthStartResp> {
         let yivi = app.get_yivi()?;
 
@@ -178,7 +192,10 @@ impl App {
                 let csc = app.chained_sessions_ctl_or_bad_request()?;
                 let running_state = app.running_state_or_internal_error()?;
 
-                state.yivi_chained_session_id = Some(csc.create_session().await?);
+                state.yivi_chained_session = Some(ChainedSessionSetup {
+                    id: csc.create_session().await?,
+                    drip: yivi_chained_session_drip,
+                });
 
                 sealed_state = Some(seal_state(&state)?);
 
