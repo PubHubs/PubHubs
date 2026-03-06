@@ -342,12 +342,14 @@ export default class Room {
 		return event;
 	}
 	private updatePowerLevelEvent(powerLevelEvents: MatrixEvent[]) {
-		this.stateEvents = this.stateEvents.map((state) => {
-			if (state.type === 'm.room.power_levels') {
-				return powerLevelEvents[powerLevelEvents.length - 1].event as IStateEvent;
-			}
-			return state;
-		});
+		if (powerLevelEvents && powerLevelEvents.length > 0) {
+			this.stateEvents = this.stateEvents.map((state) => {
+				if (state.type === EventType.RoomPowerLevels) {
+					return powerLevelEvents[powerLevelEvents.length - 1].event as IStateEvent;
+				}
+				return state;
+			});
+		}
 	}
 
 	// End of sliding sync state methods //
