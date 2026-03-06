@@ -166,7 +166,7 @@
 					</div>
 
 					<!-- Right Consent -->
-					<div class="bg-surface flex h-full w-1/2 flex-col gap-6 px-16 py-32">
+					<div class="bg-surface flex h-full w-1/2 flex-col gap-6 overflow-y-auto px-16 py-32">
 						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="text-on-surface-variant w-fit px-0">
 							{{ t('forms.back') }}
 						</Button>
