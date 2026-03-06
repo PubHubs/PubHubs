@@ -24,14 +24,19 @@ export function useContextMenu() {
 
 		// If it's a touch, start long press timer
 		if (isTouch) {
+			const layoutRoot = document.getElementById('layout-root');
+			if (layoutRoot) layoutRoot.style.overflowX = 'hidden';
+
 			longPressTimer = setTimeout(() => {
 				_openMenuAtEvent(evt, items, targetId);
+				if (layoutRoot) layoutRoot.style.overflowX = '';
 			}, SystemDefaults.longPressDuration);
 
 			// Cancel long press if touch ends or moves
 			const clearTimer = () => {
 				if (longPressTimer) clearTimeout(longPressTimer);
 				longPressTimer = null;
+				if (layoutRoot) layoutRoot.style.overflowX = '';
 				window.removeEventListener('touchend', clearTimer);
 				window.removeEventListener('touchmove', clearTimer);
 			};
