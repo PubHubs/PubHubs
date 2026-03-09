@@ -1,25 +1,27 @@
 <template>
-	<div class="flex h-full flex-col p-4">
+	<div class="flex h-full flex-col py-4">
 		<SidebarHeader :title="t('others.search')" />
 		<!-- Search input -->
-		<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
-			<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
-			<input
-				ref="searchInput"
-				v-model="searchTerm"
-				type="text"
-				role="searchbox"
-				class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
-				:placeholder="t('others.search_room')"
-				@keydown.enter="search()"
-			/>
-			<button v-if="searchTerm" @click="clearSearch()" class="text-on-surface-dim hover:text-on-surface">
-				<Icon type="x" size="sm" />
-			</button>
+		<div class="px-4">
+			<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
+				<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
+				<input
+					ref="searchInput"
+					v-model="searchTerm"
+					type="text"
+					role="searchbox"
+					class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
+					:placeholder="t('others.search_room')"
+					@keydown.enter="search()"
+				/>
+				<button v-if="searchTerm" @click="clearSearch()" class="text-on-surface-dim hover:text-on-surface">
+					<Icon type="x" size="sm" />
+				</button>
+			</div>
 		</div>
 
 		<!-- Search results -->
-		<div class="mt-4 h-full flex-1 overflow-y-auto">
+		<div class="mt-4 h-full flex-1 overflow-y-auto px-4">
 			<template v-if="isSearching">
 				<div class="flex items-center gap-2 p-2">
 					<InlineSpinner />

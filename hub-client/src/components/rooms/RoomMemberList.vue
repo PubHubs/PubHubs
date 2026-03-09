@@ -1,7 +1,7 @@
 <template>
-	<div class="flex h-full flex-col overflow-y-hidden p-4">
+	<div class="flex h-full flex-col overflow-y-hidden py-4">
 		<SidebarHeader :title="$t('rooms.members')" />
-		<div class="flex flex-1 flex-col gap-4 overflow-y-auto">
+		<div class="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
 			<!-- Contact steward card -->
 			<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="contactSteward">
 				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
