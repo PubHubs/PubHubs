@@ -156,11 +156,17 @@
 
 	function setTheme(theme: string) {
 		const html = document.documentElement;
-		if (theme === 'dark') {
-			html.classList.add('dark');
-		} else {
-			html.classList.remove('dark');
+		const isDark = theme === 'dark';
+		html.classList.toggle('dark', isDark);
+
+		const themeColor = isDark ? '#464545' : '#ffffff';
+		let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+		if (!meta) {
+			meta = document.createElement('meta');
+			meta.name = 'theme-color';
+			document.head.appendChild(meta);
 		}
+		meta.content = themeColor;
 	}
 
 	// Lifecycle hook
