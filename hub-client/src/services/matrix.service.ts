@@ -251,7 +251,10 @@ class MatrixService {
 				// The roomlist is initially send twice: on sync start and later during the sync
 				// Only handle the join when the room is not joined yet
 				if (!(this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join)) {
-					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? RoomType.PH_MESSAGES_DEFAULT;
+					// Sliding sync sends delta required_state, so the create event may be absent on subsequent updates.
+					// Fall back to the already-stored room type to avoid overwriting a DM type with the default.
+					const storedRoomType = this.roomsStore.roomList.find((r) => r.roomId === roomId)?.roomType;
+					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? storedRoomType ?? RoomType.PH_MESSAGES_DEFAULT;
 					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state, roomData.timeline));
 				}
 
