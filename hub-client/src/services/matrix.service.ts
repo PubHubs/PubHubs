@@ -1,5 +1,5 @@
 // Packages
-import { EventType, IRoomEvent, IStateEvent, type MatrixClient } from 'matrix-js-sdk';
+import { EventType, IRoomEvent, IStateEvent, type MatrixClient, RoomEvent } from 'matrix-js-sdk';
 import { MSC3575List, MSC3575RoomData, MSC3575SlidingSyncResponse, SlidingSync, SlidingSyncEvent, SlidingSyncState } from 'matrix-js-sdk/lib/sliding-sync';
 
 // Logic
@@ -21,7 +21,6 @@ import { useUser } from '@hub-client/stores/user';
  */
 class MatrixService {
 	private slidingSync: SlidingSync | null = null;
-	private client: MatrixClient | null = null;
 	private subscribedRooms: Map<string, string> = new Map<string, string>(); // TODO: Move to store
 
 	// TODO: Use room composable instead
@@ -36,9 +35,7 @@ class MatrixService {
 	 *
 	 * @param client - MatrixClient to set on the service at construction time
 	 */
-	constructor(client: MatrixClient) {
-		this.client = client;
-	}
+	constructor(private client: MatrixClient) {}
 
 	// #region Sliding Sync
 
@@ -73,6 +70,10 @@ class MatrixService {
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
 		this.slidingSync.on(SlidingSyncEvent.RoomData, this.handleRoomDataEvent);
+
+		// TODO Remove when unread notifications are better handled by sliding sync
+		// Attach event handler for the unread notifications
+		this.client.on(RoomEvent.Timeline, this.roomUnreadNotifications);
 
 		try {
 			// debug only
@@ -149,7 +150,7 @@ class MatrixService {
 		const mainRoomList = RoomLists.get(SlidingSyncOptions.mainRoomList);
 		mainRoomList!.ranges[0][1] = this.roomsUpperRange;
 
-		// change sliding sync to current mainRoomlist
+		// change sliding sync to current mainRoomlist and the allRoomList
 		this.slidingSync?.setList(SlidingSyncOptions.roomList, mainRoomList!);
 
 		// increase the upperrange for the next time
@@ -297,6 +298,17 @@ class MatrixService {
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });
 		}
+	};
+
+	/**
+	 * When all events are written a RoomEvent.TimelineEvent is send. This is the time to fetch the unread notifications
+	 * the arrow function is needed to keep the this-binding when it is called from the client-event
+	 *
+	 */
+	private roomUnreadNotifications = () => {
+		// TODO Remove when unread notifications are better handled by sliding sync
+		console.error('in matrix service: ', this.roomsStore.$id);
+		this.roomsStore?.notifyUnreadCountChanged();
 	};
 
 	// #endregion

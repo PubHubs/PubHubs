@@ -230,6 +230,7 @@ const useRooms = defineStore('rooms', {
 			});
 			return total;
 		},
+
 		roomtimestamps(state): Array<Array<number | string>> {
 			return state.timestamps;
 		},
@@ -238,6 +239,22 @@ const useRooms = defineStore('rooms', {
 	//#endregion getters
 
 	actions: {
+		// // Fetch the total of unread notifications of all rooms in the hub
+		async fetchTotalUnreadCounts(): Promise<number> {
+			await this.waitForInitialRoomsLoaded();
+
+			const pubhubs = usePubhubsStore();
+			const rooms = pubhubs.client.getRooms();
+			let unread = 0;
+			for (const roomListRoom of this.roomList) {
+				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
+				if (room) {
+					unread += room.getUnreadNotificationCount(NotificationCountType.Total);
+				}
+			}
+			return unread;
+		},
+
 		async waitForInitialRoomsLoaded(): Promise<void> {
 			while (!this.initialRoomsLoaded) {
 				await new Promise((resolve) => setTimeout(resolve, 50)); // poll every 50 ms
