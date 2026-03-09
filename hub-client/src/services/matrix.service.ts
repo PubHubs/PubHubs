@@ -238,7 +238,7 @@ class MatrixService {
 				this.roomsStore.setRoomsLoaded(true);
 				return;
 			}
-			//console.error("handleLifecycleEvent roomList", roomList);
+			console.error('handleLifecycleEvent roomList', roomList);
 
 			const joinPromises: Promise<any>[] = [];
 
@@ -292,7 +292,7 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
-			//console.error("handleroomdataevent subscriptions ", this.slidingSync?.getRoomSubscriptions());
+			console.error('handleroomdataevent subscriptions ', this.slidingSync?.getRoomSubscriptions());
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });
