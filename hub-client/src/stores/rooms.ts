@@ -105,7 +105,7 @@ const useRooms = defineStore('rooms', {
 			const user = useUser();
 			return this.roomList.filter((room) => {
 				if (room.isHidden === false && room.roomType && DirectRooms.includes(room.roomType as RoomType)) {
-					// Group DMs have user-chosen names and don't use  use name-encoding to track visibility, so always show them.
+					// Group DMs have user-chosen names and don't use name-encoding to track visibility, so always show them.
 					if (room.roomType === RoomType.PH_MESSAGES_DM) {
 						return isVisiblePrivateRoom(room.name, user.user.userId);
 					}
