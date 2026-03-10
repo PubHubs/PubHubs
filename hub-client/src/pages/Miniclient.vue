@@ -7,7 +7,7 @@
 	// Packages
 	import { RoomEvent } from 'matrix-js-sdk';
 	import { storeToRefs } from 'pinia';
-	import { onMounted, ref, watch } from 'vue';
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -57,10 +57,12 @@
 				unreadMessages.value = numberUnread;
 
 				// Watch to detect if another user has send an read receipt
-				pubhubs.client.on(RoomEvent.Receipt, () => {
-					rooms.fetchTotalUnreadCounts().then((count) => (unreadMessages.value = count));
-				});
+				pubhubs.client.on(RoomEvent.Receipt, receiptHandler);
 			});
+	});
+
+	onUnmounted(() => {
+		pubhubs.client.off(RoomEvent.Receipt, receiptHandler);
 	});
 
 	async function startMessageBox() {
@@ -68,5 +70,9 @@
 			messagebox.init(MessageBoxType.Child);
 			await messagebox.startCommunication(hubSettings.parentUrl);
 		}
+	}
+
+	async function receiptHandler() {
+		unreadMessages.value = await rooms.fetchTotalUnreadCounts();
 	}
 </script>

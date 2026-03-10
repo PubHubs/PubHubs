@@ -239,7 +239,7 @@ class MatrixService {
 				this.roomsStore.setRoomsLoaded(true);
 				return;
 			}
-			console.error('handleLifecycleEvent roomList', roomList);
+			//console.error('handleLifecycleEvent roomList', roomList);
 
 			const joinPromises: Promise<any>[] = [];
 
@@ -300,14 +300,13 @@ class MatrixService {
 		}
 	};
 
+	// TODO Remove when unread notifications are better handled by sliding sync
 	/**
 	 * When all events are written a RoomEvent.TimelineEvent is send. This is the time to fetch the unread notifications
 	 * the arrow function is needed to keep the this-binding when it is called from the client-event
 	 *
 	 */
 	private roomUnreadNotifications = () => {
-		// TODO Remove when unread notifications are better handled by sliding sync
-		console.error('in matrix service: ', this.roomsStore.$id);
 		this.roomsStore?.notifyUnreadCountChanged();
 	};
 

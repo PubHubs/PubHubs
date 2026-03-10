@@ -239,7 +239,7 @@ const useRooms = defineStore('rooms', {
 	//#endregion getters
 
 	actions: {
-		// // Fetch the total of unread notifications of all rooms in the hub
+		// Fetch the total of unread notifications of all rooms in the hub
 		async fetchTotalUnreadCounts(): Promise<number> {
 			await this.waitForInitialRoomsLoaded();
 
@@ -407,16 +407,6 @@ const useRooms = defineStore('rooms', {
 		sendUnreadMessageCounter() {
 			const messagebox = useMessageBox();
 			messagebox.sendMessage(new Message(MessageType.UnreadMessages, this.totalUnreadMessages));
-		},
-
-		unreadMessageNotification(): number {
-			if (!this.currentRoom) return 0;
-			return this.currentRoom.getRoomUnreadNotificationCount(NotificationCountType.Total);
-		},
-
-		unreadMentionNotification(): number {
-			if (!this.currentRoom) return 0;
-			return this.currentRoom.getRoomUnreadNotificationCount(NotificationCountType.Highlight);
 		},
 
 		async fetchPublicRooms(force: boolean = false) {
