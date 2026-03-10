@@ -24,9 +24,9 @@
 				<div :class="showFilter ? 'py-075 h-500 border-b px-175' : 'h-0 overflow-hidden border-0 p-0'">
 					<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-on-surface-dim" tabindex="-1" />
 				</div>
-				<div v-if="!showFilter" class="w-full items-center overflow-hidden px-175 py-100">
+				<div v-if="!showFilter" class="max-h-500 w-full items-center overflow-hidden px-175 py-100">
 					<div class="dropdown-value inline-block max-h-300 min-h-6 grow cursor-pointer" @click.stop="toggle">
-						<div v-if="model" class="text-nowrap">
+						<div v-if="model">
 							<div v-if="multiple" class="gap-050 flex max-h-300 items-center" ref="values">
 								<template v-for="(item, index) in model">
 									<div v-if="(index as number) <= model.length - moreItems" class="bg-surface-subtle inline-block rounded px-100" role="listbox">
