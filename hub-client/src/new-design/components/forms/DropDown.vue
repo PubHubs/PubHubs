@@ -20,32 +20,39 @@
 		>
 			<Label :for="id"><slot></slot></Label>
 
-			<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0">
+			<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0" ref="element">
 				<div :class="showFilter ? 'py-075 h-500 border-b px-175' : 'h-0 overflow-hidden border-0 p-0'">
 					<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-on-surface-dim" tabindex="-1" />
 				</div>
-				<div v-if="!showFilter" class="flex w-full items-center justify-start px-175 py-100">
-					<div class="dropdown-value max-h-300 min-h-6 grow cursor-pointer overflow-hidden text-nowrap" @click.stop="toggle">
-						<template v-if="model">
-							<div v-if="multiple" class="gap-050 flex max-h-300 items-center">
-								<div v-for="(item, index) in model" class="bg-surface-subtle flex items-center rounded px-100" role="listbox">
-									<div class="grow">
-										<DropDownValue :value="transform(item)"></DropDownValue>
+				<div v-if="!showFilter" class="w-full items-center overflow-hidden px-175 py-100">
+					<div class="dropdown-value inline-block max-h-300 min-h-6 grow cursor-pointer" @click.stop="toggle">
+						<div v-if="model" class="text-nowrap">
+							<div v-if="multiple" class="gap-050 flex max-h-300 items-center" ref="values">
+								<template v-for="(item, index) in model">
+									<div v-if="(index as number) <= model.length - moreItems" class="bg-surface-subtle inline-block rounded px-100" role="listbox">
+										<div class="flex items-center">
+											<div class="grow">
+												<DropDownValue :value="transform(item)"></DropDownValue>
+											</div>
+											<div class="ml-100">
+												<Icon type="x" size="sm" class="" @click.stop="removeItem(index as number)"></Icon>
+											</div>
+										</div>
 									</div>
-									<div class="ml-100">
-										<Icon type="x" size="sm" class="" @click.stop="removeItem(index)"></Icon>
-									</div>
-								</div>
+								</template>
+								<div v-if="moreItems > 0" class="bg-surface-subtle inline-block rounded px-100">+ {{ moreItems - 1 }}</div>
 							</div>
 							<DropDownValue v-else :value="transform(model)"></DropDownValue>
-						</template>
+						</div>
 						<span v-else class="text-surface-subtle">{{ placeholder }}</span>
 					</div>
-					<div v-if="model" class="dropdown-remove-all pr-075 ml-100 cursor-pointer bg-transparent" @click.stop="resetAll()">
-						<Icon type="x" size="md" class="h-200 w-200"></Icon>
-					</div>
-					<div class="dropdown-toggler cursor-pointer border-l bg-transparent" @click.stop="toggle">
-						<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
+					<div class="bg-surface-low mt-025 absolute top-300 right-0 flex h-400 items-center pr-175">
+						<div v-if="model" class="dropdown-remove-all pr-075 ml-100 cursor-pointer bg-transparent" @click.stop="resetAll()">
+							<Icon type="x" size="md" class="h-200 w-200"></Icon>
+						</div>
+						<div class="dropdown-toggler cursor-pointer border-l bg-transparent" @click.stop="toggle">
+							<Icon type="caret-down" size="md" weight="fill" class="ml-050 -mr-050"></Icon>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -69,7 +76,7 @@
 <script setup lang="ts">
 	// Packages
 	import { OnClickOutside } from '@vueuse/components';
-	import { computed, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
+	import { computed, nextTick, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
 
 	// Composables
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
@@ -119,6 +126,10 @@
 	const filter = ref('');
 	const filterEl = useTemplateRef('filterInput');
 
+	const completeEl = useTemplateRef('element');
+	const valuesEl = useTemplateRef('values');
+	const moreItems = ref(0);
+
 	onMounted(() => {
 		setItems(filteredOptions.value as Array<any>);
 		// Set selection
@@ -141,6 +152,10 @@
 		}
 		// Set cursor off until it is used
 		cursor.value = -1;
+	});
+
+	onMounted(async () => {
+		await controlMaxWidth();
 	});
 
 	// Make sure dropdown is opened when cursorkey is used
@@ -237,6 +252,7 @@
 	const removeItem = (index: number) => {
 		model.value.splice(index, 1);
 		selection.value.splice(index, 1);
+		controlMaxWidth();
 	};
 
 	const removeLast = () => {
@@ -285,6 +301,7 @@
 		resetFilter();
 		update();
 		close();
+		controlMaxWidth();
 	};
 
 	const resetAll = () => {
@@ -293,6 +310,7 @@
 		resetFilter();
 		update();
 		close();
+		controlMaxWidth();
 	};
 
 	const toggle = () => {
@@ -301,5 +319,17 @@
 
 	const close = () => {
 		open.value = false;
+	};
+
+	const controlMaxWidth = async () => {
+		moreItems.value = 0;
+		await nextTick();
+		const maxElWidth = completeEl.value?.offsetWidth! - 110;
+		let valWidth = valuesEl.value?.offsetWidth!;
+		while (valWidth > maxElWidth) {
+			moreItems.value++;
+			await nextTick();
+			valWidth = valuesEl.value?.offsetWidth!;
+		}
 	};
 </script>

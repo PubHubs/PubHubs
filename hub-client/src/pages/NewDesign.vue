@@ -234,7 +234,7 @@
 	const roomOptions = ref<TPublicRoom[]>([]);
 	const dropDownValues = reactive({
 		simple: options[0] as InputType,
-		multiple: [options[2], options[4]] as MultipleInputType,
+		multiple: [options[0], options[1], options[2]] as MultipleInputType,
 		simpleIcon: iconOptions[0] as InputType,
 		multipleIcons: [iconOptions[0], iconOptions[4]] as MultipleInputType,
 	});
