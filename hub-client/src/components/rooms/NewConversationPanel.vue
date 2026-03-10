@@ -1,8 +1,8 @@
 <template>
-	<div class="flex h-full w-full flex-col overflow-hidden p-4" data-testid="sidekick">
+	<div class="flex h-full w-full flex-col overflow-hidden py-4" data-testid="sidekick">
 		<SidebarHeader v-if="!groupPanel" :title="t('others.new_message')" />
 		<div class="flex min-h-0 flex-1 flex-col">
-			<div v-if="!groupPanel" class="flex shrink-0 flex-col gap-2">
+			<div v-if="!groupPanel" class="flex shrink-0 flex-col gap-2 px-4">
 				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
 					<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
 					<input type="text" v-model="userFilter" :placeholder="t('others.search')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
@@ -11,7 +11,7 @@
 					<Icon type="plus"></Icon> {{ t('others.new_group') }}
 				</Button>
 			</div>
-			<div v-else class="flex flex-col gap-2">
+			<div v-else class="flex flex-col gap-2 px-4">
 				<div class="bg-surface-high flex items-center justify-between rounded-md px-3 py-2">
 					<Icon type="arrow-left" class="cursor-pointer" @click="groupProfile ? backToGroupPanel() : (groupPanel = false)" />
 					<span class="text-label-small mr-auto pl-2">
@@ -63,7 +63,7 @@
 				</Button>
 			</div>
 
-			<div v-if="!groupProfile" class="mt-4 grow overflow-y-auto">
+			<div v-if="!groupProfile" class="mt-4 grow overflow-y-auto px-4">
 				<!-- Admin contact -->
 				<div v-if="!userStore.isAdmin && !groupPanel" class="mb-4">
 					<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="handleAdminContact">
