@@ -31,7 +31,7 @@ const useDropDownData = () => {
 			displayname = (user as TUser).rawDisplayName as string;
 		} else {
 			userId = (user as TUserAccount).name;
-			displayname = (user as TUserAccount).displayname;
+			displayname = (user as TUserAccount).displayname || userId;
 		}
 		let avatar = userStore.userAvatar(userId);
 		if (typeof avatar === 'undefined') avatar = '';
@@ -68,6 +68,7 @@ const useDropDownData = () => {
 				return !excludeUserIds.includes(user.name);
 			});
 		}
+		users.push({ name: 'bla', displayname: null, avatar_url: null });
 		return users;
 	};
 
