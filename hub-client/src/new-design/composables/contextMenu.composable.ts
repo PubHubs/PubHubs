@@ -1,7 +1,7 @@
+// New design
 // Models
 import { SystemDefaults } from '@hub-client/models/constants';
 
-// New design
 import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
@@ -23,13 +23,18 @@ export function useContextMenu() {
 		evt.stopPropagation();
 
 		if (isTouch) {
+			const layoutRoot = document.getElementById('layout-root');
+			if (layoutRoot) layoutRoot.style.overflowX = 'hidden';
+
 			longPressTimer = setTimeout(() => {
 				openMenuAtEvent(evt, items, targetId);
+				if (layoutRoot) layoutRoot.style.overflowX = '';
 			}, SystemDefaults.longPressDuration);
 
 			const clearTimer = () => {
 				if (longPressTimer) clearTimeout(longPressTimer);
 				longPressTimer = null;
+				if (layoutRoot) layoutRoot.style.overflowX = '';
 				window.removeEventListener('touchend', clearTimer);
 				window.removeEventListener('touchmove', clearTimer);
 			};

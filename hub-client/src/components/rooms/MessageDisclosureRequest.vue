@@ -72,7 +72,7 @@
 	}
 
 	function finishDisclosure(result: YiviSigningSessionResult) {
-		pubhubs.addDisclosedMessage(discosureRequest.replyToRoomId, result, undefined);
+		pubhubs.addDisclosedMessage(rooms.currentRoom?.roomId!, result, undefined);
 		disclosed.value = false;
 	}
 </script>

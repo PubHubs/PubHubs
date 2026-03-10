@@ -1,7 +1,7 @@
 <template>
-	<div class="flex h-full w-full flex-col p-4">
+	<div class="flex h-full w-full flex-col py-4">
 		<SidebarHeader :title="t('roomlibrary.library')" />
-		<div class="flex flex-1 flex-col gap-4 overflow-auto">
+		<div class="flex flex-1 flex-col gap-4 overflow-auto px-4">
 			<!-- Upload area -->
 			<div class="w-full">
 				<DropFiles></DropFiles>

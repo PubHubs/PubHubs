@@ -370,12 +370,16 @@ async fn main_integration_test_local(
         "0645678901",
     )
     .await;
-    assert!(attrs
-        .get::<handle::Handle>(&"email".parse().unwrap())
-        .is_some());
-    assert!(attrs
-        .get::<handle::Handle>(&"phone".parse().unwrap())
-        .is_some());
+    assert!(
+        attrs
+            .get::<handle::Handle>(&"email".parse().unwrap())
+            .is_some()
+    );
+    assert!(
+        attrs
+            .get::<handle::Handle>(&"phone".parse().unwrap())
+            .is_some()
+    );
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
@@ -1027,6 +1031,7 @@ async fn request_attributes(
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
                 attr_type_choices: Default::default(),
                 yivi_chained_session: false,
+                yivi_chained_session_drip: false,
             },
         )
         .await
@@ -1120,6 +1125,7 @@ async fn request_attributes_chained(
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
                 attr_type_choices: Default::default(),
                 yivi_chained_session: true,
+                yivi_chained_session_drip: false,
             },
         )
         .await
@@ -1259,6 +1265,7 @@ async fn test_chained_session_expiry(
                     attr_types: vec!["email".parse().unwrap()],
                     attr_type_choices: Default::default(),
                     yivi_chained_session: true,
+                    yivi_chained_session_drip: false,
                 },
             )
             .await
@@ -1310,6 +1317,7 @@ async fn test_chained_session_expiry(
                     attr_types: vec!["email".parse().unwrap()],
                     attr_type_choices: Default::default(),
                     yivi_chained_session: true,
+                    yivi_chained_session_drip: false,
                 },
             )
             .await

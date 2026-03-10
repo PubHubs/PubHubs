@@ -54,7 +54,6 @@
 
                 # Node
                 nodejs # 24.13.0
-                nodePackages.sass # 1.85.1
 
                 # Python
                 python3 # 3.13.11

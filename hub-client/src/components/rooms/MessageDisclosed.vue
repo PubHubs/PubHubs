@@ -31,7 +31,7 @@
 				<img class="h-[1.75rem]" src="@hub-client/assets/yivi-logo.svg" alt="Yivi" />
 				<div class="flex flex-wrap items-center gap-2 break-all">
 					<div v-for="attribute in getDisclosedAttributes(message)" :key="attribute.id" class="Wrounded-md flex flex-col items-start text-black">
-						<H3>{{ capitalizeFirstLetter(t('attribute.' + attribute.id)) }}</H3>
+						<H3>{{ capitalize(t('attribute.' + attribute.id)) }}</H3>
 						<P>{{ attribute.rawvalue }}</P>
 					</div>
 				</div>
@@ -47,14 +47,11 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, ref } from 'vue';
+	import { capitalize, computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-
-	// Logic
-	import { capitalizeFirstLetter } from '@hub-client/logic/stringHandlers';
 
 	// Models
 	import { SignedMessage, getDisclosedAttributes, getMessage } from '@hub-client/models/components/signedMessages';

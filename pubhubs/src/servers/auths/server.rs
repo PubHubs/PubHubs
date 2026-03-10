@@ -6,7 +6,7 @@ use std::rc::Rc;
 use actix_web::web;
 use sha2::digest::Digest as _;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
+use crate::servers::{self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
     api::{self, EndpointDetails as _},
     attr,
@@ -126,12 +126,20 @@ pub(super) struct AuthState {
     /// When this request expires
     pub exp: api::NumericDate,
 
-    pub yivi_chained_session_id: Option<id::Id>,
+    /// Set when [`api::auths::AuthStartReq::yivi_chained_session`] is enabled.
+    pub yivi_chained_session: Option<ChainedSessionSetup>,
 
     /// Under [`attr::Source::Yivi`] this will contain for each `AuthState::attr_type_choice`
     /// a map using which the original [`attr::Type`] handle can be recovered from the yivi
     /// attribute type identifier.
     pub yivi_ati2at: Vec<HashMap<yivi::AttributeTypeIdentifier, handle::Handle>>,
+}
+
+/// Type of [`AuthState::yivi_chained_session`].
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub(super) struct ChainedSessionSetup {
+    pub id: id::Id,
+    pub drip: bool,
 }
 
 impl AuthState {

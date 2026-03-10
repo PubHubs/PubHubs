@@ -340,12 +340,6 @@
 	onMounted(async () => {
 		window.addEventListener('resize', handleResize);
 
-		await startYiviSessionMSS();
-
-		window.addEventListener('pageshow', async () => {
-			await startYiviSessionMSS();
-		});
-
 		watch(
 			isMobile,
 			() => {
@@ -353,6 +347,12 @@
 			},
 			{ immediate: true },
 		);
+
+		await startYiviSessionMSS();
+
+		window.addEventListener('pageshow', async () => {
+			await startYiviSessionMSS();
+		});
 	});
 
 	onUnmounted(() => {

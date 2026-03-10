@@ -1,5 +1,5 @@
 <template>
-	<div id="layout-root" class="bg-background font-body text-on-surface text-body flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth">
+	<div id="layout-root" class="bg-background font-body text-on-surface text-body no-scrollbar flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth">
 		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
 		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
@@ -156,11 +156,17 @@
 
 	function setTheme(theme: string) {
 		const html = document.documentElement;
-		if (theme === 'dark') {
-			html.classList.add('dark');
-		} else {
-			html.classList.remove('dark');
+		const isDark = theme === 'dark';
+		html.classList.toggle('dark', isDark);
+
+		const themeColor = isDark ? '#464545' : '#ffffff';
+		let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+		if (!meta) {
+			meta = document.createElement('meta');
+			meta.name = 'theme-color';
+			document.head.appendChild(meta);
 		}
+		meta.content = themeColor;
 	}
 
 	// Lifecycle hook

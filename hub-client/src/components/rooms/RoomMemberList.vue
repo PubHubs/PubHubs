@@ -1,7 +1,7 @@
 <template>
-	<div class="flex h-full flex-col overflow-y-hidden p-4">
+	<div class="flex h-full flex-col overflow-y-hidden py-4">
 		<SidebarHeader :title="$t('rooms.members')" />
-		<div class="flex flex-1 flex-col gap-4 overflow-y-auto">
+		<div class="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
 			<!-- Contact steward card -->
 			<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="contactSteward">
 				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
@@ -13,25 +13,27 @@
 				</div>
 			</div>
 
-			<div v-if="stewardIds && stewardIds.length > 0" class="pb-4">
+			<div v-if="stewardList && stewardList.length > 0" class="pb-4">
 				<SideKickSubHeader>
 					<div class="flex justify-between">
 						<div class="capitalize">{{ $t('rooms.stewards') }}</div>
 						<div class="flex items-center gap-2">
-							<div>{{ stewardIds.length }}</div>
+							<div>{{ stewardList.length }}</div>
 							<Icon type="user"></Icon>
 						</div>
 					</div>
 				</SideKickSubHeader>
 				<div
-					v-for="stewardId in stewardIds"
-					:key="stewardId"
+					v-for="steward in stewardList"
+					:key="steward.userId"
 					class="flex w-full items-center gap-2 rounded-md p-2"
-					:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === stewardId && 'bg-surface-low'"
-					v-context-menu="stewardId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(stewardId) }], stewardId) : undefined"
+					:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-low'"
+					v-context-menu="
+						steward.userId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(steward.userId) }], steward.userId) : undefined
+					"
 				>
-					<Avatar :avatar-url="user.userAvatar(stewardId)" :userId="stewardId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
-					<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)" :enableDM="false"></UserDisplayName>
+					<Avatar :avatar-url="user.userAvatar(steward.userId)" :userId="steward.userId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
+					<UserDisplayName :userId="steward.userId" :user-display-name="user.userDisplayName(steward.userId)" :enableDM="false"></UserDisplayName>
 				</div>
 			</div>
 
@@ -72,6 +74,8 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
+	// Logic
+	import { useAdminDashboard } from '@hub-client/composables/dashboard/admin.composable';
 	// Composables
 	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 
@@ -93,6 +97,8 @@
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
 
+	const { stewardList, getStewardsInRoom } = useAdminDashboard();
+
 	const props = defineProps({
 		room: {
 			type: Room,
@@ -108,30 +114,16 @@
 		return props.room.getStateJoinedMembers().filter((m) => !m.state_key.startsWith('@notices_user:'));
 	});
 
-	function filterMembersByPowerLevel(min: number, max: number) {
-		return realMembers.value
-			.filter(({ sender }) => {
-				const powerLevel = props.room.getStateMemberPowerLevel(sender);
-				return powerLevel !== null && powerLevel >= min && powerLevel <= max;
-			})
-			.map(({ sender }) => sender);
-	}
-
-	const stewardIds = computed(() => {
-		if (props.room.isDirectMessageRoom()) return [];
-		return filterMembersByPowerLevel(50, 99);
-	});
-
 	const memberIds = computed(() => {
 		if (props.room.isDirectMessageRoom()) {
 			return [...new Set(realMembers.value.map((x) => x.sender))];
 		}
-		// Admins (100) and regular users (0-49) are shown as members; stewards (50-99) are separate
-		return [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])];
+		const stewards = getStewardsInRoom() ?? [];
+		return realMembers.value.filter((member) => !stewards.map((stewardId) => stewardId.userId).includes(member.sender)).map((member) => member.sender);
 	});
 
 	async function contactSteward() {
-		const stewards = props.room.getRoomStewards();
+		const stewards = getStewardsInRoom() ?? [];
 		const stewardIds = stewards.map((steward) => steward.userId);
 		await rooms.createStewardRoomOrModify(props.room.roomId, stewardIds);
 	}

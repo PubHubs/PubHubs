@@ -202,7 +202,7 @@
 			return roomAdminStatus.value[roomId];
 		}
 		// Fallback to local room data if available
-		return rooms.room(roomId)?.getUserPowerLevel(userId) == 100 || false;
+		return rooms.room(roomId)?.getStateMemberPowerLevel(userId) == 100 || false;
 	}
 
 	async function makeRoomAdmin(roomId: string, userId: string): Promise<void | Error> {

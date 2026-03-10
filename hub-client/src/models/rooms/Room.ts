@@ -329,11 +329,27 @@ export default class Room {
 		return this.stateEvents.filter((item) => item.content.membership === 'join' || item.content.membership === 'invite') as RoomMemberStateEvent[];
 	}
 
-	public getStateMemberPowerLevel(userId: string): number | null {
+	public getStateMemberPowerLevel(userId: string | null): number {
+		if (!userId) return 0;
 		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
 
-		if (!event) return null;
+		if (!event) return 0;
 		return event.content.users[userId] ?? event.content.users_default;
+	}
+	public getStatePowerLevel() {
+		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
+		if (!event) return null;
+		return event;
+	}
+	private updatePowerLevelEvent(powerLevelEvents: MatrixEvent[]) {
+		if (powerLevelEvents && powerLevelEvents.length > 0) {
+			this.stateEvents = this.stateEvents.map((state) => {
+				if (state.type === EventType.RoomPowerLevels) {
+					return powerLevelEvents[powerLevelEvents.length - 1].event as IStateEvent;
+				}
+				return state;
+			});
+		}
 	}
 
 	// End of sliding sync state methods //
@@ -647,7 +663,6 @@ export default class Room {
 		const eventList = roomData.timeline.map((event) => {
 			return new MatrixEvent(event);
 		});
-
 		// BEGIN THREADS
 		// Threads are kept on room-level, so all events regarding the current thread need to be filtered and handled first.
 
@@ -691,6 +706,11 @@ export default class Room {
 		// END THREADS
 
 		const nonCurrentThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
+
+		// Update power levels so that steward promotions and demotions are quickly updated for all users
+		const powerLevelEvents = nonCurrentThreadEvents.filter((x) => x.getType() === 'm.room.power_levels');
+		this.updatePowerLevelEvent(powerLevelEvents);
+
 		this.timelineManager.loadFromSlidingSync(nonCurrentThreadEvents).then((scrollToEventId) => {
 			if (scrollToEventId) {
 				this.setCurrentEvent({ eventId: scrollToEventId });
@@ -775,20 +795,6 @@ export default class Room {
 
 	public getTimelineNewestMessageId(): string | undefined {
 		return this.timelineManager?.getTimelineNewestMessageId();
-	}
-
-	public getUserPowerLevel(userId: string | null): number {
-		const timeline = this.matrixRoom.getLiveTimeline();
-		if (timeline !== undefined && userId) {
-			const powerLevelsEvent = timeline.getState(EventTimeline.FORWARDS)?.getStateEvents('m.room.power_levels', '');
-			// If there is no power level then we return a -1 - An arbitrary number that is not a power level.
-			// This should indicate that there is no power level event in the room hence an issue from synapse side.
-			if (!powerLevelsEvent) return -1;
-			const powerLevels = powerLevelsEvent.getContent();
-
-			return powerLevels.users[userId];
-		}
-		return 0;
 	}
 
 	// TODO update this so redactedEventIds is not used anymore. Now only reactions use these for when deleting reactions

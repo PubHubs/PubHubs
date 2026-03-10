@@ -111,6 +111,15 @@ pub struct AuthStartReq {
     #[serde(default)]
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub yivi_chained_session: bool,
+
+    /// Whether to slowly feed the waiting yivi server spaces `" "`, so we can detect when a Yivi
+    /// server disconnects.  When `yivi_chained_session_drip` is enabled, we must immediately
+    /// return a status code to the Yivi server, and so [`YiviReleaseNextSessionReq::next_session`] can
+    /// not be `None`.  This means that using drip we commit to having a next session (e.g. issuing
+    /// a PubHubs card).
+    #[serde(default)]
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub yivi_chained_session_drip: bool,
 }
 
 /// Response to [`AuthStartEP`]
@@ -401,12 +410,16 @@ pub struct YiviReleaseNextSessionReq {
 
     /// Instructs the authentication server on what next session (if any) to start at the yivi server.
     ///
-    /// If `None`  the yivi server will be served a `HTTP 204` causing it to stop the yivi flow
+    /// If `None` the yivi server will be served a `HTTP 204` causing it to stop the yivi flow
     /// normally without opening a follow-up session.
     ///
     /// Otherwise it must be some signed session request that will be passed to yivi server.
     /// This session request must be signed by the authentication server's yivi requestor credentials,
     /// for example, [`CardResp::Success::issuance_request`].
+    ///
+    /// The value `None` is not permitted when [`AuthStartReq::yivi_chained_session_drip`]
+    /// was set (because in that case the HTTP status code `200` has already been sent to the Yivi server.)
+    /// If `None` is submitted anyway, this causes an `ErrorCode::BadRequest`.
     pub next_session: Option<jwt::JWT>,
 }
 
@@ -428,7 +441,10 @@ pub enum YiviReleaseNextSessionResp {
     /// internet connection.
     SessionGone,
 
-    /// Trying to release a yivi servder that's not there yet.  You should first call the
+    /// The request seems fine, but the Yivi server is gone, perhaps because it timed out.
+    YiviServerGone,
+
+    /// Trying to release a yivi server that's not there yet.  You should first call the
     /// [`YiviWaitForResultEP`] endpoint to make sure the yivi server is there.
     TooEarly,
 }
