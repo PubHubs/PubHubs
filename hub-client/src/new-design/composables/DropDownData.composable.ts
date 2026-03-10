@@ -68,7 +68,6 @@ const useDropDownData = () => {
 				return !excludeUserIds.includes(user.name);
 			});
 		}
-		users.push({ name: 'bla', displayname: null, avatar_url: null });
 		return users;
 	};
 
