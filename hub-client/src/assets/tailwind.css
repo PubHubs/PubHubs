@@ -195,6 +195,8 @@
 	--spacing-600: 48px;
 	--spacing-800: 64px;
 	--spacing-1000: 80px;
+	--spacing-2000: 160px;
+	--spacing-3000: 240px;
 	--spacing-4000: 320px;
 
 	--text-*: initial;

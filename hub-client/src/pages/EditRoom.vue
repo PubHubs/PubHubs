@@ -64,10 +64,13 @@
 
 										<Label>{{ t('admin.secured_values') }}</Label>
 										<div class="bg-on-surface-disabled mb-100 rounded p-100">
-											<div v-if="selectedAttributes[activeTab - 1].accepted.length > 0" class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 flex w-full justify-start gap-100 rounded outline">
-												<span v-for="(value, index) in selectedAttributes[activeTab - 1].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center truncate rounded-xl px-2 py-1">
+											<div
+												v-if="selectedAttributes[activeTab - 1].accepted.length > 0"
+												class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 gap-050 flex max-h-2000 w-full flex-wrap justify-start overflow-y-scroll rounded outline"
+											>
+												<span v-for="(value, index) in selectedAttributes[activeTab - 1].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center rounded-xl px-100">
 													{{ value }}
-													<IconButton size="sm" icon="trash" class="text-on-accent-red ml-025" @click="selectedAttributes[activeTab - 1].accepted.splice(index, 1)" title="remove value"></IconButton>
+													<IconButton size="sm" icon="trash" class="text-on-accent-red m-0" @click="selectedAttributes[activeTab - 1].accepted.splice(index, 1)" title="remove value"></IconButton>
 												</span>
 											</div>
 
