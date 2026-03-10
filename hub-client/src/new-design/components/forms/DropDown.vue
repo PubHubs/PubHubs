@@ -17,6 +17,7 @@
 				close();
 			"
 			@keydown="focusFilter($event)"
+			:title="textValue"
 		>
 			<Label :for="id"><slot></slot></Label>
 
@@ -214,6 +215,20 @@
 		setItems(filtered as Array<any>);
 		cursor.value = -1;
 		return filtered;
+	});
+
+	const textValue = computed(() => {
+		if (!model.value) return '';
+		if (props.multiple) {
+			const texts = model.value.map((element: any) => {
+				const value = transform(element);
+				return value.label || value;
+			});
+			return texts.join(' | ');
+		} else {
+			const value = transform(model.value);
+			return value.label || value;
+		}
 	});
 
 	const showFilter = computed(() => {

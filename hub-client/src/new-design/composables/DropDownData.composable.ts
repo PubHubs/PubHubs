@@ -26,29 +26,44 @@ const useDropDownData = () => {
 		const userStore = useUser();
 		let userId = '';
 		let displayname = '';
-		if (user.userId) {
-			userId = (user as TUser).userId;
-			displayname = (user as TUser).rawDisplayName as string;
+		if (!user) {
+			return {
+				value: '',
+				label: '',
+				data: undefined,
+			};
 		} else {
-			userId = (user as TUserAccount).name;
-			displayname = (user as TUserAccount).displayname || userId;
+			if (user.userId) {
+				userId = (user as TUser).userId;
+				displayname = (user as TUser).rawDisplayName as string;
+			} else {
+				userId = (user as TUserAccount).name;
+				displayname = (user as TUserAccount).displayname || userId;
+			}
+			let avatar = userStore.userAvatar(userId);
+			if (typeof avatar === 'undefined') avatar = '';
+			return {
+				value: userId,
+				label: displayname,
+				avatar: avatar,
+				data: user,
+			};
 		}
-		let avatar = userStore.userAvatar(userId);
-		if (typeof avatar === 'undefined') avatar = '';
-		return {
-			value: userId,
-			label: displayname,
-			avatar: avatar,
-			data: user,
-		};
 	};
 
 	const transformRoom = (room: TPublicRoom): FieldOption => {
+		if (room) {
+			return {
+				value: room.room_id,
+				label: room.name as string,
+				icon: room.room_type === RoomType.PH_MESSAGES_RESTRICTED ? 'shield' : 'chats-circle',
+				data: room,
+			};
+		}
 		return {
-			value: room.room_id,
-			label: room.name as string,
-			icon: room.room_type === RoomType.PH_MESSAGES_RESTRICTED ? 'shield' : 'chats-circle',
-			data: room,
+			value: '',
+			label: '',
+			data: undefined,
 		};
 	};
 
