@@ -5,7 +5,9 @@
 
 <script setup lang="ts">
 	// Packages
-	import { onMounted, ref, watch } from 'vue';
+	import { RoomEvent } from 'matrix-js-sdk';
+	import { storeToRefs } from 'pinia';
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -24,32 +26,43 @@
 
 	const hubSettings = useHubSettings();
 	const messagebox = useMessageBox();
-	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
+	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const { locale, availableLocales } = useI18n();
 
 	let unreadMessages = ref<number>(0);
 
-	watch(
-		() => rooms.totalUnreadMessages,
-		(value: number, oldValue: number) => {
-			unreadMessages.value = rooms.totalUnreadMessages;
-			// A notification should only be sent when the unread message counter increases, not when it decreases due to reading messages.
-			if (oldValue < value) {
-				rooms.sendUnreadMessageCounter();
-			}
-		},
-	);
+	const { unreadCountVersion } = storeToRefs(rooms);
+
+	/**
+	 * Watch to detect changes in unread count that come from the sliding sync.
+	 * When another user posts a new message into a room.
+	 */
+	watch(unreadCountVersion, async () => {
+		unreadMessages.value = await rooms.fetchTotalUnreadCounts();
+	});
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 
-		await startMessageBox();
+		// Startup, login, fetch the initial unread count, set watch for read receipt event
+		startMessageBox()
+			.then(() => pubhubs.login())
+			.then(() => rooms.fetchTotalUnreadCounts())
+			.then((numberUnread) => {
+				LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted done');
+				unreadMessages.value = numberUnread;
 
-		LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted done');
+				// Watch to detect if another user has send an read receipt
+				pubhubs.client.on(RoomEvent.Receipt, receiptHandler);
+			});
+	});
+
+	onUnmounted(() => {
+		pubhubs.client.off(RoomEvent.Receipt, receiptHandler);
 	});
 
 	async function startMessageBox() {
@@ -59,5 +72,7 @@
 		}
 	}
 
-	pubhubs.login();
+	async function receiptHandler() {
+		unreadMessages.value = await rooms.fetchTotalUnreadCounts();
+	}
 </script>

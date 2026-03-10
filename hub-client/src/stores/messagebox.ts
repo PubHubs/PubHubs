@@ -89,7 +89,7 @@ enum MessageType {
 /**
  * A message is an object with:
  *
- *  - type - a MessageType. Only messages wit a known type can be send and received. Also a callback can be set to a certain message type.
+ *  - type - a MessageType. Only messages with a known type can be send and received. Also a callback can be set to a certain message type.
  *  - content - can be anything
  */
 class Message {
