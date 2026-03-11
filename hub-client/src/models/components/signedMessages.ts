@@ -1,3 +1,5 @@
+import { Attribute } from '../yivi/Tyivi';
+
 type DisclosedAttribute = {
 	id: string;
 	issuancetime: number;
@@ -16,10 +18,10 @@ export type DisclosureAttribute = {
 };
 
 export type AskDisclosure = {
-	user: { userId: string; displayName?: string }; // subset of MatrixUser
+	user: { name: string; displayname?: string }; // subset of TUserAccount
 	message: string;
-	attributes: string[];
-	where_room: string;
+	attributes: Attribute[];
+	where_room: { room_id: string; name: string }; // subset of PublicRoom
 };
 
 export type AskDisclosureMessage = {

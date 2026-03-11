@@ -1,3 +1,4 @@
+// Models
 // Packages
 import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -19,7 +20,6 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
-// Models
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { SystemDefaults } from '@hub-client/models/constants';
@@ -444,14 +444,17 @@ const usePubhubsStore = defineStore('pubhubs', {
 			} else {
 				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
 			}
+
 			// Try joining existing by renaming
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
 				const rooms = useRooms();
 				let name = rooms.room(existingRoomId)?.name;
 				if (name) {
 					name = updatePrivateRoomName(name, me.userId, false);
-					this.renameRoom(existingRoomId, name);
+				} else {
+					name = createNewPrivateRoomName([me.userId, ...otherUsers]);
 				}
+				this.renameRoom(existingRoomId, name);
 				return { room_id: existingRoomId };
 			}
 

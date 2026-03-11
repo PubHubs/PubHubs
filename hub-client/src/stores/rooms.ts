@@ -195,6 +195,12 @@ const useRooms = defineStore('rooms', {
 			return Object.keys(state.publicRooms).length > 0;
 		},
 
+		getPublicRoom: (state) => {
+			return (roomId: string): TPublicRoom | undefined => {
+				return state.publicRooms.find((room) => room.room_id === roomId);
+			};
+		},
+
 		nonSecuredPublicRooms(state): Array<TPublicRoom> {
 			return state.publicRooms.filter((room: TPublicRoom) => {
 				return room.room_type === undefined || room.room_type !== RoomType.PH_MESSAGES_RESTRICTED;
@@ -217,6 +223,16 @@ const useRooms = defineStore('rooms', {
 		// TODO sort securedRooms on adding, so sorting takes place only once
 		sortedSecuredRooms(state): Array<TSecuredRoom> {
 			return state.securedRooms.sort(propCompare('room_name'));
+		},
+
+		securedRoom: (state) => {
+			return (roomId: string): TSecuredRoom | undefined => {
+				const index = state.securedRooms.findIndex((r) => r.room_id === roomId);
+				if (index >= 0) {
+					return state.securedRooms[index];
+				}
+				return undefined;
+			};
 		},
 
 		totalUnreadMessages(): number {

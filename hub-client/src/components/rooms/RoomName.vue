@@ -21,12 +21,6 @@
 
 	// The general room name is of the form #General:<server_name>.
 	const name = computed(() => {
-		if (props.room?.name.startsWith('#General:')) {
-			return t('rooms.name_general_room');
-		} else if (props.room?.name.startsWith('#Feedback:')) {
-			return t('rooms.name_feedback_room');
-		} else {
-			return props.room?.name;
-		}
+		return props.room?.name;
 	});
 </script>

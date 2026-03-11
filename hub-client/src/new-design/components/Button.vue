@@ -1,7 +1,6 @@
 <template>
 	<button
-		v-bind="attrs"
-		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-3000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-4000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:aria-busy="loading ? 'true' : undefined"
 		:aria-disabled="disabled || loading ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
@@ -48,21 +47,18 @@
 		secondary: 'bg-surface-base text-on-surface ring-button-blue hover:opacity-75',
 		tertiary: 'outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
 		error: 'bg-button-red text-on-button-red ring-on-accent-error hover:opacity-75',
-		primaryIcon: 'text-button-blue ring-on-accent-primary hover:opacity-75 min-h-300! h-300! w-300!',
-		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300! h-300! w-300!',
+		primaryIcon: 'text-button-blue ring-on-accent-primary hover:opacity-75 min-h-300 h-300! w-300!',
+		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
 	} as const;
 	export type TVariant = keyof typeof buttonVariants;
 </script>
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, useAttrs, useSlots } from 'vue';
+	import { computed, onMounted, useSlots } from 'vue';
 
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
-
-	const attrs = useAttrs();
-	const slots = useSlots();
 
 	// Props
 	const props = withDefaults(
@@ -76,6 +72,7 @@
 			type?: 'button' | 'submit' | 'reset';
 			ariaLabel?: string;
 			loading?: boolean;
+			nofocus?: boolean;
 		}>(),
 		{
 			variant: 'primary',
@@ -83,10 +80,12 @@
 			type: 'button',
 			size: '',
 			loading: false,
+			nofocus: false,
 		},
 	);
 
-	// Computed props
+	const slots = useSlots();
+
 	const isIconOnly = computed(() => !slots.default && props.icon);
 
 	const iconSize = computed(() => {
@@ -113,8 +112,9 @@
 
 	const computedClasses = computed(() => {
 		const variantClass = buttonVariants[props.variant ?? 'primary'];
+		const focusClass = props.nofocus ? '' : 'focus:ring-3 focus:outline-none';
 		const iconClass = isIconOnly.value ? 'min-w-550 w-550 px-100' : 'min-w-1000 px-150'; // Required to make the icon-only button look square
-		return [variantClass, iconClass];
+		return [variantClass, iconClass, focusClass];
 	});
 
 	//  Lifecycle
@@ -135,7 +135,7 @@
 	onMounted(() => {
 		if (process.env.NODE_ENV !== 'production') {
 			if (isIconOnly.value && !props.ariaLabel && !props.title) {
-				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot.');
+				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot. [', props.type, props.variant, props.icon, ']');
 			}
 		}
 	});

@@ -25,6 +25,7 @@ const twClass = {
 
 const clickOutside = {
 	beforeMount(el: any, binding: any) {
+		console.info('clickOutside', el, binding);
 		el.clickOutsideEvent = function (event: Event) {
 			// Check if the clicked element is neither the element
 			// to which the directive is applied nor its child

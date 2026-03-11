@@ -9,10 +9,12 @@
 				</div>
 			</div>
 		</template>
-		<Tabs class="p-3 md:p-4">
+		<Tabs class="p-3 md:p-4" :open-tab="tab ? tab : 1">
 			<TabHeader>
-				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
-				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
+				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(1)">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newPublicRoom()" /></TabPill>
+				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(2)"
+					>{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newSecuredRoom()"
+				/></TabPill>
 			</TabHeader>
 			<TabContainer>
 				<TabContent>
@@ -81,10 +83,6 @@
 				</TabContent>
 			</TabContainer>
 		</Tabs>
-
-		<template #footer>
-			<EditRoomForm v-if="showEditRoom" :room="editRoom" :secured="secured" @close="closeEdit()" />
-		</template>
 	</HeaderFooter>
 </template>
 
@@ -96,7 +94,6 @@
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import EditRoomForm from '@hub-client/components/rooms/EditRoomForm.vue';
 	import FilteredList from '@hub-client/components/ui/FilteredList.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import TabContainer from '@hub-client/components/ui/TabContainer.vue';
@@ -107,6 +104,7 @@
 
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiHubManagement';
+	import { router } from '@hub-client/logic/core/router';
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
@@ -123,9 +121,7 @@
 	const user = useUser();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
-	const editRoom = ref({} as TSecuredRoom | TPublicRoom);
 	const secured = ref(false);
-	const showEditRoom = ref(false);
 	const showPastMemberPanel = ref(false);
 	const currentRoomId = ref('');
 	const settings = useSettings();
@@ -135,8 +131,11 @@
 	const nonSecuredPublicRooms = computed(() => rooms.nonSecuredPublicRooms);
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
 
+	// Passed by the router
+	const props = defineProps({ tab: String });
+
 	onMounted(async () => {
-		await rooms.fetchPublicRooms();
+		await rooms.fetchPublicRooms(true);
 		await rooms.fetchSecuredRooms();
 		await fetchAdminStatusForRooms();
 	});
@@ -156,35 +155,19 @@
 	}
 
 	function newPublicRoom() {
-		secured.value = false;
-		showEditRoom.value = true;
+		router.push({ name: 'editroom', params: { id: 'new_room' } });
 	}
 
 	function newSecuredRoom() {
-		secured.value = true;
-		showEditRoom.value = true;
+		router.push({ name: 'editroom', params: { id: 'new_secured_room' } });
 	}
 
 	function editPublicRoom(room: TPublicRoom) {
-		editRoom.value = room;
-		secured.value = false;
-		showEditRoom.value = true;
+		router.push({ name: 'editroom', params: { id: room.room_id } });
 	}
 
 	function EditSecuredRoom(room: TSecuredRoom) {
-		editRoom.value = room;
-		secured.value = true;
-		showEditRoom.value = true;
-	}
-
-	async function closeEdit() {
-		editRoom.value = {} as TSecuredRoom;
-		secured.value = false;
-		showEditRoom.value = false;
-
-		await rooms.fetchPublicRooms(true);
-		await rooms.fetchSecuredRooms();
-		await fetchAdminStatusForRooms();
+		router.push({ name: 'editroom', params: { id: room.room_id } });
 	}
 
 	async function removePublicRoom(room: TPublicRoom) {
@@ -250,6 +233,10 @@
 		}
 		await pubhubs.joinRoom(roomId);
 		roomAdminStatus.value[roomId] = true;
+	}
+
+	function updateTabInUrl(tab: number) {
+		router.replace({ name: 'admin', params: { tab: tab } });
 	}
 
 	function closeForm() {
