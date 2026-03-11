@@ -40,7 +40,7 @@ function useRoles() {
 	};
 
 	const userRole = (roomId: string | undefined = undefined): UserRole => {
-		if (userIsSuperAdmin()) return UserRole.Admin;
+		if (userIsHubAdmin()) return UserRole.Admin;
 		const powerLevel = userPowerLevel(roomId);
 		return getRoleByPowerLevel(powerLevel);
 	};
@@ -50,7 +50,7 @@ function useRoles() {
 		return role === userRole(roomId);
 	};
 
-	const userIsSuperAdmin = (): boolean => {
+	const userIsHubAdmin = (): boolean => {
 		return userStore.isAdmin;
 	};
 
@@ -83,7 +83,7 @@ function useRoles() {
 	return {
 		currentRoomId,
 		getRoleByPowerLevel,
-		userIsSuperAdmin,
+		userIsHubAdmin,
 		userIsAdmin,
 		userIsSuperSteward,
 		userIsSteward,
