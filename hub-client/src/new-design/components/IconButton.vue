@@ -1,26 +1,30 @@
 <template>
-	<Button :variant="computedVariant" :icon="icon" :disabled="disabled" :title="title" :size="size" :ariaLabel="ariaLabel"></Button>
+	<Button :variant="computedVariant" :icon="icon" :disabled="disabled" :title="title" :size="size" :ariaLabel="ariaLabel" :nofocus="nofocus"></Button>
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
 
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import { TVariant } from '@hub-client/new-design/components/Button.vue';
+	// New design
+	import Button, { type TVariant } from '@hub-client/new-design/components/Button.vue';
 
+	// Props
 	const props = withDefaults(
 		defineProps<{
-			variant?: TVariant;
-			icon?: string;
-			disabled?: boolean;
-			title?: string;
-			size?: 'base' | 'sm';
 			ariaLabel?: string;
+			disabled?: boolean;
+			icon: string;
+			nofocus?: boolean;
+			size?: 'base' | 'sm';
+			title?: string;
+			variant?: TVariant;
 		}>(),
 		{
-			variant: 'primary',
 			disabled: false,
+			nofocus: false,
 			size: 'base',
+			variant: 'primary',
 		},
 	);
 

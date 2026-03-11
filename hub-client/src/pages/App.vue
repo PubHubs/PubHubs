@@ -61,7 +61,7 @@
 				</RoomListHeader>
 
 				<!-- When user is admin, show the admin tools menu -->
-				<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
+				<RoomListHeader v-if="roles.userIsHubAdmin()" label="menu.admin_tools">
 					<template #roomlist>
 						<Menu>
 							<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
@@ -73,7 +73,7 @@
 			</div>
 		</HeaderFooter>
 
-		<div class="h-full min-w-0 flex-1 overflow-hidden" :class="isMobile ? 'w-screen' : ''" role="document">
+		<div class="h-full min-w-0 flex-1 overflow-x-hidden" :class="isMobile && !hubSettings.isSolo ? 'w-screen' : ''" role="document">
 			<router-view />
 		</div>
 
@@ -108,6 +108,7 @@
 	import RoomListHeader from '@hub-client/components/ui/RoomListHeader.vue';
 
 	// Composables
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
@@ -152,6 +153,7 @@
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
 	const { scrollToEnd, scrollToStart } = useGlobalScroll();
+	const roles = useRoles();
 
 	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
 	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || !rooms.roomsLoaded);

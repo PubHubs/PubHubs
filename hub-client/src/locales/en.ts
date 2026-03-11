@@ -26,6 +26,7 @@ const en = {
 		hub_unpin_context: 'Do you want to unpin this hub?',
 		submit: 'Confirm',
 		ignore: 'Ignore',
+		edit: 'Edit',
 		continue: 'Continue',
 		back: 'Back',
 		next: 'Next',
@@ -223,6 +224,7 @@ const en = {
 		tool: 'Tool',
 		admin_tools: 'Admin tools',
 		admin_tools_rooms: 'Manage rooms',
+		admin_tools_room: 'Manage room: {0}',
 		admin_tools_users: 'Manage users',
 		admin_tools_hub_settings: 'Hub settings',
 		moderation_tools: 'Moderation tools',
@@ -264,6 +266,7 @@ const en = {
 		select_conversation: 'Select a conversation to start messaging',
 		start_new_conversation: 'Start a new conversation using the + button',
 		filter_users: 'filter',
+		filter_values: 'Type to search',
 		select_value: 'select value',
 	},
 	hubs: {

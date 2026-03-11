@@ -25,6 +25,7 @@ const nl = {
 		hub_unpin_title: 'Hub losmaken',
 		hub_unpin_context: 'Wil je deze Hub losmaken?',
 		submit: 'Bevestig',
+		edit: 'Aanpassen',
 		ignore: 'Negeren',
 		continue: 'Verder',
 		back: 'Terug',
@@ -222,6 +223,7 @@ const nl = {
 		tool: 'Functie',
 		admin_tools: 'Beheerders',
 		admin_tools_rooms: 'Beheer kamers',
+		admin_tools_room: 'Beheer kamer: {0}',
 		admin_tools_users: 'Beheer gebruikers',
 		admin_tools_hub_settings: 'Hub instellingen',
 		moderation_tools: 'Toezichtsmiddelen',
@@ -263,6 +265,7 @@ const nl = {
 		select_conversation: 'Selecteer een gesprek om te beginnen met berichten',
 		start_new_conversation: 'Start een nieuw gesprek met de + knop',
 		filter_users: 'filter',
+		filter_values: 'Type om te zoeken',
 		select_value: 'selecteer een waarde',
 	},
 	hubs: {

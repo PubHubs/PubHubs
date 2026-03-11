@@ -64,12 +64,8 @@
 					<RoomSearch v-if="sidebar.activeTab.value === SidebarTab.Search" :room="room!" @scroll-to-event-id="onScrollToEventId" />
 				</RoomSidebar>
 			</div>
-
-			<!-- Footer -->
-			<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()" />
 		</template>
 	</div>
-
 	<!-- Secure room join dialog -->
 	<RoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" />
 </template>
@@ -85,7 +81,6 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import AdminContactRoomHeader from '@hub-client/components/rooms/AdminContactRoomHeader.vue';
-	import EditRoomForm from '@hub-client/components/rooms/EditRoomForm.vue';
 	import GroupRoomHeader from '@hub-client/components/rooms/GroupRoomHeader.vue';
 	import PrivateRoomHeader from '@hub-client/components/rooms/PrivateRoomHeader.vue';
 	import RoomHeaderButtons from '@hub-client/components/rooms/RoomHeaderButtons.vue';
@@ -112,8 +107,6 @@
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
-	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
-	import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
 	import { UserAction } from '@hub-client/models/users/TUser';
 
 	// Stores
@@ -132,9 +125,6 @@
 	const hubSettings = useHubSettings();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
 	const sidebar = useSidebar();
-	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | undefined>(undefined);
-	const showEditRoom = ref(false);
-	const secured = ref(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
@@ -317,29 +307,17 @@
 		// We need to fetch latest public created rooms.
 		const currentPublicRooms = await pubhubs.getAllPublicRooms();
 
-		currentRoomToEdit.value = currentPublicRooms.find((room) => room.room_id === props.id);
+		const roomToEdit = currentPublicRooms.find((room) => room.room_id === props.id);
 
 		// If room is not there then don't show dialog box. Throw an error.
-		if (currentRoomToEdit.value?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
-			const secured_room = await rooms.fetchSecuredRoomSteward();
-			if (secured_room && secured_room.room_id == props.id) {
-				currentRoomToEdit.value = secured_room;
-				secured.value = true;
-			}
-		}
-		if (currentRoomToEdit.value) {
-			showEditRoom.value = true;
+		if (roomToEdit?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
+			router.push({ name: 'editroom', params: { id: props.id } });
 		} else {
 			router.push({
 				name: 'error-page',
 				query: { errorKey: 'errors.cant_find_room' },
 			});
 		}
-	}
-
-	function closeEdit() {
-		showEditRoom.value = false;
-		secured.value = false;
 	}
 
 	function notPrivateRoom() {

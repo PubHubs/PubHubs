@@ -10,10 +10,12 @@ type ValidationMessageFn = ValidationMessage | ((value: any, ...args: any[]) => 
 type ValidationRule = {
 	validator: ValidatorFn;
 	args?: any[];
-	// message can both be a  ValidationMessage or fuction that returns a ValidationMessage
-	message: ValidationMessageFn;
+	// message can be a ValidationMessage or fuction that returns a ValidationMessage
+	message?: ValidationMessageFn;
 };
 
 type ValidationSchema = Record<string, ValidationRule[]>;
 
-export { ValidationRule, ValidationSchema, ValidationMessage, ValidationMessageFn, ValidatorFn };
+type FieldValidations = Record<string, any>;
+
+export { ValidationRule, ValidationSchema, ValidationMessage, ValidationMessageFn, ValidatorFn, FieldValidations };

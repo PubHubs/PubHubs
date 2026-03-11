@@ -1,39 +1,30 @@
 // Packages
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 
-// New design
-import { ContextMenuItemProps } from '@hub-client/new-design/components/ContextMenuItem.vue';
+// Models
+import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 
-// Types
-export type MenuItem = ContextMenuItemProps & {
-	onClick?: () => void;
-	payload?: any;
-};
-
-let _wheelHandler: (e: Event) => void;
+let wheelHandler: ((e: Event) => void) | undefined;
 
 export const useContextMenuStore = defineStore('contextMenu', () => {
 	// State
+	const currentTargetId = ref<string | number | null>(null);
 	const isOpen = ref(false);
+	const items = ref<MenuItem[]>([]);
 	const x = ref(0);
 	const y = ref(0);
-	const items = ref<MenuItem[]>([]);
-	const currentTargetId = ref<string | number | null>(null);
-
-	// Computed
-	const position = computed(() => ({ x: x.value, y: y.value }));
 
 	// Functions
-	function _disableWheelScroll() {
-		_wheelHandler = (e: Event) => e.preventDefault();
-		window.addEventListener('wheel', _wheelHandler, { passive: false, capture: true });
+	function disableWheelScroll() {
+		wheelHandler = (e: Event) => e.preventDefault();
+		window.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
 	}
 
-	function _enableWheelScroll() {
-		if (_wheelHandler) {
-			window.removeEventListener('wheel', _wheelHandler, { capture: true });
-			_wheelHandler = undefined as any;
+	function enableWheelScroll() {
+		if (wheelHandler) {
+			window.removeEventListener('wheel', wheelHandler, { capture: true });
+			wheelHandler = undefined;
 		}
 	}
 
@@ -46,7 +37,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		isOpen.value = true;
 		currentTargetId.value = targetId;
 
-		_disableWheelScroll();
+		disableWheelScroll();
 	}
 
 	function close() {
@@ -54,7 +45,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		items.value = [];
 		currentTargetId.value = null;
 
-		_enableWheelScroll();
+		enableWheelScroll();
 	}
 
 	function select(item: MenuItem) {
@@ -77,12 +68,11 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 
 	return {
 		close,
+		currentTargetId,
 		isOpen,
 		items,
 		open,
-		position,
 		select,
-		currentTargetId,
 		x,
 		y,
 	};
