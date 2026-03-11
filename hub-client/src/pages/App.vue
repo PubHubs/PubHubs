@@ -61,7 +61,7 @@
 				</RoomListHeader>
 
 				<!-- When user is admin, show the admin tools menu -->
-				<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
+				<RoomListHeader v-if="roles.userIsHubAdmin()" label="menu.admin_tools">
 					<template #roomlist>
 						<Menu>
 							<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
