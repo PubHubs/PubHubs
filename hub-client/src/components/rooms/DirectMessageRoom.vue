@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-full w-full flex-col overflow-hidden">
+	<div class="flex h-full w-full flex-col overflow-hidden" data-testid="dm-room">
 		<!-- Timeline -->
 		<RoomTimeline v-if="room" :room="room" :event-id-to-scroll="eventIdToScroll" />
 	</div>
