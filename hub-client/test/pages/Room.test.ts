@@ -10,12 +10,12 @@ import { routes } from '@hub-client/logic/core/router';
 // Pages
 import Room from '@hub-client/pages/Room.vue';
 
-// Logic
-import { setUpi18n } from '@hub-client/i18n';
-
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
+
+// Logic
+import { setUpi18n } from '@hub-client/i18n';
 
 describe('Room.vue Test', () => {
 	test('room cannot be found redirects to error page', async () => {
