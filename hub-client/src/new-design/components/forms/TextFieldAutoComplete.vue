@@ -13,14 +13,11 @@
 	>
 		<TextField v-model="search" :placeholder="placeholder" :disabled="disabled" :validation="validation">{{ label }}</TextField>
 
-		<ul
-			v-if="result.length > 0 && hasFocus"
-			class="text-on-surface-dim bg-surface-base outline-offset-thin outline-on-accent-primary absolute top-800 z-50 w-full justify-start rounded-lg rounded-t-none border border-t-0 px-175 py-100 outline"
-		>
-			<li v-for="(item, index) in result" :key="index" @click="select(item)" class="hover:text-on-surface-bright cursor-pointer" :class="{ '': cursor === index }">
-				<DropDownValue :value="item" role="option"></DropDownValue>
-			</li>
-		</ul>
+		<div v-if="result.length > 0 && hasFocus" class="absolute top-800 z-50 flex w-full grow flex-col pb-300">
+			<div class="bg-surface-low outline-offset-thin rounded outline">
+				<DropDownOption v-for="(item, index) in result" :value="item" :highlighted="cursor === index" @click.stop="select(item)" class="-ml-[1px]"></DropDownOption>
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -35,7 +32,7 @@
 	import { FieldOption, FieldOptions, InputType, LabeledFieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { FieldValidations } from '@hub-client/models/validation/TValidate';
 
-	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
+	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
 	// New design
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
