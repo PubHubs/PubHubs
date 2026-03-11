@@ -83,6 +83,7 @@ const useRooms = defineStore('rooms', {
 	},
 
 	// #region getters
+
 	getters: {
 		/**
 		 *  Returns roomsLoaded: all rooms are loaded AND all rooms have a name that is different from the roomId.
@@ -492,13 +493,8 @@ const useRooms = defineStore('rooms', {
 		//? Some documentation would be helpful here.
 		async storeRoomNotice(roomId: string) {
 			const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
-			const creatingAdminUser = this.currentRoom?.getCreator();
 			if (!this.roomNotices[roomId]) {
 				this.roomNotices[roomId] = {};
-			}
-
-			if (creatingAdminUser) {
-				this.roomNotices[roomId][creatingAdminUser] = ['admin.title_administrator'];
 			}
 
 			const limit = 100000;
@@ -509,6 +505,7 @@ const useRooms = defineStore('rooms', {
 					limit: limit,
 				}),
 			);
+
 			// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
 			const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
 			for (const message of response.chunk) {
