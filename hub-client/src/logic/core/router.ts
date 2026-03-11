@@ -116,7 +116,8 @@ router.beforeEach((to, from) => {
 	const messagebox = useMessageBox();
 
 	// Notify parent iframe about non-room navigation
-	// Send the route name (e.g. 'discover-rooms') so the global-client URL preserves it for refresh.
+	// Send the route name (e.g. non-room navigations such as discover-rooms) so the global-client URL preserves it for refresh.
+	// For home, I am sending a empty string to keep the URL clean, the hub-client stays at its default route / which is home
 	if (!['room', 'error-page-room'].includes(to.name as string) && from.name !== undefined) {
 		const routeName = to.name === 'home' ? '' : (to.name as string);
 		messagebox.sendMessage(new Message(MessageType.RoomChange, routeName));

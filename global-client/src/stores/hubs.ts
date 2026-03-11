@@ -188,7 +188,8 @@ const useHubs = defineStore('hubs', {
 
 					const [baseUrl] = currentUrl.split('#');
 					const newUrl = `${baseUrl}#/hub/${hubName}/${roomId}`;
-					// Pass null as state to avoid corrupting Vue Router's internal history.state
+					// Pass null as state to avoid corrupting Vue Router's internal history.state.
+					// Not to keep the state current path. 
 					window.history.replaceState(null, '', newUrl);
 				});
 
