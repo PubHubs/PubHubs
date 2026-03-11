@@ -8,9 +8,9 @@
 	>
 		<span v-if="hasPowerPrivileges || isHubAdmin" class="line-clamp-1 truncate">{{ label }}</span>
 
-		<!-- <template v-else v-for="value in roomAttributes" :key="value">
+		<template v-else v-for="value in roomAttributes" :key="value">
 			<span>{{ value }}</span>
-		</template> -->
+		</template>
 	</span>
 </template>
 
@@ -38,7 +38,7 @@
 	const roomAttributes = ref<string[]>([]);
 
 	const userPowerLevel = computed(() => rooms.currentRoom?.getPowerLevel(props.user) ?? 0);
-	const hasPowerPrivileges = computed(() => userPowerLevel.value >= 50);
+	const hasPowerPrivileges = computed(() => userPowerLevel.value >= 25);
 	const userHasBadge = computed(() => roomAttributes.value.length > 0 || hasPowerPrivileges.value || props.isHubAdmin);
 	const powerLevelLabel = computed(() => (rooms.currentRoom?.getPowerLevel(props.user) === 100 ? t('admin.title_room_administrator') : t('admin.title_room_steward')));
 	const hubAdminLabel = computed(() => (props.isHubAdmin ? t('admin.title_hub_administrator') : ''));
