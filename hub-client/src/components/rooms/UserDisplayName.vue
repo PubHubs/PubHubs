@@ -6,7 +6,7 @@
 		</span>
 
 		<!-- Pseudonym -->
-		<span v-if="showPseudonym" class="text-label-small text-on-surface-dim text-nowrap" :class="pseudonymClasses"> @{{ pseudonym }} </span>
+		<span v-if="showPseudonym" class="text-label-small text-on-surface-dim text-nowrap" :class="pseudonymClasses"> {{ pseudonym }} </span>
 	</span>
 </template>
 
