@@ -3,9 +3,9 @@
 		<div v-for="item in reactionSummary" :key="item.key" class="bg-surface rounded-full">
 			<span
 				class="group/reaction relative inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1"
-				:class="hasUserReacted(item.reactions) ? 'bg-accent-blue/30 border-accent-blue border' : 'border border-transparent'"
+				:class="item.hasUserReacted ? 'bg-accent-blue/30 border-accent-blue border' : 'border border-transparent'"
 				role="listitem"
-				:title="getReactionUsers(item.reactions)"
+				:title="item.tooltipTitle"
 				@click.stop="toggleReaction(item)"
 			>
 				<span class="flex h-[1em] w-[1em] items-center justify-center">{{ item.key }}</span>
@@ -33,6 +33,8 @@
 		key: string;
 		count: number;
 		reactions: { eventId: string; userId: string }[];
+		hasUserReacted: boolean;
+		tooltipTitle: string;
 	};
 
 	// Props
@@ -45,21 +47,9 @@
 
 	const MAX_USERS_IN_TOOLTIP = 3;
 
-	function getReactionUsers(reactions: { eventId: string; userId: string }[]): string {
-		const names = reactions.filter((r) => r.userId).map((r) => userStore.userDisplayName(r.userId) ?? r.userId);
-		if (names.length <= MAX_USERS_IN_TOOLTIP) {
-			return names.join(', ');
-		}
-		return names.slice(0, MAX_USERS_IN_TOOLTIP).join(', ') + ` +${names.length - MAX_USERS_IN_TOOLTIP}`;
-	}
-
-	function hasUserReacted(reactions: { eventId: string; userId: string }[]): boolean {
-		return reactions.some((r) => r.userId && r.userId === currentUserId);
-	}
-
 	function toggleReaction(item: ReactionItem) {
-		if (hasUserReacted(item.reactions)) {
-			const eventIds = item.reactions.filter((r) => r.userId && r.userId === currentUserId).map((r) => r.eventId);
+		if (item.hasUserReacted) {
+			const eventIds = item.reactions.filter((r) => r.userId === currentUserId).map((r) => r.eventId);
 			removeReaction(eventIds);
 		} else {
 			addReaction(item.key);
@@ -88,11 +78,23 @@
 				}
 			}
 		}
-		return Object.entries(map).map(([key, reactions]) => ({
-			key,
-			count: reactions.length,
-			reactions,
-		}));
+		return Object.entries(map).map(([key, reactions]) => {
+			const validReactions = reactions.filter((r) => r.userId);
+			const names = validReactions.map((r) => userStore.userDisplayName(r.userId) ?? r.userId);
+			let tooltipTitle: string;
+			if (names.length <= MAX_USERS_IN_TOOLTIP) {
+				tooltipTitle = names.join(', ');
+			} else {
+				tooltipTitle = names.slice(0, MAX_USERS_IN_TOOLTIP).join(', ') + ` +${names.length - MAX_USERS_IN_TOOLTIP}`;
+			}
+			return {
+				key,
+				count: validReactions.length,
+				reactions: validReactions,
+				hasUserReacted: validReactions.some((r) => r.userId === currentUserId),
+				tooltipTitle,
+			};
+		});
 	});
 
 	async function addReaction(emoji: string) {
