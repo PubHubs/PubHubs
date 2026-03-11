@@ -117,9 +117,6 @@ router.beforeEach((to, from) => {
 
 	// Notify parent iframe about non-room navigation
 	// Send the route name (e.g. 'discover-rooms') so the global-client URL preserves it for refresh.
-	// For 'home', send empty string to keep the URL clean.
-	// Skip on initial page load (from.name === undefined) to avoid clearing the parent URL
-	// before the parent can restore the route via SendHubInformation.
 	if (!['room', 'error-page-room'].includes(to.name as string) && from.name !== undefined) {
 		const routeName = to.name === 'home' ? '' : (to.name as string);
 		messagebox.sendMessage(new Message(MessageType.RoomChange, routeName));
