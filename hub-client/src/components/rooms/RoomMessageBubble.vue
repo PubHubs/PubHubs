@@ -53,7 +53,7 @@
 						<div v-if="!props.isGrouped" class="mb-2 flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
 							<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
 
-							<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" />
+							<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" :room="room" />
 
 							<!-- Announcement -->
 							<span
@@ -115,13 +115,13 @@
 
 							<!-- Thread Reply Button -->
 							<button
-								v-if="!deleteMessageDialog && !viewFromThread && eventThreadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
+								v-if="!deleteMessageDialog && !viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage"
 								@click="replyInThread"
 								class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 								:class="eventThreadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
 								:title="t('message.reply_in_thread')"
 							>
-								<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1 group-hover:hidden">{{ eventThreadLength }}</span>
+								<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1">{{ eventThreadLength }}</span>
 								<Icon type="chat-circle" />
 							</button>
 						</div>
