@@ -57,7 +57,7 @@
 				</CollapsibleHeader>
 
 				<!-- When user is admin, show the admin tools menu -->
-				<CollapsibleHeader v-if="roles.userIsHubAdmin()" label="menu.admin_tools">
+				<CollapsibleHeader v-if="roles.userIsHubAdmin()" :label="$t('menu.admin_tools')">
 					<Menu>
 						<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
 						<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
