@@ -51,7 +51,7 @@
 				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempt}`, { error });
 			}
 			if (!hubId) {
-				delay(attempt);
+				await delay(attempt);
 			}
 		}
 		if (!hubId) {

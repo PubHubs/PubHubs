@@ -187,9 +187,10 @@ const useHubs = defineStore('hubs', {
 					}
 
 					const [baseUrl] = currentUrl.split('#');
-					// preserve the current history state
-					const currentState = history.state || {};
-					window.history.replaceState({ ...currentState, roomId }, '', `${baseUrl}#/hub/${hubName}/${roomId}`);
+					const newUrl = `${baseUrl}#/hub/${hubName}/${roomId}`;
+					// Pass null as state to avoid corrupting Vue Router's internal history.state.
+					// Not to keep the state current path.
+					window.history.replaceState(null, '', newUrl);
 				});
 
 				//Listen to global menu change and don't resend own state.

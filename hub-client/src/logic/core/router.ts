@@ -114,10 +114,14 @@ const router = createRouter({
 // Navigation guard
 router.beforeEach((to, from) => {
 	const messagebox = useMessageBox();
+	const user = useUser();
 
 	// Notify parent iframe about non-room navigation
-	if (!['room', 'error-page-room'].includes(to.name as string)) {
-		messagebox.sendMessage(new Message(MessageType.RoomChange, ''));
+	// Send the route name (e.g. non-room navigations such as discover-rooms) so the global-client URL preserves it for refresh.
+	// For home, I am sending a empty string to keep the URL clean, the hub-client stays at its default route / which is home
+	if (!['room', 'error-page-room'].includes(to.name as string) && from.name !== undefined) {
+		const routeName = to.name === 'home' ? '' : (to.name as string);
+		messagebox.sendMessage(new Message(MessageType.RoomChange, routeName));
 	}
 
 	// Hide UI bar if specified in route meta
@@ -141,12 +145,17 @@ router.beforeEach((to, from) => {
 	// Restrict access
 	if (to.meta.accessFor) {
 		const roles = useRoles();
+		const accessRoles = to.meta.accessFor as Array<UserRole>;
 		// for specific room?
 		let roomId = roles.currentRoomId();
 		if (to.params.id) {
 			roomId = to.params.id as string;
 		}
-		if (roles.userHasAccessForRoles(to.meta.accessFor as Array<UserRole>, roomId)) {
+		if (roles.userHasAccessForRoles(accessRoles, roomId)) {
+			return true;
+		}
+		// Allow admin-only route while admin status is still loading after login/refresh.
+		if (accessRoles.length === 1 && accessRoles[0] === UserRole.Admin && !user.adminStatusLoaded) {
 			return true;
 		}
 		console.error('ONLY FOR ROLES: ', to.meta.accessFor, roomId);

@@ -20,6 +20,7 @@ import { SMI } from '@hub-client/logic/logging/StatusMessage';
 // Models
 import { MatrixType, OnboardingType } from '@hub-client/models/constants';
 import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
+import { UserRole } from '@hub-client/models/users/TUser';
 
 // Stores
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -51,6 +52,7 @@ type State = {
 	usersProfile: Map<string, UserProfile>; // Key-value pairs of users. Key=UserId.
 	administrator: Administrator | null;
 	isAdministrator: boolean;
+	adminStatusLoaded: boolean;
 	needsOnboarding: boolean;
 	needsConsent: boolean;
 };
@@ -66,6 +68,7 @@ const useUser = defineStore('user', {
 		administrator: null,
 		usersProfile: new Map<string, UserProfile>(),
 		isAdministrator: false,
+		adminStatusLoaded: false,
 		needsOnboarding: false,
 		needsConsent: false,
 	}),
@@ -204,6 +207,7 @@ const useUser = defineStore('user', {
 
 		// #region Fetchermethod //
 		async fetchIsAdministrator(client: MatrixClient) {
+			this.adminStatusLoaded = false;
 			try {
 				// API call returns true when succesful and isAdministrator, but throws an error when false
 				// still we need to check the returnvalue for when it might be succesfully returned as false
@@ -216,6 +220,14 @@ const useUser = defineStore('user', {
 				}
 			} catch {
 				this.isAdministrator = false;
+			} finally {
+				this.adminStatusLoaded = true;
+				const currentRoute = router.currentRoute.value;
+				const accessFor = currentRoute.meta?.accessFor as Array<UserRole> | undefined;
+				const isAdminOnlyRoute = accessFor?.length === 1 && accessFor[0] === UserRole.Admin;
+				if (isAdminOnlyRoute && !this.isAdministrator) {
+					router.push({ name: 'home' });
+				}
 			}
 		},
 

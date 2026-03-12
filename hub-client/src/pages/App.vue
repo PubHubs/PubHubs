@@ -150,6 +150,7 @@
 	const { copyHubUrl } = useClipboard();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
+	const pendingRouteFromParent = ref<RouteParamValue | null>(null);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
 	const { scrollToEnd, scrollToStart } = useGlobalScroll();
@@ -203,6 +204,11 @@
 			setupReady.value = true;
 		}
 
+		if (pendingRouteFromParent.value) {
+			await navigateFromParent(pendingRouteFromParent.value);
+			pendingRouteFromParent.value = null;
+		}
+
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted done');
 	});
 
@@ -223,20 +229,13 @@
 			});
 
 			messagebox.addCallback('parentFrame', MessageType.RoomChange, async (message: Message) => {
-				let navigationResult: NavigationFailure | void | undefined = undefined;
 				//TODO: content from MessageType.RoomChange is roomId? maybe we can rename content to roomId.
 				const content = message.content as RouteParamValue;
-				// If content is a roomId then it has a format that starts with !.
-				if (content.startsWith('!')) {
-					navigationResult = await router.push({ name: 'room', params: { id: content } });
-				} else {
-					navigationResult = await router.push({ name: content as any });
+				if (!setupReady.value || !user.isLoggedIn) {
+					pendingRouteFromParent.value = content;
+					return;
 				}
-
-				// FALLBACK to homepage if there is a navigation failure.
-				if (navigationResult && isNavigationFailure(navigationResult)) {
-					await router.push({ name: 'home' });
-				}
+				await navigateFromParent(content);
 			});
 
 			// Listen to event change
@@ -282,6 +281,21 @@
 
 			// Ask for hubinformation
 			messagebox.sendMessage(new Message(MessageType.SendHubInformation));
+		}
+	}
+
+	async function navigateFromParent(content: RouteParamValue) {
+		let navigationResult: NavigationFailure | void | undefined = undefined;
+		// If content is a roomId then it has a format that starts with !.
+		if (content.startsWith('!')) {
+			navigationResult = await router.push({ name: 'room', params: { id: content } });
+		} else {
+			navigationResult = await router.push({ name: content as any });
+		}
+
+		// FALLBACK to homepage if there is a navigation failure.
+		if (navigationResult && isNavigationFailure(navigationResult)) {
+			await router.push({ name: 'home' });
 		}
 	}
 
