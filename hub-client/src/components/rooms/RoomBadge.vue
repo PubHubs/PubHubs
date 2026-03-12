@@ -29,11 +29,16 @@
 	const rooms = useRooms();
 
 	const room = computed(() => rooms.room(props.room_id));
+	const powerLevelState = computed(() => room.value?.getStatePowerLevel()?.content);
 
 	const userPowerLevel = computed(() => {
 		const r = room.value;
 		if (!r) return 0;
-		return r.getPowerLevel(props.user);
+		const statePowerLevel = powerLevelState.value?.users?.[props.user] ?? powerLevelState.value?.users_default;
+		if (typeof statePowerLevel === 'number') return statePowerLevel;
+		// I don't think this is needed anymore as a fallback.
+		const memberPowerLevel = r.getPowerLevel(props.user);
+		return memberPowerLevel >= 0 ? memberPowerLevel : 0;
 	});
 
 	const isAdmin = computed(() => userPowerLevel.value === UserPowerLevel.Admin);
