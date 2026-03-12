@@ -10,6 +10,7 @@
 			class="bg-surface-elevated rounded-base fixed z-9999 flex w-fit max-w-4000 min-w-1000 flex-col shadow-xl"
 			:style="{ left: `${pos.x}px`, top: `${pos.y}px` }"
 			role="menu"
+			data-testid="contextmenu"
 			tabindex="-1"
 			@keydown="onKeydown"
 		>
