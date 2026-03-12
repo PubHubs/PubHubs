@@ -36,7 +36,7 @@
 		if (!r) return 0;
 		const statePowerLevel = powerLevelState.value?.users?.[props.user] ?? powerLevelState.value?.users_default;
 		if (typeof statePowerLevel === 'number') return statePowerLevel;
-		
+
 		const memberPowerLevel = r.getPowerLevel(props.user);
 		return memberPowerLevel >= 0 ? memberPowerLevel : 0;
 	});
