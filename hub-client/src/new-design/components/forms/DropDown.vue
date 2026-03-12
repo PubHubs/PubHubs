@@ -22,6 +22,7 @@
 			<Label :for="id"><slot></slot></Label>
 
 			<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0" ref="element">
+				<span class="name hidden">{{ fieldName }}</span>
 				<div :class="showFilter ? 'py-075 h-500 border-b px-175' : 'h-0 overflow-hidden border-0 p-0'">
 					<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-on-surface-dim" tabindex="-1" />
 				</div>
