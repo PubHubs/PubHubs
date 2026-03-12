@@ -22,6 +22,7 @@ _Please add a brief description of any changes and any migrations to be performe
     must be removed before the migration can be re-attempted.
   - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres` 
     to the hub container's entrypoint.
+- [BUG] Refresh does not break the navigation. User stays on the same page on refresh.    
 
 ## 11 February 2025 - v3.2.1
 - [BUG] Memberlist is again shown
