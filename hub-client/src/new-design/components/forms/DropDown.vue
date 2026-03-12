@@ -11,7 +11,7 @@
 			@keydown.arrow-up.prevent="cursorUp()"
 			@keydown.enter.prevent="selectCursor(cursor)"
 			@keydown.space.prevent="toggle()"
-			@keydown.delete.prevent="removeLast()"
+			@keydown.delete="removeLast()"
 			@keydown.esc.stop.prevent="
 				resetFilter();
 				close();
