@@ -329,6 +329,6 @@
 
 	async function setRoomName(roomId: string, roomName: string) {
 		await pubhubs.client.setRoomName(roomId, roomName);
-		pubhubs.updateRooms();
+		rooms.setRoomListName(roomId, roomName);
 	}
 </script>
