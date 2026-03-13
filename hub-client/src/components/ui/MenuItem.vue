@@ -1,5 +1,5 @@
 <template>
-	<li role="menuitem" :class="{ 'bg-surface-low': roomIsActive || menuItemIsActive || adminMenuIsActive }" @click="handleClick" class="hover:bg-surface-low rounded-base h-fit transition-all duration-200 ease-in-out">
+	<li role="menuitem" :class="{ 'bg-surface-low text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }" @click="handleClick" class="hover:bg-surface-low rounded-base h-fit transition-all duration-200 ease-in-out">
 		<router-link :to="to" class="flex items-center gap-4 px-4 py-2">
 			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
 			<Icon v-else class="" :type="icon" :size="iconSize" />

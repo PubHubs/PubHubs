@@ -14,49 +14,49 @@
 			</div>
 
 			<div v-if="stewardList && stewardList.length > 0" class="pb-4">
-				<SideKickSubHeader>
-					<div class="flex justify-between">
-						<div class="capitalize">{{ $t('rooms.stewards') }}</div>
-						<div class="flex items-center gap-2">
+				<CollapsibleHeader :label="$t('rooms.stewards')">
+					<template #right>
+						<div class="flex items-center gap-1">
 							<div>{{ stewardList.length }}</div>
 							<Icon type="user"></Icon>
 						</div>
+					</template>
+					<div
+						v-for="steward in stewardList"
+						:key="steward.userId"
+						class="flex w-full items-center gap-2 rounded-md p-2"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-low'"
+						v-context-menu="
+							steward.userId !== user.user?.userId && !props.disableDM
+								? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(steward.userId) }], steward.userId)
+								: undefined
+						"
+					>
+						<Avatar :avatar-url="user.userAvatar(steward.userId)" :userId="steward.userId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
+						<UserDisplayName :userId="steward.userId" :user-display-name="user.userDisplayName(steward.userId)" :enableDM="false"></UserDisplayName>
 					</div>
-				</SideKickSubHeader>
-				<div
-					v-for="steward in stewardList"
-					:key="steward.userId"
-					class="flex w-full items-center gap-2 rounded-md p-2"
-					:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-low'"
-					v-context-menu="
-						steward.userId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(steward.userId) }], steward.userId) : undefined
-					"
-				>
-					<Avatar :avatar-url="user.userAvatar(steward.userId)" :userId="steward.userId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
-					<UserDisplayName :userId="steward.userId" :user-display-name="user.userDisplayName(steward.userId)" :enableDM="false"></UserDisplayName>
-				</div>
+				</CollapsibleHeader>
 			</div>
 
 			<div v-if="memberIds && memberIds.length > 0" class="grow">
-				<SideKickSubHeader>
-					<div class="flex justify-between">
-						<div class="capitalize">{{ $t('rooms.members') }}</div>
-						<div class="flex items-center gap-2">
+				<CollapsibleHeader :label="$t('rooms.members')">
+					<template #right>
+						<div class="flex items-center gap-1">
 							<div>{{ memberIds.length }}</div>
 							<Icon type="user"></Icon>
 						</div>
+					</template>
+					<div
+						v-for="memberId in memberIds"
+						:key="memberId"
+						class="flex w-full items-center gap-2 rounded-md p-2"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === memberId && 'bg-surface-low'"
+						v-context-menu="memberId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }], memberId) : undefined"
+					>
+						<Avatar :avatar-url="user.userAvatar(memberId)" :userId="memberId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
+						<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)" :enableDM="false"></UserDisplayName>
 					</div>
-				</SideKickSubHeader>
-				<div
-					v-for="memberId in memberIds"
-					:key="memberId"
-					class="flex w-full items-center gap-2 rounded-md p-2"
-					:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === memberId && 'bg-surface-low'"
-					v-context-menu="memberId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }], memberId) : undefined"
-				>
-					<Avatar :avatar-url="user.userAvatar(memberId)" :userId="memberId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
-					<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)" :enableDM="false"></UserDisplayName>
-				</div>
+				</CollapsibleHeader>
 			</div>
 		</div>
 	</div>
@@ -69,14 +69,13 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import SideKickSubHeader from '@hub-client/components/rooms/SideKickSubHeader.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
-	// Logic
-	import { useAdminDashboard } from '@hub-client/composables/dashboard/admin.composable';
 	// Composables
+	import { useAdminDashboard } from '@hub-client/composables/dashboard/admin.composable';
 	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 
 	// Models

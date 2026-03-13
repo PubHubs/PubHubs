@@ -1,10 +1,10 @@
 <template>
 	<div class="flex shrink-0 items-center justify-between px-4 pb-4">
-		<h3 class="text-on-surface text-md font-semibold capitalize">{{ title }}</h3>
+		<h3 class="text-on-surface text-md font-semibold first-letter:uppercase">{{ title }}</h3>
 		<button
 			v-if="!isMobile"
 			class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer"
-			:aria-label="t('global.close')"
+			:aria-label="t('dialog.close')"
 			@click="sidebar.close()"
 			:title="t('dialog.close')"
 		>

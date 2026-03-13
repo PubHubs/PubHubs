@@ -1,5 +1,5 @@
 // Packages
-import { EventType, IStateEvent, Room as MatrixRoom, NotificationCountType, RoomMember } from 'matrix-js-sdk';
+import { EventType, IStateEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 

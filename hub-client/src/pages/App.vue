@@ -14,7 +14,7 @@
 				</div>
 			</template>
 
-			<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
+			<div class="flex flex-col gap-8 p-3 md:p-4" role="menu">
 				<section class="flex flex-col gap-2">
 					<div class="bg-surface text-hub-text group rounded-base flex h-16 items-center justify-between overflow-hidden py-2 pr-4 pl-2" role="complementary">
 						<div class="flex w-full items-center gap-2 truncate">
@@ -47,29 +47,23 @@
 				</section>
 
 				<!-- Public rooms -->
-				<RoomListHeader v-if="hasPublicRooms" label="admin.public_rooms">
-					<template #roomlist>
-						<RoomList :roomTypes="PublicRooms" />
-					</template>
-				</RoomListHeader>
+				<CollapsibleHeader v-if="hasPublicRooms" :label="$t('admin.public_rooms')">
+					<RoomList :roomTypes="PublicRooms" />
+				</CollapsibleHeader>
 
 				<!-- Secured rooms -->
-				<RoomListHeader v-if="hasSecuredRooms" label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
-					<template #roomlist>
-						<RoomList :roomTypes="SecuredRooms" />
-					</template>
-				</RoomListHeader>
+				<CollapsibleHeader v-if="hasSecuredRooms" :label="$t('admin.secured_rooms')" :title="$t('admin.secured_rooms_tooltip')">
+					<RoomList :roomTypes="SecuredRooms" />
+				</CollapsibleHeader>
 
 				<!-- When user is admin, show the admin tools menu -->
-				<RoomListHeader v-if="roles.userIsHubAdmin()" label="menu.admin_tools">
-					<template #roomlist>
-						<Menu>
-							<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
-							<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
-							<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
-						</Menu>
-					</template>
-				</RoomListHeader>
+				<CollapsibleHeader v-if="roles.userIsHubAdmin()" :label="$t('menu.admin_tools')">
+					<Menu>
+						<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
+						<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
+						<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
+					</Menu>
+				</CollapsibleHeader>
 			</div>
 		</HeaderFooter>
 
@@ -89,7 +83,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
+	import { ConditionKind, IPushRule, NotificationCountType, PushRuleKind } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { NavigationFailure, RouteParamValue, isNavigationFailure, useRouter } from 'vue-router';
@@ -100,12 +94,12 @@
 	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
 	import RoomList from '@hub-client/components/rooms/RoomList.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import Menu from '@hub-client/components/ui/Menu.vue';
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
 	import Notification from '@hub-client/components/ui/Notification.vue';
-	import RoomListHeader from '@hub-client/components/ui/RoomListHeader.vue';
 
 	// Composables
 	import { useRoles } from '@hub-client/composables/roles.composable';
@@ -158,6 +152,23 @@
 
 	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
 	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || !rooms.roomsLoaded);
+
+	function getUnreadCount(roomId: string): number {
+		void rooms.unreadCountVersion;
+		const room = pubhubs.client.getRoom(roomId);
+		if (room) {
+			return room.getUnreadNotificationCount(NotificationCountType.Total);
+		}
+		return 0;
+	}
+
+	const publicRoomsUnreadCount = computed(() => {
+		return rooms.loadedPublicRooms.reduce((total, room) => total + getUnreadCount(room.roomId), 0);
+	});
+
+	const securedRoomsUnreadCount = computed(() => {
+		return rooms.loadedSecuredRooms.reduce((total, room) => total + getUnreadCount(room.roomId), 0);
+	});
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
