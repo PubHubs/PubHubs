@@ -1,34 +1,20 @@
 <template>
 	<div class="@container w-full rounded-xl p-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
-		<div class="flex min-w-0 gap-3">
+		<div class="flex gap-3">
 			<Avatar class="shrink-0" :avatar-url="avatarOverrideUrl" :user-id="otherDMUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
 
 			<div class="flex min-w-0 flex-1 flex-col gap-1">
-				<!-- Top row: name + meta -->
-				<div class="flex items-baseline justify-between gap-2">
-					<div class="flex min-w-0 items-baseline gap-2">
-						<p class="truncate leading-tight font-bold">
-							{{ displayName }}
-						</p>
-						<p v-if="isGroupOrContact" class="text-on-surface-dim hidden items-center gap-1 leading-tight @xs:flex">
-							<span v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT" class="truncate">({{ stewardSourceRoomName(props.room) }})</span>
-							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
-								<span class="text-label-small">{{ props.room.getRoomMembers() }}</span>
-								<Icon type="user" size="sm" />
-							</template>
-							<template v-else>
-								<span v-if="getOtherUserDisplayName()" class="truncate"> - {{ getOtherUserDisplayName() }}</span>
-							</template>
-						</p>
-						<p v-else-if="pseudonym" class="text-on-surface-dim text-label-small hidden truncate leading-tight @xs:block">
-							{{ pseudonym }}
-						</p>
-					</div>
-					<EventTime v-if="lastMessageTimestamp !== undefined && lastMessageTimestamp !== 0" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="text-on-surface-dim shrink-0" />
+				<!-- Name + Timestamp -->
+				<div class="flex items-baseline gap-2">
+					<p class="min-w-0 flex-1 truncate leading-tight font-bold">{{ displayName }}</p>
+					<EventTime v-if="lastMessageTimestamp" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="text-on-surface-dim shrink-0" />
 				</div>
 
-				<!-- Bottom row: message preview + badge -->
-				<div class="flex items-center justify-between gap-2">
+				<!-- Secondary info -->
+				<p v-if="secondaryInfo" class="text-label-small text-on-surface-dim hidden min-w-0 truncate leading-tight @xs:block">{{ secondaryInfo }}</p>
+
+				<!-- Message preview + Unread badge -->
+				<div class="flex items-center gap-2">
 					<p v-if="room.hasMessages()" v-html="event?.getContent().ph_body" class="text-on-surface-dim min-w-0 flex-1 truncate"></p>
 					<p v-else class="text-on-surface-dim min-w-0 flex-1 truncate">{{ t('rooms.no_messages_yet') }}</p>
 					<Badge v-if="newMessage > 0" class="shrink-0">{{ newMessage }}</Badge>
@@ -59,7 +45,6 @@
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
-	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
 	// Props
@@ -78,7 +63,6 @@
 		},
 	});
 
-	const rooms = useRooms();
 	const userStore = useUser();
 	const { t } = useI18n();
 	const { stewardSourceRoomName } = useModeration();
@@ -117,8 +101,6 @@
 
 	const latestMessageEvent = computed(() => {
 		const events = props.room.getLiveTimelineEvents();
-
-		// Find the latest message event
 		const messageEvents = events.filter((event) => event.getType() === EventType.RoomMessage);
 		if (messageEvents.length === 0) return undefined;
 		return [...messageEvents].sort((a, b) => b.localTimestamp - a.localTimestamp)[0];
@@ -126,25 +108,46 @@
 
 	const event = latestMessageEvent;
 
-	const lastMessageTimestamp = computed(() => {
-		return event.value?.localTimestamp || 0;
-	});
+	const lastMessageTimestamp = computed(() => event.value?.localTimestamp || 0);
 
 	const displayName = computed(() => {
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return props.room.name;
 		if (roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('admin.support');
 		if (roomType.value === RoomType.PH_MESSAGE_STEWARD_CONTACT) return t('rooms.steward_support');
-		return getOtherDMUser()?.rawDisplayName;
+
+		// Resolve userId from the member object, falling back to parsing the room name
+		const userId = getOtherDMUser()?.userId ?? getOtherUserIdFromRoomName();
+		if (!userId) return undefined;
+
+		// userDisplayName is from the user profile store (populated via member state events).
+		// Unlike rawDisplayName, it never falls back to the Matrix ID — so it's safe to use directly.
+		// extractPseudonym is always a valid fallback when userId is known.
+		return userStore.userDisplayName(userId) ?? filters.extractPseudonym(userId);
 	});
 
-	const pseudonym = computed(() => (getOtherDMUser()?.userId ? filters.extractPseudonym(getOtherDMUser()!.userId) : ''));
-
-	const isGroupOrContact = computed(() => roomType.value === RoomType.PH_MESSAGES_GROUP || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT || roomType.value === RoomType.PH_MESSAGE_STEWARD_CONTACT);
+	const secondaryInfo = computed(() => {
+		const type = roomType.value;
+		if (type === RoomType.PH_MESSAGES_DM) {
+			const userId = getOtherDMUser()?.userId ?? getOtherUserIdFromRoomName();
+			return userId ? filters.extractPseudonym(userId) : '';
+		}
+		if (type === RoomType.PH_MESSAGE_ADMIN_CONTACT) {
+			return getOtherUserDisplayName();
+		}
+		if (type === RoomType.PH_MESSAGE_STEWARD_CONTACT) {
+			const source = stewardSourceRoomName(props.room);
+			const count = props.room.getRoomMembers();
+			return source ? `(${source}) · ${count}` : String(count);
+		}
+		if (type === RoomType.PH_MESSAGES_GROUP) {
+			return String(props.room.getRoomMembers());
+		}
+		return '';
+	});
 
 	function getOtherDMUser(): RoomMember | null | undefined {
 		// For avatars - there needs to be a valid user if the override url needs to work.
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return event.value?.sender;
-
 		if (roomType.value !== RoomType.PH_MESSAGES_DM) return;
 
 		const otherMembers = props.room.getOtherJoinedMembers();
@@ -154,6 +157,12 @@
 			const notInvitedMembersIds = props.room.notInvitedMembersIdsOfPrivateRoom();
 			return props.room.getMember(notInvitedMembersIds[0]);
 		}
+	}
+
+	// Parses the other user's Matrix ID from the room name (e.g. "@a:server,@b:server")
+	// Used when the member object isn't in the Matrix client store yet.
+	function getOtherUserIdFromRoomName(): string | undefined {
+		return props.room.getMembersIdsFromName().find((id) => id !== userStore.userId);
 	}
 
 	function getOtherUserDisplayName(): string | undefined {
