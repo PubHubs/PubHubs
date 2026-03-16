@@ -50,7 +50,8 @@
 			<!-- Content row: Timeline + Sidebar -->
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-					<RoomTimeline v-if="room" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
+					<RoomTimeline v-if="room && !room.isForumRoom()" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
+					<ForumRoom v-if="room && room.isForumRoom()" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
 				</div>
 
 				<!-- Room sidebar -->
@@ -141,31 +142,6 @@
 		id: { type: String, required: true },
 	});
 
-	// This guarantees that room has a value, so in the template we can safely use room!
-	const room = computed(() => {
-		let r = rooms.rooms[props.id];
-		if (!r) {
-			return undefined;
-		}
-		// The name of the room will be synced later, start with an empty name
-		if (r.name === props.id) {
-			r.name = '';
-		}
-		return r;
-	});
-
-	const lastReadEventId = computed(() => {
-		if (!room.value || !user.userId) return undefined;
-		return room.value.getLastVisibleEventId() || room.value.getEventReadUpTo(user.userId) || undefined;
-	});
-
-	// Check if there are room members to show
-	const hasRoomMembers = computed(() => {
-		if (!room.value) return false;
-		const members = room.value.getStateJoinedMembersIds();
-		return members.filter((id) => !id.startsWith('@notices_user:')).length > 0;
-	});
-
 	onMounted(async () => {
 		// Ensure sidebar is closed instantly when entering a room page
 		sidebar.closeInstantly();
@@ -183,11 +159,6 @@
 			delete rooms.scrollPositions[props.id];
 		}
 		if (completed) isLoading.value = false;
-	});
-
-	// Close sidebar instantly before leaving this page
-	onBeforeRouteLeave(() => {
-		sidebar.closeInstantly();
 	});
 
 	// Clear thread when sidebar is closed
@@ -227,6 +198,36 @@
 		}
 		const completed = await update();
 		if (completed) isLoading.value = false;
+	});
+
+	// This guarantees that room has a value, so in the template we can safely use room!
+	const room = computed(() => {
+		let r = rooms.rooms[props.id];
+		if (!r) {
+			return undefined;
+		}
+		// The name of the room will be synced later, start with an empty name
+		if (r.name === props.id) {
+			r.name = '';
+		}
+		return r;
+	});
+
+	const lastReadEventId = computed(() => {
+		if (!room.value || !user.userId) return undefined;
+		return room.value.getLastVisibleEventId() || room.value.getEventReadUpTo(user.userId) || undefined;
+	});
+
+	// Check if there are room members to show
+	const hasRoomMembers = computed(() => {
+		if (!room.value) return false;
+		const members = room.value.getStateJoinedMembersIds();
+		return members.filter((id) => !id.startsWith('@notices_user:')).length > 0;
+	});
+
+	// Close sidebar instantly before leaving this page
+	onBeforeRouteLeave(() => {
+		sidebar.closeInstantly();
 	});
 
 	function currentThreadLengthChanged(newLength: number) {
