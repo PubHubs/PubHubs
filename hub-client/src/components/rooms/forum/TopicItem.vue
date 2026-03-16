@@ -3,7 +3,7 @@
 		<div class="mb-2 flex flex-row">
 			<!-- Avatar -->
 			<div class="flex-shrink-0">
-				<Avatar v-if="roomMember" :user="roomMember" />
+				<AvatarId v-if="roomMember" :userId="roomMember.userId"></AvatarId>
 			</div>
 
 			<!-- Main content: vertical stack -->
@@ -11,7 +11,7 @@
 				<!-- Top row: Name + Dots -->
 				<div class="flex items-center justify-between">
 					<span class="truncate text-base font-semibold">
-						<UserDisplayName :user="topic.author?.userId!" :room="room" />
+						<UserDisplayName :userId="topic.author?.userId!" :userDisplayName="topic.author?.displayName"></UserDisplayName>
 					</span>
 					<div class="ml-2 flex-shrink-0">
 						<DotsMenu
@@ -99,21 +99,21 @@
 
 		<div class="flex w-full flex-row gap-x-4">
 			<div class="flex cursor-pointer flex-row items-center select-none" @click="handleRating(UserInteraction.LIKED)">
-				<Icon type="thumbs_up" size="sm" :filled="interaction === UserInteraction.LIKED" :class="interaction === UserInteraction.LIKED ? 'text-green-900' : ''" />
+				<Icon type="thumbs-up" size="sm" :filled="interaction === UserInteraction.LIKED" :class="interaction === UserInteraction.LIKED ? 'text-green-900' : ''" />
 				<span class="ml-1" :class="interaction === UserInteraction.LIKED ? 'text-white' : 'text-gray-light'">{{ localLikes }}</span>
 			</div>
 
 			<div class="flex cursor-pointer flex-row items-center select-none" @click="handleRating(UserInteraction.DISLIKED)">
-				<Icon type="thumbs_down" size="sm" :filled="interaction === UserInteraction.DISLIKED" :class="interaction === UserInteraction.DISLIKED ? 'text-red-900' : ''" />
+				<Icon type="thumbs-down" size="sm" :filled="interaction === UserInteraction.DISLIKED" :class="interaction === UserInteraction.DISLIKED ? 'text-red-900' : ''" />
 				<span class="ml-1" :class="interaction === UserInteraction.DISLIKED ? 'text-white' : 'text-gray-light'">{{ localDisikes }}</span>
 			</div>
 
 			<span v-if="mainTopic.closed === false" class="ml-1 cursor-pointer select-none" :class="isActiveReplyTopic ? 'text-white' : 'text-gray-light'" @click="toggleReply(topic.eventId)">Reply</span>
 
 			<div v-if="replies && localReplies.length !== 0" class="flex cursor-pointer flex-row items-center select-none" @click="showReplies = !showReplies">
-				<Icon type="replies" size="sm" :class="showReplies ? '' : 'text-gray-light'" />
+				<Icon type="chat-circle-text" size="sm" :class="showReplies ? '' : 'text-gray-light'" />
 				<span class="mr-1 ml-1" :class="showReplies ? '' : 'text-gray-light'">{{ localReplies.length }}</span>
-				<Icon :type="showReplies ? 'chevron_down' : 'chevron_up'" size="sm" :class="showReplies ? '' : 'text-gray-light'" />
+				<Icon :type="showReplies ? 'arrow-down' : 'arrow-up'" size="sm" :class="showReplies ? '' : 'text-gray-light'" />
 			</div>
 		</div>
 	</div>
@@ -128,37 +128,44 @@
 </template>
 
 <script setup lang="ts">
-	import { createDummyEvent, createDummyFile, createDummyImage } from '../../core/forumHelpers';
-	import { useForumStore } from '../../core/forumStore';
-	import { TTopicReplyContent } from '../../events/TTopicEvent';
-	import MessageSnippetForum from './MessageSnippetForum.vue';
-	import EventTime from '@/components/rooms/EventTime.vue';
-	import MessageFile from '@/components/rooms/MessageFile.vue';
-	import MessageImage from '@/components/rooms/MessageImage.vue';
-	import UserDisplayName from '@/components/rooms/UserDisplayName.vue';
-	import Avatar from '@/components/ui/Avatar.vue';
-	import { SMI } from '@/logic/foundation/StatusMessage';
-	import { User } from '@/logic/store/user';
-	import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent } from '@/model/events/TMessageEvent';
-	import Room from '@/model/rooms/Room';
-	import { TLocalAttachmentMessageEventContent } from '@/plugins/PluginRoomTypeForum/TLocalEventContent';
-	import { TThread } from '@/plugins/PluginRoomTypeForum/TThread';
-	import { useDotsState, useEditState, useReplyState } from '@/plugins/PluginRoomTypeForum/ThreadsStore';
-	import Icon from '@/plugins/PluginRoomTypeForum/components/elements/Icon.vue';
-	import EditTopicInput from '@/plugins/PluginRoomTypeForum/components/forms/EditTopicInput.vue';
-	import ForumInput from '@/plugins/PluginRoomTypeForum/components/forms/ForumInput.vue';
-	import LabelWithDescription from '@/plugins/PluginRoomTypeForum/components/forms/LabelWithDescription.vue';
-	import DotsMenu from '@/plugins/PluginRoomTypeForum/components/ui/DotsMenu.vue';
-	import { UserInteraction, useUserInteractionsStore } from '@/plugins/PluginRoomTypeForum/core/userStore';
-	import { logger } from 'matrix-js-sdk/lib/logger';
+	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRouter } from 'vue-router';
 
+	// Components
+	import EventTime from '@hub-client/components/rooms/EventTime.vue';
+	import MessageFile from '@hub-client/components/rooms/MessageFile.vue';
+	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+	import DotsMenu from '@hub-client/components/rooms/forum/DotsMenu.vue';
+	import EditTopicInput from '@hub-client/components/rooms/forum/EditTopicInput.vue';
+	import ForumInput from '@hub-client/components/rooms/forum/ForumInput.vue';
+	import LabelWithDescription from '@hub-client/components/rooms/forum/LabelWithDescription.vue';
+	import MessageSnippetForum from '@hub-client/components/rooms/forum/MessageSnippetForum.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
+	// Logic
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+	import { TThread } from '@hub-client/models/events/forum/TThread';
+	import { TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+
+	import { createDummyEvent, createDummyFile, createDummyImage } from '@hub-client/services/forum/forumHelpers';
 	import { REPLY_MAX_LENGTH, REPLY_MIN_LENGTH } from '@hub-client/services/forum/properties';
 
+	import { useDotsState, useEditState, useReplyState } from '@hub-client/stores/forum/ThreadsStore';
+	import { useForumStore } from '@hub-client/stores/forum/forumStore';
+	import { UserInteraction, useUserInteractionsStore } from '@hub-client/stores/forum/userStore';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	// Stores
+	import { User } from '@hub-client/stores/user';
+
+	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	const showReplies = ref(false);
 	const forumStore = useForumStore();

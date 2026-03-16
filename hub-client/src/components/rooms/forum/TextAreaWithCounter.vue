@@ -29,8 +29,9 @@
 </template>
 
 <script setup lang="ts">
-	import TextArea from '@/components/forms/TextArea.vue';
-	import { usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { usedEvents } from '@hub-client/composables/useFormInputEvents';
+
+	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 
 	const props = withDefaults(
 		defineProps<{

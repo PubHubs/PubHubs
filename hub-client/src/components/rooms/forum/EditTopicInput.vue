@@ -16,19 +16,21 @@
 </template>
 
 <script setup lang="ts">
-	import { createDummyEvent, createDummyFile, createDummyImage } from '../../core/forumHelpers';
-	import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent } from '@/model/events/TMessageEvent';
-	import Room from '@/model/rooms/Room';
-	import { TLocalAttachmentMessageEventContent } from '@/plugins/PluginRoomTypeForum/TLocalEventContent';
-	import { TThread } from '@/plugins/PluginRoomTypeForum/TThread';
-	import ForumInput from '@/plugins/PluginRoomTypeForum/components/forms/ForumInput.vue';
-	import TextAreaWithCounter from '@/plugins/PluginRoomTypeForum/components/forms/TextAreaWithCounter.vue';
-	import { useForumStore } from '@/plugins/PluginRoomTypeForum/core/forumStore';
 	import { ref } from 'vue';
 
+	import ForumInput from '@hub-client/components/rooms/forum/ForumInput.vue';
+	import TextAreaWithCounter from '@hub-client/components/rooms/forum/TextAreaWithCounter.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
+	import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+	import { TThread } from '@hub-client/models/events/forum/TThread';
+	import Room from '@hub-client/models/rooms/Room';
+
+	import { createDummyEvent, createDummyFile, createDummyImage } from '@hub-client/services/forum/forumHelpers';
 	import { REPLY_MAX_LENGTH, REPLY_MIN_LENGTH, TITLE_MAX_LENGTH, TITLE_MIN_LENGTH } from '@hub-client/services/forum/properties';
+
+	import { useForumStore } from '@hub-client/stores/forum/forumStore';
 
 	type Props = {
 		topic: TThread;

@@ -34,9 +34,7 @@
 	import { useForumStore } from '@hub-client/stores/forum/forumStore';
 	import { SortDirection, sortOptions, useSortingStore } from '@hub-client/stores/forum/sortingStore';
 	import { useTimelineStore } from '@hub-client/stores/forum/timelineStore';
-	import { useRooms } from '@hub-client/stores/rooms';
 
-	const rooms = useRooms();
 	const timelineStore = useTimelineStore();
 	const forumStore = useForumStore();
 	const sortingStore = useSortingStore();

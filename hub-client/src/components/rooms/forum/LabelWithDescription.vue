@@ -4,8 +4,6 @@
 			<slot></slot>
 		</label>
 
-		<Line v-if="showLine" :class="lineClass"></Line>
-
 		<p v-if="$slots.description" :class="descriptionClass" v-tw-class="'text-2xl text-gray dark:text-gray-light break-words'">
 			<slot name="description"></slot>
 		</p>
@@ -13,8 +11,6 @@
 </template>
 
 <script setup lang="ts">
-	import Line from '@/components/elements/Line.vue';
-
 	type Props = {
 		labelClass?: string;
 		descriptionClass?: string;

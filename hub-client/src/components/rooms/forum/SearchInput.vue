@@ -76,20 +76,24 @@
 
 <script setup lang="ts">
 	// Components
-	import Icon from '@/components/elements/Icon.vue';
-	import TruncatedText from '@/components/elements/TruncatedText.vue';
-	import Avatar from '@/components/ui/Avatar.vue';
-	import InlineSpinner from '@/components/ui/InlineSpinner.vue';
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { filterAlphanumeric } from '@/logic/core/extensions';
-	import { useRooms } from '@/logic/store/store';
 	import { RoomEmit } from '@/model/constants';
-	import Room from '@/model/rooms/Room';
 	import { TSearchParameters, TSearchResult } from '@/model/search/TSearch';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
 	import { PropType, computed, ref } from 'vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+
+	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
+
+	import Room from '@hub-client/models/rooms/Room';
+
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/store';
 
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();

@@ -1,5 +1,6 @@
-import Room from '@/model/rooms/Room';
 import { MatrixClient } from 'matrix-js-sdk';
+
+import Room from '@hub-client/models/rooms/Room';
 
 export abstract class BaseForumService {
 	protected client: MatrixClient;

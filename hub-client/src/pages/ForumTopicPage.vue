@@ -12,14 +12,16 @@
 </template>
 
 <script setup lang="ts">
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import { useRooms } from '@/logic/store/rooms';
-	import { useUser } from '@/logic/store/user';
-	import LabelWithDescription from '@/plugins/PluginRoomTypeForum/components/forms/LabelWithDescription.vue';
-	import TopicItem from '@/plugins/PluginRoomTypeForum/components/rooms/TopicItem.vue';
-	import { useForumStore } from '@/plugins/PluginRoomTypeForum/core/forumStore';
 	import { computed } from 'vue';
 	import { useRoute } from 'vue-router';
+
+	import LabelWithDescription from '@hub-client/components/rooms/forum/LabelWithDescription.vue';
+	import TopicItem from '@hub-client/components/rooms/forum/TopicItem.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+
+	import { useForumStore } from '@hub-client/stores/forum/forumStore';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
 
 	//import { FILTER_STATE, useFilterStore } from '@/plugins/PluginRoomTypeForum/core/filterStore';
 	//import { useTimelineStore } from '@/plugins/PluginRoomTypeForum/core/timelineStore';

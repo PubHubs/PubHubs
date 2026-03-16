@@ -10,11 +10,14 @@
 	</div>
 </template>
 <script setup lang="ts">
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
-	import { TFileMessageEventContent } from '@/model/events/TMessageEvent';
-	import { TLocalAttachmentMessageEventContent } from '@/plugins/PluginRoomTypeForum/TLocalEventContent';
 	import { computed, onMounted, ref } from 'vue';
+
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	import { TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 	const props = defineProps<{
 		event: TLocalAttachmentMessageEventContent | TFileMessageEventContent;

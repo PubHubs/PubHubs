@@ -3,16 +3,8 @@
 		<div>
 			<TextAreaWithCounter class="min-h-28 resize-none flex-col overflow-hidden md:resize-y" v-model="text" placeholder="Type your description here" :max-length="max_length">
 				<template #footer-left>
-					<Icon
-						v-if="with_emoji"
-						type="emoticon"
-						:iconColor="'text-background dark:text-on-surface-variant'"
-						size="base"
-						@click.stop="showEmojiPicker = !showEmojiPicker"
-						:asButton="true"
-						class="bg-accent-secondary rounded-full"
-					/>
-					<PluginIcon v-if="with_file" type="upload" @click="clickedAttachment" :asButton="true" class="pr-2" />
+					<Icon v-if="with_emoji" type="smiley" :iconColor="'text-background dark:text-on-surface-variant'" size="base" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true" class="bg-accent-secondary rounded-full" />
+					<Icon v-if="with_file" type="upload-simple" @click="clickedAttachment" :asButton="true" class="pr-2" />
 					<LocalMessageImage v-if="image" :event="image" @remove="image = null" />
 					<LocalMessageFile v-if="file" :event="file" @remove="file = null" />
 				</template>
@@ -24,7 +16,7 @@
 							:disabled="!isFormValid"
 							@click="emit('submit', { text: text, image: image, file: file })"
 						>
-							<Icon type="send" size="sm" class="text-hub-text-variant shrink-0" />
+							<Icon type="paper-plane-right" size="sm" class="text-hub-text-variant shrink-0" />
 						</Button>
 					</div>
 				</template>
@@ -52,19 +44,22 @@
 	</div>
 </template>
 <script setup lang="ts">
-	import Button from '@/components/elements/Button.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import EmojiPicker from '@/components/ui/EmojiPicker.vue';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent, TMessageEventContent } from '@/model/events/TMessageEvent';
-	import { TLocalAttachmentMessageEventContent } from '@/plugins/PluginRoomTypeForum/TLocalEventContent';
-	import PluginIcon from '@/plugins/PluginRoomTypeForum/components/elements/Icon.vue';
-	import TextAreaWithCounter from '@/plugins/PluginRoomTypeForum/components/forms/TextAreaWithCounter.vue';
-	import FileUploadDialog from '@/plugins/PluginRoomTypeForum/components/ui/FileUploadDialog.vue';
-	import LocalMessageFile from '@/plugins/PluginRoomTypeForum/components/ui/LocalMessageFile.vue';
-	import LocalMessageImage from '@/plugins/PluginRoomTypeForum/components/ui/LocalMessageImage.vue';
 	import { MsgType } from 'matrix-js-sdk';
 	import { computed, ref, watch } from 'vue';
+
+	import FileUploadDialog from '@hub-client/components/rooms/forum/FileUploadDialog.vue';
+	import LocalMessageFile from '@hub-client/components/rooms/forum/LocalMessageFile.vue';
+	import LocalMessageImage from '@hub-client/components/rooms/forum/LocalMessageImage.vue';
+	import TextAreaWithCounter from '@hub-client/components/rooms/forum/TextAreaWithCounter.vue';
+	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
+
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+
+	import Button from '@hub-client/new-design/components/Button.vue';
+	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	const { allTypes, getTypesAsString } = useMatrixFiles();
 

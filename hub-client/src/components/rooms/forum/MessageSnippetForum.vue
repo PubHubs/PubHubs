@@ -11,12 +11,16 @@
 </template>
 
 <script setup lang="ts">
-	import UserDisplayName from '@/components/rooms/UserDisplayName.vue';
-	import { useUserColor } from '@/logic/composables/useUserColor';
-	import type Room from '@/model/rooms/Room';
-	import { TThread } from '@/plugins/PluginRoomTypeForum/TThread';
-	import { useForumStore } from '@/plugins/PluginRoomTypeForum/core/forumStore';
 	import { computed } from 'vue';
+
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+
+	import { useUserColor } from '@hub-client/composables/useUserColor';
+
+	import { TThread } from '@hub-client/models/events/forum/TThread';
+	import type Room from '@hub-client/models/rooms/Room';
+
+	import { useForumStore } from '@hub-client/stores/forum/forumStore';
 
 	const props = defineProps<{
 		eventId: string;
