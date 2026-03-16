@@ -1,7 +1,5 @@
 /**
  * Layout root scroll helpers.
- * Navigation between nav and room views is always programmatic via scrollLeft.
- * overflow-x: hidden on layout-root prevents user touch-scroll (iOS).
  */
 const SCROLL_DURATION = 150;
 let isProgrammaticScroll = false;
