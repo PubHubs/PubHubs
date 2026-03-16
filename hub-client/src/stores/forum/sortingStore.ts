@@ -21,7 +21,7 @@ export const sortOptions: SortOption[] = [
 	{
 		key: SortOptionKey.LIKES,
 		label: 'Likes',
-		icon: 'like_heart',
+		icon: 'heart',
 		sortFn: (a, b) => a.likes - b.likes,
 	},
 	{
@@ -43,11 +43,11 @@ export const useSortingStore = defineStore('sortingStore', {
 		getDirectionIcon() {
 			return (key: SortOptionKey) => {
 				if (this.key !== key) {
-					return 'chevron_up_down';
+					return 'arrows-down-up';
 				} else if (this.direction === SortDirection.ASC) {
-					return 'chevron_up';
+					return 'arrow-up';
 				}
-				return 'chevron_down';
+				return 'arrow-down';
 			};
 		},
 	},

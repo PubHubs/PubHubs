@@ -2,7 +2,7 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" @click.self="sortingStore.closeMenu()">
 		<div class="border-accent-primary bg-accent-secondary relative w-80 rounded-lg border-2 shadow-xl">
 			<div class="relative border-b p-4">
-				<Icon class="text-accent-primary absolute top-4 right-4 transition-transform duration-200 hover:scale-125" @click="sortingStore.closeMenu()" as-button type="close_menu" size="base" />
+				<Icon class="text-accent-primary absolute top-4 right-4 transition-transform duration-200 hover:scale-125" @click="sortingStore.closeMenu()" as-button type="x" size="base" />
 				<h3 class="text-lg font-medium">Sort by</h3>
 			</div>
 
