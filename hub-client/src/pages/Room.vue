@@ -10,16 +10,19 @@
 				<div v-if="rooms.currentRoom" class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden" data-testid="roomtype">
 					<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
 					<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
-					<div class="group relative" :class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'" :title="t('menu.copy_room_url')" @click="!rooms.currentRoom.isDirectMessageRoom() && copyRoomUrl">
+					<div
+						class="group relative"
+						:class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'"
+						v-context-menu="!rooms.currentRoom.isDirectMessageRoom() ? (evt: any) => openMenu(evt, [{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl() }]) : undefined"
+					>
 						<H3 class="text-on-surface flex">
 							<TruncatedText class="font-headings font-semibold">
 								<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 								<GroupRoomHeader v-else-if="room!.isGroupRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
 								<AdminContactRoomHeader v-else-if="room!.isAdminContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-								<RoomName v-else :room="rooms.currentRoom" :title="t('menu.copy_room_url')" />
+								<RoomName v-else :room="rooms.currentRoom" />
 							</TruncatedText>
 						</H3>
-						<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 -right-2" />
 					</div>
 				</div>
 
@@ -116,6 +119,8 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+
 	const { t } = useI18n();
 	const route = useRoute();
 	const rooms = useRooms();
@@ -124,6 +129,7 @@
 	const router = useRouter();
 	const hubSettings = useHubSettings();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
+	const { openMenu } = useContextMenu();
 	const sidebar = useSidebar();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);

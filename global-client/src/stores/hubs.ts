@@ -217,7 +217,7 @@ const useHubs = defineStore('hubs', {
 					global.addAccessTokenAndUserID(this.currentHubId, token, userId);
 				});
 
-				// Open context menu in global-clientiframe
+				// Open context menu in global-client
 				messagebox.addCallback(iframeHubId, MessageType.ContextMenuOpen, (message: Message) => {
 					const { items, x, y, targetId } = message.content;
 					const contextMenu = useContextMenuStore();

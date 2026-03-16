@@ -28,17 +28,21 @@
 		</div>
 
 		<!-- Mobile scrim -->
-		<Transition name="backdrop">
-			<div v-if="store.isOpen && isMobile" class="fixed z-9998 bg-black/40" :style="{ ...visibleScreenBounds, top: '0px', bottom: '0px' }" @pointerdown.prevent.stop="store.close" @click.prevent.stop />
+		<Transition enter-active-class="transition-opacity duration-250 ease-in-out" leave-active-class="transition-opacity duration-250 ease-in-out" enter-from-class="opacity-0" leave-to-class="opacity-0">
+			<div v-if="store.isOpen && isMobile" class="fixed inset-0 z-9998 bg-black/40" @pointerdown.prevent.stop="store.close" @click.prevent.stop />
 		</Transition>
 
 		<!-- Mobile drawer menu -->
-		<Transition name="drawer">
+		<Transition
+			enter-active-class="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+			leave-active-class="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+			enter-from-class="translate-y-full"
+			leave-to-class="translate-y-full"
+		>
 			<div
 				v-if="store.isOpen && isMobile"
 				ref="menuRef"
-				class="bg-surface-elevated rounded-t-large pb-safe fixed bottom-0 z-9999 flex flex-col shadow-xl"
-				:style="visibleScreenBounds"
+				class="bg-surface-elevated rounded-t-large pb-safe fixed bottom-0 left-0 z-9999 flex w-full flex-col shadow-xl"
 				role="menu"
 				data-testid="contextmenu"
 				tabindex="-1"
@@ -86,18 +90,6 @@
 	const menuRef = ref<HTMLElement | null>(null);
 	const itemButtons = ref<HTMLButtonElement[]>([]);
 	const pos = ref({ x: 0, y: 0 });
-
-	const visibleScreenBounds = computed(() => {
-		const isInIframe = window.self !== window.top;
-
-		if (!isInIframe || !isMobile.value) {
-			return { left: '0px', width: '100%' };
-		}
-
-		const isOnFirstHalf = store.x < window.innerWidth / 2;
-
-		return isOnFirstHalf ? { left: '0px', width: '50vw' } : { left: '50vw', width: '50vw' };
-	});
 
 	// Positioning (desktop only)
 
@@ -210,25 +202,3 @@
 		window.removeEventListener('scroll', positionMenu, true);
 	});
 </script>
-
-<style scoped>
-	.drawer-enter-active,
-	.drawer-leave-active {
-		transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
-	}
-
-	.drawer-enter-from,
-	.drawer-leave-to {
-		transform: translateY(100%);
-	}
-
-	.backdrop-enter-active,
-	.backdrop-leave-active {
-		transition: opacity 250ms ease;
-	}
-
-	.backdrop-enter-from,
-	.backdrop-leave-to {
-		opacity: 0;
-	}
-</style>
