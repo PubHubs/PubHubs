@@ -207,8 +207,8 @@ const en = {
 	menu: {
 		calender: 'Calender',
 		contact: 'Contact Admin',
-		copy_hub_url: 'Copy link to hub',
-		copy_room_url: 'Copy link to room',
+		copy_hub_url: 'Copy hub-url',
+		copy_room_url: 'Copy room-url',
 		enter_room: 'Enter room',
 		leave_room: 'Leave room',
 		home: 'Hub welcome',
