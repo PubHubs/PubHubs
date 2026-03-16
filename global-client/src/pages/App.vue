@@ -1,5 +1,5 @@
 <template>
-	<div id="layout-root" class="bg-background font-body text-on-surface text-body no-scrollbar flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth">
+	<div id="layout-root" class="bg-background font-body text-on-surface text-body no-scrollbar flex h-[100svh] w-screen min-w-[32rem] overflow-x-hidden overflow-y-hidden overscroll-none scroll-smooth">
 		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
 		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
@@ -52,7 +52,7 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const LOGGER = new Logger('GC', CONFIG);
 	const { locale, availableLocales } = useI18n();
-	const { scrollToEnd, scrollToStart, setupSnapEnforcement, cleanupSnapEnforcement } = useRootScroll();
+	const { scrollToEnd, scrollToStart } = useRootScroll();
 	const messagebox = useMessageBox();
 	const settings = useSettings();
 	const dialog = useDialog();
@@ -138,8 +138,6 @@
 			});
 		}
 
-		setupSnapEnforcement();
-
 		LOGGER.log(SMI.STARTUP, 'App.vue onMounted done', { language: settings.getActiveLanguage });
 	}
 
@@ -174,6 +172,5 @@
 
 	onUnmounted(() => {
 		settings.stopListeningMobile();
-		cleanupSnapEnforcement();
 	});
 </script>
