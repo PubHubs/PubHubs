@@ -84,6 +84,8 @@ enum MessageType {
 	BarHide = 'visibilityBar-hide',
 	EventChange = 'eventchange',
 	CloseSidebar = 'closesidebar', // Close the sidebar in the hub client
+	ContextMenuOpen = 'contextmenu-open', // Hub asks global to show a context menu
+	ContextMenuSelect = 'contextmenu-select', // Global sends selected item index back to hub
 }
 
 /**

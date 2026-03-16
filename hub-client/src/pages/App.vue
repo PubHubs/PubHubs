@@ -77,8 +77,6 @@
 
 		<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 	</div>
-
-	<ContextMenu />
 </template>
 
 <script setup lang="ts">
@@ -121,15 +119,13 @@
 	import { HubInformation } from '@hub-client/stores/hub-settings';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMenu } from '@hub-client/stores/menu';
-	import { MessageType } from '@hub-client/stores/messagebox';
-	import { Message, MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
+	import { Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	// New design
-	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
@@ -288,6 +284,11 @@
 				} else {
 					scrollToStart();
 				}
+			});
+
+			// Receive context menu selection from global-client
+			messagebox.addCallback('parentFrame', MessageType.ContextMenuSelect, (message: Message) => {
+				useContextMenuStore().selectByIndex(message.content as number);
 			});
 
 			// Ask for hubinformation

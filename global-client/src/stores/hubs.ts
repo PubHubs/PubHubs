@@ -17,6 +17,7 @@ import { useSettings } from '@hub-client/stores/settings';
 
 // Other
 import { setLanguage, setUpi18n } from '@hub-client/i18n';
+import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 const useHubs = defineStore('hubs', {
 	state: () => {
@@ -214,6 +215,21 @@ const useHubs = defineStore('hubs', {
 				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
 					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content);
 					global.addAccessTokenAndUserID(this.currentHubId, token, userId);
+				});
+
+				// Open context menu in global-clientiframe
+				messagebox.addCallback(iframeHubId, MessageType.ContextMenuOpen, (message: Message) => {
+					const { items, x, y, targetId } = message.content;
+					const contextMenu = useContextMenuStore();
+					contextMenu.open(
+						items.map((item: any, index: number) => ({
+							...item,
+							onClick: () => messagebox.sendMessage(new Message(MessageType.ContextMenuSelect, index), iframeHubId),
+						})),
+						x,
+						y,
+						targetId,
+					);
 				});
 
 				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, () => {
