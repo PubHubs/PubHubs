@@ -18,21 +18,13 @@ import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/T
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TCurrentEvent } from '@hub-client/models/events/types';
 import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
+import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-
-// Types
-enum RoomType {
-	SECURED = 'ph.messages.restricted',
-	PH_MESSAGES_DM = 'ph.messages.dm',
-	PH_MESSAGES_GROUP = 'ph.messages.group',
-	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
-	PH_MESSAGE_STEWARD_CONTACT = 'ph.messages.steward.contact',
-}
 
 type RoomThread = {
 	threadId: string;
@@ -138,7 +130,11 @@ export default class Room {
 	}
 
 	public isSecuredRoom(): boolean {
-		return this.getType() === RoomType.SECURED;
+		return this.getType() === RoomType.PH_MESSAGES_RESTRICTED;
+	}
+
+	public isForumRoom(): boolean {
+		return this.getType() === RoomType.PH_FORUM_ROOM;
 	}
 
 	public isDirectMessageRoom(): boolean {

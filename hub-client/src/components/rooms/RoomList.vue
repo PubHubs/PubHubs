@@ -6,7 +6,7 @@
 				:room="room"
 				class="no-callout group inline-block w-full select-none"
 				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
-				icon="chats-circle"
+				:icon="room.roomType === RoomType.PH_FORUM_ROOM ? 'chat-circle-text' : 'chats-circle'"
 				@click="hubSettings.hideBar()"
 				v-context-menu="
 					(evt: any) =>

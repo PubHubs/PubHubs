@@ -9,7 +9,10 @@
 				<!-- Left: Room info -->
 				<div v-if="rooms.currentRoom" class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden" data-testid="roomtype">
 					<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
-					<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
+					<Icon v-else-if="rooms.currentRoom.isSecuredRoom()" type="shield" />
+					<Icon v-else-if="rooms.currentRoom.isForumRoom()" type="chat-circle-text" />
+					<Icon v-else type="chats-circle" />
+
 					<div class="group relative" :class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'" :title="t('menu.copy_room_url')" @click="!rooms.currentRoom.isDirectMessageRoom() && copyRoomUrl">
 						<H3 class="text-on-surface flex">
 							<TruncatedText class="font-headings font-semibold">
