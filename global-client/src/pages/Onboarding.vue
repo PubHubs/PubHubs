@@ -1,5 +1,5 @@
 <template>
-	<div class="w-full max-w-screen flex-col">
+	<div class="flex w-full max-w-screen flex-col">
 		<!-- Header -->
 		<div class="bg-surface flex h-[80px] w-full items-center px-6 py-4">
 			<div class="flex h-full w-full items-center justify-between gap-16">
@@ -92,7 +92,7 @@
 							v-else
 							ref="carouselDesktop"
 							class="no-scrollbar flex snap-x snap-mandatory gap-12 overflow-x-auto scroll-smooth py-6"
-							style="padding-left: calc(50vw - 40ch); padding-right: calc(50vw - 40ch); scroll-padding-left: calc(50vw - 40ch); scroll-padding-right: calc(50vw - 40ch)"
+							style="padding-left: max(1rem, calc(50vw - 40ch)); padding-right: max(1rem, calc(50vw - 40ch)); scroll-padding-left: max(1rem, calc(50vw - 40ch)); scroll-padding-right: max(1rem, calc(50vw - 40ch))"
 						>
 							<!-- Card 1 -->
 							<CarouselCard :index="0" @next="scrollTo" :class="currentIndex !== 0 && 'pointer-events-none'">
@@ -178,9 +178,7 @@
 					</div>
 					<iframe
 						:class="!isMobile && 'rounded-2xl'"
-						class="aspect-video object-cover shadow-xl"
-						width="100%"
-						height="100%"
+						class="aspect-video w-full object-cover shadow-xl"
 						src="https://player.vimeo.com/video/807947893?badge=0&autopause=0&player_id=0&app_id=58479"
 						title="Vimeo video player"
 						frameborder="0"
