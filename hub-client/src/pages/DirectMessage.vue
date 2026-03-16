@@ -142,9 +142,8 @@
 	});
 
 	const sortedPrivateRooms = computed(() => {
-		return [...privateRooms.value].sort((r1, r2) => {
-			return lastEventTimeStamp(r2) - lastEventTimeStamp(r1);
-		});
+		const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
+		return [...privateRooms.value].filter((r) => r.hasMessages() || r.roomId === selectedRoomId).sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
 	});
 
 	const mobileConversationTitle = computed(() => {
