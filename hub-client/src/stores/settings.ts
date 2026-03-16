@@ -37,6 +37,7 @@ enum FeatureFlag {
 	deleteMessages = 'deleteMessages',
 	hubSettings = 'hubSettings',
 	votingWidget = 'votingWidget',
+	forumRooms = 'forumRooms',
 	// Implemented with issue #984
 	authenticatedMedia = 'authenticatedMedia',
 	unreadCounter = 'unreadCounter',
