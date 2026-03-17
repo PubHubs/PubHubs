@@ -266,6 +266,9 @@ const useRooms = defineStore('rooms', {
 			for (const roomListRoom of this.roomList) {
 				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
 				if (room) {
+					// TODO Threadnotification - remove this line! It temporarily removes all thread notifications!
+					room.resetThreadUnreadNotificationCountFromSync();
+
 					unread += room.getUnreadNotificationCount(NotificationCountType.Total);
 				}
 			}
