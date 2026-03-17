@@ -441,7 +441,7 @@
 		}
 
 		// Reply
-		if (!props.event.msgIsNotSend && !props.event.redactedMessage && !props.event.isThreadRoot) {
+		if (!props.event.msgIsNotSend && !redactedMessage.value && !props.event.isThreadRoot) {
 			menu.push({
 				label: t('menu.reply'),
 				icon: 'arrow-bend-up-left',
@@ -450,7 +450,7 @@
 		}
 
 		// Thread reply (not in DM rooms)
-		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !props.event.redactedMessage && !props.room.isDirectMessageRoom()) {
+		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !redactedMessage.value && !props.room.isDirectMessageRoom()) {
 			menu.push({
 				label: t('menu.reply_in_thread'),
 				icon: 'chat-circle',
@@ -468,7 +468,7 @@
 		}
 
 		// Delete (only your own messages)
-		if (settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !props.event.msgIsNotSend && props.event.sender === user.userId && !props.event.redactedMessage && !(props.viewFromThread && props.event.isThreadRoot)) {
+		if (settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !props.event.msgIsNotSend && props.event.sender === user.userId && !redactedMessage.value && !(props.viewFromThread && props.event.isThreadRoot)) {
 			menu.push({
 				label: t('menu.delete_message'),
 				icon: 'trash',
