@@ -24,7 +24,7 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="absolute bottom-0 left-0 mt-6 flex w-full gap-8" :class="index == 0 ? 'justify-end' : index == 1 ? 'justify-between' : 'justify-start'">
+			<div v-if="active" class="absolute bottom-0 left-0 mt-6 flex w-full gap-8" :class="index == 0 ? 'justify-end' : index == 1 ? 'justify-between' : 'justify-start'">
 				<Button v-if="index > 0" @click.stop="handlePrev" class="w-fit" color="text">{{ $t('dialog.back') }}</Button>
 				<Button v-if="index < 2" @click.stop="handleNext" class="w-fit">{{ $t('dialog.continue') }}</Button>
 			</div>
@@ -32,12 +32,16 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 
 	const props = defineProps({
 		index: Number,
+		active: {
+			type: Boolean,
+			default: true,
+		},
 	});
 
 	const emit = defineEmits(['cardClick', 'next']);
