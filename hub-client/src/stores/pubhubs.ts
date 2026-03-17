@@ -935,12 +935,24 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
-		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: PubHubsMgType = PubHubsMgType.Default): Promise<Boolean> {
+		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: PubHubsMgType = PubHubsMgType.Default, inReplyTo?: TMessageEvent): Promise<Boolean> {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
 			let fileType = MsgType.File;
 			let body = message;
 			if (body === '') body = file.name;
 			if (imageTypes.includes(file?.type)) fileType = MsgType.Image;
+
+			let relatesTo: any = undefined;
+			if (thread || inReplyTo) {
+				relatesTo = {};
+				if (thread) {
+					relatesTo.event_id = thread;
+					relatesTo.rel_type = 'm.thread';
+				}
+				if (inReplyTo) {
+					relatesTo['m.in_reply_to'] = { event_id: inReplyTo.event_id };
+				}
+			}
 
 			const content = {
 				body: body,
@@ -954,7 +966,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 				// satisfy the sdk's type checking
 				'm.new_content': undefined,
-				'm.relates_to': undefined,
+				'm.relates_to': relatesTo,
 			};
 			try {
 				// FileLibrary
