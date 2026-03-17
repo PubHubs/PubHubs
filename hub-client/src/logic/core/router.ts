@@ -78,23 +78,11 @@ const routes = [
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/forum',
-		children: [
-			{
-				path: '/create-topic/:id',
-				props: true,
-				name: 'create-topic',
-				component: () => import('@hub-client/pages/ForumCreateTopicPage.vue'),
-				meta: { hideBar: true, onboarding: true },
-			},
-			{
-				path: '/topic/:key',
-				props: true,
-				name: 'topic',
-				component: () => import('@hub-client/pages/ForumTopicPage.vue'),
-				meta: { hideBar: true, onboarding: true },
-			},
-		],
+		path: '/create-topic/:id',
+		props: true,
+		name: 'create-topic',
+		component: () => import('@hub-client/pages/ForumCreateTopicPage.vue'),
+		meta: { hideBar: true, onboarding: true },
 	},
 	{
 		path: '/error-page',
