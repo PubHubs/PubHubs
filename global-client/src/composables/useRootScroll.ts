@@ -1,11 +1,9 @@
 /**
- * Layout root scroll helpers with Safari snap enforcement
+ * Layout root scroll helpers.
  */
 const SCROLL_DURATION = 150;
 let isProgrammaticScroll = false;
 let animationFrameId: number | null = null;
-let scrollEndTimeout: ReturnType<typeof setTimeout>;
-let cleanupFn: (() => void) | null = null;
 
 const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
 	if (animationFrameId !== null) {
@@ -36,25 +34,6 @@ const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
 
 	animationFrameId = requestAnimationFrame(animateScroll);
 };
-
-// Snaps to the nearest snap point (workaround for Safari ignoring scroll-snap-type: mandatory)
-const enforceSnap = () => {
-	const layoutRoot = document.getElementById('layout-root');
-	if (!layoutRoot || isProgrammaticScroll) return;
-
-	const scrollLeft = layoutRoot.scrollLeft;
-	const maxScroll = layoutRoot.scrollWidth - layoutRoot.clientWidth;
-
-	if (maxScroll <= 0) return;
-
-	const midpoint = maxScroll / 2;
-	const targetScroll = scrollLeft < midpoint ? 0 : maxScroll;
-
-	if (Math.abs(scrollLeft - targetScroll) > 1) {
-		smoothScrollTo(layoutRoot, targetScroll);
-	}
-};
-
 const useRootScroll = () => {
 	const scrollToStart = () => {
 		const layoutRoot = document.getElementById('layout-root');
@@ -70,39 +49,9 @@ const useRootScroll = () => {
 		}
 	};
 
-	// Listens for scroll-end to enforce snapping
-	const setupSnapEnforcement = () => {
-		if (cleanupFn) return;
-
-		const layoutRoot = document.getElementById('layout-root');
-		if (!layoutRoot) return;
-
-		if ('onscrollend' in window) {
-			layoutRoot.addEventListener('scrollend', enforceSnap);
-			cleanupFn = () => layoutRoot.removeEventListener('scrollend', enforceSnap);
-		} else {
-			const debouncedEnforceSnap = () => {
-				clearTimeout(scrollEndTimeout);
-				scrollEndTimeout = setTimeout(enforceSnap, 150);
-			};
-			layoutRoot.addEventListener('scroll', debouncedEnforceSnap);
-			cleanupFn = () => {
-				layoutRoot.removeEventListener('scroll', debouncedEnforceSnap);
-				clearTimeout(scrollEndTimeout);
-			};
-		}
-	};
-
-	const cleanupSnapEnforcement = () => {
-		cleanupFn?.();
-		cleanupFn = null;
-	};
-
 	return {
 		scrollToStart,
 		scrollToEnd,
-		setupSnapEnforcement,
-		cleanupSnapEnforcement,
 	};
 };
 
