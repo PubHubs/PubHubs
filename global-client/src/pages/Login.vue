@@ -4,7 +4,7 @@
 		<InlineSpinner size="lg" />
 	</div>
 
-	<div v-else class="w-[calc(100svh_-_80px)] flex-col">
+	<div v-else class="flex w-full flex-col">
 		<div class="bg-surface flex h-[80px] w-full items-center px-6 py-4">
 			<div class="flex h-full w-full items-center justify-between gap-16">
 				<a :href="globalClientUrl" rel="noopener noreferrer" class="h-full py-2">
@@ -20,12 +20,12 @@
 
 		<div class="bg-background h-[calc(100svh_-_80px)] w-full">
 			<div class="flex h-full w-full items-center justify-center" :class="isMobile ? 'flex-col' : 'flex-row'">
-				<div class="bg-surface-low flex items-center justify-center" :class="isMobile ? 'h-1/2 w-full px-12' : 'h-full w-1/2 px-36'">
+				<div class="bg-surface-low flex shrink-0 items-center justify-center" :class="isMobile ? 'h-2/5 w-full px-12' : 'h-full w-1/2 px-36'">
 					<figure class="h-auto w-full">
 						<img src="../assets/mascot-welcome.svg" alt="PubHubs mascot" />
 					</figure>
 				</div>
-				<div class="flex flex-col items-center justify-center gap-6" :class="isMobile ? 'h-1/2 w-full' : 'h-full w-1/2'">
+				<div class="flex flex-col items-center justify-center gap-6" :class="isMobile ? 'h-3/5 w-full py-6' : 'h-full w-1/2'">
 					<div class="flex flex-col gap-6">
 						<div class="flex flex-col gap-4">
 							<H1>

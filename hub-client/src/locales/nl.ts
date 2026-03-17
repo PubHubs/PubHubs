@@ -206,8 +206,8 @@ const nl = {
 	menu: {
 		calender: 'Kalender',
 		contact: 'Admin Contact',
-		copy_hub_url: 'Kopieer link naar hub',
-		copy_room_url: 'Kopieer link naar kamer',
+		copy_hub_url: 'Kopieer hub-url',
+		copy_room_url: 'Kopieer kamer-url',
 		enter_room: 'Ga naar kamer',
 		leave_room: 'Verlaat kamer',
 		home: 'Hub welkom',

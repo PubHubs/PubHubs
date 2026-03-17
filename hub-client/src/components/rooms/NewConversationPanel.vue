@@ -43,7 +43,7 @@
 				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
 					<div v-for="userId in usersSelected" :key="userId" class="flex flex-col items-center">
 						<div class="relative">
-							<Icon type="x" size="sm" class="bg-surface-subtle absolute right-0 bottom-0 cursor-pointer rounded-full" @click.stop="removeUserFromSelection(user as User)" />
+							<Icon type="x" size="sm" class="bg-surface-subtle absolute right-0 bottom-0 cursor-pointer rounded-full" @click.stop="removeUserFromSelection(userId)" />
 							<Avatar :avatarUrl="userStore.userAvatar(userId)" :user-id="userId"></Avatar>
 						</div>
 						<span class="mt-1 w-16 truncate text-center text-sm">{{ userStore.userDisplayName(userId) }}</span>
@@ -85,7 +85,7 @@
 								v-for="user in usersInLetter"
 								:key="user.userId"
 								class="hover:bg-surface-high flex cursor-pointer items-center gap-2 rounded-md p-2"
-								@click.once="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
+								@click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
 							>
 								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check-circle"></Icon>
 								<Avatar v-else :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
@@ -267,8 +267,8 @@
 		}
 	}
 
-	function removeUserFromSelection(userToRemove: User) {
-		selectedUsers.value = selectedUsers.value.filter((userId) => userId !== userToRemove.userId);
+	function removeUserFromSelection(userIdToRemove: string) {
+		selectedUsers.value = selectedUsers.value.filter((userId) => userId !== userIdToRemove);
 	}
 
 	function backToGroupPanel() {

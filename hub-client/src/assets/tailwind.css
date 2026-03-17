@@ -289,25 +289,25 @@
 	--spacing-60: 240px;
 	--spacing-64: 256px;
 
-	--text-h1: 28px;
+	--text-h1: 1.5em;
 	--text-h1--line-height: 1;
 	--text-h1--font-weight: 600;
-	--text-h2: 20px;
+	--text-h2: 1.25em;
 	--text-h2--line-height: 1;
 	--text-h2--font-weight: 600;
-	--text-h3: 16px;
+	--text-h3: 1em;
 	--text-h3--line-height: 1;
 	--text-h3--font-weight: 600;
-	--text-body: 16px;
+	--text-body: 1em;
 	--text-body--line-height: 1.5;
 	--text-body--font-weight: 400;
-	--text-label: 16px;
+	--text-label: 1em;
 	--text-label--line-height: 1.3;
 	--text-label--font-weight: 500;
-	--text-label-small: 14px;
+	--text-label-small: 0.875em;
 	--text-label-small--line-height: 1.3;
 	--text-label-small--font-weight: 500;
-	--text-label-tiny: 12px;
+	--text-label-tiny: 0.75em;
 	--text-label-tiny--line-height: 1.3;
 	--text-label-tiny--font-weight: 500;
 
