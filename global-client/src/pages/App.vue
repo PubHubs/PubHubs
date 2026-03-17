@@ -1,5 +1,9 @@
 <template>
-	<div id="layout-root" class="bg-background font-body text-on-surface text-body no-scrollbar flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth">
+	<div
+		id="layout-root"
+		class="bg-background font-body text-on-surface text-body no-scrollbar flex h-[100svh] w-screen min-w-[32rem] overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth"
+		:class="isIOS ? '' : 'snap-x snap-mandatory'"
+	>
 		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
 		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
@@ -33,13 +37,13 @@
 	import useRootScroll from '@global-client/composables/useRootScroll';
 
 	// Logic
+	import device from '@hub-client/logic/core/device';
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
-	import { useHubs } from '@global-client/stores/hubs';
 	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
 
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -50,6 +54,7 @@
 	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 
 	const isMobile = computed(() => settings.isMobileState);
+	const isIOS = device.getMobileOS() === 'iOS';
 	const LOGGER = new Logger('GC', CONFIG);
 	const { locale, availableLocales } = useI18n();
 	const { scrollToEnd, scrollToStart } = useRootScroll();
@@ -58,7 +63,6 @@
 	const dialog = useDialog();
 	const global = useGlobal();
 	const installPromptStore = useInstallPromptStore();
-	const hubs = useHubs();
 	const route = useRoute();
 	const router = useRouter();
 
