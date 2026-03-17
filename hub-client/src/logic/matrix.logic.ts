@@ -34,7 +34,7 @@ const InitialRoomList: MSC3575List = {
 		[MatrixEventType.RoomReceipt, MSC3575_WILDCARD],
 		[MatrixEventType.RoomReadMarker, MSC3575_WILDCARD],
 	],
-	timeline_limit: SystemDefaults.initialRoomTimelineLimit, // From this eventlist the roomtimeline is initially created
+	timeline_limit: 0, // initially no events, this is used for the roomlist in the sidebar.
 };
 
 // Main Roomlist: fetch the most recent rooms with all required_state data and memberdata

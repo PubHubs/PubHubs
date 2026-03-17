@@ -206,16 +206,12 @@ class MatrixService {
 	 * @param roomType - Type of the room to join
 	 * @param roomName - Tame of the room to join
 	 */
-	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[], timeline: (IStateEvent | IRoomEvent)[]): Promise<void> {
-		this.client!.getRoom(roomId); // Puts the room in the client store
-
-		const lastMessageId = timeline.findLast((x) => x.type === EventType.RoomMessage)?.event_id;
+	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[]): Promise<void> {
 		return this.roomsStore.updateRoomList({
 			roomId: roomId,
 			roomType: roomType,
 			name: roomName,
 			stateEvents: required_state,
-			lastMessageId: lastMessageId,
 			isHidden: false,
 		}); // Update the roomlist with the current room
 	}
@@ -256,7 +252,7 @@ class MatrixService {
 					// Fall back to the already-stored room type to avoid overwriting a DM type with the default.
 					const storedRoomType = this.roomsStore.roomList.find((r) => r.roomId === roomId)?.roomType;
 					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? storedRoomType ?? RoomType.PH_MESSAGES_DEFAULT;
-					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state, roomData.timeline));
+					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state));
 				}
 
 				// Get the invite state
@@ -269,7 +265,7 @@ class MatrixService {
 					if (DirectRooms.includes(roomType) && roomName) {
 						const invites = inviteState.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId && x.content?.[MatrixType.MemberShip] === MatrixType.Invite);
 						invites.forEach(() => {
-							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state, roomData.timeline));
+							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state));
 						});
 					}
 				}
