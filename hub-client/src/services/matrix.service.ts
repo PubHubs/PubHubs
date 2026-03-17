@@ -247,6 +247,10 @@ class MatrixService {
 
 				// The roomlist is initially send twice: on sync start and later during the sync
 				// Only handle the join when the room is not joined yet
+				// Skip rooms where the user has left or been banned — the sync may still include them briefly after leaving
+				if (latestRoomMemberInfo?.content.membership === 'leave' || latestRoomMemberInfo?.content.membership === 'ban') {
+					continue;
+				}
 				if (!(this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join)) {
 					// Sliding sync sends delta required_state, so the create event may be absent on subsequent updates.
 					// Fall back to the already-stored room type to avoid overwriting a DM type with the default.

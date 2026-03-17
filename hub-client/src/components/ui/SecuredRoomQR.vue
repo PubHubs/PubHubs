@@ -19,6 +19,7 @@
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	// Model
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
 
 	import { useNotifications } from '@hub-client/stores/notifications';
@@ -40,7 +41,7 @@
 
 	function resultOfEntry(result: SecuredRoomAttributeResult) {
 		if (result.goto) {
-			pubhubs.joinRoom(props.securedRoomId).then(() => {
+			pubhubs.joinRoom(props.securedRoomId, RoomType.PH_MESSAGES_RESTRICTED).then(() => {
 				router.push({ name: 'room', params: { id: props.securedRoomId } });
 			});
 			notificationsStore.removeNotification(props.securedRoomId);

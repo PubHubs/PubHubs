@@ -70,7 +70,7 @@
 		</template>
 	</div>
 	<!-- Secure room join dialog -->
-	<RoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" />
+	<RoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.required_attributes" :messageValues="[]" :secured="true" />
 </template>
 
 <script setup lang="ts">

@@ -318,6 +318,7 @@ const en = {
 		secure_room_message_heading: 'Before you can enter the room',
 		secure_room_message: 'To enter scan the QR code with your Yivi app',
 		incorrect_attributes: 'Incorrect data. Please try again with the correct attributes.',
+		required_attributes: 'Provide the following attributes to enter this room:',
 		display_qr: 'Display QR-code',
 		retry: 'Retry',
 		secure_room_enter_info: 'Please show the following:',
