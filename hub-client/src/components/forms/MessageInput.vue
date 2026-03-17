@@ -308,6 +308,7 @@
 			}
 		}
 
+		messageInput.state.sendButtonEnabled = isValidMessage();
 		elTextInput.value?.$el.focus();
 	});
 
@@ -372,10 +373,6 @@
 			await pubhubs.addAnnouncementMessage(props.room.roomId, value.value!.toString(), powerLevel);
 			value.value = '';
 			isAnnouncementMode.value = false;
-		} else if (messageActions.replyingTo && inReplyTo.value) {
-			pubhubs.addMessage(props.room.roomId, value.value!.toString(), threadRoot, inReplyTo.value);
-			messageActions.replyingTo = undefined;
-			value.value = '';
 		} else if (messageInput.state.poll) {
 			sendPoll();
 			value.value = '';
@@ -383,6 +380,8 @@
 			sendScheduler();
 			value.value = '';
 		} else if (messageInput.state.fileAdded) {
+			const replyTo = inReplyTo.value;
+			if (replyTo) messageActions.replyingTo = undefined;
 			messageInput.closeFileUpload();
 			const syntheticEvent = {
 				currentTarget: {
@@ -390,11 +389,15 @@
 				},
 			} as unknown as Event;
 			fileUpload(t('errors.file_upload'), pubhubs.Auth.getAccessToken(), uploadUrl, allTypes, syntheticEvent, (url) => {
-				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string);
+				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string, undefined, replyTo);
 				URL.revokeObjectURL(uri.value);
 				value.value = '';
 				messageInput.cancelFileUpload();
 			});
+		} else if (messageActions.replyingTo && inReplyTo.value) {
+			pubhubs.addMessage(props.room.roomId, value.value!.toString(), threadRoot, inReplyTo.value);
+			messageActions.replyingTo = undefined;
+			value.value = '';
 		} else {
 			pubhubs.submitMessage(value.value!.toString(), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';
