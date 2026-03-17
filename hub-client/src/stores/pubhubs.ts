@@ -384,7 +384,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
 				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], lastMessageId: undefined, isHidden: false });
+				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false });
 			} catch (err) {
 				throw err;
 			}
