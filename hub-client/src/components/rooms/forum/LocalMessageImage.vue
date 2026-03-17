@@ -1,9 +1,9 @@
 <template>
-	<div class="relative">
-		<img :src="imageUrl" class="max-h-[5rem] max-w-[5rem] cursor-pointer rounded-2xl bg-cover bg-center object-contain" @click.stop="showFullImage = true" />
-		<button @click.stop="$emit('remove')" class="bg-accent-red absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full text-white hover:bg-red-600" title="Remove image">
-			<span class="text-xl font-bold">×</span>
-		</button>
+	<div class="relative h-600">
+		<img :src="imageUrl" class="h-600 cursor-pointer rounded-xl bg-cover bg-center object-contain" @click.stop="showFullImage = true" />
+		<div class="absolute -top-300 -right-300">
+			<Button icon="x" variant="errorIcon" size="sm" @click.stop="$emit('remove')" title="Remove image"></Button>
+		</div>
 	</div>
 	<Popover v-if="showFullImage" @close="showFullImage = false" class="fixed top-0 left-0 z-50 flex h-screen w-screen" :show-closing-cross="true">
 		<img :src="imageUrl" class="m-auto h-4/5 w-4/5 object-contain" />
@@ -21,6 +21,8 @@
 	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
 
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+
+	import Button from '@hub-client/new-design/components/Button.vue';
 
 	const props = defineProps<{
 		event: TLocalAttachmentMessageEventContent | TImageMessageEventContent;

@@ -1,10 +1,10 @@
 // src/plugins/PluginRoomTypeForum/core/services/AttachmentService.ts
 import { EventType, ISendEventResponse, MsgType } from 'matrix-js-sdk';
-import { logger } from 'matrix-js-sdk/lib/logger';
 
 import { fileUpload } from '@hub-client/composables/fileUpload';
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -92,7 +92,7 @@ export class AttachmentService extends BaseForumService {
 		try {
 			return await this.client.sendEvent(this.room.roomId, EventType.RoomMessage as any, content);
 		} catch (error) {
-			logger.trace(SMI.STORE, `swallowing add attachement`, { error });
+			LOGGER.trace(SMI.STORE, `swallowing add attachement`, { error });
 			throw error;
 		}
 	}

@@ -1,26 +1,21 @@
 <template>
 	<div>
 		<div>
-			<TextAreaWithCounter class="min-h-28 resize-none flex-col overflow-hidden md:resize-y" v-model="text" placeholder="Type your description here" :max-length="max_length">
-				<template #footer-left>
-					<Icon v-if="with_emoji" type="smiley" :iconColor="'text-background dark:text-on-surface-variant'" size="base" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true" class="bg-accent-secondary rounded-full" />
-					<Icon v-if="with_file" type="upload-simple" @click="clickedAttachment" :asButton="true" class="pr-2" />
-					<LocalMessageImage v-if="image" :event="image" @remove="image = null" />
-					<LocalMessageFile v-if="file" :event="file" @remove="file = null" />
-				</template>
-				<template #footer-right-r>
-					<div v-if="with_send" class="overflow-hidden rounded-full">
-						<Button
-							class="bg-hub-background-4 flex aspect-square h-7 w-7 items-center justify-center !rounded-full !p-0"
-							:class="!isFormValid && 'opacity-50 hover:cursor-default'"
-							:disabled="!isFormValid"
-							@click="emit('submit', { text: text, image: image, file: file })"
-						>
-							<Icon type="paper-plane-right" size="sm" class="text-hub-text-variant shrink-0" />
-						</Button>
+			<ValidatedForm v-slot="{ isValidated }" class="rounded-xl border p-200">
+				<TextArea v-model="text" placeholder="Type your description here" :validation="{ required: true, maxLength: max_length }">Your Reply</TextArea>
+
+				<div class="flex items-center justify-between gap-2">
+					<div>
+						<LocalMessageImage v-if="image" :event="image" @remove="image = null" />
+						<LocalMessageFile v-if="file" :event="file" @remove="file = null" />
 					</div>
-				</template>
-			</TextAreaWithCounter>
+					<div class="flex items-center gap-2">
+						<Button icon="smiley" variant="tertiary" @click.stop="showEmojiPicker = !showEmojiPicker"></Button>
+						<Button icon="upload-simple" variant="tertiary" @click="clickedAttachment"></Button>
+						<Button icon="paper-plane-right" @click="emit('submit', { text: text, image: image, file: file })" :disabled="!isValidated" title="submit"></Button>
+					</div>
+				</div>
+			</ValidatedForm>
 		</div>
 
 		<FileUploadDialog
@@ -50,7 +45,6 @@
 	import FileUploadDialog from '@hub-client/components/rooms/forum/FileUploadDialog.vue';
 	import LocalMessageFile from '@hub-client/components/rooms/forum/LocalMessageFile.vue';
 	import LocalMessageImage from '@hub-client/components/rooms/forum/LocalMessageImage.vue';
-	import TextAreaWithCounter from '@hub-client/components/rooms/forum/TextAreaWithCounter.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
 
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
@@ -59,7 +53,8 @@
 	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
-	import Icon from '@hub-client/new-design/components/Icon.vue';
+	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
+	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	const { allTypes, getTypesAsString } = useMatrixFiles();
 

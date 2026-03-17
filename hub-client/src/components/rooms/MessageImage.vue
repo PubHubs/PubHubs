@@ -4,7 +4,7 @@
 		<img :alt="message.body" :src="authMediaUrl" class="m-auto h-4/5 w-4/5 object-contain" />
 	</Popover>
 	<template v-if="message.body !== message.filename">
-		<p v-html="message.body" :class="{ 'text-on-surface-dim': deleted }" class="overflow-hidden text-ellipsis"></p>
+		<p v-html="message.body" class="overflow-hidden text-ellipsis"></p>
 	</template>
 </template>
 

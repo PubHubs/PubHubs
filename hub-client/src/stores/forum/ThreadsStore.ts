@@ -7,7 +7,6 @@ import { ref } from 'vue';
 
 const _activeReplyTopicKey = ref<string | null>(null);
 const _activeEditTopicKey = ref<string | null>(null);
-const _activeDotsTopicKey = ref<string | null>(null);
 
 export function useReplyState() {
 	const toggleReply = (topicKey: string) => {
@@ -36,30 +35,5 @@ export function useEditState() {
 	return {
 		activeEditTopicKey: _activeEditTopicKey,
 		toggleEdit,
-	};
-}
-
-export function useDotsState() {
-	const toggleDots = (topicKey: string) => {
-		if (_activeDotsTopicKey.value === topicKey) {
-			_activeDotsTopicKey.value = null;
-		} else {
-			_activeDotsTopicKey.value = topicKey;
-		}
-	};
-
-	const closeDots = () => {
-		_activeDotsTopicKey.value = null;
-	};
-
-	const openDots = (topicKey: string) => {
-		_activeDotsTopicKey.value = topicKey;
-	};
-
-	return {
-		activeDotsTopicKey: _activeDotsTopicKey,
-		toggleDots,
-		closeDots,
-		openDots,
 	};
 }

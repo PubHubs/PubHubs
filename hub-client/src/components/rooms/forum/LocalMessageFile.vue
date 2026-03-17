@@ -1,12 +1,10 @@
 <template>
-	<div class="relative">
-		<div class="flex overflow-x-hidden rounded-md">
-			<Icon type="paperclip" class="mr-2" />
+	<div>
+		<div class="flex items-center gap-2 overflow-x-hidden rounded-md">
+			<Icon type="file" />
 			<a class="text-blue truncate" :href="fileURL" target="_blank" download>{{ fileName }}</a>
+			<Button icon="x" variant="errorIcon" size="sm" @click.stop="$emit('remove')" title="Remove file"></Button>
 		</div>
-		<button @click.stop="$emit('remove')" class="bg-accent-red absolute -top-2 -right-6 flex h-5 w-5 items-center justify-center rounded-full text-white hover:bg-red-600" title="Remove file">
-			<span class="text-xl font-bold">×</span>
-		</button>
 	</div>
 </template>
 <script setup lang="ts">
@@ -18,6 +16,8 @@
 	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
 
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+
+	import Button from '@hub-client/new-design/components/Button.vue';
 
 	const props = defineProps<{
 		event: TLocalAttachmentMessageEventContent | TFileMessageEventContent;

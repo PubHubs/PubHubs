@@ -1,96 +1,42 @@
 <template>
 	<div ref="rootEvt" :id="topic.eventId" class="bg-surface m-5 space-y-1 rounded-xl px-4 py-2">
-		<div class="mb-2 flex flex-row">
-			<!-- Avatar -->
-			<div class="flex-shrink-0">
-				<AvatarId v-if="roomMember" :userId="roomMember.userId"></AvatarId>
-			</div>
-
-			<!-- Main content: vertical stack -->
-			<div class="ml-2 flex min-w-0 flex-grow flex-col">
-				<!-- Top row: Name + Dots -->
-				<div class="flex items-center justify-between">
-					<span class="truncate text-base font-semibold">
+		<div class="mb-2 flex flex-row items-center">
+			<AvatarId v-if="roomMember" :userId="roomMember.userId"></AvatarId>
+			<div class="ml-2 flex grow">
+				<div class="flex w-full items-center justify-between gap-2">
+					<span class="flex items-center gap-1">
 						<UserDisplayName :userId="topic.author?.userId!" :userDisplayName="topic.author?.displayName"></UserDisplayName>
+						<EventTime :timestamp="topic.timestamp" :showDate="true" />
+						<EventTime :timestamp="topic.timestamp" :showDate="false" />
 					</span>
-					<div class="ml-2 flex-shrink-0">
-						<DotsMenu
-							:show-close="currentUserIsTopicAuthor && !props.topic.closed && !props.replies"
-							:show-open="currentUserIsTopicAuthor && props.topic.closed && !props.replies"
-							:show-menu="isActiveDots"
-							:show-delete="currentUserIsTopicAuthor"
-							:show-edit="currentUserIsTopicAuthor"
-							@click.capture="toggleDots(topic.eventId)"
-							@pointerenter="
-								(event: PointerEvent) => {
-									event.pointerType === 'mouse' && openDots(topic.eventId);
-								}
-							"
-							@pointerleave="
-								(event: PointerEvent) => {
-									event.pointerType === 'mouse' && closeDots();
-								}
-							"
-							@close="
-								() => {
-									closeOrOpenTopic(true);
-									closeDots();
-								}
-							"
-							@open="
-								() => {
-									closeOrOpenTopic(false);
-									closeDots();
-								}
-							"
-							@delete="OnDeleteClick"
-							@report="closeDots"
-							@edit="
-								() => {
-									closeDots();
-									toggleEdit(topic.eventId);
-								}
-							"
-						/>
+
+					<div v-if="!isEditTopic" class="ml-2">
+						<ActionMenu>
+							<ActionMenuItem>Report</ActionMenuItem>
+							<ActionMenuItem v-if="currentUserIsTopicAuthor && !props.topic.closed && !props.replies" @click="closeOrOpenTopic(true)">Close</ActionMenuItem>
+							<ActionMenuItem v-if="currentUserIsTopicAuthor && props.topic.closed && !props.replies" @click="closeOrOpenTopic(false)">Open</ActionMenuItem>
+							<ActionMenuItem v-if="currentUserIsTopicAuthor" @click="OnDeleteClick">Delete</ActionMenuItem>
+							<ActionMenuItem v-if="currentUserIsTopicAuthor" @click="toggleEdit(topic.eventId)">Edit</ActionMenuItem>
+						</ActionMenu>
 					</div>
+					<Button v-else icon="x" variant="errorIcon" size="sm" class="-mr-200" @click="toggleEdit(topic.eventId)"></Button>
 				</div>
 
-				<!-- Second row: Date -->
-				<span class="mx-1 inline-block" style="margin-top: 1px">
-					<span class="flex gap-x-1">
-						<EventTime :timestamp="topic.timestamp" :showDate="false" />
-						<span class="text-lg font-normal">|</span>
-						<EventTime :timestamp="topic.timestamp" :showDate="true" />
-					</span>
-				</span>
-
-				<!-- Third row: In reply to -->
+				<!-- In reply to -->
 				<div class="mt-1">
 					<MessageSnippetForum v-if="replies && isNestedReply" :eventId="nestedRel?.reply_to_event_id!" :room="room" @click="onInReplyToClick(nestedRel?.reply_to_event_id!)" />
 				</div>
 			</div>
 		</div>
 
-		<EditTopicInput
-			v-if="isEditTopic"
-			:topic="topic"
-			:reply="replies ?? false"
-			:room="room"
-			:main-topic="mainTopic"
-			@submit="
-				() => {
-					closeDots();
-					toggleEdit(topic.eventId);
-				}
-			"
-		/>
+		<EditTopicInput v-if="isEditTopic" :topic="topic" :reply="replies ?? false" :room="room" :main-topic="mainTopic" @submit="toggleEdit(topic.eventId)" />
 		<LabelWithDescription show v-else class="space-y-1" description-class="text-black text-justify dark:text-white">
 			{{ topic.title }}
 			<template #description>
 				<div v-if="topic.image || topic.file" class="p-4 pl-0">
-					<div class="min-w-40 [&_img:not(.m-auto)]:!w-[40rem]">
-						<MessageImage v-if="topic.image" :message="topic.image.content as TImageMessageEventContent" class="max-w-[40rem]" />
-						<MessageFile v-if="topic.file" :message="topic.file.content as TFileMessageEventContent" class="max-w-[20rem]" />
+					<div class="min-w-40">
+						<MessageImage v-if="topic.image" :message="topic.image.content" />
+						<MessageFile v-if="topic.file" :message="topic.file.content" />
 					</div>
 				</div>
 				{{ topic.body }}
@@ -137,14 +83,15 @@
 	import MessageFile from '@hub-client/components/rooms/MessageFile.vue';
 	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
-	import DotsMenu from '@hub-client/components/rooms/forum/DotsMenu.vue';
 	import EditTopicInput from '@hub-client/components/rooms/forum/EditTopicInput.vue';
 	import ForumInput from '@hub-client/components/rooms/forum/ForumInput.vue';
 	import LabelWithDescription from '@hub-client/components/rooms/forum/LabelWithDescription.vue';
 	import MessageSnippetForum from '@hub-client/components/rooms/forum/MessageSnippetForum.vue';
-	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import ActionMenu from '@hub-client/components/ui/ActionMenu.vue';
+	import ActionMenuItem from '@hub-client/components/ui/ActionMenuItem.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	// Logic
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
@@ -158,13 +105,14 @@
 	import { createDummyEvent, createDummyFile, createDummyImage } from '@hub-client/services/forum/forumHelpers';
 	import { REPLY_MAX_LENGTH, REPLY_MIN_LENGTH } from '@hub-client/services/forum/properties';
 
-	import { useDotsState, useEditState, useReplyState } from '@hub-client/stores/forum/ThreadsStore';
+	import { useEditState, useReplyState } from '@hub-client/stores/forum/ThreadsStore';
 	import { useForumStore } from '@hub-client/stores/forum/forumStore';
 	import { UserInteraction, useUserInteractionsStore } from '@hub-client/stores/forum/userStore';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	// Stores
 	import { User } from '@hub-client/stores/user';
 
+	import Button from '@hub-client/new-design/components/Button.vue';
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	const showReplies = ref(false);
@@ -175,7 +123,6 @@
 
 	const { activeReplyTopicKey, toggleReply } = useReplyState();
 	const { activeEditTopicKey, toggleEdit } = useEditState();
-	const { activeDotsTopicKey, toggleDots, openDots, closeDots } = useDotsState();
 
 	type Props = {
 		topic: TThread;
@@ -200,7 +147,6 @@
 	const interaction = computed(() => userInteractions.get(props.topic.eventId));
 	const isActiveReplyTopic = computed(() => activeReplyTopicKey.value === props.topic.eventId);
 	const isEditTopic = computed(() => activeEditTopicKey.value === props.topic.eventId);
-	const isActiveDots = computed(() => activeDotsTopicKey.value === props.topic.eventId);
 	const currentUserIsTopicAuthor = computed(() => props.currentUser?.userId === props.topic.author?.userId);
 
 	const roomMember = computed(() => {
@@ -287,7 +233,7 @@
 			const { text, image, file } = payload;
 			const reply = await forumStore.sendReply(props.topic.eventId, text);
 			toggleReply(props.topic.eventId);
-			if (!reply) return logger.error(SMI.STORE, 'Failed to send reply');
+			if (!reply) return LOGGER.error(SMI.STORE, 'Failed to send reply');
 
 			let dummyImage: TMessageEvent<TImageMessageEventContent> | undefined;
 			let dummyFile: TMessageEvent<TFileMessageEventContent> | undefined;
@@ -307,7 +253,7 @@
 
 			if (props.replies) showReplies.value = true;
 		} catch (error) {
-			logger.trace(SMI.STORE, 'error in submitting reply', { error });
+			LOGGER.trace(SMI.STORE, 'error in submitting reply', { error });
 		} finally {
 			isSubmitting.value = false;
 		}
@@ -326,7 +272,6 @@
 	}
 
 	function OnDeleteClick() {
-		closeDots();
 		if (props.replies) {
 			forumStore.deleteTopicReply(props.topic);
 		} else {
@@ -345,20 +290,3 @@
 		isSubmitting.value = false;
 	}
 </script>
-
-<style lang="css" scoped>
-	@keyframes highlight_flashing {
-		0% {
-			background: none;
-		}
-		50% {
-			background: rgba(80, 80, 80, 0.8);
-		}
-		100% {
-			background: none;
-		}
-	}
-	.highlight_flashing {
-		animation: highlight_flashing 1s ease-in-out 3;
-	}
-</style>
