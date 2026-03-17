@@ -1,11 +1,11 @@
 <template>
 	<button
-		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex w-full flex-row gap-150 px-175 py-100 not-focus:pl-[17.5px] first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer focus:border-l-4 disabled:cursor-not-allowed"
+		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex w-full flex-row gap-150 px-175 py-100 first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer disabled:cursor-not-allowed"
 		role="menuitem"
 		type="button"
 		:aria-disabled="props.disabled ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
-		:class="disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface'"
+		:class="[disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface', !isMobile && 'not-focus:pl-[17.5px] focus:border-l-4']"
 		:disabled="disabled"
 		:title="computedTitle"
 		@click="handleClick"
@@ -19,6 +19,9 @@
 	// Packages
 	import { computed } from 'vue';
 
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
+
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 	import type { ContextMenuItemProps } from '@hub-client/new-design/models/contextMenu.models';
@@ -30,6 +33,9 @@
 	});
 
 	// Computed
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
+
 	const computedAriaLabel = computed(() => {
 		if (props.label) return props.label;
 		if (props.title) return props.title;

@@ -70,7 +70,7 @@
 	watch(
 		() => model,
 		() => {
-			changed.value = originalValue.value !== model;
+			changed.value = originalValue.value !== model.value;
 		},
 		{ deep: true },
 	);

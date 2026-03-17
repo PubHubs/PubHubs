@@ -4,9 +4,8 @@
 			<template #header>
 				<div class="flex h-full w-full items-center justify-between">
 					<div class="flex items-center justify-between gap-2">
-						<div class="group relative flex cursor-pointer items-center gap-2" @click="copyHubUrl" :title="t('menu.copy_hub_url')">
+						<div class="group relative flex cursor-pointer items-center gap-2" v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])">
 							<H2 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H2>
-							<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 right-0 -mr-2 transition-colors" />
 						</div>
 					</div>
 					<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square">{{ rooms.totalUnreadMessages }}</Badge>
@@ -77,8 +76,6 @@
 
 		<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 	</div>
-
-	<ContextMenu />
 </template>
 
 <script setup lang="ts">
@@ -121,15 +118,14 @@
 	import { HubInformation } from '@hub-client/stores/hub-settings';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMenu } from '@hub-client/stores/menu';
-	import { MessageType } from '@hub-client/stores/messagebox';
-	import { Message, MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
+	import { Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	// New design
-	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
@@ -142,6 +138,7 @@
 	const pubhubs = usePubhubsStore();
 	const menu = useMenu();
 	const { copyHubUrl } = useClipboard();
+	const { openMenu } = useContextMenu();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const pendingRouteFromParent = ref<RouteParamValue | null>(null);
@@ -288,6 +285,11 @@
 				} else {
 					scrollToStart();
 				}
+			});
+
+			// Receive context menu selection from global-client
+			messagebox.addCallback('parentFrame', MessageType.ContextMenuSelect, (message: Message) => {
+				useContextMenuStore().selectByIndex(message.content as number);
 			});
 
 			// Ask for hubinformation

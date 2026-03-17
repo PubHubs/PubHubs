@@ -332,6 +332,10 @@
 	-webkit-touch-callout: none;
 }
 
+@utility pb-safe {
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Highlight applied programmatically by useTimelineScroll.applyHighlight */
 .highlighted {
 	background: var(--color-surface-base);

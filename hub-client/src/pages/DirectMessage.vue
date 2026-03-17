@@ -33,9 +33,14 @@
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Conversation list -->
 			<div class="flex h-full flex-col overflow-y-auto p-3 md:p-4" :class="isMobile ? 'w-full' : 'w-[360px] shrink-0'">
-				<span v-if="privateRooms?.length === 0" class="mx-auto shrink-0">
-					{{ t('others.no_private_message') }}
-				</span>
+				<button v-if="sortedPrivateRooms.length === 0" class="bg-surface-low hover:bg-surface w-full cursor-pointer rounded-xl p-4 text-left" @click="sidebar.toggleTab(SidebarTab.NewDM)">
+					<div class="flex items-center gap-2">
+						<div class="flex h-10 w-10 shrink-0 items-center justify-center">
+							<Icon type="plus" />
+						</div>
+						<p class="font-bold">{{ t('others.new_message') }}</p>
+					</div>
+				</button>
 				<div class="flex w-full flex-col gap-4 transition-all duration-300 ease-in-out" role="list" data-testid="conversations">
 					<MessagePreview
 						v-for="room in sortedPrivateRooms"
@@ -47,6 +52,7 @@
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === room.roomId && 'bg-surface-low!'"
 						role="listitem"
 						@click="openDMRoom(room)"
+						v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.leave_conversation'), icon: 'eye-slash', isDelicate: true, onClick: () => leaveConversation(room) }], room.roomId)"
 					/>
 				</div>
 			</div>
@@ -116,14 +122,20 @@
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Store
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { Room, useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	// New design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
+	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
+	const dialog = useDialog();
+	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
@@ -234,6 +246,16 @@
 		sidebar.openDMRoom(room);
 		if (!isMobile.value) {
 			selectedRoom.value = room;
+		}
+	}
+
+	async function leaveConversation(room: Room) {
+		if (await dialog.okcancel(t('rooms.hide_sure'))) {
+			await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
+			if (selectedRoom.value?.roomId === room.roomId) {
+				selectedRoom.value = null;
+			}
+			sidebar.close();
 		}
 	}
 

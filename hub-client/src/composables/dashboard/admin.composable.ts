@@ -84,7 +84,7 @@ export function useAdminDashboard() {
 
 			if (!filteredRooms) return;
 
-			let invitations: StewardInvitation[] = [];
+			const invitations: StewardInvitation[] = [];
 
 			const eventPromises = filteredRooms.map((room) =>
 				pubhubsStore.client.createMessagesRequest(room.roomId, null, 50, Direction.Backward).then(async (events) => {

@@ -266,6 +266,9 @@ const useRooms = defineStore('rooms', {
 			for (const roomListRoom of this.roomList) {
 				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
 				if (room) {
+					// TODO Threadnotification - remove this line! It temporarily removes all thread notifications!
+					room.resetThreadUnreadNotificationCountFromSync();
+
 					unread += room.getUnreadNotificationCount(NotificationCountType.Total);
 				}
 			}
@@ -326,10 +329,11 @@ const useRooms = defineStore('rooms', {
 				room.setStateEvents(this.roomList.find((x) => x.roomId === roomId)?.stateEvents);
 			}
 
-			const lastMessageId = this.roomList.find((x) => x.roomId === roomId)?.lastMessageId;
-			if (lastMessageId && room) {
+			const user = useUser();
+			const lastReadMessageId = room?.getEventReadUpTo(user.userId!, true);
+			if (lastReadMessageId && room) {
 				await room.loadToEvent({
-					eventId: lastMessageId,
+					eventId: lastReadMessageId,
 					position: ScrollPosition.Start,
 				});
 			}
@@ -344,7 +348,6 @@ const useRooms = defineStore('rooms', {
 				existing.roomType = roomListRoom.roomType;
 				if (roomListRoom.name) existing.name = roomListRoom.name;
 				if (roomListRoom.stateEvents.length > 0) existing.stateEvents = roomListRoom.stateEvents;
-				if (roomListRoom.lastMessageId) existing.lastMessageId = roomListRoom.lastMessageId;
 			} else {
 				this.roomList.push(roomListRoom);
 			}

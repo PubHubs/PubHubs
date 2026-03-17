@@ -1,18 +1,6 @@
 <template>
 	<div class="flex w-full max-w-screen flex-col">
-		<!-- Header -->
-		<div class="bg-surface flex h-[80px] w-full items-center px-6 py-4">
-			<div class="flex h-full w-full items-center justify-between gap-16">
-				<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer" class="h-full py-2">
-					<Logo />
-				</a>
-				<div class="flex h-4 items-center justify-center gap-2">
-					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('nl')">NL</p>
-					<span>|</span>
-					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('en')">EN</p>
-				</div>
-			</div>
-		</div>
+		<AuthHeader />
 
 		<div class="h-[calc(100svh_-_80px)] overflow-y-auto">
 			<!-- Registration section -->
@@ -95,7 +83,7 @@
 							style="padding-left: max(1rem, calc(50vw - 40ch)); padding-right: max(1rem, calc(50vw - 40ch)); scroll-padding-left: max(1rem, calc(50vw - 40ch)); scroll-padding-right: max(1rem, calc(50vw - 40ch))"
 						>
 							<!-- Card 1 -->
-							<CarouselCard :index="0" @next="scrollTo" :class="currentIndex !== 0 && 'pointer-events-none'">
+							<CarouselCard :index="0" :active="currentIndex === 0" @next="scrollTo" :class="currentIndex !== 0 && 'pointer-events-none'">
 								<template #title>
 									<H2>{{ $t('register.card_1_title', [$t('common.yivi')]) }}</H2>
 								</template>
@@ -115,7 +103,7 @@
 							</CarouselCard>
 
 							<!-- Card 2 -->
-							<CarouselCard :index="1" @next="scrollTo" :class="currentIndex !== 1 && 'pointer-events-none'">
+							<CarouselCard :index="1" :active="currentIndex === 1" @next="scrollTo" :class="currentIndex !== 1 && 'pointer-events-none'">
 								<template #title>
 									<H2>{{ $t('register.card_2_title', [$t('common.yivi')]) }}</H2>
 								</template>
@@ -133,7 +121,7 @@
 							</CarouselCard>
 
 							<!-- Card 3 -->
-							<CarouselCard :index="2" @next="scrollTo" :class="currentIndex !== 2 && 'pointer-events-none'">
+							<CarouselCard :index="2" :active="currentIndex === 2" @next="scrollTo" :class="currentIndex !== 2 && 'pointer-events-none'">
 								<template #title>
 									<H2>{{ $t('register.card_3_title') }}</H2>
 								</template>
@@ -185,25 +173,7 @@
 						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 						allowfullscreen
 					></iframe>
-					<div class="mt-4 flex flex-col gap-8 px-4">
-						<div class="flex items-center gap-4">
-							<div class="bg-accent-primary text-on-accent-primary flex aspect-square h-6 w-6 items-center justify-center rounded-full">
-								<span class="text-label-small font-semibold">i</span>
-							</div>
-							<H2>{{ $t('register.yivi_faq') }}</H2>
-						</div>
-						<div class="flex flex-col gap-4">
-							<div v-for="(item, index) in faqs" :key="index" class="bg-surface-low flex w-full flex-col gap-2 rounded-2xl">
-								<div class="flex w-full justify-between rounded-2xl px-4 py-2 font-semibold hover:cursor-pointer" :class="faqIndex === index && 'bg-surface'" @click="toggle(index)">
-									<span>{{ item.question }}</span>
-									<span>{{ faqIndex === index ? '−' : '+' }}</span>
-								</div>
-								<div v-if="faqIndex === index" class="p-4">
-									{{ item.answer }}
-								</div>
-							</div>
-						</div>
-					</div>
+					<FaqSection />
 				</div>
 			</section>
 		</div>
@@ -217,10 +187,11 @@
 	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
-	import Logo from '@global-client/components/ui/Logo.vue';
+	import AuthHeader from '@global-client/components/ui/onboarding/AuthHeader.vue';
 	import CarouselCard from '@global-client/components/ui/onboarding/CarouselCard.vue';
 	import CarouselCardMobile from '@global-client/components/ui/onboarding/CarouselCardMobile.vue';
 	import DownloadLinks from '@global-client/components/ui/onboarding/DownloadLinks.vue';
+	import FaqSection from '@global-client/components/ui/onboarding/FaqSection.vue';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
@@ -251,10 +222,8 @@
 	const LOGGER = new Logger('GC', CONFIG);
 
 	// Reactive state
-	const globalClientUrl: string = _env.PUBHUBS_URL;
 	const isMobile = computed(() => settings.isMobileState);
 	const currentIndex = ref(0);
-	const faqIndex = ref<number | null>(null);
 	const items = [1, 2, 3];
 
 	// DOM refs for carousels
@@ -263,29 +232,7 @@
 
 	// Query parameters
 	const redirectPath = route.query.redirectPath as string;
-	// FAQ
-	const faqs = computed(() => [
-		{
-			question: t('register.yivi_faq_1_question'),
-			answer: t('register.yivi_faq_1_answer'),
-		},
-		{
-			question: t('register.yivi_faq_2_question'),
-			answer: t('register.yivi_faq_2_answer'),
-		},
-		{
-			question: t('register.yivi_faq_3_question'),
-			answer: t('register.yivi_faq_3_answer'),
-		},
-		{
-			question: t('register.yivi_faq_4_question'),
-			answer: t('register.yivi_faq_4_answer'),
-		},
-		{
-			question: t('register.yivi_faq_5_question'),
-			answer: t('register.yivi_faq_5_answer'),
-		},
-	]);
+
 	// Get the correct carousel container depending on screen size.
 	const getCarouselRef = (): HTMLDivElement | null => (isMobile.value ? carouselMobile.value : carouselDesktop.value);
 
@@ -300,11 +247,6 @@
 			});
 			currentIndex.value = index;
 		}
-	};
-
-	// Change application language.
-	const changeLanguage = (language: string): void => {
-		settings.setLanguage(language, true);
 	};
 
 	// Sets up a listener to track which carousel item is centered.
@@ -356,11 +298,6 @@
 	onUnmounted(() => {
 		window.removeEventListener('resize', handleResize);
 	});
-
-	// Toggles Faq
-	function toggle(index: number) {
-		faqIndex.value = faqIndex.value === index ? null : index;
-	}
 
 	// Lifecycle
 	function debounce(fn: () => void, delay: number) {

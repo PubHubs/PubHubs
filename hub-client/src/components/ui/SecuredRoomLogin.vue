@@ -23,6 +23,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import P from '@hub-client/components/elements/P.vue';
 	import QRCode from '@hub-client/components/ui/SecuredRoomQR.vue';
 
 	// Stores

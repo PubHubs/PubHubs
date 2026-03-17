@@ -36,7 +36,7 @@
 			</div>
 		</div>
 
-		<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" />
+		<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.required_attributes" :messageValues="[]" :secured="true" />
 	</div>
 </template>
 

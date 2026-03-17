@@ -5,18 +5,7 @@
 	</div>
 
 	<div v-else class="flex w-full flex-col">
-		<div class="bg-surface flex h-[80px] w-full items-center px-6 py-4">
-			<div class="flex h-full w-full items-center justify-between gap-16">
-				<a :href="globalClientUrl" rel="noopener noreferrer" class="h-full py-2">
-					<Logo />
-				</a>
-				<div class="flex h-4 items-center justify-center gap-2">
-					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('nl')">NL</p>
-					<span>|</span>
-					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('en')">EN</p>
-				</div>
-			</div>
-		</div>
+		<AuthHeader />
 
 		<div class="bg-background h-[calc(100svh_-_80px)] w-full">
 			<div class="flex h-full w-full items-center justify-center" :class="isMobile ? 'flex-col' : 'flex-row'">
@@ -63,7 +52,7 @@
 	import { computed, onMounted, ref } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
-	import Logo from '@global-client/components/ui/Logo.vue';
+	import AuthHeader from '@global-client/components/ui/onboarding/AuthHeader.vue';
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
@@ -101,8 +90,6 @@
 	const mss = useMSS();
 
 	const LOGGER = new Logger('GC', CONFIG);
-
-	const globalClientUrl = _env.PUBHUBS_URL;
 
 	const show = ref<boolean>(false);
 	const loading = ref<boolean>(true);
@@ -142,10 +129,6 @@
 			show.value = false;
 			LOGGER.error(SMI.ERROR, 'Error during MSS login', { error });
 		}
-	}
-
-	function changeLanguage(language: string) {
-		settings.setLanguage(language, true);
 	}
 
 	window.addEventListener('pageshow', () => (show.value = false));

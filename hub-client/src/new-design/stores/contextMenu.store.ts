@@ -2,8 +2,11 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
+// Stores
+import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
+
 // Models
-import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+import type { ContextMenuItemProps, MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 
 let wheelHandler: ((e: Event) => void) | undefined;
 
@@ -34,10 +37,25 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		items.value = newItems;
 		x.value = clientX;
 		y.value = clientY;
-		isOpen.value = true;
 		currentTargetId.value = targetId;
 
-		disableWheelScroll();
+		const messagebox = useMessageBox();
+
+		if (messagebox.inIframe) {
+			// The global-client will send back a ContextMenuSelect message with the chosen index.
+			const serialized: ContextMenuItemProps[] = newItems.map(({ ariaLabel, disabled, icon, isDelicate, label, title }) => ({
+				ariaLabel,
+				disabled,
+				icon,
+				isDelicate,
+				label,
+				title,
+			}));
+			messagebox.sendMessage(new Message(MessageType.ContextMenuOpen, { items: serialized, x: clientX, y: clientY, targetId }));
+		} else {
+			isOpen.value = true;
+			disableWheelScroll();
+		}
 	}
 
 	function close() {
@@ -66,6 +84,12 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		close();
 	}
 
+	// Called by the ContextMenuSelect message handler with the index chosen in the global-client.
+	function selectByIndex(index: number) {
+		const item = items.value[index];
+		if (item) select(item);
+	}
+
 	return {
 		close,
 		currentTargetId,
@@ -73,6 +97,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		items,
 		open,
 		select,
+		selectByIndex,
 		x,
 		y,
 	};

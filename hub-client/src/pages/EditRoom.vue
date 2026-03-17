@@ -19,7 +19,7 @@
 			<TextField v-if="!isSecured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
 
 			<div v-if="isSecured">
-				<TextField v-model="editRoom.user_txt" :validation="{ maxLength: roomValidations.maxDescriptionLength }" :placeholder="t('admin.secured_description_placeholder')" :show-length="true">{{
+				<TextField v-model="editRoom.user_txt" :validation="{ required: true, maxLength: roomValidations.maxDescriptionLength }" :placeholder="t('admin.secured_description_placeholder')" :show-length="true">{{
 					t('admin.secured_description')
 				}}</TextField>
 
