@@ -5,7 +5,13 @@
 		:src="authMediaUrl"
 		class="max-h-[25rem] w-[20rem] cursor-pointer rounded-md object-contain"
 		@click.stop="showFullImage = true"
-		v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.save_image'), icon: 'download-simple', onClick: () => saveImage() }])"
+		v-context-menu="
+			(evt: any) =>
+				openMenu(evt, [
+					{ label: t('menu.copy_image'), icon: 'copy', onClick: () => imageActions.copyImage(authMediaUrl!) },
+					{ label: t('menu.save_image'), icon: 'download-simple', onClick: () => imageActions.saveImage(authMediaUrl!, message.filename ?? message.body ?? 'image') },
+				])
+		"
 	/>
 	<Popover v-if="showFullImage" @close="showFullImage = false" class="fixed top-0 left-0 z-50 flex h-screen w-screen" :show-closing-cross="true">
 		<img :alt="message.body" :src="authMediaUrl" class="m-auto h-4/5 w-4/5 object-contain" />
@@ -24,6 +30,7 @@
 	import Popover from '@hub-client/components/ui/Popover.vue';
 
 	// Composables
+	import { useImageActions } from '@hub-client/composables/useImageActions';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	// Models
@@ -35,6 +42,7 @@
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const matrixFiles = useMatrixFiles();
+	const imageActions = useImageActions();
 	const showFullImage = ref(false);
 	const authMediaUrl = ref<string | undefined>(undefined);
 
@@ -43,12 +51,4 @@
 	onMounted(async () => {
 		authMediaUrl.value = await matrixFiles.getAuthorizedMediaUrl(props.message.url);
 	});
-
-	function saveImage() {
-		if (!authMediaUrl.value) return;
-		const a = document.createElement('a');
-		a.href = authMediaUrl.value;
-		a.download = props.message.filename ?? props.message.body ?? 'image';
-		a.click();
-	}
 </script>

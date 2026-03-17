@@ -213,6 +213,7 @@ const en = {
 		leave_room: 'Leave room',
 		leave_conversation: 'Hide conversation',
 		download_file: 'Download',
+		copy_image: 'Copy image',
 		save_image: 'Save image',
 		home: 'Hub welcome',
 		directmsg: 'Direct messages',

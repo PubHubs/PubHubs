@@ -212,6 +212,7 @@ const nl = {
 		leave_room: 'Verlaat kamer',
 		leave_conversation: 'Verberg gesprek',
 		download_file: 'Downloaden',
+		copy_image: 'Afbeelding kopiëren',
 		save_image: 'Afbeelding opslaan',
 		home: 'Hub welkom',
 		directmsg: 'Directe berichten',
