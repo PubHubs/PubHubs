@@ -1,16 +1,17 @@
 <template>
-	<div class="mx-auto w-full pr-3 pl-3 md:w-2/3">
+	<div v-if="!topicId" class="mx-auto w-full pr-3 pl-3 md:w-2/3">
 		<SubheaderForum />
 		<template v-if="forumTopics.length > 0">
-			<div class="flex flex-col gap-y-2">
-				<div v-for="topic in getTopics()" :key="topic.eventId">
-					<ul id="topic.eventId">
-						<ThreadItem @click="$router.push({ name: 'topic', params: { key: topic.eventId } })" :topic="topic" />
-					</ul>
-				</div>
-			</div>
+			<ul class="flex flex-col gap-y-2">
+				<li v-for="topic in getTopics()" :key="topic.eventId">
+					<ThreadItem @click="$router.push({ name: 'room', params: { id: roomId, topicId: topic.eventId } })" :topic="topic" />
+				</li>
+			</ul>
 		</template>
 	</div>
+
+	<ForumTopic v-if="topicId"></ForumTopic>
+
 	<InlineSpinner v-if="isAwaitingFetch"></InlineSpinner>
 </template>
 
@@ -19,6 +20,7 @@
 	import { TimelineWindow } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 
+	import ForumTopic from '@hub-client/components/rooms/forum/ForumTopic.vue';
 	// Components
 	import SubheaderForum from '@hub-client/components/rooms/forum/SubheaderForum.vue';
 	import ThreadItem from '@hub-client/components/rooms/forum/ThreadItem.vue';
@@ -45,6 +47,16 @@
 	const sortingDirection = computed(() => sortingStore.direction);
 	const isAwaitingFetch = ref(false);
 
+	const props = defineProps({
+		roomId: {
+			type: String,
+			required: true,
+		},
+		topicId: {
+			type: String,
+		},
+	});
+
 	onMounted(async () => {
 		filterStore.filter = FILTER_STATE.NO;
 		isAwaitingFetch.value = true;
@@ -69,12 +81,12 @@
 		}
 	});
 
+	const forumTopics = computed(() => forumStore.forumTopics);
+
 	function getTopics() {
 		if (filterStore.filter === FILTER_STATE.MY_TOPICS) {
 			return forumStore.myTopics;
 		}
 		return forumStore.forumTopics;
 	}
-
-	const forumTopics = computed(() => forumStore.forumTopics);
 </script>

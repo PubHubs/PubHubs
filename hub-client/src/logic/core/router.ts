@@ -65,7 +65,7 @@ const routes = [
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/room/:id',
+		path: '/room/:id/:topicId?',
 		name: 'room',
 		props: true,
 		component: () => import('@hub-client/pages/Room.vue'),

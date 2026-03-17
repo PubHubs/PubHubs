@@ -10,7 +10,8 @@
 				<div v-if="rooms.currentRoom" class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden" data-testid="roomtype">
 					<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
 					<Icon v-else-if="rooms.currentRoom.isSecuredRoom()" type="shield" />
-					<Icon v-else-if="rooms.currentRoom.isForumRoom()" type="chat-circle-text" />
+					<Icon v-else-if="rooms.currentRoom.isForumRoom() && !topicId" type="chat-circle-text" />
+					<Icon v-else-if="rooms.currentRoom.isForumRoom() && topicId" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'room', params: { id: rooms.currentRoomId } })" />
 					<Icon v-else type="chats-circle" />
 
 					<div class="group relative" :class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'" :title="t('menu.copy_room_url')" @click="!rooms.currentRoom.isDirectMessageRoom() && copyRoomUrl">
@@ -51,7 +52,7 @@
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
 					<RoomTimeline v-if="room && !room.isForumRoom()" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
-					<ForumRoom v-if="room && room.isForumRoom()" />
+					<ForumOverview v-if="room && room.isForumRoom()" :roomId="room.roomId" :topicId="topicId" />
 				</div>
 
 				<!-- Room sidebar -->
@@ -95,6 +96,7 @@
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
+	import ForumOverview from '@hub-client/components/rooms/forum/ForumOverview.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
@@ -140,6 +142,7 @@
 	// Passed by the router
 	const props = defineProps({
 		id: { type: String, required: true },
+		topicId: { type: String },
 	});
 
 	onMounted(async () => {

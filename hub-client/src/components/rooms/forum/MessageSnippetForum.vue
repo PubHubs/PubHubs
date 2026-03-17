@@ -2,7 +2,7 @@
 	<div v-if="topic" class="bg-surface-high flex items-center gap-2 truncate rounded-md px-2 text-nowrap hover:cursor-pointer">
 		<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
 		<p :class="textColor(userColor)">
-			<UserDisplayName :user="topic.author?.userId!" :room="room" />
+			<UserDisplayName :userId="topic.author?.userId!" :user-display-name="topic.author?.displayName"></UserDisplayName>
 		</p>
 		<div class="line-clamp-1 flex-1" :title="topic?.body">
 			{{ topic?.body }}

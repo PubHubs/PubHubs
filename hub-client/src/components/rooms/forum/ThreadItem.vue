@@ -1,5 +1,5 @@
 <template>
-	<li class="bg-surface hover:dark:bg-surface-high mx-auto flex cursor-pointer flex-row gap-x-4 rounded-xl p-3">
+	<div class="bg-surface hover:dark:bg-surface-high mx-auto flex cursor-pointer flex-row gap-x-4 rounded-xl p-3">
 		<div class="flex flex-col justify-center">
 			<AvatarId v-if="roomMember" :userId="roomMember.userId" />
 			<Icon v-if="topic.closed" class="self-center pt-2" type="locked" />
@@ -29,7 +29,7 @@
 				</div>
 			</div>
 		</div>
-	</li>
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -44,6 +44,7 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 
 	const { topic } = defineProps<{ topic: TThread }>();
+
 	const room = useRooms().currentRoom;
 	const roomMember = computed(() => {
 		if (room && topic.author?.userId) {
