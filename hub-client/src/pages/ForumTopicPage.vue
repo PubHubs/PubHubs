@@ -68,7 +68,7 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	//import { FILTER_STATE, useFilterStore } from '@/plugins/PluginRoomTypeForum/core/filterStore';
-	//import { useTimelineStore } from '@/plugins/PluginRoomTypeForum/core/timelineStore';
+	//import { useTimelineStore } from '@hub-client/stores/forum/timelineStore';
 
 	/*const filterStore = useFilterStore();
 	const timelineStore = useTimelineStore();
