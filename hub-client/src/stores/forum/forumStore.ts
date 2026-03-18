@@ -8,7 +8,6 @@ import type { TThread } from '@hub-client/models/events/forum/TThread';
 import Room from '@hub-client/models/rooms/Room';
 
 import { AttachmentService } from '@hub-client/services/forum/AttachmentService';
-import { PerformanceTracker } from '@hub-client/services/forum/PerformanceTracker';
 import { RatingService } from '@hub-client/services/forum/RatingService';
 import { TopicService } from '@hub-client/services/forum/TopicService';
 
@@ -135,10 +134,7 @@ export const useForumStore = defineStore('forumStore', {
 				this.forumRatings = forumRatings || [];
 
 				this.buildThreadIndex();
-				const perf = PerformanceTracker.getTracker('loadAttachments').start();
 				await this.services.attachment.loadAttachments();
-				perf.mark('loadAttachments');
-				perf.end('Performance Measurements - Attachments');
 				console.log('forumTopics length in forumStore: ', forumTopics?.length);
 				return forumTopics;
 			} catch (error) {

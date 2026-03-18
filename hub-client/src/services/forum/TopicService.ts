@@ -6,7 +6,6 @@ import { TTopicContent, TTopicReplyContent } from '@hub-client/models/events/for
 import Room from '@hub-client/models/rooms/Room';
 
 import { BaseForumService } from '@hub-client/services/forum/BaseService';
-import { PerformanceTracker } from '@hub-client/services/forum/PerformanceTracker';
 import { RatingService } from '@hub-client/services/forum/RatingService';
 import { EVENT_TYPE_TOPIC, EVENT_TYPE_TOPIC_REPLY, PAGE_SIZE } from '@hub-client/services/forum/properties';
 
@@ -39,8 +38,6 @@ export class TopicService extends BaseForumService {
 	}
 
 	async fetchTopics(tw: TimelineWindow) {
-		const perf = PerformanceTracker.getTracker('fetchTopics').start();
-
 		await tw.load(undefined, PAGE_SIZE);
 		while (tw.canPaginate(EventTimeline.BACKWARDS)) {
 			await tw.paginate(EventTimeline.BACKWARDS, PAGE_SIZE * 2);
@@ -49,29 +46,23 @@ export class TopicService extends BaseForumService {
 		while (tw.canPaginate(EventTimeline.FORWARDS)) {
 			await tw.paginate(EventTimeline.FORWARDS, PAGE_SIZE * 2);
 		}
-		perf.mark('Initial Timeline Load');
 		const events = tw.getEvents();
 
 		const topicsAndReplies = events?.filter((event) => event.getType() === EVENT_TYPE_TOPIC_REPLY || event.getType() === EVENT_TYPE_TOPIC);
 		const ratingsByEvent = new Map<string, { likes: number; dislikes: number }>();
 		let forumRatings: TRating[] = [];
 
-		perf.start();
-
 		try {
 			forumRatings = await this.ratingService.fetchEventRatings(ratingsByEvent);
 		} catch (err) {
 			console.error('Could not load ratings, continuing without them:', err);
 		}
-		perf.mark('Ratings Fetch');
 
 		const totalRatingsProcessed = Array.from(ratingsByEvent.values()).reduce((sum, { likes, dislikes }) => sum + likes + dislikes, 0);
 		console.log('total ratings processed', totalRatingsProcessed);
 
 		const threadMap = new Map<string, TThread>();
 		const replyBuckets = new Map<string, TThread[]>();
-
-		perf.start();
 
 		for (const event of topicsAndReplies) {
 			const eventId = event.getId()!;
@@ -119,7 +110,6 @@ export class TopicService extends BaseForumService {
 		// Main topics
 		const forumTopics = Array.from(threadMap.values()).filter((t) => t.title !== '');
 
-		perf.end('Performance Measurements');
 		console.log('Total topics and reply events: ', topicsAndReplies.length);
 		console.log('Total topics: ', forumTopics?.length);
 		return { forumTopics, forumRatings };
