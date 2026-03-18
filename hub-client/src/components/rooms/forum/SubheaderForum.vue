@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-col gap-2 py-3">
+	<div class="mb-2 flex flex-col gap-2 py-3">
 		<!-- First row with filters and spacing -->
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2">
