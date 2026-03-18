@@ -1,7 +1,7 @@
 <template>
 	<div class="relative z-50" ref="menu" v-click-outside="close" role="menubar">
 		<div class="menu-icon flex cursor-pointer justify-items-stretch" @click="toggle" data-testid="actionmenu">
-			<Icon class="bg-surface hover:bg-accent-primary rounded-md" type="dots-three-vertical"></Icon>
+			<Icon class="bg-surface hover:bg-button-blue rounded-md" :type="icon"></Icon>
 		</div>
 		<div v-show="open" class="menu-menu bg-surface-elevated absolute -mt-6 ml-6 rounded-md" @click="close" :style="style">
 			<slot></slot>
@@ -19,6 +19,13 @@
 	const open = ref(false);
 	const style = ref('');
 	const menu = ref<HTMLElement | null>(null);
+
+	const props = defineProps({
+		icon: {
+			type: String,
+			default: 'dots-three-vertical',
+		},
+	});
 
 	const toggle = () => {
 		open.value = !open.value;

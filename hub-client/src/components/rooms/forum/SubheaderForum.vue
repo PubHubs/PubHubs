@@ -4,9 +4,9 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2">
 				<PostsFilterButton />
-				<SortPostsButton />
 				<AddNewPostButton />
 			</div>
+			<SortPostsButton />
 		</div>
 	</div>
 </template>
