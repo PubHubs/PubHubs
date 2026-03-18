@@ -26,10 +26,9 @@
 						<RoomName :room="room" />
 					</TruncatedText>
 
-					<span class="flex gap-2 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
-						<Badge class="text-label-small" color="hub" v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 99">99+</Badge>
-						<Badge v-else-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0" color="hub">{{ getUnreadCount(room.roomId, NotificationCountType.Total) }}</Badge>
-						<Badge color="hub" v-if="getUnreadCount(room.roomId, NotificationCountType.Highlight) > 0"><Icon type="at" size="sm" class="shrink-0" /></Badge>
+					<span class="flex items-center gap-1 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
+						<Badge v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0" color="hub" :size="roomBadgeSize(getUnreadCount(room.roomId, NotificationCountType.Total))" />
+						<Badge v-if="getUnreadCount(room.roomId, NotificationCountType.Highlight) > 0" color="hub" size="sm" />
 					</span>
 				</span>
 			</MenuItem>
@@ -90,6 +89,9 @@
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
+
+	// Logic
+	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Models
 	import { DirectRooms, PublicRooms, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
@@ -156,6 +158,8 @@
 		}
 		return 0;
 	}
+
+	const roomBadgeSize = badgeSize;
 
 	async function leaveRoom(roomId: string) {
 		const room = currentJoinedRooms.value.find((room) => room.roomId === roomId);

@@ -1,6 +1,7 @@
 <template>
-	<Badge class="text-label" color="ph" v-if="unreadMessages > 99">99+</Badge>
-	<Badge class="text-label" color="ph" v-else-if="unreadMessages > 0">{{ unreadMessages }}</Badge>
+	<div class="flex justify-end">
+		<Badge color="ph" v-if="unreadMessages > 0" :size="badgeSize(unreadMessages)" />
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -13,9 +14,10 @@
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
 
-	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	// Logic
+	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -76,3 +78,9 @@
 		unreadMessages.value = await rooms.fetchTotalUnreadCounts();
 	}
 </script>
+
+<style>
+	body {
+		margin: 0;
+	}
+</style>
