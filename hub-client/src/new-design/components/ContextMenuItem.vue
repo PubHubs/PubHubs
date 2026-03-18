@@ -1,11 +1,11 @@
 <template>
 	<button
-		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex min-h-600! w-full items-center gap-200 px-400 py-100 first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer disabled:cursor-not-allowed"
+		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex w-full items-center gap-200 py-100 first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer disabled:cursor-not-allowed"
 		role="menuitem"
 		type="button"
 		:aria-disabled="props.disabled ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
-		:class="[disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface', !isMobile && 'not-focus:pl-[17.5px] focus:border-l-4']"
+		:class="[disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface', isMobile ? 'min-h-600! gap-200 px-400' : 'px-200 not-focus:pl-[17.5px] focus:border-l-4']"
 		:disabled="disabled"
 		:title="computedTitle"
 		@click="handleClick"
