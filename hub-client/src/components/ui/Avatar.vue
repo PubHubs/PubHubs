@@ -1,7 +1,7 @@
 <template>
 	<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="avatarColor">
 		<img v-if="avatarUrl" v-show="loaded" data-testid="avatar" :src="image" class="h-full w-full" @load="imgLoaded()" />
-		<Icon v-if="!avatarUrl || !loaded" size="lg" :type="icon ? icon : 'user'" testid="avatar" />
+		<Icon v-if="!avatarUrl || !loaded" size="lg" :type="icon ? icon : 'user'" testid="avatar" :class="iconColor" />
 	</div>
 </template>
 
@@ -25,10 +25,11 @@
 	};
 
 	const user = useUser();
-	const { color, bgColor } = useUserColor();
+	const { color, bgColor, onAccentColor } = useUserColor();
 	const image = ref<string | undefined>();
 	const loaded = ref(false);
 	const avatarColor = computed(getAvatarColor);
+	const iconColor = computed(() => (props.userId ? onAccentColor(color(props.userId)) : 'text-on-surface'));
 	const props = defineProps<Props>();
 
 	onMounted(async () => {
