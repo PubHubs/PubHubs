@@ -1,6 +1,5 @@
 <template>
-	<TextAreaWithCounter v-if="!reply" class="min-h-12 flex-row items-center" v-model="title" :max-length="TITLE_MAX_LENGTH" @keydown.enter.prevent is-inline />
-	<!--	 TODO: Math.max is gross but send button is inside forum input and this is a quick fix-->
+	<TextArea v-if="!reply" v-model="title" :validation="{ required: true, minLength: TITLE_MIN_LENGTH, maxLength: TITLE_MAX_LENGTH }">Title</TextArea>
 	<ForumInput
 		:min_length="Math.max(REPLY_MIN_LENGTH, TITLE_MIN_LENGTH)"
 		:max_length="REPLY_MAX_LENGTH"
@@ -19,7 +18,6 @@
 	import { ref } from 'vue';
 
 	import ForumInput from '@hub-client/components/rooms/forum/ForumInput.vue';
-	import TextAreaWithCounter from '@hub-client/components/rooms/forum/TextAreaWithCounter.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent } from '@hub-client/models/events/TMessageEvent';
@@ -31,6 +29,8 @@
 	import { REPLY_MAX_LENGTH, REPLY_MIN_LENGTH, TITLE_MAX_LENGTH, TITLE_MIN_LENGTH } from '@hub-client/services/forum/properties';
 
 	import { useForumStore } from '@hub-client/stores/forum/forumStore';
+
+	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 
 	type Props = {
 		topic: TThread;
