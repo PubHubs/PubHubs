@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="hover:border-surface-on-surface-dim hover:bg-on-surface-dim pt-050 cursor-pointer border-l px-200"
+		class="hover:border-surface-on-surface-dim hover:bg-on-surface-dim pt-050 w-full cursor-pointer border-l px-200"
 		:class="{ 'border-surface-elevated bg-surface-elevated': active, 'border-surface-on-surface-dim bg-on-surface-dim!': highlighted }"
 		role="option"
 	>

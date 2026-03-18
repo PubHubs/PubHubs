@@ -1,10 +1,10 @@
 <template>
-	<span class="inline-flex max-h-300 items-center justify-start gap-2">
+	<span class="inline-flex max-h-300 w-full items-center justify-start gap-2 truncate overflow-hidden" :title="label">
 		<Avatar v-if="avatar || avatar == ''" :avatar-url="avatar" :user-id="value.value" class="h-300 w-300"></Avatar>
 		<span v-if="icon" class="mr-075 h-100 w-100">
 			<Icon :type="icon" size="sm" class="-mt-050"></Icon>
 		</span>
-		<span class="text-surface-on-surface justify-start text-nowrap">{{ label }}</span>
+		<span class="text-surface-on-surface justify-start truncate text-nowrap text-ellipsis">{{ label }}</span>
 	</span>
 </template>
 
