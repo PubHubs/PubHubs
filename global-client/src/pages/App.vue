@@ -18,7 +18,7 @@
 
 	<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 
-	<ContextMenu />
+	<ContextMenu v-if="isMobile" />
 </template>
 
 <script setup lang="ts">

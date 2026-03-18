@@ -4,6 +4,7 @@ import { ref } from 'vue';
 
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
+import { useSettings } from '@hub-client/stores/settings';
 
 // Models
 import type { ContextMenuItemProps, MenuItem } from '@hub-client/new-design/models/contextMenu.models';
@@ -40,8 +41,9 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		currentTargetId.value = targetId;
 
 		const messagebox = useMessageBox();
+		const settings = useSettings();
 
-		if (messagebox.inIframe) {
+		if (messagebox.inIframe && settings.isMobileState) {
 			// The global-client will send back a ContextMenuSelect message with the chosen index.
 			const serialized: ContextMenuItemProps[] = newItems.map(({ ariaLabel, disabled, icon, isDelicate, label, title }) => ({
 				ariaLabel,

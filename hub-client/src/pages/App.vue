@@ -75,6 +75,8 @@
 		<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false" />
 
 		<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
+
+		<ContextMenu v-if="!isMobile" />
 	</div>
 </template>
 
@@ -124,6 +126,7 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
