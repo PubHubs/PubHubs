@@ -35,7 +35,6 @@
 		pinned?: boolean;
 		pinnable?: boolean;
 		active?: boolean;
-		hubOrderingIsActive?: boolean;
 	};
 
 	const global = useGlobal();
@@ -51,7 +50,6 @@
 		pinned: false,
 		pinnable: false,
 		active: false,
-		hubOrderingIsActive: false,
 	});
 
 	hubs.setupMiniclient(props.hubId);

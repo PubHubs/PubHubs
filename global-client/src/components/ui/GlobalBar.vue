@@ -9,11 +9,10 @@
 				</div>
 
 				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden">
-					<HubMenu :hubOrderingIsActive="hubOrdering && global.loggedIn" />
+					<HubMenu />
 
 					<div class="flex h-fit w-full flex-col gap-8 self-end p-4">
 						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
-							<GlobalbarButton type="dots-three-vertical" @click="toggleHubOrdering" />
 							<GlobalbarButton type="sliders-horizontal" @click="settingsDialog = true" />
 							<GlobalbarButton type="sign-out" @click="logout" />
 						</div>
@@ -29,18 +28,16 @@
 
 <script setup lang="ts">
 	// Packages
-	import { ref, watch } from 'vue';
+	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import SettingsDialog from '@global-client/components/forms/SettingsDialog.vue';
 	import GlobalbarButton from '@global-client/components/ui/GlobalbarButton.vue';
 	import HubMenu from '@global-client/components/ui/HubMenu.vue';
-	import Logo from '@global-client/components/ui/Logo.vue';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
-	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
 	import { useDialog } from '@hub-client/stores/dialog';
 
@@ -48,36 +45,12 @@
 	const dialog = useDialog();
 	const { t } = useI18n();
 	const global = useGlobal();
-	const toggleMenu = useToggleMenu();
 
 	const settingsDialog = ref(false);
-	const hubOrdering = ref(false);
-
-	const globalClientUrl = _env.PUBHUBS_URL;
-
-	// Make sure that the hubOrdering mode is switched off when a user gets logged out
-	watch(
-		() => global.loggedIn,
-		(newValue: boolean, _) => {
-			if (newValue === false) {
-				hubOrdering.value = false;
-			}
-		},
-	);
 
 	async function logout() {
 		if (await dialog.yesno(t('logout.logout_sure'), '', 'global')) {
 			await global.logout();
 		}
-	}
-
-	async function toggleHubOrdering() {
-		if (!global.hubsLoading) {
-			hubOrdering.value = !hubOrdering.value;
-		}
-	}
-
-	function showHelp() {
-		dialog.confirm(t('others.help'), t('others.work_in_progress'));
 	}
 </script>
