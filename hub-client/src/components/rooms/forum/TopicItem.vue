@@ -21,11 +21,6 @@
 					</div>
 					<Button v-else icon="x" variant="errorIcon" size="sm" class="-mr-200" @click="toggleEdit(topic.eventId)"></Button>
 				</div>
-
-				<!-- In reply to -->
-				<div class="mt-1">
-					<MessageSnippetForum v-if="replies && isNestedReply" :eventId="nestedRel?.reply_to_event_id!" :room="room" @click="onInReplyToClick(nestedRel?.reply_to_event_id!)" />
-				</div>
 			</div>
 		</div>
 
@@ -67,9 +62,10 @@
 	<ForumInput v-if="isActiveReplyTopic" class="m-5" :min_length="REPLY_MIN_LENGTH" :max_length="REPLY_MAX_LENGTH" @submit="submitReply" />
 
 	<!-- Recursion  -->
-	<div v-if="showReplies" :class="{ 'ml-20': props.depth === 0 }">
+	<div v-if="showReplies" class="ml-400">
 		<TopicItem v-for="reply in localReplies" :key="reply.eventId" :topic="reply" :main-topic="topic" :room="room" :current-user="currentUser" :replies="true" :depth="props.depth + 1" />
 	</div>
+
 	<InlineSpinner v-if="isSubmitting"></InlineSpinner>
 </template>
 
@@ -86,7 +82,6 @@
 	import EditTopicInput from '@hub-client/components/rooms/forum/EditTopicInput.vue';
 	import ForumInput from '@hub-client/components/rooms/forum/ForumInput.vue';
 	import LabelWithDescription from '@hub-client/components/rooms/forum/LabelWithDescription.vue';
-	import MessageSnippetForum from '@hub-client/components/rooms/forum/MessageSnippetForum.vue';
 	import ActionMenu from '@hub-client/components/ui/ActionMenu.vue';
 	import ActionMenuItem from '@hub-client/components/ui/ActionMenuItem.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
@@ -155,6 +150,11 @@
 		}
 		return null;
 	});
+
+	// const classTabDepth = computed(() => {
+	// 	const margin = props.depth * 80;
+	// 	return 'ml-200 ml-[' + margin + 'px]';
+	// });
 
 	watch(
 		() => props.topic.likes,
