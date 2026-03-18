@@ -114,16 +114,23 @@
 							</button>
 
 							<!-- Thread Reply Button -->
-							<button
-								v-if="!deleteMessageDialog && !viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage"
-								@click="replyInThread"
-								class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-								:class="eventThreadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
-								:title="t('message.reply_in_thread')"
-							>
-								<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1">{{ eventThreadLength }}</span>
-								<Icon type="chat-circle" />
-							</button>
+							<div class="relative">
+								<button
+									v-if="!deleteMessageDialog && !viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage"
+									@click="replyInThread"
+									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
+									:class="eventThreadLength > 0 ? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center' : 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'"
+									:title="t('message.reply_in_thread')"
+								>
+									<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1">{{ eventThreadLength }}</span>
+									<Icon type="chat-circle" />
+								</button>
+
+								<span v-if="settings.isFeatureEnabled(FeatureFlag.notifications) && !viewFromThread" class="absolute -top-1 -right-1 flex gap-1">
+									<Badge v-if="getUnreadCount(room.roomId, event.event_id, NotificationCountType.Total) > 0" color="hub" :size="threadBadgeSize(getUnreadCount(room.roomId, event.event_id, NotificationCountType.Total))" />
+									<Badge v-if="getUnreadCount(room.roomId, event.event_id, NotificationCountType.Highlight) > 0" color="hub" size="sm" />
+								</span>
+							</div>
 						</div>
 					</div>
 
@@ -157,7 +164,7 @@
 <script setup lang="ts">
 	// Packages
 	// import { useClipboard } from '@vueuse/core';
-	import { IEvent, MsgType } from 'matrix-js-sdk';
+	import { IEvent, MsgType, NotificationCountType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -185,6 +192,7 @@
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import { CONFIG } from '@hub-client/logic/logging/Config';
+	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Models
 	import { RelationType } from '@hub-client/models/constants';
@@ -198,6 +206,7 @@
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -211,6 +220,7 @@
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 	const pubhubs = usePubhubsStore();
+	const rooms = useRooms();
 	const sidebar = useSidebar();
 	const user = useUser();
 	const settings = useSettings();
@@ -390,8 +400,14 @@
 	}
 
 	function replyInThread() {
-		props.room.setCurrentThreadId(props.event.event_id);
-		sidebar.openTab(SidebarTab.Thread);
+		const isSameThread = props.room.currentThread?.threadId === props.event.event_id;
+		if (isSameThread && sidebar.activeTab.value === SidebarTab.Thread) {
+			props.room.setCurrentThreadId(undefined);
+			sidebar.close();
+		} else {
+			props.room.setCurrentThreadId(props.event.event_id);
+			sidebar.openTab(SidebarTab.Thread);
+		}
 	}
 
 	function resend() {
@@ -479,4 +495,15 @@
 
 		return menu;
 	}
+
+	function getUnreadCount(roomId: string, eventId: string, countType: NotificationCountType): number {
+		void rooms.unreadCountVersion;
+		const room = pubhubs.client.getRoom(roomId);
+		if (room) {
+			return room.getThreadUnreadNotificationCount(eventId, countType);
+		}
+		return 0;
+	}
+
+	const threadBadgeSize = badgeSize;
 </script>

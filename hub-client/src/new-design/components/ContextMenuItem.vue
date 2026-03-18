@@ -1,6 +1,6 @@
 <template>
 	<button
-		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex w-full flex-row gap-150 px-175 py-100 first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer disabled:cursor-not-allowed"
+		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex min-h-600! w-full items-center gap-200 px-400 py-100 first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer disabled:cursor-not-allowed"
 		role="menuitem"
 		type="button"
 		:aria-disabled="props.disabled ? 'true' : undefined"

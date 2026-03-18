@@ -347,6 +347,11 @@
 	transition: background 1s ease-out;
 }
 
+@utility hub-drag-ghost {
+	opacity: 0.3;
+	border-radius: 0.75rem;
+}
+
 @layer base {
 	html {
 		font-kerning: normal;

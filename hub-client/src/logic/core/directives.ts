@@ -53,7 +53,7 @@ const contextMenu = {
 		el._contextMenuHandler = binding.value;
 
 		el._onContextMenu = (e: Event) => {
-			el._contextMenuHandler(e);
+			if (typeof el._contextMenuHandler === 'function') el._contextMenuHandler(e);
 		};
 
 		el._onTouchStart = (e: TouchEvent) => {
