@@ -15,6 +15,7 @@
 							[
 								{ label: t('menu.enter_room'), icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: room.roomId } }) },
 								{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl(room.roomId) },
+								{ divider: true, label: '' },
 								{ label: t('menu.leave_room'), icon: 'x', isDelicate: true, onClick: () => leaveRoom(room.roomId) },
 							],
 							room.roomId,
@@ -49,6 +50,7 @@
 							evt,
 							[
 								{ label: t('menu.enter_room'), icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: notification.room_id! } }) },
+								{ divider: true, label: '' },
 								{ label: t('menu.leave_room'), icon: 'x', isDelicate: true, onClick: () => dismissNotification(notification.room_id!) },
 							],
 							notification.room_id,
