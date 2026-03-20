@@ -116,7 +116,7 @@ class SecuredRoomsServlet(DirectServeJsonResource):
 
         current_room = await self._store.get_secured_room(room_id)
         if current_room:
-            shutdownParams:ShutdownRoomParams = {'block' : True,'purge' : False,'force_purge' : False,'requester_user_id':user_id,'new_room_user_id': None,'new_room_name': None,'message': None}
+            shutdownParams:ShutdownRoomParams = {'block' : True,'purge' : True,'force_purge' : False,'requester_user_id':user_id,'new_room_user_id': None,'new_room_name': None,'message': None}
             await self._room_shutdown_handler.shutdown_room(current_room.room_id, shutdownParams)
             await self._store.delete_secured_room(current_room)
             respond_with_json(request, 200, {"deleted": f"{current_room.room_id}"}, True)
