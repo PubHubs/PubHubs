@@ -17,6 +17,7 @@ enum PubHubsMsgType {
 	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
 	DisclosedMessage = 'pubhubs.disclosed_message',
 	AnnouncementMessage = 'pubhubs.announcement_message',
+	WhisperMessage = 'pubhubs.whisper_message',
 	VotingWidget = 'pubhubs.voting_widget.widget',
 	VotingWidgetEdit = 'pubhubs.voting_widget.edit',
 	VotingWidgetVote = 'pubhubs.voting_widget.vote',

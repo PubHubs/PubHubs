@@ -82,7 +82,8 @@
 
 	// Regular message content (for non-deleted, non-mention messages)
 	const messageContent = computed(() => {
-		return props.event.content.ph_body;
+		const content = props.event.content as any;
+		return content.ph_body ?? content.formatted_body ?? content.body ?? '';
 	});
 
 	/**

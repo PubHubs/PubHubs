@@ -6,9 +6,12 @@
 			:class="[
 				props.isGrouped ? 'pt-1!' : 'pt-4!',
 				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
+				props.addWhisperSpacing && 'mt-2',
 				getMessageContainerClasses,
-				isAnnouncementMessage && !redactedMessage && 'border-y-on-surface-disabled border-y border-l-4',
-				isAnnouncementMessage && !redactedMessage && props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward',
+				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y border-l-4',
+				isWhisperMessage && !redactedMessage
+					? 'border-on-surface'
+					: isAnnouncementMessage && !redactedMessage && (props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward'),
 			]"
 			role="article"
 		>
@@ -50,7 +53,7 @@
 							</template>
 						</Suspense>
 
-						<div v-if="!props.isGrouped" class="mb-2 flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+						<div v-if="!props.isGrouped" class="mb-2 flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
 							<UserDisplayName :userId="props.event.sender" :userDisplayName="user.userDisplayName(props.event.sender)" />
 
 							<RoomBadge v-if="hasBeenVisible && !room.isDirectMessageRoom()" class="inline-block" :user="props.event.sender" :room_id="props.event.room_id ?? room.roomId" :room="room" />
@@ -63,16 +66,31 @@
 							>
 								<span class="text-label-tiny pt-025 uppercase">{{ t('rooms.announcement') }}</span>
 							</span>
-
-							<span class="text-label-tiny text-on-surface-dim flex gap-1">
+							<span class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1">
 								<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
 								<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
 							</span>
+							<span v-if="isWhisperMessage && !redactedMessage && props.event.sender !== user.userId" class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1 leading-none uppercase">
+								<Icon type="whisper" size="md" class="text-on-surface-dim" />
+							</span>
+							<span v-if="isWhisperMessage && !redactedMessage && props.event.sender === user.userId && props.event.content.whisper_to" class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1 leading-none">
+								<Icon type="whisper" size="md" class="text-on-surface-dim" />
+								<span>{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
+							</span>
 						</div>
+
+						<Suspense v-if="hasBeenVisible && showWhisperReplySnippet">
+							<MessageSnippet @click="onInReplyToClick" :eventId="inReplyToId" class="mb-2" :showInReplyTo="true" :room="room" />
+							<template #fallback>
+								<div class="flex items-center gap-3 rounded-md px-2">
+									<p>{{ t('state.loading_message') }}</p>
+								</div>
+							</template>
+						</Suspense>
 					</div>
 
 					<div class="relative">
-						<Message :event="props.event" :deleted="redactedMessage" />
+						<Message v-if="!isPrivilegedMessage" :event="props.event" :deleted="redactedMessage" />
 
 						<!-- Message Action Buttons -->
 						<div class="bg-surface absolute right-0 flex rounded-md" :class="actionButtonPosition">
@@ -136,7 +154,7 @@
 
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
-						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)" :event="props.event.content" />
+						<PrivilegedMessageBody v-if="isPrivilegedMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)" :event="props.event.content" />
 						<MessageSigned v-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
 						<MessageFile v-if="props.event.content.msgtype === MsgType.File && !redactedMessage" :message="props.event.content" />
 						<MessageImage v-if="props.event.content.msgtype === MsgType.Image && !redactedMessage" :message="props.event.content" />
@@ -170,7 +188,6 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import AnnouncementMessage from '@hub-client/components/rooms/AnnouncementMessage.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Message from '@hub-client/components/rooms/Message.vue';
 	import MessageDisclosed from '@hub-client/components/rooms/MessageDisclosed.vue';
@@ -179,6 +196,7 @@
 	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
 	import MessageSigned from '@hub-client/components/rooms/MessageSigned.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
+	import PrivilegedMessageBody from '@hub-client/components/rooms/PrivilegedMessageBody.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
@@ -200,6 +218,7 @@
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
 	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { useConnection } from '@hub-client/stores/connection';
@@ -266,6 +285,10 @@
 			default: false,
 		},
 		isFollowedByGrouped: {
+			type: Boolean,
+			default: false,
+		},
+		addWhisperSpacing: {
 			type: Boolean,
 			default: false,
 		},
@@ -344,6 +367,13 @@
 	});
 
 	const isAnnouncementMessage = computed(() => props.event.content.msgtype === PubHubsMgType.AnnouncementMessage);
+	const isWhisperMessage = computed(() => props.event.content.msgtype === PubHubsMgType.WhisperMessage);
+	const isPrivilegedMessage = computed(() => isAnnouncementMessage.value || isWhisperMessage.value);
+	const whisperTargetDisplayName = computed(() => {
+		const whisperToUserId = props.event.content.whisper_to;
+		if (!whisperToUserId) return '';
+		return user.userDisplayName(whisperToUserId) ?? whisperToUserId;
+	});
 
 	const isFirstInGroup = computed(() => props.isFollowedByGrouped && !props.isGrouped);
 	const isLastInGroup = computed(() => props.isGrouped && !props.isFollowedByGrouped);
@@ -362,7 +392,7 @@
 			'!bg-surface-low': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
 		};
 
-		if (!isAnnouncementMessage.value || redactedMessage.value) {
+		if (!isPrivilegedMessage.value || redactedMessage.value) {
 			return baseClasses;
 		}
 
@@ -378,6 +408,7 @@
 	 * Like Element we remove the replysnippet in that case.
 	 */
 	function showReplySnippet(msgType: string): boolean {
+		if (isWhisperMessage.value) return false;
 		if (props.viewFromThread) {
 			if (msgType === MsgType.Image || msgType === MsgType.File) {
 				return false;
@@ -385,6 +416,8 @@
 		}
 		return !!inReplyToId && !redactedMessage.value;
 	}
+
+	const showWhisperReplySnippet = computed(() => isWhisperMessage.value && !!inReplyToId && !redactedMessage.value);
 
 	function onInReplyToClick() {
 		if (!inReplyToId) return;
@@ -396,6 +429,9 @@
 	}
 
 	function reply() {
+		messageActions.whisperingToUserId = undefined;
+		messageActions.whisperingToDisplayName = undefined;
+		messageActions.whisperingToEventId = undefined;
 		messageActions.replyingTo = props.event.event_id;
 	}
 
@@ -433,6 +469,11 @@
 		timerReady.value = true;
 	}, 1000);
 
+	const canWhisperFromContextMenu = computed(() => {
+		const currentUserPowerLevel = props.room.getPowerLevel(user.userId);
+		return currentUserPowerLevel >= UserPowerLevel.Steward;
+	});
+
 	function getContextMenuItems() {
 		const social: MenuItem[] = [];
 		const actions: MenuItem[] = [];
@@ -445,6 +486,20 @@
 				label: t('menu.direct_message'),
 				icon: 'chat-circle',
 				onClick: () => user.goToUserRoom(props.event.sender),
+			});
+		}
+
+		// Whisper (steward/super-steward only, for other users)
+		if (props.event.sender !== user.userId && !props.room.isDirectMessageRoom() && canWhisperFromContextMenu.value) {
+			menu.push({
+				label: t('menu.whisper'),
+				icon: 'whisper',
+				onClick: () => {
+					messageActions.replyingTo = undefined;
+					messageActions.whisperingToUserId = props.event.sender;
+					messageActions.whisperingToDisplayName = user.userDisplayName(props.event.sender);
+					messageActions.whisperingToEventId = props.event.event_id;
+				},
 			});
 		}
 

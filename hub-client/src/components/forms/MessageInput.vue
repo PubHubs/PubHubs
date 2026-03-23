@@ -31,6 +31,14 @@
 						</template>
 					</Suspense>
 				</InputModeBar>
+				<InputModeBar v-if="messageActions.whisperingToUserId" icon="whisper" :label="$t('menu.whisper')" :variant="announcementVariant" @close="clearWhisperMode()">
+					<Suspense v-if="messageActions.whisperingToEventId">
+						<MessageSnippet :eventId="messageActions.whisperingToEventId" :room="room" />
+						<template #fallback>
+							<p class="text-on-surface-dim text-label-small">{{ $t('state.loading_message') }}</p>
+						</template>
+					</Suspense>
+				</InputModeBar>
 
 				<FilePicker ref="filePickerEl" :messageInput="messageInput"></FilePicker>
 
@@ -225,6 +233,7 @@
 	watch(route, () => {
 		reset();
 		messageInput.resetAll();
+		clearWhisperMode();
 	});
 
 	watch(
@@ -240,6 +249,7 @@
 		async () => {
 			inReplyTo.value = undefined;
 			messageActions.replyingTo = undefined;
+			clearWhisperMode();
 
 			if (props.room.getCurrentThreadId()) {
 				threadRoot = (await pubhubs.getEvent(props.room.roomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
@@ -373,6 +383,15 @@
 			await pubhubs.addAnnouncementMessage(props.room.roomId, value.value!.toString(), powerLevel);
 			value.value = '';
 			isAnnouncementMode.value = false;
+		} else if (messageActions.whisperingToUserId) {
+			const powerLevel = props.room.getPowerLevel(user.userId);
+			let whisperReplyEvent: TMessageEvent | undefined = undefined;
+			if (messageActions.whisperingToEventId) {
+				whisperReplyEvent = ((await pubhubs.getEvent(props.room.roomId, messageActions.whisperingToEventId)) as TMessageEvent) ?? undefined;
+			}
+			await pubhubs.addWhisperMessage(props.room.roomId, value.value!.toString(), powerLevel, messageActions.whisperingToUserId, threadRoot, whisperReplyEvent);
+			clearWhisperMode();
+			value.value = '';
 		} else if (messageInput.state.poll) {
 			sendPoll();
 			value.value = '';
@@ -449,6 +468,12 @@
 
 	function setCaretPos(pos: { top: number; left: number }) {
 		caretPos.value = pos;
+	}
+
+	function clearWhisperMode() {
+		messageActions.whisperingToUserId = undefined;
+		messageActions.whisperingToDisplayName = undefined;
+		messageActions.whisperingToEventId = undefined;
 	}
 
 	// START workaround for #1173, that iOS app links do not work in an iframe.
