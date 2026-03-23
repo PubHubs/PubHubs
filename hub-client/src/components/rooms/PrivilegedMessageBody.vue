@@ -6,10 +6,10 @@
 
 <script setup lang="ts">
 	// Models
-	import { TAnnouncementMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { TAnnouncementMessageEventContent, TWhisperMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	// Props
 	const props = defineProps<{
-		event: TAnnouncementMessageEventContent;
+		event: TAnnouncementMessageEventContent | TWhisperMessageEventContent;
 	}>();
 </script>

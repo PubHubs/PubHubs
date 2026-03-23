@@ -718,6 +718,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
+		async addWhisperMessage(roomId: string, text: string, userPL: number, whisperToUserId: string, threadRoot: TMessageEvent | undefined, inReplyTo: TMessageEvent | undefined) {
+			const content = await this._constructMessageContent(text, threadRoot, inReplyTo);
+			content.msgtype = PubHubsMgType.WhisperMessage as any;
+			content.userPL = userPL as any;
+			content.whisper_to = whisperToUserId as any;
+			const threadId = threadRoot?.event_id ?? null;
+			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
+		},
+
 		async addSignedFile(roomId: string, signedFileHash: YiviSigningSessionResult, originalEventId: string | undefined) {
 			const content = {
 				msgtype: PubHubsMgType.SignedFileMessage,

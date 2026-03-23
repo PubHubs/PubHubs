@@ -26,11 +26,7 @@
 						:key="steward.userId"
 						class="flex w-full items-center gap-2 rounded-md p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-low'"
-						v-context-menu="
-							steward.userId !== user.user?.userId && !props.disableDM
-								? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(steward.userId) }], steward.userId)
-								: undefined
-						"
+						v-context-menu="steward.userId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, getUserContextMenuItems(steward.userId), steward.userId) : undefined"
 					>
 						<Avatar :avatar-url="user.userAvatar(steward.userId)" :userId="steward.userId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
 						<UserDisplayName :userId="steward.userId" :user-display-name="user.userDisplayName(steward.userId)" :enableDM="false"></UserDisplayName>
@@ -51,7 +47,7 @@
 						:key="memberId"
 						class="flex w-full items-center gap-2 rounded-md p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === memberId && 'bg-surface-low'"
-						v-context-menu="memberId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }], memberId) : undefined"
+						v-context-menu="memberId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, getUserContextMenuItems(memberId), memberId) : undefined"
 					>
 						<Avatar :avatar-url="user.userAvatar(memberId)" :userId="memberId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
 						<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)" :enableDM="false"></UserDisplayName>
@@ -80,8 +76,10 @@
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
+	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Store
+	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -93,6 +91,7 @@
 	const user = useUser();
 	const rooms = useRooms();
 	const dm = useDirectMessage();
+	const messageActions = useMessageActions();
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
 
@@ -121,6 +120,13 @@
 		return realMembers.value.filter((member) => !stewards.map((stewardId) => stewardId.userId).includes(member.sender)).map((member) => member.sender);
 	});
 
+	const canWhisperFromContextMenu = computed(() => {
+		const currentUserId = user.user?.userId;
+		if (!currentUserId) return false;
+		const currentUserPowerLevel = props.room.getPowerLevel(currentUserId);
+		return currentUserPowerLevel >= UserPowerLevel.Steward;
+	});
+
 	async function contactSteward() {
 		const stewards = getStewardsInRoom() ?? [];
 		const stewardIds = stewards.map((steward) => steward.userId);
@@ -129,5 +135,24 @@
 
 	async function startDM(userId: string) {
 		await dm.goToUserDM(userId);
+	}
+
+	function getUserContextMenuItems(userId: string) {
+		const items = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(userId) }];
+		if (canWhisperFromContextMenu.value) {
+			items.push({
+				label: t('menu.whisper'),
+				icon: 'whisper',
+				onClick: () => startWhisperToUser(userId),
+			});
+		}
+		return items;
+	}
+
+	function startWhisperToUser(userId: string) {
+		messageActions.replyingTo = undefined;
+		messageActions.whisperingToUserId = userId;
+		messageActions.whisperingToDisplayName = user.userDisplayName(userId);
+		messageActions.whisperingToEventId = undefined;
 	}
 </script>

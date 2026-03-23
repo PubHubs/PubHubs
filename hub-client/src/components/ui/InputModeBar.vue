@@ -33,29 +33,30 @@
 		close: [];
 	}>();
 
+	const variantStyles = {
+		admin: {
+			container: 'bg-accent-admin/10 border-accent-admin',
+			text: 'text-accent-admin',
+		},
+		steward: {
+			container: 'bg-accent-steward/10 border-accent-steward',
+			text: 'text-accent-steward',
+		},
+		sign: {
+			container: 'bg-accent-blue/10 border-accent-blue',
+			text: 'text-accent-blue',
+		},
+		reply: {
+			container: 'bg-accent-green/10 border-accent-green',
+			text: 'text-accent-green',
+		},
+	} as const;
+
 	const containerClass = computed(() => {
-		switch (props.variant) {
-			case 'admin':
-				return 'bg-accent-admin/10 border-accent-admin';
-			case 'steward':
-				return 'bg-accent-steward/10 border-accent-steward';
-			case 'sign':
-				return 'bg-accent-blue/10 border-accent-blue';
-			case 'reply':
-				return 'bg-accent-green/10 border-accent-green';
-		}
+		return variantStyles[props.variant].container;
 	});
 
 	const textClass = computed(() => {
-		switch (props.variant) {
-			case 'admin':
-				return 'text-accent-admin';
-			case 'steward':
-				return 'text-accent-steward';
-			case 'sign':
-				return 'text-accent-blue';
-			case 'reply':
-				return 'text-accent-green';
-		}
+		return variantStyles[props.variant].text;
 	});
 </script>

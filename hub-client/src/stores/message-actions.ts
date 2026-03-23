@@ -9,6 +9,9 @@ const useMessageActions = defineStore('message-actions', {
 		return {
 			replyingTo: undefined as string | undefined,
 			threadRoot: undefined as string | undefined,
+			whisperingToUserId: undefined as string | undefined,
+			whisperingToDisplayName: undefined as string | undefined,
+			whisperingToEventId: undefined as string | undefined,
 		};
 	},
 });

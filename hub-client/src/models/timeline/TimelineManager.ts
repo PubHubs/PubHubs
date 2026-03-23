@@ -104,6 +104,15 @@ class TimelineManager {
 		if (this.invisibleRelatesToTypes.includes(event.content?.[RelationType.RelatesTo]?.rel_type)) {
 			return false;
 		}
+		if (event.content?.msgtype === PubHubsMgType.WhisperMessage) {
+			const currentUserId = this.user.userId;
+			const whisperToUserId = event.content?.whisper_to;
+			const senderId = event.sender;
+			// Whisper is private to sender and target user only.
+			if (!currentUserId || (senderId !== currentUserId && whisperToUserId !== currentUserId)) {
+				return false;
+			}
+		}
 		// Deleted events from threads may not be visible; they have lost the direct connection to their thread
 		if (event.unsigned?.redacted_because?.redacts) {
 			if (event.unsigned?.redacted_because?.content.reason === Redaction.DeletedFromThread) {
