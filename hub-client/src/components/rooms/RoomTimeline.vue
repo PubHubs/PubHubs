@@ -27,6 +27,7 @@
 								:deleted-event="item.isDeleted"
 								:is-grouped="isGroupedMessage(index)"
 								:is-followed-by-grouped="isFollowedByGrouped(index)"
+								:add-whisper-spacing="shouldAddWhisperSpacing(index)"
 								:data-event-id="item.matrixEvent.event.event_id"
 								:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
 								:active-reaction-panel="activeReactionPanel"
@@ -168,7 +169,7 @@
 
 		const currentMsgType = current.matrixEvent.event.content?.msgtype;
 		const previousMsgType = previous.matrixEvent.event.content?.msgtype;
-		if (currentMsgType === PubHubsMgType.AnnouncementMessage || previousMsgType === PubHubsMgType.AnnouncementMessage) return false;
+		if (currentMsgType === PubHubsMgType.AnnouncementMessage || previousMsgType === PubHubsMgType.AnnouncementMessage || currentMsgType === PubHubsMgType.WhisperMessage || previousMsgType === PubHubsMgType.WhisperMessage) return false;
 
 		const currentTs = current.matrixEvent.event.origin_server_ts || 0;
 		const previousTs = previous.matrixEvent.event.origin_server_ts || 0;
@@ -180,6 +181,21 @@
 	// Whether the next chronological message continues the same group
 	function isFollowedByGrouped(index: number): boolean {
 		return index > 0 && isGroupedMessage(index - 1);
+	}
+
+	// Message for announcement and whisper have different styling compared to other messages.
+	// If two privilidge message e.g., whisper and announcement are sent one after another, there should be consistent styling.
+	function shouldAddWhisperSpacing(index: number): boolean {
+		const current = reversedTimeline.value[index];
+		const previous = reversedTimeline.value[index + 1];
+		if (!current || !previous) return false;
+		const currentType = current.matrixEvent.event.content?.msgtype;
+		const previousType = previous.matrixEvent.event.content?.msgtype;
+		const currentIsWhisper = currentType === PubHubsMgType.WhisperMessage;
+		const previousIsWhisper = previousType === PubHubsMgType.WhisperMessage;
+		const currentIsAnnouncement = currentType === PubHubsMgType.AnnouncementMessage;
+		const previousIsAnnouncement = previousType === PubHubsMgType.AnnouncementMessage;
+		return (currentIsWhisper && previousIsWhisper) || (currentIsWhisper && previousIsAnnouncement) || (currentIsAnnouncement && previousIsWhisper);
 	}
 
 	// Timeline in chronological order [oldest, ..., newest]
