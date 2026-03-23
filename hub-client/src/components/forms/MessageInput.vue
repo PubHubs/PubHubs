@@ -9,7 +9,7 @@
 						<PopoverButton icon="chart-bar" data-testid="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
 						<PopoverButton icon="calendar" data-testid="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
 					</template>
-					<PopoverButton icon="pen-nib" data-testid="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{
+					<PopoverButton icon="seal-check" data-testid="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{
 						$t('message.sign.add_signature')
 					}}</PopoverButton>
 				</div>
@@ -64,7 +64,14 @@
 				</template>
 
 				<InputModeBar v-if="isAnnouncementMode" icon="megaphone-simple" :label="$t('message.announcement_mode')" :variant="announcementVariant" @close="isAnnouncementMode = false" />
-				<InputModeBar v-if="messageInput.state.signMessage" icon="pen-nib" :label="$t('message.sign.signed_message_email')" :tooltip="$t('message.sign.signed_message_tooltip')" variant="sign" @close="messageInput.resetAll(true)" />
+				<InputModeBar
+					v-if="messageInput.state.signMessage"
+					icon="seal-check"
+					:label="$t('message.sign.signed_message_email')"
+					:tooltip="$t('message.sign.signed_message_tooltip')"
+					variant="sign"
+					@close="messageInput.resetAll(true)"
+				/>
 
 				<div v-if="messageInput.state.textArea" class="rounded-base flex items-center gap-x-4 px-4 py-2">
 					<IconButton
