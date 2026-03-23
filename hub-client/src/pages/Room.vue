@@ -55,7 +55,7 @@
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
 					<RoomTimeline v-if="room && !room.isForumRoom()" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
-					<ForumOverview v-if="room && room.isForumRoom()" :roomId="room.roomId" :topicId="topicId" />
+					<ForumRoomTimeline v-if="room && room.isForumRoom()" :room="room" :topicId="topicId" />
 				</div>
 
 				<!-- Room sidebar -->
@@ -100,6 +100,7 @@
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
 	import ForumOverview from '@hub-client/components/rooms/forum/ForumOverview.vue';
+	import ForumRoomTimeline from '@hub-client/components/rooms/forum/ForumRoomTimeline.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';

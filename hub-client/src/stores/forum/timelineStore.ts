@@ -14,6 +14,7 @@ export const useTimelineStore = defineStore('timelineStore', {
 		matrixRoom: null as MatrixRoom | null,
 		tw: null as TimelineWindow | null,
 	}),
+
 	actions: {
 		initRoom() {
 			this.room = useRooms().currentRoom;
@@ -25,6 +26,7 @@ export const useTimelineStore = defineStore('timelineStore', {
 				throw new Error('No room found');
 			}
 		},
+
 		createFilteredTimelineWindow(filterDefinition: any) {
 			if (!filterDefinition || !this.matrixRoom) return;
 			for (const set of this.matrixRoom.getTimelineSets()) {
