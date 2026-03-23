@@ -1,7 +1,7 @@
 <template>
 	<div v-if="!topicId" class="mx-auto w-full pr-3 pl-3 md:w-2/3">
 		<SubheaderForum />
-		<template v-if="forumTopics.length > 0">
+		<template v-if="forumStore.forumTopics.length > 0">
 			<ul class="flex flex-col gap-y-2">
 				<li v-for="topic in getTopics()" :key="topic.eventId">
 					<ThreadItem @click="$router.push({ name: 'room', params: { id: roomId, topicId: topic.eventId } })" :topic="topic" />
@@ -80,8 +80,6 @@
 			}
 		}
 	});
-
-	const forumTopics = computed(() => forumStore.forumTopics);
 
 	function getTopics() {
 		if (filterStore.filter === FILTER_STATE.MY_TOPICS) {

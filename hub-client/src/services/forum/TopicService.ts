@@ -48,6 +48,8 @@ export class TopicService extends BaseForumService {
 		}
 		const events = tw.getEvents();
 
+		console.info('topicService', events);
+
 		const topicsAndReplies = events?.filter((event) => event.getType() === EVENT_TYPE_TOPIC_REPLY || event.getType() === EVENT_TYPE_TOPIC);
 		const ratingsByEvent = new Map<string, { likes: number; dislikes: number }>();
 		let forumRatings: TRating[] = [];
