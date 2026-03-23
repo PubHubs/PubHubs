@@ -45,9 +45,10 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 
 		if (messagebox.inIframe && settings.isMobileState) {
 			// The global-client will send back a ContextMenuSelect message with the chosen index.
-			const serialized: ContextMenuItemProps[] = newItems.map(({ ariaLabel, disabled, icon, isDelicate, label, title }) => ({
+			const serialized: MenuItem[] = newItems.map(({ ariaLabel, disabled, divider, icon, isDelicate, label, title }) => ({
 				ariaLabel,
 				disabled,
+				divider,
 				icon,
 				isDelicate,
 				label,

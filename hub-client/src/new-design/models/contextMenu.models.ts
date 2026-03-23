@@ -10,4 +10,5 @@ export type ContextMenuItemProps = {
 export type MenuItem = ContextMenuItemProps & {
 	onClick?: () => void;
 	payload?: any;
+	divider?: boolean;
 };

@@ -434,11 +434,14 @@
 	}, 1000);
 
 	function getContextMenuItems() {
-		const menu: MenuItem[] = [];
+		const social: MenuItem[] = [];
+		const actions: MenuItem[] = [];
+		const utility: MenuItem[] = [];
+		const destructive: MenuItem[] = [];
 
 		// Direct message (only if sender is not current user and not already in a DM)
 		if (props.event.sender !== user.userId && !props.room.isDirectMessageRoom()) {
-			menu.push({
+			social.push({
 				label: t('menu.direct_message'),
 				icon: 'chat-circle',
 				onClick: () => user.goToUserRoom(props.event.sender),
@@ -447,7 +450,7 @@
 
 		// Reaction
 		if (!redactedMessage.value) {
-			menu.push({
+			actions.push({
 				label: t('menu.add_reaction'),
 				icon: 'smiley',
 				onClick: () => {
@@ -458,7 +461,7 @@
 
 		// Reply
 		if (!props.event.msgIsNotSend && !redactedMessage.value && !props.event.isThreadRoot) {
-			menu.push({
+			actions.push({
 				label: t('menu.reply'),
 				icon: 'arrow-bend-up-left',
 				onClick: () => reply(),
@@ -467,7 +470,7 @@
 
 		// Thread reply (not in DM rooms)
 		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !redactedMessage.value && !props.room.isDirectMessageRoom()) {
-			menu.push({
+			actions.push({
 				label: t('menu.reply_in_thread'),
 				icon: 'chat-circle',
 				onClick: () => replyInThread(),
@@ -476,7 +479,7 @@
 
 		// Copy message text
 		if (!redactedMessage.value && props.event.content.body) {
-			menu.push({
+			utility.push({
 				label: t('menu.copy_message'),
 				icon: 'copy',
 				onClick: () => navigator.clipboard.writeText(props.event.content.body),
@@ -485,7 +488,7 @@
 
 		// Delete (only your own messages)
 		if (settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !props.event.msgIsNotSend && props.event.sender === user.userId && !redactedMessage.value && !(props.viewFromThread && props.event.isThreadRoot)) {
-			menu.push({
+			destructive.push({
 				label: t('menu.delete_message'),
 				icon: 'trash',
 				isDelicate: true,
@@ -493,7 +496,8 @@
 			});
 		}
 
-		return menu;
+		const divider: MenuItem = { divider: true, label: '' };
+		return [social, actions, utility, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	}
 
 	function getUnreadCount(roomId: string, eventId: string, countType: NotificationCountType): number {

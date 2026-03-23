@@ -14,17 +14,10 @@
 			tabindex="-1"
 			@keydown="onKeydown"
 		>
-			<ContextMenuItem
-				v-for="item in store.items"
-				:aria-label="item.ariaLabel"
-				:disabled="item.disabled"
-				:icon="item.icon"
-				:is-delicate="item.isDelicate"
-				:label="item.label"
-				:title="item.title"
-				@click="store.select(item)"
-				@mousedown.stop
-			/>
+			<template v-for="(item, i) in store.items" :key="i">
+				<div v-if="item.divider" class="bg-surface-low my-50 h-px shrink-0" />
+				<ContextMenuItem v-else :aria-label="item.ariaLabel" :disabled="item.disabled" :icon="item.icon" :is-delicate="item.isDelicate" :label="item.label" :title="item.title" @click="store.select(item)" @mousedown.stop />
+			</template>
 		</div>
 
 		<!-- Mobile scrim -->
@@ -49,21 +42,14 @@
 				@keydown="onKeydown"
 			>
 				<!-- Drag handle -->
-				<div class="flex justify-center py-150"></div>
+				<div class="flex justify-center py-200"></div>
 
-				<ContextMenuItem
-					v-for="item in store.items"
-					:aria-label="item.ariaLabel"
-					:disabled="item.disabled"
-					:icon="item.icon"
-					:is-delicate="item.isDelicate"
-					:label="item.label"
-					:title="item.title"
-					@click="store.select(item)"
-					@mousedown.stop
-				/>
+				<template v-for="(item, i) in store.items" :key="i">
+					<div v-if="item.divider" class="bg-surface-low my-100 h-px shrink-0" />
+					<ContextMenuItem v-else :aria-label="item.ariaLabel" :disabled="item.disabled" :icon="item.icon" :is-delicate="item.isDelicate" :label="item.label" :title="item.title" @click="store.select(item)" @mousedown.stop />
+				</template>
 
-				<div class="h-300" />
+				<div class="h-200" />
 			</div>
 		</Transition>
 	</teleport>
