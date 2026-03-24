@@ -15,6 +15,8 @@ from ._cors import set_allow_origin_header
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
+CACHE_BUST_TIME = 600  # 10 minutes in seconds
+
 class HubDataResource(DirectServeJsonResource):
 	"""
 	HubDataResource provides a resource for handling hub database related requests.
@@ -43,6 +45,8 @@ class HubDataResource(DirectServeJsonResource):
 		self._module_api = module_api
 		self._config = config
 		self._hub_store = hub_store
+		self._timestamp_cache = None
+		self._timestamp_cache_time = 0.0
 
 	@user_validator() 
 	async def _async_render_GET(self, request: SynapseRequest, user_id: str) -> bytes:
@@ -63,7 +67,7 @@ class HubDataResource(DirectServeJsonResource):
 				admins_tuples = await self._hub_store.get_hub_admins()
 				response = [admin_tuple[0] for admin_tuple in admins_tuples]
 			case 'timestamps':
-				response = await self._hub_store.all_rooms_latest_timestamp()
+				response = await self._get_all_rooms_latest_timestamp()
 			case 'consent':
 				user_consent_version = await self._hub_store.get_user_consent_version( user_id )
 
@@ -199,4 +203,11 @@ class HubDataResource(DirectServeJsonResource):
 				return
 		
 		respond_with_json(request, 200, response)
+
+	async def _get_all_rooms_latest_timestamp(self):
+		now = time.time()
+		if self._timestamp_cache is None or (now - self._timestamp_cache_time) > CACHE_BUST_TIME:
+			self._timestamp_cache = await self._hub_store.all_rooms_latest_timestamp()
+			self._timestamp_cache_time = now
+		return self._timestamp_cache
 			
