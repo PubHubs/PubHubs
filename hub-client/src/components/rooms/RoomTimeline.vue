@@ -249,19 +249,27 @@
 		// Setup pagination observer
 		setupPaginationObserver(topSentinel, bottomSentinel);
 
+		// If the room's live timeline is already initialised (has state events)
+		// but contains no messages, the room is genuinely empty.
+		if (roomTimeLine.value.length === 0 && props.room.getLivetimelineLength() > 0) {
+			initialLoadComplete.value = true;
+			return;
+		}
+
 		// Wait for DOM render
 		await nextTick();
 		await new Promise((resolve) => requestAnimationFrame(resolve));
 
-		// Wait for timeline events
-		let attempts = 0;
-		while (roomTimeLine.value.length === 0 && attempts < 20) {
-			await new Promise((resolve) => setTimeout(resolve, 50));
-			attempts++;
+		// Wait for timeline events to be processed from sync.
+		if (roomTimeLine.value.length === 0) {
+			let attempts = 0;
+			while (roomTimeLine.value.length === 0 && attempts < 20) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				attempts++;
+			}
 		}
 
 		if (roomTimeLine.value.length === 0) {
-			LOGGER.warn(SMI.ROOM_TIMELINE, 'Timeline still empty after waiting');
 			initialLoadComplete.value = true;
 			return;
 		}

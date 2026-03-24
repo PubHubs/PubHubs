@@ -275,13 +275,12 @@ class MatrixService {
 				}
 			}
 
-			Promise.all(joinPromises).then(() => {
-				if (this.initialRoomLoading) {
-					this.initialRoomLoading = false;
-				}
-				this.SetRoomSlidingSync(); // Sets the correct sliding sync for the room
-				this.roomsStore.setRoomsLoaded(true);
-			});
+			await Promise.all(joinPromises);
+			if (this.initialRoomLoading) {
+				this.initialRoomLoading = false;
+			}
+			this.SetRoomSlidingSync(); // Sets the correct sliding sync for the room
+			this.roomsStore.setRoomsLoaded(true);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'Lifecycle handler failed', { err });
 			throw err;
