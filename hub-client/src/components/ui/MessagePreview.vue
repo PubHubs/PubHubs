@@ -15,7 +15,10 @@
 
 				<!-- Message preview + Unread badge -->
 				<div class="flex items-center gap-2">
-					<p v-if="room.hasMessages()" v-html="event?.getContent().ph_body" class="text-on-surface-dim min-w-0 flex-1 truncate"></p>
+					<div v-if="room.hasMessages()" class="text-on-surface-dim flex min-w-0 flex-1 items-center gap-1 truncate">
+						<Icon v-if="preview.icon" :type="preview.icon" size="sm" class="shrink-0" />
+						<span class="truncate">{{ preview.text }}</span>
+					</div>
 					<p v-else class="text-on-surface-dim min-w-0 flex-1 truncate">{{ t('rooms.no_messages_yet') }}</p>
 					<Badge v-if="newMessage > 0" class="shrink-0">{{ newMessage }}</Badge>
 				</div>
@@ -26,18 +29,21 @@
 
 <script setup lang="ts">
 	// Packages
-	import { EventType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
+	import { EventType, MsgType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
-	// Composables
 	import { useModeration } from '@hub-client/composables/moderation.composable';
+	// Composables
+	import { useMentions } from '@hub-client/composables/useMentions';
 
 	// Logic
+	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import filters from '@hub-client/logic/core/filters';
 
 	// Models
@@ -66,6 +72,7 @@
 	const userStore = useUser();
 	const { t } = useI18n();
 	const { stewardSourceRoomName } = useModeration();
+	const { formatMentions } = useMentions();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
 	const roomType = computed(() => props.room.getType());
@@ -109,6 +116,37 @@
 	const event = latestMessageEvent;
 
 	const lastMessageTimestamp = computed(() => event.value?.localTimestamp || 0);
+
+	const preview = computed((): { icon: string | null; text: string } => {
+		const ev = event.value;
+		if (!ev) return { icon: null, text: '' };
+
+		const content = ev.getContent();
+		const msgtype: string = content.msgtype ?? '';
+
+		if (msgtype === MsgType.Image) return { icon: 'image-square', text: t('rooms.preview_image') };
+		if (msgtype === MsgType.File) return { icon: 'file', text: content.body || t('rooms.preview_file') };
+		if (msgtype === PubHubsMgType.SignedMessage) return { icon: 'seal-check', text: t('rooms.preview_signed') };
+		if (msgtype.startsWith('pubhubs.voting_widget')) return { icon: 'chart-bar', text: t('rooms.preview_poll') };
+
+		// For text and announcement, use plain-text body
+		const body: string = content.body || '';
+		if (!body) return { icon: null, text: t('rooms.preview_unknown') };
+
+		// Strip Matrix reply-fallback quote lines ("> quoted text")
+		const stripped = body
+			.split('\n')
+			.filter((line) => !line.startsWith('> '))
+			.join('\n')
+			.trim();
+
+		const resolved = formatMentions(stripped);
+
+		const isReply = !!content['m.relates_to']?.['m.in_reply_to']?.event_id;
+		if (isReply) return { icon: null, text: `↩ ${resolved || '…'}` };
+
+		return { icon: null, text: resolved || t('rooms.preview_unknown') };
+	});
 
 	const displayName = computed(() => {
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return props.room.name;
