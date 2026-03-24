@@ -5,8 +5,7 @@
 			<div v-if="room" ref="elRoomTimeline" class="flex h-full flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain" style="overflow-anchor: none">
 				<template v-if="roomTimeLine.length > 0">
 					<div v-for="item in roomTimeLine">
-						<b>ID:</b> {{ item.matrixEvent.event.event_id }} <b>SEND BY:</b> {{ item.matrixEvent.event.sender }}<br />
-						<Json :json="item.matrixEvent.event.content"></Json>
+						<Json :json="item.matrixEvent.event"></Json>
 						<hr />
 					</div>
 				</template>

@@ -4,6 +4,7 @@ import { EventType, MatrixClient, MatrixEvent, MsgType, RoomMember } from 'matri
 // Logic
 import { EventTimeLineHandler } from '@hub-client/logic/core/eventTimeLineHandler';
 
+import { MatrixEventType } from '@hub-client/models/constants';
 // Models
 import { TEvent } from '@hub-client/models/events/TEvent';
 
@@ -29,6 +30,9 @@ enum PubHubsMsgType {
 	VotingWidgetModify = 'pubhubs.voting_widget.modify',
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
+	ForumTopic = MatrixEventType.RoomMessage, // 'm.room.message',
+	ForumTopicReply = 'ph.topic.reply',
+	ForumTopicRating = 'ph.topic.rank',
 }
 
 enum PubHubsInvisibleMsgType {

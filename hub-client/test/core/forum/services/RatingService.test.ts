@@ -2,7 +2,7 @@ import { IRelationsRequestOpts, MatrixClient } from 'matrix-js-sdk';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
-import { EVENT_TYPE_TOPIC_RATING } from '@hub-client/services/forum/properties';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { RatingService } from '@hub-client/services/forum/RatingService';
 import Room from '@hub-client/models/rooms/Room';
 import { TRating } from '@hub-client/models/events/forum/TRating';
@@ -92,9 +92,9 @@ describe('RatingService.vue test', () => {
 		await ratingService.sendRatingMessage('event1', 'like');
 		expect(sentEvent).toEqual({
 			roomId: mockRoomId,
-			eventType: EVENT_TYPE_TOPIC_RATING,
+			eventType: PubHubsMgType.ForumTopicRating,
 			content: {
-				msgtype: EVENT_TYPE_TOPIC_RATING,
+				msgtype: PubHubsMgType.ForumTopicRating,
 				body: 'like',
 				'm.relates_to': {
 					rel_type: 'm.annotation',
@@ -107,9 +107,9 @@ describe('RatingService.vue test', () => {
 		await ratingService.sendRatingMessage('event3', 'dislike');
 		expect(sentEvent).toEqual({
 			roomId: mockRoomId,
-			eventType: EVENT_TYPE_TOPIC_RATING,
+			eventType: PubHubsMgType.ForumTopicRating,
 			content: {
-				msgtype: EVENT_TYPE_TOPIC_RATING,
+				msgtype: PubHubsMgType.ForumTopicRating,
 				body: 'dislike',
 				'm.relates_to': {
 					rel_type: 'm.annotation',
@@ -125,9 +125,9 @@ describe('RatingService.vue test', () => {
 	// 	expect(deletedEvent).toEqual({ roomId: mockRoomId, eventId: 'event2rating' });
 	// 	expect(sentEvent).toEqual({
 	// 		roomId: mockRoomId,
-	// 		eventType: EVENT_TYPE_TOPIC_RATING,
+	// 		eventType: PubHubsMgType.ForumTopicRating,
 	// 		content: {
-	// 			msgtype: EVENT_TYPE_TOPIC_RATING,
+	// 			msgtype: PubHubsMgType.ForumTopicRating,
 	// 			body: 'like',
 	// 			'm.relates_to': {
 	// 				rel_type: 'm.annotation',

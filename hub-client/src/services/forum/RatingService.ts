@@ -1,7 +1,8 @@
+import { PubHubsMgType } from '@hub-client/logic/core/events';
+
 import type { TRating } from '@hub-client/models/events/forum/TRating';
 
 import { BaseForumService } from '@hub-client/services/forum/BaseService';
-import { EVENT_TYPE_TOPIC_RATING } from '@hub-client/services/forum/properties';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
@@ -15,7 +16,7 @@ export class RatingService extends BaseForumService {
 			return;
 		}
 
-		const ratingRelation = await this.client.relations(this.room.roomId, eventId, 'm.annotation', EVENT_TYPE_TOPIC_RATING, { limit: 10 });
+		const ratingRelation = await this.client.relations(this.room.roomId, eventId, 'm.annotation', PubHubsMgType.ForumTopicRating, { limit: 10 });
 		const prior_rating = ratingRelation.events;
 
 		if (prior_rating.length > 0) {
@@ -31,7 +32,7 @@ export class RatingService extends BaseForumService {
 		if (rating == 'none') return;
 
 		const content = {
-			msgtype: EVENT_TYPE_TOPIC_RATING,
+			msgtype: PubHubsMgType.ForumTopicRating,
 			body: rating,
 			'm.relates_to': {
 				rel_type: 'm.annotation',
@@ -41,7 +42,7 @@ export class RatingService extends BaseForumService {
 		};
 
 		console.log('Event Content JSON RATING:', JSON.stringify(content, null, 2));
-		await this.client.sendEvent(this.room.roomId, EVENT_TYPE_TOPIC_RATING as any, content as any);
+		await this.client.sendEvent(this.room.roomId, PubHubsMgType.ForumTopicRating as any, content as any);
 	}
 
 	getRatingUser(forumRatings: TRating[], eventId: string, user: string) {
@@ -60,7 +61,7 @@ export class RatingService extends BaseForumService {
 				from,
 				dir: 'b',
 				limit: 1000,
-				filter: JSON.stringify({ types: [EVENT_TYPE_TOPIC_RATING] }),
+				filter: JSON.stringify({ types: [PubHubsMgType.ForumTopicRating] }),
 			};
 			const resp = await (this.client as any).http.authedRequest('GET', `/rooms/${encodeURIComponent(roomId)}/messages`, params);
 			rawEvents.push(...resp.chunk);

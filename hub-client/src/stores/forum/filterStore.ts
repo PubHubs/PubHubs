@@ -1,7 +1,7 @@
 import { EventType } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 
-import { EVENT_TYPE_TOPIC, EVENT_TYPE_TOPIC_RATING, EVENT_TYPE_TOPIC_REPLY } from '@hub-client/services/forum/properties';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
 
 export enum FILTER_STATE {
 	MY_TOPICS = 'my_topics',
@@ -14,21 +14,21 @@ export const useFilterStore = defineStore('filterStore', {
 		topicsAndReplyFilter: {
 			room: {
 				timeline: {
-					types: [EVENT_TYPE_TOPIC, EVENT_TYPE_TOPIC_REPLY, EVENT_TYPE_TOPIC_RATING, EventType.RoomMessage],
+					types: [PubHubsMgType.ForumTopic, PubHubsMgType.ForumTopicReply, PubHubsMgType.ForumTopicRating, EventType.RoomMessage],
 				},
 			},
 		},
 		topicsFilter: {
 			room: {
 				timeline: {
-					types: [EVENT_TYPE_TOPIC, EVENT_TYPE_TOPIC_RATING, EventType.RoomMessage],
+					types: [PubHubsMgType.ForumTopic, PubHubsMgType.ForumTopicRating, EventType.RoomMessage],
 				},
 			},
 		},
 		replyFilter: {
 			room: {
 				timeline: {
-					types: [EVENT_TYPE_TOPIC_REPLY, EVENT_TYPE_TOPIC_RATING, EventType.RoomMessage],
+					types: [PubHubsMgType.ForumTopicReply, PubHubsMgType.ForumTopicRating, EventType.RoomMessage],
 				},
 			},
 		},
@@ -38,7 +38,7 @@ export const useFilterStore = defineStore('filterStore', {
 			return {
 				room: {
 					timeline: {
-						types: [EVENT_TYPE_TOPIC, EVENT_TYPE_TOPIC_REPLY, EVENT_TYPE_TOPIC_RATING, EventType.RoomMessage],
+						types: [PubHubsMgType.ForumTopic, PubHubsMgType.ForumTopicReply, PubHubsMgType.ForumTopicRating, EventType.RoomMessage],
 						senders: userId ? [userId] : [],
 					},
 				},

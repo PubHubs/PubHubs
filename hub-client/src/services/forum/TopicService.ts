@@ -1,5 +1,7 @@
 import { EventTimeline, MatrixClient, TimelineWindow } from 'matrix-js-sdk';
 
+import { PubHubsMgType } from '@hub-client/logic/core/events';
+
 import { TRating } from '@hub-client/models/events/forum/TRating';
 import type { TThread } from '@hub-client/models/events/forum/TThread';
 import { TTopicContent, TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
@@ -7,7 +9,7 @@ import Room from '@hub-client/models/rooms/Room';
 
 import { BaseForumService } from '@hub-client/services/forum/BaseService';
 import { RatingService } from '@hub-client/services/forum/RatingService';
-import { EVENT_TYPE_TOPIC, EVENT_TYPE_TOPIC_REPLY, PAGE_SIZE } from '@hub-client/services/forum/properties';
+import { PAGE_SIZE } from '@hub-client/services/forum/properties';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
@@ -21,7 +23,7 @@ export class TopicService extends BaseForumService {
 
 	async sendTopicMessage(title: string, description: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean) {
 		const content = this.constructTopicContent(title, description, closed, eventId, originalTitle, originalBody, originalClosed);
-		return await this.client.sendEvent(this.room.roomId, EVENT_TYPE_TOPIC as any, content as any);
+		return await this.client.sendEvent(this.room.roomId, PubHubsMgType.ForumTopic as any, content as any);
 	}
 
 	async sendTopicReply(parentId: string, description: string, eventId?: string, originalBody?: string) {
@@ -30,11 +32,11 @@ export class TopicService extends BaseForumService {
 		const parentEvent = await pubhubs.getEvent(this.room.roomId, parentId);
 		const parentContent = parentEvent.content as TTopicReplyContent;
 
-		if (!eventId && parentEvent.type === EVENT_TYPE_TOPIC_REPLY && parentContent?.['m.relates_to']?.['m.in_reply_to']?.main_event_id) {
+		if (!eventId && parentEvent.type === PubHubsMgType.ForumTopicReply && parentContent?.['m.relates_to']?.['m.in_reply_to']?.main_event_id) {
 			mainTopicId = parentContent['m.relates_to']['m.in_reply_to'].main_event_id;
 		}
 		const content = this.constructTopicReply(description, mainTopicId, parentId, originalBody, eventId);
-		return await this.client.sendEvent(this.room.roomId, EVENT_TYPE_TOPIC_REPLY as any, content as any);
+		return await this.client.sendEvent(this.room.roomId, PubHubsMgType.ForumTopicReply as any, content as any);
 	}
 
 	async fetchTopics(tw: TimelineWindow) {
@@ -48,9 +50,9 @@ export class TopicService extends BaseForumService {
 		}
 		const events = tw.getEvents();
 
-		console.info('topicService', events);
+		// console.info('topicService', events);
 
-		const topicsAndReplies = events?.filter((event) => event.getType() === EVENT_TYPE_TOPIC_REPLY || event.getType() === EVENT_TYPE_TOPIC);
+		const topicsAndReplies = events?.filter((event) => event.getType() === PubHubsMgType.ForumTopicReply || event.getType() === PubHubsMgType.ForumTopic);
 		const ratingsByEvent = new Map<string, { likes: number; dislikes: number }>();
 		let forumRatings: TRating[] = [];
 
@@ -74,7 +76,7 @@ export class TopicService extends BaseForumService {
 			if ('m.new_content' in content) continue;
 
 			const { likes, dislikes } = ratingsByEvent.get(eventId) ?? { likes: 0, dislikes: 0 };
-			const isTopic = event.getType() === EVENT_TYPE_TOPIC;
+			const isTopic = event.getType() === PubHubsMgType.ForumTopic;
 			const user = this.client.getUser(event.getSender()!);
 
 			const thread: TThread = {
@@ -124,13 +126,13 @@ export class TopicService extends BaseForumService {
 				ph_topic_body: originalBody,
 				ph_topic_closed: originalClosed,
 				body: originalTitle,
-				msgtype: EVENT_TYPE_TOPIC,
+				msgtype: PubHubsMgType.ForumTopic,
 				'm.new_content': {
 					ph_topic_title: title,
 					ph_topic_body: body,
 					ph_topic_closed: closed,
 					body: title,
-					msgtype: EVENT_TYPE_TOPIC,
+					msgtype: PubHubsMgType.ForumTopic,
 					'm.mentions': {
 						room: false,
 						user_ids: [],
@@ -147,7 +149,7 @@ export class TopicService extends BaseForumService {
 			ph_topic_body: body,
 			ph_topic_closed: closed,
 			body: title,
-			msgtype: EVENT_TYPE_TOPIC,
+			msgtype: PubHubsMgType.ForumTopic,
 			'm.mentions': {
 				room: false,
 				user_ids: [],
@@ -159,10 +161,10 @@ export class TopicService extends BaseForumService {
 		if (originalBody && eventId) {
 			return {
 				body: originalBody,
-				msgtype: EVENT_TYPE_TOPIC_REPLY,
+				msgtype: PubHubsMgType.ForumTopicReply,
 				'm.new_content': {
 					body,
-					msgtype: EVENT_TYPE_TOPIC_REPLY,
+					msgtype: PubHubsMgType.ForumTopicReply,
 					'm.mentions': {
 						room: false,
 						user_ids: [],
@@ -182,7 +184,7 @@ export class TopicService extends BaseForumService {
 		}
 		return {
 			body,
-			msgtype: EVENT_TYPE_TOPIC_REPLY,
+			msgtype: PubHubsMgType.ForumTopicReply,
 			['m.mentions']: {
 				room: false,
 				user_ids: [],
