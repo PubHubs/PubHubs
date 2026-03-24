@@ -736,6 +736,14 @@ export default class Room {
 		return this.timelineManager.getLibraryEvents();
 	}
 
+	public getForumReplies(): TimelineEvent[] {
+		return this.timelineManager.getForumReplies();
+	}
+
+	public getForumRatings(): TimelineEvent[] {
+		return this.timelineManager.getForumRatings();
+	}
+
 	/**
 	 *
 	 * @returns The newest message event id in the default timeline

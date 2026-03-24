@@ -55,8 +55,8 @@
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
 					<RoomTimeline v-if="room && !room.isForumRoom()" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
-					<ForumOverview v-if="room && room.isForumRoom()" :roomId="props.id" :topicId="topicId"></ForumOverview>
-					<!-- <ForumRoomTimeline v-if="room && room.isForumRoom()" :room="room" :topicId="topicId" /> -->
+					<!-- <ForumOverview v-if="room && room.isForumRoom()" :roomId="props.id" :topicId="topicId"></ForumOverview> -->
+					<ForumRoomTimeline v-if="room && room.isForumRoom()" :room="room" :topicId="topicId" />
 				</div>
 
 				<!-- Room sidebar -->

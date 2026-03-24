@@ -1,7 +1,15 @@
 <template>
-	<div class="flex h-full flex-col">
+	<div v-if="!topicId" class="mx-auto w-full pr-3 pl-3 md:w-2/3">
 		<SubheaderForum />
-		<div class="relative min-h-0 flex-1">
+		<template v-if="topics.length > 0">
+			<ul class="flex flex-col gap-y-2">
+				<li v-for="topic in topics" :key="topic.eventId">
+					<ThreadItem @click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: topic.eventId } })" :topic="topic" />
+				</li>
+			</ul>
+		</template>
+
+		<!-- <div class="relative min-h-0 flex-1">
 			<div v-if="room" ref="elRoomTimeline" class="flex h-full flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain" style="overflow-anchor: none">
 				<template v-if="roomTimeLine.length > 0">
 					<div v-for="item in roomTimeLine">
@@ -10,11 +18,12 @@
 					</div>
 				</template>
 			</div>
-		</div>
+		</div> -->
 	</div>
 </template>
 
 <script setup lang="ts">
+	import { Thread } from 'matrix-js-sdk';
 	import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 	// Components
@@ -27,9 +36,12 @@
 	// Logic
 	// import { ElementObserver } from '@hub-client/logic/core/elementObserver';
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
+	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	import { TThread } from '@hub-client/models/events/forum/TThread';
+	import { TTopicContent, TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
 	// Models
 	// import { RelationType, ScrollPosition, SystemDefaults, TimelineScrollConstants } from '@hub-client/models/constants';
 	// import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
@@ -46,7 +58,7 @@
 	// const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
-	// const pubhubs = usePubhubsStore();
+	const pubhubs = usePubhubsStore();
 
 	const elRoomTimeline = ref<HTMLElement | null>(null);
 	// const elRoomEvent = ref<HTMLElement | null>(null);
@@ -131,80 +143,103 @@
 		return props.room.getChronologicalTimeline();
 	});
 
-	// function handleKeydown(event: KeyboardEvent) {
-	// 	if (event.key === 'Escape') {
-	// 		if (activeReactionPanel.value) {
-	// 			closeReactionPanel();
-	// 		}
-	// 		// if (activeProfileCard.value) {
-	// 		// 	closeProfileCard();
-	// 		// }
-	// 	}
-	// }
+	onMounted(() => {
+		console.info('Oldest & Newest events loaded?', oldestEventIsLoaded.value, newestEventIsLoaded.value);
 
-	// defineExpose({ elRoomTimeline }); // Expose timeline to parent to save and restore scrollposition when leaving room
+		console.info('= RoomTimeLine events', roomTimeLine.value.length);
+		console.info('= Related', props.room.getRelatedEvents.length);
+		console.info('# Topics', topics.value);
+		console.info('# Replies', props.room.getForumReplies().length);
+		console.info('# Ratings', props.room.getForumRatings().length);
 
-	// onBeforeUnmount(() => {
-	// 	// Send final read receipt for last visible event
-	// 	// const lastEventId = props.room.getLastVisibleEventId();
-	// 	// if (lastEventId && settings.isFeatureEnabled(FeatureFlag.notifications)) {
-	// 	// 	const lastEvent = props.room.findEventById(lastEventId);
-	// 	// 	if (lastEvent) {
-	// 	// 		pubhubs.sendPrivateReceipt(lastEvent, props.room.roomId);
-	// 	// 	}
-	// 	// }
-	// 	// Cleanup event observer
-	// 	// if (eventObserver) {
-	// 	// 	eventObserver.disconnectObserver();
-	// 	// 	eventObserver = null;
-	// 	// }
-	// 	// Cleanup keyboard listener
-	// 	// document.removeEventListener('keydown', handleKeydown);
-	// });
-
-	onMounted(async () => {
-		console.info('ForumRoomTimeLine.onMounted');
-
-		// await rooms.storeRoomNotice(props.room.roomId);
-
-		// Initialize read marker from localStorage
-		// initializeReadMarker();
-
-		// // Setup keyboard listener for Escape
-		// document.addEventListener('keydown', handleKeydown);
-
-		// Setup pagination observer
-		// setupPaginationObserver(topSentinel, bottomSentinel);
-
-		// Wait for DOM render
-		// await nextTick();
-		// await new Promise((resolve) => requestAnimationFrame(resolve));
-
-		// Wait for timeline events
-		let attempts = 0;
-		while (roomTimeLine.value.length === 0 && attempts < 20) {
-			await new Promise((resolve) => setTimeout(resolve, 50));
-			attempts++;
-			console.info(attempts);
-		}
-
-		if (roomTimeLine.value.length === 0) {
-			LOGGER.warn(SMI.ROOM_TIMELINE, 'Timeline still empty after waiting');
-			initialLoadComplete.value = true;
-			return;
-		}
-
-		// Perform initial scroll
-		// LOGGER.log(SMI.ROOM_TIMELINE, `performInitialScroll called with explicitEventId: ${props.eventIdToScroll}, lastReadEventId: ${displayedReadMarker.value ?? props.lastReadEventId}`);
-		// await performInitialScroll({
-		// 	explicitEventId: props.eventIdToScroll,
-		// 	lastReadEventId: displayedReadMarker.value ?? props.lastReadEventId,
-		// });
-
-		// setupEventIntersectionObserver();
 		initialLoadComplete.value = true;
-		console.info('ForumRoomTimeLine.onMounted END', roomTimeLine.value);
 	});
+
+	const topics = computed(() => {
+		const threadMap = new Map<string, TThread>();
+		// const replyBuckets = new Map<string, TThread[]>();
+		const ratingsByEvent = new Map<string, { likes: number; dislikes: number }>();
+
+		for (const event of roomTimeLine.value) {
+			const eventId = event.matrixEvent.getId()!;
+			const content = event.matrixEvent.getContent() as TTopicContent | TTopicReplyContent;
+			if (!eventId || !event.matrixEvent.getSender() || !content.body) continue;
+			// skip edits
+			if ('m.new_content' in content) continue;
+
+			const { likes, dislikes } = ratingsByEvent.get(eventId) ?? { likes: 0, dislikes: 0 };
+			const isTopic = event.matrixEvent.getType() === PubHubsMgType.ForumTopic && (content as TTopicContent).ph_topic_title !== '';
+			const user = pubhubs.client.getUser(event.matrixEvent.getSender()!);
+
+			const thread: TThread = {
+				eventId: eventId,
+				likes,
+				dislikes,
+				author: user,
+				title: isTopic ? (content as TTopicContent).ph_topic_title || '' : '',
+				body: isTopic ? (content as TTopicContent).ph_topic_body || content.body : content.body!,
+				closed: isTopic ? ((content as TTopicContent).ph_topic_closed ?? false) : false,
+				timestamp: event.matrixEvent.getTs(),
+				replies: [],
+			};
+
+			threadMap.set(eventId, thread);
+		}
+
+		// Add ratings and replies to topics
+		let topics = Array.from(threadMap.values()).filter((t) => t.title !== '');
+		for (let i = 0; i < topics.length; i++) {
+			const topic = topics[i];
+			const ratings = getRatingsForEvent(topic.eventId);
+			topics[i].likes = ratings.likes;
+			topics[i].dislikes = ratings.dislikes;
+			const replies = getRepliesForEvent(topic.eventId);
+			topics[i].replies = replies ?? [];
+		}
+		return topics;
+	});
+
+	const getRepliesForEvent = (eventId: string): TThread[] => {
+		let replies = [] as TThread[];
+		props.room.getForumReplies().forEach((replyEvent) => {
+			if (replyEvent.matrixEvent.event.content && replyEvent.matrixEvent.event.content['m.relates_to']) {
+				const repliesTo = replyEvent.matrixEvent.event.content['m.relates_to'];
+				if (repliesTo['m.in_reply_to']) {
+					if (repliesTo['m.in_reply_to'].main_event_id === eventId) {
+						const reply: TThread = {
+							eventId: replyEvent.matrixEvent.event.event_id!,
+							likes: 0,
+							dislikes: 0,
+							author: pubhubs.client.getUser(replyEvent.matrixEvent.getSender()!),
+							title: '',
+							body: '',
+							closed: false,
+							timestamp: replyEvent.matrixEvent.getTs(),
+							replies: [],
+						};
+						replies.push(reply);
+					}
+				}
+			}
+		});
+		return replies;
+	};
+
+	const getRatingsForEvent = (eventId: string): { likes: number; dislikes: number } => {
+		let likes = 0;
+		let dislikes = 0;
+		props.room.getForumRatings().forEach((rateEvent) => {
+			if (rateEvent.matrixEvent.event.content && rateEvent.matrixEvent.event.content['m.relates_to']) {
+				const relatesTo = rateEvent.matrixEvent.event.content['m.relates_to'];
+				if (relatesTo.event_id === eventId) {
+					// const accum = ratingsByEvent.get(eventId) ?? { likes: 0, dislikes: 0 };
+					if (relatesTo.key === 'like') likes++;
+					else if (relatesTo.key === 'dislike') dislikes++;
+				}
+			}
+		});
+		return { likes: likes, dislikes: dislikes };
+	};
 
 	// watch(() => roomTimeLine.value.length, onTimelineChange);
 

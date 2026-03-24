@@ -18,20 +18,21 @@
 				<div class="line-clamp-2 grow wrap-break-word">{{ topic.title }}</div>
 				<div class="flex items-center justify-between gap-2">
 					<div></div>
-					<!-- <div class="flex flex-row items-center">
-						<Icon type="thumbs-up" />
+					<div class="flex flex-row items-center">
+						<Icon type="thumbs-up" size="sm" />
 						<span class="ml-1 text-2xl">{{ topic.likes }}</span>
-					</div> -->
-					<!-- <div class="flex flex-row items-center">
-						<Icon type="thumbs-down" />
+					</div>
+					<div class="flex flex-row items-center">
+						<Icon type="thumbs-down" size="sm" />
 						<span class="ml-1 text-2xl">{{ topic.dislikes }}</span>
-					</div> -->
+					</div>
 					<div class="flex flex-row items-center gap-1">
 						<Icon type="chat-circle-text" />
 						<span>{{ totalReplies }}</span>
 					</div>
 				</div>
 			</div>
+			<div class="text-label-small line-clamp-2 grow wrap-break-word">{{ topic.body }}</div>
 		</div>
 	</div>
 </template>

@@ -55,6 +55,10 @@ class TimelineManager {
 	private redactedEvents: TimelineEvent[] = [];
 	/** Contains all roomlibrary events */
 	private libraryEvents: TimelineEvent[] = [];
+	/** Contains all forum events */
+	private forumReplies: TimelineEvent[] = [];
+	private forumRatings: TimelineEvent[] = [];
+
 	/** Contains all related events: reactions, annotations etc. */
 	private relatedEvents: TRelatedEvents[] = [];
 
@@ -319,6 +323,10 @@ class TimelineManager {
 		const redactedEvents = matrixEvents.filter((event) => event.getType() === EventType.RoomRedaction);
 		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
 
+		// Forum events
+		this.forumReplies = [...matrixEvents.filter((event) => event.getType() === PubHubsMgType.ForumTopicReply).map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
+		this.forumRatings = [...matrixEvents.filter((event) => event.getType() === PubHubsMgType.ForumTopicRating).map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
+
 		// TODO this is now necessary for reactions that use RedactedEventIds, in the future refactor to use standard redactions
 		// if the redacted event concerns a deleted reaction, put the id in the redactedEventIds
 		this.redactedEvents.forEach((redacted) => {
@@ -415,6 +423,14 @@ class TimelineManager {
 
 	public getLibraryEvents(): TimelineEvent[] {
 		return this.libraryEvents;
+	}
+
+	public getForumReplies(): TimelineEvent[] {
+		return this.forumReplies;
+	}
+
+	public getForumRatings(): TimelineEvent[] {
+		return this.forumRatings;
 	}
 
 	/**
