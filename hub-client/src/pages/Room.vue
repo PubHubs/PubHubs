@@ -316,7 +316,7 @@
 		const roomToEdit = currentPublicRooms.find((room) => room.room_id === props.id);
 
 		// If room is not there then don't show dialog box. Throw an error.
-		if (roomToEdit?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
+		if (roomToEdit) {
 			router.push({ name: 'editroom', params: { id: props.id } });
 		} else {
 			router.push({
