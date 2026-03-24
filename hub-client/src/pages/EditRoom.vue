@@ -205,7 +205,7 @@
 		waitForServer.value = true;
 		await rooms.fetchPublicRooms();
 		if (isSecured.value) {
-			await rooms.fetchSecuredRooms();
+			await rooms.getSecuredRoomInfo(props.id);
 		}
 		waitForServer.value = false;
 		roomLoaded.value = true;

@@ -74,7 +74,7 @@ const useRooms = defineStore('rooms', {
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },
-			securedRoom: {} as TSecuredRoom,
+			securedRoom: undefined as TSecuredRoom | undefined,
 			initialRoomsLoaded: false,
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
@@ -231,6 +231,8 @@ const useRooms = defineStore('rooms', {
 				const index = state.securedRooms.findIndex((r) => r.room_id === roomId);
 				if (index >= 0) {
 					return state.securedRooms[index];
+				} else if (state.securedRoom && roomId === state.securedRoom.room_id) {
+					return state.securedRoom;
 				}
 				return undefined;
 			};
