@@ -2,16 +2,15 @@
 	<div ref="messageRoot" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
 		<div
 			ref="elReactionPopUp"
-			class="group hover:bg-surface-low flex flex-col"
+			class="group hover:bg-surface flex flex-col"
 			:class="[
 				props.isGrouped ? 'pt-1!' : 'pt-4!',
 				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
-				props.addWhisperSpacing && 'mt-2',
 				getMessageContainerClasses,
 				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y border-l-4',
-				isWhisperMessage && !redactedMessage
-					? 'border-on-surface'
-					: isAnnouncementMessage && !redactedMessage && (props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward'),
+				(isAnnouncementMessage || isWhisperMessage) &&
+					!redactedMessage &&
+					(props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward'),
 			]"
 			role="article"
 		>
@@ -61,22 +60,32 @@
 							<!-- Announcement -->
 							<span
 								v-if="isAnnouncementMessage && !redactedMessage"
-								class="flex items-center gap-1"
+								class="inline-flex items-center gap-1 leading-none"
 								:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
 							>
-								<span class="text-label-tiny pt-025 uppercase">{{ t('rooms.announcement') }}</span>
+								<span class="text-label-tiny uppercase">{{ t('rooms.announcement') }}</span>
 							</span>
+
+							<!-- Whisper -->
+							<span
+								v-if="isWhisperMessage && !redactedMessage && props.event.sender !== user.userId"
+								class="inline-flex items-center gap-1 leading-none"
+								:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
+							>
+								<span class="text-label-tiny uppercase">{{ t('message.only_visible_to_you') }}</span>
+							</span>
+							<span
+								v-if="isWhisperMessage && !redactedMessage && props.event.sender === user.userId && props.event.content.whisper_to"
+								class="inline-flex items-center gap-1 leading-none"
+								:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
+							>
+								<span class="text-label-tiny puppercase">{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
+							</span>
+
+							<!-- Timestamp -->
 							<span class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1">
 								<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
 								<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
-							</span>
-							<span v-if="isWhisperMessage && !redactedMessage && props.event.sender !== user.userId" class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1 leading-none uppercase">
-								<Icon type="whisper" size="md" class="text-on-surface-dim" />
-								<span class="uppercase">{{ t('message.only_visible_to_you') }}</span>
-							</span>
-							<span v-if="isWhisperMessage && !redactedMessage && props.event.sender === user.userId && props.event.content.whisper_to" class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1 leading-none">
-								<Icon type="whisper" size="md" class="text-on-surface-dim" />
-								<span class="uppercase">{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
 							</span>
 						</div>
 
@@ -390,7 +399,7 @@
 			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
-			'!bg-surface-low': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
+			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
 		};
 
 		if (!isPrivilegedMessage.value || redactedMessage.value) {
@@ -399,7 +408,7 @@
 
 		return {
 			...baseClasses,
-			'bg-surface-low': true,
+			'bg-surface': true,
 		};
 	});
 
