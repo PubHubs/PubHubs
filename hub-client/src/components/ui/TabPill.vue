@@ -1,36 +1,42 @@
 <template>
-	<div role="tab" class="tabs-tab theme-light:border-gray theme-light:text-gray z-20 min-h-550 cursor-pointer rounded-t border border-b-0 px-200" :class="activeClass" @click="setActiveTab(tab)">
+	<div
+		role="tab"
+		class="tabs-tab border-on-surface-disabled text-on-surface-dim focus:ring-button-blue z-20 min-h-550 cursor-pointer rounded-t border border-b-0 px-200 focus:ring-3 focus:outline-none"
+		:class="[isActive ? 'bg-surface-background text-on-surface' : value !== undefined ? 'bg-transparent opacity-50' : 'bg-transparent']"
+		:aria-selected="isActive"
+		:tabindex="isActive ? -1 : 0"
+		@click="activate"
+		@keydown.enter="activate"
+		@keydown.space.prevent="activate"
+	>
 		<div class="flex h-full w-full items-center justify-center">
-			<slot :active="isActiveTab(tab)"></slot>
+			<slot :active="isActive"></slot>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	// Packages
-	import { computed, inject, onMounted, ref } from 'vue';
+	import { type Ref, computed, inject } from 'vue';
 
-	const registerTabHeader = inject('registerTabHeader') as Function;
-	const setActiveTab = inject('setActiveTab') as Function;
-	const isActiveTab = inject('isActiveTab') as Function;
-	const tab = ref(0);
+	const props = defineProps<{
+		value?: number;
+	}>();
 
-	onMounted(() => {
-		tab.value = registerTabHeader();
-	});
+	const emit = defineEmits<{
+		(e: 'select'): void;
+	}>();
 
-	const activeClass = computed(() => {
-		let c = '';
-		if (tab.value > 1) {
-			c += 'ml-2';
+	const activeTab = inject<Ref<number>>('activeTab')!;
+	const setActiveTab = inject<(tab: number) => void>('setActiveTab')!;
+
+	const isActive = computed(() => props.value !== undefined && activeTab.value === props.value);
+
+	function activate() {
+		if (props.value !== undefined) {
+			setActiveTab(props.value);
 		}
-		if (isActiveTab(tab.value)) {
-			c += ' bg-white dark:bg-transparent';
-		} else {
-			c += ' bg-transparent opacity-50';
-		}
-		return c;
-	});
+		emit('select');
+	}
 </script>
 
 <style scoped>

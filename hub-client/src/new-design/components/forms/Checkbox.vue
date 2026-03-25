@@ -22,7 +22,7 @@
 			</div>
 		</div>
 
-		<input type="checkbox" class="sr-only" :disabled="disabled" :value="model" />
+		<input type="checkbox" class="sr-only" :disabled="disabled" :checked="model" @change="toggle(disabled)" @keydown.space.prevent="toggle(disabled)" @focus="setFocus(true)" @blur="setFocus(false)" />
 
 		<div class="pt-thin">
 			<label class="justify-start" :class="disabled ? 'text-on-surface-disabled' : 'text-surface-on-surface cursor-pointer'"><slot></slot></label>

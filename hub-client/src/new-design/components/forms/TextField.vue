@@ -1,5 +1,5 @@
 <template>
-	<ValidateField :help="help" :info="lenText" :name="fieldName" :validation="validation" v-model="model" v-slot="{ id, validated, required }" class="form-textfield gap-075 mb-100 flex w-full flex-col items-start justify-start">
+	<ValidateField :help="help" :info="lenText" :name="fieldName" :validation="validation" v-model="model" v-slot="{ id, validated, required }" class="form-textfield gap-075 flex w-full flex-col items-start justify-start">
 		<Label :for="id"><slot></slot></Label>
 
 		<!-- Input element -->
@@ -11,7 +11,7 @@
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
-					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
+					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-button-blue'"
 					:disabled="disabled"
 					:name="fieldName"
 					:id="id"
@@ -24,7 +24,7 @@
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
-					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-on-accent-primary'"
+					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-button-blue'"
 					:disabled="disabled"
 					:name="fieldName"
 					:id="id"

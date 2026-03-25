@@ -445,16 +445,21 @@ const usePubhubsStore = defineStore('pubhubs', {
 				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
 			}
 
-			// Try joining existing by renaming
+			// Rejoin and unhide existing room
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
 				const rooms = useRooms();
+				// Ensure we're a member before modifying room state
+				if (!(await this.isUserRoomMember(me.userId!, existingRoomId))) {
+					await this.joinRoom(existingRoomId);
+				}
 				let name = rooms.room(existingRoomId)?.name;
 				if (name) {
 					name = updatePrivateRoomName(name, me.userId, false);
 				} else {
 					name = createNewPrivateRoomName([me.userId, ...otherUsers]);
 				}
-				this.renameRoom(existingRoomId, name);
+				await this.renameRoom(existingRoomId, name);
+				rooms.setRoomListHidden(existingRoomId, false);
 				return { room_id: existingRoomId };
 			}
 

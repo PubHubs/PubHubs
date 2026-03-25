@@ -432,7 +432,7 @@ const nl = {
 		secured_yivi_attributes: 'Yivi Attributen',
 		secured_attribute: 'Attribuut',
 		secured_values: 'Waardes',
-		secured_profile: 'Profiel',
+		secured_profile: 'Toon attribuut als badge in de room',
 		ask_disclosure_title: 'Informatie verzoek',
 		ask_disclosure_choose_user: 'Een gebruiker vragen informatie vrij te geven',
 		ask_disclosure_user_title: 'Gebruiker',

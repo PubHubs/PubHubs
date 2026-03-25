@@ -1,11 +1,12 @@
 <template>
 	<button
-		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-4000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-4000 shrink-0 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:aria-busy="loading ? 'true' : undefined"
 		:aria-disabled="disabled || loading ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
 		:disabled="disabled || loading"
 		:class="computedClasses"
+		:tabindex="nofocus ? -1 : undefined"
 		:type="type"
 		:title="computedTitle"
 		@click="handleClick"
@@ -43,11 +44,11 @@
 <script lang="ts">
 	// Variants
 	const buttonVariants = {
-		primary: 'bg-button-blue text-on-button-blue ring-on-accent-primary hover:opacity-75',
+		primary: 'bg-button-blue text-on-button-blue ring-button-blue hover:opacity-75',
 		secondary: 'bg-surface-base text-on-surface ring-button-blue hover:opacity-75',
 		tertiary: 'outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
-		error: 'bg-button-red text-on-button-red ring-on-accent-error hover:opacity-75',
-		primaryIcon: 'text-button-blue ring-on-accent-primary hover:opacity-75 min-h-300 h-300! w-300!',
+		error: 'bg-button-red text-on-button-red ring-button-red hover:opacity-75',
+		primaryIcon: 'text-button-blue ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
 		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
 	} as const;
 	export type TVariant = keyof typeof buttonVariants;

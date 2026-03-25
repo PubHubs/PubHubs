@@ -1,5 +1,5 @@
 <template>
-	<form class="validated-form relative flex flex-col gap-200" :class="isValidated ? 'validated' : ''">
+	<form class="validated-form relative flex flex-col gap-100" :class="isValidated ? 'validated' : ''">
 		<slot :isValidated="isValidated"></slot>
 	</form>
 </template>
