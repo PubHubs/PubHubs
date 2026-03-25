@@ -328,14 +328,6 @@
 		setupPaginationObserver(topSentinel, bottomSentinel);
 
 		if (roomTimeLine.value.length === 0) {
-			let attempts = 0;
-			while (roomTimeLine.value.length === 0 && (!props.room.syncDataReceived || attempts < 20)) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
-				if (++attempts > 200) break;
-			}
-		}
-
-		if (roomTimeLine.value.length === 0) {
 			initialLoadComplete.value = true;
 			return;
 		}
