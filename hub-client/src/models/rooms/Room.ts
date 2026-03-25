@@ -1,6 +1,6 @@
 // Packages
 import { VotingWidgetType } from '../events/voting/VotingTypes';
-import { Direction, EventTimeline, EventTimelineSet, EventType, IStateEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread, ThreadEvent } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventTimelineSet, EventType, Filter, IStateEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread } from 'matrix-js-sdk';
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 
@@ -33,9 +33,6 @@ type RoomThread = {
 	threadLength: number;
 };
 
-type NewReplyListener = (thread: Thread, threadEvent: MatrixEvent) => void;
-type UpdateReplyListener = (thread: Thread) => void;
-
 const BotName = {
 	NOTICE: 'notices',
 	SYSTEM: 'system_bot',
@@ -59,6 +56,9 @@ export default class Room {
 	//public threadUpdated: Ref<boolean> = ref(false); // toggle to indicate changed thread to vue components
 	public threadUpdated: boolean = false; // toggle to indicate changed thread to vue components
 
+	/** Whether the first sliding sync response has been received for this room's subscription */
+	public syncDataReceived: boolean = false;
+
 	// timelinemanager of currently shown events
 	private timelineManager: TimelineManager;
 
@@ -66,9 +66,12 @@ export default class Room {
 	// This is used for observing (or detecting) first and last visible message on viewport.
 	private firstVisibleTimeStamp: number;
 	private firstVisibleEventId: string;
-
 	private lastVisibleTimeStamp: number;
 	private lastVisibleEventId: string;
+
+	// Threads need their own tracking of read messages, per threadrootId
+	private threadLastVisibleTimeStamp: Record<string, number | undefined> = {};
+	private threadLastVisibleEventId: Record<string, string | undefined> = {};
 
 	private roomType: string;
 
@@ -168,16 +171,24 @@ export default class Room {
 		this.firstVisibleTimeStamp = visibleTimeStamp;
 	}
 
-	public setLastVisibleTimeStamp(visibleTimeStamp: number) {
-		this.lastVisibleTimeStamp = visibleTimeStamp;
+	public setLastVisibleTimeStamp(visibleTimeStamp: number, threadRootId: string | undefined = undefined) {
+		if (threadRootId) {
+			this.threadLastVisibleTimeStamp[threadRootId] = visibleTimeStamp;
+		} else {
+			this.lastVisibleTimeStamp = visibleTimeStamp;
+		}
 	}
 
 	public setFirstVisibleEventId(visibleEventId: string) {
 		this.firstVisibleEventId = visibleEventId;
 	}
 
-	public setLastVisibleEventId(visibleEventId: string) {
-		this.lastVisibleEventId = visibleEventId;
+	public setLastVisibleEventId(visibleEventId: string, threadRootId: string | undefined = undefined) {
+		if (threadRootId) {
+			this.threadLastVisibleEventId[threadRootId] = visibleEventId;
+		} else {
+			this.lastVisibleEventId = visibleEventId;
+		}
 	}
 
 	public setCurrentEvent(event: TCurrentEvent | undefined) {
@@ -225,12 +236,12 @@ export default class Room {
 		return this.firstVisibleTimeStamp;
 	}
 
-	public getLastVisibleEventId(): string {
-		return this.lastVisibleEventId;
+	public getLastVisibleEventId(threadRootId: string | undefined = undefined): string {
+		return threadRootId ? (this.threadLastVisibleEventId[threadRootId] ?? '') : this.lastVisibleEventId;
 	}
 
-	public getLastVisibleTimeStamp(): number {
-		return this.lastVisibleTimeStamp;
+	public getLastVisibleTimeStamp(threadRootId: string | undefined = undefined): number {
+		return threadRootId ? (this.threadLastVisibleTimeStamp[threadRootId] ?? 0) : this.lastVisibleTimeStamp;
 	}
 
 	public getCurrentEvent() {
@@ -647,10 +658,12 @@ export default class Room {
 	// #region TimelineManager
 
 	public initTimeline() {
+		this.syncDataReceived = false;
 		this.timelineManager.initRoomTimeline(this.matrixRoom.roomId);
 	}
 
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
+		this.syncDataReceived = true;
 		if (roomData.required_state && roomData.required_state.length > 0) {
 			this.mergeStateEvents(roomData.required_state);
 		}
@@ -750,6 +763,10 @@ export default class Room {
 	 */
 	public getTimelineNewestMessageEventId(): string | undefined {
 		return this.timelineManager?.getTimelineNewestMessageId();
+	}
+
+	public getMessagesFilter(): Filter {
+		return this.timelineManager?.getMessagesFilter();
 	}
 
 	// #region TimelineManager
@@ -856,11 +873,13 @@ export default class Room {
 	public setCurrentThreadId(threadId: string | undefined): boolean {
 		this.currentThread = undefined;
 		if (threadId) {
+			const matrixThread = this.getOrCreateMatrixThread(threadId);
+			const thread = new TRoomThread(matrixThread);
 			this.currentThread = {
 				threadId: threadId,
-				rootEvent: this.findEventById(threadId),
-				thread: this.findTimelinEventById(threadId)?.thread,
-				threadLength: this.findTimelinEventById(threadId)?.thread.length ?? 1,
+				rootEvent: this.findEventById(threadId) ?? this.matrixRoom.findEventById(threadId),
+				thread: thread,
+				threadLength: thread.length || 1,
 			};
 			return true;
 		}

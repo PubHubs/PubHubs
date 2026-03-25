@@ -73,6 +73,7 @@
 	// Composables
 	import { useAdminDashboard } from '@hub-client/composables/dashboard/admin.composable';
 	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
@@ -92,6 +93,7 @@
 	const rooms = useRooms();
 	const dm = useDirectMessage();
 	const messageActions = useMessageActions();
+	const sidebar = useSidebar();
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
 
@@ -134,6 +136,7 @@
 	}
 
 	async function startDM(userId: string) {
+		if (sidebar.isMobile.value) sidebar.close();
 		await dm.goToUserDM(userId);
 	}
 
@@ -150,6 +153,7 @@
 	}
 
 	function startWhisperToUser(userId: string) {
+		if (sidebar.isMobile.value) sidebar.close();
 		messageActions.replyingTo = undefined;
 		messageActions.whisperingToUserId = userId;
 		messageActions.whisperingToDisplayName = user.userDisplayName(userId);

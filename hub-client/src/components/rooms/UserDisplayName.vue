@@ -22,7 +22,6 @@
 
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
-	import { useUser } from '@hub-client/stores/user';
 
 	const { color, textColor } = useUserColor();
 	const settings = useSettings();

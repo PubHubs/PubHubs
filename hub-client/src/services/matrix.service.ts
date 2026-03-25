@@ -74,6 +74,7 @@ class MatrixService {
 		// TODO Remove when unread notifications are better handled by sliding sync
 		// Attach event handler for the unread notifications
 		this.client.on(RoomEvent.Timeline, this.roomUnreadNotifications);
+		this.client.on(RoomEvent.UnreadNotifications, this.roomUnreadNotifications);
 
 		try {
 			// debug only

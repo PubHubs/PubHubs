@@ -56,11 +56,11 @@ export default class TRoomThread {
 			return [];
 		}
 
-		// get events from liveTimeline and paginate to get them all
-		const events = this.matrixThread.liveTimeline.getEvents();
+		// paginate to load all events, then read them once
 		while (await matrixClient.paginateEventTimeline(this.matrixThread.liveTimeline, { backwards: true, limit: 100 })) {
-			events.concat(this.matrixThread.liveTimeline.getEvents());
+			// pagination accumulates events in the live timeline
 		}
+		const events = this.matrixThread.liveTimeline.getEvents();
 
 		// TODO better way of building thread-list
 		// using console.trace('events voor sorted: ', events); shows that this method is called to often

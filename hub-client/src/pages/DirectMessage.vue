@@ -205,7 +205,12 @@
 	onMounted(async () => {
 		await loadPrivateRooms();
 
-		if (isMobile.value) return;
+		if (isMobile.value) {
+			// Restore sidebar if navigating here with a target room (e.g. from member list DM action)
+			const target = findTargetRoom(sortedPrivateRooms.value);
+			if (target) sidebar.openDMRoom(target);
+			return;
+		}
 
 		const target = findTargetRoom(sortedPrivateRooms.value);
 		if (target) {

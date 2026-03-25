@@ -1,90 +1,81 @@
 <template>
 	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 		<template #header>
-			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
-				<span class="font-semibold uppercase">{{ $t('admin.title_administrator') }}</span>
-				<hr class="bg-on-surface-dim h-025 grow" />
-			</div>
-			<div class="flex h-full items-center">
-				<div class="flex w-fit items-center gap-3">
-					<Icon type="caret-left" data-testid="back" class="cursor-pointer" @click.stop="back()" />
-					<H3 class="font-headings text-on-surface font-semibold">{{ title }}</H3>
-				</div>
+			<div class="flex h-full items-center gap-3">
+				<Icon :type="isSecured ? 'shield' : 'chats-circle'" />
+				<H3 class="text-on-surface flex">
+					<TruncatedText class="font-headings font-semibold">{{ title }}</TruncatedText>
+				</H3>
 			</div>
 		</template>
 
-		<ValidatedForm v-if="roomLoaded" @keydown.enter.stop v-slot="{ isValidated }" :disabled="waitForServer" class="p-200">
+		<ValidatedForm v-if="roomLoaded" @keydown.enter.stop @validated="(v: boolean) => (isFormValidated = v)" :disabled="waitForServer" class="max-w-7000 px-400 py-200">
 			<TextField v-model="editRoom.name" :validation="{ required: true, maxLength: roomValidations.maxNameLength }" :placeholder="t('admin.name_placeholder')" :show-length="true">{{ t('admin.name') }}</TextField>
 			<TextField v-model="editRoom.topic" :validation="{ maxLength: roomValidations.maxTopicLength }" :placeholder="t('admin.topic_placeholder')" :show-length="true">{{ t('admin.topic') }}</TextField>
 			<TextField v-if="!isSecured" v-model="editRoom.type" :validation="{ maxLength: roomValidations.maxTypeLength }" :placeholder="t('admin.room_type_placeholder')" :show-length="true">{{ t('admin.room_type') }}</TextField>
 
-			<div v-if="isSecured">
+			<div v-if="isSecured" class="pb-200">
 				<TextField v-model="editRoom.user_txt" :validation="{ required: true, maxLength: roomValidations.maxDescriptionLength }" :placeholder="t('admin.secured_description_placeholder')" :show-length="true">{{
 					t('admin.secured_description')
 				}}</TextField>
 
 				<div>
 					<ValidateField v-model="selectedAttributes" :validation="{ required: true, custom: validateAttributes() }">
-						<Label>{{ t('admin.secured_yivi_attributes') }}</Label>
-						<div class="flex flex-wrap gap-2">
+						<Label class="pb-100">{{ t('admin.secured_yivi_attributes') }}</Label>
+						<div class="flex flex-wrap gap-200">
 							<Tabs v-slot="{ activeTab, setActiveTab }">
 								<TabHeader>
-									<TabPill v-for="(attr, index) in selectedAttributes">
+									<TabPill v-for="(attr, index) in selectedAttributes" :value="index">
 										{{ attr.label ? attr.label : index + 1 }}
-										<IconButton
+										<button
 											v-if="selectedAttributes.length > 1"
-											size="sm"
-											icon="trash"
-											class="text-on-accent-red -mr-200 ml-100"
+											type="button"
+											class="text-button-red ml-050 -mr-100 cursor-pointer"
+											tabindex="-1"
+											:title="t('admin.remove_attribute')"
 											@click.stop="
 												removeAttribute(index);
-												setActiveTab(1);
+												setActiveTab(0);
 											"
-											title="remove attribute"
-											:nofocus="true"
-										></IconButton>
+										>
+											<Icon type="x" size="sm" />
+										</button>
 									</TabPill>
-									<IconButton
-										v-if="selectedAttributes.length < roomValidations.maxAttributes"
-										variant="tertiary"
-										icon="plus"
-										size="sm"
-										class="cursor-pointer"
-										:nofocus="true"
-										title="add attribute"
-										@click.stop="
+									<TabPill
+										v-if="selectedAttributes.length < roomValidations.maxAttributes && allAttributesValid"
+										@select="
 											addAttribute();
-											setActiveTab(activeTab + 1);
+											setActiveTab(selectedAttributes.length - 1);
 										"
-									></IconButton>
+									>
+										<Icon type="plus" size="sm" />
+									</TabPill>
 								</TabHeader>
 								<TabContainer>
-									<div class="pt-2" role="tabpanel" v-if="selectedAttributes.length >= activeTab">
-										<DropDown v-model="selectedAttributes[activeTab - 1].label" :options="yiviAttributes" :filtered="true" class="text-label placeholder:text-surface-subtle">{{ t('admin.secured_attribute') }}</DropDown>
+									<div role="tabpanel" v-if="selectedAttributes[activeTab]" class="flex flex-col gap-100">
+										<DropDown v-model="selectedAttributes[activeTab].label" :options="yiviAttributes" :filtered="true" class="text-label placeholder:text-surface-subtle">{{ t('admin.secured_attribute') }}</DropDown>
 
-										<Label>{{ t('admin.secured_values') }}</Label>
-										<div class="bg-on-surface-disabled mb-100 rounded p-100">
-											<div
-												v-if="selectedAttributes[activeTab - 1].accepted.length > 0"
-												class="bg-surface-base outline-offset-thin outline-on-surface-dim p-050 gap-050 flex max-h-2000 w-full flex-wrap justify-start overflow-y-scroll rounded outline"
-											>
-												<span v-for="(value, index) in selectedAttributes[activeTab - 1].accepted" :key="index" class="bg-surface-elevated text-on-primary inline-flex items-center rounded-xl px-100">
+										<!-- Add values -->
+										<div class="my-100 flex grow items-end gap-100">
+											<TextField v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab)">{{ t('admin.add_value') }}</TextField>
+											<Button :title="t('admin.add')" @click="addUniqueValue(activeTab)" class="mb-050">{{ t('admin.add') }}</Button>
+										</div>
+
+										<!-- Values -->
+										<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="pb-200">
+											<Label>{{ t('admin.secured_values') }}</Label>
+
+											<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="flex max-h-2000 w-full flex-wrap justify-start gap-100 overflow-y-scroll">
+												<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="group bg-surface text-on-primary py-050 gap-050 inline-flex items-center rounded-xl px-100">
 													{{ value }}
-													<IconButton size="sm" icon="trash" class="text-on-accent-red m-0" @click="selectedAttributes[activeTab - 1].accepted.splice(index, 1)" title="remove value"></IconButton>
+													<button type="button" class="group-hover:text-button-red cursor-pointer" :title="t('admin.remove_value')" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">
+														<Icon type="x" size="sm" />
+													</button>
 												</span>
-											</div>
-
-											<div class="mt-100 flex gap-100">
-												<div class="grow">
-													<TextArea v-model="valuesString" :placeholder="t('admin.add_tip')" @keydown.enter.prevent="addUniqueValue(activeTab - 1)">{{ t('admin.add_value') }}</TextArea>
-												</div>
-												<div>
-													<Button class="mt-300" :title="t('admin.add')" @click="addUniqueValue(activeTab - 1)">{{ t('admin.add') }}</Button>
-												</div>
 											</div>
 										</div>
 
-										<Checkbox v-model="selectedAttributes[activeTab - 1].profile">{{ t('admin.secured_profile') }}</Checkbox>
+										<Checkbox v-model="selectedAttributes[activeTab].profile" class="pb-100">{{ t('admin.secured_profile') }}</Checkbox>
 									</div>
 								</TabContainer>
 							</Tabs>
@@ -92,17 +83,12 @@
 					</ValidateField>
 				</div>
 			</div>
-
-			<ButtonGroup>
-				<Button variant="error" @click.stop.prevent="back()">{{ t('dialog.cancel') }}</Button>
-				<Button type="submit" :disabled="!isValidated" @click.stop.prevent="submitRoom()">{{ t('forms.save') }}</Button>
-			</ButtonGroup>
 		</ValidatedForm>
 
-		<div v-if="waitForServer" class="mt-200 flex w-full">
-			<div class="mx-auto">
-				<InlineSpinner></InlineSpinner>
-			</div>
+		<!-- Fixed action buttons -->
+		<div class="fixed right-10 bottom-5 z-20 flex items-center gap-200">
+			<Button variant="error" @click.stop.prevent="back()">{{ t('dialog.cancel') }}</Button>
+			<Button :disabled="!isFormValidated" :loading="waitForServer" @click.stop.prevent="submitRoom()">{{ t('forms.save') }}</Button>
 		</div>
 	</HeaderFooter>
 </template>
@@ -113,8 +99,10 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
-	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import TabContainer from '@hub-client/components/ui/TabContainer.vue';
 	import TabHeader from '@hub-client/components/ui/TabHeader.vue';
 	import TabPill from '@hub-client/components/ui/TabPill.vue';
@@ -138,12 +126,9 @@
 	import { useYivi } from '@hub-client/stores/yivi';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
-	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
-	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
-	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
@@ -159,7 +144,9 @@
 		.map((item) => item.label);
 
 	// reactive state
+	const allAttributesValid = computed(() => selectedAttributes.value.every((attr) => yiviAttributes.includes(attr.label) && attr.accepted.length > 0));
 	const attributeChanged = ref(false);
+	const isFormValidated = ref(false);
 	const valuesString = ref<string>('');
 	const selectedAttributes = ref<Array<TEditRoomFormAttributes>>([{ label: '', attribute: '', accepted: [], profile: false }]);
 	let OriginalAttributes: Array<TEditRoomFormAttributes> = [{ label: '', attribute: '', accepted: [], profile: false }];

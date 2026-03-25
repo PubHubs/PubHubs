@@ -134,7 +134,19 @@ To access the hubs, you have to login using the Yivi app. To do so, the app must
 
 #### Making yourself admin
 
-After the first login on your local development, there won't be any rooms in the hub yet. To make these, you'll first have to make yourself admin of the hub. To do so, run the following:
+After the first login on your local development, there won't be any rooms in the hub yet. To make these, you'll first have to make yourself admin of the hub. To do so, go to the folder of the running hub (ex. `./pubhubs_hub/testhub0`) and run the following:
+
+```sh
+sudo sqlite3 homeserver.db
+
+# Inside sqlite
+UPDATE users SET admin = 1; # Note that this will make all the existing users admin, use 'WHERE' to specify
+
+# Afterwards, quit with ctrl + d, or:
+quit;
+```
+
+If the hub is using PostgreSQL instead of SQLite3, use the following instead:
 
 ```sh
 docker exec pubhubs-testhub0 sudo -u postgres psql hub

@@ -4,7 +4,7 @@
 		<!-- Thread message list -->
 		<div class="flex-1 overflow-y-scroll pb-4">
 			<!-- Root event -->
-			<div v-if="filteredEvents.length === 0" ref="elRoomEvent" :id="props.room.currentThread?.rootEvent?.event.event_id">
+			<div v-if="filteredEvents.length === 0" :id="threadRootId">
 				<RoomMessageBubble
 					:room="room"
 					:event="props.room.currentThread?.rootEvent?.event"
@@ -22,7 +22,7 @@
 
 			<!-- Thread replies -->
 			<div v-for="item in filteredEvents" :key="item.matrixEvent.event.event_id">
-				<div class="mx-3 rounded-md" ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
+				<div :ref="setEventRef" class="mx-3 rounded-md" :id="item.matrixEvent.event.event_id">
 					<RoomMessageBubble
 						:room="room"
 						:event="item.matrixEvent.event"
@@ -55,7 +55,7 @@
 <script setup lang="ts">
 	// Packages
 	import { EventType, MatrixEvent } from 'matrix-js-sdk';
-	import { Reactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+	import { Reactive, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -65,17 +65,22 @@
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
+	import useReadMarker from '@hub-client/composables/useReadMarker';
+
+	import { ElementObserver } from '@hub-client/logic/core/elementObserver';
 	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { MatrixEventType, RelationType, RoomEmit, ScrollPosition, ScrollSelect } from '@hub-client/models/constants';
+	import { RelationType, RoomEmit, ScrollPosition, ScrollSelect, TimelineScrollConstants } from '@hub-client/models/constants';
 	import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 
@@ -87,13 +92,9 @@
 		scrollToEventId: String,
 	});
 
-	const pubhubs = usePubhubsStore();
-
-	let deletedEvents: Reactive<MatrixEvent[]> = reactive<MatrixEvent[]>([]);
-	let threadEvents: Reactive<TimelineEvent[]> = reactive<TimelineEvent[]>([]);
-	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
-
-	const activeReactionPanel = ref<string | null>(null);
+	const threadRootId = computed(() => {
+		return props.room.currentThread?.rootEvent?.event.event_id;
+	});
 
 	const filteredEvents = computed(() => {
 		return threadEvents.filter((event) => !event.isDeleted && event.matrixEvent.getType() !== EventType.Reaction);
@@ -101,11 +102,23 @@
 
 	const numberOfThreadEvents = computed(() => Math.max(filteredEvents.value.length, 1));
 
-	function onlyReactionEvent(eventId: string) {
-		// To stop from having duplicate events
-		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
-		return props.room.getCurrentEventRelatedEvents();
-	}
+	const pubhubs = usePubhubsStore();
+	const settings = useSettings();
+	const user = useUser();
+
+	let deletedEvents: Reactive<MatrixEvent[]> = reactive<MatrixEvent[]>([]);
+	let threadEvents: Reactive<TimelineEvent[]> = reactive<TimelineEvent[]>([]);
+	let eventObserver: ElementObserver | null = null;
+	const elRoomEvent = ref<HTMLElement | null>(null);
+	const elThreadTimeline = ref<HTMLElement | null>(null);
+	const showConfirmDelMsgDialog = ref(false);
+	const eventToBeDeleted = ref<TMessageEvent>();
+	const { update: updateReadMarker } = useReadMarker(props.room, user.userId || '', threadRootId.value);
+
+	const activeReactionPanel = ref<string | null>(null);
+	const { READ_DELAY_MS } = TimelineScrollConstants;
+
+	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
 
 	watch(
 		() => props.room.threadUpdated,
@@ -131,17 +144,46 @@
 		() => emit(RoomEmit.ThreadLengthChanged, numberOfThreadEvents.value),
 	);
 
-	const elThreadTimeline = ref<HTMLElement | null>(null);
-	const showConfirmDelMsgDialog = ref(false);
-	const eventToBeDeleted = ref<TMessageEvent>();
-
 	onMounted(() => {
 		LOGGER.log(SMI.ROOM_THREAD, 'RoomThread mounted');
+		setupEventIntersectionObserver();
+	});
+
+	onBeforeUnmount(() => {
+		// Cleanup event observer
+		if (eventObserver) {
+			eventObserver.disconnectObserver();
+			eventObserver = null;
+		}
 	});
 
 	onUnmounted(() => {
 		closeThread();
 	});
+
+	function onlyReactionEvent(eventId: string) {
+		// To stop from having duplicate events
+		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
+		return props.room.getCurrentEventRelatedEvents();
+	}
+
+	// TODO Element Observer Because of the way the ElementObserver is set up we need elRoomEvent to be a single variable, but actually pass it as an array
+	// Here we ignore the TypeScript errors for now until this is solved
+	function setEventRef(el: Element | null | any) {
+		if (el instanceof HTMLElement) {
+			if (elRoomEvent.value) {
+				// @ts-ignore
+				elRoomEvent.value.push(el);
+			} else {
+				// @ts-ignore
+				elRoomEvent.value = [el];
+			}
+		}
+	}
+
+	function findThreadEventById(eventId: string): MatrixEvent {
+		return filteredEvents.value.find((x) => x.matrixEvent.event.event_id === eventId)?.matrixEvent as MatrixEvent;
+	}
 
 	function closeThread() {
 		props.room.setCurrentThreadId(undefined);
@@ -149,6 +191,9 @@
 
 	async function changeThreadId() {
 		await getThreadEvents();
+
+		setupEventIntersectionObserver();
+
 		if (props.room.getCurrentEvent()) {
 			scrollToEvent(props.room.getCurrentEvent()!.eventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 		} else {
@@ -246,4 +291,82 @@
 
 		return false;
 	}
+
+	function setupEventIntersectionObserver() {
+		// Disconnect previous observer to prevent memory leaks
+		if (eventObserver) {
+			eventObserver.disconnectObserver();
+		}
+
+		eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
+
+		// Combined handler - ElementObserver only supports ONE callback (each setUpObserver replaces the previous)
+		const combinedHandler = (entries: IntersectionObserverEntry[]) => {
+			// Track visibility for read marker + send receipts (single unified handler)
+			handleVisibilityTracking(entries);
+		};
+
+		eventObserver?.setUpObserver(combinedHandler);
+	}
+
+	/**
+	 * Tracks visible messages for read marker and notifications.
+	 */
+	const handleVisibilityTracking = (entries: IntersectionObserverEntry[]) => {
+		if (entries.length < 1) {
+			return;
+		}
+
+		let newestVisibleEventId: string | null = null;
+		let newestVisibleTimestamp = 0;
+
+		entries.forEach((entry) => {
+			const eventId = entry.target.id;
+			const matrixEvent = findThreadEventById(eventId);
+
+			if (!matrixEvent || matrixEvent.getType() !== EventType.RoomMessage) {
+				return;
+			}
+
+			if (matrixEvent.localTimestamp > newestVisibleTimestamp) {
+				newestVisibleTimestamp = matrixEvent.localTimestamp;
+				newestVisibleEventId = eventId;
+			}
+		});
+
+		const currentTrackedTimestamp = props.room.getLastVisibleTimeStamp(threadRootId.value);
+
+		if (!newestVisibleEventId || newestVisibleTimestamp <= currentTrackedTimestamp) {
+			return;
+		}
+
+		const capturedEventId = newestVisibleEventId;
+		const capturedTimestamp = newestVisibleTimestamp;
+
+		setTimeout(() => {
+			const element = elThreadTimeline.value?.querySelector(`[id="${capturedEventId}"]`);
+			if (!element || !elThreadTimeline.value) {
+				return;
+			}
+
+			const containerRect = elThreadTimeline.value.getBoundingClientRect();
+			const elementRect = element.getBoundingClientRect();
+			const isStillVisible = elementRect.top < containerRect.bottom && elementRect.bottom > containerRect.top;
+
+			if (!isStillVisible) {
+				return;
+			}
+
+			if (capturedTimestamp > props.room.getLastVisibleTimeStamp(threadRootId.value)) {
+				updateReadMarker(capturedEventId, capturedTimestamp);
+
+				if (settings.isFeatureEnabled(FeatureFlag.notifications)) {
+					const lastVisibleEvent = findThreadEventById(capturedEventId);
+					if (lastVisibleEvent) {
+						pubhubs.sendPrivateReceipt(lastVisibleEvent, props.room.roomId, threadRootId.value);
+					}
+				}
+			}
+		}, READ_DELAY_MS);
+	};
 </script>

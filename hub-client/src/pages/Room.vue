@@ -142,21 +142,45 @@
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
-	const joinSecuredRoom = ref<string | null>(null);
-	const scrollToEventId = ref<string>();
-	const isLoading = ref(true); // Keep track if the page is loading, then the template cannot be rendered yet
-	let updateVersion = 0; // Used to cancel stale update() calls
-
 	// Passed by the router
 	const props = defineProps({
 		id: { type: String, required: true },
 		topicId: { type: String },
 	});
 
+	const joinSecuredRoom = ref<string | null>(null);
+	const scrollToEventId = ref<string>();
+	const isLoading = ref(!rooms.roomExists(props.id));
+	let updateVersion = 0; // Used to cancel stale update() calls
+
+	// This guarantees that room has a value, so in the template we can safely use room!
+	const room = computed(() => {
+		let r = rooms.rooms[props.id];
+		if (!r) {
+			return undefined;
+		}
+		// The name of the room will be synced later, start with an empty name
+		if (r.name === props.id) {
+			r.name = '';
+		}
+		return r;
+	});
+
+	const lastReadEventId = computed(() => {
+		if (!room.value || !user.userId) return undefined;
+		return room.value.getLastVisibleEventId() || room.value.getEventReadUpTo(user.userId) || undefined;
+	});
+
+	// Check if there are room members to show
+	const hasRoomMembers = computed(() => {
+		if (!room.value) return false;
+		const members = room.value.getStateJoinedMembersIds();
+		return members.filter((id) => !id.startsWith('@notices_user:')).length > 0;
+	});
+
 	onMounted(async () => {
 		// Ensure sidebar is closed instantly when entering a room page
 		sidebar.closeInstantly();
-		isLoading.value = true;
 		const completed = await update();
 
 		// Handle explicit scroll requests from URL parameter
@@ -184,8 +208,9 @@
 	);
 
 	watch(route, async () => {
-		// On mobile, close sidebar when switching rooms
-		if (sidebar.isMobile.value) {
+		// On mobile, always close sidebar when switching rooms
+		// On desktop, only close if a thread is open
+		if (sidebar.isMobile.value || sidebar.activeTab.value === SidebarTab.Thread) {
 			sidebar.closeInstantly();
 		}
 
@@ -194,7 +219,6 @@
 		if (eventIdFromQuery) {
 			scrollToEventId.value = eventIdFromQuery;
 		}
-		isLoading.value = true;
 		if (rooms.currentRoom) {
 			// Send read receipt for last visible event before leaving
 			const lastEventId = rooms.currentRoom.getLastVisibleEventId();
@@ -211,31 +235,6 @@
 		if (completed) isLoading.value = false;
 	});
 
-	// This guarantees that room has a value, so in the template we can safely use room!
-	const room = computed(() => {
-		let r = rooms.rooms[props.id];
-		if (!r) {
-			return undefined;
-		}
-		// The name of the room will be synced later, start with an empty name
-		if (r.name === props.id) {
-			r.name = '';
-		}
-		return r;
-	});
-
-	const lastReadEventId = computed(() => {
-		if (!room.value || !user.userId) return undefined;
-		return room.value.getLastVisibleEventId() || room.value.getEventReadUpTo(user.userId) || undefined;
-	});
-
-	// Check if there are room members to show
-	const hasRoomMembers = computed(() => {
-		if (!room.value) return false;
-		const members = room.value.getStateJoinedMembersIds();
-		return members.filter((id) => !id.startsWith('@notices_user:')).length > 0;
-	});
-
 	// Close sidebar instantly before leaving this page
 	onBeforeRouteLeave(() => {
 		sidebar.closeInstantly();
@@ -248,54 +247,54 @@
 	async function update(): Promise<boolean> {
 		const currentVersion = ++updateVersion;
 
-		// Set current room early if it already exists (makes header visible sooner)
+		// Fast path: room already loaded, just switch to it
 		if (rooms.roomExists(props.id)) {
 			rooms.changeRoom(props.id);
+			hubSettings.hideBar();
+			rooms.currentRoom?.initTimeline();
+			return currentVersion === updateVersion;
 		}
 
+		// Slow path: first visit, need to join and initialize
+		isLoading.value = true;
+
 		await rooms.waitForInitialRoomsLoaded();
-		if (currentVersion !== updateVersion) return false; // stale update
+		if (currentVersion !== updateVersion) return false;
 
 		hubSettings.hideBar();
 
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
-		if (currentVersion !== updateVersion) return false; // stale update
+		if (currentVersion !== updateVersion) return false;
 
-		// if the user is a member and the room is selected from the roomList in the menu the room possibly has to be joined first: to get all the roomData in the right stores
 		if (userIsMember) {
 			await rooms.joinRoomListRoom(props.id);
-			if (currentVersion !== updateVersion) return false; // stale update
+			if (currentVersion !== updateVersion) return false;
 		}
 
-		// change to the current room
 		rooms.changeRoom(props.id);
 
 		if (!userIsMember) {
 			await rooms.fetchPublicRooms();
-			if (currentVersion !== updateVersion) return false; // stale update
+			if (currentVersion !== updateVersion) return false;
 
 			const roomIsSecure = rooms.publicRoomIsSecure(props.id);
 
-			// For secured rooms users first have to authenticate
 			if (roomIsSecure) {
 				joinSecuredRoom.value = props.id;
 				return true;
 			}
-			// Non-secured rooms can be joined immediately
 			try {
 				await pubhubs.joinRoom(props.id);
 			} catch {
-				// Room does not exist or user failed to join room
 				router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
 			}
 		}
 
 		if (!rooms.currentRoom) return true;
 
-		// Initialize syncing of room
 		rooms.currentRoom.initTimeline();
 
-		await rooms.fetchPublicRooms(); // Needed for mentions (if not loaded allready)
+		await rooms.fetchPublicRooms();
 		return currentVersion === updateVersion;
 	}
 

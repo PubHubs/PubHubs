@@ -37,8 +37,7 @@ export function useDirectMessage() {
 
 	// Opens or creates a 1:1 DM with the given user and navigates to it.
 	async function goToUserDM(userId: string): Promise<void> {
-		const otherUser = user.client?.getUser(userId);
-		if (!otherUser || user.userId === otherUser.userId) return;
+		if (!userId || userId === user.userId) return;
 
 		const room = await ensureDMRoom([userId]);
 		if (room) goToRoom(room);

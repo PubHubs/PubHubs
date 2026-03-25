@@ -153,10 +153,9 @@
 		void rooms.unreadCountVersion;
 		const room = pubhubs.client.getRoom(roomId);
 		if (room) {
-			// TODO Threadnotification - remove this line! It temporarily removes all thread notifications!
-			room.resetThreadUnreadNotificationCountFromSync();
-
-			return room.getUnreadNotificationCount(countType);
+			// TODO: use getUnreadNotificationCount once old thread
+			// notifications are globally marked as unread
+			return room.getRoomUnreadNotificationCount(countType);
 		}
 		return 0;
 	}

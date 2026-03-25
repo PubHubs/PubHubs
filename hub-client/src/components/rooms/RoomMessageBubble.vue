@@ -72,10 +72,11 @@
 							</span>
 							<span v-if="isWhisperMessage && !redactedMessage && props.event.sender !== user.userId" class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1 leading-none uppercase">
 								<Icon type="whisper" size="md" class="text-on-surface-dim" />
+								<span class="uppercase">{{ t('message.only_visible_to_you') }}</span>
 							</span>
 							<span v-if="isWhisperMessage && !redactedMessage && props.event.sender === user.userId && props.event.content.whisper_to" class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1 leading-none">
 								<Icon type="whisper" size="md" class="text-on-surface-dim" />
-								<span>{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
+								<span class="uppercase">{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
 							</span>
 						</div>
 
@@ -450,10 +451,6 @@
 		pubhubs.resendEvent(props.event);
 	}
 
-	function profileInPosition(ev: Partial<IEvent>) {
-		return ev.event_id === props.room.getLastVisibleEventId() && props.room.numOfMessages() > 5;
-	}
-
 	// Positions the panel based on whether the message event is near the bottom of the screen
 	// or near the top.
 	function calculatePanelPlacement(): boolean {
@@ -491,7 +488,7 @@
 
 		// Whisper (steward/super-steward only, for other users)
 		if (props.event.sender !== user.userId && !props.room.isDirectMessageRoom() && canWhisperFromContextMenu.value) {
-			menu.push({
+			social.push({
 				label: t('menu.whisper'),
 				icon: 'whisper',
 				onClick: () => {

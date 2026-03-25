@@ -3,6 +3,7 @@
 		<slot :activeTab="activeTab" :setActiveTab="setActiveTab"></slot>
 	</div>
 </template>
+
 <script setup lang="ts">
 	// Packages
 	import { provide, ref } from 'vue';
@@ -10,46 +11,19 @@
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			openTab?: number | string;
+			openTab?: number;
 		}>(),
 		{
-			openTab: 1,
+			openTab: 0,
 		},
 	);
 
-	const activeTab = ref<number>(typeof props.openTab === 'string' ? parseInt(props.openTab) : props.openTab);
-	const numberOfTabs = ref(0);
-	const numberOfTabHeaders = ref(0);
-
-	const registerTabHeader = () => {
-		numberOfTabHeaders.value++;
-		return numberOfTabHeaders.value;
-	};
-
-	const registerTab = () => {
-		numberOfTabs.value++;
-		return numberOfTabs.value;
-	};
-
-	const removeTab = () => {
-		numberOfTabHeaders.value--;
-		numberOfTabs.value--;
-		if (activeTab.value > numberOfTabs.value) {
-			activeTab.value = numberOfTabs.value;
-		}
-	};
+	const activeTab = ref(props.openTab);
 
 	const setActiveTab = (tab: number) => {
 		activeTab.value = tab;
 	};
 
-	const isActiveTab = (tab: number): boolean => {
-		return activeTab.value === tab;
-	};
-
-	provide('registerTabHeader', registerTabHeader);
-	provide('registerTab', registerTab);
-	provide('removeTab', removeTab);
+	provide('activeTab', activeTab);
 	provide('setActiveTab', setActiveTab);
-	provide('isActiveTab', isActiveTab);
 </script>

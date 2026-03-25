@@ -76,7 +76,7 @@ class TimelineEvent {
 		return this._thread?.findEventById(eventId) !== undefined;
 	}
 
-	async loadThread() {
+	loadThread() {
 		const room = this.rooms.room(this.roomId);
 		if (!room) return;
 		const thread = room.getMatrixThread(this.matrixEvent.event.event_id!);

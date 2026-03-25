@@ -1,12 +1,13 @@
 <template>
 	<div class="@container w-full rounded-xl p-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
 		<div class="flex gap-3">
-			<Avatar class="shrink-0" :avatar-url="avatarOverrideUrl" :user-id="otherDMUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
+			<Avatar class="shrink-0" :avatar-url="avatarOverrideUrl" :user-id="displayUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
 
 			<div class="flex min-w-0 flex-1 flex-col gap-1">
 				<!-- Name + Timestamp -->
 				<div class="flex items-baseline gap-2">
-					<p class="min-w-0 flex-1 truncate leading-tight font-bold">{{ displayName }}</p>
+					<UserDisplayName v-if="displayUserId" class="min-w-0 flex-1" :userId="displayUserId" :userDisplayName="userStore.userDisplayName(displayUserId)" :showPseudonym="false" />
+					<p v-else class="min-w-0 flex-1 truncate leading-tight font-bold">{{ displayName }}</p>
 					<EventTime v-if="lastMessageTimestamp" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="text-on-surface-dim shrink-0" />
 				</div>
 
@@ -36,6 +37,7 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
 	import { useModeration } from '@hub-client/composables/moderation.composable';
@@ -77,32 +79,30 @@
 
 	const roomType = computed(() => props.room.getType());
 
+	const displayUserId = computed(() => {
+		if (roomType.value === RoomType.PH_MESSAGES_DM) {
+			return getOtherDMUser()?.userId ?? getOtherUserIdFromRoomName();
+		}
+		return undefined;
+	});
+
+	// For DMs, reactively resolve avatar from user profile store.
+	// For other room types, fetch the room avatar URL (async, so use a watcher).
 	watch(
-		() => props.room,
-		async (room) => {
+		[() => props.room, () => (displayUserId.value ? userStore.userAvatar(displayUserId.value) : undefined)],
+		async ([room, dmAvatarUrl]) => {
 			if (!room) {
 				avatarOverrideUrl.value = undefined;
 				return;
 			}
-			// For 1:1 DMs, use the other user's avatar
 			if (room.getType() === RoomType.PH_MESSAGES_DM) {
-				const otherUser = getOtherDMUser();
-				if (otherUser?.userId) {
-					avatarOverrideUrl.value = userStore.userAvatar(otherUser.userId);
-					return;
-				}
+				avatarOverrideUrl.value = dmAvatarUrl;
+				return;
 			}
 			avatarOverrideUrl.value = await props.room.getRoomAvatarAuthorizedUrl();
 		},
 		{ immediate: true },
 	);
-
-	const otherDMUserId = computed(() => {
-		if (roomType.value === RoomType.PH_MESSAGES_DM) {
-			return getOtherDMUser()?.userId;
-		}
-		return undefined;
-	});
 
 	const newMessage = computed(() => props.room.getUnreadNotificationCount(NotificationCountType.Total));
 
