@@ -11,7 +11,8 @@
 
 				<!-- Expands if the timeline height < the vieport, to top-align the content -->
 				<div class="flex h-full items-center justify-center px-4 md:px-16">
-					<P v-if="initialLoadComplete && reversedTimeline.length === 0" class="text-on-surface-dim text-center">
+					<InlineSpinner v-if="!initialLoadComplete && reversedTimeline.length === 0" />
+					<P v-else-if="initialLoadComplete && reversedTimeline.length === 0" class="text-on-surface-dim text-center">
 						{{ $t('rooms.no_messages_yet') }}
 					</P>
 				</div>
@@ -76,6 +77,7 @@
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import DateDisplayer from '@hub-client/components/ui/DateDisplayer.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import JumpToBottomButton from '@hub-client/components/ui/JumpToBottomButton.vue';
 	import LastReadMarker from '@hub-client/components/ui/LastReadMarker.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
@@ -249,23 +251,11 @@
 		// Setup pagination observer
 		setupPaginationObserver(topSentinel, bottomSentinel);
 
-		// If the room's live timeline is already initialised (has state events)
-		// but contains no messages, the room is genuinely empty.
-		if (roomTimeLine.value.length === 0 && props.room.getLivetimelineLength() > 0) {
-			initialLoadComplete.value = true;
-			return;
-		}
-
-		// Wait for DOM render
-		await nextTick();
-		await new Promise((resolve) => requestAnimationFrame(resolve));
-
-		// Wait for timeline events to be processed from sync.
 		if (roomTimeLine.value.length === 0) {
 			let attempts = 0;
-			while (roomTimeLine.value.length === 0 && attempts < 20) {
+			while (roomTimeLine.value.length === 0 && (!props.room.syncDataReceived || attempts < 20)) {
 				await new Promise((resolve) => setTimeout(resolve, 50));
-				attempts++;
+				if (++attempts > 200) break;
 			}
 		}
 
@@ -273,6 +263,10 @@
 			initialLoadComplete.value = true;
 			return;
 		}
+
+		// Wait for DOM render
+		await nextTick();
+		await new Promise((resolve) => requestAnimationFrame(resolve));
 
 		// Perform initial scroll
 		LOGGER.log(SMI.ROOM_TIMELINE, `performInitialScroll called with explicitEventId: ${props.eventIdToScroll}, lastReadEventId: ${displayedReadMarker.value ?? props.lastReadEventId}`);
