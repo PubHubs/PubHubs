@@ -869,11 +869,13 @@ export default class Room {
 	public setCurrentThreadId(threadId: string | undefined): boolean {
 		this.currentThread = undefined;
 		if (threadId) {
+			const matrixThread = this.getOrCreateMatrixThread(threadId);
+			const thread = new TRoomThread(matrixThread);
 			this.currentThread = {
 				threadId: threadId,
-				rootEvent: this.findEventById(threadId),
-				thread: this.findTimelinEventById(threadId)?.thread,
-				threadLength: this.findTimelinEventById(threadId)?.thread.length ?? 1,
+				rootEvent: this.findEventById(threadId) ?? this.matrixRoom.findEventById(threadId),
+				thread: thread,
+				threadLength: thread.length || 1,
 			};
 			return true;
 		}

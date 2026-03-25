@@ -205,8 +205,9 @@
 	);
 
 	watch(route, async () => {
-		// On mobile, close sidebar when switching rooms
-		if (sidebar.isMobile.value) {
+		// On mobile, always close sidebar when switching rooms
+		// On desktop, only close if a thread is open
+		if (sidebar.isMobile.value || sidebar.activeTab.value === SidebarTab.Thread) {
 			sidebar.closeInstantly();
 		}
 
