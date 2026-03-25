@@ -5,7 +5,7 @@
 		type="button"
 		:aria-disabled="props.disabled ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
-		:class="[disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface', isMobile ? 'gap-200 px-400 py-200' : 'px-200 py-150 not-focus:pl-[17.5px] focus:border-l-4']"
+		:class="[disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface', isMobile ? 'gap-200 px-400 py-200' : 'border-l-4 px-200 py-150 not-focus:border-transparent']"
 		:disabled="disabled"
 		:title="computedTitle"
 		@click="handleClick"

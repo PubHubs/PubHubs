@@ -33,7 +33,19 @@
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Conversation list -->
 			<div class="flex h-full flex-col overflow-y-auto p-3 md:p-4" :class="isMobile ? 'w-full' : 'w-[360px] shrink-0'">
-				<button v-if="sortedPrivateRooms.length === 0" class="bg-surface-low hover:bg-surface w-full cursor-pointer rounded-xl p-4 text-left" @click="sidebar.toggleTab(SidebarTab.NewDM)">
+				<div v-if="dmLoading && sortedPrivateRooms.length === 0" class="@container flex w-full flex-col gap-4">
+					<div v-for="n in 3" :key="n" class="bg-surface-low w-full animate-pulse rounded-xl p-4">
+						<div class="flex gap-3">
+							<div class="bg-surface-base h-12 w-12 shrink-0 rounded-full" />
+							<div class="flex min-w-0 flex-1 flex-col gap-1">
+								<div class="bg-surface-base h-5 w-2/3 rounded" />
+								<div class="bg-surface-base hidden h-[18px] w-1/3 rounded @xs:block" />
+								<div class="bg-surface-base h-5 w-full rounded" />
+							</div>
+						</div>
+					</div>
+				</div>
+				<button v-else-if="sortedPrivateRooms.length === 0" class="bg-surface-low hover:bg-surface w-full cursor-pointer rounded-xl p-4 text-left" @click="sidebar.toggleTab(SidebarTab.NewDM)">
 					<div class="flex items-center gap-2">
 						<div class="flex h-10 w-10 shrink-0 items-center justify-center">
 							<Icon type="plus" />
@@ -78,7 +90,7 @@
 			</div>
 
 			<!-- Desktop: Placeholder when no conversations exist yet -->
-			<div v-if="!isMobile && sortedPrivateRooms.length === 0" class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l">
+			<div v-if="!isMobile && !dmLoading && sortedPrivateRooms.length === 0" class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l">
 				{{ t('others.start_new_conversation') }}
 			</div>
 
@@ -148,6 +160,7 @@
 	const scrollToEventId = ref<string | undefined>(undefined);
 
 	const privateRooms = computed(() => rooms.privateRooms);
+	const dmLoading = ref(true);
 
 	const isGroupDM = computed(() => {
 		return selectedRoom.value?.getType() === RoomType.PH_MESSAGES_GROUP;
@@ -220,10 +233,14 @@
 	});
 
 	async function loadPrivateRooms() {
-		await rooms.waitForInitialRoomsLoaded();
-		const roomsList = rooms.loadedPrivateRooms;
-		for (const room of roomsList) {
-			await rooms.joinRoomListRoom(room.roomId);
+		try {
+			await rooms.waitForInitialRoomsLoaded();
+			const roomsList = rooms.loadedPrivateRooms;
+			for (const room of roomsList) {
+				await rooms.joinRoomListRoom(room.roomId);
+			}
+		} finally {
+			dmLoading.value = false;
 		}
 	}
 

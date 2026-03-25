@@ -10,7 +10,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
 ## Changes not yet released
-
+- [NEW] Stewards (and users with higher privileges) can send whisper messages to other users in a room.
 - [NEW] Messages can be shared.
 - [NEW, behind a feature flag for now] Hubs now use postgres as database instead of sqlite.
   - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,

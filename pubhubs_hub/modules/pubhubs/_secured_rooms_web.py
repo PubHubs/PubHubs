@@ -74,7 +74,7 @@ class SecuredRoomsServlet(DirectServeJsonResource):
         respond_with_json(request, 200, new_room.to_dict(), True)
 
 
-    @user_validator(require_admin=True)
+    @user_validator()
     async def _async_render_PUT(self, request: SynapseRequest, user_id: str):
         """Update a secured room with the newly send options, will match on the room_id"""      
         # Put request contains a body with the updated room options

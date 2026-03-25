@@ -377,7 +377,12 @@ class HubStore:
 
                 txn.execute(
                         """
-                            SELECT MAX(received_ts), room_id FROM events GROUP BY room_id
+                            SELECT e.received_ts, s.room_id
+                            FROM sliding_sync_joined_rooms s
+                            JOIN events e ON e.stream_ordering = s.event_stream_ordering
+                            JOIN rooms r ON r.room_id = s.room_id
+                            WHERE r.is_public = 1
+
                             """,
                     )
                 return txn.fetchall()
