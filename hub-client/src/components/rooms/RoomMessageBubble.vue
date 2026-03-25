@@ -496,7 +496,7 @@
 		}
 
 		// Whisper (steward/super-steward only, for other users)
-		if (props.event.sender !== user.userId && !props.room.isDirectMessageRoom() && canWhisperFromContextMenu.value) {
+		if (settings.isFeatureEnabled(FeatureFlag.whisper) && props.event.sender !== user.userId && !props.room.isDirectMessageRoom() && canWhisperFromContextMenu.value) {
 			social.push({
 				label: t('menu.whisper'),
 				icon: 'whisper',
