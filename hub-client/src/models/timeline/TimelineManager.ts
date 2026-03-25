@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventType, Filter, IRoomEvent, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -31,6 +31,14 @@ type TRelatedEvents = {
 	eventId: string;
 	isFetched: boolean;
 	relatedEvents: MatrixEvent[];
+};
+
+type TimelineFilter = {
+	room: {
+		timeline: {
+			types: string[];
+		};
+	};
 };
 
 /**
@@ -70,21 +78,31 @@ class TimelineManager {
 	private visibleEventTypes: string[] = [EventType.RoomMessage];
 	private invisibleMessageTypes: string[] = [MsgType.Notice];
 	private invisibleRelatesToTypes: string[] = [RelationType.Thread];
-	private timelineSetFilter = {
+
+	// Filter on timeline for messages
+	private readonly timelineFilter: TimelineFilter = {
 		room: {
 			timeline: {
 				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage],
 			},
 		},
 	};
+	private readonly MessageFilter: Filter = new Filter(undefined, 'MessageFilter');
 
 	private readonly relatedEventTypes = new Set([PubHubsMgType.VotingWidgetReply, PubHubsMgType.VotingWidgetClose, PubHubsMgType.VotingWidgetModify, PubHubsMgType.VotingWidgetPickOption, EventType.Reaction]);
-
-	private FILTER_ID: string = 'MainRoomTimeline';
 
 	constructor(roomId: string, client: MatrixClient) {
 		this.roomId = roomId;
 		this.client = client;
+		this.MessageFilter.setDefinition(this.timelineFilter);
+	}
+
+	/**
+	 *
+	 * @returns the default filter that is used for retreiving messages from the timeline
+	 */
+	public getMessagesFilter(): Filter {
+		return this.MessageFilter;
 	}
 
 	/**
@@ -289,7 +307,7 @@ class TimelineManager {
 		const [newBackEvents, newForwardEvents] = await Promise.all(joinPromises);
 
 		if (newBackEvents?.length > 0 || newForwardEvents?.length > 0) {
-			tempEvents = [...newBackEvents, ...newForwardEvents];
+			tempEvents = [...newBackEvents, ...tempEvents, ...newForwardEvents];
 			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
 		}
 
@@ -427,24 +445,9 @@ class TimelineManager {
 		if (!room || !eventId || eventId === '') {
 			return null;
 		}
-
-		const filter = new Filter(undefined, this.FILTER_ID);
-		filter.setDefinition(this.timelineSetFilter);
-		const timelineSet = room.getOrCreateFilteredTimelineSet(filter);
+		const timelineSet = room.getOrCreateFilteredTimelineSet(this.getMessagesFilter());
 
 		return (await this.client.getEventTimeline(timelineSet, eventId)) ?? null;
-	}
-
-	/**
-	 * Is it possible to paginate in given direction from this event?
-	 * @param backwards
-	 * @returns
-	 */
-	private CanPaginate(eventId: string | undefined, backwards = true): boolean {
-		if (!eventId) {
-			return false;
-		}
-		return backwards ? this.paginationState.firstMessageId === eventId : this.paginationState.lastMessageId === eventId;
 	}
 
 	/**
@@ -455,37 +458,16 @@ class TimelineManager {
 	 * @returns
 	 */
 	private async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {
-		let newEvents: MatrixEvent[] = [];
-		try {
-			// Since paginateEventTimeline paginates the unfiltered timeline and filtering takes place in the sdk,
-			// there is a chance that one paginate does not fetch all needed messages.
-			// It requests 'limit' events, but returns the filtered ones. That is why we need a loop
-			// PaginateEventTimeline is not consistent in its returnvalue: it is a boolean that iondicates whether further pagination is possible,
-			// but sometimes the history of the room is incorrect read and it keeps returning true. In that case we try only 2 times.
-			let canPaginate = true;
-			let numberoftries = 0;
-			// Target = current size + limit
-			const target = timeline.getEvents().length + limit;
-			while (numberoftries < 2 && canPaginate && timeline.getEvents().length < target) {
-				const before = timeline.getEvents().length;
-				canPaginate = await this.client.paginateEventTimeline(timeline, {
-					backwards: direction === Direction.Backward,
-					limit,
-				});
-				// canpaginate is true, but no new events: try just a couple of times to prevent hanging loop
-				if (canPaginate && before === timeline.getEvents().length) {
-					numberoftries++;
-				}
-			}
-			newEvents = timeline.getEvents();
-			if (!canPaginate) {
-				// Here we have reached the first or last of all messages
-				const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
-				const lastMessageId = newEvents.length > 0 ? newEvents[newEvents.length - 1]?.event?.event_id : this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
-				direction === Direction.Backward ? (this.paginationState.firstMessageId = firstMessageId) : (this.paginationState.lastMessageId = lastMessageId);
-			}
-		} catch {
-			// ignore error: used for an empty timeline
+		const paginationToken = direction === Direction.Backward ? timeline.getPaginationToken(EventTimeline.BACKWARDS) : timeline.getPaginationToken(EventTimeline.FORWARDS);
+		const messagesResponse = await this.client.createMessagesRequest(this.roomId, paginationToken, limit, direction, this.MessageFilter);
+
+		const eventMapper = this.client.getEventMapper();
+		const newEvents = messagesResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+
+		if (messagesResponse.chunk.length < limit) {
+			const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
+			const lastMessageId = newEvents.length > 0 ? newEvents[newEvents.length - 1]?.event?.event_id : this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
+			direction === Direction.Backward ? (this.paginationState.firstMessageId = firstMessageId) : (this.paginationState.lastMessageId = lastMessageId);
 		}
 		return this.prepareEvents(newEvents);
 	}
@@ -545,24 +527,21 @@ class TimelineManager {
 			this.timelineEvents = [];
 			this._timelineVersion++;
 		} else {
-			// Snapshot SDK timeline IDs before fetching
-			const beforeIds = new Set(timeline.getEvents().map((e) => e.event.event_id));
+			// Snapshot timelineEvents IDs before fetching
+			const beforeIds = this.timelineEvents.map((e) => e.matrixEvent.event.event_id).filter((id): id is string => typeof id === 'string');
 			const allEvents = await this.performPaginate(direction, limit, timeline);
 
 			// Only take events that are truly new
-			const newOnly = allEvents.filter((e) => !beforeIds.has(e.event.event_id));
+			const newOnly = allEvents.filter((e) => !beforeIds.find((x) => x === e.event.event_id));
 
 			if (newOnly.length > 0) {
-				let timeLineEvents = newOnly.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
+				let newTimeLineEvents = newOnly.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
-				// Remove duplicates already in the managed timeline
-				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((existing) => existing.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
-
-				if (timeLineEvents.length > 0) {
+				if (newTimeLineEvents.length > 0) {
 					if (direction === Direction.Backward) {
-						this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
+						this.timelineEvents = [...newTimeLineEvents, ...this.timelineEvents];
 					} else {
-						this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
+						this.timelineEvents = [...this.timelineEvents, ...newTimeLineEvents];
 					}
 
 					// Enforce sliding window: trim from the opposite end
