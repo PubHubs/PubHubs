@@ -451,10 +451,6 @@
 		pubhubs.resendEvent(props.event);
 	}
 
-	function profileInPosition(ev: Partial<IEvent>) {
-		return ev.event_id === props.room.getLastVisibleEventId() && props.room.numOfMessages() > 5;
-	}
-
 	// Positions the panel based on whether the message event is near the bottom of the screen
 	// or near the top.
 	function calculatePanelPlacement(): boolean {

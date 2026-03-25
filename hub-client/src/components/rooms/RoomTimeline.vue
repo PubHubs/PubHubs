@@ -60,6 +60,7 @@
 				<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"></div>
 			</div>
 
+			<JumpToUnreadThreadButton v-if="unreadThreadAboveId" @click="scrollToUnreadThread" />
 			<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
 		</div>
 
@@ -69,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-	import { EventType } from 'matrix-js-sdk';
+	import { EventType, NotificationCountType } from 'matrix-js-sdk';
 	import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 	// Components
@@ -79,6 +80,7 @@
 	import DateDisplayer from '@hub-client/components/ui/DateDisplayer.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import JumpToBottomButton from '@hub-client/components/ui/JumpToBottomButton.vue';
+	import JumpToUnreadThreadButton from '@hub-client/components/ui/JumpToUnreadThreadButton.vue';
 	import LastReadMarker from '@hub-client/components/ui/LastReadMarker.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 
@@ -122,7 +124,7 @@
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
 	const initialLoadComplete = ref(false);
 
-	const { READ_DELAY_MS, PAGINATION_COOLDOWN } = TimelineScrollConstants;
+	const { READ_DELAY_MS, PAGINATION_COOLDOWN, SCROLL_DEBOUNCE } = TimelineScrollConstants;
 	const { messageGroupGap } = SystemDefaults;
 
 	let dateInformation = ref<number>(0);
@@ -157,6 +159,74 @@
 		timelineVersion.value; // Dependency to trigger re-computation
 		return [...props.room.getChronologicalTimeline()].reverse();
 	});
+
+	/**
+	 * Find the nearest thread with unread messages that is above the current viewport.
+	 * Returns the event ID of the thread root, or null if none found.
+	 */
+	function findNearestUnreadThreadAbove(): string | null {
+		if (!elRoomTimeline.value || !settings.isFeatureEnabled(FeatureFlag.notifications)) return null;
+
+		const matrixRoom = pubhubs.client.getRoom(props.room.roomId);
+		if (!matrixRoom) return null;
+
+		const containerRect = elRoomTimeline.value.getBoundingClientRect();
+
+		// Walk the chronological timeline (oldest first) and find the latest thread
+		// with unread messages that is above the current viewport.
+		const timeline = props.room.getChronologicalTimeline();
+		let nearestAbove: string | null = null;
+
+		for (const item of timeline) {
+			const eventId = item.matrixEvent.event.event_id;
+			if (!eventId) continue;
+
+			const unreadCount = matrixRoom.getThreadUnreadNotificationCount(eventId, NotificationCountType.Total);
+			if (unreadCount <= 0) continue;
+
+			const element = elRoomTimeline.value.querySelector(`[id="${eventId}"]`) as HTMLElement | null;
+			if (!element) {
+				// Element not rendered
+				nearestAbove = eventId;
+				continue;
+			}
+
+			const elementRect = element.getBoundingClientRect();
+			if (elementRect.bottom < containerRect.top) {
+				// Element is above the viewport
+				nearestAbove = eventId;
+			}
+			// Don't break early, we want the latest (closest to viewport) unread thread above
+		}
+
+		return nearestAbove;
+	}
+
+	const unreadThreadAboveId = ref<string | null>(null);
+	let unreadThreadDebounceId: number | null = null;
+
+	function updateUnreadThreadAbove() {
+		unreadThreadAboveId.value = findNearestUnreadThreadAbove();
+	}
+
+	function debouncedUpdateUnreadThreadAbove() {
+		if (unreadThreadDebounceId !== null) {
+			clearTimeout(unreadThreadDebounceId);
+		}
+		unreadThreadDebounceId = window.setTimeout(() => {
+			updateUnreadThreadAbove();
+			unreadThreadDebounceId = null;
+		}, SCROLL_DEBOUNCE);
+	}
+
+	// Re-check when unread counts change
+	watch(() => rooms.unreadCountVersion, updateUnreadThreadAbove);
+
+	function scrollToUnreadThread() {
+		if (unreadThreadAboveId.value) {
+			scrollToEvent(unreadThreadAboveId.value, { position: ScrollPosition.Center, highlight: true });
+		}
+	}
 
 	/**
 	 * Whether the message at `index` in `reversedTimeline` is a visual continuation
@@ -237,6 +307,12 @@
 
 		// Cleanup keyboard listener
 		document.removeEventListener('keydown', handleKeydown);
+
+		// Cleanup unread thread scroll listener
+		elRoomTimeline.value?.removeEventListener('scroll', debouncedUpdateUnreadThreadAbove);
+		if (unreadThreadDebounceId !== null) {
+			clearTimeout(unreadThreadDebounceId);
+		}
 	});
 
 	onMounted(async () => {
@@ -277,6 +353,12 @@
 
 		setupEventIntersectionObserver();
 		initialLoadComplete.value = true;
+
+		// Setup scroll listener for unread thread indicator
+		if (elRoomTimeline.value) {
+			elRoomTimeline.value.addEventListener('scroll', debouncedUpdateUnreadThreadAbove, { passive: true });
+			updateUnreadThreadAbove();
+		}
 	});
 
 	watch(() => roomTimeLine.value.length, onTimelineChange);
@@ -289,7 +371,6 @@
 			if (!isInitialScrollComplete.value) {
 				return;
 			}
-			console.error(`[RoomTimeline] eventIdToScroll watch: calling scrollToEvent for ${eventId}`);
 			scrollToEvent(eventId, { position: ScrollPosition.Center, highlight: true });
 		},
 	);
@@ -336,6 +417,7 @@
 			eventObserver.disconnectObserver();
 		}
 
+		// TODO Element Observer  we pass elRoomEvent as a single value, but underwater it has become an array because of the loop over all events, we need to make that clear both in type as in the parameter of new ElementObserver
 		eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
 
 		// Combined handler - ElementObserver only supports ONE callback (each setUpObserver replaces the previous)

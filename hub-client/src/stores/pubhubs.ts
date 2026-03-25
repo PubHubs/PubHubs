@@ -1,6 +1,5 @@
-// Models
 // Packages
-import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
+import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, Method, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 import { RoomMessageEventContent, TimelineEvents } from 'matrix-js-sdk/lib/types';
@@ -765,20 +764,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.redactEvent(roomId, eventId, undefined, { reason: Redaction.DeletedFromLibrary });
 		},
 
-		async sendReadReceipt(event: MatrixEvent) {
-			if (!event) return;
-			const loggedInUser = useUser();
-			const content = {
-				'm.read': {
-					[loggedInUser.userId!]: {
-						ts: event.localTimestamp,
-						thread_id: 'main',
-					},
-				},
-			};
-			await this.client.sendReceipt(event, ReceiptType.Read, content);
-		},
-
 		async addPoll(roomId: string, poll: Poll) {
 			const content: TVotingWidgetMessageEventContent = {
 				msgtype: PubHubsMgType.VotingWidget,
@@ -914,7 +899,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
-		async sendPrivateReceipt(event: MatrixEvent, roomId: string) {
+		/**
+		 * Sends receipt to server
+		 * Replaced the client.sendreceipt because the SDK's version uses event.getRoomId() which may be undefined
+		 * @param event event of which to send the receipt
+		 * @param roomId  the room of the event
+		 * @param threadId the root of the thread the even is in
+		 * @returns void
+		 */
+		async sendPrivateReceipt(event: MatrixEvent, roomId: string, threadId: string | undefined = undefined) {
 			const eventId = event?.getId();
 			if (!eventId || !roomId || !roomId.startsWith('!')) {
 				return;
@@ -924,7 +917,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 				// Direct API call since SDK's sendReceipt uses event.getRoomId() which may be undefined
 				const path = `/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(ReceiptType.ReadPrivate)}/${encodeURIComponent(eventId)}`;
 				// @ts-ignore - using internal http client for direct API call
-				await this.client.http.authedRequest('POST', path, undefined, { thread_id: 'main' });
+				const threadIdParameter = threadId ?? 'main';
+				await this.client.http.authedRequest(Method.Post, path, undefined, { thread_id: threadIdParameter });
 
 				const rooms = useRooms();
 				setTimeout(() => {

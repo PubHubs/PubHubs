@@ -268,9 +268,6 @@ const useRooms = defineStore('rooms', {
 			for (const roomListRoom of this.roomList) {
 				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
 				if (room) {
-					// TODO Threadnotification - remove this line! It temporarily removes all thread notifications!
-					room.resetThreadUnreadNotificationCountFromSync();
-
 					unread += room.getUnreadNotificationCount(NotificationCountType.Total);
 				}
 			}
@@ -633,9 +630,7 @@ const useRooms = defineStore('rooms', {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
 		getTotalPrivateRoomUnreadMsgCount(): number {
-			const pubhubs = usePubhubsStore();
-			const totalPrivateRooms = this.loadedPrivateRooms.map((x) => pubhubs.client.getRoom(x.roomId));
-			return totalPrivateRooms.reduce((total, room) => total + (room!.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
+			return this.privateRooms.filter((room) => room.hasMessages()).reduce((total, room) => total + room.getUnreadNotificationCount(NotificationCountType.Total), 0);
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {

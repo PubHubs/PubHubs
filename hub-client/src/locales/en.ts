@@ -352,6 +352,7 @@ const en = {
 		new_messages: '{count} new messages',
 		scroll_to_new_messages: 'Scroll to {count} new messages',
 		jump_to_bottom: 'Jump to bottom',
+		jump_to_unread_thread: 'Unread thread',
 		loading_older_messages: 'Loading older messages...',
 		loading_newer_messages: 'Loading newer messages...',
 		announcement: 'announcement',

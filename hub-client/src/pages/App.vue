@@ -8,7 +8,6 @@
 							<H2 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H2>
 						</div>
 					</div>
-					<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square">{{ rooms.totalUnreadMessages }}</Badge>
 					<Notification />
 				</div>
 			</template>
@@ -88,7 +87,6 @@
 	import { NavigationFailure, RouteParamValue, isNavigationFailure, useRouter } from 'vue-router';
 
 	// Components
-	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
 	import RoomList from '@hub-client/components/rooms/RoomList.vue';
