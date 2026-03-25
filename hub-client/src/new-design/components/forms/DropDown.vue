@@ -4,7 +4,7 @@
 			:name="fieldName"
 			:validation="validation"
 			:help="help"
-			class="form-dropdown gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+			class="form-dropdown gap-050 relative mb-2 flex w-full flex-col items-start justify-start"
 			v-slot="{ id }"
 			v-model="model"
 			@keydown.arrow-down.prevent="cursorDown()"
@@ -21,10 +21,20 @@
 		>
 			<Label :for="id"><slot></slot></Label>
 
-			<div :id="id" class="bg-surface-low outline-offset-thin flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0" ref="element">
+			<div :id="id" class="bg-surface outline-offset-thin outline-on-surface-dim focus:ring-button-blue flex w-full flex-col rounded outline focus:ring-3" role="combobox" tabindex="0" ref="element">
 				<span class="name hidden">{{ fieldName }}</span>
 				<div :class="showFilter ? 'py-075 h-500 border-b px-175' : 'h-0 overflow-hidden border-0 p-0'">
-					<input v-model="filter" ref="filterInput" :placeholder="$t('others.filter_values')" class="text-on-surface-dim" tabindex="-1" />
+					<input
+						v-model="filter"
+						ref="filterInput"
+						:placeholder="$t('others.filter_values')"
+						class="text-on-surface-dim"
+						tabindex="-1"
+						@keydown.tab="
+							resetFilter();
+							completeEl?.focus();
+						"
+					/>
 				</div>
 				<div v-if="!showFilter" class="max-h-500 w-full items-center overflow-hidden px-175 py-100">
 					<div class="dropdown-value inline-block max-h-300 min-h-6 grow cursor-pointer" @click.stop="toggle">
@@ -48,7 +58,7 @@
 						</div>
 						<span v-else class="text-surface-subtle">{{ placeholder }}</span>
 					</div>
-					<div class="bg-surface-low mt-025 absolute top-300 right-0 flex h-400 items-center pr-175">
+					<div class="mt-025 absolute top-300 right-0 flex h-400 items-center pr-175">
 						<div v-if="model" class="dropdown-remove-all pr-075 ml-100 cursor-pointer bg-transparent" @click.stop="resetAll()">
 							<Icon type="x" size="md" class="h-200 w-200"></Icon>
 						</div>
@@ -242,7 +252,7 @@
 
 	const focusFilter = (key) => {
 		if (props.filtered) {
-			if (!['Escape', 'ArrowUp', 'ArrowDown', 'Enter'].includes(key.key)) {
+			if (!['Escape', 'ArrowUp', 'ArrowDown', 'Enter', 'Tab'].includes(key.key)) {
 				filterEl.value?.focus();
 			}
 		}

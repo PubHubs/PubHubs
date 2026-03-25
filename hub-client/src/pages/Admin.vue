@@ -9,15 +9,17 @@
 				</div>
 			</div>
 		</template>
-		<Tabs class="p-3 md:p-4" :open-tab="tab ? tab : 1">
+		<Tabs class="p-3 md:p-4" :open-tab="tab ? Number(tab) - 1 : 0">
 			<TabHeader>
-				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(1)">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newPublicRoom()" /></TabPill>
-				<TabPill v-slot="slotProps" @click.stop="updateTabInUrl(2)"
+				<TabPill :value="0" v-slot="slotProps" @click.stop="updateTabInUrl(1)"
+					>{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newPublicRoom()"
+				/></TabPill>
+				<TabPill :value="1" v-slot="slotProps" @click.stop="updateTabInUrl(2)"
 					>{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newSecuredRoom()"
 				/></TabPill>
 			</TabHeader>
 			<TabContainer>
-				<TabContent>
+				<TabContent :value="0">
 					<p v-if="nonSecuredPublicRooms.length === 0">{{ $t('admin.no_rooms') }}</p>
 					<FilteredList v-else :items="nonSecuredPublicRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
@@ -51,11 +53,11 @@
 					</FilteredList>
 				</TabContent>
 
-				<TabContent>
+				<TabContent :value="1">
 					<p v-if="!rooms.hasSecuredRooms">
 						{{ $t('admin.no_secured_rooms') }}
 					</p>
-					<FilteredList v-else :items="sortedSecuredRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
+					<FilteredList v-else :items="sortedSecuredRooms.filter(Boolean)" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">

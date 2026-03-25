@@ -1,9 +1,9 @@
 <template>
-	<div class="flex w-full gap-100">
+	<div class="pt-050 flex w-full items-baseline gap-100">
 		<div class="grow">
 			<slot></slot>
 		</div>
-		<div v-if="info" class="text-label-small flex-none whitespace-nowrap">
+		<div v-if="info" class="text-on-surface-dim text-label-small flex-none whitespace-nowrap">
 			{{ info }}
 		</div>
 	</div>

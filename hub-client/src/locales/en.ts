@@ -433,7 +433,7 @@ const en = {
 		secured_yivi_attributes: 'Yivi Attributes',
 		secured_attribute: 'Attribute',
 		secured_values: 'Values',
-		secured_profile: 'Profile',
+		secured_profile: 'Show attribute in badge in the room',
 		ask_disclosure_title: 'Disclosure Request',
 		ask_disclosure_choose_user: 'Ask a user to disclose information',
 		ask_disclosure_user_title: 'User',
