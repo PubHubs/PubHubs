@@ -403,7 +403,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			for (let index = rooms.length - 1; index >= 0; index--) {
 				const roomId = (rooms[index] as Room).roomId;
 				const room = this.client.getRoom(roomId);
-				if (!room) return false;
+				if (!room) continue;
 				const roomMembers = room.getMembers();
 				const roomMemberIds = roomMembers.map((member) => member.userId);
 				roomMemberIds.sort();
