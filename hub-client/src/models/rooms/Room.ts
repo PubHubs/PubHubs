@@ -1,6 +1,6 @@
 // Packages
 import { VotingWidgetType } from '../events/voting/VotingTypes';
-import { Direction, EventTimeline, EventTimelineSet, EventType, IStateEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread, ThreadEvent } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventTimelineSet, EventType, Filter, IStateEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread } from 'matrix-js-sdk';
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 
@@ -759,6 +759,10 @@ export default class Room {
 	 */
 	public getTimelineNewestMessageEventId(): string | undefined {
 		return this.timelineManager?.getTimelineNewestMessageId();
+	}
+
+	public getMessagesFilter(): Filter {
+		return this.timelineManager?.getMessagesFilter();
 	}
 
 	// #region TimelineManager
