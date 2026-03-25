@@ -67,6 +67,9 @@ export default class Room {
 	//public threadUpdated: Ref<boolean> = ref(false); // toggle to indicate changed thread to vue components
 	public threadUpdated: boolean = false; // toggle to indicate changed thread to vue components
 
+	/** Whether the first sliding sync response has been received for this room's subscription */
+	public syncDataReceived: boolean = false;
+
 	// timelinemanager of currently shown events
 	private timelineManager: TimelineManager;
 
@@ -651,10 +654,12 @@ export default class Room {
 	// #region TimelineManager
 
 	public initTimeline() {
+		this.syncDataReceived = false;
 		this.timelineManager.initRoomTimeline(this.matrixRoom.roomId);
 	}
 
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
+		this.syncDataReceived = true;
 		if (roomData.required_state && roomData.required_state.length > 0) {
 			this.mergeStateEvents(roomData.required_state);
 		}
