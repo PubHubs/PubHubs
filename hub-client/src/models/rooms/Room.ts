@@ -41,9 +41,6 @@ type RoomThread = {
 	threadLength: number;
 };
 
-type NewReplyListener = (thread: Thread, threadEvent: MatrixEvent) => void;
-type UpdateReplyListener = (thread: Thread) => void;
-
 const BotName = {
 	NOTICE: 'notices',
 	SYSTEM: 'system_bot',
@@ -74,9 +71,12 @@ export default class Room {
 	// This is used for observing (or detecting) first and last visible message on viewport.
 	private firstVisibleTimeStamp: number;
 	private firstVisibleEventId: string;
-
 	private lastVisibleTimeStamp: number;
 	private lastVisibleEventId: string;
+
+	// Threads need their own tracking of read messages, per threadrootId
+	private threadLastVisibleTimeStamp: Record<string, number | undefined> = {};
+	private threadLastVisibleEventId: Record<string, string | undefined> = {};
 
 	private roomType: string;
 
@@ -172,16 +172,24 @@ export default class Room {
 		this.firstVisibleTimeStamp = visibleTimeStamp;
 	}
 
-	public setLastVisibleTimeStamp(visibleTimeStamp: number) {
-		this.lastVisibleTimeStamp = visibleTimeStamp;
+	public setLastVisibleTimeStamp(visibleTimeStamp: number, threadRootId: string | undefined = undefined) {
+		if (threadRootId) {
+			this.threadLastVisibleTimeStamp[threadRootId] = visibleTimeStamp;
+		} else {
+			this.lastVisibleTimeStamp = visibleTimeStamp;
+		}
 	}
 
 	public setFirstVisibleEventId(visibleEventId: string) {
 		this.firstVisibleEventId = visibleEventId;
 	}
 
-	public setLastVisibleEventId(visibleEventId: string) {
-		this.lastVisibleEventId = visibleEventId;
+	public setLastVisibleEventId(visibleEventId: string, threadRootId: string | undefined = undefined) {
+		if (threadRootId) {
+			this.threadLastVisibleEventId[threadRootId] = visibleEventId;
+		} else {
+			this.lastVisibleEventId = visibleEventId;
+		}
 	}
 
 	public setCurrentEvent(event: TCurrentEvent | undefined) {
@@ -229,12 +237,12 @@ export default class Room {
 		return this.firstVisibleTimeStamp;
 	}
 
-	public getLastVisibleEventId(): string {
-		return this.lastVisibleEventId;
+	public getLastVisibleEventId(threadRootId: string | undefined = undefined): string {
+		return threadRootId ? (this.threadLastVisibleEventId[threadRootId] ?? '') : this.lastVisibleEventId;
 	}
 
-	public getLastVisibleTimeStamp(): number {
-		return this.lastVisibleTimeStamp;
+	public getLastVisibleTimeStamp(threadRootId: string | undefined = undefined): number {
+		return threadRootId ? (this.threadLastVisibleTimeStamp[threadRootId] ?? 0) : this.lastVisibleTimeStamp;
 	}
 
 	public getCurrentEvent() {

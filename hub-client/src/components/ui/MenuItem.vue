@@ -4,7 +4,7 @@
 			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
 			<Icon v-else class="" :type="icon" :size="iconSize" />
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
-			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" class="ml-auto shrink-0">{{ newMessage }}</Badge>
+			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" class="ml-auto shrink-0" color="hub" :size="badgeSize(newMessage)" />
 		</router-link>
 	</li>
 </template>
@@ -21,6 +21,9 @@
 	// Composables
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
+
+	// Logic
+	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Models
 	import { RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
@@ -49,7 +52,10 @@
 		return false;
 	});
 
-	const newMessage = computed(() => rooms.getTotalPrivateRoomUnreadMsgCount());
+	const newMessage = computed(() => {
+		void rooms.unreadCountVersion;
+		return rooms.getTotalPrivateRoomUnreadMsgCount();
+	});
 
 	const roomIsActive = computed(() => {
 		if (!props.room) return false;

@@ -351,6 +351,7 @@ const nl = {
 		new_messages: '{count} nieuwe berichten',
 		scroll_to_new_messages: 'Scroll naar {count} nieuwe berichten',
 		jump_to_bottom: 'Ga naar beneden',
+		jump_to_unread_thread: 'Ongelezen thread',
 		loading_older_messages: 'Oudere berichten laden...',
 		loading_newer_messages: 'Nieuwere berichten laden...',
 		announcement: 'aankondiging',
