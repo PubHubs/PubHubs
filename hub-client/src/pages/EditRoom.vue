@@ -68,7 +68,15 @@
 											<div v-if="selectedAttributes[activeTab].accepted.length > 0" class="flex max-h-2000 w-full flex-wrap justify-start gap-100 overflow-y-scroll">
 												<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="group bg-surface text-on-primary py-050 gap-050 inline-flex items-center rounded-xl px-100">
 													{{ value }}
-													<button type="button" class="group-hover:text-button-red cursor-pointer" :title="t('admin.remove_value')" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">
+													<button
+														type="button"
+														class="group-hover:text-button-red cursor-pointer"
+														:title="t('admin.remove_value')"
+														@click="
+															selectedAttributes[activeTab].accepted.splice(index, 1);
+															attributeChanged = true;
+														"
+													>
 														<Icon type="x" size="sm" />
 													</button>
 												</span>
@@ -262,6 +270,7 @@
 
 	function removeAttribute(index: number) {
 		selectedAttributes.value.splice(index, 1);
+		attributeChanged.value = true;
 	}
 
 	function addUniqueValue(tabIndex: number) {
