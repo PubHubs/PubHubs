@@ -266,6 +266,7 @@
 
 	function addAttribute() {
 		selectedAttributes.value.push({ label: '', attribute: '', accepted: [], profile: false });
+		attributeChanged.value = true;
 	}
 
 	function removeAttribute(index: number) {
