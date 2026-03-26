@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { ConditionKind, type IPushRule, NotificationCountType, PushRuleKind } from 'matrix-js-sdk';
+	import { ConditionKind, type IPushRule, PushRuleKind } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { type NavigationFailure, type RouteParamValue, type RouteRecordNameGeneric, isNavigationFailure, useRouter } from 'vue-router';
@@ -212,21 +212,14 @@
 	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
 	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || notifications.notifications.length > 0 || !rooms.roomsLoaded);
 
-	function getUnreadCount(roomId: string): number {
+	const publicRoomsUnreadCount = computed(() => {
 		void rooms.unreadCountVersion;
-		const room = pubhubs.client.getRoom(roomId);
-		if (room) {
-			return room.getUnreadNotificationCount(NotificationCountType.Total);
-		}
-		return 0;
-	}
-
-	const _publicRoomsUnreadCount = computed(() => {
-		return rooms.loadedPublicRooms.reduce((total, room) => total + getUnreadCount(room.roomId), 0);
+		return rooms.loadedPublicRooms.filter((r) => rooms.rooms[r.roomId]?.hasUnreadMessages()).length;
 	});
 
-	const _securedRoomsUnreadCount = computed(() => {
-		return rooms.loadedSecuredRooms.reduce((total, room) => total + getUnreadCount(room.roomId), 0);
+	const securedRoomsUnreadCount = computed(() => {
+		void rooms.unreadCountVersion;
+		return rooms.loadedSecuredRooms.filter((r) => rooms.rooms[r.roomId]?.hasUnreadMessages()).length;
 	});
 
 	onMounted(async () => {

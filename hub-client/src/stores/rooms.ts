@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventType, type IStateEvent, type Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { Direction, EventType, type IStateEvent, type Room as MatrixRoom } from 'matrix-js-sdk';
 import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
@@ -249,20 +249,9 @@ const useRooms = defineStore('rooms', {
 	//#endregion getters
 
 	actions: {
-		// Fetch the total of unread notifications of all rooms in the hub
 		async fetchTotalUnreadCounts(): Promise<number> {
 			await this.waitForInitialRoomsLoaded();
-
-			const pubhubs = usePubhubsStore();
-			const rooms = pubhubs.client.getRooms();
-			let unread = 0;
-			for (const roomListRoom of this.roomList) {
-				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
-				if (room) {
-					unread += room.getRoomUnreadNotificationCount(NotificationCountType.Total);
-				}
-			}
-			return unread;
+			return this.roomList.filter((r) => this.rooms[r.roomId]?.hasUnreadMessages()).length;
 		},
 
 		async waitForInitialRoomsLoaded(): Promise<void> {
@@ -623,10 +612,9 @@ const useRooms = defineStore('rooms', {
 		getTPublicRoom(roomId: string): TPublicRoom | undefined {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
+		// Returns the number of private rooms with unread messages (not a total message count).
 		getTotalPrivateRoomUnreadMsgCount(): number {
-			return this.privateRooms
-				.filter((room) => room.hasMessages())
-				.reduce((total, room) => total + room.getUnreadNotificationCount(NotificationCountType.Total), 0);
+			return this.privateRooms.filter((room) => room.hasMessages() && room.hasUnreadMessages()).length;
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {

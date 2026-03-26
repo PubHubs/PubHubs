@@ -13,6 +13,7 @@ import {
 	type RoomMember as MatrixRoomMember,
 	MsgType,
 	NotificationCountType,
+	ReceiptType,
 	type Thread,
 } from 'matrix-js-sdk';
 import { type CachedReceipt, type WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -555,6 +556,50 @@ export default class Room {
 
 	public hasUserReadEvent(userId: string, eventId: string): boolean {
 		return this.matrixRoom.hasUserReadEvent(userId, eventId);
+	}
+
+	/**
+	 * Determines whether this room has unread messages by comparing the latest
+	 * timeline event's timestamp against the user's read receipt timestamp.
+	 * Checks both public (m.read) and private (m.read.private) receipts.
+	 * Returns false if there is insufficient data to determine unread state
+	 * (e.g., no events loaded yet, or user not logged in).
+	 *
+	 * State events (e.g., m.room.member from profile changes) are ignored,
+	 * matching Element X's approach. With timeline_limit:1, if a state event
+	 * is the only event in the timeline, we default to no unread. This can
+	 * suppress a badge if a state event lands after an unread message; the
+	 * badge only reappears when the next message arrives. Element X avoids this
+	 * by persisting unread state across syncs in its Rust SDK store.
+	 *
+	 * Potential improvement: cache unread state per room (e.g., in localStorage)
+	 * to preserve the badge until a message event allows re-evaluation.
+	 */
+	public hasUnreadMessages(): boolean {
+		const userId = this.matrixRoom.client.getUserId();
+		if (!userId) return false;
+
+		const events = this.matrixRoom.getLiveTimeline().getEvents();
+		if (events.length === 0) return false;
+
+		const lastEvent = events[events.length - 1];
+
+		// State events (profile changes, room settings, etc.) don't count as unread.
+		// This can suppress an existing badge if a state event arrives after an unread
+		// message — see "Potential improvement" in the JSDoc above.
+		if (lastEvent.isState()) return false;
+
+		// If the current user sent the last message, it's implicitly read
+		if (lastEvent.getSender() === userId) return false;
+
+		// Check both public and private receipts, use the most recent
+		const publicReceipt = this.matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.Read);
+		const privateReceipt = this.matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate);
+		const receiptTs = Math.max(publicReceipt?.data.ts ?? 0, privateReceipt?.data.ts ?? 0);
+
+		if (receiptTs === 0) return true; // No receipt at all → assume unread
+
+		return lastEvent.getTs() > receiptTs;
 	}
 
 	//#endregion

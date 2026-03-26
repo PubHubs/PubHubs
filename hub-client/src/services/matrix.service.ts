@@ -72,32 +72,21 @@ class MatrixService {
 		if (!initialRoomList) throw new Error('Initial room list configuration not found');
 		const initialRoomListFilter = new Map<string, MSC3575List>([[SlidingSyncOptions.roomList, initialRoomList]]);
 
-		// TODO sliding sync update: the current version of the Matrix JS SDK does not support new SlidingSync({ client, lists, extensions, });
-		// As soon as this is updated we need to pass the notifications in extensions: { unread_notifications: { enabled: true, }, },
-		// and then the options from this.client.startClient can be removed, see further
-		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 }, this.client, SystemDefaults.syncIntervalMS);
+		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 /* global default value */ }, this.client, SystemDefaults.syncIntervalMS);
 
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
 		this.slidingSync.on(SlidingSyncEvent.RoomData, this.handleRoomDataEvent);
 
-		// TODO Remove when unread notifications are better handled by sliding sync
-		// Attach event handler for the unread notifications
+		// Trigger Vue reactivity for unread badges when timeline events arrive or receipts change.
 		this.client.on(RoomEvent.Timeline, this.roomUnreadNotifications);
-		// @ts-expect-error -- RoomEvent.UnreadNotifications not in EmittedEvents type but works at runtime
-		this.client.on(RoomEvent.UnreadNotifications, this.roomUnreadNotifications);
+		this.client.on(RoomEvent.Receipt, this.roomUnreadNotifications);
 
 		try {
-			// debug only
-			// (window as any).SYNC_TRACE = 1;
-
-			// TODO sliding sync update: as soon as the sliding sync API is updated to new SlidingSync({ client, lists, extensions, }); we can remove lazyLoadMembers and initialSyncLimit again
-			// The parameters to startClient used to be threadSupport and includeArchivedRooms
-			// But since we need to get the full list of rooms to the client before syncing them to get the correct number of notifications
-			// also lazyLoadMembers and initialSyncLimit are passed
-			await this.client.startClient({ lazyLoadMembers: true, initialSyncLimit: 0, threadSupport: true, includeArchivedRooms: false });
-
-			await this.slidingSync.start();
+			// Pass our SlidingSync instance to startClient so the SDK creates a SlidingSyncSdk
+			// wrapper that registers extensions (to-device, account data, typing, receipts) natively,
+			// eliminating the old /v3/sync loop entirely. SlidingSyncSdk calls slidingSync.start() internally.
+			await this.client.startClient({ slidingSync: this.slidingSync!, lazyLoadMembers: true, threadSupport: true, includeArchivedRooms: false });
 
 			logger.info('Sliding Sync started');
 		} catch (err) {
@@ -316,18 +305,16 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
-			// console.error('handleroomdataevent subscriptions ', this.slidingSync?.getRoomSubscriptions());
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
 			logger.error('RoomData handler failed', { roomId, err });
 		}
 	};
 
-	// TODO Remove when unread notifications are better handled by sliding sync
 	/**
-	 * When all events are written a RoomEvent.TimelineEvent is send. This is the time to fetch the unread notifications
-	 * the arrow function is needed to keep the this-binding when it is called from the client-event
-	 *
+	 * Triggers Vue reactivity for unread badge updates.
+	 * Called on RoomEvent.Timeline (new messages) and RoomEvent.Receipt (read receipts).
+	 * The arrow function preserves `this` when called from the client event emitter.
 	 */
 	private roomUnreadNotifications = () => {
 		this.roomsStore?.notifyUnreadCountChanged();
