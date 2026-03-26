@@ -587,6 +587,10 @@ export default class Room {
 		// State events (profile changes, room settings, etc.) don't count as unread.
 		// This can suppress an existing badge if a state event arrives after an unread
 		// message — see "Potential improvement" in the JSDoc above.
+		// Note: non-state invisible events (reactions, voting widget modifications, etc.)
+		// can cause a sticky badge that visiting the room cannot clear, since receipts
+		// are only sent for visible events. Fixing this requires aligning the unread
+		// check with what the TimelineManager renders and what receipts are sent for.
 		if (lastEvent.isState()) return false;
 
 		// If the current user sent the last message, it's implicitly read
