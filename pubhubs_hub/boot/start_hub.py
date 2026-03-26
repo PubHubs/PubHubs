@@ -222,11 +222,20 @@ class Program:
             print("CHECKPOINT complete.", flush=True)
 
         if uc._sqlite3_path is not None and not self._args.replace_sqlite3_by_postgres:
-            print("Running PRAGMA optimize on SQLite database ...")
-            # This makes some Synapse queries significantly faster
+            # Keeping SQLite query statistics up to date makes some Synapse queries significantly faster.
+            # On first boot, run a full ANALYZE to populate sqlite_stat1 (and related tables).
+            # On subsequent boots, PRAGMA optimize selectively runs ANALYZE on tables whose statistics are stale.
             with sqlite3.connect(uc._sqlite3_path) as conn:
+                has_stats = conn.execute(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='sqlite_stat1'"
+                ).fetchone()[0]
+                if not has_stats:
+                    print("Running ANALYZE on SQLite database (first time, may take a while) ...")
+                    conn.execute("ANALYZE;")
+                    print("ANALYZE complete.", flush=True)
+                print("Running PRAGMA optimize on SQLite database ...")
                 conn.execute("PRAGMA optimize;")
-            print("PRAGMA optimize complete.", flush=True)
+                print("PRAGMA optimize complete.", flush=True)
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
