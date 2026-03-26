@@ -121,7 +121,7 @@ class Program:
                                 os.path.join(pg_bindir, "initdb"), pg_data_dir),
                                stdin=subprocess.DEVNULL, check=True)
 
-            sqlite3_path = uc._rsbp_sqlite3_path
+            sqlite3_path = uc._sqlite3_path
             sqlite3_backup_path = sqlite3_path + '.bak'
             if not fresh_db and not os.path.exists(sqlite3_backup_path):
                 time.sleep(1)
@@ -220,6 +220,13 @@ class Program:
                             "-c", "CHECKPOINT"),
                            stdin=subprocess.DEVNULL, check=True)
             print("CHECKPOINT complete.", flush=True)
+
+        if uc._sqlite3_path is not None and not self._args.replace_sqlite3_by_postgres:
+            print("Running PRAGMA optimize on SQLite database ...")
+            # This makes some Synapse queries significantly faster
+            with sqlite3.connect(uc._sqlite3_path) as conn:
+                conn.execute("PRAGMA optimize;")
+            print("PRAGMA optimize complete.", flush=True)
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 

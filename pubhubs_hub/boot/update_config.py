@@ -98,7 +98,7 @@ class UpdateConfig:
         self._global_client_url = global_client_url
         self._replace_sqlite3_by_postgres = replace_sqlite3_by_postgres
         self._server_name = server_name
-        self._rsbp_sqlite3_path = None
+        self._sqlite3_path = None
 
         match config_env:
             case "production":
@@ -150,6 +150,10 @@ class UpdateConfig:
                     continue
                 module['config']['global_client_url'] = self._global_client_url
 
+        db = homeserver.get('database', {})
+        if db.get('name') == 'sqlite3':
+            self._sqlite3_path = db.get('args', {}).get('database')
+
         if self._replace_sqlite3_by_postgres:
             if 'database' not in homeserver:
                 raise ConfigError("❌  no 'database' configured in homeserver.yaml")
@@ -161,10 +165,10 @@ class UpdateConfig:
             if 'args' not in db:
                 raise ConfigError("❌  no 'database.args' configured in homeserver.yaml")
             dbargs = db['args']
-            dbpath = dbargs.get('database')
-            if dbpath == None:
-                raise ConfigError("❌  no 'database.args.database' configured in homeserver.yaml")
-            self._rsbp_sqlite3_path = dbpath
+
+            if self._sqlite3_path == None:
+                raise ConfigError("❌  for --replace-sqlite3-by-postgres, "
+                                  f"database.args.database must be configured, but it isn't")
 
             db['name'] = 'psycopg2'
             to_remove = set()
@@ -317,7 +321,7 @@ class UpdateConfig:
                         self._check_did_change(key, value, self.DO_CHANGE_CONFIG[key])
                 case "server_name":
                     with self._try_check(key, to_be_checked_config, check_type_log_info):
-                        if self._server_name == None:
+                        if self._server_name is None:
                             self._check_did_change(key, value, self.DO_CHANGE_CONFIG[key])
                         else:
                             homeserver_live['server_name'] = self._server_name
