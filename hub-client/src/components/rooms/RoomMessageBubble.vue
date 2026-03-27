@@ -100,8 +100,6 @@
 					</div>
 
 					<div class="relative">
-						<Message v-if="!isPrivilegedMessage" :event="props.event" :deleted="redactedMessage" />
-
 						<!-- Message Action Buttons -->
 						<div class="bg-surface absolute right-0 flex rounded-md" :class="actionButtonPosition">
 							<template v-if="timerReady && !deleteMessageDialog">
@@ -165,18 +163,19 @@
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
 						<PrivilegedMessageBody v-if="isPrivilegedMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)" :event="props.event.content" />
-						<MessageSigned v-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
-						<MessageFile v-if="props.event.content.msgtype === MsgType.File && !redactedMessage" :message="props.event.content" />
-						<MessageImage v-if="props.event.content.msgtype === MsgType.Image && !redactedMessage" :message="props.event.content" />
-						<MessageDisclosureRequest v-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage" :event="props.event" class="flex flex-col" />
-						<MessageDisclosed v-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
+						<MessageSigned v-else-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
+						<MessageFile v-else-if="props.event.content.msgtype === MsgType.File && !redactedMessage" :message="props.event.content" />
+						<MessageImage v-else-if="props.event.content.msgtype === MsgType.Image && !redactedMessage" :message="props.event.content" />
+						<MessageDisclosureRequest v-else-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage" :event="props.event" class="flex flex-col" />
+						<MessageDisclosed v-else-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
 						<VotingWidget
-							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
+							v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
 							:room="room"
 							:event="props.event"
 							@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
 							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
 						/>
+						<Message v-else :event="props.event" :deleted="redactedMessage" />
 					</template>
 				</div>
 			</div>
