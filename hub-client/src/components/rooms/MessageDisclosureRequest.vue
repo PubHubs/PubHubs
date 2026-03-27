@@ -1,5 +1,6 @@
 <template>
 	<div class="flex flex-col gap-2">
+		<P> {{ discosureRequest.message }} </P>
 		<div class="bg-surface flex h-full items-center justify-evenly gap-x-4 rounded-2xl border p-4" :class="!isMobile ? 'max-w-[700px] flex-row px-12' : 'w-full flex-col'">
 			<div class="flex w-full flex-col gap-2">
 				<H3>{{ t('admin.disclosure_dialog_title') }}</H3>
