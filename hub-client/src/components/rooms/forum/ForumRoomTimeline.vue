@@ -20,18 +20,14 @@
 	import ThreadItem from '@hub-client/components/rooms/forum/ThreadItem.vue';
 
 	// Composables
+	import { useForum } from '@hub-client/composables/forum.composable';
 
 	// Logic
 	import { TThread } from '@hub-client/models/events/forum/TThread';
-	import { TTopicContent, TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 
-	// Store
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-
-	const pubhubs = usePubhubsStore();
-
+	const forum = useForum();
 	const initialLoadComplete = ref(false);
 
 	const props = defineProps({
@@ -51,34 +47,8 @@
 	const topics = computed(() => {
 		const threadMap = new Map<string, TThread>();
 		for (const event of props.room.getChronologicalTimeline()) {
-			const eventId = event.matrixEvent.getId()!;
-			const content = event.matrixEvent.getContent() as TTopicContent | TTopicReplyContent;
-			if (!eventId || !event.matrixEvent.getSender() || !content.body) continue;
-			// skip edits
-			if ('m.new_content' in content) continue;
-
-			// const { likes, dislikes } = ratingsByEvent.get(eventId) ?? { likes: 0, dislikes: 0 };
-			// const isTopic = event.matrixEvent.getType() === PubHubsMgType.ForumTopic && (content as TTopicContent).ph_topic_title !== '';
-			const isTopic = true;
-			const user = pubhubs.client.getUser(event.matrixEvent.getSender()!);
-
-			const thread: TThread = {
-				eventId: eventId,
-				likes: 0,
-				dislikes: 0,
-				author: user,
-				title: isTopic ? (content as TTopicContent).ph_topic_title || '' : '',
-				body: isTopic ? (content as TTopicContent).ph_topic_body || content.body : content.body!,
-				closed: isTopic ? ((content as TTopicContent).ph_topic_closed ?? false) : false,
-				timestamp: event.matrixEvent.getTs(),
-				replies: [],
-			};
-
-			// // Replies / Thread
-			// props.room.setCurrentThreadId(eventId);
-			// const threadEvents = props.room.getCurrentThread();
-
-			threadMap.set(eventId, thread);
+			const thread = forum.transformTopic(event)!;
+			threadMap.set(thread.eventId, thread);
 		}
 		// console.info('Map', threadMap);
 		let topics = Array.from(threadMap.values());
@@ -93,36 +63,6 @@
 		}
 		return undefined;
 	});
-
-	// const topics = computed(() => {
-	// 	const threadMap = new Map<string, TThread>();
-	// 	const ratingsByEvent = new Map<string, { likes: number; dislikes: number }>();
-
-	// 	for (const event of props.room.getChronologicalTimeline()) {
-	// 		const eventId = event.matrixEvent.getId()!;
-	// 		const content = event.matrixEvent.getContent() as TTopicContent | TTopicReplyContent;
-	// 		if (!eventId || !event.matrixEvent.getSender() || !content.body) continue;
-	// 		// skip edits
-	// 		if ('m.new_content' in content) continue;
-
-	// 		const { likes, dislikes } = ratingsByEvent.get(eventId) ?? { likes: 0, dislikes: 0 };
-	// 		const isTopic = event.matrixEvent.getType() === PubHubsMgType.ForumTopic && (content as TTopicContent).ph_topic_title !== '';
-	// 		const user = pubhubs.client.getUser(event.matrixEvent.getSender()!);
-
-	// 		const thread: TThread = {
-	// 			eventId: eventId,
-	// 			likes,
-	// 			dislikes,
-	// 			author: user,
-	// 			title: isTopic ? (content as TTopicContent).ph_topic_title || '' : '',
-	// 			body: isTopic ? (content as TTopicContent).ph_topic_body || content.body : content.body!,
-	// 			closed: isTopic ? ((content as TTopicContent).ph_topic_closed ?? false) : false,
-	// 			timestamp: event.matrixEvent.getTs(),
-	// 			replies: [],
-	// 		};
-
-	// 		threadMap.set(eventId, thread);
-	// 	}
 
 	// 	// Add ratings and replies to topics
 	// 	let topics = Array.from(threadMap.values()).filter((t) => t.title !== '');

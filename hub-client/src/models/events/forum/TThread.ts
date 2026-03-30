@@ -1,6 +1,7 @@
 import { User as MatrixUser } from 'matrix-js-sdk';
 
 import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 
 export type TThread = {
 	eventId: string;
@@ -14,4 +15,5 @@ export type TThread = {
 	replies: TThread[];
 	image?: TMessageEvent<TMessageEventContent>;
 	file?: TMessageEvent<TMessageEventContent>;
+	event?: TimelineEvent;
 };
