@@ -6,7 +6,7 @@
 			<IconButton v-if="showClose" type="x" size="base" class="absolute top-2 right-2 z-10 p-2 text-black" @click="closePopOver" />
 			<QRCode v-if="!loginFail" :securedRoomId="securedRoomId" @error="loginError" @success="emit('success')" />
 			<!-- Overlay when login fails -->
-			<div v-if="loginFail" class="absolute inset-0 z-5 rounded-lg bg-white">
+			<div v-if="loginFail">
 				<div class="my-24 flex flex-col items-center justify-center gap-4">
 					<Icon class="text-avatar-red" type="prohibit" size="xl" />
 					<P class="text-body ml-2 text-center text-black">{{ t('rooms.incorrect_attributes') }}</P>

@@ -82,6 +82,7 @@
 	// Store
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	// New design
@@ -91,6 +92,7 @@
 	const { t } = useI18n();
 	const user = useUser();
 	const rooms = useRooms();
+	const settings = useSettings();
 	const dm = useDirectMessage();
 	const messageActions = useMessageActions();
 	const sidebar = useSidebar();
@@ -142,7 +144,7 @@
 
 	function getUserContextMenuItems(userId: string) {
 		const items = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(userId) }];
-		if (canWhisperFromContextMenu.value) {
+		if (settings.isFeatureEnabled(FeatureFlag.whisper) && canWhisperFromContextMenu.value) {
 			items.push({
 				label: t('menu.whisper'),
 				icon: 'whisper',

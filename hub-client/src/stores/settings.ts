@@ -44,6 +44,7 @@ enum FeatureFlag {
 	consent = 'consent',
 	roomLibrary = 'roomLibrary',
 	phCard = 'phCard',
+	whisper = 'whisper',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -115,6 +116,7 @@ const defaultSettings: Settings = {
 			votingWidget: true,
 			consent: true,
 			phCard: true,
+			whisper: false,
 		},
 		stable: {
 			signedMessages: true,
@@ -129,6 +131,7 @@ const defaultSettings: Settings = {
 			votingWidget: true,
 			consent: true,
 			phCard: false,
+			whisper: false,
 		},
 		local: {
 			signedMessages: true,
@@ -143,6 +146,7 @@ const defaultSettings: Settings = {
 			votingWidget: true,
 			consent: true,
 			phCard: true,
+			whisper: true,
 		},
 	},
 };

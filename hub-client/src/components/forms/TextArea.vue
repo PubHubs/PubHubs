@@ -42,10 +42,12 @@
 	const emit = defineEmits([...usedEvents, 'caretPos']);
 	const { update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);
 
-	// Resize when value changes programmatically (e.g., after sending a message)
 	watch(
 		() => props.modelValue,
 		() => {
+			// make sure the value is actually updated in the update-method for programmatically added values, since they are only automatically updated in the DOM, not for Vue
+			update(props.modelValue);
+			// Resize when value changes programmatically (e.g., after sending a message)
 			nextTick(() => resize());
 		},
 	);

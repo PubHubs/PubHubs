@@ -28,7 +28,7 @@
 					</TruncatedText>
 
 					<span class="flex items-center gap-1 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
-						<Badge v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0" color="hub" :size="roomBadgeSize(getUnreadCount(room.roomId, NotificationCountType.Total))" />
+						<Badge v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0" data-testid="unread-badge" color="hub" :size="roomBadgeSize(getUnreadCount(room.roomId, NotificationCountType.Total))" />
 						<Badge v-if="getUnreadCount(room.roomId, NotificationCountType.Highlight) > 0" color="hub" size="sm" />
 					</span>
 				</span>

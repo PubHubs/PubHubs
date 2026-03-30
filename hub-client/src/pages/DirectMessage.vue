@@ -168,7 +168,8 @@
 
 	const sortedPrivateRooms = computed(() => {
 		const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
-		return [...privateRooms.value].filter((r) => r.hasMessages() || r.roomId === selectedRoomId).sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
+		const targetRoomId = selectedRoomId ?? sidebar.lastDMRoomId.value;
+		return [...privateRooms.value].filter((r) => r.hasMessages() || r.roomId === targetRoomId).sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
 	});
 
 	const mobileConversationTitle = computed(() => {

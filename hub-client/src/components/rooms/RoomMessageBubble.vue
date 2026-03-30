@@ -2,16 +2,15 @@
 	<div ref="messageRoot" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
 		<div
 			ref="elReactionPopUp"
-			class="group hover:bg-surface-low flex flex-col"
+			class="group hover:bg-surface flex flex-col"
 			:class="[
 				props.isGrouped ? 'pt-1!' : 'pt-4!',
 				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
-				props.addWhisperSpacing && 'mt-2',
 				getMessageContainerClasses,
 				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y border-l-4',
-				isWhisperMessage && !redactedMessage
-					? 'border-on-surface'
-					: isAnnouncementMessage && !redactedMessage && (props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward'),
+				(isAnnouncementMessage || isWhisperMessage) &&
+					!redactedMessage &&
+					(props.room.getPowerLevel(props.event.sender) === 100 ? 'border-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward'),
 			]"
 			role="article"
 		>
@@ -61,22 +60,32 @@
 							<!-- Announcement -->
 							<span
 								v-if="isAnnouncementMessage && !redactedMessage"
-								class="flex items-center gap-1"
+								class="inline-flex items-center gap-1 leading-none"
 								:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
 							>
-								<span class="text-label-tiny pt-025 uppercase">{{ t('rooms.announcement') }}</span>
+								<span class="text-label-tiny uppercase">{{ t('rooms.announcement') }}</span>
 							</span>
+
+							<!-- Whisper -->
+							<span
+								v-if="isWhisperMessage && !redactedMessage && props.event.sender !== user.userId"
+								class="inline-flex items-center gap-1 leading-none"
+								:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
+							>
+								<span class="text-label-tiny uppercase">{{ t('message.only_visible_to_you') }}</span>
+							</span>
+							<span
+								v-if="isWhisperMessage && !redactedMessage && props.event.sender === user.userId && props.event.content.whisper_to"
+								class="inline-flex items-center gap-1 leading-none"
+								:class="props.room.getPowerLevel(props.event.sender) === 100 ? 'text-accent-admin' : props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'"
+							>
+								<span class="text-label-tiny puppercase">{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
+							</span>
+
+							<!-- Timestamp -->
 							<span class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1">
 								<EventTime :timestamp="props.event.origin_server_ts" :showDate="true" />
 								<EventTime :timestamp="props.event.origin_server_ts" :showDate="false" />
-							</span>
-							<span v-if="isWhisperMessage && !redactedMessage && props.event.sender !== user.userId" class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1 leading-none uppercase">
-								<Icon type="whisper" size="md" class="text-on-surface-dim" />
-								<span class="uppercase">{{ t('message.only_visible_to_you') }}</span>
-							</span>
-							<span v-if="isWhisperMessage && !redactedMessage && props.event.sender === user.userId && props.event.content.whisper_to" class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1 leading-none">
-								<Icon type="whisper" size="md" class="text-on-surface-dim" />
-								<span class="uppercase">{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
 							</span>
 						</div>
 
@@ -91,8 +100,6 @@
 					</div>
 
 					<div class="relative">
-						<Message v-if="!isPrivilegedMessage" :event="props.event" :deleted="redactedMessage" />
-
 						<!-- Message Action Buttons -->
 						<div class="bg-surface absolute right-0 flex rounded-md" :class="actionButtonPosition">
 							<template v-if="timerReady && !deleteMessageDialog">
@@ -156,18 +163,19 @@
 					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
 						<PrivilegedMessageBody v-if="isPrivilegedMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)" :event="props.event.content" />
-						<MessageSigned v-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
-						<MessageFile v-if="props.event.content.msgtype === MsgType.File && !redactedMessage" :message="props.event.content" />
-						<MessageImage v-if="props.event.content.msgtype === MsgType.Image && !redactedMessage" :message="props.event.content" />
-						<MessageDisclosureRequest v-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage" :event="props.event" class="flex flex-col" />
-						<MessageDisclosed v-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
+						<MessageSigned v-else-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
+						<MessageFile v-else-if="props.event.content.msgtype === MsgType.File && !redactedMessage" :message="props.event.content" />
+						<MessageImage v-else-if="props.event.content.msgtype === MsgType.Image && !redactedMessage" :message="props.event.content" />
+						<MessageDisclosureRequest v-else-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage" :event="props.event" class="flex flex-col" />
+						<MessageDisclosed v-else-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage && !redactedMessage" :message="props.event.content.signed_message" class="max-w-[90ch]" />
 						<VotingWidget
-							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
+							v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
 							:room="room"
 							:event="props.event"
 							@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
 							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
 						/>
+						<Message v-else :event="props.event" :deleted="redactedMessage" />
 					</template>
 				</div>
 			</div>
@@ -390,7 +398,7 @@
 			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
-			'!bg-surface-low': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
+			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
 		};
 
 		if (!isPrivilegedMessage.value || redactedMessage.value) {
@@ -399,7 +407,7 @@
 
 		return {
 			...baseClasses,
-			'bg-surface-low': true,
+			'bg-surface': true,
 		};
 	});
 
@@ -487,7 +495,7 @@
 		}
 
 		// Whisper (steward/super-steward only, for other users)
-		if (props.event.sender !== user.userId && !props.room.isDirectMessageRoom() && canWhisperFromContextMenu.value) {
+		if (settings.isFeatureEnabled(FeatureFlag.whisper) && props.event.sender !== user.userId && !props.room.isDirectMessageRoom() && canWhisperFromContextMenu.value) {
 			social.push({
 				label: t('menu.whisper'),
 				icon: 'whisper',

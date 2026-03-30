@@ -5,7 +5,7 @@
 enum SystemDefaults {
 	syncIntervalMS = 3000, // Sync interval in milliseconds. Experimental selection for interval. Changed it from 2000 to 1000 to load events much quickly.
 	SubscriptionRoomTimelineLimit = 50, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
-	initialRoomTimelineLimit = 100, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
+	initialRoomTimelineLimit = 30, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
 	roomTimelineLimit = 100, // Max messages in the sliding window
 	paginationBatchSize = 40, // Messages to fetch per pagination
 	initialRoomListRange = 99999, // Initial number of rooms to fetch, in the future perhaps paginate this?
