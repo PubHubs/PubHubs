@@ -54,18 +54,61 @@ export function createDummyEvent(
 		const forumStore = useForumStore();
 		const oldEvent: TThread = forumStore.findThreadByEventId(eventId)!;
 
+		console.info('oldEvent', eventId, oldEvent);
+
 		return {
 			...oldEvent,
 			title: newTitle ?? oldEvent.title,
 			body,
 			timestamp: Date.now(),
-			replies: oldEvent.replies,
+			replies: oldEvent ? oldEvent.replies : [],
 			image: dummyImage ?? oldEvent.image,
 			file: dummyFile ?? oldEvent.file,
 		};
 	}
 	return {
 		eventId: eventId,
+		likes: 0,
+		dislikes: 0,
+		author: author ?? null,
+		title: '',
+		closed: false,
+		body,
+		timestamp: Date.now(),
+		replies: [],
+		image: dummyImage,
+		file: dummyFile,
+	};
+}
+
+export function createDummyEventTopic(
+	editEvent: boolean, // If not editEvent, then its adding a reply
+	topic: TThread,
+	body: string,
+	newTitle?: string,
+	author?: User,
+	dummyImage?: TMessageEvent<TImageMessageEventContent>,
+	dummyFile?: TMessageEvent<TFileMessageEventContent>,
+): TThread {
+	if (editEvent) {
+		const forumStore = useForumStore();
+		const eventId = topic.eventId;
+		const oldEvent: TThread = topic;
+
+		console.info('oldEvent', eventId, oldEvent);
+
+		return {
+			...oldEvent,
+			title: newTitle ?? oldEvent.title,
+			body,
+			timestamp: Date.now(),
+			replies: oldEvent ? oldEvent.replies : [],
+			image: dummyImage ?? oldEvent.image,
+			file: dummyFile ?? oldEvent.file,
+		};
+	}
+	return {
+		eventId: topic.eventId,
 		likes: 0,
 		dislikes: 0,
 		author: author ?? null,

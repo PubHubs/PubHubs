@@ -25,7 +25,7 @@
 	import { TThread } from '@hub-client/models/events/forum/TThread';
 	import Room from '@hub-client/models/rooms/Room';
 
-	import { createDummyEvent, createDummyFile, createDummyImage } from '@hub-client/services/forum/forumHelpers';
+	import { createDummyEventTopic, createDummyFile, createDummyImage } from '@hub-client/services/forum/forumHelpers';
 	import { REPLY_MAX_LENGTH, REPLY_MIN_LENGTH, TITLE_MAX_LENGTH, TITLE_MIN_LENGTH } from '@hub-client/services/forum/properties';
 
 	import { useForumStore } from '@hub-client/stores/forum/forumStore';
@@ -99,7 +99,7 @@
 			}
 		}
 
-		const newDummyEvent = createDummyEvent(true, props.topic.eventId, body.value, title.value, undefined, dummyImage, dummyFile);
+		const newDummyEvent = createDummyEventTopic(true, props.topic, body.value, title.value, undefined, dummyImage, dummyFile);
 
 		if (imageChanged.value && !image.value) {
 			newDummyEvent.image = undefined;

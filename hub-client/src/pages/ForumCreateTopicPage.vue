@@ -41,12 +41,13 @@
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
+	import { useForum } from '@hub-client/composables/forum.composable';
+
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_MIN_LENGTH, TITLE_MAX_LENGTH, TITLE_MIN_LENGTH } from '@hub-client/services/forum/properties';
 
-	import { useForumStore } from '@hub-client/stores/forum/forumStore';
 	import { useRooms } from '@hub-client/stores/rooms';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
@@ -58,14 +59,14 @@
 	const title = ref<string>('');
 	const description = ref<string>('');
 
-	const forumStore = useForumStore();
+	const forum = useForum();
 
 	const isSubmitting = ref(false);
 
 	const submitPost = async () => {
 		try {
 			isSubmitting.value = true;
-			const topic = await forumStore.sendTopic(title.value, description.value, false);
+			const topic = await forum.sendTopicMessage(title.value, description.value, false);
 			if (!topic) {
 				LOGGER.error(SMI.STORE, 'Failed to create topic');
 				return;

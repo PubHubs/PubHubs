@@ -1,12 +1,59 @@
+import { PubHubsMgType } from '@hub-client/logic/core/events';
+
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TThread } from '@hub-client/models/events/forum/TThread';
 import { TTopicContent, TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
 import Room from '@hub-client/models/rooms/Room';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { useRooms } from '@hub-client/stores/rooms';
 
 function useForum() {
 	const pubhubs = usePubhubsStore();
+	const currentRoom = useRooms().currentRoom;
+
+	const constructTopicContent = (title: string, body: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean): any => {
+		if (originalTitle && originalBody && eventId) {
+			return {
+				ph_topic_title: originalTitle,
+				ph_topic_body: originalBody,
+				ph_topic_closed: originalClosed,
+				body: originalTitle,
+				msgtype: PubHubsMgType.ForumTopic,
+				'm.new_content': {
+					ph_topic_title: title,
+					ph_topic_body: body,
+					ph_topic_closed: closed,
+					body: title,
+					msgtype: PubHubsMgType.ForumTopic,
+					'm.mentions': {
+						room: false,
+						user_ids: [],
+					},
+				},
+				'm.relates_to': {
+					rel_type: 'm.replace',
+					event_id: eventId,
+				},
+			};
+		}
+		return {
+			ph_topic_title: title,
+			ph_topic_body: body,
+			ph_topic_closed: closed,
+			body: title,
+			msgtype: PubHubsMgType.ForumTopic,
+			'm.mentions': {
+				room: false,
+				user_ids: [],
+			},
+		};
+	};
+
+	const sendTopicMessage = async (title: string, description: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean) => {
+		const content = constructTopicContent(title, description, closed, eventId, originalTitle, originalBody, originalClosed);
+		return await pubhubs.client.sendEvent(currentRoom!.roomId, PubHubsMgType.ForumTopic as any, content as any);
+	};
 
 	const transformBack = (item: TThread): any => {
 		if (item.event) return item.event;
@@ -54,6 +101,7 @@ function useForum() {
 	};
 
 	return {
+		sendTopicMessage,
 		transformBack,
 		transformTopic,
 		addReplies,

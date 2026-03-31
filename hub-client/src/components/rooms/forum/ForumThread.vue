@@ -1,9 +1,18 @@
 <template>
-	<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+	<div class="flex h-full min-w-0 flex-1 flex-col overflow-y-scroll">
+		<ForumThreadItem :topic="topic" :room="room"></ForumThreadItem>
 		<TopicItem :topic="topic" :room="room" :current-user="topic.author" :main-topic="topic" />
 		<LabelWithDescription class="ml-5" label-class="text-3xl"> Answers: {{ nrOfReplies }} </LabelWithDescription>
-		<div v-if="topicWithReplies.replies.length > 0">
-			<TopicItem v-for="reply in topicWithReplies.replies" :key="reply.eventId" :topic="reply" :room="room" :current-user="topic.author" :replies="true" :main-topic="topic" />
+		<div v-if="nrOfReplies > 0" class="ml-800">
+			<div v-for="reply in topicWithReplies.replies" :key="reply.eventId">
+				<RoomMessageBubble :event="reply.event!.matrixEvent.event" :room="room" :showActions="false">
+					<template #extras>
+						<ForumTopicExtras :topic="reply" :room="room"></ForumTopicExtras>
+					</template>
+				</RoomMessageBubble>
+				<!-- <hr />
+				<TopicItem :topic="reply" :room="room" :current-user="topic.author" :replies="true" :main-topic="topic" /> -->
+			</div>
 		</div>
 		<InlineSpinner v-else></InlineSpinner>
 	</div>
@@ -12,6 +21,7 @@
 <script setup lang="ts">
 	import { onMounted, reactive, ref } from 'vue';
 
+	import ForumThreadItem from '@hub-client/components/rooms/forum/ForumThreadItem.vue';
 	// Components
 	import LabelWithDescription from '@hub-client/components/rooms/forum/LabelWithDescription.vue';
 	import TopicItem from '@hub-client/components/rooms/forum/TopicItem.vue';

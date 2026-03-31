@@ -71,10 +71,18 @@
 	const { t } = useI18n();
 	const roomsStore = useRooms();
 	const userStore = useUser();
-	const props = defineProps<{
-		event: TMessageEvent;
-		deleted: boolean;
-	}>();
+
+	const props = defineProps({
+		event: {
+			type: Object,
+			required: true,
+		},
+		deleted: {
+			type: Boolean,
+			default: false,
+		},
+	});
+
 	const pubhubs = usePubhubsStore();
 	const activeMentionCard = ref<string | null>(null);
 	const isSecured = ref<boolean>(false);

@@ -99,7 +99,7 @@
 						</Suspense>
 					</div>
 
-					<div class="relative">
+					<div class="relative" v-if="showActions">
 						<!-- Message Action Buttons -->
 						<div class="bg-surface absolute right-0 flex rounded-md" :class="actionButtonPosition">
 							<template v-if="timerReady && !deleteMessageDialog">
@@ -177,7 +177,13 @@
 						/>
 						<Message v-else :event="props.event" :deleted="redactedMessage" />
 					</template>
+
+					<!-- Extra slot bottom: forum stuff -->
+					<slot name="bottom"></slot>
 				</div>
+
+				<!-- Extra slot right: forum stuff -->
+				<slot name="extras"></slot>
 			</div>
 
 			<!-- Reactions Slot -->
@@ -304,6 +310,10 @@
 		deleteMessageDialog: {
 			type: Boolean,
 			default: false,
+		},
+		showActions: {
+			type: Boolean,
+			default: true,
 		},
 		activeReactionPanel: {
 			type: String as PropType<string | null>,

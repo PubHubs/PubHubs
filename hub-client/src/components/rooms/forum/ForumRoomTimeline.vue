@@ -1,23 +1,20 @@
 <template>
-	<div v-if="!topicId" class="mx-auto w-full pr-3 pl-3 md:w-2/3">
+	<div v-if="!topicId" class="mx-auto w-full overflow-y-scroll p-4">
 		<SubheaderForum />
-		<template v-if="topics.length > 0">
-			<ul class="flex flex-col gap-y-2">
-				<li v-for="topic in topics" :key="topic.eventId">
-					<ThreadItem @click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: topic.eventId } })" :topic="topic" :room="room" />
-				</li>
-			</ul>
-		</template>
+		<ul v-if="topics.length > 0" class="flex flex-col gap-y-2">
+			<li v-for="topic in topics" :key="topic.eventId">
+				<ForumThreadItem :topic="topic" :room="room"></ForumThreadItem>
+			</li>
+		</ul>
 	</div>
-	<ForumRoomTopic v-if="currentTopic" :topic="currentTopic" :room="room"></ForumRoomTopic>
+	<ForumThread v-if="currentTopic" :topic="currentTopic" :room="room"></ForumThread>
 </template>
 
 <script setup lang="ts">
 	import { computed, onMounted, ref } from 'vue';
 
 	// Components
-	import ForumRoomTopic from '@hub-client/components/rooms/forum/ForumRoomTopic.vue';
-	import ThreadItem from '@hub-client/components/rooms/forum/ThreadItem.vue';
+	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
 
 	// Composables
 	import { useForum } from '@hub-client/composables/forum.composable';
