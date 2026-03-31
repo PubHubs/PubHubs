@@ -39,7 +39,7 @@
 				v-if="notification.type === 'removed_from_secured_room' && notification.room_id"
 				icon="shield"
 				class="group text-on-surface-dim inline-block w-full"
-				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
+				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == notification.room_id && 'bg-surface-low!'"
 				@click="
 					dialogOpen = notification.room_id;
 					messageValues = notification.message_values;
@@ -80,7 +80,6 @@
 
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
-	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import RoomName from '@hub-client/components/rooms/RoomName.vue';
 	import Menu from '@hub-client/components/ui/Menu.vue';
