@@ -1,4 +1,3 @@
-// import { UserAction, UserPowerLevel, UserRole, UserRoleActions } from '@hub-client/models/users/TUser';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TThread } from '@hub-client/models/events/forum/TThread';
 import { TTopicContent, TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
@@ -8,8 +7,6 @@ import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 function useForum() {
 	const pubhubs = usePubhubsStore();
-	// const userStore = useUser();
-	// const roomsStore = useRooms();
 
 	const transformBack = (item: TThread): any => {
 		if (item.event) return item.event;
@@ -48,7 +45,6 @@ function useForum() {
 		room?.setCurrentThreadId(thread.eventId);
 		const replies = await room?.getCurrentThreadEvents();
 		thread.replies = replies.map((r) => transformTopic(r)!);
-		// console.info('ForumRoomTopic.onMounted', thread.eventId, thread.nrOfReplies, thread.replies);
 		return thread;
 	};
 
