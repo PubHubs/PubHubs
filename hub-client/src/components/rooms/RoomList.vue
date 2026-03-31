@@ -126,6 +126,7 @@
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Models
+	import Room from '@hub-client/models/rooms/Room';
 	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
@@ -181,7 +182,8 @@
 	// Reactive dependency on unreadCountVersion for badge updates
 	function roomHasUnread(roomId: string): boolean {
 		void rooms.unreadCountVersion;
-		return rooms.rooms[roomId]?.hasUnreadMessages() ?? false;
+		const matrixRoom = pubhubs.client.getRoom(roomId);
+		return matrixRoom ? Room.hasUnreadMessages(matrixRoom) : false;
 	}
 
 	async function leaveRoom(roomId: string) {

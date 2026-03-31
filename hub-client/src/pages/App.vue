@@ -169,6 +169,7 @@
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
+	import Room from '@hub-client/models/rooms/Room';
 	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
@@ -214,12 +215,18 @@
 
 	const publicRoomsUnreadCount = computed(() => {
 		void rooms.unreadCountVersion;
-		return rooms.loadedPublicRooms.filter((r) => rooms.rooms[r.roomId]?.hasUnreadMessages()).length;
+		return rooms.loadedPublicRooms.filter((r) => {
+			const matrixRoom = pubhubs.client.getRoom(r.roomId);
+			return matrixRoom ? Room.hasUnreadMessages(matrixRoom) : false;
+		}).length;
 	});
 
 	const securedRoomsUnreadCount = computed(() => {
 		void rooms.unreadCountVersion;
-		return rooms.loadedSecuredRooms.filter((r) => rooms.rooms[r.roomId]?.hasUnreadMessages()).length;
+		return rooms.loadedSecuredRooms.filter((r) => {
+			const matrixRoom = pubhubs.client.getRoom(r.roomId);
+			return matrixRoom ? Room.hasUnreadMessages(matrixRoom) : false;
+		}).length;
 	});
 
 	onMounted(async () => {

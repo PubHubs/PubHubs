@@ -558,8 +558,12 @@ export default class Room {
 		return this.matrixRoom.hasUserReadEvent(userId, eventId);
 	}
 
+	public hasUnreadMessages(): boolean {
+		return Room.hasUnreadMessages(this.matrixRoom);
+	}
+
 	/**
-	 * Determines whether this room has unread messages by comparing the latest
+	 * Determines whether a room has unread messages by comparing the latest
 	 * timeline event's timestamp against the user's read receipt timestamp.
 	 * Checks both public (m.read) and private (m.read.private) receipts.
 	 * Returns false if there is insufficient data to determine unread state
@@ -575,11 +579,11 @@ export default class Room {
 	 * Potential improvement: cache unread state per room (e.g., in localStorage)
 	 * to preserve the badge until a message event allows re-evaluation.
 	 */
-	public hasUnreadMessages(): boolean {
-		const userId = this.matrixRoom.client.getUserId();
+	static hasUnreadMessages(matrixRoom: MatrixRoom): boolean {
+		const userId = matrixRoom.client.getUserId();
 		if (!userId) return false;
 
-		const events = this.matrixRoom.getLiveTimeline().getEvents();
+		const events = matrixRoom.getLiveTimeline().getEvents();
 		if (events.length === 0) return false;
 
 		const lastEvent = events[events.length - 1];
@@ -597,8 +601,8 @@ export default class Room {
 		if (lastEvent.getSender() === userId) return false;
 
 		// Check both public and private receipts, use the most recent
-		const publicReceipt = this.matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.Read);
-		const privateReceipt = this.matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate);
+		const publicReceipt = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.Read);
+		const privateReceipt = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate);
 		const receiptTs = Math.max(publicReceipt?.data.ts ?? 0, privateReceipt?.data.ts ?? 0);
 
 		if (receiptTs === 0) return true; // No receipt at all → assume unread
@@ -958,3 +962,4 @@ export default class Room {
 
 	// #endregion
 }
+

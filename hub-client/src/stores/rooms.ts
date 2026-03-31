@@ -251,7 +251,11 @@ const useRooms = defineStore('rooms', {
 	actions: {
 		async fetchTotalUnreadCounts(): Promise<number> {
 			await this.waitForInitialRoomsLoaded();
-			return this.roomList.filter((r) => this.rooms[r.roomId]?.hasUnreadMessages()).length;
+			const pubhubs = usePubhubsStore();
+			return this.roomList.filter((r) => {
+				const matrixRoom = pubhubs.client.getRoom(r.roomId);
+				return matrixRoom ? Room.hasUnreadMessages(matrixRoom) : false;
+			}).length;
 		},
 
 		async waitForInitialRoomsLoaded(): Promise<void> {
