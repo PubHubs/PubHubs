@@ -962,4 +962,3 @@ export default class Room {
 
 	// #endregion
 }
-
