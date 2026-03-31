@@ -1,12 +1,13 @@
 <template>
 	<Menu>
+		<!-- MenuItems for all joined rooms, including secured rooms -->
 		<template v-for="room in currentJoinedRooms" :key="room.roomId">
 			<MenuItem
 				:to="{ name: 'room', params: { id: room.roomId } }"
 				:room="room"
 				class="no-callout group inline-block w-full select-none"
 				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
-				icon="chats-circle"
+				:icon="isSecuredRoom(room) ? 'shield' : 'chats-circle'"
 				@click="hubSettings.hideBar()"
 				v-context-menu="
 					(evt: any) =>
@@ -34,6 +35,7 @@
 				</span>
 			</MenuItem>
 		</template>
+		<!-- MenuItems for secured rooms that the user recently was removed from, not joined rooms -->
 		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications.notifications" :key="notification.room_id" class="relative flex flex-row">
 			<MenuItem
 				v-if="notification.type === 'removed_from_secured_room' && notification.room_id"
@@ -95,7 +97,7 @@
 	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Models
-	import { DirectRooms, PublicRooms, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+	import { DirectRooms, PublicRooms, RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
 	// Stores
@@ -194,5 +196,10 @@
 		if (await dialog.okcancel(t('rooms.leave_sure'))) {
 			notifications.removeNotification(room_id, TNotificationType.RemovedFromSecuredRoom);
 		}
+	}
+
+	function isSecuredRoom(room: RoomListRoom) {
+		if (!room.roomType) return false;
+		return SecuredRooms.includes(room.roomType as RoomType);
 	}
 </script>

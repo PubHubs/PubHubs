@@ -1,8 +1,7 @@
 <template>
 	<li role="menuitem" :class="{ 'bg-surface-low text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }" @click="handleClick" class="hover:bg-surface-low rounded-base h-fit transition-all duration-200 ease-in-out">
 		<router-link :to="to" class="flex items-center gap-4 px-4 py-2">
-			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
-			<Icon v-else class="" :type="icon" :size="iconSize" />
+			<Icon class="" :type="icon" :size="iconSize" />
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
 			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" class="ml-auto shrink-0" color="hub" :size="badgeSize(newMessage)" />
 		</router-link>
@@ -82,11 +81,6 @@
 		},
 	});
 
-	function isSecuredRoom() {
-		if (!props.room) return false;
-		return SecuredRooms.includes(props.room.roomType as RoomType);
-	}
-
 	function handleClick() {
 		scrollToEnd();
 		if (props.room) {
@@ -97,9 +91,5 @@
 			sidebar.close();
 			sidebar.clearLastDMRoom();
 		}
-	}
-
-	function click() {
-		router.push(props.to);
 	}
 </script>
