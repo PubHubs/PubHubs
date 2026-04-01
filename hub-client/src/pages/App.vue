@@ -4,7 +4,7 @@
 			<template #header>
 				<div class="flex h-full w-full items-center justify-between">
 					<div class="flex items-center justify-between gap-2">
-						<div class="group relative flex cursor-pointer items-center gap-2" v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])">
+						<div class="group relative flex items-center gap-2" v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])">
 							<H2 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H2>
 						</div>
 					</div>
@@ -119,6 +119,7 @@
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMenu } from '@hub-client/stores/menu';
 	import { Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
+	import { useNotifications } from '@hub-client/stores/notifications';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -147,9 +148,10 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const { scrollToEnd, scrollToStart } = useGlobalScroll();
 	const roles = useRoles();
+	const notifications = useNotifications();
 
 	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
-	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || !rooms.roomsLoaded);
+	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || notifications.notifications.length > 0 || !rooms.roomsLoaded);
 
 	function getUnreadCount(roomId: string): number {
 		void rooms.unreadCountVersion;
