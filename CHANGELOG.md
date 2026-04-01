@@ -22,6 +22,10 @@ _Please add a brief description of any changes and any migrations to be performe
     must be removed before the migration can be re-attempted.
   - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres` 
     to the hub container's entrypoint.
+- [NEW] Startup optimization. Instead of fetching timelines for all joined rooms, 
+    only a timeline of 1 entry is fetched at selecting a room. 
+- [NEW] Changed pagination from the standard pagination that filters client-side 
+    to the createMessageRequest endpoint that filters on the server.
 - [BUG] Refresh does not break the navigation. User stays on the same page on refresh.    
 - [BUG] Fixed adding/removing group room members during group room creation.
 
