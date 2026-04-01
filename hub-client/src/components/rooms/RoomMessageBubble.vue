@@ -2,7 +2,7 @@
 	<div ref="messageRoot" v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)">
 		<div
 			ref="elReactionPopUp"
-			class="group hover:bg-surface flex flex-col"
+			class="group hover:bg-surface-base flex flex-col"
 			:class="[
 				props.isGrouped ? 'pt-1!' : 'pt-4!',
 				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
@@ -32,7 +32,7 @@
 				/>
 
 				<!-- Avatar placeholder -->
-				<div v-else-if="!props.isGrouped" class="bg-surface-low flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
+				<div v-else-if="!props.isGrouped" class="bg-surface-base flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"></div>
 
 				<!-- Grouped spacer with hover time -->
 				<div v-else class="flex w-12 shrink-0 items-center justify-center">
@@ -101,12 +101,12 @@
 
 					<div class="relative">
 						<!-- Message Action Buttons -->
-						<div class="bg-surface absolute right-0 flex rounded-md" :class="actionButtonPosition">
+						<div class="bg-surface-elevated absolute right-0 flex rounded-md" :class="actionButtonPosition">
 							<template v-if="timerReady && !deleteMessageDialog">
 								<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
-									<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
+									<Icon type="arrow-counter-clockwise" size="md" class="text-red" />
 								</button>
-								<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
+								<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="md" class="text-red mb-1 ml-2" />
 							</template>
 
 							<!-- <div v-if="isSupported">
@@ -114,8 +114,8 @@
 									@click="copy(`${source}?eventid=${props.event.event_id}`)"
 									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 								>
-									<Icon type="link" v-if="!copied"></Icon>
-									<Icon type="check" v-else>Copied!</Icon>
+									<Icon type="link" v-if="!copied" size="md"></Icon>
+									<Icon type="check" v-else size="md">Copied!</Icon>
 								</button>
 							</div> -->
 
@@ -126,7 +126,7 @@
 								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_emoji')"
 							>
-								<Icon type="smiley" />
+								<Icon type="smiley" size="md" />
 							</button>
 
 							<!-- Reply Button -->
@@ -136,7 +136,7 @@
 								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply')"
 							>
-								<Icon type="arrow-bend-up-left" />
+								<Icon type="arrow-bend-up-left" size="md" />
 							</button>
 
 							<!-- Thread Reply Button -->
@@ -149,14 +149,24 @@
 									:title="t('message.reply_in_thread')"
 								>
 									<span v-if="eventThreadLength > 0" class="text-label-tiny h-min px-1">{{ eventThreadLength }}</span>
-									<Icon type="chat-circle" />
+									<Icon type="chat-circle" size="md" />
 								</button>
 
 								<span v-if="settings.isFeatureEnabled(FeatureFlag.notifications) && !viewFromThread" class="absolute -top-1 -right-1 flex gap-1">
 									<Badge v-if="getUnreadCount(room.roomId, event.event_id, NotificationCountType.Total) > 0" color="hub" :size="threadBadgeSize(getUnreadCount(room.roomId, event.event_id, NotificationCountType.Total))" />
-									<Badge v-if="getUnreadCount(room.roomId, event.event_id, NotificationCountType.Highlight) > 0" color="hub" size="sm" />
+									<Badge v-if="getUnreadCount(room.roomId, event.event_id, NotificationCountType.Highlight) > 0" color="hub" size="md" />
 								</span>
 							</div>
+
+							<!-- Context Menu Button -->
+							<button
+								v-if="!redactedMessage"
+								@click.stop="openMenu($event, getContextMenuItems(), props.event.event_id)"
+								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								:title="t('message.context_menu')"
+							>
+								<Icon type="dots-three-vertical" />
+							</button>
 						</div>
 					</div>
 
@@ -398,7 +408,7 @@
 			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
-			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
+			'bg-surface-base!': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
 		};
 
 		if (!isPrivilegedMessage.value || redactedMessage.value) {

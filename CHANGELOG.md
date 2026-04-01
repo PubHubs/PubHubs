@@ -28,6 +28,7 @@ _Please add a brief description of any changes and any migrations to be performe
     to the createMessageRequest endpoint that filters on the server.
 - [BUG] Refresh does not break the navigation. User stays on the same page on refresh.    
 - [BUG] Fixed adding/removing group room members during group room creation.
+- [FIX] Fixed memory leak on file upload.
 
 ## 11 February 2025 - v3.2.1
 - [BUG] Memberlist is again shown

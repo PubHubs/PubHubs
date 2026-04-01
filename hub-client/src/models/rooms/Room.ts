@@ -56,8 +56,6 @@ export default class Room {
 	// keep track of 'removed' rooms that are not synced yet.
 	private hidden: boolean;
 
-	public numUnreadMessages: number;
-
 	// Threads/Events, public for vue reactivity
 	public currentThread: RoomThread | undefined = undefined;
 	public currentEvent: TCurrentEvent | undefined = undefined;
@@ -104,7 +102,6 @@ export default class Room {
 
 		this.matrixRoom = matrixRoom;
 		this.hidden = false;
-		this.numUnreadMessages = 0;
 
 		this.firstVisibleEventId = '';
 		this.firstVisibleTimeStamp = 0;
@@ -522,10 +519,6 @@ export default class Room {
 	// #endregion
 
 	// #region notification functions
-
-	public resetUnreadMessages() {
-		this.numUnreadMessages = 0;
-	}
 
 	public getReceiptForEvent(event: MatrixEvent): CachedReceipt[] {
 		return this.matrixRoom.getReceiptsForEvent(event);
