@@ -1,6 +1,7 @@
 <template>
-	<div class="flex justify-end">
-		<Badge color="ph" v-if="unreadMessages > 0" :size="badgeSize(unreadMessages)" />
+	<!-- data-initialized is used by e2e tests to detect when the initial sync is done -->
+	<div class="flex justify-end" :data-initialized="initialized || undefined">
+		<Badge color="ph" v-if="unreadMessages > 0" :size="badgeSize(unreadMessages)" data-testid="miniclient-badge" />
 	</div>
 </template>
 
@@ -34,6 +35,8 @@
 	const { locale, availableLocales } = useI18n();
 
 	let unreadMessages = ref<number>(0);
+	// Used by e2e tests (via data-initialized attribute) to detect when the initial sync is done.
+	let initialized = ref(false);
 
 	const { unreadCountVersion } = storeToRefs(rooms);
 
@@ -57,6 +60,7 @@
 			.then((numberUnread) => {
 				LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted done');
 				unreadMessages.value = numberUnread;
+				initialized.value = true;
 
 				// Watch to detect if another user has send an read receipt
 				pubhubs.client.on(RoomEvent.Receipt, receiptHandler);
