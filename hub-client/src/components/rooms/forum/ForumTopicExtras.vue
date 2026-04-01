@@ -17,25 +17,31 @@
 				<Icon v-if="topic.closed" type="lock" />
 				<Icon v-else type="lock-open" class="text-accent-secondary" />
 			</div>
-			<ActionMenu v-if="actions && currentUserIsTopicAuthor">
-				<ActionMenuItem v-if="!topic.closed" @click="closeOrOpenTopic(true)">Close</ActionMenuItem>
-				<ActionMenuItem v-else @click="closeOrOpenTopic(false)">Open</ActionMenuItem>
-				<ActionMenuItem @click="deleteTopic(topic.eventId)">Delete</ActionMenuItem>
-				<ActionMenuItem @click="editTopic(topic.eventId)">Edit</ActionMenuItem>
+			<ActionMenu v-if="currentUserIsTopicAuthor">
+				<ActionMenuItem v-if="!topic.closed" @click.stop="closeOrOpenTopic(true)">Close</ActionMenuItem>
+				<ActionMenuItem v-else @click.stop="closeOrOpenTopic(false)">Open</ActionMenuItem>
+				<ActionMenuItem @click.stop="deleteTopic(topic.eventId)">Delete</ActionMenuItem>
+				<ActionMenuItem @click.stop="editTopic(topic.eventId)">Edit</ActionMenuItem>
 			</ActionMenu>
 		</div>
-		<div class="flex justify-end" v-if="actions">
+		<div class="flex justify-end" v-if="can_reply">
 			<Icon type="arrow-bend-up-left"></Icon>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed, onMounted, ref } from 'vue';
 
+	// Components
 	import ActionMenu from '@hub-client/components/ui/ActionMenu.vue';
 	import ActionMenuItem from '@hub-client/components/ui/ActionMenuItem.vue';
 
+	// Stores
+	import { useForum } from '@hub-client/composables/forum.composable';
+
+	// Models
 	import Room from '@hub-client/models/rooms/Room';
 
 	import { useUser } from '@hub-client/stores/user';
@@ -44,6 +50,7 @@
 
 	const currentUser = useUser().user;
 
+	const forum = useForum();
 	const nrOfReplies = ref(0);
 
 	const props = defineProps({
@@ -55,15 +62,14 @@
 			type: Room,
 			required: true,
 		},
-		actions: {
+		can_reply: {
 			type: Boolean,
 			default: true,
 		},
 	});
 
 	onMounted(() => {
-		props.room?.setCurrentThreadId(props.topic.eventId);
-		nrOfReplies.value = props.room?.getCurrentThreadLength() ?? 0;
+		nrOfReplies.value = forum.nrOfReplies(props.topic, props.room);
 	});
 
 	const currentUserIsTopicAuthor = computed(() => currentUser.userId === props.topic.author?.userId);

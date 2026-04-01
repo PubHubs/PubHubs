@@ -3,7 +3,7 @@
 		<SubheaderForum />
 		<ul v-if="topics.length > 0" class="flex flex-col gap-y-2">
 			<li v-for="topic in topics" :key="topic.eventId">
-				<ForumThreadItem :topic="topic" :room="room"></ForumThreadItem>
+				<ForumThreadItem :topic="topic" :room="room" :can_reply="false"></ForumThreadItem>
 			</li>
 		</ul>
 	</div>
@@ -11,6 +11,7 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed, onMounted, ref } from 'vue';
 
 	// Components

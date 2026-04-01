@@ -50,9 +50,75 @@ function useForum() {
 		};
 	};
 
-	const sendTopicMessage = async (title: string, description: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean) => {
+	const constructTopicReply = (body: string, mainTopicId: string, replyToTopicId?: string, originalBody?: string, eventId?: string): any => {
+		if (originalBody && eventId) {
+			return {
+				body: originalBody,
+				msgtype: PubHubsMgType.ForumTopicReply,
+				'm.new_content': {
+					body,
+					msgtype: PubHubsMgType.ForumTopicReply,
+					'm.mentions': {
+						room: false,
+						user_ids: [],
+					},
+					'm.relates_to': {
+						'm.in_reply_to': {
+							main_event_id: mainTopicId,
+							reply_to_event_id: mainTopicId,
+						},
+					},
+				},
+				'm.relates_to': {
+					rel_type: 'm.replace',
+					event_id: eventId,
+				},
+			};
+		}
+		return {
+			body,
+			msgtype: PubHubsMgType.ForumTopicReply,
+			['m.mentions']: {
+				room: false,
+				user_ids: [],
+			},
+			'm.relates_to': {
+				'm.in_reply_to': {
+					main_event_id: mainTopicId,
+					reply_to_event_id: replyToTopicId,
+				},
+			},
+		};
+	};
+
+	const sendTopic = async (title: string, description: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean) => {
 		const content = constructTopicContent(title, description, closed, eventId, originalTitle, originalBody, originalClosed);
 		return await pubhubs.client.sendEvent(currentRoom!.roomId, PubHubsMgType.ForumTopic as any, content as any);
+	};
+
+	// async sendTopicReply(parentId: string, description: string, eventId?: string, originalBody?: string) {
+	// 	let mainTopicId = parentId;
+	// 	const pubhubs = usePubhubsStore();
+	// 	const parentEvent = await pubhubs.getEvent(this.room.roomId, parentId);
+	// 	const parentContent = parentEvent.content as TTopicReplyContent;
+
+	// 	if (!eventId && parentEvent.type === PubHubsMgType.ForumTopicReply && parentContent?.['m.relates_to']?.['m.in_reply_to']?.main_event_id) {
+	// 		mainTopicId = parentContent['m.relates_to']['m.in_reply_to'].main_event_id;
+	// 	}
+	// 	const content = this.constructTopicReply(description, mainTopicId, parentId, originalBody, eventId);
+	// 	return await this.client.sendEvent(this.room.roomId, PubHubsMgType.ForumTopicReply as any, content as any);
+	// }
+
+	const sendReply = async (parentId: string, description: string, eventId?: string, originalBody?: string) => {
+		let mainTopicId = parentId;
+		const parentEvent = await pubhubs.getEvent(currentRoom!.roomId, parentId);
+		const parentContent = parentEvent.content as TTopicReplyContent;
+
+		if (!eventId && parentEvent.type === PubHubsMgType.ForumTopicReply && parentContent?.['m.relates_to']?.['m.in_reply_to']?.main_event_id) {
+			mainTopicId = parentContent['m.relates_to']['m.in_reply_to'].main_event_id;
+		}
+		const content = constructTopicReply(description, mainTopicId, parentId, originalBody, eventId);
+		return await pubhubs.client.sendEvent(currentRoom!.roomId, PubHubsMgType.ForumTopicReply as any, content as any);
 	};
 
 	const transformBack = (item: TThread): any => {
@@ -87,21 +153,30 @@ function useForum() {
 		return thread;
 	};
 
+	// Threads are with the parent event, so number of replies is one less
 	const addReplies = async (thread: TThread, room: Room): Promise<TThread> => {
-		if (thread.replies.length > 0) return thread;
-		room?.setCurrentThreadId(thread.eventId);
-		const replies = await room?.getCurrentThreadEvents();
-		thread.replies = replies.map((r) => transformTopic(r)!);
+		if (thread.replies.length == 0 && nrOfReplies(thread, room) > 0) {
+			room?.setCurrentThreadId(thread.eventId);
+			const replies = await room?.getCurrentThreadEvents();
+			thread.replies = replies.map((r) => transformTopic(r)!);
+		}
 		return thread;
 	};
 
+	// Threads are with the parent event, so number of replies is one less
 	const nrOfReplies = (thread: TThread, room: Room): number => {
-		if (thread.replies) return thread.replies.length;
-		return room?.getCurrentThreadLength() ?? 0;
+		let nr = 0;
+		if (thread.replies) {
+			nr = thread.replies.length;
+		} else {
+			nr = room?.getCurrentThreadLength();
+		}
+		if (nr > 0) nr--;
+		return 0;
 	};
 
 	return {
-		sendTopicMessage,
+		sendTopic,
 		transformBack,
 		transformTopic,
 		addReplies,

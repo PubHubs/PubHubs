@@ -3,11 +3,14 @@
 		<ForumThreadItem :topic="topic" :room="room"></ForumThreadItem>
 		<TopicItem :topic="topic" :room="room" :current-user="topic.author" :main-topic="topic" />
 		<LabelWithDescription class="ml-5" label-class="text-3xl"> Answers: {{ nrOfReplies }} </LabelWithDescription>
-		<div v-if="nrOfReplies > 0" class="ml-800">
+		<div v-if="loadedReplies" class="ml-800">
 			<div v-for="reply in topicWithReplies.replies" :key="reply.eventId">
 				<RoomMessageBubble :event="reply.event!.matrixEvent.event" :room="room" :showActions="false">
 					<template #extras>
 						<ForumTopicExtras :topic="reply" :room="room"></ForumTopicExtras>
+					</template>
+					<template #bottom>
+						<ForumBody :topic="topic"></ForumBody>
 					</template>
 				</RoomMessageBubble>
 				<!-- <hr />
@@ -19,21 +22,25 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, reactive, ref } from 'vue';
+	// Packages
+	import { onMounted, ref } from 'vue';
 
-	import ForumThreadItem from '@hub-client/components/rooms/forum/ForumThreadItem.vue';
 	// Components
+	import ForumThreadItem from '@hub-client/components/rooms/forum/ForumThreadItem.vue';
 	import LabelWithDescription from '@hub-client/components/rooms/forum/LabelWithDescription.vue';
 	import TopicItem from '@hub-client/components/rooms/forum/TopicItem.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
+	// Composables
 	import { useForum } from '@hub-client/composables/forum.composable';
 
 	// Models
+	import { TThread } from '@hub-client/models/events/forum/TThread';
 	import Room from '@hub-client/models/rooms/Room';
 
 	const forum = useForum();
 	const nrOfReplies = ref(0);
+	const loadedReplies = ref(false);
 
 	const props = defineProps({
 		topic: {
@@ -46,11 +53,11 @@
 		},
 	});
 
-	const topicWithReplies = reactive(props.topic);
+	const topicWithReplies = ref<TThread>(props.topic as TThread);
 
 	onMounted(async () => {
-		topicWithReplies.value = await forum.addReplies(props.topic, props.room);
 		nrOfReplies.value = forum.nrOfReplies(topicWithReplies.value, props.room);
-		// console.info('ForumRoomTopic.onMounted', props.topic.eventId, topicWithReplies.value.nrOfReplies);
+		topicWithReplies.value = await forum.addReplies(topicWithReplies.value, props.room);
+		loadedReplies.value = true;
 	});
 </script>

@@ -66,13 +66,13 @@
 	const submitPost = async () => {
 		try {
 			isSubmitting.value = true;
-			const topic = await forum.sendTopicMessage(title.value, description.value, false);
+			const topic = await forum.sendTopic(title.value, description.value, false);
 			if (!topic) {
 				LOGGER.error(SMI.STORE, 'Failed to create topic');
 				return;
 			}
 			const rooms = useRooms();
-			await router.push({ name: 'room', params: { id: rooms.currentRoomId, topicId: topic.event_id } });
+			await router.push({ name: 'room', params: { id: rooms.currentRoomId } });
 		} catch (error) {
 			LOGGER.trace(SMI.STORE, 'error in submiting forum post', { error });
 		} finally {
