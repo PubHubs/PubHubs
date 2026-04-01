@@ -212,6 +212,9 @@
 			} else {
 				editRoom.value = Object.assign({}, rooms.getPublicRoom(props.id)) as unknown as TEditRoom;
 			}
+			if (editRoom.value.room_type) {
+				editRoom.value.type = editRoom.value.room_type;
+			}
 
 			if (isSecured.value) {
 				const [labels, attributes] = editRoomComposable.getYiviLabelsAndAttributes((editRoom.value as any)?.accepted, t);
