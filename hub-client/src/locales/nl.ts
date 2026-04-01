@@ -557,6 +557,7 @@ const nl = {
 		whisper_visible_only_to: 'Fluister alleen zichtbaar voor',
 		only_visible_to_you: 'Alleen zichtbaar voor jou',
 		reply_emoji: 'Reageer snel',
+		context_menu: 'Meer acties',
 		scheduler: 'Datumprikker',
 		poll: 'Peiling',
 		announcement_mode: 'Aankondiging',
