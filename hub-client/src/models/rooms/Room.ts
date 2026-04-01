@@ -26,10 +26,11 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
-import { Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
+import { Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
 import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
@@ -56,6 +57,92 @@ type RoomThread = {
 	thread: TRoomThread | undefined;
 	threadLength: number;
 };
+
+export type UnreadState = 'read' | 'unread' | 'unknown';
+
+/**
+ * Persisted per-room data for resolving unread state when the current
+ * timeline doesn't contain a visible event (e.g. timeline_limit:1
+ * delivered only a state event or reaction).
+ *
+ * - lastVisibleTs: timestamp of the most recent visible event we've
+ *   ever seen. Compared against the read receipt to determine
+ *   unread (receipt < ts) or read (receipt >= ts).
+ * - lastEventId: event ID of the last timeline event we saw. If the
+ *   current last event matches, nothing new arrived since we last
+ *   checked, so lastVisibleTs is still current.
+ */
+// When adding fields, also update storedUnreadInfoEqual.
+type StoredUnreadInfo = { lastVisibleTs: number; lastEventTs: number };
+
+function storedUnreadInfoEqual(a: StoredUnreadInfo, b: StoredUnreadInfo): boolean {
+	return a.lastVisibleTs === b.lastVisibleTs && a.lastEventTs === b.lastEventTs;
+}
+
+const UNREAD_STORAGE_PREFIX = 'ph:unread:';
+
+// In-memory cache: avoids repeated JSON.parse on the hot path.
+// Written through to localStorage only when values change.
+// Populated from localStorage on first access per room, and updated
+// via the 'storage' event when another context (e.g. hub client ↔
+// Miniclient) writes.
+const unreadInfoCache = new Map<string, StoredUnreadInfo>();
+
+if (typeof window === 'undefined') {
+	throw new Error('Room.ts requires a browser environment with window and localStorage');
+}
+
+function parseStoredUnreadInfo(roomId: string, raw: string): StoredUnreadInfo | null {
+	try {
+		const info: StoredUnreadInfo = JSON.parse(raw);
+		unreadInfoCache.set(roomId, info);
+		return info;
+	} catch {
+		LOGGER.warn(SMI.ROOM, `Malformed unread info in localStorage for room ${roomId}`);
+		localStorage.removeItem(UNREAD_STORAGE_PREFIX + roomId);
+		return null;
+	}
+}
+
+// Subscribers notified when another context (e.g. hub client) updates
+// stored unread info. Used by the Miniclient to re-evaluate its badge.
+const externalUpdateListeners = new Set<() => void>();
+
+/** Register a callback for when stored unread info is updated by another context. Returns an unsubscribe function. */
+export function onExternalUnreadUpdate(callback: () => void): () => void {
+	externalUpdateListeners.add(callback);
+	return () => externalUpdateListeners.delete(callback);
+}
+
+window.addEventListener('storage', (e) => {
+	if (!e.key?.startsWith(UNREAD_STORAGE_PREFIX)) return;
+	if (!e.newValue) return;
+	const roomId = e.key.slice(UNREAD_STORAGE_PREFIX.length);
+	const previous = unreadInfoCache.get(roomId);
+	const updated = parseStoredUnreadInfo(roomId, e.newValue);
+	if (updated && (!previous || !storedUnreadInfoEqual(previous, updated))) {
+		externalUpdateListeners.forEach((cb) => cb());
+	}
+});
+
+function getStoredUnreadInfo(roomId: string): StoredUnreadInfo | null {
+	const cached = unreadInfoCache.get(roomId);
+	if (cached) return cached;
+	const raw = localStorage.getItem(UNREAD_STORAGE_PREFIX + roomId);
+	if (!raw) return null;
+	return parseStoredUnreadInfo(roomId, raw);
+}
+
+/** Merge new knowledge into stored unread info. Both timestamps only advance. */
+function updateStoredUnreadInfo(roomId: string, lastEventTs: number, visibleEventTs?: number): void {
+	const current = getStoredUnreadInfo(roomId);
+	const newLastVisibleTs = Math.max(current?.lastVisibleTs ?? 0, visibleEventTs ?? 0);
+	const newLastEventTs = Math.max(current?.lastEventTs ?? 0, lastEventTs);
+	const info: StoredUnreadInfo = { lastVisibleTs: newLastVisibleTs, lastEventTs: newLastEventTs };
+	if (current && storedUnreadInfoEqual(current, info)) return;
+	unreadInfoCache.set(roomId, info);
+	localStorage.setItem(UNREAD_STORAGE_PREFIX + roomId, JSON.stringify(info));
+}
 
 const BotName = {
 	NOTICE: 'notices',
@@ -558,56 +645,62 @@ export default class Room {
 		return this.matrixRoom.hasUserReadEvent(userId, eventId);
 	}
 
-	public hasUnreadMessages(): boolean {
-		return Room.hasUnreadMessages(this.matrixRoom);
+	public unreadState(): UnreadState {
+		return Room.unreadState(this.matrixRoom);
 	}
 
 	/**
-	 * Determines whether a room has unread messages by comparing the latest
-	 * timeline event's timestamp against the user's read receipt timestamp.
-	 * Checks both public (m.read) and private (m.read.private) receipts.
-	 * Returns false if there is insufficient data to determine unread state
-	 * (e.g., no events loaded yet, or user not logged in).
+	 * Determines the unread state of a room by scanning the timeline for the
+	 * last visible event (see isVisibleEvent) and comparing its timestamp
+	 * against the user's private read receipt. When no visible event is in
+	 * the timeline (e.g. timeline_limit:1 delivered only a state event),
+	 * falls back to localStorage-persisted data from a previous check.
 	 *
-	 * State events (e.g., m.room.member from profile changes) are ignored,
-	 * matching Element X's approach. With timeline_limit:1, if a state event
-	 * is the only event in the timeline, we default to no unread. This can
-	 * suppress a badge if a state event lands after an unread message; the
-	 * badge only reappears when the next message arrives. Element X avoids this
-	 * by persisting unread state across syncs in its Rust SDK store.
-	 *
-	 * Potential improvement: cache unread state per room (e.g., in localStorage)
-	 * to preserve the badge until a message event allows re-evaluation.
+	 * Returns one of three states:
+	 * - 'unread': there are definitely unread messages
+	 * - 'read': the room is definitely read
+	 * - 'unknown': we cannot determine the state
 	 */
-	static hasUnreadMessages(matrixRoom: MatrixRoom): boolean {
+	static unreadState(matrixRoom: MatrixRoom): UnreadState {
 		const userId = matrixRoom.client.getUserId();
-		if (!userId) return false;
+		if (!userId) return 'read';
 
+		const roomId = matrixRoom.roomId;
 		const events = matrixRoom.getLiveTimeline().getEvents();
-		if (events.length === 0) return false;
+		const receiptTs = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate)?.data.ts ?? 0;
 
-		const lastEvent = events[events.length - 1];
+		// Find the last visible event by scanning backwards. If we hit the
+		// room creation event (immutable, sent once), the room is empty.
+		let lastVisibleEvent: MatrixEvent | undefined;
+		for (let i = events.length - 1; i >= 0; i--) {
+			if (isVisibleEvent(events[i].event, userId)) {
+				lastVisibleEvent = events[i];
+				break;
+			}
+			if (events[i].getType() === EventType.RoomCreate) return 'read';
+		}
 
-		// State events (profile changes, room settings, etc.) don't count as unread.
-		// This can suppress an existing badge if a state event arrives after an unread
-		// message — see "Potential improvement" in the JSDoc above.
-		// Note: non-state invisible events (reactions, voting widget modifications, etc.)
-		// can cause a sticky badge that visiting the room cannot clear, since receipts
-		// are only sent for visible events. Fixing this requires aligning the unread
-		// check with what the TimelineManager renders and what receipts are sent for.
-		if (lastEvent.isState()) return false;
+		const lastEventTs = events.length > 0 ? events[events.length - 1].getTs() : 0;
 
-		// If the current user sent the last message, it's implicitly read
-		if (lastEvent.getSender() === userId) return false;
+		if (lastVisibleEvent) {
+			// We found a visible event — record it (only advances, never
+			// overwrites a newer timestamp from a previous check).
+			updateStoredUnreadInfo(roomId, lastEventTs, lastVisibleEvent.getTs());
 
-		// Check both public and private receipts, use the most recent
-		const publicReceipt = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.Read);
-		const privateReceipt = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate);
-		const receiptTs = Math.max(publicReceipt?.data.ts ?? 0, privateReceipt?.data.ts ?? 0);
+			if (lastVisibleEvent.getSender() === userId) return 'read';
+			if (receiptTs === 0) return 'unread';
+			return lastVisibleEvent.getTs() > receiptTs ? 'unread' : 'read';
+		}
 
-		if (receiptTs === 0) return true; // No receipt at all → assume unread
+		// No visible event in the timeline. Record the current last event
+		// timestamp so we can detect changes, then fall back to persisted data.
+		updateStoredUnreadInfo(roomId, lastEventTs);
 
-		return lastEvent.getTs() > receiptTs;
+		const stored = getStoredUnreadInfo(roomId);
+		if (!stored || stored.lastVisibleTs === 0) return 'unknown';
+		if (receiptTs < stored.lastVisibleTs) return 'unread';
+		if (stored.lastEventTs === lastEventTs) return 'read';
+		return 'unknown';
 	}
 
 	//#endregion

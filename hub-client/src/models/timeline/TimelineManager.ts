@@ -12,7 +12,9 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
+import TRoomThread from '@hub-client/models/thread/RoomThread';
 
 // Stores
 import { useUser } from '@hub-client/stores/user';
@@ -74,11 +76,6 @@ class TimelineManager {
 	/** roomTimelineKey of the sliding sync subscription of this timelinemanager */
 	private roomTimelineKey: string | undefined;
 
-	// Added Room Member to get the avatar value when change happen
-	private visibleEventTypes: string[] = [EventType.RoomMessage];
-	private invisibleMessageTypes: string[] = [MsgType.Notice];
-	private invisibleRelatesToTypes: string[] = [RelationType.Thread];
-
 	// Filter on timeline for messages
 	private readonly timelineFilter: TimelineFilter = {
 		room: {
@@ -117,33 +114,7 @@ class TimelineManager {
 	 * @returns true if the event should be visible, false otherwise
 	 */
 	public isVisibleEvent(event: Partial<TBaseEvent>): boolean {
-		if (event.type && !this.visibleEventTypes.includes(event.type)) {
-			return false;
-		}
-		if (event.content?.msgtype) {
-			if (this.invisibleMessageTypes.includes(event.content?.msgtype as string)) {
-				return false;
-			}
-		}
-		if (this.invisibleRelatesToTypes.includes((event.content?.[RelationType.RelatesTo] as { rel_type?: string } | undefined)?.rel_type as string)) {
-			return false;
-		}
-		if (event.content?.msgtype === PubHubsMgType.WhisperMessage) {
-			const currentUserId = this.user.userId;
-			const whisperToUserId = event.content?.whisper_to;
-			const senderId = event.sender;
-			// Whisper is private to sender and target user only.
-			if (!currentUserId || (senderId !== currentUserId && whisperToUserId !== currentUserId)) {
-				return false;
-			}
-		}
-		// Deleted events from threads may not be visible; they have lost the direct connection to their thread
-		if (event.unsigned?.redacted_because?.redacts) {
-			if (event.unsigned?.redacted_because?.content.reason === Redaction.DeletedFromThread) {
-				return false;
-			}
-		}
-		return true;
+		return isVisibleEvent(event, this.user.userId);
 	}
 
 	/**

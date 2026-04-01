@@ -169,7 +169,6 @@
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
-	import Room from '@hub-client/models/rooms/Room';
 	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
@@ -212,22 +211,6 @@
 
 	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
 	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || notifications.notifications.length > 0 || !rooms.roomsLoaded);
-
-	const publicRoomsUnreadCount = computed(() => {
-		void rooms.unreadCountVersion;
-		return rooms.loadedPublicRooms.filter((r) => {
-			const matrixRoom = pubhubs.client.getRoom(r.roomId);
-			return matrixRoom ? Room.hasUnreadMessages(matrixRoom) : false;
-		}).length;
-	});
-
-	const securedRoomsUnreadCount = computed(() => {
-		void rooms.unreadCountVersion;
-		return rooms.loadedSecuredRooms.filter((r) => {
-			const matrixRoom = pubhubs.client.getRoom(r.roomId);
-			return matrixRoom ? Room.hasUnreadMessages(matrixRoom) : false;
-		}).length;
-	});
 
 	onMounted(async () => {
 		logger.debug('App.vue onMounted');

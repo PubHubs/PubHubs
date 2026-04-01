@@ -5,10 +5,16 @@
 		:data-initialized="initialized || undefined"
 	>
 		<Badge
-			v-if="unreadMessages > 0"
+			v-if="unreadState === 'unread'"
 			color="ph"
-			:size="badgeSize(unreadMessages)"
+			size="sm"
 			data-testid="miniclient-badge"
+		/>
+		<Badge
+			v-if="unreadState === 'unknown'"
+			color="unknown"
+			size="sm"
+			data-testid="miniclient-unknown-badge"
 		/>
 	</div>
 </template>
@@ -23,13 +29,15 @@
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
 
-	import { createLogger } from '@hub-client/logic/logging/Logger';
-	// Logic
-	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Models
+	import { type UnreadState, onExternalUnreadUpdate } from '@hub-client/models/rooms/Room';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
-	import { MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
+	import { Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
@@ -42,18 +50,31 @@
 	const settings = useSettings();
 	const { locale, availableLocales } = useI18n();
 
-	let unreadMessages = ref<number>(0);
+	let unreadState = ref<UnreadState>('read');
 	// Used by e2e tests (via data-initialized attribute) to detect when the initial sync is done.
 	let initialized = ref(false);
 
 	const { unreadCountVersion } = storeToRefs(rooms);
 
+	function updateUnreadState(newState: UnreadState) {
+		if (newState === 'unread' && unreadState.value !== 'unread') {
+			messagebox.sendMessage(new Message(MessageType.UnreadMessages));
+		}
+		unreadState.value = newState;
+	}
+
 	/**
-	 * Watch to detect changes in unread count that come from the sliding sync.
+	 * Watch to detect changes in unread state that come from the sliding sync.
 	 * When another user posts a new message into a room.
 	 */
 	watch(unreadCountVersion, async () => {
-		unreadMessages.value = await rooms.fetchTotalUnreadCounts();
+		updateUnreadState(await rooms.fetchAggregateUnreadState());
+	});
+
+	// Re-evaluate when the hub client (same origin, different iframe) writes
+	// new unread info to localStorage.
+	const unsubscribeExternalUpdates = onExternalUnreadUpdate(() => {
+		rooms.notifyUnreadCountChanged();
 	});
 
 	onMounted(async () => {
@@ -61,13 +82,13 @@
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 
-		// Startup, login, fetch the initial unread count, set watch for read receipt event
+		// Startup, login, fetch the initial unread state, set watch for read receipt event
 		startMessageBox()
 			.then(() => pubhubs.login())
-			.then(() => rooms.fetchTotalUnreadCounts())
-			.then((numberUnread) => {
-				logger.debug('Miniclient.vue onMounted done');
-				unreadMessages.value = numberUnread;
+			.then(() => rooms.fetchAggregateUnreadState())
+			.then((state) => {
+				LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted done');
+				updateUnreadState(state);
 				initialized.value = true;
 
 				// Watch to detect if another user has send an read receipt
@@ -77,6 +98,7 @@
 
 	onUnmounted(() => {
 		pubhubs.client.off(RoomEvent.Receipt, receiptHandler);
+		unsubscribeExternalUpdates();
 	});
 
 	async function startMessageBox() {
@@ -87,7 +109,7 @@
 	}
 
 	async function receiptHandler() {
-		unreadMessages.value = await rooms.fetchTotalUnreadCounts();
+		updateUnreadState(await rooms.fetchAggregateUnreadState());
 	}
 </script>
 

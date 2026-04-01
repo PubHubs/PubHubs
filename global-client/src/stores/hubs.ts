@@ -108,12 +108,9 @@ const useHubs = defineStore('hubs', {
 			// Start conversation with hub frame and sync latest settings
 			await messagebox.startCommunication(this.hubs[hubId].url, miniClientId + '_' + hubId);
 
-			// Listen to sync unreadmessages
-			messagebox.addCallback(miniClientId + '_' + hubId, MessageType.UnreadMessages, (message: Message) => {
-				this.hubs[hubId].unreadMessages = message.content as number;
-				if (this.hubs[hubId].unreadMessages > 0) {
-					sendNotification(this.hubs[hubId].hubName);
-				}
+			// Hub client signals when it transitions to having unread messages
+			messagebox.addCallback(miniClientId + '_' + hubId, MessageType.UnreadMessages, () => {
+				sendNotification(this.hubs[hubId].hubName);
 			});
 		},
 

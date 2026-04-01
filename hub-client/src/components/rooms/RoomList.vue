@@ -36,9 +36,15 @@
 						class="flex items-center gap-1 transition-all duration-200 ease-in-out"
 					>
 						<Badge
-							v-if="roomHasUnread(room.roomId)"
+							v-if="roomUnreadState(room.roomId) === 'unread'"
 							data-testid="unread-badge"
 							color="hub"
+							size="sm"
+						/>
+						<Badge
+							v-if="roomUnreadState(room.roomId) === 'unknown'"
+							data-testid="unknown-badge"
+							color="unknown"
 							size="sm"
 						/>
 					</span>
@@ -125,8 +131,12 @@
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
+	// Logic
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
 	// Models
-	import Room from '@hub-client/models/rooms/Room';
+	import Room, { type UnreadState } from '@hub-client/models/rooms/Room';
 	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
@@ -180,10 +190,14 @@
 	});
 
 	// Reactive dependency on unreadCountVersion for badge updates
-	function roomHasUnread(roomId: string): boolean {
+	function roomUnreadState(roomId: string): UnreadState {
 		void rooms.unreadCountVersion;
 		const matrixRoom = pubhubs.client.getRoom(roomId);
-		return matrixRoom ? Room.hasUnreadMessages(matrixRoom) : false;
+		if (!matrixRoom) {
+			LOGGER.warn(SMI.ROOM, `roomUnreadState: matrix room not found for ${roomId}`);
+			return 'unknown';
+		}
+		return Room.unreadState(matrixRoom);
 	}
 
 	async function leaveRoom(roomId: string) {

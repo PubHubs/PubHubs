@@ -14,7 +14,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
-import Room from '@hub-client/models/rooms/Room';
+import Room, { type UnreadState } from '@hub-client/models/rooms/Room';
 import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
@@ -249,13 +249,21 @@ const useRooms = defineStore('rooms', {
 	//#endregion getters
 
 	actions: {
-		async fetchTotalUnreadCounts(): Promise<number> {
+		// Returns the worst unread state across all visible rooms (those
+		// displayed in the sidebar: public, secured, and private).
+		async fetchAggregateUnreadState(): Promise<UnreadState> {
 			await this.waitForInitialRoomsLoaded();
 			const pubhubs = usePubhubsStore();
-			return this.roomList.filter((r) => {
+			const visibleRooms = [...this.loadedPublicRooms, ...this.loadedSecuredRooms, ...this.loadedPrivateRooms];
+			let worst: UnreadState = 'read';
+			for (const r of visibleRooms) {
 				const matrixRoom = pubhubs.client.getRoom(r.roomId);
-				return matrixRoom ? Room.hasUnreadMessages(matrixRoom) : false;
-			}).length;
+				if (!matrixRoom) continue;
+				const state = Room.unreadState(matrixRoom);
+				if (state === 'unread') return 'unread';
+				if (state === 'unknown') worst = 'unknown';
+			}
+			return worst;
 		},
 
 		async waitForInitialRoomsLoaded(): Promise<void> {
@@ -616,9 +624,16 @@ const useRooms = defineStore('rooms', {
 		getTPublicRoom(roomId: string): TPublicRoom | undefined {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
-		// Returns the number of private rooms with unread messages (not a total message count).
-		getTotalPrivateRoomUnreadMsgCount(): number {
-			return this.privateRooms.filter((room) => room.hasMessages() && room.hasUnreadMessages()).length;
+		// Returns the worst unread state across private rooms that have messages.
+		getPrivateRoomUnreadState(): UnreadState {
+			let worst: UnreadState = 'read';
+			for (const room of this.privateRooms) {
+				if (!room.hasMessages()) continue;
+				const state = room.unreadState();
+				if (state === 'unread') return 'unread';
+				if (state === 'unknown') worst = 'unknown';
+			}
+			return worst;
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {
