@@ -1,9 +1,9 @@
 <template>
 	<div class="relative z-50" ref="menu" v-click-outside="close" role="menubar">
-		<div class="menu-icon flex cursor-pointer justify-items-stretch" @click="toggle" data-testid="actionmenu">
+		<div class="menu-icon flex cursor-pointer justify-items-stretch" @click.stop="toggle" data-testid="actionmenu">
 			<Icon class="bg-surface hover:bg-button-blue rounded-md" :type="icon"></Icon>
 		</div>
-		<div v-show="open" class="menu-menu bg-surface-elevated absolute -mt-6 ml-6 rounded-md" @click="close" :style="style">
+		<div v-show="open" class="menu-menu bg-surface-elevated absolute -mt-6 ml-6 rounded-md" @click.stop="close" :style="style">
 			<slot></slot>
 		</div>
 	</div>
@@ -30,7 +30,7 @@
 	const toggle = () => {
 		open.value = !open.value;
 		nextTick(() => {
-			const split = Math.floor((window.innerWidth / 3) * 2);
+			const split = Math.floor(window.innerWidth / 2);
 			const menuX = menu.value?.offsetLeft;
 			const buttonWidth = menu.value?.getElementsByClassName('menu-icon')[0].clientWidth;
 			const menuWidth = menu.value?.getElementsByClassName('menu-menu')[0].clientWidth;
