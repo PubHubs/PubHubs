@@ -61,7 +61,7 @@ class TimelineEvent {
 	}
 
 	get isThreadRoot(): boolean {
-		return this._thread !== undefined;
+		return this.matrixEvent.isThreadRoot;
 	}
 
 	get isThreadEvent(): boolean {

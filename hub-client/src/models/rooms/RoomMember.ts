@@ -52,6 +52,10 @@ export default class RoomMember {
 		const avatarMxcUrl = this.matrixRoomMember.getMxcAvatarUrl();
 
 		if (!avatarMxcUrl) {
+			// Revoke old blob URL if it exists
+			if (this._avatarUrl?.startsWith('blob:')) {
+				URL.revokeObjectURL(this._avatarUrl);
+			}
 			this._avatarUrl = null;
 			return;
 		}
@@ -60,6 +64,11 @@ export default class RoomMember {
 
 		if (!avatarUrl) {
 			throw new Error('Failed to retrieve avatar URL.');
+		}
+
+		// Revoke old blob URL before replacing
+		if (this._avatarUrl?.startsWith('blob:')) {
+			URL.revokeObjectURL(this._avatarUrl);
 		}
 
 		this._avatarUrl = avatarUrl;

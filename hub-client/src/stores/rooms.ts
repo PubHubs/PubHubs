@@ -238,18 +238,6 @@ const useRooms = defineStore('rooms', {
 			};
 		},
 
-		totalUnreadMessages(): number {
-			// Read unreadCountVersion to trigger reactive updates when Matrix SDK counts change
-			void this.unreadCountVersion;
-			let total = 0;
-			this.roomsArray.forEach((room) => {
-				if (!room.isHidden()) {
-					total += room.getUnreadNotificationCount(NotificationCountType.Total);
-				}
-			});
-			return total;
-		},
-
 		roomtimestamps(state): Array<Array<number | string>> {
 			return state.timestamps;
 		},
@@ -268,7 +256,7 @@ const useRooms = defineStore('rooms', {
 			for (const roomListRoom of this.roomList) {
 				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
 				if (room) {
-					unread += room.getUnreadNotificationCount(NotificationCountType.Total);
+					unread += room.getRoomUnreadNotificationCount(NotificationCountType.Total);
 				}
 			}
 			return unread;
@@ -425,11 +413,6 @@ const useRooms = defineStore('rooms', {
 					this.rooms[matrixRoom.roomId] = new Room(matrixRoom);
 				}
 			});
-		},
-
-		sendUnreadMessageCounter() {
-			const messagebox = useMessageBox();
-			messagebox.sendMessage(new Message(MessageType.UnreadMessages, this.totalUnreadMessages));
 		},
 
 		async fetchPublicRooms(force: boolean = false) {

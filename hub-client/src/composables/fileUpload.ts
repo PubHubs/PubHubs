@@ -1,9 +1,12 @@
 // Stores
+import { BlobManager } from '@hub-client/logic/core/blobManager';
+
 import { useDialog } from '@hub-client/stores/dialog';
 
 interface ExtendedFile extends File {
 	status: number;
 	progress: number;
+	blobManager: BlobManager;
 }
 
 // Better to pass pubhubs object to useMatrixFiles.

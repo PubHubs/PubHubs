@@ -26,7 +26,7 @@
 		</div>
 	</div>
 	<BarList v-if="files.length > 0" class="mt-2" data-testid="file-list">
-		<BarListItem v-for="(file, index) in files">
+		<BarListItem v-for="(file, index) in files" :key="index">
 			<div class="mb-1 flex h-6 items-center gap-2">
 				<div><FileIcon :filename="file.name"></FileIcon></div>
 				<div class="flex-grow truncate">{{ file.name }}</div>
@@ -48,11 +48,12 @@
 	import BarList from './BarList.vue';
 	import BarListItem from './BarListItem.vue';
 	import ProgressBar from './ProgressBar.vue';
-	import { computed, onMounted, onUnmounted, ref } from 'vue';
+	import { computed, onBeforeUnmount, onMounted, onUnmounted, ref } from 'vue';
 
 	import { ExtendedFile, asyncFileUpload } from '@hub-client/composables/fileUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import filters from '@hub-client/logic/core/filters';
 
@@ -64,6 +65,7 @@
 	const { uploadUrl } = useMatrixFiles();
 
 	const pubhubs = usePubhubsStore();
+
 	const rooms = useRooms();
 
 	const emit = defineEmits(['update']);
@@ -83,6 +85,12 @@
 	onUnmounted(() => {
 		events.forEach((eventName) => {
 			document.body.removeEventListener(eventName, preventDefaults);
+		});
+	});
+
+	onBeforeUnmount(() => {
+		files.value.forEach((file) => {
+			file.blobManager?.revoke();
 		});
 	});
 
@@ -113,12 +121,15 @@
 			if (!files.value.find((existing) => file.name === existing.name)) {
 				file.status = FileReader.EMPTY;
 				file.progress = 0;
+				file.blobManager = new BlobManager(file);
 				files.value.push(file);
 			}
 		}
 	};
 
 	const removeFileFromList = (index: number) => {
+		const file = files.value[index];
+		file.blobManager?.revoke();
 		files.value.splice(index, 1);
 	};
 
@@ -128,6 +139,9 @@
 	};
 
 	const cancelFiles = () => {
+		files.value.forEach((file) => {
+			file.blobManager?.revoke();
+		});
 		files.value = [];
 		uploadError.value = false;
 	};
@@ -157,9 +171,15 @@
 					const tmpFile = tmpFiles[i];
 					tmpFile.progress = 100;
 					tmpFile.status = FileReader.DONE;
+
+					const uriBlobManager = new BlobManager(uri);
+
 					const success = await pubhubs.addFile(rooms.currentRoomId, undefined, file, uri, '', PubHubsMgType.LibraryFileMessage);
 					if (success) {
-						URL.revokeObjectURL(uri);
+						// Revoke server URI
+						uriBlobManager.revoke();
+						// Revoke file preview blob
+						tmpFile.blobManager?.revoke();
 						setTimeout(() => {
 							removeFileFromListByFile(file);
 						}, 500);
@@ -167,6 +187,7 @@
 						tmpFile.progress = 0;
 						tmpFile.status = FileReader.EMPTY;
 						uploadError.value = true;
+						uriBlobManager.revoke();
 					}
 					files.value = tmpFiles;
 				},

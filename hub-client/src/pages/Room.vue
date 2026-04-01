@@ -14,11 +14,7 @@
 					<Icon v-else-if="rooms.currentRoom.isForumRoom() && topicId" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'room', params: { id: rooms.currentRoomId } })" />
 					<Icon v-else type="chats-circle" />
 
-					<div
-						class="group relative"
-						:class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'"
-						v-context-menu="!rooms.currentRoom.isDirectMessageRoom() ? (evt: any) => openMenu(evt, [{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl() }]) : undefined"
-					>
+					<div class="group relative" v-context-menu="!rooms.currentRoom.isDirectMessageRoom() ? (evt: any) => openMenu(evt, [{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl() }]) : undefined">
 						<H3 class="text-on-surface flex">
 							<TruncatedText class="font-headings font-semibold">
 								<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />

@@ -558,6 +558,7 @@ const en = {
 		whisper_visible_only_to: 'Whisper visible only to',
 		only_visible_to_you: 'Only visible to you',
 		reply_emoji: 'React',
+		context_menu: 'More actions',
 		scheduler: 'Schedule',
 		poll: 'Poll',
 		announcement_mode: 'Announcement',

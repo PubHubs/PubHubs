@@ -18,7 +18,7 @@ class BlobManager {
 			this._isRevoked = false;
 		} else if (typeof input === 'string' || input === undefined) {
 			this._url = input;
-			this._ownURL = false;
+			this._ownURL = typeof input === 'string' && input.startsWith('blob:');
 			this._isRevoked = false;
 		} else {
 			throw new Error('BlobManager: invalid input');

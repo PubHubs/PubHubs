@@ -41,7 +41,7 @@
 				v-if="notification.type === 'removed_from_secured_room' && notification.room_id"
 				icon="shield"
 				class="group text-on-surface-dim inline-block w-full"
-				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == notification.room_id && 'bg-surface-low!'"
+				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == notification.room_id && 'bg-surface-base!'"
 				@click="
 					dialogOpen = notification.room_id;
 					messageValues = notification.message_values;
