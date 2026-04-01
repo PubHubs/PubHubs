@@ -157,6 +157,16 @@
 									<Badge v-if="getUnreadCount(room.roomId, event.event_id, NotificationCountType.Highlight) > 0" color="hub" size="sm" />
 								</span>
 							</div>
+
+							<!-- Context Menu Button -->
+							<button
+								v-if="!redactedMessage"
+								@click.stop="openMenu($event, getContextMenuItems(), props.event.event_id)"
+								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								:title="t('message.context_menu')"
+							>
+								<Icon type="dots-three-vertical" />
+							</button>
 						</div>
 					</div>
 
