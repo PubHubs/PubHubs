@@ -40,7 +40,7 @@
 					</Suspense>
 				</InputModeBar>
 
-				<FilePicker ref="filePickerEl" :messageInput="messageInput"></FilePicker>
+				<FilePicker ref="filePickerEl" :messageInput="messageInput" :upload-ownership-transferred="fileBlobOwnedByParent" @uploadFile="handleFileUpload"></FilePicker>
 
 				<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget)">
 					<PollMessageInput
@@ -135,7 +135,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed, nextTick, onMounted, onUnmounted, onWatcherCleanup, ref, useTemplateRef, watch } from 'vue';
+	import { PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, onWatcherCleanup, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
@@ -159,6 +159,7 @@
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useYiviIosWorkaround } from '@hub-client/composables/yiviIosWorkaround.composable';
 
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
 	import { useMessageInput } from '@hub-client/logic/messageInput';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
@@ -215,9 +216,10 @@
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, uploadUrl } = useMatrixFiles();
 
-	const uri = ref<string>('');
 	const pollObject = ref<Poll>(new Poll());
 	const schedulerObject = ref<Scheduler>(new Scheduler());
+	const uriForFileUpload = ref<BlobManager>();
+	const fileBlobOwnedByParent = ref(false);
 
 	const caretPos = ref({ top: 0, left: 0 });
 
@@ -238,6 +240,7 @@
 	const signingDialogButtons = buttonsCancel;
 
 	watch(route, () => {
+		revokeOwnedFileUploadBlob();
 		reset();
 		messageInput.resetAll();
 		clearWhisperMode();
@@ -254,6 +257,7 @@
 	watch(
 		() => props.room.roomId,
 		async () => {
+			revokeOwnedFileUploadBlob();
 			inReplyTo.value = undefined;
 			messageActions.replyingTo = undefined;
 			clearWhisperMode();
@@ -303,6 +307,18 @@
 	onMounted(async () => {
 		globalThis.addEventListener('keydown', handleKeydown);
 		reset();
+	});
+
+	function revokeOwnedFileUploadBlob() {
+		if (fileBlobOwnedByParent.value) {
+			uriForFileUpload.value?.revoke();
+		}
+		fileBlobOwnedByParent.value = false;
+		uriForFileUpload.value = undefined;
+	}
+
+	onBeforeUnmount(() => {
+		revokeOwnedFileUploadBlob();
 	});
 
 	onUnmounted(() => {
@@ -356,6 +372,14 @@
 		}
 	}
 
+	function handleFileUpload(uriBlob: BlobManager | undefined) {
+		if (fileBlobOwnedByParent.value && uriForFileUpload.value && uriForFileUpload.value !== uriBlob) {
+			uriForFileUpload.value.revoke();
+		}
+		uriForFileUpload.value = uriBlob;
+		fileBlobOwnedByParent.value = !!uriBlob;
+	}
+
 	function insertMention(item: TRoomMember | TPublicRoom, marker: '@' | '#') {
 		const isUserMention = marker === '@';
 		const displayName = isUserMention ? (item as TRoomMember).rawDisplayName : (item as TPublicRoom).name;
@@ -406,6 +430,8 @@
 			sendScheduler();
 			value.value = '';
 		} else if (messageInput.state.fileAdded) {
+			// `fileAdded` is the actual payload to upload.
+			// `uriForFileUpload` is only the local preview blob URL manager.
 			const replyTo = inReplyTo.value;
 			if (replyTo) messageActions.replyingTo = undefined;
 			messageInput.closeFileUpload();
@@ -416,7 +442,9 @@
 			} as unknown as Event;
 			fileUpload(t('errors.file_upload'), pubhubs.Auth.getAccessToken(), uploadUrl, allTypes, syntheticEvent, (url) => {
 				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string, undefined, replyTo);
-				URL.revokeObjectURL(uri.value);
+				uriForFileUpload.value?.revoke();
+				fileBlobOwnedByParent.value = false;
+				uriForFileUpload.value = undefined;
 				value.value = '';
 				messageInput.cancelFileUpload();
 			});

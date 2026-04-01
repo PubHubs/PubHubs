@@ -146,6 +146,10 @@ const useUser = defineStore('user', {
 
 				// only update the member if not available yet in userProfile, or if displayname/avatarurl has changed
 				if (!memberToUpdate || memberToUpdate?.displayName !== member.content.displayname || memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
+					// Revoke old avatar blob URL before replacing
+					if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
+						URL.revokeObjectURL(memberToUpdate.avatarUrl);
+					}
 					const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
 					const profile: UserProfile = {
 						displayName: member.content.displayname ?? undefined,
@@ -172,6 +176,11 @@ const useUser = defineStore('user', {
 
 		async setAvatarUrl(avatarUrl: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
+
+			// Revoke old avatar blob URL before replacing
+			if (this._avatarUrl?.startsWith('blob:')) {
+				URL.revokeObjectURL(this._avatarUrl);
+			}
 
 			const { getAuthorizedMediaUrl } = useMatrixFiles();
 			this._avatarUrl = await getAuthorizedMediaUrl(avatarUrl);
