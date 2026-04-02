@@ -59,10 +59,10 @@
                 python3 # 3.13.12
 
                 # Rust
-                rustc # 1.93
-                cargo # 1.93
+                rustc # 1.94
+                cargo # 1.94
                 cargo-watch # 8.5.3
-                clippy # 0.1.93
+                clippy # 0.1.94
                 rustfmt # 1.8.0
 
                 # Other
