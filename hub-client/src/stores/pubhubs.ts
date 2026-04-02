@@ -991,8 +991,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 				setTimeout(() => {
 					rooms.notifyUnreadCountChanged(roomId);
 				}, 100);
-			} catch {
-				// Silently fail - receipt sending is not critical
+			} catch (error) {
+				logger.warn(SMI.ROOM, `sendPrivateReceipt failed for ${roomId}/${eventId}`, { error });
 			}
 		},
 

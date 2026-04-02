@@ -69,16 +69,22 @@ type RoomThread = {
  *   unread (receipt < ts) or read (receipt >= ts).
  * - lastEventTs: timestamp of the last timeline event we saw. If the
  *   current last event has the same timestamp, nothing new arrived
- *   since we last checked, so lastVisibleTs is still current.
+ *   since we last checked.
+ * - unreadState: the last computed unread state. Returned directly
+ *   when lastEventTs hasn't changed (nothing new to evaluate).
  */
 // When adding fields, also update storedUnreadInfoEqual.
-type StoredUnreadInfo = { lastVisibleTs: number; lastEventTs: number };
+type StoredUnreadInfo = { lastVisibleTs: number; lastEventTs: number; unreadState: UnreadState };
 
 function storedUnreadInfoEqual(a: StoredUnreadInfo, b: StoredUnreadInfo): boolean {
-	return a.lastVisibleTs === b.lastVisibleTs && a.lastEventTs === b.lastEventTs;
+	return a.lastVisibleTs === b.lastVisibleTs && a.lastEventTs === b.lastEventTs && a.unreadState === b.unreadState;
 }
 
 const UNREAD_STORAGE_PREFIX = 'ph:unread:';
+
+function storedUnreadInfoKey(userId: string, roomId: string): string {
+	return `${UNREAD_STORAGE_PREFIX}${userId}|${roomId}`;
+}
 
 // In-memory cache: avoids repeated JSON.parse on the hot path.
 // Written through to localStorage only when values change.
@@ -94,13 +100,15 @@ if (typeof window === 'undefined') {
 }
 
 /** Parse a localStorage value into the in-memory cache. Does not write back to localStorage. */
-function cacheStoredUnreadInfo(roomId: string, raw: string): { updated: StoredUnreadInfo | null; changed: boolean } {
+function cacheStoredUnreadInfo(storageKey: string, roomId: string, raw: string): { updated: StoredUnreadInfo | null; changed: boolean } {
 	let updated: StoredUnreadInfo;
 	try {
 		updated = JSON.parse(raw);
+		// Default for old entries that lack the unreadState field.
+		updated.unreadState ??= 'unknown';
 	} catch {
 		LOGGER.warn(SMI.ROOM, `Malformed unread info in localStorage for room ${roomId}`);
-		localStorage.removeItem(UNREAD_STORAGE_PREFIX + roomId);
+		localStorage.removeItem(storageKey);
 		return { updated: null, changed: false };
 	}
 	const previous = unreadInfoCache.get(roomId);
@@ -109,44 +117,51 @@ function cacheStoredUnreadInfo(roomId: string, raw: string): { updated: StoredUn
 	return { updated, changed };
 }
 
-// Subscribers notified when another context (e.g. hub client) updates
-// stored unread info. Used by the Miniclient to re-evaluate its badge.
-const externalUpdateListeners = new Set<(roomId: string) => void>();
-
-/** Register a callback for when stored unread info is updated by another context. Returns an unsubscribe function. */
-export function onExternalUnreadUpdate(callback: (roomId: string) => void): () => void {
-	externalUpdateListeners.add(callback);
-	return () => externalUpdateListeners.delete(callback);
+/** Register a storage listener for when another context (e.g. hub client ↔ Miniclient)
+ *  updates unread info for the given user. Returns an unsubscribe function. */
+export function onExternalUnreadUpdate(userId: string, callback: (roomId: string) => void): () => void {
+	const prefix = UNREAD_STORAGE_PREFIX + userId + '|';
+	const listener = (e: StorageEvent) => {
+		if (!e.key?.startsWith(prefix)) return;
+		if (!e.newValue) return;
+		const roomId = e.key.slice(prefix.length);
+		const { changed } = cacheStoredUnreadInfo(e.key, roomId, e.newValue);
+		if (changed) callback(roomId);
+	};
+	window.addEventListener('storage', listener);
+	return () => window.removeEventListener('storage', listener);
 }
 
-window.addEventListener('storage', (e) => {
-	if (!e.key?.startsWith(UNREAD_STORAGE_PREFIX)) return;
-	if (!e.newValue) return;
-	const roomId = e.key.slice(UNREAD_STORAGE_PREFIX.length);
-	const { changed } = cacheStoredUnreadInfo(roomId, e.newValue);
-	if (changed) {
-		externalUpdateListeners.forEach((cb) => cb(roomId));
-	}
-});
+/** Returns the previously stored unread state for a room, or 'unknown' if none. */
+export function getStoredUnreadState(userId: string, roomId: string): UnreadState {
+	return getStoredUnreadInfo(userId, roomId)?.unreadState ?? 'unknown';
+}
 
-function getStoredUnreadInfo(roomId: string): StoredUnreadInfo | null {
+function getStoredUnreadInfo(userId: string, roomId: string): StoredUnreadInfo | null {
 	const cached = unreadInfoCache.get(roomId);
 	if (cached) return cached;
-	const raw = localStorage.getItem(UNREAD_STORAGE_PREFIX + roomId);
+	const key = storedUnreadInfoKey(userId, roomId);
+	const raw = localStorage.getItem(key);
 	if (!raw) return null;
-	const { updated } = cacheStoredUnreadInfo(roomId, raw);
+	const { updated } = cacheStoredUnreadInfo(key, roomId, raw);
 	return updated;
 }
 
 /** Merge new knowledge into stored unread info. Both timestamps only advance. */
-function updateStoredUnreadInfo(roomId: string, lastEventTs: number, visibleEventTs?: number): void {
-	const current = getStoredUnreadInfo(roomId);
-	const newLastVisibleTs = Math.max(current?.lastVisibleTs ?? 0, visibleEventTs ?? 0);
-	const newLastEventTs = Math.max(current?.lastEventTs ?? 0, lastEventTs);
-	const info: StoredUnreadInfo = { lastVisibleTs: newLastVisibleTs, lastEventTs: newLastEventTs };
+function updateStoredUnreadInfo(userId: string, roomId: string, update: { lastEventTs: number; unreadState: UnreadState; visibleEventTs?: number }): void {
+	const current = getStoredUnreadInfo(userId, roomId);
+	const newLastVisibleTs = Math.max(current?.lastVisibleTs ?? 0, update.visibleEventTs ?? 0);
+	const newLastEventTs = Math.max(current?.lastEventTs ?? 0, update.lastEventTs);
+	// 'unknown' means insufficient information — only overwrite a
+	// previous definitive state ('read' or 'unread') with new certainty.
+	let newUnreadState = current?.unreadState ?? 'unknown';
+	if (update.unreadState !== 'unknown') {
+		newUnreadState = update.unreadState;
+	}
+	const info: StoredUnreadInfo = { lastVisibleTs: newLastVisibleTs, lastEventTs: newLastEventTs, unreadState: newUnreadState };
 	if (current && storedUnreadInfoEqual(current, info)) return;
 	unreadInfoCache.set(roomId, info);
-	localStorage.setItem(UNREAD_STORAGE_PREFIX + roomId, JSON.stringify(info));
+	localStorage.setItem(storedUnreadInfoKey(userId, roomId), JSON.stringify(info));
 }
 
 const BotName = {
@@ -672,40 +687,58 @@ export default class Room {
 
 		const roomId = matrixRoom.roomId;
 		const events = matrixRoom.getLiveTimeline().getEvents();
+		const stored = getStoredUnreadInfo(userId, roomId);
+
+		// SDK hasn't populated the timeline yet — trust stored state.
+		if (events.length === 0) return stored?.unreadState ?? 'unknown';
+
+		const lastEventTs = events[events.length - 1].getTs();
+
+		// Only use cached 'read': it stays valid until new events arrive (lastEventTs changes).
+		// Cached 'unread' can't be trusted — a receipt may have been sent since.
+		// Cached 'unknown' can't be trusted — the timeline may have grown with older events.
+		if (stored && stored.unreadState === 'read' && stored.lastEventTs === lastEventTs) return stored.unreadState;
+
 		const receiptTs = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate)?.data.ts ?? 0;
 
-		// Find the last visible event by scanning backwards. If we hit the
-		// room creation event (immutable, sent once), the room is empty.
-		let lastVisibleEvent: MatrixEvent | undefined;
-		for (let i = events.length - 1; i >= 0; i--) {
-			if (isVisibleEvent(events[i].event, userId)) {
-				lastVisibleEvent = events[i];
-				break;
+		function compute(): { state: UnreadState; visibleEventTs?: number } {
+			// Scan backwards for the last visible event.
+			let lastVisible: MatrixEvent | undefined;
+			for (let i = events.length - 1; i >= 0; i--) {
+				if (isVisibleEvent(events[i].event, userId)) {
+					lastVisible = events[i];
+					break;
+				}
+				// Reached room creation with no messages — room is empty.
+				if (events[i].getType() === EventType.RoomCreate) return { state: 'read' };
 			}
-			if (events[i].getType() === EventType.RoomCreate) return 'read';
+
+			if (lastVisible) {
+				// Timeline contains a visible event — compare against receipt.
+				const visibleEventTs = lastVisible.getTs();
+				if (lastVisible.getSender() === userId) return { state: 'read', visibleEventTs };
+				if (receiptTs === 0 || visibleEventTs > receiptTs) return { state: 'unread', visibleEventTs };
+				return { state: 'read', visibleEventTs };
+			}
+
+			// Short timeline with no visible event and no room creation.
+			// Fall back to previously stored data from earlier visits.
+			if (!stored || stored.lastVisibleTs === 0) {
+				// Never seen a visible event in this room — can't determine state.
+				return { state: 'unknown' };
+			}
+			if (receiptTs < stored.lastVisibleTs) {
+				// Receipt is older than a visible event we saw before — unread.
+				return { state: 'unread' };
+			}
+			// Receipt covers all known visible events, but new non-visible
+			// events arrived that we can't evaluate — stay uncertain.
+			return { state: 'unknown' };
 		}
 
-		const lastEventTs = events.length > 0 ? events[events.length - 1].getTs() : 0;
-
-		if (lastVisibleEvent) {
-			// We found a visible event — record it (only advances, never
-			// overwrites a newer timestamp from a previous check).
-			updateStoredUnreadInfo(roomId, lastEventTs, lastVisibleEvent.getTs());
-
-			if (lastVisibleEvent.getSender() === userId) return 'read';
-			if (receiptTs === 0) return 'unread';
-			return lastVisibleEvent.getTs() > receiptTs ? 'unread' : 'read';
-		}
-
-		// No visible event in the timeline. Record the current last event
-		// timestamp so we can detect changes, then fall back to persisted data.
-		updateStoredUnreadInfo(roomId, lastEventTs);
-
-		const stored = getStoredUnreadInfo(roomId);
-		if (!stored || stored.lastVisibleTs === 0) return 'unknown';
-		if (receiptTs < stored.lastVisibleTs) return 'unread';
-		if (stored.lastEventTs === lastEventTs) return 'read';
-		return 'unknown';
+		const { state, visibleEventTs } = compute();
+		updateStoredUnreadInfo(userId, roomId, { lastEventTs, unreadState: state, visibleEventTs });
+		return state;
 	}
 
 	//#endregion

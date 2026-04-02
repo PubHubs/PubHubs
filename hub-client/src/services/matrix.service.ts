@@ -317,8 +317,9 @@ class MatrixService {
 	 * Called on RoomEvent.Timeline (new messages) and RoomEvent.Receipt (read receipts).
 	 * The arrow function preserves `this` when called from the client event emitter.
 	 */
-	private roomUnreadNotifications = (_event: MatrixEvent, room?: MatrixRoom) => {
-		if (room?.roomId) this.roomsStore?.notifyUnreadCountChanged(room.roomId);
+	private roomUnreadNotifications = (event: MatrixEvent, room?: MatrixRoom) => {
+		const roomId = room?.roomId ?? event.getRoomId();
+		if (roomId) this.roomsStore?.notifyUnreadCountChanged(roomId);
 	};
 
 	// #endregion

@@ -14,7 +14,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
-import Room from '@hub-client/models/rooms/Room';
+import Room, { getStoredUnreadState } from '@hub-client/models/rooms/Room';
 import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms, type UnreadState, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
@@ -276,15 +276,17 @@ const useRooms = defineStore('rooms', {
 		},
 
 		notifyUnreadCountChanged(roomId: string) {
+			const entry = this.roomList.find((r) => r.roomId === roomId);
+			if (entry) {
+				const pubhubs = usePubhubsStore();
+				const matrixRoom = pubhubs.client.getRoom(roomId);
+				// If the SDK doesn't have the room yet, fall back to localStorage
+				// to avoid flickering from 'unknown' on startup.
+				const userId = pubhubs.client.getUserId();
+				entry.unreadState = matrixRoom ? Room.unreadState(matrixRoom) : userId ? getStoredUnreadState(userId, roomId) : 'unknown';
+			}
 			// TODO: inefficient global signal; thread consumers (RoomTimeline, RoomMessageBubble) should use per-room reactivity
 			this.unreadCountVersion++;
-
-			const entry = this.roomList.find((r) => r.roomId === roomId);
-			if (!entry) return;
-
-			const pubhubs = usePubhubsStore();
-			const matrixRoom = pubhubs.client.getRoom(roomId);
-			entry.unreadState = matrixRoom ? Room.unreadState(matrixRoom) : 'unknown';
 		},
 
 		loadFromSlidingSync(roomId: string, roomData: SlidingSyncRoomData) {

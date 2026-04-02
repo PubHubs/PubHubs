@@ -72,10 +72,7 @@
 		updateUnreadState(await rooms.fetchAggregateUnreadState());
 	});
 
-	// Re-evaluate when the hub client (same origin, different iframe) writes
-	// new unread info to localStorage. Registered before login — harmless because
-	// notifyUnreadCountChanged returns early when the room isn't in roomList yet.
-	const unsubscribeExternalUpdates = onExternalUnreadUpdate(rooms.notifyUnreadCountChanged);
+	let unsubscribeExternalUpdates: (() => void) | null = null;
 
 	onMounted(async () => {
 		logger.debug('Miniclient.vue onMounted');
@@ -85,7 +82,12 @@
 		// Startup, login, fetch the initial unread state, set watch for read receipt event
 		startMessageBox()
 			.then(() => pubhubs.login())
-			.then(() => rooms.fetchAggregateUnreadState())
+			.then(() => {
+				// Re-evaluate when the hub client (same origin, different iframe)
+				// writes new unread info to localStorage for this user.
+				unsubscribeExternalUpdates = onExternalUnreadUpdate(pubhubs.client.getUserId()!, rooms.notifyUnreadCountChanged);
+				return rooms.fetchAggregateUnreadState();
+			})
 			.then((state) => {
 				LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted done');
 				updateUnreadState(state);
@@ -98,7 +100,7 @@
 
 	onUnmounted(() => {
 		pubhubs.client.off(RoomEvent.Receipt, receiptHandler);
-		unsubscribeExternalUpdates();
+		unsubscribeExternalUpdates?.();
 	});
 
 	async function startMessageBox() {
