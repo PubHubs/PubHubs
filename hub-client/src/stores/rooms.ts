@@ -14,8 +14,8 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
-import Room, { type UnreadState } from '@hub-client/models/rooms/Room';
-import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+import Room from '@hub-client/models/rooms/Room';
+import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms, type UnreadState, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -73,7 +73,7 @@ const useRooms = defineStore('rooms', {
 		return {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
-			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu
+			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu. TODO: a Map<roomId, RoomListRoom> would give O(1) lookups (e.g. notifyUnreadCountChanged)
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: Record<string, string> } },
@@ -253,17 +253,7 @@ const useRooms = defineStore('rooms', {
 		// displayed in the sidebar: public, secured, and private).
 		async fetchAggregateUnreadState(): Promise<UnreadState> {
 			await this.waitForInitialRoomsLoaded();
-			const pubhubs = usePubhubsStore();
-			const visibleRooms = [...this.loadedPublicRooms, ...this.loadedSecuredRooms, ...this.loadedPrivateRooms];
-			let worst: UnreadState = 'read';
-			for (const r of visibleRooms) {
-				const matrixRoom = pubhubs.client.getRoom(r.roomId);
-				if (!matrixRoom) continue;
-				const state = Room.unreadState(matrixRoom);
-				if (state === 'unread') return 'unread';
-				if (state === 'unknown') worst = 'unknown';
-			}
-			return worst;
+			return worstUnreadState([...this.loadedPublicRooms, ...this.loadedSecuredRooms, ...this.loadedPrivateRooms].map((r) => r.unreadState));
 		},
 
 		async waitForInitialRoomsLoaded(): Promise<void> {
@@ -272,15 +262,29 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
-		setRoomsLoaded(value: boolean) {
-			this.initialRoomsLoaded = value;
+		setRoomsLoaded(loaded: boolean) {
+			this.initialRoomsLoaded = loaded;
+			if (!loaded) return;
+			// Rooms are added to roomList with unreadState 'unknown'. Compute the
+			// real state now that all rooms and the SDK are ready.
+			for (const entry of this.roomList) {
+				this.notifyUnreadCountChanged(entry.roomId);
+			}
 		},
 		setTimestamps(timestamps: Array<Array<number | string>>) {
 			this.timestamps = timestamps;
 		},
 
-		notifyUnreadCountChanged() {
+		notifyUnreadCountChanged(roomId: string) {
+			// TODO: inefficient global signal; thread consumers (RoomTimeline, RoomMessageBubble) should use per-room reactivity
 			this.unreadCountVersion++;
+
+			const entry = this.roomList.find((r) => r.roomId === roomId);
+			if (!entry) return;
+
+			const pubhubs = usePubhubsStore();
+			const matrixRoom = pubhubs.client.getRoom(roomId);
+			entry.unreadState = matrixRoom ? Room.unreadState(matrixRoom) : 'unknown';
 		},
 
 		loadFromSlidingSync(roomId: string, roomData: SlidingSyncRoomData) {
@@ -624,16 +628,8 @@ const useRooms = defineStore('rooms', {
 		getTPublicRoom(roomId: string): TPublicRoom | undefined {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
-		// Returns the worst unread state across private rooms that have messages.
 		getPrivateRoomUnreadState(): UnreadState {
-			let worst: UnreadState = 'read';
-			for (const room of this.privateRooms) {
-				if (!room.hasMessages()) continue;
-				const state = room.unreadState();
-				if (state === 'unread') return 'unread';
-				if (state === 'unknown') worst = 'unknown';
-			}
-			return worst;
+			return worstUnreadState(this.loadedPrivateRooms.map((r) => r.unreadState));
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {

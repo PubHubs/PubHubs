@@ -33,7 +33,8 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { type UnreadState, onExternalUnreadUpdate } from '@hub-client/models/rooms/Room';
+	import { onExternalUnreadUpdate } from '@hub-client/models/rooms/Room';
+	import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -72,10 +73,9 @@
 	});
 
 	// Re-evaluate when the hub client (same origin, different iframe) writes
-	// new unread info to localStorage.
-	const unsubscribeExternalUpdates = onExternalUnreadUpdate(() => {
-		rooms.notifyUnreadCountChanged();
-	});
+	// new unread info to localStorage. Registered before login — harmless because
+	// notifyUnreadCountChanged returns early when the room isn't in roomList yet.
+	const unsubscribeExternalUpdates = onExternalUnreadUpdate(rooms.notifyUnreadCountChanged);
 
 	onMounted(async () => {
 		logger.debug('Miniclient.vue onMounted');

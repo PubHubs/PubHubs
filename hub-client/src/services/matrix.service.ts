@@ -1,5 +1,5 @@
 // Packages
-import { EventType, type IStateEvent, type MatrixClient, RoomEvent } from 'matrix-js-sdk';
+import { EventType, type IRoomEvent, type IStateEvent, type MatrixClient, type MatrixEvent, type Room as MatrixRoom, RoomEvent } from 'matrix-js-sdk';
 import {
 	type MSC3575List,
 	type MSC3575RoomData,
@@ -215,7 +215,8 @@ class MatrixService {
 			name: roomName,
 			stateEvents: required_state,
 			isHidden: false,
-		}); // Update the roomlist with the current room
+			unreadState: 'unknown',
+		});
 	}
 
 	/**
@@ -316,8 +317,8 @@ class MatrixService {
 	 * Called on RoomEvent.Timeline (new messages) and RoomEvent.Receipt (read receipts).
 	 * The arrow function preserves `this` when called from the client event emitter.
 	 */
-	private roomUnreadNotifications = () => {
-		this.roomsStore?.notifyUnreadCountChanged();
+	private roomUnreadNotifications = (_event: MatrixEvent, room?: MatrixRoom) => {
+		if (room?.roomId) this.roomsStore?.notifyUnreadCountChanged(room.roomId);
 	};
 
 	// #endregion

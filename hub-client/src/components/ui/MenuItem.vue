@@ -45,7 +45,7 @@
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Models
-	import { type RoomListRoom } from '@hub-client/models/rooms/TBaseRoom';
+	import { type RoomListRoom, RoomType, SecuredRooms, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useMenu } from '@hub-client/stores/menu';
@@ -91,8 +91,7 @@
 	});
 
 	const dmUnreadState = computed(() => {
-		void rooms.unreadCountVersion;
-		return rooms.getPrivateRoomUnreadState();
+		return worstUnreadState(rooms.loadedPrivateRooms.map((r) => r.unreadState));
 	});
 
 	const roomIsActive = computed(() => {

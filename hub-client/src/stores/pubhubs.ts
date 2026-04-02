@@ -421,7 +421,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const roomType: string = knownRoomType ?? publicRoomEntry?.room_type ?? getRoomType(matrixRoom);
 				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				roomStore.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-				roomStore.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false });
+				roomStore.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false, unreadState: 'unknown' });
 			} catch (err) {
 				if (err instanceof MatrixError) {
 					const isBanned = err.errcode === 'M_BAD_STATE' && err.httpStatus === 403;
@@ -989,7 +989,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 				const rooms = useRooms();
 				setTimeout(() => {
-					rooms.notifyUnreadCountChanged();
+					rooms.notifyUnreadCountChanged(roomId);
 				}, 100);
 			} catch {
 				// Silently fail - receipt sending is not critical

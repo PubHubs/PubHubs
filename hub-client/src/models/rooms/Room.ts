@@ -33,6 +33,7 @@ import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
 import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
+import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
@@ -58,8 +59,6 @@ type RoomThread = {
 	threadLength: number;
 };
 
-export type UnreadState = 'read' | 'unread' | 'unknown';
-
 /**
  * Persisted per-room data for resolving unread state when the current
  * timeline doesn't contain a visible event (e.g. timeline_limit:1
@@ -68,9 +67,9 @@ export type UnreadState = 'read' | 'unread' | 'unknown';
  * - lastVisibleTs: timestamp of the most recent visible event we've
  *   ever seen. Compared against the read receipt to determine
  *   unread (receipt < ts) or read (receipt >= ts).
- * - lastEventId: event ID of the last timeline event we saw. If the
- *   current last event matches, nothing new arrived since we last
- *   checked, so lastVisibleTs is still current.
+ * - lastEventTs: timestamp of the last timeline event we saw. If the
+ *   current last event has the same timestamp, nothing new arrived
+ *   since we last checked, so lastVisibleTs is still current.
  */
 // When adding fields, also update storedUnreadInfoEqual.
 type StoredUnreadInfo = { lastVisibleTs: number; lastEventTs: number };
@@ -88,28 +87,34 @@ const UNREAD_STORAGE_PREFIX = 'ph:unread:';
 // Miniclient) writes.
 const unreadInfoCache = new Map<string, StoredUnreadInfo>();
 
+// This module is browser-only. Fail loudly rather than silently breaking badges.
+// Tests use jsdom, which provides window, so this does not break unit tests.
 if (typeof window === 'undefined') {
 	throw new Error('Room.ts requires a browser environment with window and localStorage');
 }
 
-function parseStoredUnreadInfo(roomId: string, raw: string): StoredUnreadInfo | null {
+/** Parse a localStorage value into the in-memory cache. Does not write back to localStorage. */
+function cacheStoredUnreadInfo(roomId: string, raw: string): { updated: StoredUnreadInfo | null; changed: boolean } {
+	let updated: StoredUnreadInfo;
 	try {
-		const info: StoredUnreadInfo = JSON.parse(raw);
-		unreadInfoCache.set(roomId, info);
-		return info;
+		updated = JSON.parse(raw);
 	} catch {
 		LOGGER.warn(SMI.ROOM, `Malformed unread info in localStorage for room ${roomId}`);
 		localStorage.removeItem(UNREAD_STORAGE_PREFIX + roomId);
-		return null;
+		return { updated: null, changed: false };
 	}
+	const previous = unreadInfoCache.get(roomId);
+	const changed = !previous || !storedUnreadInfoEqual(previous, updated);
+	unreadInfoCache.set(roomId, updated);
+	return { updated, changed };
 }
 
 // Subscribers notified when another context (e.g. hub client) updates
 // stored unread info. Used by the Miniclient to re-evaluate its badge.
-const externalUpdateListeners = new Set<() => void>();
+const externalUpdateListeners = new Set<(roomId: string) => void>();
 
 /** Register a callback for when stored unread info is updated by another context. Returns an unsubscribe function. */
-export function onExternalUnreadUpdate(callback: () => void): () => void {
+export function onExternalUnreadUpdate(callback: (roomId: string) => void): () => void {
 	externalUpdateListeners.add(callback);
 	return () => externalUpdateListeners.delete(callback);
 }
@@ -118,10 +123,9 @@ window.addEventListener('storage', (e) => {
 	if (!e.key?.startsWith(UNREAD_STORAGE_PREFIX)) return;
 	if (!e.newValue) return;
 	const roomId = e.key.slice(UNREAD_STORAGE_PREFIX.length);
-	const previous = unreadInfoCache.get(roomId);
-	const updated = parseStoredUnreadInfo(roomId, e.newValue);
-	if (updated && (!previous || !storedUnreadInfoEqual(previous, updated))) {
-		externalUpdateListeners.forEach((cb) => cb());
+	const { changed } = cacheStoredUnreadInfo(roomId, e.newValue);
+	if (changed) {
+		externalUpdateListeners.forEach((cb) => cb(roomId));
 	}
 });
 
@@ -130,7 +134,8 @@ function getStoredUnreadInfo(roomId: string): StoredUnreadInfo | null {
 	if (cached) return cached;
 	const raw = localStorage.getItem(UNREAD_STORAGE_PREFIX + roomId);
 	if (!raw) return null;
-	return parseStoredUnreadInfo(roomId, raw);
+	const { updated } = cacheStoredUnreadInfo(roomId, raw);
+	return updated;
 }
 
 /** Merge new knowledge into stored unread info. Both timestamps only advance. */
