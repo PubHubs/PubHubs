@@ -9,7 +9,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
-## Changes not yet released
+## 02 April 2026 - v3.2.2
 
 - [NEW, behind a feature flag for now] Stewards (and users with higher privileges) can send whisper messages to other users in a room.
 - [NEW] Messages can be shared.
@@ -31,14 +31,14 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed adding/removing group room members during group room creation.
 - [FIX] Fixed memory leak on file upload.
 
-## 11 February 2025 - v3.2.1
+## 11 February 2026 - v3.2.1
 
 - [BUG] Memberlist is again shown
 - [BUG] Icon reply for root of thread disabled in thread timeline
 - [BUG] Removed timeout for reading of hubs for debugging
   - _internal_ (remove me after merge): uncomment []
 
-## 06 February 2025 - v3.2.0
+## 06 February 2026 - v3.2.0
 
 - [NEW] Room timeline scrolling experience is optimized
 - [NEW] Reintroduced Pubhubs card for login
