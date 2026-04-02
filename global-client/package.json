@@ -1,6 +1,6 @@
 {
 	"name": "@pubhubs/global-client",
-	"version": "3.2.0",
+	"version": "3.2.2",
 	"type": "module",
 	"private": true,
 	"scripts": {
@@ -29,7 +29,7 @@
 		"util": "^0.12.5",
 		"vue": "^3.2.13",
 		"vue-i18n": "^11",
-		"vue-router": "^4.1.5",
+		"vue-router": "^5.0.4",
 		"vuedraggable": "^4"
 	},
 	"devDependencies": {
@@ -42,16 +42,16 @@
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-vue": "^9",
 		"jsdoc": "^4.0.2",
-		"jsdom": "^27",
+		"jsdom": "^29",
 		"msw": "^2.12.4",
 		"postcss": "^8.5.3",
 		"prettier": "^3.5.0",
 		"prettier-eslint": "^16.3.0",
 		"prettier-plugin-tailwindcss": "^0.7.2",
 		"tailwindcss": "^4.1.11",
-		"typescript": "^5.0.2",
-		"vite-plugin-node-polyfills": "^0.24.0",
-		"vite-plugin-pwa": "^1.0.0",
+		"typescript": "^6.0.2",
+		"vite-plugin-node-polyfills": "^0.26.0",
+		"vite-plugin-pwa": "^1.2.0",
 		"vitest": "^4"
 	},
 	"eslintConfig": {
