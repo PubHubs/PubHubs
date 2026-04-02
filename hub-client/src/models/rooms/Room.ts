@@ -80,76 +80,18 @@ function storedUnreadInfoEqual(a: StoredUnreadInfo, b: StoredUnreadInfo): boolea
 	return a.lastVisibleTs === b.lastVisibleTs && a.lastEventTs === b.lastEventTs && a.unreadState === b.unreadState;
 }
 
-const UNREAD_STORAGE_PREFIX = 'ph:unread:';
-
-function storedUnreadInfoKey(userId: string, roomId: string): string {
-	return `${UNREAD_STORAGE_PREFIX}${userId}|${roomId}`;
-}
-
-// In-memory cache: avoids repeated JSON.parse on the hot path.
-// Written through to localStorage only when values change.
-// Populated from localStorage on first access per room, and updated
-// via the 'storage' event when another context (e.g. hub client ↔
-// Miniclient) writes.
+// In-memory cache of per-room unread info. Not persisted — recomputed on
+// page load from the SDK timeline. Persistence via the global client's
+// localStorage is planned (stage 2) but not yet implemented.
 const unreadInfoCache = new Map<string, StoredUnreadInfo>();
 
-// This module is browser-only. Fail loudly rather than silently breaking badges.
-// Tests use jsdom, which provides window, so this does not break unit tests.
-if (typeof window === 'undefined') {
-	throw new Error('Room.ts requires a browser environment with window and localStorage');
-}
-
-/** Parse a localStorage value into the in-memory cache. Does not write back to localStorage. */
-function cacheStoredUnreadInfo(storageKey: string, roomId: string, raw: string): { updated: StoredUnreadInfo | null; changed: boolean } {
-	let updated: StoredUnreadInfo;
-	try {
-		updated = JSON.parse(raw);
-		// Default for old entries that lack the unreadState field.
-		updated.unreadState ??= 'unknown';
-	} catch {
-		LOGGER.warn(SMI.ROOM, `Malformed unread info in localStorage for room ${roomId}`);
-		localStorage.removeItem(storageKey);
-		return { updated: null, changed: false };
-	}
-	const previous = unreadInfoCache.get(roomId);
-	const changed = !previous || !storedUnreadInfoEqual(previous, updated);
-	unreadInfoCache.set(roomId, updated);
-	return { updated, changed };
-}
-
-/** Register a storage listener for when another context (e.g. hub client ↔ Miniclient)
- *  updates unread info for the given user. Returns an unsubscribe function. */
-export function onExternalUnreadUpdate(userId: string, callback: (roomId: string) => void): () => void {
-	const prefix = UNREAD_STORAGE_PREFIX + userId + '|';
-	const listener = (e: StorageEvent) => {
-		if (!e.key?.startsWith(prefix)) return;
-		if (!e.newValue) return;
-		const roomId = e.key.slice(prefix.length);
-		const { changed } = cacheStoredUnreadInfo(e.key, roomId, e.newValue);
-		if (changed) callback(roomId);
-	};
-	window.addEventListener('storage', listener);
-	return () => window.removeEventListener('storage', listener);
-}
-
-/** Returns the previously stored unread state for a room, or 'unknown' if none. */
-export function getStoredUnreadState(userId: string, roomId: string): UnreadState {
-	return getStoredUnreadInfo(userId, roomId)?.unreadState ?? 'unknown';
-}
-
-function getStoredUnreadInfo(userId: string, roomId: string): StoredUnreadInfo | null {
-	const cached = unreadInfoCache.get(roomId);
-	if (cached) return cached;
-	const key = storedUnreadInfoKey(userId, roomId);
-	const raw = localStorage.getItem(key);
-	if (!raw) return null;
-	const { updated } = cacheStoredUnreadInfo(key, roomId, raw);
-	return updated;
+function getStoredUnreadInfo(roomId: string): StoredUnreadInfo | null {
+	return unreadInfoCache.get(roomId) ?? null;
 }
 
 /** Merge new knowledge into stored unread info. Both timestamps only advance. */
-function updateStoredUnreadInfo(userId: string, roomId: string, update: { lastEventTs: number; unreadState: UnreadState; visibleEventTs?: number }): void {
-	const current = getStoredUnreadInfo(userId, roomId);
+function updateStoredUnreadInfo(roomId: string, update: { lastEventTs: number; unreadState: UnreadState; visibleEventTs?: number }): void {
+	const current = unreadInfoCache.get(roomId);
 	const newLastVisibleTs = Math.max(current?.lastVisibleTs ?? 0, update.visibleEventTs ?? 0);
 	const newLastEventTs = Math.max(current?.lastEventTs ?? 0, update.lastEventTs);
 	// 'unknown' means insufficient information — only overwrite a
@@ -161,7 +103,6 @@ function updateStoredUnreadInfo(userId: string, roomId: string, update: { lastEv
 	const info: StoredUnreadInfo = { lastVisibleTs: newLastVisibleTs, lastEventTs: newLastEventTs, unreadState: newUnreadState };
 	if (current && storedUnreadInfoEqual(current, info)) return;
 	unreadInfoCache.set(roomId, info);
-	localStorage.setItem(storedUnreadInfoKey(userId, roomId), JSON.stringify(info));
 }
 
 const BotName = {
@@ -674,7 +615,7 @@ export default class Room {
 	 * last visible event (see isVisibleEvent) and comparing its timestamp
 	 * against the user's private read receipt. When no visible event is in
 	 * the timeline (e.g. timeline_limit:1 delivered only a state event),
-	 * falls back to localStorage-persisted data from a previous check.
+	 * falls back to in-memory cached data from a previous check.
 	 *
 	 * Returns one of three states:
 	 * - 'unread': there are definitely unread messages
@@ -687,7 +628,7 @@ export default class Room {
 
 		const roomId = matrixRoom.roomId;
 		const events = matrixRoom.getLiveTimeline().getEvents();
-		const stored = getStoredUnreadInfo(userId, roomId);
+		const stored = getStoredUnreadInfo(roomId);
 
 		// SDK hasn't populated the timeline yet — trust stored state.
 		if (events.length === 0) return stored?.unreadState ?? 'unknown';
@@ -737,7 +678,7 @@ export default class Room {
 		}
 
 		const { state, visibleEventTs } = compute();
-		updateStoredUnreadInfo(userId, roomId, { lastEventTs, unreadState: state, visibleEventTs });
+		updateStoredUnreadInfo(roomId, { lastEventTs, unreadState: state, visibleEventTs });
 		return state;
 	}
 

@@ -33,7 +33,6 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { onExternalUnreadUpdate } from '@hub-client/models/rooms/Room';
 	import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
@@ -72,8 +71,6 @@
 		updateUnreadState(await rooms.fetchAggregateUnreadState());
 	});
 
-	let unsubscribeExternalUpdates: (() => void) | null = null;
-
 	onMounted(async () => {
 		logger.debug('Miniclient.vue onMounted');
 
@@ -82,12 +79,7 @@
 		// Startup, login, fetch the initial unread state, set watch for read receipt event
 		startMessageBox()
 			.then(() => pubhubs.login())
-			.then(() => {
-				// Re-evaluate when the hub client (same origin, different iframe)
-				// writes new unread info to localStorage for this user.
-				unsubscribeExternalUpdates = onExternalUnreadUpdate(pubhubs.client.getUserId()!, rooms.notifyUnreadCountChanged);
-				return rooms.fetchAggregateUnreadState();
-			})
+			.then(() => rooms.fetchAggregateUnreadState())
 			.then((state) => {
 				LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted done');
 				updateUnreadState(state);
@@ -100,7 +92,6 @@
 
 	onUnmounted(() => {
 		pubhubs.client.off(RoomEvent.Receipt, receiptHandler);
-		unsubscribeExternalUpdates?.();
 	});
 
 	async function startMessageBox() {
