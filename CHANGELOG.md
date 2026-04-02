@@ -10,31 +10,33 @@ _Please add a brief description of any changes and any migrations to be performe
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
 ## Changes not yet released
-- [NEW] Stewards (and users with higher privileges) can send whisper messages to other users in a room.
+
+- [NEW, behind a feature flag for now] Stewards (and users with higher privileges) can send whisper messages to other users in a room.
 - [NEW] Messages can be shared.
 - [NEW, behind a feature flag for now] Hubs now use postgres as database instead of sqlite.
   - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,
-    during which the hub is not reachable.  Keep a close eye on the hub's output.
+    during which the hub is not reachable. Keep a close eye on the hub's output.
   - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
     in `homeserver.live.yaml`.
   - If the migration was succesfull, `homeserver.db` is moved to `homeserver.db.bak`.
-  - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container) 
+  - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container)
     must be removed before the migration can be re-attempted.
-  - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres` 
+  - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
     to the hub container's entrypoint.
-- [NEW] Startup optimization. Instead of fetching timelines for all joined rooms, 
-    only a timeline of 1 entry is fetched at selecting a room. 
-- [NEW] Changed pagination from the standard pagination that filters client-side 
-    to the createMessageRequest endpoint that filters on the server.
-- [BUG] Refresh does not break the navigation. User stays on the same page on refresh.    
+- [NEW] Startup optimization. Instead of fetching timelines for all joined rooms,
+  only a timeline of 1 entry is fetched at selecting a room.
+- [NEW] Changed pagination from the standard pagination that filters client-side
+  to the createMessageRequest endpoint that filters on the server.
+- [BUG] Refresh does not break the navigation. User stays on the same page on refresh.
 - [BUG] Fixed adding/removing group room members during group room creation.
 - [FIX] Fixed memory leak on file upload.
 
 ## 11 February 2025 - v3.2.1
+
 - [BUG] Memberlist is again shown
 - [BUG] Icon reply for root of thread disabled in thread timeline
 - [BUG] Removed timeout for reading of hubs for debugging
-  - _internal_ (remove me after merge): uncomment [] 
+  - _internal_ (remove me after merge): uncomment []
 
 ## 06 February 2025 - v3.2.0
 
@@ -47,8 +49,6 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Polls/datepickers were not always correctly updated
 - [BUG] Searching for rooms in Discover Rooms was too slow, especially in Firefox
 - [BUG] Direct messages were not showing group messages
-
-
 
 ## 09 December 2025 - v3.1.1
 
