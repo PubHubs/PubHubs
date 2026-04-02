@@ -73,7 +73,7 @@ const useRooms = defineStore('rooms', {
 		return {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
-			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu. TODO: a Map<roomId, RoomListRoom> would give O(1) lookups (e.g. notifyUnreadCountChanged)
+			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu. TODO: split into a Map<roomId, RoomListRoom> for O(1) lookup + a sorted [name, roomId][] array for display order
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: Record<string, string> } },
