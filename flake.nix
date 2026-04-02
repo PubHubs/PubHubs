@@ -49,28 +49,29 @@
               with pkgs;
               [
                 # Docker
-                docker # 29.2.0
-                buildkit # 0.26.3
+                docker # 29.2.1
+                buildkit # 0.27.1
 
                 # Node
                 nodejs # 24.13.0
-                nodePackages.sass # 1.85.1
 
                 # Python
-                python3 # 3.13.11
+                python3 # 3.13.12
 
                 # Rust
-                rustc # 1.92
-                cargo # 1.92
+                rustc # 1.93
+                cargo # 1.93
                 cargo-watch # 8.5.3
-                clippy # 0.1.92
+                clippy # 0.1.93
                 rustfmt # 1.8.0
 
                 # Other
+                android-tools # 35.0.2
                 mask # 0.11.7
-                openssl # 3.6.0
+                openssl # 3.6.1
                 pkg-config # 0.29.2
                 sqlite # 3.51.2
+
                 tmux # 3.6a
               ]
               ++ [

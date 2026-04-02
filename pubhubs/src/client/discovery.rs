@@ -1,9 +1,10 @@
 use crate::api::{self, ApiResultExt as _, NoPayload};
+use crate::servers::constellation::ConstellationOrId;
 use crate::servers::{self, Constellation, server::Server as _};
 
 impl crate::client::Client {
     /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
-    pub async fn get_constellation(&self, url: &url::Url) -> anyhow::Result<Constellation> {
+    pub async fn get_constellation(&self, url: &url::Url) -> anyhow::Result<ConstellationOrId> {
         crate::misc::task::retry(|| async {
             // Retry calling DiscoveryInfo endpoint while it returns a retryable error or some
             // DiscoveryInfoResp with None constellation until constellation is Some.
@@ -11,9 +12,9 @@ impl crate::client::Client {
                 .await
                 .retryable()/* <- turns retryable error Err(err) into Ok(None) */?
             {
-                Some(inf) => Ok(inf.constellation),
+                Some(inf) => Ok(inf.constellation_or_id),
                 None => Ok(None),
-            }) as anyhow::Result<Option<Constellation>>
+            }) as anyhow::Result<Option<ConstellationOrId>>
         })
         .await?
         .ok_or_else(|| {
@@ -32,14 +33,21 @@ impl crate::client::Client {
     ) -> api::Result<Option<Constellation>> {
         log::debug!("trying to get stable constellation");
         let phc_inf = self.query::<api::DiscoveryInfo>(phc_url, NoPayload).await?;
-        if phc_inf.constellation.is_none() {
+        if phc_inf.constellation_or_id.is_none() {
             log::debug!(
                 "{phc}'s constellation not yet set",
                 phc = servers::Name::PubhubsCentral
             );
             return Ok(None);
         }
-        let constellation = phc_inf.constellation.unwrap();
+
+        let Some(constellation) = phc_inf.constellation_or_id.unwrap().into_constellation() else {
+            log::error!(
+                "{phc} did not return a constellation, but just its id",
+                phc = servers::Name::PubhubsCentral
+            );
+            return Err(api::ErrorCode::InternalError);
+        };
 
         let mut js = tokio::task::JoinSet::new();
 
@@ -64,8 +72,8 @@ impl crate::client::Client {
                 Some(Ok(inf_res)) => {
                     let inf = inf_res?;
 
-                    if inf.constellation.is_none()
-                        || inf.constellation.unwrap().id != constellation.id
+                    if inf.constellation_or_id.is_none()
+                        || *inf.constellation_or_id.unwrap().id() != constellation.id
                     {
                         log::debug!("constellations not yet in sync");
                         return Ok(None);
@@ -144,9 +152,9 @@ impl DiscoveryInfoCheck<'_> {
             return Err(api::ErrorCode::InternalError);
         }
 
-        if let Some(ref c) = inf.constellation
-            && self.constellation.is_some()
-            && c.id != self.constellation.unwrap().id
+        if let Some(ref ic) = inf.constellation_or_id
+            && let Some(sc) = self.constellation
+            && *ic.id() != sc.id
         {
             log::error!(
                 "{} at {} has a different view of the constellation of PubHubs servers",

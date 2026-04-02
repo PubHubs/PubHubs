@@ -37,7 +37,7 @@ const useMSS = defineStore('mss', {
 	},
 
 	actions: {
-		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode): Promise<{ key: string; values?: string[] } | undefined> {
+		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode, registerOnlyWithUniqueAttrs = false): Promise<{ key: string; values?: string[] } | undefined> {
 			const settings = useSettings();
 			const cardFeature = settings.isFeatureEnabled(FeatureFlag.phCard);
 			const authServer = await this.getAuthServer();
@@ -92,7 +92,7 @@ const useMSS = defineStore('mss', {
 			// ? If there are several identifying attributes pick the first one
 			const identifyingHandle = Object.keys(identifying)[0];
 			const identifyingAttr = authSuccess.attrs[identifyingHandle];
-			const { entered, errorMessage } = await this.phcServer.enter(additional, enterMode, identifyingAttr);
+			const { entered, errorMessage } = await this.phcServer.enter(additional, enterMode, identifyingAttr, registerOnlyWithUniqueAttrs);
 			if (!entered) return errorMessage;
 
 			// Load updated state
@@ -105,7 +105,7 @@ const useMSS = defineStore('mss', {
 			// 9. Issue a Pubhubs card if registering a new account
 			if (isRegistering && cardFeature) {
 				const comment = 'via\n' + attributeValues.join('\n');
-				const { cardAttr, errorMessage } = await this.issueCard(true, comment);
+				const { cardAttr, errorMessage } = await this.issueCard(true, comment, identifyingAttr);
 				if (!cardAttr) return errorMessage;
 				identifying['ph_card'] = cardAttr;
 			}

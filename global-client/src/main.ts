@@ -38,7 +38,6 @@ import { useGlobal } from '@global-client/stores/global';
 
 // Other
 import { registerComponents } from '@global-client/registerComponents';
-import '@global-client/registerServiceWorker';
 
 import { ReplaceConsole } from '@hub-client/console';
 import { setUpi18n } from '@hub-client/i18n';
@@ -85,21 +84,6 @@ router.beforeEach(async (to, _from, next) => {
 	} else {
 		next();
 	}
-});
-
-router.beforeEach(async (to, _from) => {
-	// 'onboarding' refers to /register (for some reason)
-	if (to.name !== 'onboarding') {
-		return;
-	}
-	if (!('yivi_info' in to.query)) {
-		return;
-	}
-	if ('escape-attempted' in to.query) {
-		return;
-	}
-
-	return { name: 'escape-in-app-browser', query: { next: window.location.href + '&escape-attempted' } };
 });
 
 // Set up Pinia store

@@ -15,7 +15,7 @@ impl EndpointDetails for InfoEP {
     const PATH: &'static str = ".ph/info";
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 #[must_use]
 pub struct InfoResp {
@@ -23,6 +23,7 @@ pub struct InfoResp {
     ///
     /// (Not currently returned by actual hubs.)
     #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub verifying_key: Option<VerifyingKey>,
 
     /// String describing the hub version, likely the result of `git describe --tags`
@@ -38,11 +39,11 @@ pub struct InfoResp {
 }
 
 /// Type for [`InfoResp::dynamic`]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 #[must_use]
 pub struct DynamicHubInfo {
-    /// The last time these settings were reloaded
+    /// The last time these settings were reloaded by the hub
     pub last_reload: NumericDate,
 
     /// Hub settings set by admin

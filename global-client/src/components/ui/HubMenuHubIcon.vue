@@ -1,19 +1,9 @@
 <template>
 	<!-- HubLogo with unreadmessages marker -->
-	<div
-		v-if="hub"
-		:class="{ 'border-on-accent-secondary bg-on-accent-secondary border-4': active && !hubOrderingIsActive }"
-		class="group relative z-0 block h-full w-full cursor-pointer rounded-xl text-center transition-all ease-in-out"
-		:title="hub.name"
-	>
-		<div :class="{ 'border-on-accent-secondary bg-on-accent-secondary border-t-4 border-r-4': active && !hubOrderingIsActive }" class="absolute top-1/3 -right-2 -z-10 h-4 w-4 rotate-45"></div>
-		<div v-if="hub && hub.unreadMessages > 0 && !hubOrderingIsActive && !settings.isFeatureEnabled(FeatureFlag.unreadCounter)" class="absolute -top-2 -right-2 z-10 group-hover:hidden">
-			<Badge class="text-label-small" color="ph" v-if="hub.unreadMessages > 99">99+</Badge>
-			<Badge color="ph" v-else>{{ hub.unreadMessages }}</Badge>
-		</div>
-
+	<div v-if="hub" :class="{ 'border-surface-elevated border-4': active && !hubOrderingIsActive }" class="group relative z-0 block h-full w-full cursor-pointer rounded-xl text-center transition-all ease-in-out" :title="hub.name">
+		<div :class="{ 'border-surface-elevated bg-surface-elevated border-t-4 border-r-4': active && !hubOrderingIsActive }" class="absolute top-1/3 -right-2 -z-10 h-4 w-4 rotate-45"></div>
 		<div v-show="hub && !hubOrderingIsActive && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)" class="absolute -top-1 -right-1 z-10">
-			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="pointer-events-none h-300 w-300" :id="miniClientId + '_' + hubId"></iframe>
+			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="pointer-events-none h-300 w-300 border-none" :id="miniClientId + '_' + hubId"></iframe>
 		</div>
 
 		<HubIcon :hub-name="hub.name" :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :is-active="active" />
@@ -25,7 +15,6 @@
 	import { ref } from 'vue';
 
 	// Components
-	import Badge from '@hub-client/components/elements/Badge.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
 	// Models
@@ -46,7 +35,6 @@
 		pinned?: boolean;
 		pinnable?: boolean;
 		active?: boolean;
-		hubOrderingIsActive?: boolean;
 	};
 
 	const global = useGlobal();
@@ -62,7 +50,6 @@
 		pinned: false,
 		pinnable: false,
 		active: false,
-		hubOrderingIsActive: false,
 	});
 
 	hubs.setupMiniclient(props.hubId);

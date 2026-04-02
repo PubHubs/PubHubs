@@ -1,20 +1,8 @@
 <template>
-	<div class="w-full max-w-screen">
-		<!-- Header -->
-		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
-			<div class="flex h-full w-full items-center justify-between gap-16">
-				<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer" class="h-full py-2">
-					<Logo />
-				</a>
-				<div class="flex h-4 items-center justify-center gap-2">
-					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('nl')">NL</p>
-					<span>|</span>
-					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('en')">EN</p>
-				</div>
-			</div>
-		</div>
+	<div class="flex w-full max-w-screen flex-col">
+		<AuthHeader />
 
-		<div class="overflow-y-auto" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
+		<div class="h-[calc(100svh_-_80px)] overflow-y-auto">
 			<!-- Registration section -->
 			<section class="bg-background flex flex-col overflow-x-hidden" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)] gap-4 py-4' : 'gap-8 py-16'">
 				<div class="flex shrink-0 flex-col" :class="isMobile ? 'h-full gap-4' : 'gap-8'">
@@ -27,7 +15,7 @@
 					</div>
 
 					<!-- Carousel -->
-					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
+					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_80px)]'">
 						<!-- Mobile -->
 						<div v-if="isMobile" ref="carouselMobile" class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4">
 							<!-- Card 1 -->
@@ -92,10 +80,10 @@
 							v-else
 							ref="carouselDesktop"
 							class="no-scrollbar flex snap-x snap-mandatory gap-12 overflow-x-auto scroll-smooth py-6"
-							style="padding-left: calc(50vw - 40ch); padding-right: calc(50vw - 40ch); scroll-padding-left: calc(50vw - 40ch); scroll-padding-right: calc(50vw - 40ch)"
+							style="padding-left: max(1rem, calc(50vw - 40ch)); padding-right: max(1rem, calc(50vw - 40ch)); scroll-padding-left: max(1rem, calc(50vw - 40ch)); scroll-padding-right: max(1rem, calc(50vw - 40ch))"
 						>
 							<!-- Card 1 -->
-							<CarouselCard :index="0" @next="scrollTo" :class="currentIndex !== 0 && 'pointer-events-none'">
+							<CarouselCard :index="0" :active="currentIndex === 0" @next="scrollTo" :class="currentIndex !== 0 && 'pointer-events-none'">
 								<template #title>
 									<H2>{{ $t('register.card_1_title', [$t('common.yivi')]) }}</H2>
 								</template>
@@ -115,7 +103,7 @@
 							</CarouselCard>
 
 							<!-- Card 2 -->
-							<CarouselCard :index="1" @next="scrollTo" :class="currentIndex !== 1 && 'pointer-events-none'">
+							<CarouselCard :index="1" :active="currentIndex === 1" @next="scrollTo" :class="currentIndex !== 1 && 'pointer-events-none'">
 								<template #title>
 									<H2>{{ $t('register.card_2_title', [$t('common.yivi')]) }}</H2>
 								</template>
@@ -133,7 +121,7 @@
 							</CarouselCard>
 
 							<!-- Card 3 -->
-							<CarouselCard :index="2" @next="scrollTo" :class="currentIndex !== 2 && 'pointer-events-none'">
+							<CarouselCard :index="2" :active="currentIndex === 2" @next="scrollTo" :class="currentIndex !== 2 && 'pointer-events-none'">
 								<template #title>
 									<H2>{{ $t('register.card_3_title') }}</H2>
 								</template>
@@ -178,34 +166,14 @@
 					</div>
 					<iframe
 						:class="!isMobile && 'rounded-2xl'"
-						class="aspect-video object-cover shadow-xl"
-						width="100%"
-						height="100%"
+						class="aspect-video w-full object-cover shadow-xl"
 						src="https://player.vimeo.com/video/807947893?badge=0&autopause=0&player_id=0&app_id=58479"
 						title="Vimeo video player"
 						frameborder="0"
 						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 						allowfullscreen
 					></iframe>
-					<div class="mt-4 flex flex-col gap-8 px-4">
-						<div class="flex items-center gap-4">
-							<div class="bg-accent-primary text-on-accent-primary flex aspect-square h-6 w-6 items-center justify-center rounded-full">
-								<span class="text-label-small font-semibold">i</span>
-							</div>
-							<H2>{{ $t('register.yivi_faq') }}</H2>
-						</div>
-						<div class="flex flex-col gap-4">
-							<div v-for="(item, index) in faqs" :key="index" class="bg-surface-low flex w-full flex-col gap-2 rounded-2xl">
-								<div class="flex w-full justify-between rounded-2xl px-4 py-2 font-semibold hover:cursor-pointer" :class="faqIndex === index && 'bg-surface'" @click="toggle(index)">
-									<span>{{ item.question }}</span>
-									<span>{{ faqIndex === index ? '−' : '+' }}</span>
-								</div>
-								<div v-if="faqIndex === index" class="p-4">
-									{{ item.answer }}
-								</div>
-							</div>
-						</div>
-					</div>
+					<FaqSection />
 				</div>
 			</section>
 		</div>
@@ -219,10 +187,11 @@
 	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
-	import Logo from '@global-client/components/ui/Logo.vue';
+	import AuthHeader from '@global-client/components/ui/onboarding/AuthHeader.vue';
 	import CarouselCard from '@global-client/components/ui/onboarding/CarouselCard.vue';
 	import CarouselCardMobile from '@global-client/components/ui/onboarding/CarouselCardMobile.vue';
 	import DownloadLinks from '@global-client/components/ui/onboarding/DownloadLinks.vue';
+	import FaqSection from '@global-client/components/ui/onboarding/FaqSection.vue';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
@@ -238,6 +207,7 @@
 	// Logic
 	import { useMSS } from '@global-client/stores/mss';
 
+	import { DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
@@ -246,15 +216,14 @@
 	const router = useRouter();
 	const route = useRoute();
 	const error = ref();
+	const dialog = useDialog();
 
 	// Logging
 	const LOGGER = new Logger('GC', CONFIG);
 
 	// Reactive state
-	const globalClientUrl: string = _env.PUBHUBS_URL;
 	const isMobile = computed(() => settings.isMobileState);
 	const currentIndex = ref(0);
-	const faqIndex = ref<number | null>(null);
 	const items = [1, 2, 3];
 
 	// DOM refs for carousels
@@ -263,34 +232,6 @@
 
 	// Query parameters
 	const redirectPath = route.query.redirectPath as string;
-	// FAQ
-	const faqs = computed(() => [
-		{
-			question: t('register.yivi_faq_1_question'),
-			answer: t('register.yivi_faq_1_answer'),
-		},
-		{
-			question: t('register.yivi_faq_2_question'),
-			answer: t('register.yivi_faq_2_answer'),
-		},
-		{
-			question: t('register.yivi_faq_3_question'),
-			answer: t('register.yivi_faq_3_answer'),
-		},
-		{
-			question: t('register.yivi_faq_4_question'),
-			answer: t('register.yivi_faq_4_answer'),
-		},
-		{
-			question: t('register.yivi_faq_5_question'),
-			answer: t('register.yivi_faq_5_answer'),
-		},
-	]);
-
-	// Toggles Faq
-	function toggle(index: number) {
-		faqIndex.value = faqIndex.value === index ? null : index;
-	}
 
 	// Get the correct carousel container depending on screen size.
 	const getCarouselRef = (): HTMLDivElement | null => (isMobile.value ? carouselMobile.value : carouselDesktop.value);
@@ -306,11 +247,6 @@
 			});
 			currentIndex.value = index;
 		}
-	};
-
-	// Change application language.
-	const changeLanguage = (language: string): void => {
-		settings.setLanguage(language, true);
 	};
 
 	// Sets up a listener to track which carousel item is centered.
@@ -337,6 +273,31 @@
 			currentIndex.value = closestIndex;
 		});
 	};
+	const handleResize = debounce(async () => {
+		await startYiviSessionMSS();
+	}, 300);
+
+	onMounted(async () => {
+		window.addEventListener('resize', handleResize);
+
+		watch(
+			isMobile,
+			() => {
+				setTimeout(setupScrollListener, 0);
+			},
+			{ immediate: true },
+		);
+
+		await startYiviSessionMSS();
+
+		window.addEventListener('pageshow', async () => {
+			await startYiviSessionMSS();
+		});
+	});
+
+	onUnmounted(() => {
+		window.removeEventListener('resize', handleResize);
+	});
 
 	// Lifecycle
 	function debounce(fn: () => void, delay: number) {
@@ -347,13 +308,16 @@
 		};
 	}
 
-	async function startYiviSessionMSS() {
+	async function startYiviSessionMSS(registerOnlyWithUniqueAttrs = true) {
 		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
 
 		try {
 			const mss = useMSS();
-			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister);
-			if (errorMessage) {
+			let errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister, registerOnlyWithUniqueAttrs);
+			if (errorMessage?.key === 'errors.notid_attribute_already_taken') {
+				handleDuplicateAttributeError();
+				return;
+			} else if (errorMessage) {
 				error.value = errorMessage;
 				return;
 			}
@@ -367,30 +331,25 @@
 			LOGGER.error(SMI.ERROR, 'Error during MSS Registration', { error });
 		}
 	}
+	async function handleDuplicateAttributeError() {
+		dialog.okcancel(t('errors.notid_taken_title'), t('errors.notid_attribute_already_taken'));
 
-	const handleResize = debounce(async () => {
-		await startYiviSessionMSS();
-	}, 300);
+		const handleOk = async () => {
+			cleanup();
+			startYiviSessionMSS(false);
+		};
 
-	onMounted(async () => {
-		window.addEventListener('resize', handleResize);
+		const handleCancel = async () => {
+			cleanup();
+			startYiviSessionMSS(true);
+		};
 
-		await startYiviSessionMSS();
+		const cleanup = () => {
+			dialog.removeCallback(DialogOk);
+			dialog.removeCallback(DialogCancel);
+		};
 
-		window.addEventListener('pageshow', async () => {
-			await startYiviSessionMSS();
-		});
-
-		watch(
-			isMobile,
-			() => {
-				setTimeout(setupScrollListener, 0);
-			},
-			{ immediate: true },
-		);
-	});
-
-	onUnmounted(() => {
-		window.removeEventListener('resize', handleResize);
-	});
+		dialog.addCallback(DialogOk, handleOk);
+		dialog.addCallback(DialogCancel, handleCancel);
+	}
 </script>

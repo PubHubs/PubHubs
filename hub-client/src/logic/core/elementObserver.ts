@@ -1,3 +1,6 @@
+// TODO Element Observer The constructor expects a single element, the setupmethod walks through all the values inside the element (making it possible to pass an array)
+// We need to make this consistent: multiple elements are allowed so pass them in the constructor
+
 class ElementObserver {
 	private observer: IntersectionObserver | null = null;
 	private element: HTMLElement | null = null;

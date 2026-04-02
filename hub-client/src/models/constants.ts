@@ -4,15 +4,16 @@
 
 enum SystemDefaults {
 	syncIntervalMS = 3000, // Sync interval in milliseconds. Experimental selection for interval. Changed it from 2000 to 1000 to load events much quickly.
-	SyncTimelineLimit = 100, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
-	initialRoomTimelineLimit = 50, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
+	SubscriptionRoomTimelineLimit = 50, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
+	initialRoomTimelineLimit = 30, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
 	roomTimelineLimit = 100, // Max messages in the sliding window
-	paginationBatchSize = 50, // Messages to fetch per pagination
+	paginationBatchSize = 40, // Messages to fetch per pagination
 	initialRoomListRange = 99999, // Initial number of rooms to fetch, in the future perhaps paginate this?
 	publicRoomsReload = 86_400_000, // Time to cache public rooms. Reload will be forced after creating.editing new rooms, so this can be long. Now set to one day.
 	MaxNumberFileUploads = 50, // Maximum number of files that can be dropped/uploaded
 	mainRoomListRange = 40, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
 	longPressDuration = 250, // Amount of milliseconds for a long-press
+	messageGroupGap = 60 * 60 * 1000, // Amount of miliseconds for the message group threshold
 }
 
 // options for sliding sync
@@ -110,25 +111,6 @@ enum OnboardingType {
 	full = 'full',
 }
 
-// Different roles for users in PubHubs. Add new user type here.
-enum roles {
-	Admin = 100,
-	SuperSteward = 75,
-	Steward = 50,
-	Expert = 25,
-	User = 0,
-}
-
-// Actions that the user can carry out
-enum actions {
-	Invite = 'Invite',
-	StewardPanel = 'StewardPanel',
-	AdminPanel = 'AdminPanel',
-	MessageSteward = 'MessageSteward',
-	MessageAdmin = 'MessageAdmin',
-	RoomAnnouncement = 'RoomAnnouncement',
-}
-
 enum notice {
 	NoticesUser = 'notices_user',
 }
@@ -185,8 +167,6 @@ export {
 	allTypes,
 	imageTypesExt,
 	RelatedEventsOptions,
-	roles,
-	actions,
 	QueryParameterKey,
 	notice,
 };

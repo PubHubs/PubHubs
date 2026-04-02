@@ -12,6 +12,7 @@ pub(crate) mod auths;
 pub(crate) mod phc;
 pub(crate) mod transcryptor;
 
+pub use auths::card::CardConfig;
 pub use config::Config;
 pub use constellation::Constellation;
 pub use macros::for_all_servers;

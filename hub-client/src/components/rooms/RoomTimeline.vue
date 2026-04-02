@@ -1,67 +1,76 @@
 <template>
-	<div class="relative flex h-full flex-col">
-		<div>
+	<div class="flex h-full flex-col">
+		<div class="shrink-0">
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
 		</div>
 
-		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col-reverse space-y-2 space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-contain pb-2" style="overflow-anchor: none">
-			<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
-			<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
+		<div class="relative min-h-0 flex-1">
+			<div v-if="room" ref="elRoomTimeline" class="flex h-full flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain" style="overflow-anchor: none">
+				<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
+				<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
 
-			<!-- Expands if the timeline height < the vieport, to top-align the content -->
-			<div class="h-full" />
-
-			<template v-if="reversedTimeline.length > 0">
-				<div v-for="item in reversedTimeline" :key="item.matrixEvent.event.event_id">
-					<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
-						<RoomMessageBubble
-							:room="room"
-							:event="item.matrixEvent.event"
-							:event-thread-length="item.threadLength"
-							:deleted-event="item.isDeleted"
-							:data-event-id="item.matrixEvent.event.event_id"
-							class="room-event"
-							:class="{ 'animate-highlight': props.eventIdToScroll === item.matrixEvent.event.event_id }"
-							:active-profile-card="activeProfileCard"
-							:active-reaction-panel="activeReactionPanel"
-							@in-reply-to-click="onInReplyToClick"
-							@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
-							@edit-poll="onEditPoll"
-							@edit-scheduler="onEditScheduler"
-							@profile-card-toggle="toggleProfileCard"
-							@profile-card-close="closeProfileCard"
-							@reaction-panel-toggle="toggleReactionPanel"
-							@reaction-panel-close="closeReactionPanel"
-							@clicked-emoticon="sendEmoji"
-						>
-							<template #reactions>
-								<div class="mt-2 ml-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
-								</div>
-							</template>
-						</RoomMessageBubble>
-						<LastReadMarker :currentEventId="item.matrixEvent.event.event_id ?? ''" :lastReadEventId="displayedReadMarker ?? undefined" :room="props.room" />
-					</div>
+				<!-- Expands if the timeline height < the vieport, to top-align the content -->
+				<div class="flex h-full items-center justify-center px-4 md:px-16">
+					<InlineSpinner v-if="!initialLoadComplete && reversedTimeline.length === 0" />
+					<P v-else-if="initialLoadComplete && reversedTimeline.length === 0" class="text-on-surface-dim text-center">
+						{{ $t('rooms.no_messages_yet') }}
+					</P>
 				</div>
-			</template>
 
-			<!-- Room created indicator-->
-			<div v-if="oldestEventIsLoaded" class="border-on-surface-variant text-on-surface-variant text-label-small mx-auto my-4 flex w-60 items-center justify-center rounded-xl border px-4">
-				{{ $t('rooms.roomCreated') }}
+				<template v-if="reversedTimeline.length > 0">
+					<div v-for="(item, index) in reversedTimeline" :key="item.matrixEvent.event.event_id">
+						<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
+							<RoomMessageBubble
+								class="room-event"
+								:room="room"
+								:event="item.matrixEvent.event"
+								:event-thread-length="item.threadLength"
+								:deleted-event="item.isDeleted"
+								:is-grouped="isGroupedMessage(index)"
+								:is-followed-by-grouped="isFollowedByGrouped(index)"
+								:add-whisper-spacing="shouldAddWhisperSpacing(index)"
+								:data-event-id="item.matrixEvent.event.event_id"
+								:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
+								:active-reaction-panel="activeReactionPanel"
+								@in-reply-to-click="onInReplyToClick"
+								@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
+								@edit-poll="onEditPoll"
+								@edit-scheduler="onEditScheduler"
+								@reaction-panel-toggle="toggleReactionPanel"
+								@reaction-panel-close="closeReactionPanel"
+								@clicked-emoticon="sendEmoji"
+							>
+								<template #reactions>
+									<div v-if="reactionExistsForMessage(item)" class="mt-2 mb-1 flex flex-wrap gap-2" :class="isMobile ? 'px-2' : 'px-5'">
+										<Reaction :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!" class="pl-16"></Reaction>
+									</div>
+								</template>
+							</RoomMessageBubble>
+							<LastReadMarker :currentEventId="item.matrixEvent.event.event_id ?? ''" :lastReadEventId="displayedReadMarker ?? undefined" :room="props.room" />
+						</div>
+					</div>
+				</template>
+
+				<!-- Room created indicator-->
+				<div v-if="oldestEventIsLoaded" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase">
+					{{ $t('rooms.roomCreated') }}
+				</div>
+
+				<!-- Top sentinel (appears at visual top, near oldest messages) -->
+				<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"></div>
 			</div>
 
-			<!-- Top sentinel (appears at visual top, near oldest messages) -->
-			<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"></div>
+			<JumpToUnreadThreadButton v-if="unreadThreadAboveId" @click="scrollToUnreadThread" />
+			<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
 		</div>
 
-		<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
-		<MessageInput class="z-10" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler"></MessageInput>
+		<MessageInput class="z-10 shrink-0" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler" />
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage" />
 </template>
 
 <script setup lang="ts">
-	import { EventType } from 'matrix-js-sdk';
+	import { EventType, NotificationCountType } from 'matrix-js-sdk';
 	import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 	// Components
@@ -69,23 +78,25 @@
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import DateDisplayer from '@hub-client/components/ui/DateDisplayer.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import JumpToBottomButton from '@hub-client/components/ui/JumpToBottomButton.vue';
+	import JumpToUnreadThreadButton from '@hub-client/components/ui/JumpToUnreadThreadButton.vue';
 	import LastReadMarker from '@hub-client/components/ui/LastReadMarker.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 
 	// Composables
-	import { useReadMarker } from '@hub-client/composables/useReadMarker';
+	import useReadMarker from '@hub-client/composables/useReadMarker';
 	import { useTimelinePagination } from '@hub-client/composables/useTimelinePagination';
 	import { useTimelineScroll } from '@hub-client/composables/useTimelineScroll';
 
 	// Logic
 	import { ElementObserver } from '@hub-client/logic/core/elementObserver';
-	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
+	import { PubHubsInvisibleMsgType, PubHubsMgType } from '@hub-client/logic/core/events';
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RelationType, ScrollPosition, TimelineScrollConstants } from '@hub-client/models/constants';
+	import { RelationType, ScrollPosition, SystemDefaults, TimelineScrollConstants } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
@@ -107,17 +118,19 @@
 	const topSentinel = ref<HTMLElement | null>(null);
 	const bottomSentinel = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
-	const activeProfileCard = ref<string | null>(null);
 	const activeReactionPanel = ref<string | null>(null);
 	const eventToBeDeleted = ref<TMessageEvent>();
 	const editingPoll = ref<{ poll: Poll; eventId: string } | undefined>(undefined);
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
+	const initialLoadComplete = ref(false);
 
-	const { DELAY_RECEIPT_MESSAGE, PAGINATION_COOLDOWN } = TimelineScrollConstants;
+	const { READ_DELAY_MS, PAGINATION_COOLDOWN, SCROLL_DEBOUNCE } = TimelineScrollConstants;
+	const { messageGroupGap } = SystemDefaults;
 
 	let dateInformation = ref<number>(0);
 	let eventToBeDeletedIsThreadRoot: boolean = false;
 	let eventObserver: ElementObserver | null = null;
+	const isMobile = computed(() => settings.isMobileState);
 
 	const props = defineProps({
 		room: {
@@ -136,43 +149,155 @@
 	// Initialize composables
 	const { scrollToEvent, scrollToNewest, performInitialScroll, handleNewMessage, isInitialScrollComplete, showJumpToBottomButton, newMessageCount } = useTimelineScroll(elRoomTimeline, props.room, user.userId || '');
 	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded, timelineVersion, refreshTimelineVersion } = useTimelinePagination(elRoomTimeline, props.room);
-	const { displayedReadMarker, initialize: initializeReadMarker, persist: persistReadMarker, update: updateReadMarker } = useReadMarker(props.room);
+	const { displayedReadMarker, initialize: initializeReadMarker, update: updateReadMarker } = useReadMarker(props.room, user.userId || '');
 	const userHasScrolled = ref(true);
 
 	/**
 	 * Timeline in reverse order [newest, ..., oldest] for column-reverse rendering
 	 */
 	const reversedTimeline = computed(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		timelineVersion.value; // Dependency to trigger re-computation
 		return [...props.room.getChronologicalTimeline()].reverse();
 	});
 
 	/**
-	 * Timeline in chronological order [oldest, ..., newest]
+	 * Find the nearest thread with unread messages that is above the current viewport.
+	 * Returns the event ID of the thread root, or null if none found.
 	 */
+	function findNearestUnreadThreadAbove(): string | null {
+		if (!elRoomTimeline.value || !settings.isFeatureEnabled(FeatureFlag.notifications)) return null;
+
+		const matrixRoom = pubhubs.client.getRoom(props.room.roomId);
+		if (!matrixRoom) return null;
+
+		const containerRect = elRoomTimeline.value.getBoundingClientRect();
+
+		// Walk the chronological timeline (oldest first) and find the latest thread
+		// with unread messages that is above the current viewport.
+		const timeline = props.room.getChronologicalTimeline();
+		let nearestAbove: string | null = null;
+
+		for (const item of timeline) {
+			const eventId = item.matrixEvent.event.event_id;
+			if (!eventId) continue;
+
+			const unreadCount = matrixRoom.getThreadUnreadNotificationCount(eventId, NotificationCountType.Total);
+			if (unreadCount <= 0) continue;
+
+			const element = elRoomTimeline.value.querySelector(`[id="${eventId}"]`) as HTMLElement | null;
+			if (!element) {
+				// Element not rendered
+				nearestAbove = eventId;
+				continue;
+			}
+
+			const elementRect = element.getBoundingClientRect();
+			if (elementRect.bottom < containerRect.top) {
+				// Element is above the viewport
+				nearestAbove = eventId;
+			}
+			// Don't break early, we want the latest (closest to viewport) unread thread above
+		}
+
+		return nearestAbove;
+	}
+
+	const unreadThreadAboveId = ref<string | null>(null);
+	let unreadThreadDebounceId: number | null = null;
+
+	function updateUnreadThreadAbove() {
+		unreadThreadAboveId.value = findNearestUnreadThreadAbove();
+	}
+
+	function debouncedUpdateUnreadThreadAbove() {
+		if (unreadThreadDebounceId !== null) {
+			clearTimeout(unreadThreadDebounceId);
+		}
+		unreadThreadDebounceId = window.setTimeout(() => {
+			updateUnreadThreadAbove();
+			unreadThreadDebounceId = null;
+		}, SCROLL_DEBOUNCE);
+	}
+
+	// Re-check when unread counts change
+	watch(() => rooms.unreadCountVersion, updateUnreadThreadAbove);
+
+	function scrollToUnreadThread() {
+		if (unreadThreadAboveId.value) {
+			scrollToEvent(unreadThreadAboveId.value, { position: ScrollPosition.Center, highlight: true });
+		}
+	}
+
+	/**
+	 * Whether the message at `index` in `reversedTimeline` is a visual continuation
+	 * of the previous message (same sender, no special types, within time gap).
+	 */
+	function isGroupedMessage(index: number): boolean {
+		const current = reversedTimeline.value[index];
+		const previous = reversedTimeline.value[index + 1]; // Previous chronologically = next index in reversed array
+
+		if (!current || !previous) return false;
+		if (current.matrixEvent.event.sender !== previous.matrixEvent.event.sender) return false;
+
+		const currentMsgType = current.matrixEvent.event.content?.msgtype;
+		const previousMsgType = previous.matrixEvent.event.content?.msgtype;
+		if (currentMsgType === PubHubsMgType.AnnouncementMessage || previousMsgType === PubHubsMgType.AnnouncementMessage || currentMsgType === PubHubsMgType.WhisperMessage || previousMsgType === PubHubsMgType.WhisperMessage) return false;
+
+		const currentTs = current.matrixEvent.event.origin_server_ts || 0;
+		const previousTs = previous.matrixEvent.event.origin_server_ts || 0;
+		if (currentTs - previousTs > messageGroupGap) return false;
+
+		return true;
+	}
+
+	// Whether the next chronological message continues the same group
+	function isFollowedByGrouped(index: number): boolean {
+		return index > 0 && isGroupedMessage(index - 1);
+	}
+
+	// Message for announcement and whisper have different styling compared to other messages.
+	// If two privilidge message e.g., whisper and announcement are sent one after another, there should be consistent styling.
+	function shouldAddWhisperSpacing(index: number): boolean {
+		const current = reversedTimeline.value[index];
+		const previous = reversedTimeline.value[index + 1];
+		if (!current || !previous) return false;
+		const currentType = current.matrixEvent.event.content?.msgtype;
+		const previousType = previous.matrixEvent.event.content?.msgtype;
+		const currentIsWhisper = currentType === PubHubsMgType.WhisperMessage;
+		const previousIsWhisper = previousType === PubHubsMgType.WhisperMessage;
+		const currentIsAnnouncement = currentType === PubHubsMgType.AnnouncementMessage;
+		const previousIsAnnouncement = previousType === PubHubsMgType.AnnouncementMessage;
+		return (currentIsWhisper && previousIsWhisper) || (currentIsWhisper && previousIsAnnouncement) || (currentIsAnnouncement && previousIsWhisper);
+	}
+
+	// Timeline in chronological order [oldest, ..., newest]
 	const roomTimeLine = computed(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		timelineVersion.value; // Dependency to trigger re-computation
 		return props.room.getChronologicalTimeline();
 	});
-
-	defineExpose({ elRoomTimeline });
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			if (activeReactionPanel.value) {
 				closeReactionPanel();
 			}
-			if (activeProfileCard.value) {
-				closeProfileCard();
-			}
+			// if (activeProfileCard.value) {
+			// 	closeProfileCard();
+			// }
 		}
 	}
 
+	defineExpose({ elRoomTimeline }); // Expose timeline to parent to save and restore scrollposition when leaving room
+
 	onBeforeUnmount(() => {
-		// Persist read marker
-		persistReadMarker();
+		// Send final read receipt for last visible event
+		const lastEventId = props.room.getLastVisibleEventId();
+		if (lastEventId && settings.isFeatureEnabled(FeatureFlag.notifications)) {
+			const lastEvent = props.room.findEventById(lastEventId);
+			if (lastEvent) {
+				pubhubs.sendPrivateReceipt(lastEvent, props.room.roomId);
+			}
+		}
 
 		// Cleanup event observer
 		if (eventObserver) {
@@ -182,6 +307,12 @@
 
 		// Cleanup keyboard listener
 		document.removeEventListener('keydown', handleKeydown);
+
+		// Cleanup unread thread scroll listener
+		elRoomTimeline.value?.removeEventListener('scroll', debouncedUpdateUnreadThreadAbove);
+		if (unreadThreadDebounceId !== null) {
+			clearTimeout(unreadThreadDebounceId);
+		}
 	});
 
 	onMounted(async () => {
@@ -196,21 +327,14 @@
 		// Setup pagination observer
 		setupPaginationObserver(topSentinel, bottomSentinel);
 
+		if (roomTimeLine.value.length === 0) {
+			initialLoadComplete.value = true;
+			return;
+		}
+
 		// Wait for DOM render
 		await nextTick();
 		await new Promise((resolve) => requestAnimationFrame(resolve));
-
-		// Wait for timeline events
-		let attempts = 0;
-		while (roomTimeLine.value.length === 0 && attempts < 20) {
-			await new Promise((resolve) => setTimeout(resolve, 50));
-			attempts++;
-		}
-
-		if (roomTimeLine.value.length === 0) {
-			LOGGER.warn(SMI.ROOM_TIMELINE, 'Timeline still empty after waiting');
-			return;
-		}
 
 		// Perform initial scroll
 		LOGGER.log(SMI.ROOM_TIMELINE, `performInitialScroll called with explicitEventId: ${props.eventIdToScroll}, lastReadEventId: ${displayedReadMarker.value ?? props.lastReadEventId}`);
@@ -220,6 +344,13 @@
 		});
 
 		setupEventIntersectionObserver();
+		initialLoadComplete.value = true;
+
+		// Setup scroll listener for unread thread indicator
+		if (elRoomTimeline.value) {
+			elRoomTimeline.value.addEventListener('scroll', debouncedUpdateUnreadThreadAbove, { passive: true });
+			updateUnreadThreadAbove();
+		}
 	});
 
 	watch(() => roomTimeLine.value.length, onTimelineChange);
@@ -232,7 +363,6 @@
 			if (!isInitialScrollComplete.value) {
 				return;
 			}
-			console.error(`[RoomTimeline] eventIdToScroll watch: calling scrollToEvent for ${eventId}`);
 			scrollToEvent(eventId, { position: ScrollPosition.Center, highlight: true });
 		},
 	);
@@ -279,6 +409,7 @@
 			eventObserver.disconnectObserver();
 		}
 
+		// TODO Element Observer  we pass elRoomEvent as a single value, but underwater it has become an array because of the loop over all events, we need to make that clear both in type as in the parameter of new ElementObserver
 		eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
 
 		// Combined handler - ElementObserver only supports ONE callback (each setUpObserver replaces the previous)
@@ -353,7 +484,7 @@
 					}
 				}
 			}
-		}, DELAY_RECEIPT_MESSAGE);
+		}, READ_DELAY_MS);
 	};
 
 	const handleDateDisplayer = (entries: IntersectionObserverEntry[]) => {
@@ -442,18 +573,8 @@
 		editingScheduler.value = { scheduler, eventId };
 	}
 
-	function toggleProfileCard(eventId: string) {
-		activeProfileCard.value = activeProfileCard.value === eventId ? null : eventId;
-	}
-
-	function closeProfileCard() {
-		activeProfileCard.value = null;
-	}
-
 	function toggleReactionPanel(eventId: string) {
-		console.error('toggleReactionPanel called with:', eventId, 'current:', activeReactionPanel.value);
 		activeReactionPanel.value = activeReactionPanel.value === eventId ? null : eventId;
-		console.error('activeReactionPanel now:', activeReactionPanel.value);
 	}
 
 	function closeReactionPanel() {

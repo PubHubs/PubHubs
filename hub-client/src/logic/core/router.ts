@@ -1,12 +1,16 @@
 // Packages
 import { createRouter, createWebHashHistory } from 'vue-router';
 
+// Composables
+import { useRoles } from '@hub-client/composables/roles.composable';
+
 // Models
 import { OnboardingType } from '@hub-client/models/constants';
+import { UserRole } from '@hub-client/models/users/TUser';
 
-// Stores
 import { useHubSettings } from '@hub-client/stores/hub-settings';
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
+// Stores
 import { useUser } from '@hub-client/stores/user';
 
 // Route definitions
@@ -25,23 +29,41 @@ const routes = [
 	},
 	{
 		path: '/admin',
-		name: 'admin',
-		component: () => import('@hub-client/pages/Admin.vue'),
-		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		children: [
+			{
+				path: ':tab?',
+				props: true,
+				name: 'admin',
+				component: () => import('@hub-client/pages/Admin.vue'),
+				meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
+			},
+			{
+				path: 'edit/:id',
+				props: true,
+				name: 'editroom',
+				component: () => import('@hub-client/pages/EditRoom.vue'),
+				meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
+			},
+		],
 	},
 	{
 		path: '/manage-users',
 		name: 'manage-users',
 		component: () => import('@hub-client/pages/ManageUsers.vue'),
-		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/hub-settings',
 		name: 'hub-settings',
 		component: () => import('@hub-client/pages/HubSettings.vue'),
-		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
 	},
-	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@hub-client/pages/DirectMessage.vue'), meta: { hideBar: true, onboarding: true } },
+	{
+		path: '/direct-msg',
+		name: 'direct-msg',
+		component: () => import('@hub-client/pages/DirectMessage.vue'),
+		meta: { hideBar: true, onboarding: true },
+	},
 	{
 		path: '/room/:id',
 		name: 'room',
@@ -55,6 +77,7 @@ const routes = [
 		component: () => import('@hub-client/pages/DiscoverRoomsPage.vue'),
 		meta: { hideBar: true, onboarding: true },
 	},
+
 	{
 		path: '/error-page',
 		name: 'error-page',
@@ -66,13 +89,13 @@ const routes = [
 		path: '/icons',
 		name: 'icons',
 		component: () => import('@hub-client/pages/Icons.vue'),
-		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { hideBar: true, onboarding: true },
 	},
 	{
 		path: '/design',
 		name: 'design',
 		component: () => import('@hub-client/pages/NewDesign.vue'),
-		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+		meta: { hideBar: true, onboarding: true },
 	},
 
 	{
@@ -91,10 +114,14 @@ const router = createRouter({
 // Navigation guard
 router.beforeEach((to, from) => {
 	const messagebox = useMessageBox();
+	const user = useUser();
 
 	// Notify parent iframe about non-room navigation
-	if (!['room', 'error-page-room'].includes(to.name as string)) {
-		messagebox.sendMessage(new Message(MessageType.RoomChange, ''));
+	// Send the route name (e.g. non-room navigations such as discover-rooms) so the global-client URL preserves it for refresh.
+	// For home, I am sending a empty string to keep the URL clean, the hub-client stays at its default route / which is home
+	if (!['room', 'error-page-room'].includes(to.name as string) && from.name !== undefined) {
+		const routeName = to.name === 'home' ? '' : (to.name as string);
+		messagebox.sendMessage(new Message(MessageType.RoomChange, routeName));
 	}
 
 	// Hide UI bar if specified in route meta
@@ -115,19 +142,31 @@ router.beforeEach((to, from) => {
 		}
 	}
 
-	// Restrict access to admin-only routes
-	if (to.meta.onlyAdmin) {
-		const { isAdmin, administrator } = useUser();
-		if (isAdmin && administrator) {
+	// Restrict access
+	if (to.meta.accessFor) {
+		const roles = useRoles();
+		const accessRoles = to.meta.accessFor as Array<UserRole>;
+		// for specific room?
+		let roomId = roles.currentRoomId();
+		if (to.params.id) {
+			roomId = to.params.id as string;
+		}
+		if (roles.userHasAccessForRoles(accessRoles, roomId)) {
 			return true;
 		}
-		console.log('ONLY FOR ADMINS', isAdmin);
+		// Allow admin-only route while admin status is still loading after login/refresh.
+		if (accessRoles.length === 1 && accessRoles[0] === UserRole.Admin && !user.adminStatusLoaded) {
+			return true;
+		}
+		console.error('ONLY FOR ROLES: ', to.meta.accessFor, roomId);
 		return { name: 'home' };
 	}
+
+	// Redirect to home if coming from a browser refresh (undefined)
 	if (to.name === 'error-page' && from.name === undefined) {
-		// Redirect to home if coming from a browser refresh (undefined)
 		return { name: 'home' };
 	}
+
 	// Default allow navigation
 	return true;
 });

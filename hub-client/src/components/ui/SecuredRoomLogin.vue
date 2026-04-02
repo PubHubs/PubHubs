@@ -1,12 +1,12 @@
 <template>
 	<div class="absolute top-16 flex flex-col text-center">
 		<!-- Popup Container -->
-		<div class="z-20 box-border min-h-[333px] w-[255px] rounded-lg bg-white p-0 drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]">
+		<div class="z-20 box-border h-fit w-[255px] rounded-lg bg-white p-0 drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]">
 			<!-- Close Button Inside the Popup (Top-Right) -->
 			<IconButton v-if="showClose" type="x" size="base" class="absolute top-2 right-2 z-10 p-2 text-black" @click="closePopOver" />
 			<QRCode v-if="!loginFail" :securedRoomId="securedRoomId" @error="loginError" @success="emit('success')" />
 			<!-- Overlay when login fails -->
-			<div v-if="loginFail" class="absolute inset-0 z-5 rounded-lg bg-white">
+			<div v-if="loginFail">
 				<div class="my-24 flex flex-col items-center justify-center gap-4">
 					<Icon class="text-avatar-red" type="prohibit" size="xl" />
 					<P class="text-body ml-2 text-center text-black">{{ t('rooms.incorrect_attributes') }}</P>
@@ -23,6 +23,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import P from '@hub-client/components/elements/P.vue';
 	import QRCode from '@hub-client/components/ui/SecuredRoomQR.vue';
 
 	// Stores

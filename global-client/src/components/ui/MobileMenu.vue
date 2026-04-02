@@ -1,26 +1,51 @@
 <template>
-	<div v-if="!($route.name === 'onboarding')" :class="[classObject, !isMobile && 'hidden']" class="absolute top-0 left-0 flex items-center" @click="toggleMenu.toggleMenuAndSendToHub()">
-		<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="arrow-left" size="lg" />
+	<div v-if="shouldShowScrollBack && isMobile && !global.isModalVisible" class="absolute top-0 left-0 flex h-[80px] items-center p-4 select-none" @click="handleBackClick()">
+		<Icon type="arrow-left" class="stroke-0 hover:cursor-pointer" />
 	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { computed } from 'vue';
+	import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
-	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
+	import { Message, MessageType, iframeHubId, useMessageBox } from '@hub-client/stores/messagebox';
 	import { useSettings } from '@hub-client/stores/settings';
 
-	const toggleMenu = useToggleMenu();
 	const global = useGlobal();
 	const settings = useSettings();
+	const messagebox = useMessageBox();
 	const isMobile = computed(() => settings.isMobileState);
+	const shouldShowScrollBack = ref(false);
 
-	const classObject = computed(() => ({
-		hidden: toggleMenu.globalIsActive,
-		'h-16 w-16': !toggleMenu.globalIsActive && !global.isModalVisible,
-	}));
+	const handleBackClick = () => {
+		// Send message to hub-client to close the sidebar (if open) or scroll (if closed)
+		messagebox.sendMessage(new Message(MessageType.CloseSidebar), iframeHubId);
+	};
+
+	const updateScrollVisibility = () => {
+		const layoutRoot = document.getElementById('layout-root');
+		if (layoutRoot) {
+			const scrollLeft = layoutRoot.scrollLeft;
+			const threshold = layoutRoot.scrollWidth / 2 - 5;
+			shouldShowScrollBack.value = scrollLeft >= threshold;
+		}
+	};
+
+	onMounted(() => {
+		const layoutRoot = document.getElementById('layout-root');
+		if (layoutRoot) {
+			layoutRoot.addEventListener('scroll', updateScrollVisibility);
+			updateScrollVisibility();
+		}
+	});
+
+	onUnmounted(() => {
+		const layoutRoot = document.getElementById('layout-root');
+		if (layoutRoot) {
+			layoutRoot.removeEventListener('scroll', updateScrollVisibility);
+		}
+	});
 </script>

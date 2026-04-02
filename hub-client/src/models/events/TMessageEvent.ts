@@ -25,12 +25,15 @@ export interface TBaseMessageEventContent {
 	body?: string;
 	// Custom body type, which has all the processed body or formatted body content, for use in our components
 	ph_body?: string;
+	userPL?: number;
+	whisper_to?: string;
 	msgtype:
 		| MsgType.Text
 		| MsgType.Image
 		| MsgType.File
 		| PubHubsMgType.SignedMessage
 		| PubHubsMgType.AnnouncementMessage
+		| PubHubsMgType.WhisperMessage
 		| PubHubsMgType.VotingWidget
 		| PubHubsMgType.VotingWidgetEdit
 		| PubHubsMgType.VotingWidgetVote
@@ -80,14 +83,23 @@ export interface TSignedMessageEventContent extends TBaseMessageEventContent {
 	signed_message: SignedMessage;
 }
 
-export interface TAnnouncementMessageEventContent extends TBaseMessageEventContent {
+interface TPrivilegedMessageEventContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.AnnouncementMessage | PubHubsMgType.WhisperMessage;
+	userPL: number;
+}
+
+export interface TAnnouncementMessageEventContent extends TPrivilegedMessageEventContent {
 	msgtype: PubHubsMgType.AnnouncementMessage;
-	sender: string;
+}
+
+export interface TWhisperMessageEventContent extends TPrivilegedMessageEventContent {
+	msgtype: PubHubsMgType.WhisperMessage;
+	whisper_to: string;
 }
 
 export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;
 
-export type TMessageEventContent = TTextMessageEventContent | TImageMessageEventContent | TFileMessageEventContent | TSignedMessageEventContent | TAnnouncementMessageEventContent | TVotingWidgetMessageEventContent;
+export type TMessageEventContent = TTextMessageEventContent | TImageMessageEventContent | TFileMessageEventContent | TSignedMessageEventContent | TPrivilegedMessageEventContent | TVotingWidgetMessageEventContent;
 
 // To be implemented
 type EncryptedFile = any;

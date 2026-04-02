@@ -1,6 +1,5 @@
-// Models
 // Packages
-import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
+import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, Method, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 import { RoomMessageEventContent, TimelineEvents } from 'matrix-js-sdk/lib/types';
@@ -369,25 +368,22 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		/**
-		 * Uses the client to join a room (a no op when already a member) and updates the rooms in the store. Can throw
-		 * an error.
-		 * @param room_id - a room id
-		 * @throws error - an error when something goes wrong joining the room. For example a forbidden respons or a rate limited
-		 * response
+		 * Joins a room (no-op if already a member) and updates the rooms store.
+		 * @param room_id - Room ID to join
+		 * @param knownRoomType - Pre-known room type, avoids unreliable detection from live timeline
+		 * @param knownRoomName - Pre-known room name
 		 */
-		async joinRoom(room_id: string): Promise<void> {
+		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<void> {
 			const rooms = useRooms();
 
 			try {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				const roomType: string = getRoomType(matrixRoom);
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
-				const roomName = publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
+				const roomType: string = knownRoomType ?? publicRoomEntry?.room_type ?? getRoomType(matrixRoom);
+				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-
-				// when a room is joined after startup the roomlist has to be updated, does nothing when room was already in the roomlist
-				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], lastMessageId: undefined, isHidden: false });
+				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false });
 			} catch (err) {
 				throw err;
 			}
@@ -399,7 +395,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		async createRoom(options: any): Promise<{ room_id: string }> {
 			const room = await this.client.createRoom(options);
-			await this.joinRoom(room.room_id);
+			await this.joinRoom(room.room_id, options.creation_content?.type, options.name);
 			return room;
 		},
 
@@ -407,7 +403,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			for (let index = rooms.length - 1; index >= 0; index--) {
 				const roomId = (rooms[index] as Room).roomId;
 				const room = this.client.getRoom(roomId);
-				if (!room) return false;
+				if (!room) continue;
 				const roomMembers = room.getMembers();
 				const roomMemberIds = roomMembers.map((member) => member.userId);
 				roomMemberIds.sort();
@@ -428,21 +424,18 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return false;
 		},
 
-		async createPrivateRoomWith(other: User | MatrixUser[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
+		async createPrivateRoomWith(otherUsers: string[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user;
-			let otherUsers: (User | MatrixUser)[];
 			let roomType: RoomType;
 
-			if (other instanceof Array) {
-				otherUsers = other;
+			if (otherUsers.length > 1) {
 				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_GROUP;
 			} else {
-				otherUsers = [other];
 				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_DM;
 			}
 
-			const memberIds = [me.userId!, ...otherUsers.map((u) => u.userId)];
+			const memberIds = [me.userId!, ...otherUsers];
 			const allRoomsByType = this.getAllRooms().filter((room) => room.getType() === roomType);
 			let existingRoomId;
 			if (roomIdForStewardRoomCreate) {
@@ -450,32 +443,38 @@ const usePubhubsStore = defineStore('pubhubs', {
 			} else {
 				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
 			}
-			// Try joining existing by renaming
+
+			// Rejoin and unhide existing room
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
 				const rooms = useRooms();
+				// Ensure we're a member before modifying room state
+				if (!(await this.isUserRoomMember(me.userId!, existingRoomId))) {
+					await this.joinRoom(existingRoomId);
+				}
 				let name = rooms.room(existingRoomId)?.name;
 				if (name) {
-					name = updatePrivateRoomName(name, me, false);
-					this.renameRoom(existingRoomId, name);
+					name = updatePrivateRoomName(name, me.userId, false);
+				} else {
+					name = createNewPrivateRoomName([me.userId, ...otherUsers]);
 				}
+				await this.renameRoom(existingRoomId, name);
+				rooms.setRoomListHidden(existingRoomId, false);
 				return { room_id: existingRoomId };
 			}
 
 			// Create new room
 			if (existingRoomId === false) {
-				const otherUserForName = otherUsers;
-				const privateRoomName = createNewPrivateRoomName([me, ...otherUserForName]);
+				const privateRoomName = createNewPrivateRoomName([me.userId!, ...otherUsers]);
 				const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
-				const inviteIds = otherUsers.map((u) => u.userId);
 
 				const room = await this.createRoom({
 					preset: 'trusted_private_chat',
 					name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
 					visibility: 'private',
-					invite: inviteIds,
+					invite: otherUsers,
 					is_direct: true,
 					creation_content: { type: roomType },
-					topic: `PRIVATE: ${me.userId}, ${inviteIds.join(', ')}`,
+					topic: `PRIVATE: ${me.userId}, ${otherUsers.join(', ')}`,
 					history_visibility: 'shared',
 					guest_can_join: false,
 				});
@@ -507,7 +506,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			let name = room.name;
 			const user = useUser();
 			const me = user.user as User;
-			name = updatePrivateRoomName(name, me, hide);
+			name = updatePrivateRoomName(name, me.userId, hide);
 			await this.client.setRoomName(room.roomId, name);
 			rooms.setRoomListHidden(room.roomId, hide);
 		},
@@ -723,6 +722,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
+		async addWhisperMessage(roomId: string, text: string, userPL: number, whisperToUserId: string, threadRoot: TMessageEvent | undefined, inReplyTo: TMessageEvent | undefined) {
+			const content = await this._constructMessageContent(text, threadRoot, inReplyTo);
+			content.msgtype = PubHubsMgType.WhisperMessage as any;
+			content.userPL = userPL as any;
+			content.whisper_to = whisperToUserId as any;
+			const threadId = threadRoot?.event_id ?? null;
+			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
+		},
+
 		async addSignedFile(roomId: string, signedFileHash: YiviSigningSessionResult, originalEventId: string | undefined) {
 			const content = {
 				msgtype: PubHubsMgType.SignedFileMessage,
@@ -754,20 +762,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		async deleteLibraryMessage(roomId: string, eventId: string) {
 			await this.client.redactEvent(roomId, eventId, undefined, { reason: Redaction.DeletedFromLibrary });
-		},
-
-		async sendReadReceipt(event: MatrixEvent) {
-			if (!event) return;
-			const loggedInUser = useUser();
-			const content = {
-				'm.read': {
-					[loggedInUser.userId!]: {
-						ts: event.localTimestamp,
-						thread_id: 'main',
-					},
-				},
-			};
-			await this.client.sendReceipt(event, ReceiptType.Read, content);
 		},
 
 		async addPoll(roomId: string, poll: Poll) {
@@ -905,7 +899,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
-		async sendPrivateReceipt(event: MatrixEvent, roomId: string) {
+		/**
+		 * Sends receipt to server
+		 * Replaced the client.sendreceipt because the SDK's version uses event.getRoomId() which may be undefined
+		 * @param event event of which to send the receipt
+		 * @param roomId  the room of the event
+		 * @param threadId the root of the thread the even is in
+		 * @returns void
+		 */
+		async sendPrivateReceipt(event: MatrixEvent, roomId: string, threadId: string | undefined = undefined) {
 			const eventId = event?.getId();
 			if (!eventId || !roomId || !roomId.startsWith('!')) {
 				return;
@@ -915,7 +917,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 				// Direct API call since SDK's sendReceipt uses event.getRoomId() which may be undefined
 				const path = `/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(ReceiptType.ReadPrivate)}/${encodeURIComponent(eventId)}`;
 				// @ts-ignore - using internal http client for direct API call
-				await this.client.http.authedRequest('POST', path, undefined, { thread_id: 'main' });
+				const threadIdParameter = threadId ?? 'main';
+				await this.client.http.authedRequest(Method.Post, path, undefined, { thread_id: threadIdParameter });
 
 				const rooms = useRooms();
 				setTimeout(() => {
@@ -940,12 +943,24 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
-		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: PubHubsMgType = PubHubsMgType.Default): Promise<Boolean> {
+		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: PubHubsMgType = PubHubsMgType.Default, inReplyTo?: TMessageEvent): Promise<Boolean> {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
 			let fileType = MsgType.File;
 			let body = message;
 			if (body === '') body = file.name;
 			if (imageTypes.includes(file?.type)) fileType = MsgType.Image;
+
+			let relatesTo: any = undefined;
+			if (thread || inReplyTo) {
+				relatesTo = {};
+				if (thread) {
+					relatesTo.event_id = thread;
+					relatesTo.rel_type = 'm.thread';
+				}
+				if (inReplyTo) {
+					relatesTo['m.in_reply_to'] = { event_id: inReplyTo.event_id };
+				}
+			}
 
 			const content = {
 				body: body,
@@ -959,7 +974,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 				// satisfy the sdk's type checking
 				'm.new_content': undefined,
-				'm.relates_to': undefined,
+				'm.relates_to': relatesTo,
 			};
 			try {
 				// FileLibrary
@@ -1176,11 +1191,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * Creates a new admin contact room if none exists
 		 */
 		async createNewAdminRoom(adminIds: string[]): Promise<string | undefined> {
-			const adminUsers = adminIds.map((adminId) => this.client.getUser(adminId)).filter((user) => user !== null);
+			const adminUsers = adminIds.map((adminId) => this.client.getUser(adminId)!.userId).filter((user) => user !== null);
 
-			// This condition is to satisfy the createPrivateRoomWith function - It takes either a User or MatrixUser[] as argument
-			const oneOrManyAdmins = adminUsers.length === 1 ? (adminUsers.pop() as User) : adminUsers;
-			const room = await this.createPrivateRoomWith(oneOrManyAdmins, true);
+			const room = await this.createPrivateRoomWith(adminUsers, true);
 			// Returns room_id if it exists
 			return room ? room.room_id : undefined;
 		},

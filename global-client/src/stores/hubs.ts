@@ -17,6 +17,7 @@ import { useSettings } from '@hub-client/stores/settings';
 
 // Other
 import { setLanguage, setUpi18n } from '@hub-client/i18n';
+import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 const useHubs = defineStore('hubs', {
 	state: () => {
@@ -187,9 +188,10 @@ const useHubs = defineStore('hubs', {
 					}
 
 					const [baseUrl] = currentUrl.split('#');
-					// preserve the current history state
-					const currentState = history.state || {};
-					window.history.replaceState({ ...currentState, roomId }, '', `${baseUrl}#/hub/${hubName}/${roomId}`);
+					const newUrl = `${baseUrl}#/hub/${hubName}/${roomId}`;
+					// Pass null as state to avoid corrupting Vue Router's internal history.state.
+					// Not to keep the state current path.
+					window.history.replaceState(null, '', newUrl);
 				});
 
 				//Listen to global menu change and don't resend own state.
@@ -213,6 +215,21 @@ const useHubs = defineStore('hubs', {
 				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
 					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content);
 					global.addAccessTokenAndUserID(this.currentHubId, token, userId);
+				});
+
+				// Open context menu in global-client
+				messagebox.addCallback(iframeHubId, MessageType.ContextMenuOpen, (message: Message) => {
+					const { items, x, y, targetId } = message.content;
+					const contextMenu = useContextMenuStore();
+					contextMenu.open(
+						items.map((item: any, index: number) => ({
+							...item,
+							onClick: () => messagebox.sendMessage(new Message(MessageType.ContextMenuSelect, index), iframeHubId),
+						})),
+						x,
+						y,
+						targetId,
+					);
 				});
 
 				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, () => {

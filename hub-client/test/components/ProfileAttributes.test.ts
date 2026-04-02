@@ -69,13 +69,13 @@ describe('ProfileAttributes.vue Test', () => {
 		rooms.$patch({
 			roomNotices: {
 				room: {
-					user: ['rooms.admin_badge'],
+					user: ['admin.title_administrator'],
 				},
 			},
 		});
 
 		await flushPromises();
 
-		expect(wrapper.text()).toBe('Admin');
+		expect(wrapper.text()).toBe('Administrator');
 	});
 });

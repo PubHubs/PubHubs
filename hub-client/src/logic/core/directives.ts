@@ -25,6 +25,7 @@ const twClass = {
 
 const clickOutside = {
 	beforeMount(el: any, binding: any) {
+		console.info('clickOutside', el, binding);
 		el.clickOutsideEvent = function (event: Event) {
 			// Check if the clicked element is neither the element
 			// to which the directive is applied nor its child
@@ -52,7 +53,7 @@ const contextMenu = {
 		el._contextMenuHandler = binding.value;
 
 		el._onContextMenu = (e: Event) => {
-			el._contextMenuHandler(e);
+			if (typeof el._contextMenuHandler === 'function') el._contextMenuHandler(e);
 		};
 
 		el._onTouchStart = (e: TouchEvent) => {
@@ -87,9 +88,12 @@ const contextMenu = {
 		el.addEventListener('touchend', el._onTouchEnd);
 		el.addEventListener('touchcancel', el._onTouchEnd);
 
-		el.style.setProperty('-webkit-touch-callout', 'none');
-		el.style.setProperty('user-select', 'none');
-		el.style.setProperty('-webkit-user-select', 'none');
+		// Only disable text selection on touch devices
+		if (window.matchMedia('(pointer: coarse)').matches) {
+			el.style.setProperty('-webkit-touch-callout', 'none');
+			el.style.setProperty('user-select', 'none');
+			el.style.setProperty('-webkit-user-select', 'none');
+		}
 	},
 
 	updated(el: any, binding: DirectiveBinding) {

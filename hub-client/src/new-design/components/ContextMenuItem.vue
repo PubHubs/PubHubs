@@ -1,12 +1,11 @@
 <template>
 	<button
-		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex w-full flex-row gap-150 px-175 py-100 not-focus:pl-[18px] first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer focus:border-l-4 disabled:cursor-not-allowed"
+		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex w-full items-center gap-200 first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer disabled:cursor-not-allowed"
 		role="menuitem"
 		type="button"
-		v-bind="attrs"
 		:aria-disabled="props.disabled ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
-		:class="disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface'"
+		:class="[disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface', isMobile ? 'gap-200 px-400 py-200' : 'border-l-4 px-200 py-150 not-focus:border-transparent']"
 		:disabled="disabled"
 		:title="computedTitle"
 		@click="handleClick"
@@ -18,44 +17,38 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, useAttrs } from 'vue';
+	import { computed } from 'vue';
+
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
+	import type { ContextMenuItemProps } from '@hub-client/new-design/models/contextMenu.models';
 
-	// Types
-	export type ContextMenuItemProps = {
-		ariaLabel?: string;
-		disabled?: boolean;
-		icon?: string;
-		isDelicate?: boolean;
-		label: string;
-		title?: string;
-	};
-
-	const attrs = useAttrs();
-
+	// Props
 	const props = withDefaults(defineProps<ContextMenuItemProps>(), {
 		disabled: false,
 		isDelicate: false,
 	});
 
-	const { ariaLabel, disabled, icon, isDelicate, label, title } = props;
+	// Computed
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
-	// Computed props
 	const computedAriaLabel = computed(() => {
-		if (label) return label;
-		if (title) return title;
-		return ariaLabel ?? undefined;
+		if (props.label) return props.label;
+		if (props.title) return props.title;
+		return props.ariaLabel ?? undefined;
 	});
 
 	const computedTitle = computed(() => {
-		if (title) return title;
-		if (label) return label;
+		if (props.title) return props.title;
+		if (props.label) return props.label;
 		return undefined;
 	});
 
-	//  Lifecycle
+	// Lifecycle
 	const emit = defineEmits<{
 		(e: 'click', evt: MouseEvent): void;
 	}>();

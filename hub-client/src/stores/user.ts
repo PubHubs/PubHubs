@@ -6,6 +6,7 @@ import { MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
 // Composables
+import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 // Logic
@@ -19,6 +20,7 @@ import { SMI } from '@hub-client/logic/logging/StatusMessage';
 // Models
 import { MatrixType, OnboardingType } from '@hub-client/models/constants';
 import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
+import { UserRole } from '@hub-client/models/users/TUser';
 
 // Stores
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -50,6 +52,7 @@ type State = {
 	usersProfile: Map<string, UserProfile>; // Key-value pairs of users. Key=UserId.
 	administrator: Administrator | null;
 	isAdministrator: boolean;
+	adminStatusLoaded: boolean;
 	needsOnboarding: boolean;
 	needsConsent: boolean;
 };
@@ -65,6 +68,7 @@ const useUser = defineStore('user', {
 		administrator: null,
 		usersProfile: new Map<string, UserProfile>(),
 		isAdministrator: false,
+		adminStatusLoaded: false,
 		needsOnboarding: false,
 		needsConsent: false,
 	}),
@@ -142,6 +146,10 @@ const useUser = defineStore('user', {
 
 				// only update the member if not available yet in userProfile, or if displayname/avatarurl has changed
 				if (!memberToUpdate || memberToUpdate?.displayName !== member.content.displayname || memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
+					// Revoke old avatar blob URL before replacing
+					if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
+						URL.revokeObjectURL(memberToUpdate.avatarUrl);
+					}
 					const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
 					const profile: UserProfile = {
 						displayName: member.content.displayname ?? undefined,
@@ -168,6 +176,11 @@ const useUser = defineStore('user', {
 
 		async setAvatarUrl(avatarUrl: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
+
+			// Revoke old avatar blob URL before replacing
+			if (this._avatarUrl?.startsWith('blob:')) {
+				URL.revokeObjectURL(this._avatarUrl);
+			}
 
 			const { getAuthorizedMediaUrl } = useMatrixFiles();
 			this._avatarUrl = await getAuthorizedMediaUrl(avatarUrl);
@@ -203,6 +216,7 @@ const useUser = defineStore('user', {
 
 		// #region Fetchermethod //
 		async fetchIsAdministrator(client: MatrixClient) {
+			this.adminStatusLoaded = false;
 			try {
 				// API call returns true when succesful and isAdministrator, but throws an error when false
 				// still we need to check the returnvalue for when it might be succesfully returned as false
@@ -215,6 +229,14 @@ const useUser = defineStore('user', {
 				}
 			} catch {
 				this.isAdministrator = false;
+			} finally {
+				this.adminStatusLoaded = true;
+				const currentRoute = router.currentRoute.value;
+				const accessFor = currentRoute.meta?.accessFor as Array<UserRole> | undefined;
+				const isAdminOnlyRoute = accessFor?.length === 1 && accessFor[0] === UserRole.Admin;
+				if (isAdminOnlyRoute && !this.isAdministrator) {
+					router.push({ name: 'home' });
+				}
 			}
 		},
 
@@ -240,14 +262,8 @@ const useUser = defineStore('user', {
 		},
 
 		async goToUserRoom(userId: string) {
-			const pubhubs = usePubhubsStore();
-			const otherUser = this.client!.getUser(userId);
-			if (otherUser && this.userId !== otherUser.userId) {
-				const userRoom = await pubhubs.createPrivateRoomWith(otherUser as User);
-				if (userRoom) {
-					await pubhubs.routeToRoomPage(userRoom);
-				}
-			}
+			const dm = useDirectMessage();
+			await dm.goToUserDM(userId);
 		},
 
 		// #endregion

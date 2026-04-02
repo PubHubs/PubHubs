@@ -1,7 +1,7 @@
 <template>
 	<div class="flex flex-row items-center gap-1 wrap-break-word">
 		<!-- Deleted Message -->
-		<Icon v-if="deleted" type="trash" size="sm" />
+		<Icon v-if="deleted" type="trash" size="sm" class="text-on-surface-dim" />
 		<p v-if="deleted" class="text-on-surface-dim overflow-hidden text-ellipsis">
 			{{ t('message.delete.message_deleted') }}
 		</p>
@@ -82,7 +82,8 @@
 
 	// Regular message content (for non-deleted, non-mention messages)
 	const messageContent = computed(() => {
-		return props.event.content.ph_body;
+		const content = props.event.content as any;
+		return content.ph_body ?? content.formatted_body ?? content.body ?? '';
 	});
 
 	/**

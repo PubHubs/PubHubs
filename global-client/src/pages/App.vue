@@ -1,18 +1,24 @@
 <template>
-	<div class="bg-background font-body text-on-surface text-body h-full min-w-[32rem]">
-		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login')" />
+	<div
+		id="layout-root"
+		class="bg-background font-body text-on-surface text-body no-scrollbar flex h-[100svh] w-screen min-w-[32rem] overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth"
+		:class="isIOS ? '' : 'snap-x snap-mandatory'"
+	>
+		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
+		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
-		<div class="flex h-full">
-			<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
-			<div class="h-dvh w-full flex-1">
-				<router-view />
-			</div>
-		</div>
+		<router-view
+			class="flex h-full shrink-0 overflow-y-auto"
+			:class="isMobile && !(route.name === 'onboarding' || route.name === 'home' || route.name === 'login' || route.name === 'error') ? '!w-[calc(200vw_-_80px)]' : '!w-[calc(100vw_-_80px)] flex-1'"
+		/>
+
+		<!-- 0-width element for snapping -->
+		<div v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
 	</div>
 
-	<Dialog v-if="dialog.visible" @close="dialog.close" />
+	<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
 
-	<ContextMenu />
+	<ContextMenu v-if="isMobile" />
 </template>
 
 <script setup lang="ts">
@@ -23,15 +29,21 @@
 
 	// Components
 	import GlobalBar from '@global-client/components/ui/GlobalBar.vue';
+	import MobileMenu from '@global-client/components/ui/MobileMenu.vue';
+
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+	// Composables
+	import useRootScroll from '@global-client/composables/useRootScroll';
 
 	// Logic
+	import device from '@hub-client/logic/core/device';
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
-	import { useHubs } from '@global-client/stores/hubs';
 	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
 
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -41,14 +53,16 @@
 	// New design
 	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 
+	const isMobile = computed(() => settings.isMobileState);
+	const isIOS = device.getMobileOS() === 'iOS';
 	const LOGGER = new Logger('GC', CONFIG);
 	const { locale, availableLocales } = useI18n();
+	const { scrollToEnd, scrollToStart } = useRootScroll();
 	const messagebox = useMessageBox();
 	const settings = useSettings();
 	const dialog = useDialog();
 	const global = useGlobal();
 	const installPromptStore = useInstallPromptStore();
-	const hubs = useHubs();
 	const route = useRoute();
 	const router = useRouter();
 
@@ -91,7 +105,18 @@
 		);
 
 		// Update isMobile state on initial load
-		settings.startListening();
+		settings.startListeningMobile();
+
+		// Update root scroll state on iframe message
+		window.addEventListener('message', (event) => {
+			if (event.data?.handleGlobalScroll !== undefined) {
+				if (event.data.handleGlobalScroll === 'scrollToStart') {
+					scrollToStart();
+				} else if (event.data.handleGlobalScroll === 'scrollToEnd') {
+					scrollToEnd();
+				}
+			}
+		});
 
 		// Watch for saved state changes and save to backend
 		watch(
@@ -133,17 +158,23 @@
 
 	function setTheme(theme: string) {
 		const html = document.documentElement;
-		if (theme === 'dark') {
-			html.classList.add('dark');
-		} else {
-			html.classList.remove('dark');
+		const isDark = theme === 'dark';
+		html.classList.toggle('dark', isDark);
+
+		const themeColor = isDark ? '#464545' : '#ffffff';
+		let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+		if (!meta) {
+			meta = document.createElement('meta');
+			meta.name = 'theme-color';
+			document.head.appendChild(meta);
 		}
+		meta.content = themeColor;
 	}
 
 	// Lifecycle hook
 	onMounted(initializeSettings);
 
 	onUnmounted(() => {
-		settings.stopListening();
+		settings.stopListeningMobile();
 	});
 </script>

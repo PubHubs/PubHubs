@@ -1,11 +1,11 @@
 <template>
-	<div>
-		<div class="mb-4 flex flex-col">
-			<H3>{{ title }}</H3>
+	<div class="flex flex-col gap-200">
+		<div class="gap-075 flex flex-col">
+			<Label>{{ title }}</Label>
 			<p>{{ description }}</p>
 		</div>
 
-		<div class="mb-8 flex h-14">
+		<div class="flex h-14">
 			<input :accept="accept" ref="fileInput" type="file" class="hidden" @change="handleFileChange" />
 
 			<div class="">
@@ -26,8 +26,10 @@
 	import { ref } from 'vue';
 
 	// Components
-	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// New design
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 
 	defineProps({
 		title: {

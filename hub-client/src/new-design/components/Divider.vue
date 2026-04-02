@@ -1,20 +1,22 @@
 <template>
-	<div class="bg-surface-base" :class="[direction == 'horizontal' ? `h-[${stroke}px] w-full` : `w-[${stroke}px] h-full`]">
+	<div class="bg-surface-base" :class="direction === 'horizontal' ? 'h-px w-full' : 'h-full w-px'">
 		<slot></slot>
 	</div>
 </template>
 
+<script lang="ts">
+	// Types
+	export type TDirection = 'horizontal' | 'vertical';
+</script>
+
 <script setup lang="ts">
-	const props = withDefaults(
+	// Props
+	withDefaults(
 		defineProps<{
-			direction: 'horizontal' | 'vertical';
-			stroke?: number;
+			direction?: TDirection;
 		}>(),
 		{
 			direction: 'horizontal',
-			stroke: 1,
 		},
 	);
-
-	const { direction, stroke } = props;
 </script>

@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventType, Filter, IRoomEvent, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -14,6 +14,7 @@ import { MatrixEventType, Redaction, RelatedEventsOptions, RelationType, SystemD
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TCurrentEvent } from '@hub-client/models/events/types';
+import TRoomThread from '@hub-client/models/thread/RoomThread';
 
 // Stores
 import { useUser } from '@hub-client/stores/user';
@@ -30,6 +31,14 @@ type TRelatedEvents = {
 	eventId: string;
 	isFetched: boolean;
 	relatedEvents: MatrixEvent[];
+};
+
+type TimelineFilter = {
+	room: {
+		timeline: {
+			types: string[];
+		};
+	};
 };
 
 /**
@@ -69,21 +78,31 @@ class TimelineManager {
 	private visibleEventTypes: string[] = [EventType.RoomMessage];
 	private invisibleMessageTypes: string[] = [MsgType.Notice];
 	private invisibleRelatesToTypes: string[] = [RelationType.Thread];
-	private timelineSetFilter = {
+
+	// Filter on timeline for messages
+	private readonly timelineFilter: TimelineFilter = {
 		room: {
 			timeline: {
 				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage],
 			},
 		},
 	};
+	private readonly MessageFilter: Filter = new Filter(undefined, 'MessageFilter');
 
 	private readonly relatedEventTypes = new Set([PubHubsMgType.VotingWidgetReply, PubHubsMgType.VotingWidgetClose, PubHubsMgType.VotingWidgetModify, PubHubsMgType.VotingWidgetPickOption, EventType.Reaction]);
-
-	private FILTER_ID: string = 'MainRoomTimeline';
 
 	constructor(roomId: string, client: MatrixClient) {
 		this.roomId = roomId;
 		this.client = client;
+		this.MessageFilter.setDefinition(this.timelineFilter);
+	}
+
+	/**
+	 *
+	 * @returns the default filter that is used for retreiving messages from the timeline
+	 */
+	public getMessagesFilter(): Filter {
+		return this.MessageFilter;
 	}
 
 	/**
@@ -102,6 +121,15 @@ class TimelineManager {
 		}
 		if (this.invisibleRelatesToTypes.includes(event.content?.[RelationType.RelatesTo]?.rel_type)) {
 			return false;
+		}
+		if (event.content?.msgtype === PubHubsMgType.WhisperMessage) {
+			const currentUserId = this.user.userId;
+			const whisperToUserId = event.content?.whisper_to;
+			const senderId = event.sender;
+			// Whisper is private to sender and target user only.
+			if (!currentUserId || (senderId !== currentUserId && whisperToUserId !== currentUserId)) {
+				return false;
+			}
 		}
 		// Deleted events from threads may not be visible; they have lost the direct connection to their thread
 		if (event.unsigned?.redacted_because?.redacts) {
@@ -137,20 +165,39 @@ class TimelineManager {
 	// Add events to the relatedEvents
 	// only when the event is not in there already
 	// The array of relatedEvents is sorted on timestamp (oldest -> newest)
-	private addRelatedEvents(events: MatrixEvent[]) {
+	private async addRelatedEvents(events: MatrixEvent[]) {
 		if (events.length <= 0) return;
-		events.forEach((eventToAdd) => {
-			const relatesToEvent = eventToAdd.event.content?.[RelationType.RelatesTo]?.event_id;
-			const relatedEventsEntry = this.relatedEvents.find((x) => x.eventId === relatesToEvent);
-			if (relatedEventsEntry) {
-				if (!relatedEventsEntry.relatedEvents.find((y) => y.event.event_id === eventToAdd.event.event_id)) {
-					relatedEventsEntry.relatedEvents.push(eventToAdd);
-					relatedEventsEntry.relatedEvents.sort((a, b) => a.getTs() - b.getTs());
+
+		for (const eventToAdd of events) {
+			if (eventToAdd.event.content?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
+				// Fetch thread for newly created threads that are not the currentthread and ar not yet recognized as thread in this client
+				const rootId = eventToAdd.event.content?.[RelationType.RelatesTo].event_id;
+				const rootEvent = this.timelineEvents.find((x) => rootId === x.matrixEvent.event.event_id);
+				if (rootEvent) {
+					const room = this.client?.getRoom(this.roomId);
+					if (room) {
+						const alreadyExists = room.findEventById(eventToAdd.getId() ?? '');
+						const alreadyInThread = rootEvent.isEventInThread(eventToAdd.getId() ?? '');
+						if (!alreadyExists && !alreadyInThread) {
+							await room.addLiveEvents([eventToAdd], { addToState: false });
+							rootEvent.loadThread();
+						}
+					}
 				}
 			} else {
-				this.relatedEvents.push({ eventId: relatesToEvent!, isFetched: false, relatedEvents: [eventToAdd] });
+				// Handle all other related events
+				const relatesToEvent = eventToAdd.event.content?.[RelationType.RelatesTo]?.event_id;
+				const relatedEventsEntry = this.relatedEvents.find((x) => x.eventId === relatesToEvent);
+				if (relatedEventsEntry) {
+					if (!relatedEventsEntry.relatedEvents.find((y) => y.event.event_id === eventToAdd.event.event_id)) {
+						relatedEventsEntry.relatedEvents.push(eventToAdd);
+						relatedEventsEntry.relatedEvents.sort((a, b) => a.getTs() - b.getTs());
+					}
+				} else {
+					this.relatedEvents.push({ eventId: relatesToEvent!, isFetched: false, relatedEvents: [eventToAdd] });
+				}
 			}
-		});
+		}
 	}
 
 	// Fetches the relations of an event. First check if it has not been done yet.
@@ -194,7 +241,7 @@ class TimelineManager {
 	}
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
-		return this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent(x, this.roomId)) ?? [];
+		return this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })) ?? [];
 	}
 
 	// Gets related events, either all (defined in this.relatedEventTypes) or of one specific type and or contenttype (for instance EvenType.Reaction, RelationType.Annotation)
@@ -212,6 +259,7 @@ class TimelineManager {
 	 * actual adding of events to the timeline
 	 * used for adding events arriving with sliding sync when there is already a roomtimeline
 	 * @param eventList List of events to add
+	 * @param threadrootIds List of threat rootIds coming from sliding sync
 	 * @returns string | undefined - the Id of the event to scroll the roomtimeline to
 	 */
 	private async addEventList(eventList: TimelineEvent[]): Promise<string | undefined> {
@@ -259,11 +307,11 @@ class TimelineManager {
 		const [newBackEvents, newForwardEvents] = await Promise.all(joinPromises);
 
 		if (newBackEvents?.length > 0 || newForwardEvents?.length > 0) {
-			tempEvents = [...newBackEvents, ...newForwardEvents];
+			tempEvents = [...newBackEvents, ...tempEvents, ...newForwardEvents];
 			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
 		}
 
-		let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+		let mappedEvents = tempEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
 		this.timelineEvents = mappedEvents;
@@ -287,7 +335,7 @@ class TimelineManager {
 
 		// Redacted Events
 		const redactedEvents = matrixEvents.filter((event) => event.getType() === EventType.RoomRedaction);
-		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent(x, this.roomId))];
+		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
 
 		// TODO this is now necessary for reactions that use RedactedEventIds, in the future refactor to use standard redactions
 		// if the redacted event concerns a deleted reaction, put the id in the redactedEventIds
@@ -304,17 +352,19 @@ class TimelineManager {
 		const libraryEvents = matrixEvents.filter(
 			(x) => (x.getType() === PubHubsMgType.LibraryFileMessage || x.getType() === PubHubsMgType.SignedFileMessage) && x.getType() !== Redaction.DeletedFromLibrary && x.getType() !== Redaction.Redacts,
 		);
-		this.libraryEvents = [...this.libraryEvents, ...libraryEvents.map((x) => new TimelineEvent(x, this.roomId))];
+		this.libraryEvents = [...this.libraryEvents, ...libraryEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
 		// Filter out double, sometimes after sync items get doubled
 		this.libraryEvents = this.libraryEvents.filter((item, index, self) => self.findIndex((innerItem) => innerItem.matrixEvent.getId() === item.matrixEvent.getId()) === index);
 
 		this.applyIsDeleted([...this.timelineEvents, ...this.libraryEvents]);
 
+		matrixEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
+
 		// Filters out the visible events, so from now on we are working on the visible timeline
 		matrixEvents = this.prepareEvents(matrixEvents);
 		if (matrixEvents.length === 0) return undefined;
 
-		const eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
+		const eventList = matrixEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
 		// if the lastMessageId is undefined
 		// or this events contains the lastMessageId
@@ -395,24 +445,9 @@ class TimelineManager {
 		if (!room || !eventId || eventId === '') {
 			return null;
 		}
-
-		const filter = new Filter(undefined, this.FILTER_ID);
-		filter.setDefinition(this.timelineSetFilter);
-		const timelineSet = room.getOrCreateFilteredTimelineSet(filter);
+		const timelineSet = room.getOrCreateFilteredTimelineSet(this.getMessagesFilter());
 
 		return (await this.client.getEventTimeline(timelineSet, eventId)) ?? null;
-	}
-
-	/**
-	 * Is it possible to paginate in given direction from this event?
-	 * @param backwards
-	 * @returns
-	 */
-	private CanPaginate(eventId: string | undefined, backwards = true): boolean {
-		if (!eventId) {
-			return false;
-		}
-		return backwards ? this.paginationState.firstMessageId === eventId : this.paginationState.lastMessageId === eventId;
 	}
 
 	/**
@@ -423,37 +458,16 @@ class TimelineManager {
 	 * @returns
 	 */
 	private async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {
-		let newEvents: MatrixEvent[] = [];
-		try {
-			// Since paginateEventTimeline paginates the unfiltered timeline and filtering takes place in the sdk,
-			// there is a chance that one paginate does not fetch all needed messages.
-			// It requests 'limit' events, but returns the filtered ones. That is why we need a loop
-			// PaginateEventTimeline is not consistent in its returnvalue: it is a boolean that iondicates whether further pagination is possible,
-			// but sometimes the history of the room is incorrect read and it keeps returning true. In that case we try only 2 times.
-			let canPaginate = true;
-			let numberoftries = 0;
-			// Target = current size + limit
-			const target = timeline.getEvents().length + limit;
-			while (numberoftries < 2 && canPaginate && timeline.getEvents().length < target) {
-				const before = timeline.getEvents().length;
-				canPaginate = await this.client.paginateEventTimeline(timeline, {
-					backwards: direction === Direction.Backward,
-					limit,
-				});
-				// canpaginate is true, but no new events: try just a couple of times to prevent hanging loop
-				if (canPaginate && before === timeline.getEvents().length) {
-					numberoftries++;
-				}
-			}
-			newEvents = timeline.getEvents();
-			if (!canPaginate) {
-				// Here we have reached the first or last of all messages
-				const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
-				const lastMessageId = newEvents.length > 0 ? newEvents[newEvents.length - 1]?.event?.event_id : this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
-				direction === Direction.Backward ? (this.paginationState.firstMessageId = firstMessageId) : (this.paginationState.lastMessageId = lastMessageId);
-			}
-		} catch {
-			// ignore error: used for an empty timeline
+		const paginationToken = direction === Direction.Backward ? timeline.getPaginationToken(EventTimeline.BACKWARDS) : timeline.getPaginationToken(EventTimeline.FORWARDS);
+		const messagesResponse = await this.client.createMessagesRequest(this.roomId, paginationToken, limit, direction, this.MessageFilter);
+
+		const eventMapper = this.client.getEventMapper();
+		const newEvents = messagesResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+
+		if (messagesResponse.chunk.length < limit) {
+			const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
+			const lastMessageId = newEvents.length > 0 ? newEvents[newEvents.length - 1]?.event?.event_id : this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
+			direction === Direction.Backward ? (this.paginationState.firstMessageId = firstMessageId) : (this.paginationState.lastMessageId = lastMessageId);
 		}
 		return this.prepareEvents(newEvents);
 	}
@@ -513,24 +527,21 @@ class TimelineManager {
 			this.timelineEvents = [];
 			this._timelineVersion++;
 		} else {
-			// Snapshot SDK timeline IDs before fetching
-			const beforeIds = new Set(timeline.getEvents().map((e) => e.event.event_id));
+			// Snapshot timelineEvents IDs before fetching
+			const beforeIds = this.timelineEvents.map((e) => e.matrixEvent.event.event_id).filter((id): id is string => typeof id === 'string');
 			const allEvents = await this.performPaginate(direction, limit, timeline);
 
 			// Only take events that are truly new
-			const newOnly = allEvents.filter((e) => !beforeIds.has(e.event.event_id));
+			const newOnly = allEvents.filter((e) => !beforeIds.find((x) => x === e.event.event_id));
 
 			if (newOnly.length > 0) {
-				let timeLineEvents = newOnly.map((event) => new TimelineEvent(event, this.roomId));
+				let newTimeLineEvents = newOnly.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
-				// Remove duplicates already in the managed timeline
-				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((existing) => existing.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
-
-				if (timeLineEvents.length > 0) {
+				if (newTimeLineEvents.length > 0) {
 					if (direction === Direction.Backward) {
-						this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
+						this.timelineEvents = [...newTimeLineEvents, ...this.timelineEvents];
 					} else {
-						this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
+						this.timelineEvents = [...this.timelineEvents, ...newTimeLineEvents];
 					}
 
 					// Enforce sliding window: trim from the opposite end
@@ -593,13 +604,23 @@ class TimelineManager {
 	}
 
 	/**
+	 *
+	 * @param eventId eventId to find
+	 * @returns TimelineEvent | undefined
+	 */
+	public findTimelineEventById(eventId: string | undefined): TimelineEvent | undefined {
+		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `find timelineEvent by eventId ${eventId}...`, { eventId });
+		return this.timelineEvents?.find((x) => x.matrixEvent.event.event_id === eventId);
+	}
+
+	/**
 	 * Tries to find an event in the timeline by its Id
 	 * @param eventId eventId to find
-	 * @returns
+	 * @returns MatrixEvent | undefined
 	 */
 	public findEventById(eventId: string | undefined): MatrixEvent | undefined {
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `find by eventId ${eventId}...`, { eventId });
-		return this.timelineEvents?.find((x) => x.matrixEvent.event.event_id === eventId)?.matrixEvent;
+		return this.findTimelineEventById(eventId)?.matrixEvent;
 	}
 
 	/**

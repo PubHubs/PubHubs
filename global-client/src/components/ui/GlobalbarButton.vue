@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-background hover:bg-on-surface-variant hover:text-background rounded-md p-2 hover:cursor-pointer" @click="handleClick">
+	<div class="bg-surface hover:bg-surface-high w-fit rounded-md p-2 hover:cursor-pointer" @click="handleClick">
 		<Icon :type="type" :size="size" />
 	</div>
 </template>
@@ -15,7 +15,7 @@
 		},
 		size: {
 			type: String,
-			default: 'base',
+			default: 'lg',
 		},
 	});
 

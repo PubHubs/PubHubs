@@ -1,168 +1,180 @@
 <template>
 	<teleport to="body">
-		<!-- Backdrop -->
-		<div v-if="store.isOpen" class="fixed inset-0 z-9998 bg-transparent" @pointerdown.prevent.stop="store.close" @click.prevent.stop />
+		<!-- Desktop backdrop -->
+		<div v-if="store.isOpen && !isMobile" class="fixed inset-0 z-9998 bg-transparent" @pointerdown.prevent.stop="store.close" @click.prevent.stop />
 
-		<!-- Context menu -->
+		<!-- Desktop menu -->
 		<div
-			v-if="store.isOpen"
+			v-if="store.isOpen && !isMobile"
 			ref="menuRef"
 			class="bg-surface-elevated rounded-base fixed z-9999 flex w-fit max-w-4000 min-w-1000 flex-col shadow-xl"
 			:style="{ left: `${pos.x}px`, top: `${pos.y}px` }"
 			role="menu"
+			data-testid="contextmenu"
 			tabindex="-1"
 			@keydown="onKeydown"
 		>
-			<ContextMenuItem
-				v-for="item in store.items"
-				:aria-label="item.ariaLabel"
-				:disabled="item.disabled"
-				:icon="item.icon"
-				:is-delicate="item.isDelicate"
-				:label="item.label"
-				:title="item.title"
-				@click="onItemClick(item)"
-				@mousedown.stop
-			/>
+			<template v-for="(item, i) in store.items" :key="i">
+				<div v-if="item.divider" class="bg-surface-low my-50 h-px shrink-0" />
+				<ContextMenuItem v-else :aria-label="item.ariaLabel" :disabled="item.disabled" :icon="item.icon" :is-delicate="item.isDelicate" :label="item.label" :title="item.title" @click="store.select(item)" @mousedown.stop />
+			</template>
 		</div>
+
+		<!-- Mobile scrim -->
+		<Transition enter-active-class="transition-opacity duration-250 ease-in-out" leave-active-class="transition-opacity duration-250 ease-in-out" enter-from-class="opacity-0" leave-to-class="opacity-0">
+			<div v-if="store.isOpen && isMobile" class="fixed inset-0 z-9998 bg-black/40" @pointerdown.prevent.stop="store.close" @click.prevent.stop />
+		</Transition>
+
+		<!-- Mobile drawer menu -->
+		<Transition
+			enter-active-class="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+			leave-active-class="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+			enter-from-class="translate-y-full"
+			leave-to-class="translate-y-full"
+		>
+			<div
+				v-if="store.isOpen && isMobile"
+				ref="menuRef"
+				class="bg-surface-elevated rounded-t-large pb-safe fixed bottom-0 left-0 z-9999 flex w-full flex-col shadow-xl"
+				role="menu"
+				data-testid="contextmenu"
+				tabindex="-1"
+				@keydown="onKeydown"
+			>
+				<!-- Drag handle -->
+				<div class="flex justify-center py-200"></div>
+
+				<template v-for="(item, i) in store.items" :key="i">
+					<div v-if="item.divider" class="bg-surface-low my-100 h-px shrink-0" />
+					<ContextMenuItem v-else :aria-label="item.ariaLabel" :disabled="item.disabled" :icon="item.icon" :is-delicate="item.isDelicate" :label="item.label" :title="item.title" @click="store.select(item)" @mousedown.stop />
+				</template>
+
+				<div class="h-200" />
+			</div>
+		</Transition>
 	</teleport>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { nextTick, onUnmounted, ref, watch } from 'vue';
+	import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
+
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	// New design
 	import ContextMenuItem from '@hub-client/new-design/components/ContextMenuItem.vue';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
+	// Constants
 	const POINTER_OFFSET = 8;
 
+	// State
 	const store = useContextMenuStore();
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 	const menuRef = ref<HTMLElement | null>(null);
 	const itemButtons = ref<HTMLButtonElement[]>([]);
 	const pos = ref({ x: 0, y: 0 });
 
-	// Positioning helper function
-	function clampToViewport(x: number, y: number) {
+	// Positioning (desktop only)
+
+	const clampPosition = (x: number, y: number) => {
 		if (!menuRef.value) return { x, y };
 
-		const rect = menuRef.value.getBoundingClientRect();
-		const vw = window.innerWidth;
-		const vh = window.innerHeight;
+		const { width: menuWidth, height: menuHeight } = menuRef.value.getBoundingClientRect();
+		const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+		const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
 		let nx = x;
+		if (x + menuWidth > viewportWidth - POINTER_OFFSET) {
+			nx = Math.max(POINTER_OFFSET, viewportWidth - menuWidth - POINTER_OFFSET);
+		}
+		if (nx < POINTER_OFFSET) nx = POINTER_OFFSET;
+
 		let ny = y;
-
-		// If menu overflows right edge, shift left
-		if (x + rect.width > vw - POINTER_OFFSET) nx = Math.max(POINTER_OFFSET, vw - rect.width - POINTER_OFFSET);
-
-		// If menu overflows bottom, shift up
-		if (y + rect.height > vh - POINTER_OFFSET) ny = Math.max(POINTER_OFFSET, vh - rect.height - POINTER_OFFSET);
-
-		// Ensure not negative
-		nx = Math.max(POINTER_OFFSET, nx);
-		ny = Math.max(POINTER_OFFSET, ny);
+		if (y + menuHeight > viewportHeight - POINTER_OFFSET) {
+			ny = Math.max(POINTER_OFFSET, viewportHeight - menuHeight - POINTER_OFFSET);
+		}
+		if (ny < POINTER_OFFSET) ny = POINTER_OFFSET;
 
 		return { x: nx, y: ny };
-	}
+	};
 
-	// Handle menu positioning and focus state
-	async function positionMenu() {
-		// Wait for DOM update
+	const positionMenu = async () => {
 		await nextTick();
+		const { x, y } = clampPosition(store.x + POINTER_OFFSET, store.y + POINTER_OFFSET);
+		pos.value = { x, y };
+		collectItemButtons();
+		itemButtons.value.find((b) => !b.disabled)?.focus();
+	};
 
-		// Apply pointer offset so the cursor doesn't overlap the menu
-		const rawX = store.x + POINTER_OFFSET;
-		const rawY = store.y + POINTER_OFFSET;
-		const { x: nx, y: ny } = clampToViewport(rawX, rawY);
-
-		pos.value = { x: nx, y: ny };
-
-		// Refresh item refs
+	const collectItemButtons = () => {
 		if (menuRef.value) {
-			const menuItems = Array.from(menuRef.value.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'));
-			itemButtons.value = menuItems;
+			itemButtons.value = Array.from(menuRef.value.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'));
 		}
+	};
 
-		// Focus the first enabled item for keyboard users
-		const firstEnabled = itemButtons.value.find((b) => !b.disabled);
-		firstEnabled?.focus();
-	}
+	// Keyboard navigation
 
-	function onItemClick(item: any) {
-		store.select(item);
-	}
+	const focusNextEnabled = (buttons: HTMLButtonElement[], currentIndex: number, direction: 1 | -1) => {
+		const len = buttons.length;
+		let index = currentIndex;
+		do {
+			index = (index + direction + len) % len;
+		} while (buttons[index].disabled && index !== currentIndex);
+		buttons[index]?.focus();
+	};
 
-	// Handle keyboard select
-	function onKeydown(e: KeyboardEvent) {
+	const onKeydown = (e: KeyboardEvent) => {
 		const buttons = itemButtons.value;
-
-		console.error(buttons);
-
 		if (!buttons.length) return;
 
-		const currentIndex = buttons.findIndex((button) => button === document.activeElement);
-		if (e.key === 'Escape') {
-			e.preventDefault();
-			store.close();
-			return;
-		}
-		if (e.key === 'ArrowDown') {
-			e.preventDefault();
-			let next = currentIndex + 1;
-			while (next < buttons.length && buttons[next].disabled) next++;
+		const currentIndex = buttons.findIndex((btn) => btn === document.activeElement);
 
-			// Focus next enabled
-			if (next >= buttons.length) next = 0;
-			buttons[next]?.focus();
+		switch (e.key) {
+			case 'Escape':
+				e.preventDefault();
+				store.close();
+				break;
+			case 'ArrowDown':
+				e.preventDefault();
+				focusNextEnabled(buttons, currentIndex, 1);
+				break;
+			case 'ArrowUp':
+				e.preventDefault();
+				focusNextEnabled(buttons, currentIndex, -1);
+				break;
+			case 'Enter':
+			case ' ':
+				e.preventDefault();
+				(document.activeElement as HTMLButtonElement)?.click();
+				break;
+			case 'Tab':
+				e.preventDefault();
+				focusNextEnabled(buttons, currentIndex, e.shiftKey ? -1 : 1);
+				break;
 		}
-		if (e.key === 'ArrowUp') {
-			e.preventDefault();
-			let prev = currentIndex - 1;
-			while (prev >= 0 && buttons[prev].disabled) prev--;
+	};
 
-			// Focus last enabled
-			if (prev < 0) {
-				prev = buttons.length - 1;
-				while (prev >= 0 && buttons[prev].disabled) prev--;
-			}
-			if (prev >= 0) buttons[prev]?.focus();
-		}
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			const btn = document.activeElement as HTMLButtonElement | null;
-			if (btn) btn.click();
-		}
-		if (e.key === 'Tab') {
-			e.preventDefault();
-			let nextIndex = currentIndex;
-
-			if (e.shiftKey) {
-				// Move backward
-				do {
-					nextIndex = (nextIndex - 1 + buttons.length) % buttons.length;
-				} while (buttons[nextIndex].disabled && nextIndex !== currentIndex);
-			} else {
-				// Move forward
-				do {
-					nextIndex = (nextIndex + 1) % buttons.length;
-				} while (buttons[nextIndex].disabled && nextIndex !== currentIndex);
-			}
-
-			buttons[nextIndex]?.focus();
-		}
-	}
+	// Lifecycle
 
 	watch(
 		() => store.isOpen,
 		async (open) => {
 			if (open) {
-				await nextTick();
-				positionMenu();
-				window.addEventListener('resize', positionMenu);
-				window.addEventListener('scroll', positionMenu, true);
+				if (isMobile.value) {
+					document.body.style.overflow = 'hidden';
+					await nextTick();
+					collectItemButtons();
+					itemButtons.value.find((b) => !b.disabled)?.focus();
+				} else {
+					positionMenu();
+					window.addEventListener('resize', positionMenu);
+					window.addEventListener('scroll', positionMenu, true);
+				}
 			} else {
+				document.body.style.overflow = '';
 				window.removeEventListener('resize', positionMenu);
 				window.removeEventListener('scroll', positionMenu, true);
 			}
@@ -170,8 +182,8 @@
 		{ immediate: true },
 	);
 
-	// Clean up on unmount
 	onUnmounted(() => {
+		document.body.style.overflow = '';
 		window.removeEventListener('resize', positionMenu);
 		window.removeEventListener('scroll', positionMenu, true);
 	});

@@ -1,5 +1,5 @@
 <template>
-	<iframe v-if="hubs.currentHubExists" :src="hubUrl" class="h-full w-full" name="hub" :id="iframeHubId"></iframe>
+	<iframe v-if="hubs.currentHubExists" :src="hubUrl" class="h-full w-full" name="hub" :id="iframeHubId" allow="clipboard-write"></iframe>
 </template>
 
 <script setup lang="ts">
@@ -8,9 +8,9 @@
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
+	// Logic
 	import { delay } from '@global-client/logic/utils/generalUtils';
 
-	// Logic
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
@@ -51,7 +51,7 @@
 				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempt}`, { error });
 			}
 			if (!hubId) {
-				delay(attempt);
+				await delay(attempt);
 			}
 		}
 		if (!hubId) {

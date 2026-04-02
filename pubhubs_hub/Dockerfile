@@ -7,7 +7,7 @@
 FROM golang:trixie AS yivi_build
 
 WORKDIR /irmago
-RUN git clone https://github.com/privacybydesign/irmago . --branch v0.19.1 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago . --branch v0.19.2 --depth 1
 RUN GO111MODULE=auto go install ./irma
 
 
@@ -16,6 +16,11 @@ RUN GO111MODULE=auto go install ./irma
 FROM ghcr.io/element-hq/synapse:v1.146.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
+
+RUN apt-get update && \
+	apt-get install -y -q postgresql sudo && \
+	rm -rf /var/lib/apt/lists/* && \
+	rm -rf /etc/postgres # the database goes in /data/postgres instead
 
 COPY modules /conf/modules
 COPY assets /non-persistent-data/assets

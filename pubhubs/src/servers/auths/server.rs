@@ -4,9 +4,9 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
-use digest::Digest as _;
+use sha2::digest::Digest as _;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
+use crate::servers::{self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
     api::{self, EndpointDetails as _},
     attr,
@@ -94,7 +94,6 @@ pub struct YiviCtx {
     pub requestor_creds: yivi::Credentials<yivi::SigningKey>,
     pub server_creds: yivi::Credentials<yivi::VerifyingKey>,
 
-    #[expect(dead_code)]
     pub chained_sessions_config: super::yivi::ChainedSessionsConfig,
     pub card_config: super::card::CardConfig,
 }
@@ -127,12 +126,20 @@ pub(super) struct AuthState {
     /// When this request expires
     pub exp: api::NumericDate,
 
-    pub yivi_chained_session_id: Option<id::Id>,
+    /// Set when [`api::auths::AuthStartReq::yivi_chained_session`] is enabled.
+    pub yivi_chained_session: Option<ChainedSessionSetup>,
 
     /// Under [`attr::Source::Yivi`] this will contain for each `AuthState::attr_type_choice`
     /// a map using which the original [`attr::Type`] handle can be recovered from the yivi
     /// attribute type identifier.
     pub yivi_ati2at: Vec<HashMap<yivi::AttributeTypeIdentifier, handle::Handle>>,
+}
+
+/// Type of [`AuthState::yivi_chained_session`].
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub(super) struct ChainedSessionSetup {
+    pub id: id::Id,
+    pub drip: bool,
 }
 
 impl AuthState {
@@ -270,6 +277,8 @@ impl DerefMut for AppCreator {
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
+    type ContextT = ();
+
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let base = AppCreatorBase::<Server>::new(config)?;
 
@@ -318,9 +327,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn into_app(self, handle: &Handle<Server>) -> App {
+    fn into_app(
+        self,
+        handle: &Handle<Server>,
+        _context: &Self::ContextT,
+        generation: usize,
+    ) -> App {
         App {
-            base: AppBase::new(self.base, handle),
+            base: AppBase::new(self.base, handle, generation),
             attribute_types: self.attribute_types,
             yivi: self.yivi,
             auth_state_secret: self.auth_state_secret,

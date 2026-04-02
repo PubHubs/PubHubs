@@ -6,7 +6,7 @@ COPY ./Cargo.lock .
 
 ARG PH_VERSION
 
-RUN PH_VERSION=$PH_VERSION cargo install --path .
+RUN PH_VERSION=$PH_VERSION cargo install --locked --path .
 
 FROM debian:stable-slim
 RUN apt-get update && apt-get install -y curl lsb-release && rm -rf /var/lib/apt/lists/*

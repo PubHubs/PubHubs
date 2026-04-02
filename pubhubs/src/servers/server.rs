@@ -252,10 +252,9 @@ where
     D::ObjectStoreT: Sync,
 {
     async fn run_discovery_and_then_wait_forever(&self, app: Rc<D::AppT>) -> Result<Infallible> {
-        self.run_discovery(app).await?;
+        self.run_discovery(app.clone()).await?;
 
-        std::future::pending::<Infallible>().await; // wait forever
-        unreachable!();
+        D::AppT::global_task(app).await // waits forever
     }
 
     async fn run_discovery(&self, app: Rc<D::AppT>) -> Result<()> {
@@ -276,6 +275,10 @@ where
 pub trait AppCreator<ServerT: Server>:
     DerefMut<Target = AppCreatorBase<ServerT>> + Send + Clone + 'static
 {
+    /// When [`App`]s are created a new [`AppCreator::ContextT`]  is created,
+    /// and a reference to it is passed to [`AppCreator::into_app`].
+    type ContextT: Default + Send + Clone + 'static;
+
     /// Creates a new instance of this [`AppCreator`] based on the given configuration.
     fn new(config: &servers::Config) -> Result<Self>;
 
@@ -283,7 +286,15 @@ pub trait AppCreator<ServerT: Server>:
     ///
     /// The `handle` [`Handle`] can be used to restart the server.  It's
     /// up to the implementor to clone it.
-    fn into_app(self, handle: &Handle<ServerT>) -> ServerT::AppT;
+    ///
+    /// `generation` indicates how many times the server has been restarted while running this
+    /// binary
+    fn into_app(
+        self,
+        handle: &Handle<ServerT>,
+        context: &Self::ContextT,
+        generation: usize,
+    ) -> ServerT::AppT;
 }
 
 /// What modifies a [Server] via [Command::Modify].
@@ -481,12 +492,22 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         }
 
         assert!(
-            phc_inf.constellation.is_some(),
+            phc_inf.constellation_or_id.is_some(),
             "this `discover` method should only be run when phc_inf.constellation is some"
         );
 
+        let Some(phc_inf_constellation) = phc_inf.constellation_or_id.unwrap().into_constellation()
+        else {
+            log::warn!(
+                "{server_name}: {phc} returned only its contellation id",
+                phc = Name::PubhubsCentral,
+                server_name = S::NAME
+            );
+            return Err(api::ErrorCode::InternalError);
+        };
+
         if let Some(rs) = self.running_state.as_ref() {
-            if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
+            if !self.check_constellation(&phc_inf_constellation) {
                 log::warn!(
                     "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
                     server_name = S::NAME,
@@ -512,7 +533,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
                 phc = Name::PubhubsCentral
             );
 
-            if phc_inf.constellation.as_ref().unwrap().id == rs.constellation.id {
+            if phc_inf_constellation.id == rs.constellation.id {
                 log::info!(
                     "{server_name}: my constellation is up-to-date!",
                     server_name = S::NAME,
@@ -533,12 +554,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         );
 
         // NOTE: phc_inf has already been (partially) checked
-        let c = phc_inf
-            .constellation
-            .as_ref()
-            .expect("that constellation is not none should already have been checked");
-
-        let url = c.url(S::NAME);
+        let url = phc_inf_constellation.url(S::NAME);
 
         // obtain DiscoveryInfo from oneself
         let di = self
@@ -558,7 +574,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         .check(di, url)?;
 
         Ok(DiscoverVerdict::ConstellationOutdated {
-            new_constellation: Box::new(phc_inf.constellation.unwrap()),
+            new_constellation: Box::new(phc_inf_constellation),
         })
     }
 
@@ -568,6 +584,14 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             panic!("this default impl should have been  overriden for PHC and T")
         }
         None
+    }
+
+    /// Will be invoked for each instance of [`App`] that is created.
+    async fn local_task(_weak: std::rc::Weak<Self>) {}
+
+    /// Will be invoked once for each server, after discovery
+    async fn global_task(_app: std::rc::Rc<Self>) -> Result<Infallible> {
+        Ok(std::future::pending::<Infallible>().await)
     }
 }
 
@@ -655,10 +679,32 @@ pub struct AppBase<S: Server> {
     pub shared: SharedState<S>,
     pub client: client::Client,
     pub version: Option<String>,
+    pub thread_id: std::thread::ThreadId,
+    pub generation: usize,
+}
+
+impl<S: Server> Drop for AppBase<S> {
+    fn drop(&mut self) {
+        log::trace!(
+            "{}: app for generation {} that started on {:?} dropped",
+            S::NAME,
+            self.generation,
+            self.thread_id
+        );
+    }
 }
 
 impl<S: Server> AppBase<S> {
-    pub fn new(creator_base: AppCreatorBase<S>, handle: &Handle<S>) -> Self {
+    pub fn new(creator_base: AppCreatorBase<S>, handle: &Handle<S>, generation: usize) -> Self {
+        let thread_id = std::thread::current().id();
+
+        log::trace!(
+            "{}: app for generation {} started on {:?}",
+            S::NAME,
+            generation,
+            thread_id
+        );
+
         Self {
             running_state: creator_base.running_state,
             handle: handle.clone(),
@@ -672,6 +718,8 @@ impl<S: Server> AppBase<S> {
                 .agent(client::Agent::Server(S::NAME))
                 .finish(),
             version: creator_base.version,
+            thread_id,
+            generation,
         }
     }
 
@@ -865,6 +913,20 @@ impl<S: Server> AppBase<S> {
     }
 
     fn cached_handle_discovery_info(app: &S::AppT) -> api::Result<api::DiscoveryInfoResp> {
+        use super::constellation::ConstellationOrId;
+
+        // Return our constellation (if we have one), but only its id if we're not PHC.
+        let constellation_or_id = app.running_state.as_ref().map(|rs| match S::NAME {
+            Name::PubhubsCentral => ConstellationOrId::Constellation(
+                AsRef::<Constellation>::as_ref(&rs.constellation)
+                    .clone()
+                    .into(),
+            ),
+            _ => ConstellationOrId::Id {
+                id: rs.constellation.id,
+            },
+        });
+
         Ok(api::DiscoveryInfoResp {
             name: S::NAME,
             version: app.version.clone(),
@@ -879,10 +941,7 @@ impl<S: Server> AppBase<S> {
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
-            constellation: app
-                .running_state
-                .as_ref()
-                .map(|rs| AsRef::<Constellation>::as_ref(&rs.constellation).clone()),
+            constellation_or_id,
         })
     }
 }

@@ -43,6 +43,7 @@ export type PHCEnterReq = {
 	identifying_attr?: string;
 	mode: PHCEnterMode;
 	add_attrs: Array<string>;
+	register_only_with_unique_attrs: boolean;
 };
 
 export type Attr = {

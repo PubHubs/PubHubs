@@ -1,15 +1,15 @@
 <template>
-	<div class="w-full px-3 pb-3 md:px-6">
+	<div class="w-full px-3 pb-3 md:px-6" v-bind="$attrs">
 		<!-- Floating -->
 		<div class="relative">
 			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
-				<div class="flex items-center">
+				<div class="flex flex-wrap items-center gap-2">
 					<PopoverButton icon="upload-simple" data-testid="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
 						<PopoverButton icon="chart-bar" data-testid="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
 						<PopoverButton icon="calendar" data-testid="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
 					</template>
-					<PopoverButton icon="pen-nib" data-testid="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{
+					<PopoverButton icon="seal-check" data-testid="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{
 						$t('message.sign.add_signature')
 					}}</PopoverButton>
 				</div>
@@ -20,27 +20,27 @@
 			</div>
 		</div>
 
-		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
-			<div class="bg-surface-high w-full rounded-xl shadow-xs">
+		<div class="flex max-h-[50vh] items-end justify-between gap-2">
+			<div class="bg-surface-high rounded-base w-full shadow-xs">
 				<!-- In reply to -->
-				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
-					<div class="flex w-fit gap-2 overflow-hidden">
-						<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
-						<Suspense>
-							<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room" />
-							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
-									<p>{{ $t('state.loading_message') }}</p>
-								</div>
-							</template>
-						</Suspense>
-					</div>
-					<button @click="messageActions.replyingTo = undefined">
-						<Icon type="x" size="sm" />
-					</button>
-				</div>
+				<InputModeBar v-if="inReplyTo" icon="arrow-bend-up-left" :label="$t('message.in_reply_to')" variant="reply" @close="messageActions.replyingTo = undefined">
+					<Suspense>
+						<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room" />
+						<template #fallback>
+							<p class="text-on-surface-dim text-label-small">{{ $t('state.loading_message') }}</p>
+						</template>
+					</Suspense>
+				</InputModeBar>
+				<InputModeBar v-if="messageActions.whisperingToUserId" icon="whisper" :label="$t('menu.whisper')" :variant="announcementVariant" @close="clearWhisperMode()">
+					<Suspense v-if="messageActions.whisperingToEventId">
+						<MessageSnippet :eventId="messageActions.whisperingToEventId" :room="room" />
+						<template #fallback>
+							<p class="text-on-surface-dim text-label-small">{{ $t('state.loading_message') }}</p>
+						</template>
+					</Suspense>
+				</InputModeBar>
 
-				<FilePicker ref="filePickerEl" :messageInput="messageInput"></FilePicker>
+				<FilePicker ref="filePickerEl" :messageInput="messageInput" :upload-ownership-transferred="fileBlobOwnedByParent" @uploadFile="handleFileUpload"></FilePicker>
 
 				<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget)">
 					<PollMessageInput
@@ -63,13 +63,30 @@
 					/>
 				</template>
 
-				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
-					<IconButton type="plus-circle" data-testid="paperclip" size="lg" @click.stop="messageInput.togglePopover()" />
+				<InputModeBar v-if="isAnnouncementMode" icon="megaphone-simple" :label="$t('message.announcement_mode')" :variant="announcementVariant" @close="isAnnouncementMode = false" />
+				<InputModeBar
+					v-if="messageInput.state.signMessage"
+					icon="seal-check"
+					:label="$t('message.sign.signed_message_email')"
+					:tooltip="$t('message.sign.signed_message_tooltip')"
+					variant="sign"
+					@close="messageInput.resetAll(true)"
+				/>
+
+				<div v-if="messageInput.state.textArea" class="rounded-base flex items-center gap-x-4 px-4 py-2">
+					<IconButton
+						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
+						data-testid="paperclip"
+						size="lg"
+						@click.stop="messageInput.togglePopover()"
+						class="transition-transform duration-200 hover:cursor-pointer"
+						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
+					/>
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
 						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
-						:placeholder="$t('rooms.new_message')"
+						:placeholder="isAnnouncementMode ? $t('message.announcement_placeholder') : $t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
 						v-model="value"
 						@changed="changed()"
@@ -80,97 +97,96 @@
 
 					<!--Steward and above can broadcast only in main time line-->
 					<button
-						v-if="hasRoomPermission(room.getPowerLevel(user.user.userId), actions.RoomAnnouncement) && !inThread && !room.isDirectMessageRoom()"
-						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
-						@click="isValidMessage() ? announcementMessage() : null"
+						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
+						class="hover:cursor-pointer"
+						:class="isAnnouncementMode ? (announcementVariant === 'admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
+						@click="isAnnouncementMode = !isAnnouncementMode"
+						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
 					>
 						<Icon type="megaphone-simple" size="lg"></Icon>
 					</button>
 
 					<!-- Emoji picker -->
-					<button>
+					<button class="hover:cursor-pointer">
 						<Icon type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" />
 					</button>
 
 					<!-- Sendbutton -->
-					<button :title="$t('message.send')" :class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'" :disabled="!messageInput.state.sendButtonEnabled" @click="submitMessage">
+					<button
+						:title="$t('message.send')"
+						:class="!messageInput.state.sendButtonEnabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
+						:disabled="!messageInput.state.sendButtonEnabled"
+						@click="submitMessage"
+					>
 						<Icon type="paper-plane-right" size="lg" />
 					</button>
 				</div>
-
-				<div v-if="messageInput.state.signMessage" class="bg-surface-low m-4 mt-0 flex items-center rounded-md p-2">
-					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
-					<div class="ml-2 flex max-w-3xl flex-col justify-between">
-						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
-						<p>{{ $t('message.sign.info') }}</p>
-						<div class="mt-2 flex items-center">
-							<Icon type="warning" size="sm" class="mt-1 mr-2 mb-[2px] shrink-0 self-start" />
-							<p class="italic">{{ $t('message.sign.warning') }}</p>
-						</div>
-						<Line class="mb-2" />
-						<p>{{ $t('message.sign.selected_attributes') }}</p>
-						<div class="mt-1 flex w-20 justify-center rounded-full">
-							<p>Email</p>
-						</div>
-					</div>
-					<IconButton type="x" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
-				</div>
-			</div>
-			<!-- Yivi signing qr popup -->
-			<div class="absolute bottom-[10%] left-1/2 min-w-64 -translate-x-1/2" v-show="messageInput.state.showYiviQR">
-				<Icon type="x" class="absolute right-2 z-10 cursor-pointer text-black" @click="messageInput.state.showYiviQR = false" />
-				<div v-if="messageInput.state.signMessage" :id="EYiviFlow.Sign"></div>
 			</div>
 		</div>
 	</div>
+
+	<!-- Yivi signing dialog -->
+	<Teleport to="body">
+		<Dialog v-if="messageInput.state.showYiviQR" @close="messageInput.state.showYiviQR = false" :title="$t('message.sign.heading')" :buttons="signingDialogButtons">
+			<div :id="EYiviFlow.Sign" ref="yivi-login-ref"></div>
+		</Dialog>
+	</Teleport>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, onWatcherCleanup, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Line from '@hub-client/components/elements/Line.vue';
 	import TextArea from '@hub-client/components/forms/TextArea.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
+	import InputModeBar from '@hub-client/components/ui/InputModeBar.vue';
 	import MentionAutoComplete from '@hub-client/components/ui/MentionAutoComplete.vue';
 	import Popover from '@hub-client/components/ui/Popover.vue';
 	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useYiviIosWorkaround } from '@hub-client/composables/yiviIosWorkaround.composable';
 
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
 	import { useMessageInput } from '@hub-client/logic/messageInput';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	// Models
 	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-	import { RelationType, actions } from '@hub-client/models/constants';
+	import { RelationType } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
-	import { hasRoomPermission } from '@hub-client/models/hubmanagement/roompermissions';
 	import Room from '@hub-client/models/rooms/Room';
+	import { UserAction } from '@hub-client/models/users/TUser';
 	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
+	import { buttonsCancel } from '@hub-client/stores/dialog';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { TPublicRoom, TRoomMember, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	defineOptions({ inheritAttrs: false });
+
 	const { t } = useI18n();
 	const user = useUser();
 	const route = useRoute();
+	const roles = useRoles();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
@@ -200,9 +216,10 @@
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, uploadUrl } = useMatrixFiles();
 
-	const uri = ref<string>('');
 	const pollObject = ref<Poll>(new Poll());
 	const schedulerObject = ref<Scheduler>(new Scheduler());
+	const uriForFileUpload = ref<BlobManager>();
+	const fileBlobOwnedByParent = ref(false);
 
 	const caretPos = ref({ top: 0, left: 0 });
 
@@ -211,12 +228,22 @@
 	const filePickerEl = ref();
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
+	const isAnnouncementMode = ref(false);
+
+	const announcementVariant = computed<'admin' | 'steward'>(() => {
+		const powerLevel = props.room.getPowerLevel(user.userId);
+		return powerLevel === 100 ? 'admin' : 'steward';
+	});
 
 	let threadRoot: TMessageEvent | undefined = undefined;
 
+	const signingDialogButtons = buttonsCancel;
+
 	watch(route, () => {
+		revokeOwnedFileUploadBlob();
 		reset();
 		messageInput.resetAll();
+		clearWhisperMode();
 	});
 
 	watch(
@@ -230,11 +257,13 @@
 	watch(
 		() => props.room.roomId,
 		async () => {
+			revokeOwnedFileUploadBlob();
 			inReplyTo.value = undefined;
 			messageActions.replyingTo = undefined;
+			clearWhisperMode();
 
 			if (props.room.getCurrentThreadId()) {
-				threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
+				threadRoot = (await pubhubs.getEvent(props.room.roomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 			} else {
 				threadRoot = undefined;
 			}
@@ -247,7 +276,7 @@
 		async () => {
 			if (props.inThread) {
 				if (props.room.getCurrentThreadId()) {
-					threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
+					threadRoot = (await pubhubs.getEvent(props.room.roomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 				} else {
 					threadRoot = undefined;
 				}
@@ -280,6 +309,18 @@
 		reset();
 	});
 
+	function revokeOwnedFileUploadBlob() {
+		if (fileBlobOwnedByParent.value) {
+			uriForFileUpload.value?.revoke();
+		}
+		fileBlobOwnedByParent.value = false;
+		uriForFileUpload.value = undefined;
+	}
+
+	onBeforeUnmount(() => {
+		revokeOwnedFileUploadBlob();
+	});
+
 	onUnmounted(() => {
 		globalThis.removeEventListener('keydown', handleKeydown);
 	});
@@ -292,7 +333,7 @@
 		// if the message is in a thread we can only set inReplyTo if we are in a thread
 		// if the message is not in a thread we can only set inReplyTo if we are not in a thread
 		if (messageActions.replyingTo) {
-			const message = ((await pubhubs.getEvent(rooms.currentRoomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
+			const message = ((await pubhubs.getEvent(props.room.roomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
 			if (message?.content[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				inReplyTo.value = props.inThread ? message : undefined;
 			} else {
@@ -300,6 +341,7 @@
 			}
 		}
 
+		messageInput.state.sendButtonEnabled = isValidMessage();
 		elTextInput.value?.$el.focus();
 	});
 
@@ -330,6 +372,14 @@
 		}
 	}
 
+	function handleFileUpload(uriBlob: BlobManager | undefined) {
+		if (fileBlobOwnedByParent.value && uriForFileUpload.value && uriForFileUpload.value !== uriBlob) {
+			uriForFileUpload.value.revoke();
+		}
+		uriForFileUpload.value = uriBlob;
+		fileBlobOwnedByParent.value = !!uriBlob;
+	}
+
 	function insertMention(item: TRoomMember | TPublicRoom, marker: '@' | '#') {
 		const isUserMention = marker === '@';
 		const displayName = isUserMention ? (item as TRoomMember).rawDisplayName : (item as TPublicRoom).name;
@@ -350,16 +400,28 @@
 		elTextInput.value?.$el.focus();
 	}
 
-	function submitMessage() {
+	async function submitMessage() {
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 
 		if (messageInput.state.signMessage) {
 			messageInput.state.showYiviQR = true;
+			await nextTick();
 			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot);
-		} else if (messageActions.replyingTo && inReplyTo.value) {
-			pubhubs.addMessage(rooms.currentRoomId, value.value!.toString(), threadRoot, inReplyTo.value);
-			messageActions.replyingTo = undefined;
+		} else if (isAnnouncementMode.value) {
+			// Send as announcement
+			const powerLevel = props.room.getPowerLevel(user.userId);
+			await pubhubs.addAnnouncementMessage(props.room.roomId, value.value!.toString(), powerLevel);
+			value.value = '';
+			isAnnouncementMode.value = false;
+		} else if (messageActions.whisperingToUserId) {
+			const powerLevel = props.room.getPowerLevel(user.userId);
+			let whisperReplyEvent: TMessageEvent | undefined = undefined;
+			if (messageActions.whisperingToEventId) {
+				whisperReplyEvent = ((await pubhubs.getEvent(props.room.roomId, messageActions.whisperingToEventId)) as TMessageEvent) ?? undefined;
+			}
+			await pubhubs.addWhisperMessage(props.room.roomId, value.value!.toString(), powerLevel, messageActions.whisperingToUserId, threadRoot, whisperReplyEvent);
+			clearWhisperMode();
 			value.value = '';
 		} else if (messageInput.state.poll) {
 			sendPoll();
@@ -368,6 +430,10 @@
 			sendScheduler();
 			value.value = '';
 		} else if (messageInput.state.fileAdded) {
+			// `fileAdded` is the actual payload to upload.
+			// `uriForFileUpload` is only the local preview blob URL manager.
+			const replyTo = inReplyTo.value;
+			if (replyTo) messageActions.replyingTo = undefined;
 			messageInput.closeFileUpload();
 			const syntheticEvent = {
 				currentTarget: {
@@ -375,30 +441,30 @@
 				},
 			} as unknown as Event;
 			fileUpload(t('errors.file_upload'), pubhubs.Auth.getAccessToken(), uploadUrl, allTypes, syntheticEvent, (url) => {
-				pubhubs.addFile(rooms.currentRoomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string);
-				URL.revokeObjectURL(uri.value);
+				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string, undefined, replyTo);
+				uriForFileUpload.value?.revoke();
+				fileBlobOwnedByParent.value = false;
+				uriForFileUpload.value = undefined;
 				value.value = '';
 				messageInput.cancelFileUpload();
 			});
+		} else if (messageActions.replyingTo && inReplyTo.value) {
+			pubhubs.addMessage(props.room.roomId, value.value!.toString(), threadRoot, inReplyTo.value);
+			messageActions.replyingTo = undefined;
+			value.value = '';
 		} else {
-			pubhubs.submitMessage(value.value!.toString(), rooms.currentRoomId, threadRoot, inReplyTo.value);
+			pubhubs.submitMessage(value.value!.toString(), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';
 		}
-	}
-
-	async function announcementMessage() {
-		const powerLevel = props.room.getPowerLevel(user.userId);
-		await pubhubs.addAnnouncementMessage(rooms.currentRoomId, value.value!.toString(), powerLevel);
-		value.value = '';
 	}
 
 	function editMessage() {
 		if (messageInput.state.poll && pollObject.value.canSend()) {
 			pollObject.value.removeEmptyOptions();
-			pubhubs.editPoll(rooms.currentRoomId, messageInput.state.editEventId as string, pollObject.value as Poll);
+			pubhubs.editPoll(props.room.roomId, messageInput.state.editEventId as string, pollObject.value as Poll);
 			messageInput.openTextArea();
 		} else if (messageInput.state.scheduler && schedulerObject.value.canSend()) {
-			pubhubs.editScheduler(rooms.currentRoomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
+			pubhubs.editScheduler(props.room.roomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
 			messageInput.openTextArea();
 		}
 	}
@@ -408,7 +474,7 @@
 	}
 
 	function finishedSigningMessage(result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
-		pubhubs.addSignedMessage(rooms.currentRoomId, result, threadRoot);
+		pubhubs.addSignedMessage(props.room.roomId, result, threadRoot);
 		messageInput.state.showYiviQR = false;
 		messageInput.state.signMessage = false;
 		value.value = '';
@@ -420,7 +486,7 @@
 	};
 
 	function sendScheduler() {
-		pubhubs.addScheduler(rooms.currentRoomId, schedulerObject.value as Scheduler);
+		pubhubs.addScheduler(props.room.roomId, schedulerObject.value as Scheduler);
 		messageInput.openTextArea();
 	}
 
@@ -431,11 +497,22 @@
 
 	function sendPoll() {
 		pollObject.value.removeEmptyOptions();
-		pubhubs.addPoll(rooms.currentRoomId, pollObject.value as Poll);
+		pubhubs.addPoll(props.room.roomId, pollObject.value as Poll);
 		messageInput.openTextArea();
 	}
 
 	function setCaretPos(pos: { top: number; left: number }) {
 		caretPos.value = pos;
 	}
+
+	function clearWhisperMode() {
+		messageActions.whisperingToUserId = undefined;
+		messageActions.whisperingToDisplayName = undefined;
+		messageActions.whisperingToEventId = undefined;
+	}
+
+	// START workaround for #1173, that iOS app links do not work in an iframe.
+	const yiviLoginRef = useTemplateRef('yivi-login-ref');
+	useYiviIosWorkaround(yiviLoginRef);
+	// END workaround
 </script>

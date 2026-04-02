@@ -20,12 +20,9 @@ Test by hand:
           - [ ] Log in with an existing admin user.
           - [ ] Register a *new* user, with fresh Yivi credentials.
                 
-          To make yourself a hub admin: 
+          To make yourself a hub admin:
             - log into ilab@ph.ru.nl using the [id_ilab](https://gitlab.science.ru.nl/ilab/ops/-/blob/main/ssh/id_ilab?ref_type=heads) key, via yourscienceaccountname@lilo.science.ru.nl (see also [the wiki](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Infrastructure))
-            - `cd /data/testhub-matrix-main/data`
-            - `sudo sqlite3 homeserver.db` (could be that you need to install sqlite3 first, it will say how to)
-            - `UPDATE users SET admin=1 WHERE name="@XXX-XXX:main.testhub-matrix.ihub.ru.nl";`, where `XXX-XXX` should be replaced by your short pseudonym.
-            - `.quit`, etc.
+            - See [Making yourself admin](../../README.md#making-yourself-admin) in the README. Use `WHERE name='@XXX-XXX:main.testhub-matrix.ihub.ru.nl'` (replacing `XXX-XXX` with your short pseudonym) instead of making all users admin. For the Docker container name, use `testhub-matrix-main`.
         - [ ] With the admin user:
           - [ ] Create one or more new secured room with mulitple profile attributes and a non profile attributes.
             - Make sure to require at least one value, so that one of the users cannot enter the secured room.

@@ -1,22 +1,25 @@
 <template>
 	<AdminMembers v-if="showPastMemberPanel" :roomId="currentRoomId" @close="closeForm()"> </AdminMembers>
-	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+	<HeaderFooter>
 		<template #header>
-			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
-				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
-				<hr class="bg-on-surface-dim h-[2px] grow" />
-			</div>
-			<div class="flex h-full items-center" :class="isMobile ? 'pl-12' : 'pl-0'">
-				<H3 class="font-headings text-on-surface font-semibold">{{ t('menu.admin_tools_rooms') }}</H3>
+			<div class="flex h-full items-center" :class="isMobile ? 'pl-4' : 'pl-0'">
+				<div class="flex w-fit items-center gap-3 overflow-hidden">
+					<Icon type="chats-circle" />
+					<H3 class="font-headings text-h3 text-on-surface font-semibold">{{ t('menu.admin_tools_rooms') }}</H3>
+				</div>
 			</div>
 		</template>
-		<Tabs class="p-3 md:p-4">
+		<Tabs class="p-3 md:p-4" :open-tab="tab ? Number(tab) - 1 : 0">
 			<TabHeader>
-				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
-				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
+				<TabPill :value="0" v-slot="slotProps" @click.stop="updateTabInUrl(1)"
+					>{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newPublicRoom()"
+				/></TabPill>
+				<TabPill :value="1" v-slot="slotProps" @click.stop="updateTabInUrl(2)"
+					>{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newSecuredRoom()"
+				/></TabPill>
 			</TabHeader>
 			<TabContainer>
-				<TabContent>
+				<TabContent :value="0">
 					<p v-if="nonSecuredPublicRooms.length === 0">{{ $t('admin.no_rooms') }}</p>
 					<FilteredList v-else :items="nonSecuredPublicRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
@@ -50,11 +53,11 @@
 					</FilteredList>
 				</TabContent>
 
-				<TabContent>
+				<TabContent :value="1">
 					<p v-if="!rooms.hasSecuredRooms">
 						{{ $t('admin.no_secured_rooms') }}
 					</p>
-					<FilteredList v-else :items="sortedSecuredRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
+					<FilteredList v-else :items="sortedSecuredRooms.filter(Boolean)" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">
@@ -82,10 +85,6 @@
 				</TabContent>
 			</TabContainer>
 		</Tabs>
-
-		<template #footer>
-			<EditRoomForm v-if="showEditRoom" :room="editRoom" :secured="secured" @close="closeEdit()" />
-		</template>
 	</HeaderFooter>
 </template>
 
@@ -97,7 +96,6 @@
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import EditRoomForm from '@hub-client/components/rooms/EditRoomForm.vue';
 	import FilteredList from '@hub-client/components/ui/FilteredList.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import TabContainer from '@hub-client/components/ui/TabContainer.vue';
@@ -108,9 +106,11 @@
 
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiHubManagement';
+	import { router } from '@hub-client/logic/core/router';
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -123,9 +123,7 @@
 	const user = useUser();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
-	const editRoom = ref({} as TSecuredRoom | TPublicRoom);
 	const secured = ref(false);
-	const showEditRoom = ref(false);
 	const showPastMemberPanel = ref(false);
 	const currentRoomId = ref('');
 	const settings = useSettings();
@@ -135,56 +133,43 @@
 	const nonSecuredPublicRooms = computed(() => rooms.nonSecuredPublicRooms);
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
 
+	// Passed by the router
+	const props = defineProps({ tab: String });
+
 	onMounted(async () => {
-		await rooms.fetchPublicRooms();
+		await rooms.fetchPublicRooms(true);
 		await rooms.fetchSecuredRooms();
 		await fetchAdminStatusForRooms();
 	});
 
 	async function fetchAdminStatusForRooms() {
-		const allRooms = [...rooms.publicRooms, ...rooms.securedRooms];
-		for (const room of allRooms) {
-			const roomId = room.room_id;
-			try {
-				const powerLevels = await pubhubs.getPoweLevelEventContent(roomId);
-				const userPowerLevel = powerLevels.users?.[user.userId] ?? powerLevels.users_default ?? 0;
-				roomAdminStatus.value[roomId] = userPowerLevel === 100;
-			} catch {
-				roomAdminStatus.value[roomId] = false;
-			}
-		}
+		const allRooms = [...rooms.fetchRoomList(PublicRooms), ...rooms.fetchRoomList(SecuredRooms)];
+		const roomStatePromises = allRooms.map((room) =>
+			pubhubs
+				.getPoweLevelEventContent(room.roomId)
+				.then((powerLevels) => {
+					const userPowerLevel = powerLevels.users?.[user.userId!] ?? powerLevels.users_default ?? 0;
+					roomAdminStatus.value[room.roomId] = userPowerLevel === 100;
+				})
+				.catch(() => (roomAdminStatus.value[room.roomId] = false)),
+		);
+		await Promise.all(roomStatePromises);
 	}
 
 	function newPublicRoom() {
-		secured.value = false;
-		showEditRoom.value = true;
+		router.push({ name: 'editroom', params: { id: 'new_room' } });
 	}
 
 	function newSecuredRoom() {
-		secured.value = true;
-		showEditRoom.value = true;
+		router.push({ name: 'editroom', params: { id: 'new_secured_room' } });
 	}
 
 	function editPublicRoom(room: TPublicRoom) {
-		editRoom.value = room;
-		secured.value = false;
-		showEditRoom.value = true;
+		router.push({ name: 'editroom', params: { id: room.room_id } });
 	}
 
 	function EditSecuredRoom(room: TSecuredRoom) {
-		editRoom.value = room;
-		secured.value = true;
-		showEditRoom.value = true;
-	}
-
-	async function closeEdit() {
-		editRoom.value = {} as TSecuredRoom;
-		secured.value = false;
-		showEditRoom.value = false;
-
-		await rooms.fetchPublicRooms(true);
-		await rooms.fetchSecuredRooms();
-		await fetchAdminStatusForRooms();
+		router.push({ name: 'editroom', params: { id: room.room_id } });
 	}
 
 	async function removePublicRoom(room: TPublicRoom) {
@@ -219,7 +204,7 @@
 			return roomAdminStatus.value[roomId];
 		}
 		// Fallback to local room data if available
-		return rooms.room(roomId)?.getUserPowerLevel(userId) == 100 || false;
+		return rooms.room(roomId)?.getStateMemberPowerLevel(userId) == 100 || false;
 	}
 
 	async function makeRoomAdmin(roomId: string, userId: string): Promise<void | Error> {
@@ -250,6 +235,10 @@
 		}
 		await pubhubs.joinRoom(roomId);
 		roomAdminStatus.value[roomId] = true;
+	}
+
+	function updateTabInUrl(tab: number) {
+		router.replace({ name: 'admin', params: { tab: tab } });
 	}
 
 	function closeForm() {

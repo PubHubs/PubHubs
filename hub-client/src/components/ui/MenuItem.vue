@@ -1,18 +1,9 @@
 <template>
-	<li
-		role="menuitem"
-		:class="{ 'bg-background': roomIsActive || menuItemIsActive || adminMenuIsActive }"
-		@click="
-			click();
-			room && menu.setActiveMenuItem(room.roomId);
-		"
-		class="hover:bg-background h-fit rounded-lg px-4 py-2 transition-all duration-200 ease-in-out"
-	>
-		<router-link :to="to" class="flex items-center gap-4">
-			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
-			<Icon v-else class="" :type="icon" :size="iconSize" />
+	<li role="menuitem" :class="{ 'bg-surface-low text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }" @click="handleClick" class="hover:bg-surface-low rounded-base h-fit transition-all duration-200 ease-in-out">
+		<router-link :to="to" class="flex items-center gap-4 px-4 py-2">
+			<Icon class="" :type="icon" :size="iconSize" />
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
-			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" class="ml-auto shrink-0">{{ newMessage }}</Badge>
+			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" class="ml-auto shrink-0" color="hub" :size="badgeSize(newMessage)" />
 		</router-link>
 	</li>
 </template>
@@ -26,6 +17,14 @@
 	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	// Composables
+	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
+
+	// Logic
+	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
+
+	// Models
 	import { RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
@@ -35,26 +34,32 @@
 	const menu = useMenu();
 	const rooms = useRooms();
 	const router = useRouter();
+	const sidebar = useSidebar();
+	const { scrollToEnd } = useGlobalScroll();
 
 	const adminMenuIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
-			return props.to['name'] === router.currentRoute.value.fullPath.split('/').pop();
+			return props.to['name'] === router.currentRoute.value.path.split('/').pop();
 		}
 		return false;
 	});
 
 	const menuItemIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
-			return menu.getMenuItemPath(props.to.name) === router.currentRoute.value.fullPath;
+			return menu.getMenuItemPath(props.to.name) === router.currentRoute.value.path;
 		}
 		return false;
 	});
 
-	const newMessage = computed(() => rooms.getTotalPrivateRoomUnreadMsgCount());
+	const newMessage = computed(() => {
+		void rooms.unreadCountVersion;
+		return rooms.getTotalPrivateRoomUnreadMsgCount();
+	});
 
 	const roomIsActive = computed(() => {
 		if (!props.room) return false;
-		return props.room.roomId === router.currentRoute.value.fullPath.split('/').pop(); // Full path looks like /room/room_id
+		const pathRoomId = router.currentRoute.value.path.split('/').pop();
+		return props.room.roomId === decodeURIComponent(pathRoomId || '');
 	});
 
 	const props = defineProps({
@@ -76,12 +81,15 @@
 		},
 	});
 
-	function isSecuredRoom() {
-		if (!props.room) return false;
-		return SecuredRooms.includes(props.room.roomType as RoomType);
-	}
-
-	function click() {
-		router.push(props.to);
+	function handleClick() {
+		scrollToEnd();
+		if (props.room) {
+			menu.setActiveMenuItem(props.room.roomId);
+		}
+		// Mobile only: Close sidebar when navigating to DM page (so mobile shows conversation list, not last open DM)
+		if (typeof props.to === 'object' && props.to !== null && props.to.name === 'direct-msg' && sidebar.isMobile.value) {
+			sidebar.close();
+			sidebar.clearLastDMRoom();
+		}
 	}
 </script>

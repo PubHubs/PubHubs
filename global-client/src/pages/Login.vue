@@ -4,28 +4,17 @@
 		<InlineSpinner size="lg" />
 	</div>
 
-	<div v-else>
-		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
-			<div class="flex h-full w-full items-center justify-between gap-16">
-				<a :href="globalClientUrl" rel="noopener noreferrer" class="h-full py-2">
-					<Logo />
-				</a>
-				<div class="flex h-4 items-center justify-center gap-2">
-					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('nl')">NL</p>
-					<span>|</span>
-					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('en')">EN</p>
-				</div>
-			</div>
-		</div>
+	<div v-else class="flex w-full flex-col">
+		<AuthHeader />
 
-		<div class="bg-background w-full" :class="isMobile ? 'h-[calc(100svh-7.5rem)]' : 'h-[calc(100svh-10rem)]'">
+		<div class="bg-background h-[calc(100svh_-_80px)] w-full">
 			<div class="flex h-full w-full items-center justify-center" :class="isMobile ? 'flex-col' : 'flex-row'">
-				<div class="bg-surface-low flex items-center justify-center" :class="isMobile ? 'h-1/2 w-full px-12' : 'h-full w-1/2 px-36'">
+				<div class="bg-surface-low flex shrink-0 items-center justify-center" :class="isMobile ? 'h-2/5 w-full px-12' : 'h-full w-1/2 px-36'">
 					<figure class="h-auto w-full">
 						<img src="../assets/mascot-welcome.svg" alt="PubHubs mascot" />
 					</figure>
 				</div>
-				<div class="flex flex-col items-center justify-center gap-6" :class="isMobile ? 'h-1/2 w-full' : 'h-full w-1/2'">
+				<div class="flex flex-col items-center justify-center gap-6" :class="isMobile ? 'h-3/5 w-full py-6' : 'h-full w-1/2'">
 					<div class="flex flex-col gap-6">
 						<div class="flex flex-col gap-4">
 							<H1>
@@ -63,7 +52,7 @@
 	import { computed, onMounted, ref } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
-	import Logo from '@global-client/components/ui/Logo.vue';
+	import AuthHeader from '@global-client/components/ui/onboarding/AuthHeader.vue';
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
@@ -101,8 +90,6 @@
 	const mss = useMSS();
 
 	const LOGGER = new Logger('GC', CONFIG);
-
-	const globalClientUrl = _env.PUBHUBS_URL;
 
 	const show = ref<boolean>(false);
 	const loading = ref<boolean>(true);
@@ -142,10 +129,6 @@
 			show.value = false;
 			LOGGER.error(SMI.ERROR, 'Error during MSS login', { error });
 		}
-	}
-
-	function changeLanguage(language: string) {
-		settings.setLanguage(language, true);
 	}
 
 	window.addEventListener('pageshow', () => (show.value = false));

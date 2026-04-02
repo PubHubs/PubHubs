@@ -65,10 +65,14 @@ export function base64fromBase64Url(base64Url: string) {
  * @param requestBody What needs to be sent as the body of the request.
  * @returns The options that need to be sent with the POST request.
  */
-export function requestOptions<T>(requestBody: T, authorization?: string | undefined) {
+export function requestOptions<T>(requestBody: T, authorization?: string) {
 	return {
 		body: JSON.stringify(requestBody),
-		headers: { 'Content-Type': 'application/json', Authorization: authorization },
+		// The pattern below makes sure the Authorization header only gets added if authorization is defined
+		headers: {
+			'Content-Type': 'application/json',
+			...(authorization !== undefined && { Authorization: authorization }),
+		},
 		method: 'POST',
 	};
 }

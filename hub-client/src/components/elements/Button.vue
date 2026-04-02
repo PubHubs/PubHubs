@@ -2,7 +2,7 @@
 	<div
 		role="button"
 		:class="buttonClass"
-		class="relative line-clamp-1 block h-fit shrink-0 cursor-pointer rounded-lg text-center font-semibold whitespace-nowrap transition-all duration-150 ease-in-out"
+		class="rounded-base relative line-clamp-1 block h-fit shrink-0 cursor-pointer text-center font-semibold whitespace-nowrap transition-all duration-150 ease-in-out"
 		@click="click($event)"
 		:disabled="disabled"
 	>

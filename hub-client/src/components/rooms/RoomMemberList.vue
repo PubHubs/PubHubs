@@ -1,102 +1,164 @@
 <template>
-	<RoomSideKick @close="close()" :title="$t('rooms.memberlist')">
-		<div v-if="stewardIds" class="h-full flex-1">
-			<SideKickSubHeader>
-				<div class="flex justify-between">
-					<div class="capitalize">{{ $t('rooms.stewards') }}</div>
-					<div class="flex items-center gap-2">
-						<div>{{ stewardIds.length }}</div>
-						<Icon type="user"></Icon>
-					</div>
+	<div class="flex h-full flex-col overflow-y-hidden py-4">
+		<SidebarHeader :title="$t('rooms.members')" />
+		<div class="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
+			<!-- Contact steward card -->
+			<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="contactSteward">
+				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+					<Icon type="lifebuoy" size="md" class="text-accent-steward" />
 				</div>
-			</SideKickSubHeader>
-			<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="mb-2 flex w-full items-center gap-2">
-				<Avatar :avatar-url="user.userAvatar(stewardId)" class="ml-2 h-5 w-5"></Avatar>
-				<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)"></UserDisplayName>
+				<div class="flex flex-col">
+					<span class="font-bold">{{ t('rooms.contact_steward_title') }}</span>
+					<span class="text-on-surface-dim text-label-small">{{ t('rooms.contact_steward_subtitle') }}</span>
+				</div>
 			</div>
-		</div>
 
-		<div v-if="memberIds" class="h-full flex-1">
-			<SideKickSubHeader>
-				<div class="flex justify-between">
-					<div class="capitalize">{{ $t('rooms.members') }}</div>
-					<div class="flex items-center gap-2">
-						<div>{{ memberIds.length }}</div>
-						<Icon type="user"></Icon>
+			<div v-if="stewardList && stewardList.length > 0" class="pb-4">
+				<CollapsibleHeader :label="$t('rooms.stewards')">
+					<template #right>
+						<div class="flex items-center gap-1">
+							<div>{{ stewardList.length }}</div>
+							<Icon type="user"></Icon>
+						</div>
+					</template>
+					<div
+						v-for="steward in stewardList"
+						:key="steward.userId"
+						class="flex w-full items-center gap-2 rounded-md p-2"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-low'"
+						v-context-menu="steward.userId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, getUserContextMenuItems(steward.userId), steward.userId) : undefined"
+					>
+						<Avatar :avatar-url="user.userAvatar(steward.userId)" :userId="steward.userId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
+						<UserDisplayName :userId="steward.userId" :user-display-name="user.userDisplayName(steward.userId)" :enableDM="false"></UserDisplayName>
 					</div>
-				</div>
-			</SideKickSubHeader>
-			<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="mb-2 flex w-full items-center gap-2">
-				<Avatar :avatar-url="user.userAvatar(memberId)" class="ml-2 h-5 w-5"></Avatar>
-				<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)"></UserDisplayName>
+				</CollapsibleHeader>
+			</div>
+
+			<div v-if="memberIds && memberIds.length > 0" class="grow">
+				<CollapsibleHeader :label="$t('rooms.members')">
+					<template #right>
+						<div class="flex items-center gap-1">
+							<div>{{ memberIds.length }}</div>
+							<Icon type="user"></Icon>
+						</div>
+					</template>
+					<div
+						v-for="memberId in memberIds"
+						:key="memberId"
+						class="flex w-full items-center gap-2 rounded-md p-2"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === memberId && 'bg-surface-low'"
+						v-context-menu="memberId !== user.user?.userId && !props.disableDM ? (evt: any) => openMenu(evt, getUserContextMenuItems(memberId), memberId) : undefined"
+					>
+						<Avatar :avatar-url="user.userAvatar(memberId)" :userId="memberId" :enableDM="false" class="h-8 w-8 shrink-0"></Avatar>
+						<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)" :enableDM="false"></UserDisplayName>
+					</div>
+				</CollapsibleHeader>
 			</div>
 		</div>
-	</RoomSideKick>
+	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { onMounted, ref, watch } from 'vue';
-	import { useRoute } from 'vue-router';
+	import { computed } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import RoomSideKick from '@hub-client/components/rooms/RoomSideKick.vue';
-	import SideKickSubHeader from '@hub-client/components/rooms/SideKickSubHeader.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
+	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
+
+	// Composables
+	import { useAdminDashboard } from '@hub-client/composables/dashboard/admin.composable';
+	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
+	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Store
+	import { useMessageActions } from '@hub-client/stores/message-actions';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	const route = useRoute();
-	const user = useUser();
+	// New design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
-	const emit = defineEmits(['close']);
+	const { t } = useI18n();
+	const user = useUser();
+	const rooms = useRooms();
+	const settings = useSettings();
+	const dm = useDirectMessage();
+	const messageActions = useMessageActions();
+	const sidebar = useSidebar();
+	const { openMenu } = useContextMenu();
+	const contextMenuStore = useContextMenuStore();
+
+	const { stewardList, getStewardsInRoom } = useAdminDashboard();
 
 	const props = defineProps({
 		room: {
 			type: Room,
 			required: true,
 		},
+		disableDM: {
+			type: Boolean,
+			default: false,
+		},
 	});
 
-	const stewardIds = ref();
-	const memberIds = ref();
-
-	onMounted(() => {
-		loadMembers();
+	const realMembers = computed(() => {
+		return props.room.getStateJoinedMembers().filter((m) => !m.state_key.startsWith('@notices_user:'));
 	});
 
-	watch(route, () => {
-		loadMembers();
-	});
-
-	function loadMembers() {
-		const joinedMembers = props.room.getStateJoinedMembers();
-
-		const realMembers = joinedMembers.filter((m) => !m.state_key.startsWith('@notices_user:'));
-
-		const filterMembersByPowerLevel = (min: number, max: number) =>
-			realMembers
-				.filter(({ sender }) => {
-					const powerLevel = props.room.getStateMemberPowerLevel(sender);
-					return powerLevel !== null && powerLevel >= min && powerLevel <= max;
-				})
-				.map(({ sender }) => sender);
-
-		// direct messages do not have stewards, only members with powerlevel 100, so show only the members
+	const memberIds = computed(() => {
 		if (props.room.isDirectMessageRoom()) {
-			memberIds.value = [...new Set(realMembers.map((x) => x.sender))]; // Set only stores unique values
-		} else {
-			stewardIds.value = filterMembersByPowerLevel(50, 99);
-			memberIds.value = [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])]; // only steards matter as distinction, so the admin is treated as common member
+			return [...new Set(realMembers.value.map((x) => x.sender))];
 		}
+		const stewards = getStewardsInRoom() ?? [];
+		return realMembers.value.filter((member) => !stewards.map((stewardId) => stewardId.userId).includes(member.sender)).map((member) => member.sender);
+	});
+
+	const canWhisperFromContextMenu = computed(() => {
+		const currentUserId = user.user?.userId;
+		if (!currentUserId) return false;
+		const currentUserPowerLevel = props.room.getPowerLevel(currentUserId);
+		return currentUserPowerLevel >= UserPowerLevel.Steward;
+	});
+
+	async function contactSteward() {
+		const stewards = getStewardsInRoom() ?? [];
+		const stewardIds = stewards.map((steward) => steward.userId);
+		await rooms.createStewardRoomOrModify(props.room.roomId, stewardIds);
 	}
 
-	function close() {
-		emit('close');
+	async function startDM(userId: string) {
+		if (sidebar.isMobile.value) sidebar.close();
+		await dm.goToUserDM(userId);
+	}
+
+	function getUserContextMenuItems(userId: string) {
+		const items = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(userId) }];
+		if (settings.isFeatureEnabled(FeatureFlag.whisper) && canWhisperFromContextMenu.value) {
+			items.push({
+				label: t('menu.whisper'),
+				icon: 'whisper',
+				onClick: () => startWhisperToUser(userId),
+			});
+		}
+		return items;
+	}
+
+	function startWhisperToUser(userId: string) {
+		if (sidebar.isMobile.value) sidebar.close();
+		messageActions.replyingTo = undefined;
+		messageActions.whisperingToUserId = userId;
+		messageActions.whisperingToDisplayName = user.userDisplayName(userId);
+		messageActions.whisperingToEventId = undefined;
 	}
 </script>

@@ -34,7 +34,7 @@ const InitialRoomList: MSC3575List = {
 		[MatrixEventType.RoomReceipt, MSC3575_WILDCARD],
 		[MatrixEventType.RoomReadMarker, MSC3575_WILDCARD],
 	],
-	timeline_limit: SystemDefaults.initialRoomTimelineLimit, // From this eventlist the roomtimeline is initially created
+	timeline_limit: 0, // initially no events, this is used for the roomlist in the sidebar.
 };
 
 // Main Roomlist: fetch the most recent rooms with all required_state data and memberdata
@@ -46,7 +46,7 @@ const MainRoomList: MSC3575List = {
 		[EventType.RoomMember, MSC3575_STATE_KEY_LAZY],
 		['*', '*'],
 	],
-	timeline_limit: SystemDefaults.initialRoomTimelineLimit, // We need the timeline events, this is for subsequent syncing
+	timeline_limit: 1, // cannot be SystemDefaults.initialRoomTimelineLimit, that is used in the timelinemanager// We need the timeline events, this is for subsequent syncing
 };
 
 // Put Roomlists in map for easy handling
@@ -62,7 +62,7 @@ const MainRoomSubscription: MSC3575RoomSubscription = {
 		[EventType.RoomMember, MSC3575_STATE_KEY_LAZY],
 		[EventType.RoomAvatar, MSC3575_WILDCARD],
 	],
-	timeline_limit: SystemDefaults.SyncTimelineLimit, // limit specific per room
+	timeline_limit: SystemDefaults.SubscriptionRoomTimelineLimit, // limit specific per room, needed if a room needs less than the default of the sliding sync. Unused for now
 };
 
 // #endregion

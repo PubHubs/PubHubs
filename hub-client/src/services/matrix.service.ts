@@ -1,5 +1,5 @@
 // Packages
-import { EventType, IRoomEvent, IStateEvent, type MatrixClient } from 'matrix-js-sdk';
+import { EventType, IRoomEvent, IStateEvent, type MatrixClient, RoomEvent } from 'matrix-js-sdk';
 import { MSC3575List, MSC3575RoomData, MSC3575SlidingSyncResponse, SlidingSync, SlidingSyncEvent, SlidingSyncState } from 'matrix-js-sdk/lib/sliding-sync';
 
 // Logic
@@ -21,7 +21,6 @@ import { useUser } from '@hub-client/stores/user';
  */
 class MatrixService {
 	private slidingSync: SlidingSync | null = null;
-	private client: MatrixClient | null = null;
 	private subscribedRooms: Map<string, string> = new Map<string, string>(); // TODO: Move to store
 
 	// TODO: Use room composable instead
@@ -36,9 +35,7 @@ class MatrixService {
 	 *
 	 * @param client - MatrixClient to set on the service at construction time
 	 */
-	constructor(client: MatrixClient) {
-		this.client = client;
-	}
+	constructor(private client: MatrixClient) {}
 
 	// #region Sliding Sync
 
@@ -73,6 +70,11 @@ class MatrixService {
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
 		this.slidingSync.on(SlidingSyncEvent.RoomData, this.handleRoomDataEvent);
+
+		// TODO Remove when unread notifications are better handled by sliding sync
+		// Attach event handler for the unread notifications
+		this.client.on(RoomEvent.Timeline, this.roomUnreadNotifications);
+		this.client.on(RoomEvent.UnreadNotifications, this.roomUnreadNotifications);
 
 		try {
 			// debug only
@@ -149,7 +151,7 @@ class MatrixService {
 		const mainRoomList = RoomLists.get(SlidingSyncOptions.mainRoomList);
 		mainRoomList!.ranges[0][1] = this.roomsUpperRange;
 
-		// change sliding sync to current mainRoomlist
+		// change sliding sync to current mainRoomlist and the allRoomList
 		this.slidingSync?.setList(SlidingSyncOptions.roomList, mainRoomList!);
 
 		// increase the upperrange for the next time
@@ -205,16 +207,12 @@ class MatrixService {
 	 * @param roomType - Type of the room to join
 	 * @param roomName - Tame of the room to join
 	 */
-	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[], timeline: (IStateEvent | IRoomEvent)[]): Promise<void> {
-		this.client!.getRoom(roomId); // Puts the room in the client store
-
-		const lastMessageId = timeline.findLast((x) => x.type === EventType.RoomMessage)?.event_id;
+	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[]): Promise<void> {
 		return this.roomsStore.updateRoomList({
 			roomId: roomId,
 			roomType: roomType,
 			name: roomName,
 			stateEvents: required_state,
-			lastMessageId: lastMessageId,
 			isHidden: false,
 		}); // Update the roomlist with the current room
 	}
@@ -238,7 +236,7 @@ class MatrixService {
 				this.roomsStore.setRoomsLoaded(true);
 				return;
 			}
-			//console.error("handleLifecycleEvent roomList", roomList);
+			// console.error('handleLifecycleEvent roomList', roomList);
 
 			const joinPromises: Promise<any>[] = [];
 
@@ -250,9 +248,16 @@ class MatrixService {
 
 				// The roomlist is initially send twice: on sync start and later during the sync
 				// Only handle the join when the room is not joined yet
-				if (!this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join) {
-					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? RoomType.PH_MESSAGES_DEFAULT;
-					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state, roomData.timeline));
+				// Skip rooms where the user has left or been banned — the sync may still include them briefly after leaving
+				if (latestRoomMemberInfo?.content.membership === 'leave' || latestRoomMemberInfo?.content.membership === 'ban') {
+					continue;
+				}
+				if (!(this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join)) {
+					// Sliding sync sends delta required_state, so the create event may be absent on subsequent updates.
+					// Fall back to the already-stored room type to avoid overwriting a DM type with the default.
+					const storedRoomType = this.roomsStore.roomList.find((r) => r.roomId === roomId)?.roomType;
+					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? storedRoomType ?? RoomType.PH_MESSAGES_DEFAULT;
+					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state));
 				}
 
 				// Get the invite state
@@ -265,19 +270,18 @@ class MatrixService {
 					if (DirectRooms.includes(roomType) && roomName) {
 						const invites = inviteState.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId && x.content?.[MatrixType.MemberShip] === MatrixType.Invite);
 						invites.forEach(() => {
-							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state, roomData.timeline));
+							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state));
 						});
 					}
 				}
 			}
 
-			Promise.all(joinPromises).then(() => {
-				if (this.initialRoomLoading) {
-					this.initialRoomLoading = false;
-				}
-				this.SetRoomSlidingSync(); // Sets the correct sliding sync for the room
-				this.roomsStore.setRoomsLoaded(true);
-			});
+			await Promise.all(joinPromises);
+			if (this.initialRoomLoading) {
+				this.initialRoomLoading = false;
+			}
+			this.SetRoomSlidingSync(); // Sets the correct sliding sync for the room
+			this.roomsStore.setRoomsLoaded(true);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'Lifecycle handler failed', { err });
 			throw err;
@@ -292,11 +296,21 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
-			//console.error("handleRoomDataEvent roomData ", roomData);
+			// console.error('handleroomdataevent subscriptions ', this.slidingSync?.getRoomSubscriptions());
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });
 		}
+	};
+
+	// TODO Remove when unread notifications are better handled by sliding sync
+	/**
+	 * When all events are written a RoomEvent.TimelineEvent is send. This is the time to fetch the unread notifications
+	 * the arrow function is needed to keep the this-binding when it is called from the client-event
+	 *
+	 */
+	private roomUnreadNotifications = () => {
+		this.roomsStore?.notifyUnreadCountChanged();
 	};
 
 	// #endregion

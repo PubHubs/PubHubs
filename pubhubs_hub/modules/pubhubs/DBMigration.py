@@ -1,5 +1,4 @@
 import logging
-from ._constants import METHOD_POLLING_INTERVAL
 import time
 from synapse.logging.context import run_in_background
 from synapse.module_api import ModuleApi

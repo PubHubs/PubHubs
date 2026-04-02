@@ -83,12 +83,15 @@ enum MessageType {
 	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
 	BarHide = 'visibilityBar-hide',
 	EventChange = 'eventchange',
+	CloseSidebar = 'closesidebar', // Close the sidebar in the hub client
+	ContextMenuOpen = 'contextmenu-open', // Hub asks global to show a context menu
+	ContextMenuSelect = 'contextmenu-select', // Global sends selected item index back to hub
 }
 
 /**
  * A message is an object with:
  *
- *  - type - a MessageType. Only messages wit a known type can be send and received. Also a callback can be set to a certain message type.
+ *  - type - a MessageType. Only messages with a known type can be send and received. Also a callback can be set to a certain message type.
  *  - content - can be anything
  */
 class Message {

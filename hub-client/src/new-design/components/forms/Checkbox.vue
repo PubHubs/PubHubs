@@ -1,5 +1,5 @@
 <template>
-	<div class="flex items-center justify-start gap-200" :class="disabled ? '' : 'cursor-pointer'" @click="toggle(disabled)" @focusin="setFocus(true)" @focusout="setFocus(false)">
+	<div class="form-checkbox flex items-center justify-start gap-200" :class="disabled ? '' : 'cursor-pointer'" @click="toggle(disabled)" @focusin="setFocus(true)" @focusout="setFocus(false)">
 		<div class="inline-flex h-300 w-300 flex-col items-center justify-center gap-100">
 			<div v-if="!model" class="bg-surface-base border-on-surface-dim border-thin h-200 w-200 rounded" :class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"></div>
 			<div
@@ -22,7 +22,7 @@
 			</div>
 		</div>
 
-		<input ref="input" type="checkbox" class="sr-only" :disabled="props.disabled" :value="model" />
+		<input type="checkbox" class="sr-only" :disabled="disabled" :checked="model" @change="toggle(disabled)" @keydown.space.prevent="toggle(disabled)" @focus="setFocus(true)" @blur="setFocus(false)" />
 
 		<div class="pt-thin">
 			<label class="justify-start" :class="disabled ? 'text-on-surface-disabled' : 'text-surface-on-surface cursor-pointer'"><slot></slot></label>
@@ -31,16 +31,20 @@
 </template>
 
 <script setup lang="ts">
+	// New design
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
-	const model = defineModel();
-
-	const props = defineProps({
-		disabled: {
-			type: Boolean,
-			default: false,
+	// Props
+	const props = withDefaults(
+		defineProps<{
+			disabled?: boolean;
+		}>(),
+		{
+			disabled: false,
 		},
-	});
+	);
+
+	const model = defineModel<boolean>();
 
 	const { setFocus, hasFocus, toggle } = useFormInput(props, model);
 </script>

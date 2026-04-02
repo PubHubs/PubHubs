@@ -17,6 +17,8 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 This requires [tmux](https://github.com/tmux/tmux) to be installed.
 
+> Windows users should run the lines in `run-all.sh` separately, as TMUX is not available on Windows.
+
 ```sh
 sh run-all.sh
 ```
@@ -131,9 +133,25 @@ echo "\033[1;32mfinished setting up garage\033[0m"
 
 ```sh
 echo "Running global servers..."
-
 cd pubhubs
-cargo run serve
+cleanup() {
+    if cargo sweep --version >/dev/null 2>&1; then
+      echo "Sweeping pubhubs/target directory ..."
+      cargo sweep --time 30
+    else
+      echo "TIP: to have us automatically clean up the pubhubs/target directory:"
+      echo
+      echo "     cargo install cargo-sweep"
+      echo
+    fi
+    if test -n "$(jobs -p)"; then
+      echo "cargo run serve is still running; killing after one second ..."
+      sleep 1; kill 0
+    fi
+}
+trap 'cleanup' EXIT
+cargo run serve &
+wait # wait exits on SIGINT, while cargo run serve might not
 ```
 
 ### client
@@ -251,7 +269,7 @@ docker build -t pubhubs-hub .
 
 ### all
 
-> Run all checkss
+> Run all checks
 
 ```sh
 mask check versions

@@ -1,6 +1,7 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
+use awc;
 use indexmap::IndexMap;
 
 use pubhubs::{
@@ -15,16 +16,41 @@ use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
 
+static SETUP_ONCE: std::sync::Once = std::sync::Once::new();
+
+/// Lock to make sure only one test runs at once.  This prevents tests from using the same ports.
+static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+async fn setup() -> tokio::sync::MutexGuard<'static, ()> {
+    SETUP_ONCE.call_once(|| {
+        env_logger::init();
+    });
+    LOCK.lock().await
+}
+
+#[tokio::test]
+async fn main_once() {
+    let _lock_guard = setup().await;
+    main_integration_test().await
+}
+
+#[tokio::test]
+#[ignore]
+async fn main_100() {
+    let _lock_guard = setup().await;
+
+    for _i in 1..100 {
+        main_integration_test().await
+    }
+}
+
 /// Integration test of the APIs provided by the different PubHubs core servers.
 ///  
 ///  - Does not test any client browser app
 ///  - Does not run against any actual hubs.  Instead a mock hub is used.
 ///  - Does not use any Yivi server.  Instead the result of the Yivi server is simulated.
 ///
-#[tokio::test]
 async fn main_integration_test() {
-    env_logger::init();
-
     // Load configuration
     let mut config = servers::Config::load_from_path(std::path::Path::new(CONFIG_FILE_PATH))
         .unwrap()
@@ -76,7 +102,9 @@ async fn main_integration_test() {
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
 
-    let yivi_server_sk = yivi::SigningKey::RS256(Box::new(jwt::RS256Sk::random(512).unwrap()));
+    // Generating an RSA key, even a small 512-bit one, is quite expensive, so we use a
+    // hardcoded key (for this test) instead.
+    let yivi_server_sk : yivi::SigningKey = serde_json::from_str(r#"{"rs256":"-----BEGIN PRIVATE KEY-----\nMIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAy80kqWqcEe95noNs\nD51BJOcHpMWq0qXHAm8cF7QTlToj+IaXOzFy1yBTY7aZ8gV5x/YbNdl/rqhgYsjT\nHrjZ9QIDAQABAkBZ3IV60hAo9F+63hXquJr9y4SaSbItmX0rfJR1eyhbVnMBQWdH\nBQPoA+yWYARC2VDuuP0hZL3V+yuvYWtILtFtAiEA6jsLrssA6TLqfCJQfCOPIj4e\n565nQl707tsbZcsHqr8CIQDevhsBBvfSmrTAEZTMSWTrCpJ7oSgGcx6PrCY0mx8s\nSwIgDaVG9vXopa1Lr9On8LN5oTsRPdoRNfKmPkwReoqrda0CIQCyFjCk+5s8qTCG\nuAfN5YhoW8WOTuUfcv8mQ68wNC4STQIgAa3PPfSKP8v4kGom1UIrOT6BShf735jQ\n6XWkFMj0gfk=\n-----END PRIVATE KEY-----\n"}"#).unwrap();
 
     config
         .auths
@@ -119,6 +147,8 @@ async fn main_integration_test_local(
     let constellation: servers::Constellation = client
         .get_constellation(&config.phc_url.as_ref())
         .await
+        .unwrap()
+        .into_constellation()
         .unwrap();
 
     // To test discovery, change transcryptor's and phc's encryption key
@@ -211,6 +241,8 @@ async fn main_integration_test_local(
     let constellation: servers::Constellation = client
         .get_constellation(&config.phc_url.as_ref())
         .await
+        .unwrap()
+        .into_constellation()
         .unwrap();
 
     let welcome_resp = client
@@ -325,6 +357,29 @@ async fn main_integration_test_local(
     let phone4 = attrs
         .get::<handle::Handle>(&"phone".parse().unwrap())
         .unwrap();
+
+    // Test expiry of chained sessions
+    test_chained_session_expiry(&client, &constellation, &yivi_server_sk).await;
+
+    // Test chained session flow
+    let attrs = request_attributes_chained(
+        &client,
+        &constellation,
+        &yivi_server_sk,
+        "user4@example.com",
+        "0645678901",
+    )
+    .await;
+    assert!(
+        attrs
+            .get::<handle::Handle>(&"email".parse().unwrap())
+            .is_some()
+    );
+    assert!(
+        attrs
+            .get::<handle::Handle>(&"phone".parse().unwrap())
+            .is_some()
+    );
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
@@ -874,6 +929,10 @@ async fn main_integration_test_local(
     // The mock hub stores the pseudonym in the access token;
     // let's check we got the same pseudonym in both cases.
     assert_eq!(first_access_token, access_token);
+
+    // clean-up
+    mock_hub.actix_server_handle.stop(false).await;
+    js.join_all().await;
 }
 
 /// Contents of a disclosure session request JWT
@@ -886,6 +945,7 @@ struct DisclosureRequestClaims {
 /// Simulates a hub.
 struct MockHub {
     pub actix_server: actix_web::dev::Server,
+    pub actix_server_handle: actix_web::dev::ServerHandle,
     pub context: Arc<MockHubContext>,
 }
 
@@ -941,8 +1001,12 @@ impl MockHub {
         }
         .unwrap_or_else(|err| panic!("failed to bind to {host}:{port}: {err:#}"));
 
+        let actix_server = server_builder.run();
+        let actix_server_handle = actix_server.handle();
+
         Self {
-            actix_server: server_builder.run(),
+            actix_server,
+            actix_server_handle,
             context: context.clone(),
         }
     }
@@ -967,6 +1031,7 @@ async fn request_attributes(
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
                 attr_type_choices: Default::default(),
                 yivi_chained_session: false,
+                yivi_chained_session_drip: false,
             },
         )
         .await
@@ -1039,6 +1104,320 @@ async fn request_attributes(
     };
 
     attrs
+}
+
+/// Like [`request_attributes`], but uses a chained yivi session.
+async fn request_attributes_chained(
+    client: &client::Client,
+    constellation: &pubhubs::servers::Constellation,
+    yivi_server_sk: &yivi::SigningKey,
+    email_value: &str,
+    phone_value: &str,
+) -> IndexMap<handle::Handle, api::Signed<attr::Attr>> {
+    let api::auths::AuthStartResp::Success {
+        task: auth_task,
+        state: auth_state,
+    } = client
+        .query_with_retry::<api::auths::AuthStartEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthStartReq {
+                source: attr::Source::Yivi,
+                attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+                attr_type_choices: Default::default(),
+                yivi_chained_session: true,
+                yivi_chained_session_drip: false,
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    let jwt: jwt::JWT = match auth_task {
+        api::auths::AuthTask::Yivi {
+            disclosure_request, ..
+        } => disclosure_request,
+    };
+
+    let jwt_claims: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
+
+    let claims: DisclosureRequestClaims = jwt_claims
+        .check_iss(jwt::expecting::exactly("ph_auths"))
+        .unwrap()
+        .check_sub(jwt::expecting::exactly("verification_request"))
+        .unwrap()
+        .into_custom()
+        .unwrap();
+
+    let next_session_url = claims
+        .sprequest
+        .next_session
+        .as_ref()
+        .expect("chained session should have a nextSession url")
+        .url
+        .clone();
+
+    let yivi_server_creds = yivi::Credentials {
+        name: "yivi-server".to_string(),
+        key: yivi_server_sk.clone(),
+    };
+
+    let result_jwt = claims
+        .sprequest
+        .mock_disclosure_response(|ati: &yivi::AttributeTypeIdentifier| -> String {
+            match ati.as_str() {
+                "irma-demo.sidn-pbdf.email.email" => email_value.to_string(),
+                "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" => phone_value.to_string(),
+                _ => {
+                    panic!("unexpected yivi attribute type {}", ati.as_str());
+                }
+            }
+        })
+        .sign(&yivi_server_creds, Duration::from_secs(60))
+        .unwrap();
+
+    // Spawn two tasks to simulate multiple Yivi servers posting the same disclosure to the
+    // next-session endpoint.  The server keeps both requests open until release_next_session
+    // is called below; both should then receive 204.
+    let spawn_yivi_task = |result_jwt_str: String| {
+        let http_client = client.http_client().clone();
+        let next_session_url = next_session_url.clone();
+        tokio::task::spawn_local(async move {
+            let resp = http_client
+                .post(next_session_url.as_str())
+                .send_body(result_jwt_str)
+                .await
+                .expect("next-session request failed");
+            assert_eq!(resp.status(), awc::http::StatusCode::NO_CONTENT);
+        })
+    };
+    let result_jwt_str = result_jwt.to_string();
+    let yivi_task1 = spawn_yivi_task(result_jwt_str.clone());
+    let yivi_task2 = spawn_yivi_task(result_jwt_str);
+
+    // Wait for the disclosure (the Yivi tasks run concurrently and provide it)
+    let api::auths::YiviWaitForResultResp::Success { disclosure } = client
+        .query_with_retry::<api::auths::YiviWaitForResultEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::YiviWaitForResultReq {
+                state: auth_state.clone(),
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Release both Yivi servers with no next session
+    let api::auths::YiviReleaseNextSessionResp::Success {} = client
+        .query_with_retry::<api::auths::YiviReleaseNextSessionEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::YiviReleaseNextSessionReq {
+                state: auth_state.clone(),
+                next_session: None,
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Both Yivi server tasks should have received 204
+    yivi_task1.await.unwrap();
+    yivi_task2.await.unwrap();
+
+    let api::auths::AuthCompleteResp::Success { attrs } = client
+        .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthCompleteReq {
+                state: auth_state,
+                proof: api::auths::AuthProof::Yivi { disclosure },
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    attrs
+}
+
+/// Tests that chained sessions are cleaned up on expiry in two scenarios.
+async fn test_chained_session_expiry(
+    client: &client::Client,
+    constellation: &pubhubs::servers::Constellation,
+    yivi_server_sk: &yivi::SigningKey,
+) {
+    // Scenario 1: session expires while a client is waiting for the yivi server to call in.
+    // The waiting YiviWaitForResultEP call should return SessionGone.
+    {
+        let api::auths::AuthStartResp::Success {
+            state: auth_state, ..
+        } = client
+            .query_with_retry::<api::auths::AuthStartEP, _, _>(
+                &constellation.auths_url,
+                &api::auths::AuthStartReq {
+                    source: attr::Source::Yivi,
+                    attr_types: vec!["email".parse().unwrap()],
+                    attr_type_choices: Default::default(),
+                    yivi_chained_session: true,
+                    yivi_chained_session_drip: false,
+                },
+            )
+            .await
+            .unwrap()
+        else {
+            panic!()
+        };
+
+        // Spawn a waiter; it blocks since no yivi server has posted yet.
+        // Use a long timeout so tokio::time::advance doesn't fire awc's default timeout.
+        let wait_task = {
+            let client = client.clone();
+            let auths_url = constellation.auths_url.clone();
+            tokio::task::spawn_local(async move {
+                client
+                    .query::<api::auths::YiviWaitForResultEP>(
+                        &auths_url,
+                        &api::auths::YiviWaitForResultReq { state: auth_state },
+                    )
+                    .timeout(Duration::from_secs(20 * 60))
+                    .with_retry()
+                    .await
+                    .unwrap()
+            })
+        };
+
+        tokio::time::pause();
+        tokio::time::advance(Duration::from_secs(11 * 60)).await;
+        tokio::time::resume();
+
+        assert!(matches!(
+            wait_task.await.unwrap(),
+            api::auths::YiviWaitForResultResp::SessionGone
+        ));
+    }
+
+    // Scenario 2: session expires while the yivi server is waiting for the next session.
+    // The yivi server should receive HTTP 204 (no next session), and late callers of
+    // YiviWaitForResultEP should receive SessionGone.
+    {
+        let api::auths::AuthStartResp::Success {
+            task: auth_task,
+            state: auth_state,
+        } = client
+            .query_with_retry::<api::auths::AuthStartEP, _, _>(
+                &constellation.auths_url,
+                &api::auths::AuthStartReq {
+                    source: attr::Source::Yivi,
+                    attr_types: vec!["email".parse().unwrap()],
+                    attr_type_choices: Default::default(),
+                    yivi_chained_session: true,
+                    yivi_chained_session_drip: false,
+                },
+            )
+            .await
+            .unwrap()
+        else {
+            panic!()
+        };
+
+        let jwt: jwt::JWT = match auth_task {
+            api::auths::AuthTask::Yivi {
+                disclosure_request, ..
+            } => disclosure_request,
+        };
+
+        let claims: DisclosureRequestClaims = jwt
+            .open(&jwt::HS256("secret".into()))
+            .unwrap()
+            .check_iss(jwt::expecting::exactly("ph_auths"))
+            .unwrap()
+            .check_sub(jwt::expecting::exactly("verification_request"))
+            .unwrap()
+            .into_custom()
+            .unwrap();
+
+        let next_session_url = claims
+            .sprequest
+            .next_session
+            .as_ref()
+            .expect("chained session should have a nextSession url")
+            .url
+            .clone();
+
+        let result_jwt = claims
+            .sprequest
+            .mock_disclosure_response(|ati: &yivi::AttributeTypeIdentifier| -> String {
+                match ati.as_str() {
+                    "irma-demo.sidn-pbdf.email.email" => "expiry-test@example.com".to_string(),
+                    _ => panic!("unexpected yivi attribute type {}", ati.as_str()),
+                }
+            })
+            .sign(
+                &yivi::Credentials {
+                    name: "yivi-server".to_string(),
+                    key: yivi_server_sk.clone(),
+                },
+                Duration::from_secs(60),
+            )
+            .unwrap();
+
+        // Spawn yivi server: posts disclosure and waits for next session.
+        // Use a long-timeout awc client so tokio::time::advance doesn't fire the default timeout.
+        let yivi_task = {
+            let http_client = awc::Client::builder()
+                .timeout(Duration::from_secs(20 * 60))
+                .finish();
+            let result_jwt_str = result_jwt.to_string();
+            tokio::task::spawn_local(async move {
+                let resp = http_client
+                    .post(next_session_url.as_str())
+                    .send_body(result_jwt_str)
+                    .await
+                    .expect("next-session request failed");
+                assert_eq!(resp.status(), awc::http::StatusCode::NO_CONTENT);
+            })
+        };
+
+        // Wait for disclosure (yivi task runs concurrently and provides it)
+        let api::auths::YiviWaitForResultResp::Success { .. } = client
+            .query_with_retry::<api::auths::YiviWaitForResultEP, _, _>(
+                &constellation.auths_url,
+                &api::auths::YiviWaitForResultReq {
+                    state: auth_state.clone(),
+                },
+            )
+            .await
+            .unwrap()
+        else {
+            panic!()
+        };
+
+        // Advance time; the yivi server is still waiting for a next session
+        tokio::time::pause();
+        tokio::time::advance(Duration::from_secs(11 * 60)).await;
+        tokio::time::resume();
+
+        // Yivi server should be released with no next session (204)
+        yivi_task.await.unwrap();
+
+        // Late callers see SessionGone
+        assert!(matches!(
+            client
+                .query_with_retry::<api::auths::YiviWaitForResultEP, _, _>(
+                    &constellation.auths_url,
+                    &api::auths::YiviWaitForResultReq { state: auth_state },
+                )
+                .await
+                .unwrap(),
+            api::auths::YiviWaitForResultResp::SessionGone
+        ));
+    }
 }
 
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
