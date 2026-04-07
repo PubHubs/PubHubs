@@ -2,7 +2,7 @@
 	<div>
 		<div class="flex gap-2 py-2">
 			<!-- Yes Votes -->
-			<OptionButton color="bg-accent-lime">
+			<OptionButton color="bg-accent-green text-on-accent-green">
 				<Icon type="check" class="m-auto" />
 			</OptionButton>
 			<div>{{ yesVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', yesVotes.length) }}</div>
@@ -12,7 +12,7 @@
 		</div>
 		<div class="flex gap-2 py-2">
 			<!-- Maybe Votes -->
-			<OptionButton color="bg-accent-orange">
+			<OptionButton color="bg-accent-orange text-on-accent-orange">
 				<Icon type="tilde" class="m-auto" />
 			</OptionButton>
 			<div>{{ maybeVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', maybeVotes.length) }}</div>
@@ -22,7 +22,7 @@
 		</div>
 		<div class="flex gap-2 py-2">
 			<!-- No Votes -->
-			<OptionButton color="bg-accent-red">
+			<OptionButton color="bg-accent-red text-on-accent-red">
 				<Icon type="x" class="m-auto" />
 			</OptionButton>
 			<div>{{ noVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', noVotes.length) }}</div>

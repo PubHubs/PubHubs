@@ -11,13 +11,13 @@
 				{{ filters.getDateStr(option.date, is24HourFormat, d) }}
 			</div>
 			<div v-if="!closedAndPicking" class="ml-auto flex items-center justify-end gap-2">
-				<OptionButton color="bg-accent-lime" :colorwhen="uservote === 'yes'" :disabled="closed" @click="vote('yes')">
+				<OptionButton color="bg-accent-green text-on-accent-green" :colorwhen="uservote === 'yes'" :disabled="closed" @click="vote('yes')">
 					<Icon type="check" class="m-auto" />
 				</OptionButton>
-				<OptionButton color="bg-accent-orange" :colorwhen="uservote === 'maybe'" :disabled="closed" @click="vote('maybe')">
+				<OptionButton color="bg-accent-orange text-on-accent-orange" :colorwhen="uservote === 'maybe'" :disabled="closed" @click="vote('maybe')">
 					<Icon type="tilde" class="m-auto" />
 				</OptionButton>
-				<OptionButton color="bg-accent-red" :colorwhen="uservote === 'no'" :disabled="closed" @click="vote('no')">
+				<OptionButton color="bg-accent-red text-on-accent-red" :colorwhen="uservote === 'no'" :disabled="closed" @click="vote('no')">
 					<Icon type="x" class="m-auto" />
 				</OptionButton>
 			</div>

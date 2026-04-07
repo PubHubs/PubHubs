@@ -20,9 +20,9 @@
 	const colorClass: { [key: string]: string } = {
 		disabled: 'opacity-50 !cursor-not-allowed bg-on-surface-disabled text-on-surface-variant',
 		text: 'shadow-none hover:opacity-75',
-		primary: 'bg-accent-primary hover:opacity-75 text-on-accent-primary',
+		primary: 'bg-button-blue hover:opacity-75 text-on-button-blue',
 		secondary: 'bg-accent-secondary hover:opacity-75 text-on-accent-secondary',
-		red: 'bg-button-red hover:opacity-75 text-background dark:text-on-surface',
+		red: 'bg-button-red hover:opacity-75 text-on-button-red',
 		gray: 'bg-surface hover:opacity-75 text-on-surface',
 	};
 
