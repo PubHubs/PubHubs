@@ -384,7 +384,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 				if (hasYellowCard) {
 					userStore.addYellowCard(room_id);
 				}
-				console.error(userStore.yellowCards);
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
