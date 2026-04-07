@@ -84,8 +84,8 @@ const useDialog = defineStore('dialog', {
 			global: false,
 			visible: false,
 			properties: new DialogProperties(),
-			resolveDialog: {} as Function,
-			callbacks: {} as { [index: DialogButtonAction]: Function },
+			resolveDialog: {} as (...args: unknown[]) => unknown,
+			callbacks: {} as { [index: DialogButtonAction]: (...args: unknown[]) => unknown },
 		};
 	},
 
@@ -205,7 +205,7 @@ const useDialog = defineStore('dialog', {
 			return this.show(new DialogProperties(title, content, buttonsYesNo, true, true, type));
 		},
 
-		addCallback(action: DialogButtonAction, callback: Function) {
+		addCallback(action: DialogButtonAction, callback: (...args: unknown[]) => unknown) {
 			this.callbacks[action] = callback;
 		},
 
@@ -215,4 +215,19 @@ const useDialog = defineStore('dialog', {
 	},
 });
 
-export { buttonsOk, buttonsCancel, buttonsSubmitCancel, buttonsOkCancel, buttonsYesNo, DialogButton, type DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit, DialogProperties, useDialog };
+export {
+	buttonsOk,
+	buttonsCancel,
+	buttonsSubmitCancel,
+	buttonsOkCancel,
+	buttonsYesNo,
+	DialogButton,
+	type DialogButtonAction,
+	DialogCancel,
+	DialogOk,
+	DialogYes,
+	DialogNo,
+	DialogSubmit,
+	DialogProperties,
+	useDialog,
+};

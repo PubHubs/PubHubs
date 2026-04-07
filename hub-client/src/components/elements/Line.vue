@@ -2,7 +2,7 @@
 	<hr v-tw-class="size + ' mt-2 mb-4 text-gray theme-light:text-gray dark:text-white theme-dark:text-white'" />
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 

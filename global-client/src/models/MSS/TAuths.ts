@@ -1,4 +1,4 @@
-import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
+import { type ErrorCode, type Result } from '@global-client/models/MSS/TGeneral';
 
 type AttrSource = {
 	Yivi: {
@@ -55,7 +55,7 @@ type AuthTask = {
 };
 export type YiviWaitForResultResp = { Success: { disclosure: string } } | { PleaseRestartAuth: string } | { SessionGone: string };
 
-export type YiviReleaseNextSessionResp = { Success: {} } | { PleaseRestartAuth: string } | { SessionGone: string } | { TooEarly: string };
+export type YiviReleaseNextSessionResp = { Success: Record<string, never> } | { PleaseRestartAuth: string } | { SessionGone: string } | { TooEarly: string };
 
 export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string };
 

@@ -1,16 +1,18 @@
-import { MatrixEvent, Room as MatrixRoom } from 'matrix-js-sdk';
+import { MatrixEvent, type Room as MatrixRoom } from 'matrix-js-sdk';
 import { ref } from 'vue';
 
 import { api_synapse } from '@hub-client/logic/core/api';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 export class LibraryMatrixEvent extends MatrixEvent {
-	public signed: Boolean | undefined;
+	public signed: boolean | undefined;
 	public signedEvents: Array<MatrixEvent> | undefined;
 }
 
 const useRoomLibrary = () => {
+	const logger = createLogger('RoomLibrary');
 	const elFileInput = ref<HTMLInputElement | null>(null);
 	const fileObject = ref<File>({} as File);
 	const uri = ref('');
@@ -49,7 +51,7 @@ const useRoomLibrary = () => {
 
 			return combinedHashHex;
 		} catch (error) {
-			console.error(error);
+			logger.error(error);
 			return '';
 		}
 	}
@@ -59,12 +61,12 @@ const useRoomLibrary = () => {
 			await api_synapse.apiDELETE(url);
 			await pubhubsStore.deleteMessage(roomId, eventId);
 		} catch (error) {
-			console.error('Unable to delete the media file ' + error);
+			logger.error('Unable to delete the media file ' + error);
 			return null;
 		}
 	}
 
-	async function removeFromTimeline(eventId: string, roomId: string, signedEvents: any) {
+	async function removeFromTimeline(eventId: string, roomId: string, signedEvents: Array<MatrixEvent>) {
 		try {
 			await pubhubsStore.deleteLibraryMessage(roomId, eventId);
 			// Remove all the related child events (signed banners) from the timeline
@@ -74,7 +76,7 @@ const useRoomLibrary = () => {
 				}
 			}
 		} catch (error) {
-			console.error('Unable to update the roomlibrary timeline ' + error);
+			logger.error('Unable to update the roomlibrary timeline ' + error);
 		}
 	}
 

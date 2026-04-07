@@ -3,9 +3,9 @@
 //
 // COMMENTS FOR IMPROVEMENT, see: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/merge_requests/574
 //
-const memoize = (fn: any) => {
-	const cache = new Map();
-	return (arg: any) => {
+const memoize = <TArg, TResult>(fn: (arg: TArg) => TResult | Promise<TResult>) => {
+	const cache = new Map<TArg, TResult | Promise<TResult>>();
+	return (arg: TArg): TResult | Promise<TResult> => {
 		if (!cache.has(arg)) {
 			const val = fn(arg);
 			if (val instanceof Promise) {
@@ -20,12 +20,12 @@ const memoize = (fn: any) => {
 				cache.set(arg, val);
 			}
 		}
-		return cache.get(arg);
+		return cache.get(arg) as TResult | Promise<TResult>;
 	};
 };
 
 const propCompare = (prop: string) => {
-	return (a: any, b: any) => {
+	return (a: Record<string, unknown>, b: Record<string, unknown>) => {
 		if (a[prop] && b[prop]) {
 			return Number(a[prop] > b[prop]);
 		}
@@ -43,25 +43,25 @@ const trimSplit = (list: string, delimiter: string = ',') => {
 	return result;
 };
 
-const isEmpty = (v: any) => {
+const isEmpty = (v: unknown) => {
 	if (typeof v === 'boolean') {
 		return !v;
 	}
 	if (typeof v === 'string') {
 		return v === '';
 	}
-	if (typeof v === 'object') {
+	if (typeof v === 'object' && v !== null) {
 		return Object.keys(v).length === 0;
 	}
 	return false;
 };
 
 // Check if given object is an object and not an array.
-const isObject = (item: any): item is Object => {
-	return item && typeof item === 'object' && !Array.isArray(item);
+const isObject = (item: unknown): item is Record<string, unknown> => {
+	return !!item && typeof item === 'object' && !Array.isArray(item);
 };
 
-const mergeDeep = (target: any, ...sources: any): any => {
+const mergeDeep = (target: Record<string, unknown>, ...sources: Record<string, unknown>[]): Record<string, unknown> => {
 	if (!sources.length) return target;
 	const source = sources.shift();
 
@@ -72,7 +72,7 @@ const mergeDeep = (target: any, ...sources: any): any => {
 					Object.assign(target, {
 						[key]: {},
 					});
-				mergeDeep(target[key], source[key]);
+				mergeDeep(target[key] as Record<string, unknown>, source[key] as Record<string, unknown>);
 			} else {
 				Object.assign(target, {
 					[key]: source[key],

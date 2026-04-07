@@ -9,8 +9,9 @@ export type ContextMenuItemProps = {
 
 export type MenuItem = ContextMenuItemProps & {
 	onClick?: () => void;
-	payload?: any;
+	payload?: unknown;
 	divider?: boolean;
+	isDelicate?: boolean;
 };
 
 export enum ContextVariant {

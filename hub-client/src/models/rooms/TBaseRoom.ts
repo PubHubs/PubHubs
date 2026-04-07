@@ -1,5 +1,5 @@
 // Packages
-import { IStateEvent } from 'matrix-js-sdk';
+import { type IStateEvent } from 'matrix-js-sdk';
 
 // Types
 enum RoomType {

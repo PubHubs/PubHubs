@@ -1,12 +1,21 @@
 <template>
-	<TextField v-model="model" :name="name ?? slotDefault" :id="id" :placeholder="placeholder" :help="help" :validation="validation" type="textarea" :disabled="disabled">
-		<slot></slot>
+	<TextField
+		:id="id"
+		v-model="model"
+		:disabled="disabled"
+		:help="help"
+		:name="name ?? slotDefault"
+		:placeholder="placeholder"
+		type="textarea"
+		:validation="validation"
+	>
+		<slot />
 	</TextField>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Models
-	import { FieldValidations } from '@hub-client/models/validation/TValidate';
+	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// New design
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
@@ -25,6 +34,8 @@
 		{
 			disabled: false,
 			help: '',
+			id: undefined,
+			name: undefined,
 			placeholder: '',
 			validation: undefined,
 		},

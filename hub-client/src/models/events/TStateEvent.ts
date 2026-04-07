@@ -1,8 +1,16 @@
 // Models
-import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 
 export interface TStateEvent extends TBaseEvent {
-	type: 'm.room.create' | 'm.room.history_visibility' | 'm.room.join_rules' | 'm.room.member' | 'm.room.name' | 'm.room.power_levels' | 'm.room.topic' | 'm.room.canonical_alias';
+	type:
+		| 'm.room.create'
+		| 'm.room.history_visibility'
+		| 'm.room.join_rules'
+		| 'm.room.member'
+		| 'm.room.name'
+		| 'm.room.power_levels'
+		| 'm.room.topic'
+		| 'm.room.canonical_alias';
 	age: number;
 	user_id: string;
 }
@@ -46,6 +54,7 @@ interface TRoomName extends TStateEvent {
 // Power Level content type
 
 interface PowerLevelsContent {
+	[key: string]: unknown;
 	users: Record<string, number>; // A record of user IDs and their power levels
 	users_default: number; // Default power level for users
 	events: Record<string, number>; // A record of event types and their power levels

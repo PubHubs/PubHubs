@@ -1,6 +1,6 @@
 // Packages
 import { TimelineEvent } from '../events/TimelineEvent';
-import { MatrixClient, MatrixEvent, Thread } from 'matrix-js-sdk';
+import { type MatrixClient, type MatrixEvent, type Thread } from 'matrix-js-sdk';
 
 import { Redaction } from '@hub-client/models/constants';
 
@@ -67,17 +67,29 @@ export default class TRoomThread {
 		// which in the end can lead to multiple instances of the same event in the thread
 
 		// add events to current timelineEvents and filter unique events
-		let timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.matrixThread!.roomId, inThread: true }));
+		const threadRoomId = this.matrixThread?.roomId ?? '';
+		let timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: threadRoomId, inThread: true }));
 		timelineEvents = [...(this.threadEvents ?? []), ...timelineEvents];
 
 		// filter unique events
 		const uniqueEvents = new Map<string, TimelineEvent>();
-		timelineEvents.forEach((event) => uniqueEvents.set(event.matrixEvent.event.event_id!, event));
+		timelineEvents.forEach((event) => {
+			const eventId = event.matrixEvent.event.event_id;
+			if (eventId) {
+				uniqueEvents.set(eventId, event);
+			}
+		});
 		timelineEvents = Array.from(uniqueEvents.values());
 
 		// check for deletions
 		timelineEvents.forEach((event) => {
-			if (this.redactedEvents.find((redacted) => redacted.event.content?.[Redaction.Redacts] === event.matrixEvent.event.event_id && redacted.event.content?.[Redaction.Reason] === Redaction.DeletedFromThread)) {
+			if (
+				this.redactedEvents.find(
+					(redacted) =>
+						redacted.event.content?.[Redaction.Redacts] === event.matrixEvent.event.event_id &&
+						redacted.event.content?.[Redaction.Reason] === Redaction.DeletedFromThread,
+				)
+			) {
 				event.isDeleted = true;
 			}
 		});

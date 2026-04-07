@@ -82,7 +82,7 @@ const routes = [
 		path: '/error-page',
 		name: 'error-page',
 		component: () => import('@hub-client/pages/ErrorPage.vue'),
-		props: (route: { query: { errorKey: String; errorValues: Array<String | Number>; fromRoute: String } }) => ({
+		props: (route: { query: { errorKey: string; errorValues: Array<string | number>; fromRoute: string } }) => ({
 			errorKey: route.query.errorKey || 'errors.general_error',
 			errorValues: route.query.errorValues || [],
 			fromRoute: route.query.fromRoute || null,
@@ -162,6 +162,7 @@ router.beforeEach((to, from) => {
 		if (accessRoles.length === 1 && accessRoles[0] === UserRole.Admin && !user.adminStatusLoaded) {
 			return true;
 		}
+		// eslint-disable-next-line no-console -- log navigation errors for debugging
 		console.error('ONLY FOR ROLES: ', to.meta.accessFor, roomId);
 		return { name: 'home' };
 	}

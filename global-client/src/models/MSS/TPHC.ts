@@ -1,4 +1,4 @@
-import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
+import { type ErrorCode, type Result } from '@global-client/models/MSS/TGeneral';
 
 export type Constellation = {
 	id: string;
@@ -160,8 +160,8 @@ export type UserSecretObjectNew = {
 
 export type UserSecretObject = UserSecretData | UserSecretObjectNew;
 
-export function isUserSecretObjectNew(obj: any): obj is UserSecretObjectNew {
-	return obj && typeof obj === 'object' && 'data' in obj;
+export function isUserSecretObjectNew(obj: unknown): obj is UserSecretObjectNew {
+	return obj !== null && obj !== undefined && typeof obj === 'object' && 'data' in obj;
 }
 
 export type PppResp = 'RetryWithNewAuthToken' | { Success: string };

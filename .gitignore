@@ -4,15 +4,19 @@
 *.DS_Store
 pubhubs_hub/report.xml
 client-config.local.js
-.vscode
 .python-version
 *.code-workspace
 *.swp
 node_modules
+dist
 
 # Added by cargo
 /target
 
 # Nix
 .direnv
+.envrc
 result
+
+# Vscode
+.vscode

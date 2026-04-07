@@ -1,33 +1,50 @@
 <template>
-	<div class="relative flex items-center gap-4" @focusin="focus(true)" @click="focus(true)" @keydown.esc="focus(false)" @mouseleave="focus(false)">
+	<div
+		class="relative flex items-center gap-4"
+		@click="focus(true)"
+		@focusin="focus(true)"
+		@keydown.esc="focus(false)"
+		@mouseleave="focus(false)"
+	>
 		<FilteredList
+			:filter-key="['localPart', 'displayName']"
 			:items="usersList"
-			:filterKey="['localPart', 'displayName']"
-			:selected="alreadyInList || []"
-			sortby="localPart"
 			:placeholder="$t('rooms.private_search_user')"
+			:selected="alreadyInList || []"
+			:show-complete-list="showList"
+			sortby="localPart"
 			@click="selectUser($event)"
 			@filter="filter($event)"
-			:showCompleteList="showList"
 		>
 			<template #item="{ item }">
 				<div class="hover:bg-background flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-1">
 					<span class="flex items-center gap-2 truncate"
-						><span v-if="item.displayName" data-testid="display-name" :class="`${textColor(color(item.userId))} text-body truncate font-semibold`">{{
-							filters.maxLengthText(item.displayName, settings.getDisplayNameMaxLength)
-						}}</span>
-						<span data-testid="user-id" class="text-nowrap">{{ item.localPart }}</span></span
+						><span
+							v-if="asUserItem(item).displayName"
+							:class="`${textColor(color(asUserItem(item).userId))} text-body truncate font-semibold`"
+							data-testid="display-name"
+							>{{ filters.maxLengthText(asUserItem(item).displayName!, settings.getDisplayNameMaxLength) }}</span
+						>
+						<span
+							class="text-nowrap"
+							data-testid="user-id"
+							>{{ asUserItem(item).localPart }}</span
+						></span
 					>
-					<Icon type="plus" class="flex-none" size="sm" />
+					<Icon
+						class="flex-none"
+						size="sm"
+						type="plus"
+					/>
 				</div>
 			</template>
 		</FilteredList>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { type User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onMounted, ref } from 'vue';
 
 	// Components
@@ -41,65 +58,72 @@
 	import filters from '@hub-client/logic/core/filters';
 
 	// Models
-	import { FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
+	import { type FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	defineProps({
+		alreadyInList: {
+			type: Array<MatrixUser>,
+			required: false,
+			default: undefined,
+		},
+	});
+	const emit = defineEmits(['selectedUser']);
 	const { color, textColor } = useUserColor();
 	const settings = useSettings();
 	const pubhubs = usePubhubsStore();
 	const user = useUser();
-	const emit = defineEmits(['selectedUser']);
-
 	const showList = ref(false);
 	const users = ref([] as Array<MatrixUser>);
 
 	onMounted(async () => (users.value = await pubhubs.getUsers()));
 
-	const props = defineProps({
-		alreadyInList: {
-			type: Array<MatrixUser>,
-			required: false,
-		},
-	});
-
 	function focus(focus: boolean) {
 		showList.value = focus;
 	}
 
+	type UserListItem = { userId: string; localPart: string; displayName: string | undefined };
+
+	function asUserItem(item: Record<string, unknown>): UserListItem {
+		return item as unknown as UserListItem;
+	}
+
 	const usersList = computed(() => {
-		let list = users.value as any;
-		list = list.map((user: any) => {
+		const mapped = users.value.map((u) => {
 			return {
-				userId: user.userId,
-				localPart: localPart(user.userId),
-				displayName: user.displayName,
+				userId: u.userId,
+				localPart: localPart(u.userId),
+				displayName: u.displayName,
 			};
 		});
 		// Remove self from list
-		list = list.filter((u: any) => u.userId !== user.userId && u.rawDisplayName !== 'notices');
-
-		return list;
+		return mapped.filter((u) => u.userId !== user.userId);
 	});
 
 	async function filter(event: FilteredListEvent) {
-		let foundUsers = await pubhubs.findUsers(event.filter);
+		const foundUsers = await pubhubs.findUsers(event.filter);
 		users.value = foundUsers
-			.map((user) => {
-				user.userId = user.user_id;
-				user.localPart = localPart(user.user_id);
-				user.displayName = user.display_name;
-				return user;
+			.map((u) => {
+				return {
+					userId: u.user_id,
+					localPart: localPart(u.user_id),
+					displayName: u.display_name ?? '',
+				} as unknown as MatrixUser;
 			})
 			// The matrix search functionality only looks at starting "bits" of usernames and display names. So the hub url parts are always found. When we abstract this stuff away
 			// from users we still want some consistancy so we make sure here we only show search results that match the beginning of search terms.
 			// A weird edge case are display names that start with '@' or characters like emoticons. The synapse search does not return these.
 			// There are issues around user search open for a while on synapse side: https://github.com/matrix-org/synapse/issues/7588, https://github.com/matrix-org/synapse/issues/7590, https://github.com/matrix-org/synapse/issues/13807
 			// Linking to the archived repo so can see the comments, last comment is the migration to the new element-hq github repo. As of 24/9/2024 these issues are still open there.
-			.filter((u) => u.localPart.toLowerCase().startsWith(event.filter) || u.displayName.toLowerCase().startsWith(event.filter));
+			.filter(
+				(u) =>
+					(u as unknown as UserListItem).localPart.toLowerCase().startsWith(event.filter) ||
+					((u as unknown as UserListItem).displayName ?? '').toLowerCase().startsWith(event.filter),
+			);
 	}
 
 	function localPart(userId: string): string {
@@ -111,7 +135,7 @@
 		return '!!!-!!!';
 	}
 
-	function selectUser(event: any) {
+	function selectUser(event: Record<string, unknown>) {
 		emit('selectedUser', event);
 	}
 </script>

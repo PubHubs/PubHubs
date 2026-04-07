@@ -1,8 +1,20 @@
 <template>
-	<div class="h-fit w-fit" :data-testid="id">
-		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="iconSizes[size]" :height="iconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
-			<slot></slot>
-			<g v-html="icons[displayType][weightType]"></g>
+	<div
+		class="h-fit w-fit"
+		:data-testid="id"
+	>
+		<svg
+			v-bind="$attrs"
+			fill="currentColor"
+			:height="iconSizes[size]"
+			:transform="displayMirrored"
+			viewBox="0 0 256 256"
+			:width="iconSizes[size]"
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<slot />
+			<!-- eslint-disable-next-line vue/no-v-html -- static SVG icon assets -->
+			<g v-html="icons[displayType][weightType]" />
 		</svg>
 	</div>
 </template>
@@ -16,12 +28,15 @@
 	export type TSize = keyof typeof iconSizes;
 </script>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
 	// Assets
 	import { icons } from '@hub-client/assets/icons';
+
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Props
 	const props = withDefaults(
@@ -41,10 +56,12 @@
 		},
 	);
 
+	const logger = createLogger('Icon');
+
 	// Computed
 	const displayType = computed(() => {
 		if (icons[props.type]) return props.type;
-		console.warn('[Icon] fallback icon', props.type);
+		logger.warn('[Icon] fallback icon', props.type);
 		return 'selection';
 	});
 

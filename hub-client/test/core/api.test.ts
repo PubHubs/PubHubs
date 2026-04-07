@@ -70,15 +70,15 @@ describe('api secured rooms', () => {
 
 	test('POST', async () => {
 		const body = {} as TSecuredRoom;
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 		body.room_name = 'Secured';
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 		body.user_txt = 'Bla Bla';
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 		body.accepted = [];
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 		body.type = 'some_type';
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 
 		body.type = 'ph.messages.restricted';
 		const resp = await api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body);

@@ -1,6 +1,10 @@
 <template>
 	<div class="flex flex-row gap-2">
-		<Avatar :avatar-url="user.userAvatar(otherUser?.userId)" :user-id="otherUser?.userId" :icon="users" />
+		<Avatar
+			:avatar-url="user.userAvatar(otherUser?.userId ?? '')"
+			icon="users"
+			:user-id="otherUser?.userId ?? ''"
+		/>
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate leading-tight font-bold">
 				{{ otherUser?.rawDisplayName ?? '' }}
@@ -12,7 +16,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
@@ -24,12 +28,10 @@
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+	import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
-
-	const user = useUser();
 
 	const props = defineProps({
 		room: {
@@ -41,6 +43,8 @@
 			required: true,
 		},
 	});
+
+	const user = useUser();
 
 	const otherUser = computed(() => props.members.findLast((member) => member.userId !== user.userId) ?? null);
 </script>

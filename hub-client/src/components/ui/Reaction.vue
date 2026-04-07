@@ -1,6 +1,14 @@
 <template>
-	<div class="flex flex-wrap gap-2" role="list" data-testid="reactions">
-		<div v-for="item in reactionSummary" :key="item.key" class="bg-surface rounded-full">
+	<div
+		class="flex flex-wrap gap-2"
+		data-testid="reactions"
+		role="list"
+	>
+		<div
+			v-for="item in reactionSummary"
+			:key="item.key"
+			class="bg-surface rounded-full"
+		>
 			<span
 				class="group/reaction relative inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1"
 				:class="item.hasUserReacted ? 'bg-accent-blue/30 border-accent-blue border' : 'border border-transparent'"
@@ -15,10 +23,13 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { MatrixEvent } from 'matrix-js-sdk';
+	import { type MatrixEvent } from 'matrix-js-sdk';
 	import { computed } from 'vue';
+
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { Redaction, RelationType } from '@hub-client/models/constants';
@@ -40,6 +51,7 @@
 	// Props
 	const props = defineProps<{ reactEvent: MatrixEvent[]; messageEventId: string }>();
 
+	const logger = createLogger('Reaction');
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
 	const userStore = useUser();
@@ -61,15 +73,16 @@
 
 		const reactionEvents = props.reactEvent.filter((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
-			return relatesTo && relatesTo.event_id === props.messageEventId && !rooms.currentRoom?.inRedactedMessageIds(event.getId()!);
+			const eventId = event.getId();
+			return relatesTo && relatesTo.event_id === props.messageEventId && eventId !== undefined && !rooms.currentRoom?.inRedactedMessageIds(eventId);
 		});
 
 		const map: Record<string, { eventId: string; userId: string }[]> = {};
 
 		for (const event of reactionEvents) {
 			const key = event.getContent()[RelationType.RelatesTo]?.key;
-			const eventId = event.getId();
-			const userReacted = event.getSender();
+			const eventId = event.getId() ?? '';
+			const userReacted = event.getSender() ?? '';
 
 			if (key) {
 				if (!map[key]) map[key] = [];
@@ -102,7 +115,7 @@
 		try {
 			await pubhubs.addReactEvent(rooms.currentRoom.roomId, props.messageEventId, emoji);
 		} catch (e) {
-			console.error('Failed to add reaction', e);
+			logger.error('Failed to add reaction', e);
 		}
 	}
 
@@ -114,7 +127,7 @@
 				rooms.currentRoom.addToRedactedEventIds(eventId);
 			}
 		} catch (e) {
-			console.error('Failed to redact reaction event(s)', e);
+			logger.error('Failed to redact reaction event(s)', e);
 		}
 	}
 </script>

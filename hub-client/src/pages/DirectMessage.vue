@@ -1,11 +1,20 @@
 <template>
 	<div class="flex h-full flex-col">
 		<!-- Shared Header -->
-		<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'">
+		<div
+			class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8"
+			:class="isMobile ? 'pl-12' : 'pl-8'"
+		>
 			<!-- Left: DM title (on mobile, show conversation name when sidebar is open) -->
 			<div class="flex w-fit items-center gap-3 overflow-hidden">
-				<Icon type="chat-circle-text" :class="isMobile && 'hidden'" />
-				<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">
+				<Icon
+					type="chat-circle-text"
+					:class="isMobile && 'hidden'"
+				/>
+				<H3
+					class="text-on-surface flex"
+					:class="isMobile ? 'gap-2' : 'gap-4'"
+				>
 					<TruncatedText class="font-headings text-h3 font-semibold">
 						<span v-if="isMobile && sidebar.isOpen.value && sidebar.selectedDMRoom.value">
 							{{ mobileConversationTitle }}
@@ -17,24 +26,52 @@
 			</div>
 
 			<!-- Right: Buttons (hidden on mobile when sidebar is open) -->
-			<div v-if="!isMobile || !sidebar.isOpen.value" class="flex items-center gap-2">
+			<div
+				v-if="!isMobile || !sidebar.isOpen.value"
+				class="flex items-center gap-2"
+			>
 				<!-- Search button (desktop only, when room is selected) -->
-				<GlobalBarButton v-if="!isMobile && selectedRoom" type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
+				<GlobalBarButton
+					v-if="!isMobile && selectedRoom"
+					type="magnifying-glass"
+					:selected="sidebar.activeTab.value === SidebarTab.Search"
+					@click="sidebar.toggleTab(SidebarTab.Search)"
+				/>
 
 				<!-- Members button (desktop only, for group DMs) -->
-				<GlobalBarButton v-if="!isMobile && isGroupDM" type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
+				<GlobalBarButton
+					v-if="!isMobile && isGroupDM"
+					type="users"
+					:selected="sidebar.activeTab.value === SidebarTab.Members"
+					@click="sidebar.toggleTab(SidebarTab.Members)"
+				/>
 
 				<!-- New message button -->
-				<GlobalBarButton type="plus" :selected="sidebar.activeTab.value === SidebarTab.NewDM" @click="sidebar.toggleTab(SidebarTab.NewDM)" :title="t('others.new_message')" />
+				<GlobalBarButton
+					type="plus"
+					:selected="sidebar.activeTab.value === SidebarTab.NewDM"
+					:title="t('others.new_message')"
+					@click="sidebar.toggleTab(SidebarTab.NewDM)"
+				/>
 			</div>
 		</div>
 
 		<!-- Content row: Message list + DM room (desktop) or sidebar (mobile) -->
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Conversation list -->
-			<div class="flex h-full flex-col overflow-y-auto p-3 md:p-4" :class="isMobile ? 'w-full' : 'w-[360px] shrink-0'">
-				<div v-if="dmLoading && sortedPrivateRooms.length === 0" class="@container flex w-full flex-col gap-4">
-					<div v-for="n in 3" :key="n" class="bg-surface-low w-full animate-pulse rounded-xl p-4">
+			<div
+				class="flex h-full flex-col overflow-y-auto p-3 md:p-4"
+				:class="isMobile ? 'w-full' : 'w-[360px] shrink-0'"
+			>
+				<div
+					v-if="dmLoading && sortedPrivateRooms.length === 0"
+					class="@container flex w-full flex-col gap-4"
+				>
+					<div
+						v-for="n in 3"
+						:key="n"
+						class="bg-surface-low w-full animate-pulse rounded-xl p-4"
+					>
 						<div class="flex gap-3">
 							<div class="bg-surface-base h-12 w-12 shrink-0 rounded-full" />
 							<div class="flex min-w-0 flex-1 flex-col gap-1">
@@ -45,7 +82,11 @@
 						</div>
 					</div>
 				</div>
-				<button v-else-if="sortedPrivateRooms.length === 0" class="bg-surface-low hover:bg-surface w-full cursor-pointer rounded-xl p-4 text-left" @click="sidebar.toggleTab(SidebarTab.NewDM)">
+				<button
+					v-else-if="sortedPrivateRooms.length === 0"
+					class="bg-surface-low hover:bg-surface w-full cursor-pointer rounded-xl p-4 text-left"
+					@click="sidebar.toggleTab(SidebarTab.NewDM)"
+				>
 					<div class="flex items-center gap-2">
 						<div class="flex h-10 w-10 shrink-0 items-center justify-center">
 							<Icon type="plus" />
@@ -53,56 +94,119 @@
 						<p class="font-bold">{{ t('others.new_message') }}</p>
 					</div>
 				</button>
-				<div class="flex w-full flex-col gap-4 transition-all duration-300 ease-in-out" role="list" data-testid="conversations">
+				<div
+					class="flex w-full flex-col gap-4 transition-all duration-300 ease-in-out"
+					role="list"
+					data-testid="conversations"
+				>
 					<MessagePreview
 						v-for="room in sortedPrivateRooms"
 						:key="room.roomId"
+						v-context-menu="
+							(evt: any) =>
+								openMenu(
+									evt,
+									[
+										{
+											label: t('menu.leave_conversation'),
+											icon: 'eye-slash',
+											variant: ContextVariant.delicate,
+											onClick: () => leaveConversation(room),
+										},
+									],
+									room.roomId,
+								)
+						"
 						:room="room"
-						:isMobile="isMobile"
+						:is-mobile="isMobile"
 						:active="selectedRoom?.roomId === room.roomId"
 						class="hover:cursor-pointer"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === room.roomId && 'bg-surface-low!'"
 						role="listitem"
 						@click="openDMRoom(room)"
-						v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.leave_conversation'), icon: 'eye-slash', variant: ContextVariant.delicate, onClick: () => leaveConversation(room) }], room.roomId)"
 					/>
 				</div>
 			</div>
 
 			<!-- Desktop: DM room shown directly (not in sidebar) -->
-			<div v-if="!isMobile && selectedRoom" class="border-on-surface-disabled flex min-w-0 flex-1 border-l">
-				<DirectMessageRoom :room="selectedRoom" :event-id-to-scroll="scrollToEventId" class="min-w-0 flex-1" />
+			<div
+				v-if="!isMobile && selectedRoom"
+				class="border-on-surface-disabled flex min-w-0 flex-1 border-l"
+			>
+				<DirectMessageRoom
+					:room="selectedRoom"
+					:event-id-to-scroll="scrollToEventId"
+					class="min-w-0 flex-1"
+				/>
 
 				<!-- Desktop: Search Sidebar (only when room selected) -->
-				<RoomSidebar v-if="sidebar.activeTab.value === SidebarTab.Search" :active-tab="SidebarTab.Search" :is-mobile="false">
-					<RoomSearch :room="selectedRoom" @scroll-to-event-id="onScrollToEventId" />
+				<RoomSidebar
+					v-if="sidebar.activeTab.value === SidebarTab.Search"
+					:active-tab="SidebarTab.Search"
+					:is-mobile="false"
+				>
+					<RoomSearch
+						:room="selectedRoom"
+						@scroll-to-event-id="onScrollToEventId"
+					/>
 				</RoomSidebar>
 
 				<!-- Desktop: Members Sidebar (only for group DMs) -->
-				<RoomSidebar v-if="sidebar.activeTab.value === SidebarTab.Members && isGroupDM" :active-tab="SidebarTab.Members" :is-mobile="false">
-					<RoomMemberList :room="selectedRoom" :disable-d-m="true" />
+				<RoomSidebar
+					v-if="sidebar.activeTab.value === SidebarTab.Members && isGroupDM"
+					:active-tab="SidebarTab.Members"
+					:is-mobile="false"
+				>
+					<RoomMemberList
+						:room="selectedRoom"
+						:disable-d-m="true"
+					/>
 				</RoomSidebar>
 			</div>
 
 			<!-- Desktop: Empty state when no room selected -->
-			<div v-if="!isMobile && !selectedRoom && sortedPrivateRooms.length > 0" class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l">
+			<div
+				v-if="!isMobile && !selectedRoom && sortedPrivateRooms.length > 0"
+				class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l"
+			>
 				{{ t('others.select_conversation') }}
 			</div>
 
 			<!-- Desktop: Placeholder when no conversations exist yet -->
-			<div v-if="!isMobile && !dmLoading && sortedPrivateRooms.length === 0" class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l">
+			<div
+				v-if="!isMobile && !dmLoading && sortedPrivateRooms.length === 0"
+				class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l"
+			>
 				{{ t('others.start_new_conversation') }}
 			</div>
 
 			<!-- Desktop: NewDM Sidebar (can appear without room selected) -->
-			<RoomSidebar v-if="!isMobile && sidebar.activeTab.value === SidebarTab.NewDM" :active-tab="SidebarTab.NewDM" :is-mobile="false">
-				<NewConversationPanel :isMobile="false" @close="sidebar.close()" />
+			<RoomSidebar
+				v-if="!isMobile && sidebar.activeTab.value === SidebarTab.NewDM"
+				:active-tab="SidebarTab.NewDM"
+				:is-mobile="false"
+			>
+				<NewConversationPanel
+					:is-mobile="false"
+					@close="sidebar.close()"
+				/>
 			</RoomSidebar>
 
 			<!-- Mobile: DM room in sidebar -->
-			<RoomSidebar v-if="isMobile" :active-tab="sidebar.activeTab.value" :is-mobile="true">
-				<DirectMessageRoom v-if="sidebar.activeTab.value === SidebarTab.DirectMessage && sidebar.selectedDMRoom.value" :room="sidebar.selectedDMRoom.value" />
-				<NewConversationPanel v-if="sidebar.activeTab.value === SidebarTab.NewDM" :isMobile="true" @close="sidebar.close()" />
+			<RoomSidebar
+				v-if="isMobile"
+				:active-tab="sidebar.activeTab.value"
+				:is-mobile="true"
+			>
+				<DirectMessageRoom
+					v-if="sidebar.activeTab.value === SidebarTab.DirectMessage && sidebar.selectedDMRoom.value"
+					:room="sidebar.selectedDMRoom.value"
+				/>
+				<NewConversationPanel
+					v-if="sidebar.activeTab.value === SidebarTab.NewDM"
+					:is-mobile="true"
+					@close="sidebar.close()"
+				/>
 			</RoomSidebar>
 		</div>
 	</div>
@@ -111,7 +215,7 @@
 <script setup lang="ts">
 	// Packages
 	import { EventTimeline, EventType } from 'matrix-js-sdk';
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave } from 'vue-router';
 
@@ -136,7 +240,7 @@
 	// Store
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { Room, useRooms } from '@hub-client/stores/rooms';
+	import { type Room, useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -151,13 +255,13 @@
 	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const rooms = useRooms();
-	const user = useUser();
+	const _user = useUser();
 	const { t } = useI18n();
 	const sidebar = useSidebar();
 
 	const isMobile = computed(() => settings.isMobileState);
 
-	const selectedRoom = ref<Room | null>(null);
+	const selectedRoom = shallowRef<Room | null>(null);
 	const scrollToEventId = ref<string | undefined>(undefined);
 
 	const privateRooms = computed(() => rooms.privateRooms);
@@ -170,7 +274,9 @@
 	const sortedPrivateRooms = computed(() => {
 		const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
 		const targetRoomId = selectedRoomId ?? sidebar.lastDMRoomId.value;
-		return [...privateRooms.value].filter((r) => r.hasMessages() || r.roomId === targetRoomId).sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
+		return [...privateRooms.value]
+			.filter((r) => r.hasMessages() || r.roomId === targetRoomId)
+			.sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
 	});
 
 	const mobileConversationTitle = computed(() => {

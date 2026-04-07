@@ -1,20 +1,40 @@
 <template>
-	<div v-if="loading" class="flex h-full flex-col items-center justify-center">
-		<P class="p-4">{{ $t('common.loading') }}</P>
+	<div
+		v-if="loading"
+		class="flex h-full flex-col items-center justify-center"
+	>
+		<P class="p-4">
+			{{ $t('common.loading') }}
+		</P>
 		<InlineSpinner size="lg" />
 	</div>
 
-	<div v-else class="flex w-full flex-col">
+	<div
+		v-else
+		class="flex w-full flex-col"
+	>
 		<AuthHeader />
 
-		<div class="bg-background h-[calc(100svh_-_80px)] w-full">
-			<div class="flex h-full w-full items-center justify-center" :class="isMobile ? 'flex-col' : 'flex-row'">
-				<div class="bg-surface-low flex shrink-0 items-center justify-center" :class="isMobile ? 'h-2/5 w-full px-12' : 'h-full w-1/2 px-36'">
+		<div class="bg-background h-[calc(100svh-80px)] w-full">
+			<div
+				class="flex h-full w-full items-center justify-center"
+				:class="isMobile ? 'flex-col' : 'flex-row'"
+			>
+				<div
+					class="bg-surface-low flex shrink-0 items-center justify-center"
+					:class="isMobile ? 'h-2/5 w-full px-12' : 'h-full w-1/2 px-36'"
+				>
 					<figure class="h-auto w-full">
-						<img src="../assets/mascot-welcome.svg" alt="PubHubs mascot" />
+						<img
+							alt="PubHubs mascot"
+							src="../assets/mascot-welcome.svg"
+						/>
 					</figure>
 				</div>
-				<div class="flex flex-col items-center justify-center gap-6" :class="isMobile ? 'h-3/5 w-full py-6' : 'h-full w-1/2'">
+				<div
+					class="flex flex-col items-center justify-center gap-6"
+					:class="isMobile ? 'h-3/5 w-full py-6' : 'h-full w-1/2'"
+				>
 					<div class="flex flex-col gap-6">
 						<div class="flex flex-col gap-4">
 							<H1>
@@ -24,21 +44,39 @@
 							<P>{{ $t('register.have_account', [$t('common.app_name')]) }}</P>
 						</div>
 						<div class="flex flex-col gap-4">
-							<div v-show="show" class="relative flex w-full items-center justify-center" :class="isMobile ? '-mb-2' : '-mb-4'">
+							<div
+								v-show="show"
+								class="relative flex w-full items-center justify-center"
+								:class="isMobile ? '-mb-2' : '-mb-4'"
+							>
 								<div
 									id="yivi-authentication"
 									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
-								></div>
+								/>
 							</div>
-							<Button color="gray" @click="loginMSS()">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
-							<router-link :to="{ path: '/register', query: { redirectPath: redirectPath } }" class="w-full">
+							<Button
+								color="gray"
+								@click="loginMSS()"
+							>
+								{{ show ? $t('dialog.close') : $t('login.login') }}
+							</Button>
+							<router-link
+								class="w-full"
+								:to="{ path: '/register', query: { redirectPath: redirectPath } }"
+							>
 								<Button>{{ $t('register.register_with', [$t('common.yivi')]) }}</Button>
 							</router-link>
 						</div>
 					</div>
 
-					<div v-if="error" class="items-top bg-surface-low text-accent-error m-8 flex w-3/4 flex-row gap-x-4 rounded-xl px-4 py-8 break-normal">
-						<Icon type="warning" class="mt-1"></Icon>
+					<div
+						v-if="error"
+						class="items-top bg-surface-low text-accent-error m-8 flex w-3/4 flex-row gap-x-4 rounded-xl px-4 py-8 break-normal"
+					>
+						<Icon
+							class="mt-1"
+							type="warning"
+						/>
 						<P> {{ $t(error.key, error.values) }}</P>
 					</div>
 				</div>
@@ -47,7 +85,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
@@ -62,9 +100,7 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Logic
-	import { CONFIG } from '@hub-client/logic/logging/Config';
-	import { Logger } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { loginMethods } from '@global-client/models/MSS/TAuths';
@@ -89,7 +125,7 @@
 	});
 	const mss = useMSS();
 
-	const LOGGER = new Logger('GC', CONFIG);
+	const logger = createLogger('Login');
 
 	const show = ref<boolean>(false);
 	const loading = ref<boolean>(true);
@@ -104,7 +140,7 @@
 			loading.value = false;
 		} catch (error) {
 			router.replace({ name: 'error' });
-			LOGGER.error(SMI.ERROR, 'Could not initialize the servers for the multi-server setup.', { error });
+			logger.error('Could not initialize the servers for the multi-server setup.', { error });
 		}
 	});
 
@@ -127,7 +163,7 @@
 		} catch (error) {
 			router.replace({ name: 'error' });
 			show.value = false;
-			LOGGER.error(SMI.ERROR, 'Error during MSS login', { error });
+			logger.error('Error during MSS login', { error });
 		}
 	}
 

@@ -2,6 +2,7 @@
  * Composable for clipboard operations and URL sharing
  */
 import { getHubUrl, getRoomUrl } from '@hub-client/logic/core/urls';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 import { useHubSettings } from '@hub-client/stores/hub-settings';
 import { useRooms } from '@hub-client/stores/rooms';
@@ -12,6 +13,7 @@ import { useRooms } from '@hub-client/stores/rooms';
  * Automatically uses hub settings from the store
  */
 export function useClipboard() {
+	const logger = createLogger('Clipboard');
 	const hubSettings = useHubSettings();
 	const rooms = useRooms();
 
@@ -21,11 +23,11 @@ export function useClipboard() {
 	 */
 	async function copyHubUrl(): Promise<void> {
 		try {
-			const fullUrl = getHubUrl(hubSettings.hubName!, hubSettings.parentUrl);
+			const fullUrl = getHubUrl(hubSettings.hubName ?? '', hubSettings.parentUrl);
 			await navigator.clipboard.writeText(fullUrl);
-			console.log('Hub URL copied to clipboard:', fullUrl);
+			logger.info('Hub URL copied to clipboard:', fullUrl);
 		} catch (err) {
-			console.error('Failed to copy hub URL:', err);
+			logger.error('Failed to copy hub URL:', err);
 			throw err;
 		}
 	}
@@ -37,11 +39,11 @@ export function useClipboard() {
 	 */
 	async function copyRoomUrl(roomId: string): Promise<void> {
 		try {
-			const fullUrl = getRoomUrl(roomId, hubSettings.hubName!, hubSettings.parentUrl);
+			const fullUrl = getRoomUrl(roomId, hubSettings.hubName ?? '', hubSettings.parentUrl);
 			await navigator.clipboard.writeText(fullUrl);
-			console.log('Room URL copied to clipboard:', fullUrl);
+			logger.info('Room URL copied to clipboard:', fullUrl);
 		} catch (err) {
-			console.error('Failed to copy room URL:', err);
+			logger.error('Failed to copy room URL:', err);
 			throw err;
 		}
 	}
@@ -53,7 +55,7 @@ export function useClipboard() {
 	 */
 	async function copyCurrentRoomUrl(): Promise<void> {
 		if (!rooms.currentRoom) {
-			console.error('No current room to copy URL for');
+			logger.error('No current room to copy URL for');
 			throw new Error('No current room');
 		}
 		await copyRoomUrl(rooms.currentRoom.roomId);

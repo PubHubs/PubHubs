@@ -1,14 +1,17 @@
 <template>
 	<!-- Desktop search component -->
-	<div class="bg-background hidden items-center justify-end rounded-md md:flex" v-click-outside="reset">
+	<div
+		v-click-outside="reset"
+		class="bg-background hidden items-center justify-end rounded-md md:flex"
+	>
 		<div class="relative flex max-w-full items-center justify-end pl-100 transition-all duration-200">
 			<input
-				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent px-4 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-				type="text"
-				role="searchbox"
 				v-model="value"
+				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent px-4 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				:placeholder="t('others.search_room')"
+				role="searchbox"
 				:title="t('others.search_room')"
+				type="text"
 				@keydown="
 					changed();
 					reset();
@@ -21,23 +24,33 @@
 				"
 			/>
 
-			<button @click="search()"><Icon type="magnifying-glass" class="bg-background text-accent-secondary dark:text-on-surface-variant mr-1 rounded-md" /></button>
+			<button @click="search()">
+				<Icon
+					class="bg-background text-accent-secondary dark:text-on-surface-variant mr-1 rounded-md"
+					type="magnifying-glass"
+				/>
+			</button>
 		</div>
 	</div>
 
 	<!-- Mobile search component. -->
 	<div class="bg-background flex w-full items-center justify-end rounded-md md:hidden">
 		<div class="relative flex w-full items-center justify-end transition-all duration-200">
-			<Icon v-if="!isExpanded" type="magnifying-glass" class="text-accent-secondary dark:text-on-surface-variant w-8 cursor-pointer" @click.stop="toggleSearch()" />
+			<Icon
+				v-if="!isExpanded"
+				class="text-accent-secondary dark:text-on-surface-variant w-8 cursor-pointer"
+				type="magnifying-glass"
+				@click.stop="toggleSearch()"
+			/>
 			<input
 				v-if="isExpanded"
-				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent px-4 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-				type="text"
-				role="searchbox"
-				v-model="value"
 				ref="searchInput"
+				v-model="value"
+				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent px-4 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				:placeholder="$t('others.search_room')"
+				role="searchbox"
 				:title="$t('others.search_room')"
+				type="text"
 				@keydown="
 					changed();
 					reset();
@@ -49,44 +62,81 @@
 					toggleSearch();
 				"
 			/>
-			<button v-if="isExpanded" @click.stop="search()">
-				<Icon type="magnifying-glass" class="bg-background text-accent-secondary dark:text-on-surface-variant w-6 rounded-md" />
+			<button
+				v-if="isExpanded"
+				@click.stop="search()"
+			>
+				<Icon
+					class="bg-background text-accent-secondary dark:text-on-surface-variant w-6 rounded-md"
+					type="magnifying-glass"
+				/>
 			</button>
-			<button v-if="isExpanded" @click="toggleSearch()">
-				<Icon type="x" class="text-accent-secondary dark:text-on-surface-variant w-6 rounded-md" />
+			<button
+				v-if="isExpanded"
+				@click="toggleSearch()"
+			>
+				<Icon
+					class="text-accent-secondary dark:text-on-surface-variant w-6 rounded-md"
+					type="x"
+				/>
 			</button>
 		</div>
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="bg-surface-low absolute top-24 right-0 z-50 h-full w-full overflow-y-auto rounded-md pb-24 md:w-[20vw]" data-testid="search-result">
+	<div
+		v-if="searched"
+		class="bg-surface-low absolute top-24 right-0 z-50 h-full w-full overflow-y-auto rounded-md pb-24 md:w-[20vw]"
+		data-testid="search-result"
+	>
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
-			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group" role="listitem">
-				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
+			<div
+				v-for="item in searchResultsToShow"
+				:key="item.event_id"
+				class="group"
+				role="listitem"
+			>
+				<a
+					href="#"
+					@click.prevent="onScrollToEventId(item.event_id, item.event_threadId)"
+				>
 					<div class="group-hover:bg-surface flex items-center gap-2 p-2">
-						<Avatar :avatar-url="user.userAvatar(item.event_sender)" :user-id="item.event_sender" class="h-8 w-8 flex-none" />
+						<Avatar
+							:avatar-url="user.userAvatar(item.event_sender)"
+							class="h-8 w-8 flex-none"
+							:user-id="item.event_sender"
+						/>
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>
 				</a>
 			</div>
-			<InlineSpinner v-if="isSearching" class="z-50 float-left mr-2" />
+			<InlineSpinner
+				v-if="isSearching"
+				class="z-50 float-left mr-2"
+			/>
 		</template>
 		<template v-else-if="isSearching">
 			<InlineSpinner class="float-left mr-2" />
-			<p role="status">{{ t('others.searching') }}</p>
+			<p role="status">
+				{{ t('others.searching') }}
+			</p>
 		</template>
 		<template v-else>
-			<p role="status" v-if="value !== ''" class="p-2">
+			<p
+				v-if="value !== ''"
+				class="p-2"
+				role="status"
+			>
 				{{ t('others.search_nothing_found') }}
 			</p>
 		</template>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
-	import { PropType, computed, nextTick, ref, useTemplateRef } from 'vue';
+	import { type ISearchResults, type SearchResult } from 'matrix-js-sdk';
+	import { type PropType, computed, nextTick, ref, useTemplateRef } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -99,24 +149,19 @@
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMentions } from '@hub-client/composables/useMentions';
 
-	// Logic
 	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { RoomEmit } from '@hub-client/models/constants';
 	import Room from '@hub-client/models/rooms/Room';
-	import { TSearchParameters, TSearchResult } from '@hub-client/models/search/TSearch';
+	import { type TSearchParameters, type TSearchResult } from '@hub-client/models/search/TSearch';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
-
-	const { t } = useI18n();
-	const pubhubs = usePubhubsStore();
-	const rooms = useRooms();
-	const user = useUser();
-	const searchField = useTemplateRef('searchInput');
 
 	// Passed by the parent component
 	const props = defineProps({
@@ -126,13 +171,19 @@
 		},
 		room: Room,
 	});
+	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId, 'search-started', 'toggleSearchbar']);
+	const logger = createLogger('SearchInput');
+	const { t } = useI18n();
+	const pubhubs = usePubhubsStore();
+	const rooms = useRooms();
+	const user = useUser();
+	const searchField = useTemplateRef('searchInput');
 
 	const searchResults = ref<TSearchResult[]>([]);
 	const searched = ref(false);
 	const isSearching = ref(false);
 	let searchResponse: ISearchResults | undefined = undefined;
 
-	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId, 'search-started', 'toggleSearchbar']);
 	const { value, changed, cancel } = useFormInputEvents(emit);
 
 	const isExpanded = ref(false);
@@ -170,7 +221,7 @@
 			searchResponse = await pubhubs.searchRoomEvents(value.value as string, props.searchParameters);
 		} catch (err) {
 			isSearching.value = false;
-			console.error('An error occurred while searching the room: ', err);
+			logger.error('An error occurred while searching the room: ', err);
 		}
 
 		if (searchResponse && searchResponse.next_batch) {
@@ -190,20 +241,20 @@
 	}
 
 	async function onScrollToEventId(eventId: string, threadId: string | undefined) {
-		if (props.searchParameters.roomId && rooms.currentRoom!.roomId === props.searchParameters.roomId) {
+		if (props.searchParameters.roomId && rooms.currentRoom?.roomId === props.searchParameters.roomId) {
 			emit(RoomEmit.ScrollToEventId, { eventId: eventId, threadId: threadId });
 		}
 	}
 
 	function mapSearchResult(results: SearchResult[]): TSearchResult[] {
-		if (!results || results.length == 0) {
+		if (!results || results.length === 0) {
 			return [];
 		}
 		let mappedResults = results.map(
 			(result) =>
 				({
 					rank: result.rank,
-					event_id: result.context.ourEvent.event.event_id!,
+					event_id: result.context.ourEvent.event.event_id ?? '',
 					event_threadId: result.context.ourEvent.getThread()?.id,
 					event_type: result.context.ourEvent.event.type,
 					event_body: result.context.ourEvent.event.content?.body,

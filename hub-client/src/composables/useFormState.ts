@@ -2,10 +2,10 @@
 import { reactive, ref } from 'vue';
 
 // Stores
-import { DialogButton } from '@hub-client/stores/dialog';
+import { type DialogButton } from '@hub-client/stores/dialog';
 
 // Types
-type FormDataType = string | number | boolean | Object;
+type FormDataType = string | number | boolean | object;
 
 type FormValidation = {
 	required?: boolean;
@@ -28,7 +28,7 @@ type FormData = {
 		value: FormDataType;
 		validation?: FormValidation;
 		show_validation?: ShowValidationMessage;
-		tmp?: any;
+		tmp?: FormDataType;
 	};
 };
 

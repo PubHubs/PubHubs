@@ -1,5 +1,5 @@
 // Models
-import { RoomType, TBaseRoom } from '@hub-client/models/rooms/TBaseRoom';
+import { type RoomType, type TBaseRoom } from '@hub-client/models/rooms/TBaseRoom';
 
 export interface SecuredRoomAttributes {
 	[index: string]: {

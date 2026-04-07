@@ -1,7 +1,15 @@
 <template>
 	<!-- data-initialized is used by e2e tests to detect when the initial sync is done -->
-	<div class="flex justify-end" :data-initialized="initialized || undefined">
-		<Badge color="ph" v-if="unreadMessages > 0" :size="badgeSize(unreadMessages)" data-testid="miniclient-badge" />
+	<div
+		class="flex justify-end"
+		:data-initialized="initialized || undefined"
+	>
+		<Badge
+			v-if="unreadMessages > 0"
+			color="ph"
+			:size="badgeSize(unreadMessages)"
+			data-testid="miniclient-badge"
+		/>
 	</div>
 </template>
 
@@ -15,8 +23,7 @@
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
 
-	import { LOGGER } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 	// Logic
 	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
@@ -27,6 +34,7 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 
+	const logger = createLogger('Miniclient');
 	const hubSettings = useHubSettings();
 	const messagebox = useMessageBox();
 	const rooms = useRooms();
@@ -49,7 +57,7 @@
 	});
 
 	onMounted(async () => {
-		LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted');
+		logger.debug('Miniclient.vue onMounted');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 
@@ -58,7 +66,7 @@
 			.then(() => pubhubs.login())
 			.then(() => rooms.fetchTotalUnreadCounts())
 			.then((numberUnread) => {
-				LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted done');
+				logger.debug('Miniclient.vue onMounted done');
 				unreadMessages.value = numberUnread;
 				initialized.value = true;
 

@@ -1,10 +1,10 @@
 // Packages
 import { assert } from 'chai';
 import { defineStore } from 'pinia';
-import { RouteParams } from 'vue-router';
+import { type RouteParams } from 'vue-router';
 
 // Models
-import { Hub, HubList } from '@global-client/models/Hubs';
+import { Hub, type HubList } from '@global-client/models/Hubs';
 
 import { QueryParameterKey } from '@hub-client/models/constants';
 
@@ -17,6 +17,7 @@ import { useSettings } from '@hub-client/stores/settings';
 
 // Other
 import { setLanguage, setUpi18n } from '@hub-client/i18n';
+import { type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 const useHubs = defineStore('hubs', {
@@ -54,7 +55,7 @@ const useHubs = defineStore('hubs', {
 		hubId: (state) => {
 			return (hubName: string) => {
 				const values = Object.values(state.hubs);
-				return values.find((hub) => hub.hubName === hubName)!.hubId;
+				return values.find((hub) => hub.hubName === hubName)?.hubId;
 			};
 		},
 
@@ -100,8 +101,6 @@ const useHubs = defineStore('hubs', {
 		},
 
 		async setupMiniclient(hubId: string) {
-			const self = this;
-
 			const messagebox = useMessageBox();
 
 			assert.isDefined(this.hubs[hubId], 'Current hub is not initialized');
@@ -111,16 +110,16 @@ const useHubs = defineStore('hubs', {
 
 			// Listen to sync unreadmessages
 			messagebox.addCallback(miniClientId + '_' + hubId, MessageType.UnreadMessages, (message: Message) => {
-				self.hubs[hubId].unreadMessages = message.content as number;
-				if (self.hubs[hubId].unreadMessages > 0) {
-					sendNotification(self.hubs[hubId].hubName);
+				this.hubs[hubId].unreadMessages = message.content as number;
+				if (this.hubs[hubId].unreadMessages > 0) {
+					sendNotification(this.hubs[hubId].hubName);
 				}
 			});
 		},
 
 		async changeHub(params: RouteParams) {
 			const hubName = params.name as string;
-			const hubId = hubName === '' ? '' : this.hubId(hubName);
+			const hubId = hubName === '' ? '' : (this.hubId(hubName) ?? '');
 			const roomId = params.roomId as string;
 			const toggleMenu = useToggleMenu();
 			const messagebox = useMessageBox();
@@ -134,7 +133,7 @@ const useHubs = defineStore('hubs', {
 				this.currentHubId = '';
 				messagebox.resetCurrentHub();
 				// TODO: find a way router can be part of a store that TypeScript swallows.
-				// @ts-ignore
+				// @ts-expect-error -- router is injected as plugin, not in store type
 				this.router.push({ name: 'home' });
 				return;
 			}
@@ -169,7 +168,7 @@ const useHubs = defineStore('hubs', {
 				// Add a callback for sending the hubinformation
 				messagebox.addCallback(iframeHubId, MessageType.SendHubInformation, () => {
 					// Send hub information
-					messagebox.sendMessage(new Message(MessageType.HubInformation, { name: this.hub(hubId)!.hubName }), iframeHubId);
+					messagebox.sendMessage(new Message(MessageType.HubInformation, { name: this.hub(hubId)?.hubName }), iframeHubId);
 					// Let hub navigate to given room (if loggedIn)
 					if (global.loggedIn && roomId !== undefined && roomId !== '') {
 						messagebox.sendMessage(new Message(MessageType.RoomChange, roomId), iframeHubId);
@@ -213,19 +212,19 @@ const useHubs = defineStore('hubs', {
 
 				// Store and remove access tokens when sent from the hub client
 				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
-					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content);
+					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content as string);
 					global.addAccessTokenAndUserID(this.currentHubId, token, userId);
 				});
 
 				// Open context menu in global-client
 				messagebox.addCallback(iframeHubId, MessageType.ContextMenuOpen, (message: Message) => {
-					const { items, x, y, targetId } = message.content;
+					const { items, x, y, targetId } = message.content as { items: Record<string, unknown>[]; x: number; y: number; targetId: string };
 					const contextMenu = useContextMenuStore();
 					contextMenu.open(
-						items.map((item: any, index: number) => ({
+						items.map((item: Record<string, unknown>, index: number) => ({
 							...item,
 							onClick: () => messagebox.sendMessage(new Message(MessageType.ContextMenuSelect, index), iframeHubId),
-						})),
+						})) as MenuItem[],
 						x,
 						y,
 						targetId,

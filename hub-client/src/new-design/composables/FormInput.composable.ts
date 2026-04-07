@@ -4,7 +4,7 @@ import { computed, getCurrentInstance, ref, useSlots } from 'vue';
 // Logic
 import { firstToUpper } from '@hub-client/logic/core/extensions';
 
-export function useFormInput(props: any, model: any | undefined = undefined) {
+export function useFormInput(props: { id?: string; name?: string; [key: string]: unknown }, model: { value: unknown } | undefined = undefined) {
 	const changed = ref(false);
 	const hasFocus = ref(false);
 
@@ -42,17 +42,19 @@ export function useFormInput(props: any, model: any | undefined = undefined) {
 
 	// For radio inputs
 	const select = (value: string | number | boolean) => {
-		if (model.value === value) {
-			model.value = null;
-		} else {
-			model.value = value;
+		if (model) {
+			if (model.value === value) {
+				model.value = null;
+			} else {
+				model.value = value;
+			}
+			changed.value = true;
 		}
-		changed.value = true;
 	};
 
 	// For checkbox and toggle inputs
 	const toggle = (disabled: boolean = false) => {
-		if (!disabled) {
+		if (!disabled && model) {
 			model.value = !model.value;
 			changed.value = true;
 		}

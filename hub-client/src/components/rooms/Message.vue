@@ -1,47 +1,82 @@
 <template>
 	<div class="flex flex-row items-center gap-1 wrap-break-word">
 		<!-- Deleted Message -->
-		<Icon v-if="deleted" type="trash" size="sm" class="text-on-surface-dim" />
-		<p v-if="deleted" class="text-on-surface-dim overflow-hidden text-ellipsis">
+		<Icon
+			v-if="deleted"
+			class="text-on-surface-dim"
+			size="sm"
+			type="trash"
+		/>
+		<p
+			v-if="deleted"
+			class="text-on-surface-dim overflow-hidden text-ellipsis"
+		>
 			{{ t('message.delete.message_deleted') }}
 		</p>
 
 		<!-- Message with Mentions -->
-		<div v-else-if="hasAnyMentions" class="relative max-w-[90ch] text-ellipsis">
-			<P v-for="segment in messageSegments" :key="segment" class="inline">
+		<div
+			v-else-if="hasAnyMentions"
+			class="relative max-w-[90ch] text-ellipsis"
+		>
+			<P
+				v-for="segment in messageSegments"
+				:key="segment"
+				class="inline"
+			>
 				<!-- Normal text segment -->
 				<span v-if="segment.type === 'text'">{{ segment.content }}</span>
 
 				<!-- User Mention segment -->
 				<span
 					v-else-if="segment.type === 'user' && segment.tokenId"
-					@click.once="userStore.goToUserRoom(segment.tokenId)"
+					v-context-menu="
+						(evt: any) =>
+							openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])
+					"
 					class="no-callout text-accent-primary cursor-pointer select-none"
-					v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])"
+					@click.once="userStore.goToUserRoom(segment.tokenId)"
 					>{{ segment.content }}
 				</span>
 
 				<!-- Room Mention segment -->
 				<span
 					v-else-if="segment.type === 'room' && segment.tokenId && segment.id"
-					@click="joinIfMember(segment.tokenId, segment.id)"
+					v-context-menu="
+						(evt: any) =>
+							openMenu(evt, [{ label: t('menu.join_room'), icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId!, segment.id!) }])
+					"
 					class="no-callout relative select-none"
-					v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.join_room'), icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId!, segment.id!) }])"
+					@click="joinIfMember(segment.tokenId, segment.id)"
 				>
 					<span class="text-accent-primary cursor-pointer">{{ segment.content }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
-						<RoomLoginDialog v-if="segment.type === 'room'" :secured="isSecured" :dialogOpen="segment.tokenId" title="rooms.join_room" message="rooms.join_sure" :messageValues="[]" @close="activeMentionCard = null" />
+						<RoomLoginDialog
+							v-if="segment.type === 'room'"
+							:dialog-open="segment.tokenId"
+							message="rooms.join_sure"
+							:message-values="[]"
+							:secured="isSecured"
+							title="rooms.join_room"
+							@close="activeMentionCard = null"
+						/>
 					</div>
 				</span>
 			</P>
 		</div>
 
 		<!-- Regular Message -->
-		<p v-else v-html="messageContent" class="overflow-hidden text-ellipsis"></p>
+		<!-- eslint-disable vue/no-v-html -- content sanitized by eventTimeLineHandler -->
+		<p
+			v-else
+			class="overflow-hidden text-ellipsis"
+			v-html="messageContent"
+		/>
+		<!-- eslint-enable vue/no-v-html -->
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -57,7 +92,7 @@
 	import { router } from '@hub-client/logic/core/router';
 
 	// Models
-	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -67,14 +102,14 @@
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
-	const { openMenu } = useContextMenu();
-	const { t } = useI18n();
-	const roomsStore = useRooms();
-	const userStore = useUser();
 	const props = defineProps<{
 		event: TMessageEvent;
 		deleted: boolean;
 	}>();
+	const { openMenu } = useContextMenu();
+	const { t } = useI18n();
+	const roomsStore = useRooms();
+	const userStore = useUser();
 	const pubhubs = usePubhubsStore();
 	const activeMentionCard = ref<string | null>(null);
 	const isSecured = ref<boolean>(false);
@@ -82,7 +117,7 @@
 
 	// Regular message content (for non-deleted, non-mention messages)
 	const messageContent = computed(() => {
-		const content = props.event.content as any;
+		const content = props.event.content as Record<string, unknown>;
 		return content.ph_body ?? content.formatted_body ?? content.body ?? '';
 	});
 
