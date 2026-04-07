@@ -114,7 +114,7 @@
 	const pubhubs = usePubhubsStore();
 
 	const elRoomTimeline = ref<HTMLElement | null>(null);
-	const elRoomEvent = ref<HTMLElement | null>(null);
+	const elRoomEvent = ref<HTMLElement[]>([]);
 	const topSentinel = ref<HTMLElement | null>(null);
 	const bottomSentinel = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
@@ -409,8 +409,8 @@
 			eventObserver.disconnectObserver();
 		}
 
-		// TODO Element Observer  we pass elRoomEvent as a single value, but underwater it has become an array because of the loop over all events, we need to make that clear both in type as in the parameter of new ElementObserver
-		eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
+		const observedEvents = Array.from(new Set(elRoomEvent.value)).filter((element) => element.isConnected);
+		eventObserver = new ElementObserver(observedEvents, { threshold: 0.95 });
 
 		// Combined handler - ElementObserver only supports ONE callback (each setUpObserver replaces the previous)
 		const combinedHandler = (entries: IntersectionObserverEntry[]) => {

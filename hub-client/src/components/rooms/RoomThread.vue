@@ -109,7 +109,7 @@
 	let deletedEvents: Reactive<MatrixEvent[]> = reactive<MatrixEvent[]>([]);
 	let threadEvents: Reactive<TimelineEvent[]> = reactive<TimelineEvent[]>([]);
 	let eventObserver: ElementObserver | null = null;
-	const elRoomEvent = ref<HTMLElement | null>(null);
+	const elRoomEvent = ref<HTMLElement[]>([]);
 	const elThreadTimeline = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
 	const eventToBeDeleted = ref<TMessageEvent>();
@@ -167,17 +167,9 @@
 		return props.room.getCurrentEventRelatedEvents();
 	}
 
-	// TODO Element Observer Because of the way the ElementObserver is set up we need elRoomEvent to be a single variable, but actually pass it as an array
-	// Here we ignore the TypeScript errors for now until this is solved
 	function setEventRef(el: Element | null | any) {
 		if (el instanceof HTMLElement) {
-			if (elRoomEvent.value) {
-				// @ts-ignore
-				elRoomEvent.value.push(el);
-			} else {
-				// @ts-ignore
-				elRoomEvent.value = [el];
-			}
+			elRoomEvent.value.push(el);
 		}
 	}
 
@@ -298,7 +290,8 @@
 			eventObserver.disconnectObserver();
 		}
 
-		eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
+		const observedEvents = Array.from(new Set(elRoomEvent.value)).filter((element) => element.isConnected);
+		eventObserver = new ElementObserver(observedEvents, { threshold: 0.95 });
 
 		// Combined handler - ElementObserver only supports ONE callback (each setUpObserver replaces the previous)
 		const combinedHandler = (entries: IntersectionObserverEntry[]) => {
