@@ -54,24 +54,24 @@
 	--on-surface-disabled: #aaaaaa;
 
 	/* Accents */
-	--accent-blue: #0C66E4;
-	--on-accent-blue: #84B8FF;
-	--accent-green: #1F845A;
-	--on-accent-green: #7EE2B8;
-	--accent-teal: #227D9B;
-	--on-accent-teal: #9DD9EE;
-	--accent-lime: #5B7F24;
-	--on-accent-lime: #B3DF72;
-	--accent-orange: #C25100;
-	--on-accent-orange: #FEC195;
-	--accent-red: #C9372C;
-	--on-accent-red: #FD9891;
-	--accent-yellow: #7F5F01;
-	--on-accent-yellow: #F5CD47;
-	--accent-purple: #6E5DC6;
-	--on-accent-purple: #B8ACF6;
-	--accent-pink: #AE4787;
-	--on-accent-pink: #F797D2;
+	--accent-blue: #0c66e4;
+	--on-accent-blue: #84b8ff;
+	--accent-green: #1f845a;
+	--on-accent-green: #7ee2b8;
+	--accent-teal: #227d9b;
+	--on-accent-teal: #9dd9ee;
+	--accent-lime: #5b7f24;
+	--on-accent-lime: #b3df72;
+	--accent-orange: #c25100;
+	--on-accent-orange: #fec195;
+	--accent-red: #c9372c;
+	--on-accent-red: #fd9891;
+	--accent-yellow: #7f5f01;
+	--on-accent-yellow: #f5cd47;
+	--accent-purple: #6e5dc6;
+	--on-accent-purple: #b8acf6;
+	--accent-pink: #ae4787;
+	--on-accent-pink: #f797d2;
 	--accent-secondary: #5c5e66;
 	--on-accent-secondary: #ffffff;
 
@@ -101,24 +101,24 @@
 	--on-surface-disabled: #555555;
 
 	/* Accents */
-	--accent-blue: #84B8FF;
-	--on-accent-blue: #0C66E4;
-	--accent-green: #7EE2B8;
-	--on-accent-green: #1F845A;
-	--accent-teal: #9DD9EE;
-	--on-accent-teal: #227D9B;
-	--accent-lime: #B3DF72;
-	--on-accent-lime: #5B7F24;
-	--accent-orange: #FEC195;
-	--on-accent-orange: #C25100;
-	--accent-red: #FD9891;
-	--on-accent-red: #C9372C;
-	--accent-yellow: #F5CD47;
-	--on-accent-yellow: #7F5F01;
-	--accent-purple: #B8ACF6;
-	--on-accent-purple: #6E5DC6;
-	--accent-pink: #F797D2;
-	--on-accent-pink: #AE4787;
+	--accent-blue: #84b8ff;
+	--on-accent-blue: #0c66e4;
+	--accent-green: #7ee2b8;
+	--on-accent-green: #1f845a;
+	--accent-teal: #9dd9ee;
+	--on-accent-teal: #227d9b;
+	--accent-lime: #b3df72;
+	--on-accent-lime: #5b7f24;
+	--accent-orange: #fec195;
+	--on-accent-orange: #c25100;
+	--accent-red: #fd9891;
+	--on-accent-red: #c9372c;
+	--accent-yellow: #f5cd47;
+	--on-accent-yellow: #7f5f01;
+	--accent-purple: #b8acf6;
+	--on-accent-purple: #6e5dc6;
+	--accent-pink: #f797d2;
+	--on-accent-pink: #ae4787;
 	--accent-secondary: #b0b3b8;
 	--on-accent-secondary: #202020;
 
