@@ -82,7 +82,11 @@ const routes = [
 		path: '/error-page',
 		name: 'error-page',
 		component: () => import('@hub-client/pages/ErrorPage.vue'),
-		props: (route: { query: { errorKey: String; errorValues: Array<String | Number> } }) => ({ errorKey: route.query.errorKey || 'errors.general_error', errorValues: route.query.errorValues || [] }),
+		props: (route: { query: { errorKey: String; errorValues: Array<String | Number>; fromRoute: String } }) => ({
+			errorKey: route.query.errorKey || 'errors.general_error',
+			errorValues: route.query.errorValues || [],
+			fromRoute: route.query.fromRoute || null,
+		}),
 		meta: { hideBar: true },
 	},
 	{
@@ -163,8 +167,15 @@ router.beforeEach((to, from) => {
 	}
 
 	// Redirect to home if coming from a browser refresh (undefined)
-	if (to.name === 'error-page' && from.name === undefined) {
+	if (to.name === 'error-page' && (from.name === undefined || from.name === 'error-page')) {
 		return { name: 'home' };
+	}
+	// Preserve the originating route so the error-page can navigate back to it
+	if (to.name === 'error-page' && from.name !== undefined && !to.query.fromRoute) {
+		return {
+			...to,
+			query: { ...to.query, fromRoute: from.fullPath },
+		};
 	}
 
 	// Default allow navigation

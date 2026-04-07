@@ -17,7 +17,7 @@
 								{ label: t('menu.enter_room'), icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: room.roomId } }) },
 								{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl(room.roomId) },
 								{ divider: true, label: '' },
-								{ label: t('menu.leave_room'), icon: 'x', isDelicate: true, onClick: () => leaveRoom(room.roomId) },
+								{ label: t('menu.leave_room'), icon: 'x', variant: ContextVariant.delicate, onClick: () => leaveRoom(room.roomId) },
 							],
 							room.roomId,
 						)
@@ -53,7 +53,7 @@
 							[
 								{ label: t('menu.enter_room'), icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: notification.room_id! } }) },
 								{ divider: true, label: '' },
-								{ label: t('menu.leave_room'), icon: 'x', isDelicate: true, onClick: () => dismissNotification(notification.room_id!) },
+								{ label: t('menu.leave_room'), icon: 'x', variant: ContextVariant.delicate, onClick: () => dismissNotification(notification.room_id!) },
 							],
 							notification.room_id,
 						)
@@ -108,8 +108,10 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
+	import ContextMenuItem from '@hub-client/new-design/components/ContextMenuItem.vue';
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { ContextVariant } from '@hub-client/new-design/models/contextMenu.models';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const { openMenu } = useContextMenu();

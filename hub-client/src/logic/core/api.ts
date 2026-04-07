@@ -16,6 +16,7 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	usersAPIV3: 'admin/v3/users/',
 
 	// User room
+	APIV1: 'admin/v1/',
 	roomsAPIV1: 'admin/v1/rooms/',
 	roomsAPIV2: 'admin/v2/rooms/',
 

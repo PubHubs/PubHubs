@@ -69,8 +69,6 @@
 			<router-view />
 		</div>
 
-		<Disclosure v-if="disclosureEnabled" />
-
 		<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false" />
 
 		<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
@@ -122,7 +120,7 @@
 	import { useNotifications } from '@hub-client/stores/notifications';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
@@ -144,7 +142,6 @@
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const pendingRouteFromParent = ref<RouteParamValue | null>(null);
-	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
 	const { scrollToEnd, scrollToStart } = useGlobalScroll();
 	const roles = useRoles();

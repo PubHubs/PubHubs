@@ -1,6 +1,6 @@
 // Packages
 import { VotingWidgetType } from '../events/voting/VotingTypes';
-import { Direction, EventTimeline, EventTimelineSet, EventType, Filter, IStateEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventTimelineSet, EventType, IStateEvent, KnownMembership, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread } from 'matrix-js-sdk';
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 
@@ -12,7 +12,7 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 // Models
-import { Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
+import { Redaction, RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
@@ -200,6 +200,10 @@ export default class Room {
 		this.stateEvents = stateEvents ?? [];
 	}
 
+	public getStateEvents(): IStateEvent[] {
+		return this.stateEvents;
+	}
+
 	// Merges new state events into stateEvents, keyed by (type, state_key)
 	private mergeStateEvents(newEvents: IStateEvent[]) {
 		for (const newEvent of newEvents) {
@@ -344,20 +348,11 @@ export default class Room {
 		if (!event) return 0;
 		return event.content.users[userId] ?? event.content.users_default;
 	}
+
 	public getStatePowerLevel() {
 		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
 		if (!event) return null;
 		return event;
-	}
-	private updatePowerLevelEvent(powerLevelEvents: MatrixEvent[]) {
-		if (powerLevelEvents && powerLevelEvents.length > 0) {
-			this.stateEvents = this.stateEvents.map((state) => {
-				if (state.type === EventType.RoomPowerLevels) {
-					return powerLevelEvents[powerLevelEvents.length - 1].event as IStateEvent;
-				}
-				return state;
-			});
-		}
 	}
 
 	// End of sliding sync state methods //
@@ -712,10 +707,6 @@ export default class Room {
 		// END THREADS
 
 		const nonCurrentThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
-
-		// Update power levels so that steward promotions and demotions are quickly updated for all users
-		const powerLevelEvents = nonCurrentThreadEvents.filter((x) => x.getType() === 'm.room.power_levels');
-		this.updatePowerLevelEvent(powerLevelEvents);
 
 		this.timelineManager.loadFromSlidingSync(nonCurrentThreadEvents).then((scrollToEventId) => {
 			if (scrollToEventId) {

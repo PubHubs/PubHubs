@@ -37,6 +37,10 @@ export class APIService {
 		return await api_synapse.apiGET<TState>(`${api_synapse.apiURLS.roomsAPIV1}${roomId}/state`);
 	}
 
+	static async adminGetReports(): Promise<TState> {
+		return await api_synapse.apiGET<TState>(`${api_synapse.apiURLS.reports}`);
+	}
+
 	/**
 	 * See https://github.com/element-hq/synapse/blob/develop/docs/admin_api/rooms.md#room-state-api
 	 * @param roomId

@@ -98,7 +98,7 @@
 								openMenu(evt, [
 									{ label: 'Open1', icon: 'smiley', onClick: () => console.error(myProp) },
 									{ label: 'Rename1', disabled: true, onClick: () => console.error('Rename1') },
-									{ label: 'Delete1', isDelicate: true, onClick: () => clicked() },
+									{ label: 'Delete1', variant: ContextVariant.delicate, onClick: () => clicked() },
 								])
 						"
 					>
@@ -179,7 +179,7 @@
 	// Composables
 	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+	import { ContextVariant, type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 
 	/**
 	 *
@@ -219,7 +219,7 @@
 	const items2: MenuItem[] = [
 		{ label: 'Open1', icon: 'smiley', payload: { myProp } },
 		{ label: 'Rename2', disabled: true },
-		{ label: 'Delete2', isDelicate: true },
+		{ label: 'Delete2', variant: ContextVariant.delicate },
 	];
 
 	const options = ['Optie 1', 'Mogelijkheid 2', 'Derde kans', 'Quattro', 'Meer dan vijf is niet nodig'] as FieldOptions;

@@ -1,5 +1,5 @@
 <template>
-	<Dialog :title="$t('admin.ask_disclosure_title')" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close($event)">
+	<Dialog :title="$t('admin.ask_disclosure_title')" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close()">
 		<ValidatedForm @submit.prevent class="flex flex-col p-200" :class="isMobile ? 'w-full' : 'w-[450px]'" v-slot="{ isValidated }">
 			<DropDown v-model="form.user" :transformer="dropDownData.transformUser" :options="userOptions" :filtered="true" :validation="{ required: true }">{{ $t('admin.ask_disclosure_user_title') }}</DropDown>
 			<DropDown v-model="form.attributes" :transformer="dropDownData.transformYiviAttribute" :options="yiviAttributes" :multiple="true" :filtered="true" :validation="{ required: true }">{{
@@ -42,7 +42,6 @@
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 
-	// const yiviStore = useYivi();
 	const pubhubsStore = usePubhubsStore();
 	const dropDownData = useDropDownData();
 
@@ -83,14 +82,12 @@
 	}
 
 	async function onSubmit() {
-		let roomId = form.value.where_room.room_id;
-		if (!roomId || form.value.where_room.name === t('admin.private_room')) {
-			const privateRoom = await pubhubsStore.createPrivateRoomWith([form.value.user.name]);
-			roomId = privateRoom!.room_id;
-		}
+		const privateRoom = await pubhubsStore.createPrivateRoomWith([form.value.user.name]);
+		const roomId = privateRoom!.room_id;
+
 		const result: AskDisclosureMessage = {
 			userId: form.value.user?.name,
-			replyToRoomId: roomId,
+			replyToRoomId: form.value.where_room.room_id,
 			message: form.value.message,
 			attributes: form.value.attributes.map((item: Attribute) => item.attribute),
 		};
