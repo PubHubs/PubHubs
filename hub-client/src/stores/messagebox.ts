@@ -86,6 +86,14 @@ enum MessageType {
 	CloseSidebar = 'closesidebar', // Close the sidebar in the hub client
 	ContextMenuOpen = 'contextmenu-open', // Hub asks global to show a context menu
 	ContextMenuSelect = 'contextmenu-select', // Global sends selected item index back to hub
+
+	// Per-hub key-value store persisted in the global client's localStorage.
+	// The hub client's own localStorage is unreliable (blocked in third-party
+	// iframes on Safari). The hub loads all data on startup, then sends
+	// fire-and-forget updates.
+	LocalStoreLoad = 'local-store-load', // Hub → global: request all stored key-value pairs
+	LocalStoreLoaded = 'local-store-loaded', // Global → hub: response with all pairs
+	LocalStoreUpdate = 'local-store-update', // Hub → global: update { key, value }
 }
 
 /**

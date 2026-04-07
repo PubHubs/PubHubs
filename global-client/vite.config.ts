@@ -90,6 +90,9 @@ export default defineConfig({
 		root: './',
 		globals: true,
 		environment: 'jsdom',
+		environmentOptions: {
+			jsdom: { url: 'https://test.example' },
+		},
 		setupFiles: ['./test/setup-teardown-hooks.ts'],
 		onConsoleLog(log: string) {
 			if (log.includes('Expected Room, got Object')) return false;
