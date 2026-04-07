@@ -495,7 +495,20 @@ const nl = {
 			'Voor kamergerelateerde vragen kunt u het beste eerst de kamersteward benaderen. De steward is te bereiken via het ledenpaneel in de kamer. De hub beheerder is alleen bedoeld voor hub-brede zaken of wanneer de steward niet kan helpen. Wilt u doorgaan?',
 		if_admin_contact_not_present: 'De Hub Beheerder is momenteel niet beschikbaar. Voor kamergerelateerde vragen kunt u de kamersteward bereiken via het ledenpaneel in de kamer.',
 	},
-
+	moderation: {
+		admins: 'admins',
+		yellow_card: 'gele kaart',
+		yellow_card_info: 'je hebt een gele kaart ontvangen als waarschuwing voor deze ruimte. reden: ',
+		issue_yellow_card: 'geef een gele kaart',
+		issue_yellow_card_info: 'het lid ontvangt een waarschuwing',
+		red_card: 'rode kaart',
+		red_card_info: 'je hebt een rode kaart ontvangen en kan deze ruimte niet meer betreden. reden: ',
+		issue_red_card: 'geef een rode kaart',
+		issue_red_card_info: 'het lid wordt de toegang tot de ruimte ontzegd',
+		revoke_red_card: 'rode kaart intrekken',
+		card_reason_label: 'reden voor het geven van deze kaart',
+		sanctioned_members: 'gesanctioneerde leden',
+	},
 	themes: {
 		dark: 'Donker',
 		light: 'Licht',

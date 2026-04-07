@@ -1,5 +1,5 @@
 <template>
-	<button class="h-5 w-5 min-w-5 rounded-full align-middle text-xs text-black" :class="calcClass" :disabled="disabled">
+	<button class="h-5 w-5 min-w-5 rounded-full align-middle text-xs" :class="calcClass" :disabled="disabled">
 		<slot></slot>
 	</button>
 </template>

@@ -2,7 +2,7 @@ export type ContextMenuItemProps = {
 	ariaLabel?: string;
 	disabled?: boolean;
 	icon?: string;
-	isDelicate?: boolean;
+	variant?: ContextVariant;
 	label: string;
 	title?: string;
 };
@@ -12,3 +12,8 @@ export type MenuItem = ContextMenuItemProps & {
 	payload?: any;
 	divider?: boolean;
 };
+
+export enum ContextVariant {
+	delicate = 'text-button-red',
+	yellow = 'text-accent-yellow',
+}

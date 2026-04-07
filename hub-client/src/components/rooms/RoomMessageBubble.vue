@@ -250,7 +250,7 @@
 
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+	import { ContextVariant, type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const contextMenuStore = useContextMenuStore();
@@ -561,7 +561,7 @@
 			destructive.push({
 				label: t('menu.delete_message'),
 				icon: 'trash',
-				isDelicate: true,
+				variant: ContextVariant.delicate,
 				onClick: () => onDeleteMessage(props.event),
 			});
 		}

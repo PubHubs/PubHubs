@@ -9,6 +9,12 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+## Changes not merged to stable yet
+
+- [NEW] RoomAdmins and Stewards can bar room members from participating in a room by issuing a red card.
+- [NEW] RoomAdmins and Stewards can warn room members by issuing a yellow card.
+- [FIX] Element observer parameter is passed correctly.
+
 ## 02 April 2026 - v3.2.2
 
 - [NEW, behind a feature flag for now] Stewards (and users with higher privileges) can send whisper messages to other users in a room.

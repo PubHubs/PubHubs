@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-	const colors = ['bg-accent-lime', 'bg-accent-orange', 'bg-accent-red'];
+	const colors = ['bg-accent-green', 'bg-accent-orange', 'bg-accent-red'];
 
 	defineProps<{
 		percentages: number[];

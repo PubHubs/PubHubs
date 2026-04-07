@@ -55,6 +55,7 @@ type State = {
 	adminStatusLoaded: boolean;
 	needsOnboarding: boolean;
 	needsConsent: boolean;
+	yellowCards: string[];
 };
 
 const logger = LOGGER;
@@ -71,6 +72,7 @@ const useUser = defineStore('user', {
 		adminStatusLoaded: false,
 		needsOnboarding: false,
 		needsConsent: false,
+		yellowCards: [],
 	}),
 
 	getters: {
@@ -122,6 +124,9 @@ const useUser = defineStore('user', {
 				return state.usersProfile.get(userId)?.avatarUrl;
 			};
 		},
+		getYellowCards: (state) => {
+			return state.yellowCards;
+		},
 	},
 	actions: {
 		// #region Setter method
@@ -166,6 +171,13 @@ const useUser = defineStore('user', {
 		// Storing my  UserId
 		setUserId(userId: string) {
 			this.userId = userId;
+		},
+
+		addYellowCard(roomId: string) {
+			this.yellowCards.push(roomId);
+		},
+		removeYellowCard(roomId: string) {
+			this.yellowCards = this.yellowCards.filter((id) => id !== roomId);
 		},
 
 		async setDisplayName(name: string) {

@@ -64,7 +64,7 @@
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === room.roomId && 'bg-surface-low!'"
 						role="listitem"
 						@click="openDMRoom(room)"
-						v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.leave_conversation'), icon: 'eye-slash', isDelicate: true, onClick: () => leaveConversation(room) }], room.roomId)"
+						v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.leave_conversation'), icon: 'eye-slash', variant: ContextVariant.delicate, onClick: () => leaveConversation(room) }], room.roomId)"
 					/>
 				</div>
 			</div>
@@ -142,6 +142,7 @@
 
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { ContextVariant } from '@hub-client/new-design/models/contextMenu.models';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const { openMenu } = useContextMenu();

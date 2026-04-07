@@ -2,11 +2,12 @@
 import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, Method, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
-import { RoomMessageEventContent, TimelineEvents } from 'matrix-js-sdk/lib/types';
+import { KnownMembership, RoomMessageEventContent, TimelineEvents } from 'matrix-js-sdk/lib/types';
 import { defineStore } from 'pinia';
 
 // Composables
 import { useMatrix } from '@hub-client/composables/matrix.composable';
+import { useModeration } from '@hub-client/composables/moderation.composable';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
@@ -373,20 +374,39 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @param knownRoomType - Pre-known room type, avoids unreliable detection from live timeline
 		 * @param knownRoomName - Pre-known room name
 		 */
-		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<void> {
-			const rooms = useRooms();
-
+		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<number> {
+			const roomStore = useRooms();
+			const userStore = useUser();
+			const room = roomStore.room(room_id);
 			try {
+				const { membershipEvents } = useModeration(room);
+				const hasYellowCard = membershipEvents.value.some((event) => event.content.membership === KnownMembership.Leave && event.state_key === userStore.userId && event.sender !== event.state_key && event.content.reason);
+				if (hasYellowCard) {
+					userStore.addYellowCard(room_id);
+				}
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
 				const roomType: string = knownRoomType ?? publicRoomEntry?.room_type ?? getRoomType(matrixRoom);
 				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
-				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false });
+				roomStore.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
+				roomStore.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false });
 			} catch (err) {
-				throw err;
+				if (err instanceof MatrixError) {
+					const isBanned = err.errcode === 'M_BAD_STATE' && err.httpStatus === 403;
+					if (isBanned) {
+						router.push({ name: 'error-page', query: { errorKey: 'moderation.red_card_info' } });
+					} else {
+						logger.error(SMI.ERROR, 'MatrixError:', err);
+						router.push({ name: 'error-page' });
+					}
+				} else {
+					logger.error(SMI.ERROR, err as string);
+					router.push({ name: 'error-page' });
+				}
+				return -1;
 			}
+			return 0;
 		},
 
 		async invite(room_id: string, user_id: string, reason = undefined) {
