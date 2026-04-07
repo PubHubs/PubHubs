@@ -1,5 +1,14 @@
 <template>
 	<div class="flex h-full flex-col">
+		<Dialog v-if="room?.roomId && user.getYellowCards && user.yellowCards.includes(room.roomId)" :title="capitalize(t('moderation.yellow_card'))" :buttons="yellowCardButtons" @close="onYellowCardClose">
+			<div class="flex flex-row gap-3">
+				<Icon type="exclamation-mark" size="3xl" class="text-accent-yellow"></Icon>
+				<div class="flex flex-col gap-2">
+					<p>{{ t('moderation.yellow_card_info') }}</p>
+					<p class="text-on-surface-variant text-sm">{{ yellowCardMembers.find((card) => card.userId === user.userId)?.reason }}</p>
+				</div>
+			</div>
+		</Dialog>
 		<template v-if="rooms.currentRoomExists">
 			<div v-if="isLoading" class="flex h-full w-full items-center justify-center">
 				<InlineSpinner />
@@ -71,7 +80,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { capitalize, computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
@@ -90,10 +99,12 @@
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	import { useModeration } from '@hub-client/composables/moderation.composable';
 	// Composables
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
@@ -105,9 +116,9 @@
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { UserAction } from '@hub-client/models/users/TUser';
 
+	import { DialogOk } from '@hub-client/stores/dialog';
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -116,6 +127,19 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+
+	const yellowCardButtons = computed(() => [
+		{
+			label: 'ok',
+			action: DialogOk,
+			color: 'primary',
+			enabled: true,
+		},
+	]);
+
+	function onYellowCardClose() {
+		user.removeYellowCard(room.value!.roomId);
+	}
 
 	const { t } = useI18n();
 	const route = useRoute();
@@ -130,6 +154,8 @@
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
+	const { yellowCardMembers, watchEffectCardAction } = useModeration();
+
 	// Passed by the router
 	const props = defineProps({
 		id: { type: String, required: true },
@@ -320,8 +346,9 @@
 			});
 		}
 	}
-
 	function notPrivateRoom() {
 		return !room.value!.isPrivateRoom() && !room.value!.isGroupRoom() && !room.value!.isAdminContactRoom() && !room.value!.isStewardContactRoom();
 	}
+
+	watchEffectCardAction();
 </script>

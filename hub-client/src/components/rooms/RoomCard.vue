@@ -99,7 +99,8 @@
 	const joinRoom = async () => {
 		if (!props.room?.room_id) return;
 
-		await pubhubsStore.joinRoom(props.room.room_id);
+		const result = await pubhubsStore.joinRoom(props.room.room_id);
+		if (result === -1) return;
 
 		// Wait for room membership with timeout
 		const maxRetries = 10;

@@ -45,6 +45,18 @@ function useRoles() {
 		return getRoleByPowerLevel(powerLevel);
 	};
 
+	const userHasRoleOrHigher = (role: UserRole, roomId: string | undefined = undefined): boolean => {
+		assert(role in UserRole, 'Given role not a defined role');
+		const currentPowerLevel = userPowerLevel(roomId);
+		const thresholdPowerLevel = UserPowerLevel[role];
+		return currentPowerLevel >= thresholdPowerLevel;
+	};
+
+	const userIsAdminOrHigher = (roomId?: string) => userHasRoleOrHigher(UserRole.Admin, roomId);
+	const userIsSuperStewardOrHigher = (roomId?: string) => userHasRoleOrHigher(UserRole.SuperSteward, roomId);
+	const userIsStewardOrHigher = (roomId?: string) => userHasRoleOrHigher(UserRole.Steward, roomId);
+	const userIsExpertOrHigher = (roomId?: string) => userHasRoleOrHigher(UserRole.Expert, roomId);
+
 	const userHasRole = (role: UserRole, roomId: string | undefined = undefined): boolean => {
 		assert(role in UserRole, 'Given role not a defined role');
 		return role === userRole(roomId);
@@ -90,6 +102,10 @@ function useRoles() {
 		userIsUser,
 		userHasAccessForRoles,
 		userHasPermissionForAction,
+		userIsStewardOrHigher,
+		userIsExpertOrHigher,
+		userIsSuperStewardOrHigher,
+		userIsAdminOrHigher,
 	};
 }
 export { useRoles };

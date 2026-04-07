@@ -32,7 +32,6 @@ enum NotificationsPermission {
 enum FeatureFlag {
 	signedMessages = 'signedMessages',
 	dateSplitter = 'dateSplitter',
-	disclosure = 'disclosure',
 	notifications = 'notifications',
 	deleteMessages = 'deleteMessages',
 	hubSettings = 'hubSettings',
@@ -105,7 +104,6 @@ const defaultSettings: Settings = {
 		main: {
 			signedMessages: true,
 			dateSplitter: true,
-			disclosure: false,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
@@ -120,7 +118,6 @@ const defaultSettings: Settings = {
 		stable: {
 			signedMessages: true,
 			dateSplitter: true,
-			disclosure: false,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
@@ -135,7 +132,6 @@ const defaultSettings: Settings = {
 		local: {
 			signedMessages: true,
 			dateSplitter: true,
-			disclosure: true,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,

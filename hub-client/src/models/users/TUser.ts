@@ -49,16 +49,28 @@ enum UserAction {
 	MessageAdmin = 'MessageAdmin',
 	MessageSteward = 'MessageSteward',
 	RoomAnnouncement = 'RoomAnnouncement',
+	Kick = 'Kick',
+	Ban = 'Ban',
 }
 
-// Which actions which role can perform
-const UserRoleActions = {
-	[UserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel, UserAction.RoomAnnouncement],
-	[UserRole.SuperSteward]: [UserAction.Invite, UserAction.StewardPanel, UserAction.RoomAnnouncement],
-	[UserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement],
-	[UserRole.Expert]: [UserAction.MessageSteward],
+const UserRoleActionsOwn = {
 	[UserRole.User]: [UserAction.MessageSteward],
+	[UserRole.Expert]: [],
+	[UserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement, UserAction.Kick, UserAction.Ban],
+	[UserRole.SuperSteward]: [UserAction.Invite],
+	[UserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel],
 } as Record<UserRole, UserAction[]>;
+
+const roleHierarchy: UserRole[] = [UserRole.User, UserRole.Expert, UserRole.Steward, UserRole.SuperSteward, UserRole.Admin];
+
+// Each role gets its own actions plus all actions of roles below it
+const UserRoleActions = Object.fromEntries(
+	roleHierarchy.map((role, index) => {
+		const inherited = roleHierarchy.slice(0, index).flatMap((r) => UserRoleActionsOwn[r]);
+		const combined = [...new Set([...inherited, ...UserRoleActionsOwn[role]])];
+		return [role, combined];
+	}),
+) as Record<UserRole, UserAction[]>;
 
 type TUserJoinedRooms = {
 	joined_rooms: string[];
