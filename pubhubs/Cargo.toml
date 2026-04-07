@@ -64,7 +64,7 @@ ed25519-dalek = { version = "2.2", features = ["rand_core", "serde"] }
 rsa = { version = "0.9", features = ["sha2"] }
 hmac = { version = "0.12" }
 zeroize = { version = "1.8", features = [ "zeroize_derive" ] }
-sha2 = { version = "0" }
+sha2 = { version = "0.10" }
 subtle = { version = "2.6" }
 typenum = { version = "1.19" }
 
