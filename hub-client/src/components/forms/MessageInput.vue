@@ -156,7 +156,7 @@
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
-						v-model="value as string"
+						v-model="valueAsString"
 						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
 						:placeholder="isAnnouncementMode ? $t('message.announcement_placeholder') : $t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
@@ -304,6 +304,12 @@
 	const messageInput = useMessageInput();
 
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
+	const valueAsString = computed({
+		get: () => (value.value as string) ?? '',
+		set: (v: string) => {
+			value.value = v;
+		},
+	});
 	const { allTypes, uploadUrl } = useMatrixFiles();
 
 	const pollObject = ref<Poll>(new Poll());
