@@ -1,16 +1,20 @@
 <template>
 	<div class="flex justify-end p-2">
-		<Button :disabled="disabled" @click="submit()">{{ $t(buttonText) }}</Button>
+		<Button
+			:disabled="disabled"
+			@click="submit()"
+		>
+			{{ $t(buttonText) }}
+		</Button>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
-	const emit = defineEmits(['send', 'edit']);
 	const props = defineProps<{ disabled: boolean; isEdit: boolean }>();
-
+	const emit = defineEmits(['send', 'edit']);
 	const buttonText = computed(() => {
 		if (props.isEdit) {
 			return 'forms.save';

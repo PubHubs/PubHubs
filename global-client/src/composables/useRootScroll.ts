@@ -2,7 +2,7 @@
  * Layout root scroll helpers.
  */
 const SCROLL_DURATION = 150;
-let isProgrammaticScroll = false;
+let _isProgrammaticScroll = false;
 let animationFrameId: number | null = null;
 
 const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
@@ -10,7 +10,7 @@ const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
 		cancelAnimationFrame(animationFrameId);
 	}
 
-	isProgrammaticScroll = true;
+	_isProgrammaticScroll = true;
 	const startLeft = element.scrollLeft;
 	const distance = targetLeft - startLeft;
 	const startTime = performance.now();
@@ -28,7 +28,7 @@ const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
 			animationFrameId = requestAnimationFrame(animateScroll);
 		} else {
 			animationFrameId = null;
-			isProgrammaticScroll = false;
+			_isProgrammaticScroll = false;
 		}
 	};
 

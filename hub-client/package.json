@@ -7,9 +7,8 @@
 		"serve": "vite --host",
 		"watch": "vite",
 		"build": "vite build",
-		"format": "npx prettier ./src --write --ignore-unknown --config ./.prettierrc",
-		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",
 		"pwa": "vite build && npx http-server dist",
+		"type-check": "vue-tsc --noEmit",
 		"test": "vitest",
 		"test:run": "vitest run",
 		"test:ui": "vitest --ui",
@@ -24,11 +23,9 @@
 		"@privacybydesign/yivi-core": "^0",
 		"@privacybydesign/yivi-frontend": "^0.2.1",
 		"@privacybydesign/yivi-web": "^0",
-		"@vue/test-utils": "^2.2.3",
 		"@vuepic/vue-datepicker": "^12.1.0",
 		"@vueuse/components": "^14.2.1",
 		"@vueuse/core": "^14.2.1",
-		"chai": "^6.2.1",
 		"emojibase": "^17",
 		"emojibase-data": "^17",
 		"https-browserify": "^1.0.0",
@@ -40,66 +37,30 @@
 		"stream-http": "^3.2.0",
 		"tailwind-merge": "^3",
 		"util": "^0.12.5",
-		"vite": "^7.2.6",
 		"vue": "^3.2.13",
 		"vue-i18n": "^11",
 		"vue-router": "^5.0.4"
 	},
 	"devDependencies": {
 		"@pinia/testing": "^1",
-		"@tailwindcss/vite": "^4.1.11",
-		"@trivago/prettier-plugin-sort-imports": "^6.0.0",
+		"@tailwindcss/vite": "^4.2.2",
 		"@types/sanitize-html": "^2.13.0",
 		"@vitejs/plugin-vue": "^6",
-		"@vue/eslint-config-typescript": "^13",
+		"@vue/test-utils": "^2.2.3",
 		"autoprefixer": "^10.4.21",
-		"eslint": "^8.44.0",
-		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-vue": "^9",
+		"chai": "^6.2.1",
 		"jsdoc": "^4.0.2",
 		"jsdom": "^29",
 		"msw": "^2.12.4",
 		"postcss": "^8.5.3",
-		"prettier": "^3.5.0",
-		"prettier-eslint": "^16.3.0",
-		"prettier-plugin-tailwindcss": "^0.7.2",
-		"tailwindcss": "^4.1.11",
+		"tailwindcss": "^4.2.2",
 		"typescript": "^6.0.2",
+		"vite": "^7.2.6",
 		"vite-plugin-node-polyfills": "^0.26.0",
 		"vitest": "^4",
-		"vue-eslint-parser": "^9",
 		"vue-mess-detector": "^0.68.0",
+		"vue-tsc": "^2",
 		"webpack": "^5.97.1"
-	},
-	"eslintConfig": {
-		"root": true,
-		"env": {
-			"node": true,
-			"es2022": true,
-			"vue/setup-compiler-macros": true
-		},
-		"extends": [
-			"plugin:vue/vue3-essential",
-			"eslint:recommended",
-			"@vue/typescript"
-		],
-		"parserOptions": {
-			"parser": "@typescript-eslint/parser"
-		},
-		"rules": {
-			"no-unused-vars": "off",
-			"no-debugger": "warn",
-			"@typescript-eslint/no-unused-vars": [
-				"error",
-				{
-					"vars": "all",
-					"args": "after-used",
-					"varsIgnorePattern": "^props|value",
-					"ignoreRestSiblings": false
-				}
-			],
-			"vue/multi-word-component-names": "off"
-		}
 	},
 	"browser": {
 		"http": false,

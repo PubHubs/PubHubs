@@ -1,6 +1,11 @@
 // Packages
 import { twMerge } from 'tailwind-merge';
-import { DirectiveBinding, VNode } from 'vue';
+import { type DirectiveBinding, type VNode } from 'vue';
+
+// Logic
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
+const logger = createLogger('Directives');
 
 const focus = {
 	mounted(el: HTMLElement) {
@@ -23,30 +28,44 @@ const twClass = {
 	},
 };
 
+interface ClickOutsideElement extends HTMLElement {
+	clickOutsideEvent?: (event: Event) => void;
+}
+
 const clickOutside = {
-	beforeMount(el: any, binding: any) {
-		console.info('clickOutside', el, binding);
+	beforeMount(el: ClickOutsideElement, binding: DirectiveBinding) {
+		logger.debug('clickOutside', el, binding);
 		el.clickOutsideEvent = function (event: Event) {
 			// Check if the clicked element is neither the element
 			// to which the directive is applied nor its child
-			if (!(el === event.target || el.contains(event.target))) {
+			if (!(el === event.target || el.contains(event.target as Node))) {
 				// Invoke the provided method
 				binding.value(event);
 			}
 		};
 		document.addEventListener('click', el.clickOutsideEvent);
 	},
-	unmounted(el: any) {
+	unmounted(el: ClickOutsideElement) {
 		// Remove the event listener when the bound element is unmounted
-		document.removeEventListener('click', el.clickOutsideEvent);
+		if (el.clickOutsideEvent) {
+			document.removeEventListener('click', el.clickOutsideEvent);
+		}
 	},
 };
 
 const LONG_PRESS_DURATION = 500;
 const LONG_PRESS_MOVE_THRESHOLD = 10;
 
+interface ContextMenuElement extends HTMLElement {
+	_contextMenuHandler?: (e: Event) => void;
+	_onContextMenu?: (e: Event) => void;
+	_onTouchStart?: (e: TouchEvent) => void;
+	_onTouchMove?: (e: TouchEvent) => void;
+	_onTouchEnd?: () => void;
+}
+
 const contextMenu = {
-	mounted(el: any, binding: DirectiveBinding) {
+	mounted(el: ContextMenuElement, binding: DirectiveBinding) {
 		let timer: ReturnType<typeof setTimeout> | null = null;
 		let startPos = { x: 0, y: 0 };
 
@@ -96,11 +115,11 @@ const contextMenu = {
 		}
 	},
 
-	updated(el: any, binding: DirectiveBinding) {
+	updated(el: ContextMenuElement, binding: DirectiveBinding) {
 		el._contextMenuHandler = binding.value;
 	},
 
-	unmounted(el: any) {
+	unmounted(el: ContextMenuElement) {
 		if (el._onContextMenu) el.removeEventListener('contextmenu', el._onContextMenu);
 		if (el._onTouchStart) el.removeEventListener('touchstart', el._onTouchStart);
 		if (el._onTouchMove) el.removeEventListener('touchmove', el._onTouchMove);

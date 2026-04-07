@@ -1,7 +1,7 @@
 // Packages
-import { Locale, enGB as localeEN, nl as localeNL } from 'date-fns/locale';
-import { App } from 'vue';
-import { I18nOptions, createI18n } from 'vue-i18n';
+import { type Locale, enGB as localeEN, nl as localeNL } from 'date-fns/locale';
+import { type App } from 'vue';
+import { type I18nOptions, createI18n } from 'vue-i18n';
 
 // Locales
 import { en } from '@hub-client/locales/en';
@@ -90,18 +90,18 @@ const i18nOptions: I18nOptions = {
 	},
 };
 
-const setUpi18n = function (app?: App) {
+const setUpi18n = function (_app?: App) {
 	const i18n = createI18n(i18nOptions);
 	setLanguage(i18n, fallbackLanguage);
 	return i18n;
 };
 
-const setLanguage = function (i18n: any, language: string) {
-	i18n.global.locale.value = language;
+const setLanguage = function (i18n: { global: { locale: unknown } }, language: string) {
+	(i18n.global.locale as { value: string }).value = language;
 };
 
-const currentLanguage = function (i18n: any) {
-	return i18n.global.locale.value;
+const currentLanguage = function (i18n: { global: { locale: unknown } }) {
+	return (i18n.global.locale as { value: string }).value;
 };
 
 function getLanguageFromBrowser(): Language | null {

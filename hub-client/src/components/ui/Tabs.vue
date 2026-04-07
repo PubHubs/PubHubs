@@ -1,10 +1,13 @@
 <template>
 	<div class="w-full">
-		<slot :activeTab="activeTab" :setActiveTab="setActiveTab"></slot>
+		<slot
+			:active-tab="activeTab"
+			:set-active-tab="setActiveTab"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { provide, ref } from 'vue';
 

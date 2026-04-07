@@ -1,18 +1,36 @@
 <template>
-	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg">
+	<div
+		v-if="isVisible"
+		ref="elContainer"
+		class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg"
+		:style="getStyle()"
+	>
 		<ul>
-			<li v-for="(item, index) in filteredItems" :key="index" class="group hover:bg-surface-high flex cursor-pointer items-center gap-2 px-4" @click.stop="clickedItem(item)">
-				<Avatar v-if="marker === '@' && isUser(item)" :avatar-url="user.userAvatar(item.userId)" :user-id="item.userId"></Avatar>
+			<li
+				v-for="(item, index) in filteredItems"
+				:key="index"
+				class="group hover:bg-surface-high flex cursor-pointer items-center gap-2 px-4"
+				@click.stop="clickedItem(item)"
+			>
+				<Avatar
+					v-if="marker === '@' && isUser(item)"
+					:avatar-url="user.userAvatar(item.userId)"
+					:user-id="item.userId"
+				/>
 				<div class="flex max-w-3000 flex-col items-center py-2">
-					<TruncatedText :title="getDisplayName(item)">{{ getDisplayName(item) }}</TruncatedText>
-					<TruncatedText class="text-on-surface-dim">{{ shortId(getId(item)) }}</TruncatedText>
+					<TruncatedText :title="getDisplayName(item)">
+						{{ getDisplayName(item) }}
+					</TruncatedText>
+					<TruncatedText class="text-on-surface-dim">
+						{{ shortId(getId(item)) }}
+					</TruncatedText>
 				</div>
 			</li>
 		</ul>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
 
@@ -21,11 +39,11 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
 	// Models
-	import Room from '@hub-client/models/rooms/Room';
-	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+	import type Room from '@hub-client/models/rooms/Room';
+	import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 
 	// Stores
-	import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
+	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
 	// Types
@@ -36,20 +54,19 @@
 		room: Room;
 	};
 
-	const user = useUser();
-	const emit = defineEmits(['click']);
-	const isVisible = ref(false);
-	const positionOfMarker = ref(0);
-	const roomsStore = useRooms();
-	const elContainer = ref<HTMLElement | null>(null);
-	const items = ref<(TRoomMember | TPublicRoom)[]>([]);
-
 	const props = withDefaults(defineProps<Props>(), {
 		msg: undefined,
 		left: 0,
 		top: 0,
 		room: undefined,
 	});
+	const emit = defineEmits(['click']);
+	const user = useUser();
+	const isVisible = ref(false);
+	const positionOfMarker = ref(0);
+	const roomsStore = useRooms();
+	const elContainer = ref<HTMLElement | null>(null);
+	const items = ref<(TRoomMember | TPublicRoom)[]>([]);
 
 	// Determine mention type based on which marker appears last in the message
 	const marker = computed<'@' | '#' | null>(() => {
@@ -161,7 +178,9 @@
 			case '@':
 				return (items.value as TRoomMember[]).filter((user) => user.rawDisplayName && user.rawDisplayName.toLowerCase().includes(searchTerm));
 			case '#':
-				return (items.value as TPublicRoom[]).filter((room) => room.name?.toLowerCase().includes(searchTerm) || room.topic?.toLowerCase().includes(searchTerm));
+				return (items.value as TPublicRoom[]).filter(
+					(room) => room.name?.toLowerCase().includes(searchTerm) || room.topic?.toLowerCase().includes(searchTerm),
+				);
 			default:
 				return [];
 		}

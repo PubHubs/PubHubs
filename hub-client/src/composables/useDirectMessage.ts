@@ -9,7 +9,7 @@ import { router } from '@hub-client/logic/core/router';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { Room, useRooms } from '@hub-client/stores/rooms';
+import { type Room, useRooms } from '@hub-client/stores/rooms';
 import { useSettings } from '@hub-client/stores/settings';
 import { useUser } from '@hub-client/stores/user';
 

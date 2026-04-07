@@ -1,15 +1,16 @@
 // Packages
-import { AttrKeyResp, SignedIdentifyingAttrs } from './TAuths';
+import { type AttrKeyResp, type SignedIdentifyingAttrs } from './TAuths';
 import { assert } from 'chai';
 
-// Logic
 import { phc_api } from '@global-client/logic/core/api';
 import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
-import { Api } from '@hub-client/logic/core/apiCore';
+import { type Api } from '@hub-client/logic/core/apiCore';
+// Logic
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
-import { ErrorCode, Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
+import { type ErrorCode, type Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
 import * as TPHC from '@global-client/models/MSS/TPHC';
 
 // Stores
@@ -20,6 +21,8 @@ import { useSettings } from '@hub-client/stores/settings';
 
 // Other
 import { setLanguage, setUpi18n } from '@hub-client/i18n';
+
+const logger = createLogger('PHCServer');
 
 export default class PHCServer {
 	private readonly _phcAPI: Api;
@@ -92,7 +95,7 @@ export default class PHCServer {
 		const options = {
 			headers: {
 				'Content-Type': 'application/json',
-				Authorization: await this._getAuthToken(),
+				Authorization: (await this._getAuthToken()) ?? '',
 			},
 			method: 'POST',
 		};
@@ -121,7 +124,11 @@ export default class PHCServer {
 	 * @returns An object with a boolean denoting whether the user successfully entered PubHubs and an errorMessage.
 	 * The errorMessage is null if the user successfully entered, an object with a translation key and a list of values to use in the translation otherwise.
 	 */
-	private _handleEnterResp(enterResp: TPHC.EnterResp): { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null } | { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } {
+	private _handleEnterResp(
+		enterResp: TPHC.EnterResp,
+	):
+		| { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }
+		| { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } {
 		if (enterResp === 'AccountDoesNotExist') {
 			return { entered: false, errorMessage: { key: 'errors.account_does_not_exist' }, enterResp: null };
 		} else if (enterResp === 'Banned') {
@@ -133,9 +140,17 @@ export default class PHCServer {
 		} else if ('AttributeBanned' in enterResp) {
 			return { entered: false, errorMessage: { key: 'errors.attribute_banned', values: [enterResp.AttributeBanned.value] }, enterResp: null };
 		} else if ('AttributeAlreadyTaken' in enterResp && enterResp.AttributeAlreadyTaken.not_identifying) {
-			return { entered: false, errorMessage: { key: 'errors.notid_attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] }, enterResp: null };
+			return {
+				entered: false,
+				errorMessage: { key: 'errors.notid_attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] },
+				enterResp: null,
+			};
 		} else if ('AttributeAlreadyTaken' in enterResp) {
-			return { entered: false, errorMessage: { key: 'errors.attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] }, enterResp: null };
+			return {
+				entered: false,
+				errorMessage: { key: 'errors.attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] },
+				enterResp: null,
+			};
 		} else if ('RetryWithNewAddAttr' in enterResp) {
 			return { entered: false, errorMessage: { key: 'errors.retry_with_new_attr' }, enterResp: null };
 		} else if ('Entered' in enterResp) {
@@ -161,7 +176,10 @@ export default class PHCServer {
 		enterMode: TPHC.PHCEnterMode,
 		identifyingAttr?: string,
 		registerOnlyWithUniqueAttrs: boolean = false,
-	): Promise<{ entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } | { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }> {
+	): Promise<
+		| { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] }
+		| { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }
+	> {
 		const requestPayload: TPHC.PHCEnterReq = {
 			identifying_attr: identifyingAttr,
 			mode: enterMode,
@@ -170,7 +188,9 @@ export default class PHCServer {
 		};
 		let authorization: string | undefined;
 		if (!identifyingAttr) authorization = await this._getAuthToken();
-		const okEnterResp = await handleErrors(() => this._phcAPI.api<TPHC.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<TPHC.PHCEnterReq>(requestPayload, authorization)));
+		const okEnterResp = await handleErrors(() =>
+			this._phcAPI.api<TPHC.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<TPHC.PHCEnterReq>(requestPayload, authorization)),
+		);
 		return this._handleEnterResp(okEnterResp);
 	}
 
@@ -181,17 +201,19 @@ export default class PHCServer {
 	 * @param b Object B
 	 * @returns true if the objects are equal, false otherwise.
 	 */
-	private _deepEqualObjects(a: any, b: any): boolean {
+	private _deepEqualObjects(a: unknown, b: unknown): boolean {
 		if (a === b) return true;
 		if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
 
-		const keysA = Object.keys(a);
-		const keysB = Object.keys(b);
+		const objA = a as Record<string, unknown>;
+		const objB = b as Record<string, unknown>;
+		const keysA = Object.keys(objA);
+		const keysB = Object.keys(objB);
 		if (keysA.length !== keysB.length) return false;
 
 		for (const key of keysA) {
 			if (!keysB.includes(key)) return false;
-			if (!this._deepEqualObjects(a[key], b[key])) return false;
+			if (!this._deepEqualObjects(objA[key], objB[key])) return false;
 		}
 		return true;
 	}
@@ -203,7 +225,10 @@ export default class PHCServer {
 	 * @throws Will throw an error if there is no backup user secret object stored while this is expected.
 	 * @throws Will throw an error if the backup user secret object differs from the user secret object.
 	 */
-	public async getUserSecretObject(): Promise<{ object: TPHC.UserSecretObject; details: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } } | null> {
+	public async getUserSecretObject(): Promise<{
+		object: TPHC.UserSecretObject;
+		details: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null };
+	} | null> {
 		const userSecretObject = await this.getUserObject('usersecret');
 
 		if (!userSecretObject?.object) {
@@ -292,7 +317,7 @@ export default class PHCServer {
 		return { userSecret: this._userSecret, version: this._userSecretVersion };
 	}
 
-	private async _decryptUserSecret(oldAttrKey: string, userSecretObject: { ts: string; encUserSecret: string }, version: number) {
+	private async _decryptUserSecret(oldAttrKey: string, userSecretObject: { ts: string; encUserSecret: string }, _version: number) {
 		const encUserSecret = new Uint8Array(Buffer.from(userSecretObject.encUserSecret, 'base64'));
 		const userSecret = await this._decryptData(encUserSecret, oldAttrKey);
 		return userSecret;
@@ -428,7 +453,9 @@ export default class PHCServer {
 			if (storedUserSecret && storedBackup) {
 				// Encode the userSecret as a base64 string
 				this._userSecret = Buffer.from(computedUserSecretObject.userSecret).toString('base64');
-				this._userSecretVersion = TPHC.isUserSecretObjectNew(computedUserSecretObject.newUserSecretObject) ? computedUserSecretObject.newUserSecretObject.version : 0;
+				this._userSecretVersion = TPHC.isUserSecretObjectNew(computedUserSecretObject.newUserSecretObject)
+					? computedUserSecretObject.newUserSecretObject.version
+					: 0;
 				localStorage.setItem('UserSecret', this._userSecret);
 				localStorage.setItem('UserSecretVersion', this._userSecretVersion.toString());
 			} else {
@@ -495,7 +522,7 @@ export default class PHCServer {
 		const iv = await crypto.subtle.digest('SHA-256', derivedIV);
 		// Import the key and use it to encrypt the data
 		const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
-		const encryptedData = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, data);
+		const encryptedData = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, data as BufferSource);
 		// Prepend the random bits to the ciphertext
 		const cipherText = this._concatUint8Arrays([randomBits, new Uint8Array(encryptedData)]);
 		return cipherText;
@@ -526,7 +553,7 @@ export default class PHCServer {
 			const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
 			return new Uint8Array(decryptedData);
 		} catch (error) {
-			console.error('Could not decrypt data with the most recent encoding version', error);
+			logger.error('Could not decrypt data with the most recent encoding version', error);
 			const encodedKey = new TextEncoder().encode(key);
 			const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
 			const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
@@ -551,7 +578,7 @@ export default class PHCServer {
 	 */
 	public async stateEP() {
 		const options = {
-			headers: { Authorization: await this._getAuthToken() },
+			headers: { Authorization: (await this._getAuthToken()) ?? '' },
 			method: 'GET',
 		};
 		const okStateResp = await handleErrors<TPHC.StateResp>(() => this._phcAPI.api<TPHC.PHCStateResp>(this._phcAPI.apiURLS.state, options));
@@ -577,7 +604,9 @@ export default class PHCServer {
 		const maxAttempts = 3;
 		let details = objectDetails;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
-			const getObjResp = await handleErrors<TPHC.GetObjectRespProblem>(() => this._phcAPI.apiGET<TPHC.PHCGetObjectResp | ArrayBuffer>(this._phcAPI.apiURLS.getObject + '/' + details.hash + '/' + details.hmac));
+			const getObjResp = await handleErrors<TPHC.GetObjectRespProblem>(() =>
+				this._phcAPI.apiGET<TPHC.PHCGetObjectResp | ArrayBuffer>(this._phcAPI.apiURLS.getObject + '/' + details.hash + '/' + details.hmac),
+			);
 			if (getObjResp instanceof ArrayBuffer) {
 				return getObjResp;
 			} else if (getObjResp === TPHC.GetObjectRespProblem.NotFound || getObjResp === TPHC.GetObjectRespProblem.RetryWithNewHmac) {
@@ -659,11 +688,13 @@ export default class PHCServer {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/octet-stream',
-					Authorization: await this._getAuthToken(),
+					Authorization: (await this._getAuthToken()) ?? '',
 				},
-				body: object,
+				body: object as unknown as Uint8Array,
 			};
-			const newObjectResp = await handleErrors<TPHC.StoreObjectResp>(() => this._phcAPI.api<TPHC.PHCStoreObjectResp>(this._phcAPI.apiURLS.newObject + '/' + handle, options));
+			const newObjectResp = await handleErrors<TPHC.StoreObjectResp>(() =>
+				this._phcAPI.api<TPHC.PHCStoreObjectResp>(this._phcAPI.apiURLS.newObject + '/' + handle, options),
+			);
 			switch (newObjectResp) {
 				case 'PleaseRetry':
 					if (attempts === maxAttempts) {
@@ -673,13 +704,14 @@ export default class PHCServer {
 				case 'RetryWithNewAuthToken':
 					this.triggerLogoutProcedure();
 					return;
-				case 'MissingHash':
+				case 'MissingHash': {
 					// There is already an object stored under this handle, so use overwriteObjectEP instead
 					const existingObject = await this.getUserObject(handle);
 					if (!existingObject) {
 						throw new Error('Could not find the object, even though getting a MissingHash response from newObjectEP.');
 					}
 					return await this._overwriteObjectEP(handle, existingObject.details.hash, object);
+				}
 				case 'NotFound':
 					throw new Error('Unexpected response NotFound for a newObjectEP request.');
 				case 'HashDidNotMatch':
@@ -690,7 +722,10 @@ export default class PHCServer {
 					if ('QuotumReached' in newObjectResp) {
 						throw new Error(`Could not store the new user object with handle ${handle}, because the quotum is reached.`);
 					} else if ('Stored' in newObjectResp) {
-						assert.isDefined(this._userStateObjects, 'this._userStateObjects cannot be undefined, unless something went wrong with the call to the stateEP.');
+						assert.isDefined(
+							this._userStateObjects,
+							'this._userStateObjects cannot be undefined, unless something went wrong with the call to the stateEP.',
+						);
 						this._userStateObjects = newObjectResp.Stored.stored_objects;
 						return true;
 					} else {
@@ -716,11 +751,13 @@ export default class PHCServer {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/octet-stream',
-					Authorization: await this._getAuthToken(),
+					Authorization: (await this._getAuthToken()) ?? '',
 				},
-				body: object,
+				body: object as unknown as Uint8Array,
 			};
-			const overwriteObjectResp = await handleErrors<TPHC.StoreObjectResp>(() => this._phcAPI.api<TPHC.PHCStoreObjectResp>(this._phcAPI.apiURLS.overwriteObject + '/' + handle + '/' + hash, options));
+			const overwriteObjectResp = await handleErrors<TPHC.StoreObjectResp>(() =>
+				this._phcAPI.api<TPHC.PHCStoreObjectResp>(this._phcAPI.apiURLS.overwriteObject + '/' + handle + '/' + hash, options),
+			);
 			switch (overwriteObjectResp) {
 				case 'PleaseRetry':
 					if (attempts === maxAttempts) {
@@ -752,7 +789,10 @@ export default class PHCServer {
 					if ('QuotumReached' in overwriteObjectResp) {
 						throw new Error(`Could not store the new user object with handle ${handle}, because the quotum is reached.`);
 					} else if ('Stored' in overwriteObjectResp) {
-						assert.isDefined(this._userStateObjects, 'this._userStateObjects cannot be undefined, unless something went wrong with the call to the stateEP.');
+						assert.isDefined(
+							this._userStateObjects,
+							'this._userStateObjects cannot be undefined, unless something went wrong with the call to the stateEP.',
+						);
 						this._userStateObjects = overwriteObjectResp.Stored.stored_objects;
 						return true;
 					} else {
@@ -784,7 +824,10 @@ export default class PHCServer {
 		}
 		const storedObject = await this.getUserObject(handle);
 		assert.isNotNull(storedObject, `Could not retrieve the object with handle ${handle}, even though it seemed to be stored correctly.`);
-		assert.isNotNull(storedObject.object, `Could not retrieve the object with handle ${handle}, even though it seemed to be stored correctly and the object details were retrieved.`);
+		assert.isNotNull(
+			storedObject.object,
+			`Could not retrieve the object with handle ${handle}, even though it seemed to be stored correctly and the object details were retrieved.`,
+		);
 		assert.isTrue(this._buffersAreEqual(storedObject.object, data), `The data for the object with handle ${handle} was not correctly stored.`);
 		return true;
 	}
@@ -807,7 +850,7 @@ export default class PHCServer {
 
 	async pppEP() {
 		const options = {
-			headers: { Authorization: await this._getAuthToken() },
+			headers: { Authorization: (await this._getAuthToken()) ?? '' },
 			method: 'POST',
 		};
 		const okPppResp = await handleErrors<TPHC.PppResp>(() => this._phcAPI.api<TPHC.PHCPppResp>(this._phcAPI.apiURLS.polymorphicPseudonymPackage, options));
@@ -826,7 +869,7 @@ export default class PHCServer {
 			body: JSON.stringify(hhppReq),
 			headers: {
 				'Content-Type': 'application/json',
-				Authorization: await this._getAuthToken(),
+				Authorization: (await this._getAuthToken()) ?? '',
 			},
 			method: 'POST',
 		};

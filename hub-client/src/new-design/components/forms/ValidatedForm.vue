@@ -1,6 +1,9 @@
 <template>
-	<form class="validated-form relative flex flex-col gap-100" :class="isValidated ? 'validated' : ''">
-		<slot :isValidated="isValidated"></slot>
+	<form
+		class="validated-form relative flex flex-col gap-100"
+		:class="isValidated ? 'validated' : ''"
+	>
+		<slot :is-validated="isValidated" />
 	</form>
 </template>
 
@@ -8,13 +11,13 @@
 	// Types
 	type FieldType = {
 		changed: boolean;
-		model: any;
+		model: unknown;
 		name: string;
 		validated: boolean;
 	};
 </script>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, provide, ref } from 'vue';
 
@@ -28,12 +31,12 @@
 		},
 	);
 
-	const fields = ref<FieldType[]>([]);
-
 	// Lifecycle
 	const emit = defineEmits<{
 		(e: 'validated', value: boolean): void;
 	}>();
+
+	const fields = ref<FieldType[]>([]);
 
 	// Computed
 	const isValidated = computed(() => {
@@ -45,7 +48,7 @@
 		return result;
 	});
 
-	const addField = (name: string, model: any, changed: boolean, validated: boolean) => {
+	const addField = (name: string, model: unknown, changed: boolean, validated: boolean) => {
 		fields.value = [...fields.value, { name, model, changed, validated }];
 	};
 

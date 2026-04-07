@@ -1,11 +1,17 @@
 <template>
-	<span class="flex items-center gap-1" :title="pseudonym">
-		<Icon type="user-circle"></Icon>
-		<DisplayNameCompact :userId="userId" :userDisplayName="userDisplayName"></DisplayNameCompact>
+	<span
+		class="flex items-center gap-1"
+		:title="pseudonym"
+	>
+		<Icon type="user-circle" />
+		<DisplayNameCompact
+			:user-display-name="userDisplayName"
+			:user-id="userId"
+		/>
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 

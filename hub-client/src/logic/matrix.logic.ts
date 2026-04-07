@@ -1,6 +1,12 @@
 // Packages
 import { EventType } from 'matrix-js-sdk';
-import { type MSC3575List, type MSC3575RoomSubscription, MSC3575_STATE_KEY_LAZY, MSC3575_STATE_KEY_ME, MSC3575_WILDCARD } from 'matrix-js-sdk/lib/sliding-sync.js';
+import {
+	type MSC3575List,
+	type MSC3575RoomSubscription,
+	MSC3575_STATE_KEY_LAZY,
+	MSC3575_STATE_KEY_ME,
+	MSC3575_WILDCARD,
+} from 'matrix-js-sdk/lib/sliding-sync.js';
 
 import { MatrixEventType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
 

@@ -81,7 +81,7 @@ const sanitizeOptions = {
 	enforceHtmlBoundary: true,
 	nonBooleanAttributes: ['*'],
 
-	exclusiveFilter: function (frame: any) {
+	exclusiveFilter: function (frame: sanitize.IFrame) {
 		// Only allow images with Matrix URL
 		if (frame.tag === 'img') {
 			if (typeof frame.attribs.src === 'string') {

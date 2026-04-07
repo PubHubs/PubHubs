@@ -1,12 +1,15 @@
 <template>
-	<span class="block w-full truncate" :title="slotText">
-		<slot></slot>
+	<span
+		class="block w-full truncate"
+		:title="slotText"
+	>
+		<slot />
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { VNodeNormalizedChildren, computed, isVNode, useSlots } from 'vue';
+	import { type VNodeNormalizedChildren, computed, isVNode, useSlots } from 'vue';
 
 	const slots = useSlots();
 	const slotText = computed(() => {

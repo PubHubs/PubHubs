@@ -32,7 +32,7 @@ function useRoles() {
 	};
 
 	const getRoleByPowerLevel = (powerLevel: number): UserRole => {
-		if (powerLevel == UserPowerLevel.Admin) return UserRole.Admin;
+		if (powerLevel === UserPowerLevel.Admin) return UserRole.Admin;
 		if (powerLevel >= UserPowerLevel.SuperSteward) return UserRole.SuperSteward;
 		if (powerLevel >= UserPowerLevel.Steward) return UserRole.Steward;
 		if (powerLevel >= UserPowerLevel.Expert) return UserRole.Expert;

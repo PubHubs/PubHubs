@@ -1,17 +1,18 @@
 <template>
-	<span class="text-label-small flex text-nowrap" :title="formatted">
+	<span
+		class="text-label-small flex text-nowrap"
+		:title="formatted"
+	>
 		<span>{{ formatted }}</span>
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
 	// Composables
 	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
-
-	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 
 	const props = defineProps({
 		timestamp: {
@@ -27,6 +28,8 @@
 			default: false,
 		},
 	});
+
+	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 
 	const formatted = computed(() => {
 		if (props.timeForMsgPreview) {

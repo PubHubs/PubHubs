@@ -1,12 +1,15 @@
+// Packages
+import { Visibility } from 'matrix-js-sdk';
+
 // Model
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
-import { TEditRoom, TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
-import { SecuredRoomAttributes } from '@hub-client/models/rooms/TSecuredRoom';
-import { Attribute } from '@hub-client/models/yivi/Tyivi';
+import { type TEditRoom, type TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
+import { type SecuredRoomAttributes } from '@hub-client/models/rooms/TSecuredRoom';
+import { type Attribute } from '@hub-client/models/yivi/Tyivi';
 
 // Logic
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { TSecuredRoom, useRooms } from '@hub-client/stores/rooms';
+import { type TSecuredRoom, useRooms } from '@hub-client/stores/rooms';
 import { useYivi } from '@hub-client/stores/yivi';
 
 function useEditRoom() {
@@ -29,21 +32,27 @@ function useEditRoom() {
 			const newRoomOptions = {
 				name: room.name,
 				topic: room.topic,
-				visibility: 'public',
+				visibility: Visibility.Public,
 				creation_content: {
 					type: room.type === '' ? undefined : room.type,
 				},
 			};
 			await pubhubsStore.createRoom(newRoomOptions);
 		} else {
-			await pubhubsStore.renameRoom(room_id, room.name!);
-			await pubhubsStore.setTopic(room_id as string, room.topic!);
+			await pubhubsStore.renameRoom(room_id, room.name ?? '');
+			await pubhubsStore.setTopic(room_id as string, room.topic ?? '');
 		}
 	}
 	/**
 	 * Updates or creates a secured room with the given attributes.
 	 */
-	async function updateSecuredRoom(isNewRoom: boolean, room: TSecuredRoom, selectedAttributes: Array<TEditRoomFormAttributes>, attributeRemoved: boolean, room_id?: string) {
+	async function updateSecuredRoom(
+		isNewRoom: boolean,
+		room: TSecuredRoom,
+		selectedAttributes: Array<TEditRoomFormAttributes>,
+		attributeRemoved: boolean,
+		room_id?: string,
+	) {
 		const accepted = {} as SecuredRoomAttributes;
 
 		for (const attribute of selectedAttributes) {
@@ -66,12 +75,12 @@ function useEditRoom() {
 	/**
 	 * Returns two values as a tuple: the found yivi labels and the yivi secured attribute keys.
 	 */
-	function getYiviLabelsAndAttributes(accepted: SecuredRoomAttributes, t: (key: string, ...args: Attribute[]) => string): [string[], string[]] {
+	function getYiviLabelsAndAttributes(accepted: SecuredRoomAttributes, t: (key: string, ...args: unknown[]) => string): [string[], string[]] {
 		const attributes = Object.keys(accepted);
 		const yiviAttributes = yiviStore.getAttributes(t);
 		const labels = attributes.map((attrKey) => {
 			const found = yiviAttributes.find((attribute: Attribute) => attribute.attribute === attrKey);
-			return found ? found.label : attrKey;
+			return found?.label ?? attrKey;
 		});
 		return [labels, attributes];
 	}
@@ -79,7 +88,10 @@ function useEditRoom() {
 	 * Translates the selected attributes from labels to yivi attributes.
 	 * If a label is not found in the yivi attributes, it will set the attribute to the label itself.
 	 */
-	function translateYiviLabelsToAttributes(selectedAttributes: Array<TEditRoomFormAttributes>, t: (key: string, ...args: Attribute[]) => string): Array<TEditRoomFormAttributes> {
+	function translateYiviLabelsToAttributes(
+		selectedAttributes: Array<TEditRoomFormAttributes>,
+		t: (key: string, ...args: unknown[]) => string,
+	): Array<TEditRoomFormAttributes> {
 		for (const item of selectedAttributes) {
 			const found = yiviStore.getAttributes(t).find((attr: Attribute) => attr.label === item.label);
 			if (!found) item.attribute = item.label;

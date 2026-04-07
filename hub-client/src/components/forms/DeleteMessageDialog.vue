@@ -1,13 +1,32 @@
 <template>
-	<Dialog :title="$t('message.delete.heading')" :buttons="buttonsYesNo" @close="close($event)" width="max-w-full lg:max-w-[40%] min-w-[92.5%] lg:min-w-[22.5%]">
+	<Dialog
+		:buttons="buttonsYesNo"
+		:title="$t('message.delete.heading')"
+		width="max-w-full lg:max-w-[40%] min-w-[92.5%] lg:min-w-[22.5%]"
+		@close="close($event)"
+	>
 		<div v-if="!user.isAdmin && (event.content.msgtype === MsgType.File || event.content.msgtype === MsgType.Image)">
-			<p class="font-bold">{{ $t('message.delete.beware') }}</p>
-			<p class="mb-4 font-bold">{{ $t('message.delete.file_not_deleted') }}</p>
+			<p class="font-bold">
+				{{ $t('message.delete.beware') }}
+			</p>
+			<p class="mb-4 font-bold">
+				{{ $t('message.delete.file_not_deleted') }}
+			</p>
 		</div>
 		<Suspense>
 			<Mask>
-				<RoomMessageBubble :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread" />
-				<Reaction class="mx-4 w-5/6" v-if="displayReactionInDialog(event.event_id)" :reactEvent="displayReactionInDialog(event.event_id)" :messageEventId="event.event_id" />
+				<RoomMessageBubble
+					:delete-message-dialog="true"
+					:event="event"
+					:room="room"
+					:view-from-thread="props.viewFromThread"
+				/>
+				<Reaction
+					v-if="displayReactionInDialog(event.event_id)"
+					class="mx-4 w-5/6"
+					:message-event-id="event.event_id"
+					:react-event="displayReactionInDialog(event.event_id) ?? []"
+				/>
 			</Mask>
 			<template #fallback>
 				<p>{{ $t('state.loading_message') }}</p>
@@ -16,23 +35,20 @@
 	</Dialog>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import Reaction from '../ui/Reaction.vue';
-	import { MatrixEvent, MsgType } from 'matrix-js-sdk';
-	import { PropType } from 'vue';
+	import { type MatrixEvent, MsgType } from 'matrix-js-sdk';
+	import { type PropType } from 'vue';
 
 	// Components
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Stores
-	import { DialogButtonAction, buttonsYesNo } from '@hub-client/stores/dialog';
-	import { Room } from '@hub-client/stores/rooms';
+	import { type DialogButtonAction, buttonsYesNo } from '@hub-client/stores/dialog';
+	import { type Room } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
-
-	const user = useUser();
-	const emit = defineEmits(['yes', 'close']);
 
 	const props = defineProps({
 		event: {
@@ -52,7 +68,8 @@
 			required: true,
 		},
 	});
-
+	const emit = defineEmits(['yes', 'close']);
+	const user = useUser();
 	function displayReactionInDialog(eventId: string): MatrixEvent[] | undefined {
 		return props.room.getRelatedEvents(eventId).map((x) => x.matrixEvent);
 	}

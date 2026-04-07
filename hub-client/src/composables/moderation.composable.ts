@@ -1,17 +1,17 @@
-import { Direction, EventType, Filter, IRoomEvent, KnownMembership } from 'matrix-js-sdk';
+import { Direction, EventType, Filter, type IRoomEvent, KnownMembership } from 'matrix-js-sdk';
 import { computed, reactive, ref, watch, watchEffect } from 'vue';
 
 import { useSidebar } from '@hub-client/composables/useSidebar';
 
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
-import { RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
+import { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
 import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 import { useMessageActions } from '@hub-client/stores/message-actions';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { Room, useRooms } from '@hub-client/stores/rooms';
+import { type Room, useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
 
 type TPowerUser = {
@@ -43,7 +43,10 @@ function useModeration(room?: Room) {
 	const roomStore = useRooms();
 	const sidebar = useSidebar();
 	const messageActionsStore = useMessageActions();
-	const currentAdministrator = userStore.administrator!;
+	const currentAdministrator = userStore.administrator;
+	if (!currentAdministrator) {
+		throw new Error('Cannot use moderation composable without an administrator');
+	}
 	const stewardInvitations = ref<TStewardInvitation[]>([]);
 
 	const cardDialog = reactive<{
@@ -139,7 +142,9 @@ function useModeration(room?: Room) {
 			}),
 	);
 
-	const hasSanctionedMembers = computed(() => redCardMembers.value?.length > 0 || yellowCardMembers.value?.length > 0 || revokedRedCardMembers.value?.length > 0);
+	const hasSanctionedMembers = computed(
+		() => redCardMembers.value?.length > 0 || yellowCardMembers.value?.length > 0 || revokedRedCardMembers.value?.length > 0,
+	);
 
 	const canWhisperFromContextMenu = computed(() => {
 		const currentUserId = userStore.user?.userId;
@@ -174,12 +179,18 @@ function useModeration(room?: Room) {
 			const events = await pubhubsStore.client.createMessagesRequest(room.roomId, null, 50, Direction.Backward, eventFilter);
 			if (!events) return null;
 
-			const latestRequest = events.chunk.findLast((e: IRoomEvent) => e.content.msgtype === PubHubsMgType.AskDisclosureMessage && e.content.ask_disclosure_message.replyToRoomId === currentRoom.roomId);
+			const latestRequest = events.chunk.findLast(
+				(e: IRoomEvent) =>
+					e.content.msgtype === PubHubsMgType.AskDisclosureMessage && e.content.ask_disclosure_message.replyToRoomId === currentRoom.roomId,
+			);
 			if (!latestRequest) return null;
 
 			const userId = latestRequest.content.ask_disclosure_message.userId;
 			const userDisclosedMessage = events.chunk.findLast((e: IRoomEvent) => e.content.msgtype === PubHubsMgType.DisclosedMessage && e.sender === userId);
-			const attributes = userDisclosedMessage?.content.signed_message.disclosed.flat().map((a: any) => ({ id: a.id, rawvalue: a.rawvalue })) ?? null;
+			const attributes =
+				userDisclosedMessage?.content.signed_message.disclosed
+					.flat()
+					.map((a: { id: string; rawvalue: string }) => ({ id: a.id, rawvalue: a.rawvalue })) ?? null;
 
 			return {
 				userId,
@@ -269,7 +280,11 @@ function useModeration(room?: Room) {
 	const watchEffectCardAction = () =>
 		watchEffect(async () => {
 			const hasReceivedCard = membershipEvents.value.some(
-				(event) => (event.content.membership === KnownMembership.Leave || event.content.membership === KnownMembership.Ban) && event.state_key === userStore.userId && event.sender !== event.state_key && event.content.reason,
+				(event) =>
+					(event.content.membership === KnownMembership.Leave || event.content.membership === KnownMembership.Ban) &&
+					event.state_key === userStore.userId &&
+					event.sender !== event.state_key &&
+					event.content.reason,
 			);
 			const currentRoom = roomStore.currentRoom;
 

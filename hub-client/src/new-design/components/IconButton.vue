@@ -1,8 +1,16 @@
 <template>
-	<Button :variant="computedVariant" :icon="icon" :disabled="disabled" :title="title" :size="size" :ariaLabel="ariaLabel" :nofocus="nofocus"></Button>
+	<Button
+		:aria-label="ariaLabel"
+		:disabled="disabled"
+		:icon="icon"
+		:nofocus="nofocus"
+		:size="size"
+		:title="title"
+		:variant="computedVariant"
+	/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
@@ -21,9 +29,11 @@
 			variant?: TVariant;
 		}>(),
 		{
+			ariaLabel: undefined,
 			disabled: false,
 			nofocus: false,
 			size: 'base',
+			title: undefined,
 			variant: 'primary',
 		},
 	);

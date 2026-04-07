@@ -1,20 +1,28 @@
 <template>
 	<div>
 		<div class="flex justify-items-stretch">
-			<div class="flex-grow">
-				<slot name="title"></slot>
+			<div class="grow">
+				<slot name="title" />
 			</div>
 			<div>
-				<Icon :type="icon" :class="iconClass" class="cursor-pointer" @click="toggle()" />
+				<Icon
+					class="cursor-pointer"
+					:class="iconClass"
+					:type="icon"
+					@click="toggle()"
+				/>
 			</div>
 		</div>
 		<div>
-			<slot name="content" :state="toggleState"></slot>
+			<slot
+				name="content"
+				:state="toggleState"
+			/>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, ref } from 'vue';
 

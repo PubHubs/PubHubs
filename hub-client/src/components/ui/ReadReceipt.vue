@@ -1,21 +1,38 @@
 <template>
-	<span v-if="numOfUsersRead > 0" class="text-label -m-2.5 px-2.5 py-1.5 font-medium dark:text-white">
+	<span
+		v-if="numOfUsersRead > 0"
+		class="text-label -m-2.5 px-2.5 py-1.5 font-medium dark:text-white"
+	>
 		<!-- Tick icon  -->
-		<Icon type="check-circle" size="sm" class="mb-1 inline" />
+		<Icon
+			class="mb-1 inline"
+			size="sm"
+			type="check-circle"
+		/>
 
 		<!-- Shows the text eg., Read by followed by a number  -->
 		{{ numOfUsersRead > 0 ? $t('others.read_receipt') + ' ' + numOfUsersRead : ' ' }}
 
 		<!-- Icon of single user or two users depending on the number of users -->
-		<Icon v-if="numOfUsersRead === 1" type="user" size="sm" class="mb-1 inline"> </Icon>
-		<Icon v-if="numOfUsersRead > 1" type="users" size="sm" class="mb-1 inline"> </Icon>
+		<Icon
+			v-if="numOfUsersRead === 1"
+			class="mb-1 inline"
+			size="sm"
+			type="user"
+		/>
+		<Icon
+			v-if="numOfUsersRead > 1"
+			class="mb-1 inline"
+			size="sm"
+			type="users"
+		/>
 
 		<!-- If many users have read the message then + sign is shown -->
 		{{ numOfUsersRead > 2 ? '+' : '' }}
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { ref, watchEffect } from 'vue';
 
@@ -23,8 +40,6 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
-	const currentUser = useUser();
-	const rooms = useRooms();
 	const props = defineProps({
 		timestamp: {
 			type: Number,
@@ -35,7 +50,8 @@
 			required: true,
 		},
 	});
-
+	const currentUser = useUser();
+	const rooms = useRooms();
 	let numOfUsersRead = ref(0);
 
 	// Tracks reactive property accessed  with side effects

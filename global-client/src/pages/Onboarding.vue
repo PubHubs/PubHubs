@@ -2,24 +2,48 @@
 	<div class="flex w-full max-w-screen flex-col">
 		<AuthHeader />
 
-		<div class="h-[calc(100svh_-_80px)] overflow-y-auto">
+		<div class="h-[calc(100svh-80px)] overflow-y-auto">
 			<!-- Registration section -->
-			<section class="bg-background flex flex-col overflow-x-hidden" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)] gap-4 py-4' : 'gap-8 py-16'">
-				<div class="flex shrink-0 flex-col" :class="isMobile ? 'h-full gap-4' : 'gap-8'">
+			<section
+				class="bg-background flex flex-col overflow-x-hidden"
+				:class="isMobile ? 'h-[calc(100svh-7.5rem)] gap-4 py-4' : 'gap-8 py-16'"
+			>
+				<div
+					class="flex shrink-0 flex-col"
+					:class="isMobile ? 'h-full gap-4' : 'gap-8'"
+				>
 					<!-- Title -->
 					<div class="mx-auto w-full max-w-[80ch]">
-						<div class="flex flex-col gap-2" :class="isMobile && 'px-4'">
-							<P v-if="!isMobile" class="font-semibold">{{ $t('register.no_account_yet', [$t('common.app_name')]) }}</P>
+						<div
+							class="flex flex-col gap-2"
+							:class="isMobile && 'px-4'"
+						>
+							<P
+								v-if="!isMobile"
+								class="font-semibold"
+							>
+								{{ $t('register.no_account_yet', [$t('common.app_name')]) }}
+							</P>
 							<H1>{{ $t('register.register_3_steps', [$t('common.app_name')]) }}</H1>
 						</div>
 					</div>
 
 					<!-- Carousel -->
-					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_80px)]'">
+					<div
+						class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden"
+						:class="isMobile && 'max-h-[calc(100svh-80px)]'"
+					>
 						<!-- Mobile -->
-						<div v-if="isMobile" ref="carouselMobile" class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4">
+						<div
+							v-if="isMobile"
+							ref="carouselMobile"
+							class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4"
+						>
 							<!-- Card 1 -->
-							<CarouselCardMobile :index="0" @next="scrollTo">
+							<CarouselCardMobile
+								:index="0"
+								@next="scrollTo"
+							>
 								<template #title>
 									<H2>{{ $t('register.card_1_title', [$t('common.yivi')]) }}</H2>
 								</template>
@@ -27,15 +51,18 @@
 								<div class="flex h-full flex-col gap-2">
 									<P>{{ $t('register.card_1_text_1', [$t('common.app_name'), $t('common.yivi')]) }}</P>
 									<div class="flex h-full w-full items-center justify-center">
-										<div class="w-full"></div>
+										<div class="w-full" />
 										<DownloadLinks class="my-2 pr-8" />
-										<div class="w-full"></div>
+										<div class="w-full" />
 									</div>
 								</div>
 							</CarouselCardMobile>
 
 							<!-- Card 2 -->
-							<CarouselCardMobile :index="1" @next="scrollTo">
+							<CarouselCardMobile
+								:index="1"
+								@next="scrollTo"
+							>
 								<template #title>
 									<H2>{{ $t('register.card_2_title', [$t('common.yivi')]) }}</H2>
 								</template>
@@ -47,20 +74,29 @@
 
 								<template #image>
 									<figure class="flex h-full w-full items-center justify-center">
-										<img src="../assets/mascot-attributes.svg" class="object-cover" />
+										<img
+											class="object-cover"
+											src="../assets/mascot-attributes.svg"
+										/>
 									</figure>
 								</template>
 							</CarouselCardMobile>
 
 							<!-- Card 3 -->
-							<CarouselCardMobile :index="2" @next="scrollTo">
+							<CarouselCardMobile
+								:index="2"
+								@next="scrollTo"
+							>
 								<template #title>
 									<H2>{{ $t('register.card_3_title') }}</H2>
 								</template>
 
 								<div class="flex flex-col gap-2">
-									<div v-if="error" class="items-top bg-surface text-accent-error flex flex-row gap-x-2 rounded-xl py-2">
-										<Icon type="warning"></Icon>
+									<div
+										v-if="error"
+										class="items-top bg-surface text-accent-error flex flex-row gap-x-2 rounded-xl py-2"
+									>
+										<Icon type="warning" />
 										<P>{{ $t(error.key, error.values) }}</P>
 									</div>
 
@@ -69,7 +105,10 @@
 
 								<template #extra>
 									<div class="flex h-full w-full items-center justify-center">
-										<div id="yivi-authentication" class="aspect-square w-full"></div>
+										<div
+											id="yivi-authentication"
+											class="aspect-square w-full"
+										/>
 									</div>
 								</template>
 							</CarouselCardMobile>
@@ -80,10 +119,20 @@
 							v-else
 							ref="carouselDesktop"
 							class="no-scrollbar flex snap-x snap-mandatory gap-12 overflow-x-auto scroll-smooth py-6"
-							style="padding-left: max(1rem, calc(50vw - 40ch)); padding-right: max(1rem, calc(50vw - 40ch)); scroll-padding-left: max(1rem, calc(50vw - 40ch)); scroll-padding-right: max(1rem, calc(50vw - 40ch))"
+							style="
+								padding-left: max(1rem, calc(50vw - 40ch));
+								padding-right: max(1rem, calc(50vw - 40ch));
+								scroll-padding-left: max(1rem, calc(50vw - 40ch));
+								scroll-padding-right: max(1rem, calc(50vw - 40ch));
+							"
 						>
 							<!-- Card 1 -->
-							<CarouselCard :index="0" :active="currentIndex === 0" @next="scrollTo" :class="currentIndex !== 0 && 'pointer-events-none'">
+							<CarouselCard
+								:active="currentIndex === 0"
+								:class="currentIndex !== 0 && 'pointer-events-none'"
+								:index="0"
+								@next="scrollTo"
+							>
 								<template #title>
 									<H2>{{ $t('register.card_1_title', [$t('common.yivi')]) }}</H2>
 								</template>
@@ -97,13 +146,21 @@
 
 								<template #right>
 									<figure class="flex h-full w-full items-center justify-center">
-										<img src="../assets/laptop.svg" class="object-cover" />
+										<img
+											class="object-cover"
+											src="../assets/laptop.svg"
+										/>
 									</figure>
 								</template>
 							</CarouselCard>
 
 							<!-- Card 2 -->
-							<CarouselCard :index="1" :active="currentIndex === 1" @next="scrollTo" :class="currentIndex !== 1 && 'pointer-events-none'">
+							<CarouselCard
+								:active="currentIndex === 1"
+								:class="currentIndex !== 1 && 'pointer-events-none'"
+								:index="1"
+								@next="scrollTo"
+							>
 								<template #title>
 									<H2>{{ $t('register.card_2_title', [$t('common.yivi')]) }}</H2>
 								</template>
@@ -115,64 +172,94 @@
 
 								<template #right>
 									<figure class="flex h-full w-full items-center justify-center px-8 xl:px-24">
-										<img src="../assets/mascot-attributes.svg" class="object-cover" />
+										<img
+											class="object-cover"
+											src="../assets/mascot-attributes.svg"
+										/>
 									</figure>
 								</template>
 							</CarouselCard>
 
 							<!-- Card 3 -->
-							<CarouselCard :index="2" :active="currentIndex === 2" @next="scrollTo" :class="currentIndex !== 2 && 'pointer-events-none'">
+							<CarouselCard
+								:active="currentIndex === 2"
+								:class="currentIndex !== 2 && 'pointer-events-none'"
+								:index="2"
+								@next="scrollTo"
+							>
 								<template #title>
 									<H2>{{ $t('register.card_3_title') }}</H2>
 								</template>
 
 								<div class="flex flex-col gap-2">
 									<P>{{ $t('register.card_3_text_1') }}</P>
-									<P class="mb-6">{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
+									<P class="mb-6">
+										{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}
+									</P>
 
-									<div v-if="error" class="items-top bg-surface text-accent-error flex flex-row gap-x-4 rounded-xl py-2">
-										<Icon type="warning" class="mt-1"></Icon>
-										<P class="mt-1"> {{ $t(error.key, error.values) }}</P>
+									<div
+										v-if="error"
+										class="items-top bg-surface text-accent-error flex flex-row gap-x-4 rounded-xl py-2"
+									>
+										<Icon
+											class="mt-1"
+											type="warning"
+										/>
+										<P class="mt-1">
+											{{ $t(error.key, error.values) }}
+										</P>
 									</div>
 								</div>
 
 								<template #right>
 									<div class="flex h-full w-full items-center justify-center">
-										<div id="yivi-authentication" class="h-fit w-fit"></div>
+										<div
+											id="yivi-authentication"
+											class="h-fit w-fit"
+										/>
 									</div>
 								</template>
 							</CarouselCard>
 						</div>
 
 						<!-- Page Indicators -->
-						<div class="flex items-center justify-center gap-4" :class="isMobile ? 'py-0' : 'py-1'">
+						<div
+							class="flex items-center justify-center gap-4"
+							:class="isMobile ? 'py-0' : 'py-1'"
+						>
 							<div
 								v-for="(item, index) in items"
 								:key="index"
 								class="h-3 w-3 rounded-full transition-all duration-300"
 								:class="[currentIndex === index ? 'bg-accent-primary scale-110' : 'bg-surface-low', 'cursor-pointer']"
 								@click="scrollTo(index)"
-							></div>
+							/>
 						</div>
 					</div>
 				</div>
 			</section>
 
 			<!-- Yivi section -->
-			<section class="my-16 flex w-full flex-col items-center" :class="isMobile ? 'mb-16' : 'mb-32'">
+			<section
+				class="my-16 flex w-full flex-col items-center"
+				:class="isMobile ? 'mb-16' : 'mb-32'"
+			>
 				<div class="flex w-full max-w-[80ch] flex-col gap-8">
-					<div class="flex w-full" :class="isMobile && 'px-4'">
+					<div
+						class="flex w-full"
+						:class="isMobile && 'px-4'"
+					>
 						<H2>{{ $t('register.yivi_explained', [$t('common.yivi')]) }}</H2>
 					</div>
 					<iframe
-						:class="!isMobile && 'rounded-2xl'"
-						class="aspect-video w-full object-cover shadow-xl"
-						src="https://player.vimeo.com/video/807947893?badge=0&autopause=0&player_id=0&app_id=58479"
-						title="Vimeo video player"
-						frameborder="0"
 						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 						allowfullscreen
-					></iframe>
+						class="aspect-video w-full object-cover shadow-xl"
+						:class="!isMobile && 'rounded-2xl'"
+						frameborder="0"
+						src="https://player.vimeo.com/video/807947893?badge=0&autopause=0&player_id=0&app_id=58479"
+						title="Vimeo video player"
+					/>
 					<FaqSection />
 				</div>
 			</section>
@@ -180,7 +267,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -196,9 +283,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Logic
-	import { CONFIG } from '@hub-client/logic/logging/Config';
-	import { Logger } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { loginMethods } from '@global-client/models/MSS/TAuths';
@@ -219,7 +304,7 @@
 	const dialog = useDialog();
 
 	// Logging
-	const LOGGER = new Logger('GC', CONFIG);
+	const logger = createLogger('Onboarding');
 
 	// Reactive state
 	const isMobile = computed(() => settings.isMobileState);
@@ -328,7 +413,7 @@
 			}
 		} catch (error) {
 			router.push({ name: 'error' });
-			LOGGER.error(SMI.ERROR, 'Error during MSS Registration', { error });
+			logger.error('Error during MSS Registration', { error });
 		}
 	}
 	async function handleDuplicateAttributeError() {

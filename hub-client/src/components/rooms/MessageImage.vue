@@ -1,17 +1,21 @@
 <template>
 	<img
 		v-if="authMediaUrl?.url"
-		:alt="message.body"
-		:src="authMediaUrl.url"
-		class="max-h-[25rem] w-[20rem] cursor-pointer rounded-md object-contain"
-		@click.stop="showFullImage = true"
 		v-context-menu="
 			(evt: any) =>
 				openMenu(evt, [
 					{ label: t('menu.copy_image'), icon: 'copy', onClick: () => authMediaUrl?.url && imageActions.copyImage(authMediaUrl.url) },
-					{ label: t('menu.save_image'), icon: 'download-simple', onClick: () => authMediaUrl?.url && imageActions.saveImage(authMediaUrl.url, message.filename ?? message.body ?? 'image') },
+					{
+						label: t('menu.save_image'),
+						icon: 'download-simple',
+						onClick: () => authMediaUrl?.url && imageActions.saveImage(authMediaUrl.url, message.filename ?? message.body ?? 'image'),
+					},
 				])
 		"
+		:alt="message.body"
+		:src="authMediaUrl.url"
+		class="max-h-[25rem] w-xs cursor-pointer rounded-md object-contain"
+		@click.stop="showFullImage = true"
 	/>
 	<Teleport to="body">
 		<div
@@ -23,15 +27,31 @@
 			@contextmenu.prevent
 			@keydown.escape="showFullImage = false"
 		>
-			<img :alt="message.body" :src="authMediaUrl?.url" class="max-h-[90vh] max-w-[90vw] object-contain" />
-			<button class="absolute top-4 right-4 cursor-pointer text-white hover:text-gray-300" @click="showFullImage = false" :title="t('dialog.close')">
-				<Icon type="x" size="lg" />
+			<img
+				:alt="message.body"
+				:src="authMediaUrl?.url"
+				class="max-h-[90vh] max-w-[90vw] object-contain"
+			/>
+			<button
+				class="absolute top-4 right-4 cursor-pointer text-white hover:text-gray-300"
+				:title="t('dialog.close')"
+				@click="showFullImage = false"
+			>
+				<Icon
+					type="x"
+					size="lg"
+				/>
 			</button>
 		</div>
 	</Teleport>
-	<template v-if="message.body !== message.filename">
-		<p v-html="message.body" :class="{ 'text-on-surface-dim': deleted }" class="overflow-hidden text-ellipsis"></p>
-	</template>
+	<!-- eslint-disable vue/no-v-html -- sanitized message body -->
+	<p
+		v-if="message.body !== message.filename"
+		:class="{ 'text-on-surface-dim': deleted }"
+		class="overflow-hidden text-ellipsis"
+		v-html="message.body"
+	></p>
+	<!-- eslint-enable vue/no-v-html -->
 </template>
 
 <script setup lang="ts">
@@ -49,7 +69,7 @@
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 
 	// Models
-	import { TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -57,6 +77,7 @@
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
+	const props = defineProps<{ message: TImageMessageEventContent; deleted?: boolean }>();
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const matrixFiles = useMatrixFiles();
@@ -65,8 +86,6 @@
 	const showFullImage = ref(false);
 	const lightboxRef = ref<HTMLElement | null>(null);
 	const authMediaUrl = ref<BlobManager>();
-
-	const props = defineProps<{ message: TImageMessageEventContent; deleted?: boolean }>();
 
 	watch(showFullImage, async (show) => {
 		if (show) {

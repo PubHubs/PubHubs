@@ -1,14 +1,17 @@
 <template>
 	{{ $t('rooms.me') }} &amp;
-	<span v-for="(member, index) in members" :key="index">
+	<span
+		v-for="(member, index) in members"
+		:key="index"
+	>
 		<span v-if="index > 0"> &amp; </span>
 		{{ member.rawDisplayName }}
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Models
-	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+	import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 
 	defineProps({
 		members: {

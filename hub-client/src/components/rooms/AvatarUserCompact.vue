@@ -1,12 +1,15 @@
 <template>
-	<span class="flex items-center gap-1" :title="pseudonym">
-		<Icon type="user-circle"></Icon>
+	<span
+		class="flex items-center gap-1"
+		:title="pseudonym"
+	>
+		<Icon type="user-circle" />
 		<span v-if="userDisplayName">{{ userDisplayName }}</span>
 		<span>{{ pseudonym }}</span>
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 

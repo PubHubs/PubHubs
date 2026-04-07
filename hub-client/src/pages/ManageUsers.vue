@@ -1,51 +1,102 @@
 <template>
 	<!-- When user selects a user account, show UserInRoomsForm page-->
-	<UserInRoomsForm v-if="showUserInRoomForm" :administrator="currentAdministrator" :userId="selectedUserById" :displayName="selectedUserDisplayName" @close="closeUserRoomForm()" />
+	<UserInRoomsForm
+		v-if="showUserInRoomForm"
+		:administrator="currentAdministrator"
+		:display-name="selectedUserDisplayName!"
+		:user-id="selectedUserById!"
+		@close="closeUserRoomForm()"
+	/>
 
 	<HeaderFooter>
 		<template #header>
-			<div class="flex h-full items-center" :class="isMobile ? 'pl-4' : 'pl-0'">
+			<div
+				class="flex h-full items-center"
+				:class="isMobile ? 'pl-4' : 'pl-0'"
+			>
 				<div class="flex w-fit items-center gap-3 overflow-hidden">
 					<Icon type="users" />
-					<H3 class="font-headings text-h3 text-on-surface font-semibold">{{ t('menu.admin_tools_users') }}</H3>
+					<H3 class="font-headings text-h3 text-on-surface font-semibold">
+						{{ t('menu.admin_tools_users') }}
+					</H3>
 				</div>
 			</div>
 		</template>
 
 		<div class="p-3 md:p-4">
 			<!-- Reload button gets new user account if someone creates an account when this page is opened-->
-			<Button class="mb-4 flex max-h-[30px] w-32 rounded-xl" @click="ManagementUtils.getUsersAccounts()">
+			<Button
+				class="mb-4 flex max-h-[30px] w-32 rounded-xl"
+				@click="ManagementUtils.getUsersAccounts()"
+			>
 				<div class="flex items-center gap-2 text-xl">
-					<Icon type="arrow-counter-clockwise" size="sm" />
+					<Icon
+						size="sm"
+						type="arrow-counter-clockwise"
+					/>
 					<span class="text-label flex">{{ t('admin.reload') }}</span>
 				</div>
 			</Button>
 
 			<!---List all users accounts -->
-			<FilteredList :items="hubUsers" :filterKey="['displayname', 'name']" sortby="displayname" :placeholder="$t('others.filter_users')">
+			<FilteredList
+				:filter-key="['displayname', 'name']"
+				:items="hubUsers as unknown as Array<Record<string, unknown>>"
+				:placeholder="$t('others.filter_users')"
+				sortby="displayname"
+			>
 				<template #item="{ item }">
-					<div class="hover:bg-surface-low md:gap-8p box-border flex w-full justify-between gap-4 rounded-2xl px-2 py-1 hover:cursor-pointer" :title="item.room_id" @click="selectUser(item.name, item.displayname)">
+					<div
+						class="hover:bg-surface-low md:gap-8p box-border flex w-full justify-between gap-4 rounded-2xl px-2 py-1 hover:cursor-pointer"
+						:title="asUserAccount(item).name"
+						@click="selectUser(asUserAccount(item).name, asUserAccount(item).displayname)"
+					>
 						<div class="flex min-w-0 flex-1 items-center gap-4">
-							<Avatar :avatar-url="user.userAvatar(item.name)" :user-id="item.name"></Avatar>
-							<p class="w-full min-w-0 truncate font-semibold">{{ item.displayname }}</p>
-							<p class="text-on-surface-dim w-full min-w-0 truncate italic">{{ item.name }}</p>
-							<RoomBadge v-if="!isMobile" :user="item.name" :room_id="item.room_id" :is-hub-admin="item.admin" />
+							<Avatar
+								:avatar-url="user.userAvatar(asUserAccount(item).name)"
+								:user-id="asUserAccount(item).name"
+							/>
+							<p class="w-full min-w-0 truncate font-semibold">
+								{{ asUserAccount(item).displayname }}
+							</p>
+							<p class="text-on-surface-dim w-full min-w-0 truncate italic">
+								{{ asUserAccount(item).name }}
+							</p>
+							<RoomBadge
+								v-if="!isMobile"
+								:is-hub-admin="asUserAccount(item).admin"
+								:room-id="asUserAccount(item).name"
+								:user="asUserAccount(item).name"
+							/>
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
-								<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" @click.stop="selectUser(item.name, item.displayname)" />
-								<Icon v-if="item.name !== user.userId" type="lock-open" class="hover:text-accent-primary hover:cursor-pointer" @click.stop="openAskDisclosureForm(item)" />
+								<Icon
+									class="hover:text-accent-primary hover:cursor-pointer"
+									type="pencil-simple"
+									@click.stop="selectUser(asUserAccount(item).name, asUserAccount(item).displayname)"
+								/>
+								<Icon
+									v-if="asUserAccount(item).name !== user.userId"
+									class="hover:text-accent-primary hover:cursor-pointer"
+									type="lock-open"
+									@click.stop="openAskDisclosureForm(asUserAccount(item))"
+								/>
 							</div>
 						</div>
 					</div>
 				</template>
 			</FilteredList>
-			<DisclosureRequestForm v-if="showAskDisclosureAttrsForm && selectedUser" :user="selectedUser" @close="closeAskDisclosureForm" />
+			<DisclosureRequestForm
+				v-if="showAskDisclosureAttrsForm && selectedUser"
+				:user="selectedUser"
+				@close="closeAskDisclosureForm"
+			/>
 		</div>
 	</HeaderFooter>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -59,8 +110,9 @@
 	import FilteredList from '@hub-client/components/ui/FilteredList.vue';
 
 	// Models
+	import { type Administrator } from '@hub-client/models/hubmanagement/models/admin';
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
-	import { TUserAccount } from '@hub-client/models/users/TUser';
+	import { type TUserAccount } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
@@ -80,7 +132,11 @@
 
 	// This will not be null if we are routed to this page.
 	// See router.vue for manageUser page. It always has a valid admin object if user is an admin.
-	const currentAdministrator = user.administrator!;
+	const currentAdministrator = user.administrator as unknown as Administrator;
+
+	function asUserAccount(item: Record<string, unknown>): TUserAccount {
+		return item as unknown as TUserAccount;
+	}
 
 	function openAskDisclosureForm(item: TUserAccount) {
 		selectedUser.value = item;
