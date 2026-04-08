@@ -44,9 +44,6 @@ function useModeration(room?: Room) {
 	const sidebar = useSidebar();
 	const messageActionsStore = useMessageActions();
 	const currentAdministrator = userStore.administrator;
-	if (!currentAdministrator) {
-		throw new Error('Cannot use moderation composable without an administrator');
-	}
 	const stewardInvitations = ref<TStewardInvitation[]>([]);
 
 	const cardDialog = reactive<{
@@ -207,9 +204,15 @@ function useModeration(room?: Room) {
 		stewardInvitations.value = (await Promise.all(eventPromises)).filter(Boolean) as TStewardInvitation[];
 	};
 
-	const promoteToSteward = (userId: string, roomId: string) => currentAdministrator.changePermission(userId, roomId, UserPowerLevel.Steward);
+	const promoteToSteward = (userId: string, roomId: string) => {
+		if (!currentAdministrator) return;
+		currentAdministrator.changePermission(userId, roomId, UserPowerLevel.Steward);
+	};
 
-	const demoteToNonPowerMember = (userId: string, roomId: string) => currentAdministrator.changePermission(userId, roomId, UserPowerLevel.User);
+	const demoteToNonPowerMember = (userId: string, roomId: string) => {
+		if (!currentAdministrator) return;
+		currentAdministrator.changePermission(userId, roomId, UserPowerLevel.User);
+	};
 
 	const contactSteward = () => {
 		const currentRoom = getCurrentRoom();
@@ -219,7 +222,7 @@ function useModeration(room?: Room) {
 	};
 
 	const onPromoteToSteward = async (stewardInvite: TStewardInvitation) => {
-		await promoteToSteward(stewardInvite.userId, stewardInvite.roomId);
+		promoteToSteward(stewardInvite.userId, stewardInvite.roomId);
 		removeStewardInvite(stewardInvite);
 	};
 
