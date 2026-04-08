@@ -1,11 +1,14 @@
 <template>
 	<!-- Desktop search component -->
-	<div class="bg-background hidden items-center justify-end rounded-md md:flex" v-click-outside="reset">
+	<div
+		v-click-outside="reset"
+		class="bg-background hidden items-center justify-end rounded-md md:flex"
+	>
 		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
 			<input
+				v-model="value"
 				class="~text-label-small-min/label-small-max placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				type="text"
-				v-model="value"
 				:placeholder="$t('others.search_room')"
 				:title="$t('others.search_room')"
 				@keydown="
@@ -20,19 +23,31 @@
 				"
 			/>
 
-			<button @click="search()"><Icon type="search" class="bg-background text-accent-secondary dark:text-on-surface-variant rounded-md p-2" size="sm" /></button>
+			<button @click="search()">
+				<Icon
+					type="search"
+					class="bg-background text-accent-secondary dark:text-on-surface-variant rounded-md p-2"
+					size="sm"
+				/>
+			</button>
 		</div>
 	</div>
 
 	<!-- Mobile search component. -->
 	<div class="bg-background flex items-center justify-end rounded-md md:hidden">
 		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
-			<Icon v-if="!isExpanded" type="search" class="text-accent-secondary dark:text-on-surface-variant cursor-pointer p-2" size="sm" @click="toggleSearch" />
+			<Icon
+				v-if="!isExpanded"
+				type="search"
+				class="text-accent-secondary dark:text-on-surface-variant cursor-pointer p-2"
+				size="sm"
+				@click="toggleSearch"
+			/>
 			<input
 				v-if="isExpanded"
+				v-model="value"
 				class="~text-label-small-min/label-small-max placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				type="text"
-				v-model="value"
 				:placeholder="$t('others.search_room')"
 				:title="$t('others.search_room')"
 				@keydown="
@@ -46,17 +61,40 @@
 					toggleSearch();
 				"
 			/>
-			<button v-if="isExpanded" @click.stop="search()" @click="toggleSearch"><Icon type="search" class="bg-background text-accent-secondary dark:text-on-surface-variant rounded-md p-2" size="sm" /></button>
+			<button
+				v-if="isExpanded"
+				@click.stop="search()"
+				@click="toggleSearch"
+			>
+				<Icon
+					type="search"
+					class="bg-background text-accent-secondary dark:text-on-surface-variant rounded-md p-2"
+					size="sm"
+				/>
+			</button>
 		</div>
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="bg-surface-low absolute top-16 right-0 z-50 w-full overflow-y-auto rounded-md md:top-20 md:w-[15vw] md:w-[20vw]">
+	<div
+		v-if="searched"
+		class="bg-surface-low absolute top-16 right-0 z-50 w-full overflow-y-auto rounded-md md:top-20 md:w-[15vw] md:w-[20vw]"
+	>
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
-			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
-				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
+			<div
+				v-for="item in searchResultsToShow"
+				:key="item.event_id"
+				class="group"
+			>
+				<a
+					href="#"
+					@click.prevent="onScrollToEventId(item.event_id, item.event_threadId)"
+				>
 					<div class="group-hover:bg-surface flex items-center gap-2 p-2">
-						<Avatar :user="room?.getMember(item.event_sender, true)" class="h-8 w-8 flex-none" />
+						<Avatar
+							:user="room?.getMember(item.event_sender, true)"
+							class="h-8 w-8 flex-none"
+						/>
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>
 				</a>
@@ -67,7 +105,10 @@
 			<p>{{ $t('others.searching') }}</p>
 		</template>
 		<template v-else>
-			<p v-if="value !== ''" class="p-2">
+			<p
+				v-if="value !== ''"
+				class="p-2"
+			>
 				{{ $t('others.search_nothing_found') }}
 			</p>
 		</template>
@@ -76,10 +117,8 @@
 
 <script setup lang="ts">
 	// Components
-	import { RoomEmit } from '@/model/constants';
-	import { TSearchParameters, TSearchResult } from '@/model/search/TSearch';
-	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
-	import { PropType, computed, ref } from 'vue';
+	import { type ISearchResults, type SearchResult } from 'matrix-js-sdk';
+	import { type PropType, computed, ref } from 'vue';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
@@ -90,13 +129,12 @@
 
 	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
 
+	import { RoomEmit } from '@hub-client/models/constants';
 	import Room from '@hub-client/models/rooms/Room';
+	import { type TSearchParameters, type TSearchResult } from '@hub-client/models/search/TSearch';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/store';
-
-	const pubhubs = usePubhubsStore();
-	const rooms = useRooms();
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	//Passed by the parentcomponent
 	const props = defineProps({
@@ -106,13 +144,15 @@
 		},
 		room: Room,
 	});
+	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId]);
+	const pubhubs = usePubhubsStore();
+	const rooms = useRooms();
 
 	const searchResults = ref<TSearchResult[]>([]);
 	const searched = ref(false);
 	const isSearching = ref(false);
 	let searchResponse: ISearchResults | undefined = undefined;
 
-	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId]);
 	const { value, changed, cancel } = useFormInputEvents(emit);
 
 	const isExpanded = ref(false);
@@ -147,6 +187,7 @@
 			searchResponse = await pubhubs.searchRoomEvents(value.value as string, props.searchParameters);
 		} catch (err) {
 			isSearching.value = false;
+			// eslint-disable-next-line -- temp code
 			console.error('An error occurred while searching the room: ', err);
 		}
 
@@ -174,7 +215,7 @@
 
 	function mapSearchResult(results: SearchResult[]): TSearchResult[] {
 		const maxNumberOfWordsInSearchResult = 10;
-		if (!results || results.length == 0) {
+		if (!results || results.length === 0) {
 			return [];
 		}
 		let mappedResults = results

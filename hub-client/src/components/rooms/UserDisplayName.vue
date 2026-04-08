@@ -1,16 +1,30 @@
 <template>
-	<span class="flex items-center gap-x-2 truncate" :title="displayTitle">
+	<span
+		class="flex items-center gap-x-2 truncate"
+		:title="displayTitle"
+	>
 		<!-- Display Name -->
-		<span v-if="showDisplayName" data-testid="display-name" class="text-label-large truncate font-semibold" :class="displayNameClasses">
+		<span
+			v-if="showDisplayName"
+			class="text-label-large truncate font-semibold"
+			:class="displayNameClasses"
+			data-testid="display-name"
+		>
 			{{ truncatedDisplayName }}
 		</span>
 
 		<!-- Pseudonym -->
-		<span v-if="showPseudonym" class="text-label-small text-on-surface-dim text-nowrap" :class="pseudonymClasses"> {{ pseudonym }} </span>
+		<span
+			v-if="showPseudonym"
+			class="text-label-small text-on-surface-dim text-nowrap"
+			:class="pseudonymClasses"
+		>
+			{{ pseudonym }}
+		</span>
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
@@ -23,6 +37,12 @@
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
+	const props = withDefaults(defineProps<Props>(), {
+		showDisplayName: true,
+		showPseudonym: true,
+		chooseColor: true,
+		userDisplayName: '',
+	});
 	const { color, textColor } = useUserColor();
 	const settings = useSettings();
 
@@ -33,13 +53,6 @@
 		showPseudonym?: boolean;
 		chooseColor?: boolean;
 	}
-
-	const props = withDefaults(defineProps<Props>(), {
-		showDisplayName: true,
-		showPseudonym: true,
-		chooseColor: true,
-		userDisplayName: '',
-	});
 
 	// get Pseudonym
 	const pseudonym = computed(() => {

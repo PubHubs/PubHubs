@@ -15,7 +15,10 @@ const routes = [
 		path: '/error',
 		name: 'error',
 		component: () => import('@global-client/pages/ErrorPage.vue'),
-		props: (route: { query: { errorKey: String; errorValues: Array<String | Number> } }) => ({ errorKey: route.query.errorKey || 'errors.general_error', errorValues: route.query.errorValues || [] }),
+		props: (route: { query: { errorKey: string; errorValues: Array<string | number> } }) => ({
+			errorKey: route.query.errorKey || 'errors.general_error',
+			errorValues: route.query.errorValues || [],
+		}),
 		meta: { requiresAuth: false },
 	},
 ];

@@ -1,12 +1,30 @@
 <template>
 	<div class="relative h-600">
-		<img :src="imageUrl" class="h-600 cursor-pointer rounded-xl bg-cover bg-center object-contain" @click.stop="showFullImage = true" />
+		<img
+			:src="imageUrl"
+			class="h-600 cursor-pointer rounded-xl bg-cover bg-center object-contain"
+			@click.stop="showFullImage = true"
+		/>
 		<div class="absolute -top-300 -right-300">
-			<Button icon="x" variant="errorIcon" size="sm" @click.stop="$emit('remove')" title="Remove image"></Button>
+			<Button
+				icon="x"
+				variant="errorIcon"
+				size="sm"
+				title="Remove image"
+				@click.stop="$emit('remove')"
+			></Button>
 		</div>
 	</div>
-	<Popover v-if="showFullImage" @close="showFullImage = false" class="fixed top-0 left-0 z-50 flex h-screen w-screen" :show-closing-cross="true">
-		<img :src="imageUrl" class="m-auto h-4/5 w-4/5 object-contain" />
+	<Popover
+		v-if="showFullImage"
+		class="fixed top-0 left-0 z-50 flex h-screen w-screen"
+		:show-closing-cross="true"
+		@close="showFullImage = false"
+	>
+		<img
+			:src="imageUrl"
+			class="m-auto h-4/5 w-4/5 object-contain"
+		/>
 	</Popover>
 </template>
 
@@ -17,8 +35,8 @@
 
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-	import { TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { type TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
 
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 

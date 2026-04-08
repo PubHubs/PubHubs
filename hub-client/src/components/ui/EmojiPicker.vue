@@ -1,9 +1,27 @@
 <template>
-	<div class="bg-surface flex h-[30rem] w-full max-w-[30rem] flex-col rounded-2xl p-4" v-click-outside="close">
-		<input class="bg-background text-on-surface text-label placeholder:text-on-surface-dim w-full rounded-md border-none py-2" v-model="searchQuery" type="text" :placeholder="$t('others.search')" />
+	<div
+		v-click-outside="close"
+		class="bg-surface flex h-[30rem] w-full max-w-[30rem] flex-col rounded-2xl p-4"
+	>
+		<input
+			v-model="searchQuery"
+			class="bg-background text-on-surface text-label placeholder:text-on-surface-dim w-full rounded-md border-none py-2"
+			:placeholder="$t('others.search')"
+			type="text"
+		/>
 		<div class="flex flex-row justify-between border-b py-3">
-			<template v-for="(image, index) in imageList" :key="index">
-				<Icon :class="{ 'border-b-2': selectedGroup === index }" @click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)" v-if="index !== 1" :type="image" size="md" class="cursor-pointer" />
+			<template
+				v-for="(image, index) in imageList"
+				:key="index"
+			>
+				<Icon
+					v-if="index !== 1"
+					class="cursor-pointer"
+					:class="{ 'border-b-2': selectedGroup === index }"
+					size="md"
+					:type="image"
+					@click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)"
+				/>
 			</template>
 		</div>
 		<p>
@@ -11,31 +29,39 @@
 		</p>
 
 		<div class="scrollbar emoji-font flex flex-wrap gap-2 overflow-y-auto pr-2">
-			<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="text-body-min/base-max flex cursor-pointer items-center justify-center overflow-hidden">
+			<span
+				v-for="emoji in filterEmojis"
+				:key="emoji.hexcode"
+				class="text-body-min/base-max flex cursor-pointer items-center justify-center overflow-hidden"
+				@click="selectEmoji(emoji)"
+			>
 				{{ emoji.emoji }}
 			</span>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { Emoji } from 'emojibase';
+	import { type Emoji } from 'emojibase';
 	import { computed, onMounted, ref } from 'vue';
 
 	// Locales
 	import emojiData from '@hub-client/locales/emojidata';
 
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
+
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
+	const emit = defineEmits(['close', 'emojiSelected']);
+	const logger = createLogger('EmojiPicker');
 	const settings = useSettings();
 	const language = settings.getActiveLanguage;
 	const emojis = ref([] as Emoji[]);
 	const searchQuery = ref('');
 	const selectedGroup = ref(0);
-	const emit = defineEmits(['close', 'emojiSelected']);
-
 	// Update this with new icons.
 	const imageList = [
 		'clock',
@@ -55,7 +81,7 @@
 		if (data) {
 			emojis.value = data.filter((emoji) => !emoji.label.includes('regional'));
 		} else {
-			console.error(`No emoji data available for language "${language}"`);
+			logger.error(`No emoji data available for language "${language}"`);
 		}
 	});
 

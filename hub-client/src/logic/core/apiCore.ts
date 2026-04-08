@@ -6,7 +6,7 @@ interface ApiUrls {
 interface ApiOptions {
 	method: string;
 	body?: string | Uint8Array;
-	headers?: any;
+	headers?: Record<string, string>;
 }
 
 interface AllApiOptions {
@@ -71,8 +71,8 @@ class Api {
 					throw new Error(json.errors);
 				}
 				throw new Error(result);
-			} catch (error: any) {
-				throw new Error(error);
+			} catch (error: unknown) {
+				throw new Error(error instanceof Error ? error.message : String(error));
 			}
 		}
 		this.fetchEtagFromHeaders(response.headers);
@@ -103,13 +103,13 @@ class Api {
 		return this.api<T>(url, this.options.GET);
 	}
 
-	async apiPOST<T>(url: string, data: any): Promise<T> {
+	async apiPOST<T>(url: string, data: unknown): Promise<T> {
 		const options = this.options.POST;
 		options.body = JSON.stringify(data);
 		return this.api<T>(url, options);
 	}
 
-	async apiPUT<T>(url: string, data: any, etag: boolean = false): Promise<T> {
+	async apiPUT<T>(url: string, data: unknown, etag: boolean = false): Promise<T> {
 		const options = this.options.PUT;
 		options.headers = {
 			'Content-Type': 'application/octet-stream',
@@ -124,7 +124,7 @@ class Api {
 		return this.api<T>(url, options);
 	}
 
-	async apiDELETE<T>(url: string, data?: any): Promise<T> {
+	async apiDELETE<T>(url: string, data?: unknown): Promise<T> {
 		const options = this.options.DELETE;
 		if (typeof data !== 'undefined') {
 			options.body = JSON.stringify(data);

@@ -1,18 +1,47 @@
 <template>
 	<div class="flex h-full flex-col">
 		<!-- Shared Header -->
-		<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'" data-testid="roomheader">
+		<div
+			class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8"
+			:class="isMobile ? 'pl-12' : 'pl-8'"
+			data-testid="roomheader"
+		>
 			<!-- Left: Room info -->
-			<div v-if="rooms.currentRoom" class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden" data-testid="roomtype">
-				<Icon type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'room', params: { id: currentRoom.roomId } })" />
-				<div class="group relative" :class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'" :title="t('menu.copy_room_url')" @click="!rooms.currentRoom.isDirectMessageRoom() && copyRoomUrl">
+			<div
+				v-if="rooms.currentRoom"
+				class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden"
+				data-testid="roomtype"
+			>
+				<Icon
+					type="caret-left"
+					data-testid="back"
+					class="cursor-pointer"
+					@click="router.push({ name: 'room', params: { id: currentRoom.roomId } })"
+				/>
+				<div
+					class="group relative"
+					:class="!rooms.currentRoom.isDirectMessageRoom() && 'hover:cursor-pointer'"
+					:title="t('menu.copy_room_url')"
+					@click="!rooms.currentRoom.isDirectMessageRoom() && copyRoomUrl"
+				>
 					<H3 class="text-on-surface flex">
 						<TruncatedText class="font-headings font-semibold">
-							<RoomName :room="rooms.currentRoom" :title="t('menu.copy_room_url')" />
+							<RoomName
+								:room="rooms.currentRoom"
+								:title="t('menu.copy_room_url')"
+							/>
 						</TruncatedText>
 					</H3>
-					<span v-if="topic.closed" class="text-center align-middle text-3xl font-bold">This topic is closed</span>
-					<Icon type="copy" size="sm" class="text-on-surface-dim group-hover:text-on-surface absolute top-0 -right-2" />
+					<span
+						v-if="topic.closed"
+						class="text-center align-middle text-3xl font-bold"
+						>This topic is closed</span
+					>
+					<Icon
+						type="copy"
+						size="sm"
+						class="text-on-surface-dim group-hover:text-on-surface absolute top-0 -right-2"
+					/>
 				</div>
 			</div>
 
@@ -29,18 +58,49 @@
 
 		<!-- Content row: Timeline + Sidebar -->
 		<div class="flex flex-1 overflow-hidden">
-			<div v-if="topic" class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-				<TopicItem :topic="topic" :room="currentRoom" :current-user="currentUser" :main-topic="topic" />
-				<LabelWithDescription class="ml-5" label-class="text-3xl"> Answers: {{ replies?.length }} </LabelWithDescription>
+			<div
+				v-if="topic"
+				class="flex h-full min-w-0 flex-1 flex-col overflow-hidden"
+			>
+				<TopicItem
+					:topic="topic"
+					:room="currentRoom"
+					:current-user="currentUser"
+					:main-topic="topic"
+				/>
+				<LabelWithDescription
+					class="ml-5"
+					label-class="text-3xl"
+				>
+					Answers: {{ replies?.length }}
+				</LabelWithDescription>
 				<div>
-					<TopicItem v-for="reply in replies" :key="reply.eventId" :topic="reply" :room="currentRoom" :current-user="currentUser" :replies="true" :main-topic="topic" />
+					<TopicItem
+						v-for="reply in replies"
+						:key="reply.eventId"
+						:topic="reply"
+						:room="currentRoom"
+						:current-user="currentUser"
+						:replies="true"
+						:main-topic="topic"
+					/>
 				</div>
 			</div>
 
 			<!-- Room sidebar -->
-			<RoomSidebar :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value">
-				<RoomMemberList v-if="sidebar.activeTab.value === SidebarTab.Members" :room="room!" />
-				<RoomSearch v-if="sidebar.activeTab.value === SidebarTab.Search" :room="room!" @scroll-to-event-id="onScrollToEventId" />
+			<RoomSidebar
+				:active-tab="sidebar.activeTab.value"
+				:is-mobile="sidebar.isMobile.value"
+			>
+				<RoomMemberList
+					v-if="sidebar.activeTab.value === SidebarTab.Members"
+					:room="room!"
+				/>
+				<RoomSearch
+					v-if="sidebar.activeTab.value === SidebarTab.Search"
+					:room="room!"
+					@scroll-to-event-id="onScrollToEventId"
+				/>
 			</RoomSidebar>
 		</div>
 	</div>
@@ -64,7 +124,7 @@
 
 	import { useForumStore } from '@hub-client/stores/forum/forumStore';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	//import { FILTER_STATE, useFilterStore } from '@/plugins/PluginRoomTypeForum/core/filterStore';

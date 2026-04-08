@@ -1,20 +1,26 @@
 <template>
 	<div class="relative">
-		<div class="bg-blue hover:bg-blue-dark relative z-10 flex cursor-pointer justify-items-stretch rounded-md p-2 text-white" @click="toggle()">
+		<div
+			class="bg-blue hover:bg-blue-dark relative z-10 flex cursor-pointer justify-items-stretch rounded-md p-2 text-white"
+			@click="toggle()"
+		>
 			<div>
-				<Icon :type="collapsed ? 'chevron-right' : 'chevron-down'"></Icon>
+				<Icon :type="collapsed ? 'chevron-right' : 'chevron-down'" />
 			</div>
-			<div class="flex-grow">
-				<slot name="header"></slot>
+			<div class="grow">
+				<slot name="header" />
 			</div>
 		</div>
-		<div v-show="!collapsed" class="-z-10 -mt-2 rounded-md border p-2">
-			<slot></slot>
+		<div
+			v-show="!collapsed"
+			class="-z-10 -mt-2 rounded-md border p-2"
+		>
+			<slot />
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
 

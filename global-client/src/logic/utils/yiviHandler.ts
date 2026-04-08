@@ -1,17 +1,21 @@
 // Packages
-// @ts-expect-error
+// @ts-expect-error -- yivi-client has no type declarations
 import yiviClient from '@privacybydesign/yivi-client';
-// @ts-expect-error
+// @ts-expect-error -- yivi-core has no type declarations
 import yiviCore from '@privacybydesign/yivi-core';
-// @ts-expect-error
+// @ts-expect-error -- yivi-web has no type declarations
 import yiviWeb from '@privacybydesign/yivi-web';
-import { Ref } from 'vue';
+import { type Ref } from 'vue';
 
 // Assets
 import '@hub-client/assets/yivi.min.css';
 
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
 // Stores
 import { useSettings } from '@hub-client/stores/settings';
+
+const logger = createLogger('YiviHandler');
 
 const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 	const settings = useSettings();
@@ -36,13 +40,13 @@ const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 		session.use(yiviWeb);
 		session.use(yiviClient);
 	} catch (initError) {
-		console.error('Yivi initialization failed:', initError);
+		logger.error('Yivi initialization failed:', initError);
 		throw initError;
 	}
 
 	session
 		.start()
-		.then((result: any) => {
+		.then((result: { sessionToken?: string }) => {
 			if (!result || !result.sessionToken) {
 				throw new Error('Missing sessionToken in Yivi response');
 			}
@@ -61,8 +65,8 @@ const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 
 			form.submit();
 		})
-		.catch((startError: any) => {
-			console.info('Yivi session failed:', startError);
+		.catch((startError: unknown) => {
+			logger.info('Yivi session failed:', startError);
 		});
 };
 
@@ -89,7 +93,7 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 		yivi.use(yiviWeb);
 		yivi.use(yiviClient);
 	} catch (initError) {
-		console.error('Yivi initialization failed:', initError);
+		logger.error('Yivi initialization failed:', initError);
 		throw initError;
 	}
 
@@ -105,8 +109,8 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 				throw new Error(`Could not retrieve the Yivi JWT: ${errorText}`);
 			}
 		})
-		.catch((startError: any) => {
-			console.error('Yivi session failed:', startError);
+		.catch((startError: unknown) => {
+			logger.error('Yivi session failed:', startError);
 		});
 };
 

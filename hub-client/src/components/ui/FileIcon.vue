@@ -1,17 +1,23 @@
 <template>
-	<Icon v-if="isImage(filename)" type="image-square"></Icon>
-	<Icon v-else type="file"></Icon>
+	<Icon
+		v-if="isImage(filename)"
+		type="image-square"
+	/>
+	<Icon
+		v-else
+		type="file"
+	/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-	const { isImage } = useMatrixFiles();
-
-	const props = defineProps({
+	defineProps({
 		filename: {
 			type: String,
 			required: true,
 		},
 	});
+
+	const { isImage } = useMatrixFiles();
 </script>

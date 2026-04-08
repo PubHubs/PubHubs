@@ -1,11 +1,15 @@
 <template>
 	<div class="flex flex-row items-center gap-1 wrap-break-word">
-		<Button @click="togglePostsFilter" icon="chat-circle-text">My Posts</Button>
+		<Button
+			icon="chat-circle-text"
+			@click="togglePostsFilter"
+			>My Posts</Button
+		>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { computed, watch } from 'vue';
+	import { watch } from 'vue';
 
 	import { FILTER_STATE, useFilterStore } from '@hub-client/stores/forum/filterStore';
 	import { useForumStore } from '@hub-client/stores/forum/forumStore';

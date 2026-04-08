@@ -1,10 +1,15 @@
 <template>
-	<div class="bg-surface absolute inset-0 z-20 h-full opacity-75"></div>
+	<div class="bg-surface absolute inset-0 z-20 h-full opacity-75" />
 	<div class="fixed inset-0 z-20 flex items-center justify-center p-4">
 		<div class="bg-surface-low relative min-h-[300px] rounded-md border p-8 sm:w-[480px] md:w-[640px]">
 			<div class="flex justify-between">
-				<h2 class="mx-2 my-2 mt-4 font-bold">{{ t('admin.title_room_join') }}</h2>
-				<Icon type="x" @click="close()"></Icon>
+				<h2 class="mx-2 my-2 mt-4 font-bold">
+					{{ t('admin.title_room_join') }}
+				</h2>
+				<Icon
+					type="x"
+					@click="close()"
+				/>
 			</div>
 
 			<hr class="mx-8 mt-2" />
@@ -14,15 +19,18 @@
 			</div>
 
 			<hr class="mx-8 mt-2" />
-			<Button @click="handleActionClick" class="bg-on-surface-variant hover:bg-surface-subtle dark:text-surface-low absolute inset-0 mt-4 w-full rounded-xs px-4 text-center">
+			<Button
+				class="bg-on-surface-variant hover:bg-surface-subtle dark:text-surface-low absolute inset-0 mt-4 w-full rounded-xs px-4 text-center"
+				@click="handleActionClick"
+			>
 				{{ t('admin.join') }}
 			</Button>
-			<InlineSpinner v-if="inProgress"></InlineSpinner>
+			<InlineSpinner v-if="inProgress" />
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { EventType } from 'matrix-js-sdk';
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
@@ -45,16 +53,15 @@
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useUser } from '@hub-client/stores/user';
 
+	const props = defineProps<{ roomId: string }>();
+	const emit = defineEmits<{
+		(e: 'close'): void;
+	}>();
 	const { t } = useI18n();
 	const user = useUser();
 	const pubhubs = usePubhubsStore();
 	const dialog = useDialog();
 	const inProgress = ref<boolean>(false);
-
-	const props = defineProps<{ roomId: string }>();
-	const emit = defineEmits<{
-		(e: 'close'): void;
-	}>();
 
 	// Reactive state
 	const roomCreator = ref<string | undefined>(undefined);
@@ -89,7 +96,7 @@
 			}
 
 			dialog.showModal();
-		} catch (error) {
+		} catch {
 			dialog.confirm(t('errors.error'));
 			return;
 		}
@@ -97,7 +104,7 @@
 
 	async function joinAndMakeAdmin(roomId: string): Promise<void> {
 		await pubhubs.joinRoom(props.roomId);
-		await APIService.makeRoomAdmin(roomId, user.userId);
+		await APIService.makeRoomAdmin(roomId, user.userId ?? '');
 	}
 
 	async function attemptToJoinPrevAdmin(adminId: string): Promise<void> {
@@ -114,28 +121,28 @@
 
 	// Event handlers
 	async function handleActionClick(): Promise<void> {
+		if (!roomCreator.value) return;
 		inProgress.value = true;
-		// We have already checked if room creator is there or not.
-		await attemptToJoinPrevAdmin(roomCreator.value!);
+		await attemptToJoinPrevAdmin(roomCreator.value);
 		await joinAndMakeAdmin(props.roomId);
-		await leavePrevAdmin(props.roomId, roomCreator.value!);
+		await leavePrevAdmin(props.roomId, roomCreator.value);
 		await completeFlow();
 	}
 
 	async function completeFlow() {
 		// Start polling for conditions
-		let pollInterval = setInterval(async () => {
+		let pollInterval: ReturnType<typeof setInterval> | undefined = setInterval(async () => {
 			// This Hub is now a room Admin
-			const isAdmin = await hasBecomeRoomAdmin(user.userId);
+			const isAdmin = await hasBecomeRoomAdmin(user.userId ?? '');
 			// Check if the previous admin is *not* found in the current members, meaning they've left
 			const roomMembers = (await APIService.adminGetRoomMembers(props.roomId)).members;
-			const hasPrevAdminLeft = !roomMembers.includes(roomCreator.value!);
+			const hasPrevAdminLeft = !roomCreator.value || !roomMembers.includes(roomCreator.value);
 
 			// For the spinner
 			if (isAdmin && hasPrevAdminLeft) {
 				inProgress.value = false;
 				clearInterval(pollInterval); // Stop polling
-				pollInterval = 0;
+				pollInterval = undefined;
 				emit('close');
 			}
 		}, 2000); // Poll every 2 seconds (adjust as needed)

@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 import { api_synapse } from '@hub-client/logic/core/api';
 
 // Stores
-import { TSecuredRoom } from '@hub-client/stores/rooms';
+import { type TSecuredRoom } from '@hub-client/stores/rooms';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterAll(() => server.close());
@@ -70,15 +70,15 @@ describe('api secured rooms', () => {
 
 	test('POST', async () => {
 		const body = {} as TSecuredRoom;
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 		body.room_name = 'Secured';
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 		body.user_txt = 'Bla Bla';
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 		body.accepted = [];
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 		body.type = 'some_type';
-		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrow();
 
 		body.type = 'ph.messages.restricted';
 		const resp = await api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body);

@@ -28,8 +28,6 @@ import Logo from '@hub-client/components/ui/Logo.vue';
 import { routes } from '@global-client/logic/core/routes';
 
 import { focus, twClass } from '@hub-client/logic/core/directives';
-import { CONFIG } from '@hub-client/logic/logging/Config';
-import { Logger } from '@hub-client/logic/logging/Logger';
 
 // Pages
 import App from '@global-client/pages/App.vue';
@@ -39,14 +37,7 @@ import { useGlobal } from '@global-client/stores/global';
 // Other
 import { registerComponents } from '@global-client/registerComponents';
 
-import { ReplaceConsole } from '@hub-client/console';
 import { setUpi18n } from '@hub-client/i18n';
-
-// Custom console for development
-ReplaceConsole();
-
-// Initialize logger
-const LOGGER = new Logger('GC', CONFIG);
 
 // Set up internationalization
 const i18n = setUpi18n();
@@ -57,7 +48,7 @@ const router = createRouter({
 	routes: routes,
 	scrollBehavior(to, _from, savedPosition) {
 		// Always scroll to the top of the page when the user is in the onboarding flow
-		if (savedPosition && to.name != 'onboarding') {
+		if (savedPosition && to.name !== 'onboarding') {
 			return savedPosition;
 		} else {
 			return { top: 0 };
@@ -123,11 +114,9 @@ Object.entries(components).forEach(([name, component]) => {
 app.use(mavonEditor);
 app.use(pinia);
 app.use(router);
-app.use(i18n as any);
+app.use(i18n as Parameters<typeof app.use>[0]);
 app.directive('focus', focus);
-app.directive('tw-class', twClass as any);
+app.directive('tw-class', twClass as Parameters<typeof app.directive>[1]);
 
 // Mount the app
 app.mount('#app');
-
-export { LOGGER };

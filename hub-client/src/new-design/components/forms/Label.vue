@@ -1,11 +1,19 @@
 <template>
-	<label :for="id" class="text-label-small gap-050 text-on-surface inline-flex w-full items-start justify-start">
-		<slot></slot>
-		<span v-if="required" class="text-accent-red" aria-hidden="true">*</span>
+	<label
+		class="text-label-small gap-050 text-on-surface inline-flex w-full items-start justify-start"
+		:for="id"
+	>
+		<slot />
+		<span
+			v-if="required"
+			aria-hidden="true"
+			class="text-accent-red"
+			>*</span
+		>
 	</label>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { inject } from 'vue';
 

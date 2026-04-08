@@ -1,5 +1,5 @@
 // Packages
-import { EventTimelineSet, Filter, NotificationCountType } from 'matrix-js-sdk';
+import { EventTimelineSet, type Filter, NotificationCountType } from 'matrix-js-sdk';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, test } from 'vitest';
 

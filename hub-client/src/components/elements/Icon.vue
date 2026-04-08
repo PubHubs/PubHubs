@@ -1,19 +1,34 @@
 <template>
-	<div class="h-fit w-fit" :data-testid="id">
-		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="iconSizes[size]" :height="iconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
-			<slot></slot>
-			<g v-html="icons[displayType][weightType]"></g>
+	<div
+		class="h-fit w-fit"
+		:data-testid="id"
+	>
+		<svg
+			v-bind="$attrs"
+			fill="currentColor"
+			:height="iconSizes[size]"
+			:transform="displayMirrored"
+			viewBox="0 0 256 256"
+			:width="iconSizes[size]"
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<slot />
+			<!-- eslint-disable-next-line vue/no-v-html -- static SVG icon assets -->
+			<g v-html="icons[displayType][weightType]" />
 		</svg>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { PropType, computed } from 'vue';
+	import { type PropType, computed } from 'vue';
 
-	import { icons } from '@hub-client/assets/icons';
 	// Assets
+	import { icons } from '@hub-client/assets/icons';
 	import { iconSizes } from '@hub-client/assets/sizes';
+
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	const props = defineProps({
 		type: {
@@ -38,11 +53,13 @@
 		},
 	});
 
+	const logger = createLogger('Icon');
+
 	const displayType = computed(() => {
 		if (icons[props.type]) {
 			return props.type;
 		}
-		console.log('fallback icon', props.type);
+		logger.warn('fallback icon', props.type);
 		return 'selection'; // dotted square
 	});
 

@@ -12,14 +12,14 @@ import { en } from '@hub-client/locales/en';
 import { nl } from '@hub-client/locales/nl';
 
 // Mocking dependencies and Mock useTimeFormat composable
-vi.mock('@/composables/useTimeFormat', () => ({
+vi.mock('@hub-client/composables/useTimeFormat', () => ({
 	useTimeFormat: () => ({
 		formattedTimeInformation: vi.fn(() => 'Mocked Date'),
 	}),
 }));
 
 // Mock useRooms composable
-vi.mock('@/stores/rooms', () => ({
+vi.mock('@hub-client/stores/rooms', () => ({
 	useRooms: () => ({
 		currentRoom: {
 			hasMessages: vi.fn(() => true),

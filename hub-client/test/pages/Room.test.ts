@@ -13,6 +13,7 @@ import Room from '@hub-client/pages/Room.vue';
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
+import { useUser } from '@hub-client/stores/user';
 
 // Logic
 import { setUpi18n } from '@hub-client/i18n';
@@ -26,8 +27,8 @@ describe('Room.vue Test', () => {
 		let pushed: { name: string; query: { errorKey: string } } | null = null;
 
 		// Override router push method to test it.
-		router.push = vi.fn((p: any) => {
-			pushed = p;
+		router.push = vi.fn((p: unknown) => {
+			pushed = p as { name: string; query: { errorKey: string } };
 			return Promise.resolve();
 		});
 
@@ -41,6 +42,8 @@ describe('Room.vue Test', () => {
 		// Set up stores to simulate room not found scenario
 		const rooms = useRooms(pinia);
 		const pubhubs = usePubhubsStore(pinia);
+		const user = useUser(pinia);
+		user.administrator = new (await import('@hub-client/models/hubmanagement/models/admin')).Administrator();
 
 		// Mark initial rooms as loaded so waitForInitialRoomsLoaded() resolves
 		rooms.initialRoomsLoaded = true;

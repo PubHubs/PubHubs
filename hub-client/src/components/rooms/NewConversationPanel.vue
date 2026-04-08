@@ -1,74 +1,180 @@
 <template>
-	<div class="flex h-full w-full flex-col overflow-hidden py-4" data-testid="sidekick">
-		<SidebarHeader v-if="!groupPanel" :title="t('others.new_message')" />
+	<div
+		class="flex h-full w-full flex-col overflow-hidden py-4"
+		data-testid="sidekick"
+	>
+		<SidebarHeader
+			v-if="!groupPanel"
+			:title="t('others.new_message')"
+		/>
 		<div class="flex min-h-0 flex-1 flex-col">
-			<div v-if="!groupPanel" class="flex shrink-0 flex-col gap-2 px-4">
+			<div
+				v-if="!groupPanel"
+				class="flex shrink-0 flex-col gap-2 px-4"
+			>
 				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
-					<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
-					<input type="text" v-model="userFilter" :placeholder="t('others.search')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
+					<Icon
+						class="text-on-surface-dim"
+						size="sm"
+						type="magnifying-glass"
+					/>
+					<input
+						v-model="userFilter"
+						class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
+						:placeholder="t('others.search')"
+						type="text"
+					/>
 				</div>
-				<Button class="bg-on-surface-variant text-label-small hover:text-surface-high dark:text-surface-high flex w-full items-center justify-center gap-2" size="sm" @click="groupPanel = true">
-					<Icon type="plus"></Icon> {{ t('others.new_group') }}
+				<Button
+					class="bg-on-surface-variant text-label-small hover:text-surface-high dark:text-surface-high flex w-full items-center justify-center gap-2"
+					size="sm"
+					@click="groupPanel = true"
+				>
+					<Icon type="plus" /> {{ t('others.new_group') }}
 				</Button>
 			</div>
-			<div v-else class="flex flex-col gap-2 px-4">
+			<div
+				v-else
+				class="flex flex-col gap-2 px-4"
+			>
 				<div class="bg-surface-high flex items-center justify-between rounded-md px-3 py-2">
-					<Icon type="arrow-left" class="cursor-pointer" @click="groupProfile ? backToGroupPanel() : (groupPanel = false)" />
+					<Icon
+						class="cursor-pointer"
+						type="arrow-left"
+						@click="groupProfile ? backToGroupPanel() : (groupPanel = false)"
+					/>
 					<span class="text-label-small mr-auto pl-2">
 						{{ t('others.new_group') }}
 					</span>
-					<Icon type="x" class="cursor-pointer" @click="$emit('close')" />
+					<Icon
+						class="cursor-pointer"
+						type="x"
+						@click="$emit('close')"
+					/>
 				</div>
 				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
-					<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0" />
+					<Icon
+						class="text-on-surface-dim"
+						size="sm"
+						type="magnifying-glass"
+					/>
+					<input
+						v-model="userFilter"
+						class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
+						:placeholder="t('others.filter_users')"
+						type="text"
+					/>
 				</div>
-				<div v-if="groupProfile" class="mt-4 flex flex-col gap-2">
+				<div
+					v-if="groupProfile"
+					class="mt-4 flex flex-col gap-2"
+				>
 					<span class="text-label-small text-on-surface-dim"> {{ t('others.select_group_name') }}</span>
 					<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
 						<div class="bg-surface-variant h-10 w-10 cursor-pointer overflow-hidden rounded-full">
-							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl.url" @click="fileInput!.click()"></Avatar>
-							<Button v-else color="" @click="fileInput!.click()">
-								<Icon type="image-square" class="mt-025 -ml-[5px]" />
+							<Avatar
+								v-if="avatarPreviewUrl"
+								:avatar-url="avatarPreviewUrl.url"
+								@click="fileInput!.click()"
+							/>
+							<Button
+								v-else
+								color=""
+								@click="fileInput!.click()"
+							>
+								<Icon
+									class="mt-025 -ml-[5px]"
+									type="image-square"
+								/>
 							</Button>
 						</div>
-						<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
+						<input
+							ref="fileInput"
+							accept="image/*"
+							class="hidden"
+							type="file"
+							@change="handleFileUpload"
+						/>
 
-						<input type="text" v-model="groupName" class="text-label-small placeholder:text-on-surface-variant min-w-0 grow border-none bg-transparent focus:ring-0 focus:outline-0" :placeholder="t('others.select_group_name')" />
+						<input
+							v-model="groupName"
+							class="text-label-small placeholder:text-on-surface-variant min-w-0 grow border-none bg-transparent focus:ring-0 focus:outline-0"
+							:placeholder="t('others.select_group_name')"
+							type="text"
+						/>
 					</div>
 					<span class="mx-auto w-1/2"> {{ selectedUsers.length + ' ' + t('others.group_members') }} </span>
 				</div>
 
-				<span v-if="selectedUsers.length === 0" class="text-label-small mx-auto mt-4"> {{ t('others.group_select') }} </span>
-				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
-					<div v-for="userId in usersSelected" :key="userId" class="flex flex-col items-center">
+				<span
+					v-if="selectedUsers.length === 0"
+					class="text-label-small mx-auto mt-4"
+				>
+					{{ t('others.group_select') }}
+				</span>
+				<div
+					v-else
+					class="mt-4 flex flex-wrap justify-start gap-y-2"
+				>
+					<div
+						v-for="userId in usersSelected"
+						:key="userId"
+						class="flex flex-col items-center"
+					>
 						<div class="relative">
-							<Icon type="x" size="sm" class="bg-surface-subtle absolute right-0 bottom-0 cursor-pointer rounded-full" @click.stop="removeUserFromSelection(userId)" />
-							<Avatar :avatarUrl="userStore.userAvatar(userId)" :user-id="userId"></Avatar>
+							<Icon
+								class="bg-surface-subtle absolute right-0 bottom-0 cursor-pointer rounded-full"
+								size="sm"
+								type="x"
+								@click.stop="removeUserFromSelection(userId)"
+							/>
+							<Avatar
+								:avatar-url="userStore.userAvatar(userId)"
+								:user-id="userId"
+							/>
 						</div>
 						<span class="mt-1 w-16 truncate text-center text-sm">{{ userStore.userDisplayName(userId) }}</span>
 					</div>
 				</div>
-				<Button v-if="groupPanelButton" class="bg-on-surface-variant text-surface-high hover:bg-surface-subtle mt-6 flex items-center justify-between" :disabled="selectionNotCompleted" @click="usersSelectionDone()">
+				<Button
+					v-if="groupPanelButton"
+					class="bg-on-surface-variant text-surface-high hover:bg-surface-subtle mt-6 flex items-center justify-between"
+					:disabled="selectionNotCompleted"
+					@click="usersSelectionDone()"
+				>
 					{{ t('others.next') }}
-					<Icon type="arrow-right"></Icon>
+					<Icon type="arrow-right" />
 				</Button>
 				<Button
 					v-if="groupProfileButton"
 					class="bg-on-surface-variant text-surface-high text-label-small hover:bg-surface-subtle mt-12 flex justify-between"
-					size="xs"
 					:disabled="cannotCreateGroupRoom"
+					size="xs"
 					@click="groupCreationDone(usersSelected)"
-					>{{ t('others.next') }}<Icon type="arrow-right"></Icon>
+				>
+					{{ t('others.next') }}<Icon type="arrow-right" />
 				</Button>
 			</div>
 
-			<div v-if="!groupProfile" class="mt-4 grow overflow-y-auto px-4">
+			<div
+				v-if="!groupProfile"
+				class="mt-4 grow overflow-y-auto px-4"
+			>
 				<!-- Admin contact -->
-				<div v-if="!userStore.isAdmin && !groupPanel" class="mb-4">
-					<div class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2" @click="handleAdminContact">
+				<div
+					v-if="!userStore.isAdmin && !groupPanel"
+					class="mb-4"
+				>
+					<div
+						class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2"
+						@click="handleAdminContact"
+					>
 						<div class="bg-accent-admin/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
-							<Icon type="lifebuoy" size="md" class="text-accent-admin" />
+							<Icon
+								class="text-accent-admin"
+								size="md"
+								type="lifebuoy"
+							/>
 						</div>
 						<div class="flex flex-col">
 							<span class="font-bold">{{ t('admin.admin_contact_title') }}</span>
@@ -78,8 +184,14 @@
 				</div>
 
 				<template v-if="Object.keys(categorizedUsers).length">
-					<div v-for="(usersInLetter, letter) in categorizedUsers" :key="letter" class="mb-4">
-						<h3 class="text-md text-on-surface-dim sticky top-0 z-10 py-1 font-bold uppercase">{{ letter }}</h3>
+					<div
+						v-for="(usersInLetter, letter) in categorizedUsers"
+						:key="letter"
+						class="mb-4"
+					>
+						<h3 class="text-md text-on-surface-dim sticky top-0 z-10 py-1 font-bold uppercase">
+							{{ letter }}
+						</h3>
 						<ul>
 							<li
 								v-for="user in usersInLetter"
@@ -87,8 +199,15 @@
 								class="hover:bg-surface-high flex cursor-pointer items-center gap-2 rounded-md p-2"
 								@click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
 							>
-								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check-circle"></Icon>
-								<Avatar v-else :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
+								<Icon
+									v-if="groupPanel && selectedUsers.includes(user.userId)"
+									type="check-circle"
+								/>
+								<Avatar
+									v-else
+									:avatar-url="userStore.userAvatar(user.userId)"
+									:user-id="user.userId"
+								/>
 								<div class="flex flex-col">
 									<span>{{ user.displayName || user.userId }}</span>
 									<span> {{ filters.extractPseudonym(user.userId) }}</span>
@@ -98,14 +217,16 @@
 					</div>
 				</template>
 				<template v-else>
-					<div class="text-on-surface-dim py-4 text-center">{{ t('others.join_room_to_dm') }}</div>
+					<div class="text-on-surface-dim py-4 text-center">
+						{{ t('others.join_room_to_dm') }}
+					</div>
 				</template>
 			</div>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onBeforeUnmount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -125,6 +246,7 @@
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import filters from '@hub-client/logic/core/filters';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
@@ -133,8 +255,16 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { User, useUser } from '@hub-client/stores/user';
+	import { type User, useUser } from '@hub-client/stores/user';
 
+	defineProps({
+		isMobile: {
+			type: Boolean,
+			default: false,
+		},
+	});
+	const emit = defineEmits(['close']);
+	const logger = createLogger('NewConversationPanel');
 	const { t } = useI18n();
 	const pubhubs = usePubhubsStore();
 	const userStore = useUser();
@@ -156,14 +286,7 @@
 	const selectedUsers = ref<string[]>([]);
 	const MAX_USER_GROUP = 5;
 
-	const props = defineProps({
-		isMobile: {
-			type: Boolean,
-			default: false,
-		},
-	});
-
-	const adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
+	const _adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
 
 	onBeforeUnmount(() => {
 		avatarPreviewUrl.value?.revoke();
@@ -219,8 +342,6 @@
 
 		return categories;
 	});
-
-	const emit = defineEmits(['close']);
 
 	async function handleAdminContact() {
 		const userResponse = await dialog.yesno(t('admin.admin_contact_title'), t('admin.admin_contact_main_msg'));
@@ -306,7 +427,7 @@
 
 	async function uploadAvatar(roomId: string) {
 		const accessToken = pubhubs.Auth.getAccessToken();
-		if (!accessToken) return console.error('Access Token is invalid for File upload.');
+		if (!accessToken) return logger.error('Access Token is invalid for File upload.');
 
 		const syntheticEvent = {
 			currentTarget: {
@@ -318,10 +439,12 @@
 
 		try {
 			fileUpload(errorMsg, accessToken, uploadUrl, supportedImageTypes, syntheticEvent, async (mxUrl) => {
-				mxUrl && (await pubhubs.setRoomAvatar(roomId, mxUrl));
+				if (mxUrl) {
+					await pubhubs.setRoomAvatar(roomId, mxUrl);
+				}
 			});
 		} catch (error) {
-			console.error('Error uploading avatar:', error);
+			logger.error('Error uploading avatar:', error);
 			avatarPreviewUrl.value?.revoke();
 			return;
 		}

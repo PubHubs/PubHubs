@@ -21,7 +21,7 @@ class VotingOptions {
 	removeRedactedVotes() {
 		for (const option of this.options) {
 			for (const userChoices of option.votes) {
-				if (userChoices.choice == 'redacted') {
+				if (userChoices.choice === 'redacted') {
 					userChoices.userIds = [];
 					userChoices.userTime = [];
 				}
@@ -42,7 +42,7 @@ class VotingOptions {
 				for (const user of vote.userIds) {
 					newUserIds.push(user);
 				}
-				for (const time of vote.userTime!) {
+				for (const time of vote.userTime ?? []) {
 					newUserTime.push(time);
 				}
 				newvFo.votes.push({

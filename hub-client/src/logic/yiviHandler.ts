@@ -1,27 +1,29 @@
 // Packages
-import { SecuredRoomAttributeResult } from './logging/statusTypes';
-// @ts-expect-error
+// @ts-expect-error -- yivi-client has no type declarations
 import yiviClient from '@privacybydesign/yivi-client';
-// @ts-expect-error
+// @ts-expect-error -- yivi-core has no type declarations
 import yiviCore from '@privacybydesign/yivi-core';
-// @ts-expect-error
+// @ts-expect-error -- yivi-web has no type declarations
 import yiviWeb from '@privacybydesign/yivi-web';
 
 // Assets
 import '@hub-client/assets/yivi.min.css';
 
 import { CONFIG } from '@hub-client/logic/logging/Config';
+import { createLogger, getLogLevel } from '@hub-client/logic/logging/Logger';
 
-import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
-import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
+import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+import { EYiviFlow, type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useSettings } from '@hub-client/stores/settings';
 
+const logger = createLogger('YiviHandler');
+
 export function yiviFlow(
 	flowtype: EYiviFlow.SecuredRoom,
-	onFinish: (result: SecuredRoomAttributeResult, threadRoot?: TMessageEvent) => unknown,
+	onFinish: (result: SecuredRoomAttributeResult | YiviSigningSessionResult, threadRoot?: TMessageEvent) => unknown,
 	roomId: string,
 	elementId: string,
 	attributes?: string[],
@@ -31,7 +33,7 @@ export function yiviFlow(
 
 export function yiviFlow(
 	flowtype: EYiviFlow.Disclosure | EYiviFlow.Sign,
-	onFinish: (result: YiviSigningSessionResult, threadRoot?: TMessageEvent) => unknown,
+	onFinish: (result: YiviSigningSessionResult | SecuredRoomAttributeResult, threadRoot?: TMessageEvent) => unknown,
 	roomId: string,
 	elementId: string,
 	attributes?: string[],
@@ -39,8 +41,16 @@ export function yiviFlow(
 	threadRoot?: TMessageEvent,
 ): void;
 
-// Implementation signature - use 'any' for the callback parameter
-export function yiviFlow(flowtype: EYiviFlow, onFinish: (result: any, threadRoot?: TMessageEvent) => unknown, roomId: string, elementId: string, attributes?: string[], message?: string, threadRoot?: TMessageEvent): void {
+// Implementation signature
+export function yiviFlow(
+	flowtype: EYiviFlow,
+	onFinish: (result: YiviSigningSessionResult | SecuredRoomAttributeResult, threadRoot?: TMessageEvent) => unknown,
+	roomId: string,
+	elementId: string,
+	attributes?: string[],
+	message?: string,
+	threadRoot?: TMessageEvent,
+): void {
 	const settings = useSettings();
 	const pubhubsStore = usePubhubsStore();
 	const accessToken = pubhubsStore.Auth.getAccessToken();
@@ -53,7 +63,7 @@ export function yiviFlow(flowtype: EYiviFlow, onFinish: (result: any, threadRoot
 	const isSignatureFlow = flowtype === EYiviFlow.Disclosure || flowtype === EYiviFlow.Sign;
 
 	const session = new yiviCore({
-		debugging: false,
+		debugging: getLogLevel() === 'debug',
 		element: elementId,
 		language: settings.getActiveLanguage,
 		session: {
@@ -73,7 +83,7 @@ export function yiviFlow(flowtype: EYiviFlow, onFinish: (result: any, threadRoot
 				headers: { Authorization: `Bearer ${accessToken}` },
 			},
 			result: {
-				url: (_o: any, obj: any) => {
+				url: (_o: unknown, obj: { sessionToken: string }) => {
 					const baseUrl = `${hubUrl}/yivi-endpoint/result?session_token=${obj.sessionToken}`;
 					return flowtype === EYiviFlow.SecuredRoom ? `${baseUrl}&room_id=${roomId}` : baseUrl;
 				},
@@ -91,7 +101,7 @@ export function yiviFlow(flowtype: EYiviFlow, onFinish: (result: any, threadRoot
 		.then((result: YiviSigningSessionResult | SecuredRoomAttributeResult) => {
 			onFinish(result, threadRoot);
 		})
-		.catch((error: any) => {
-			console.error('Yivi session error:', error);
+		.catch((error: unknown) => {
+			logger.error('Yivi session error:', error);
 		});
 }

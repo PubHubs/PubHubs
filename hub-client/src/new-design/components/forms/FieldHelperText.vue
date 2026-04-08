@@ -1,5 +1,8 @@
 <template>
-	<p class="text-on-surface-dim text-label-small" aria-live="polite">
-		<slot></slot>
+	<p
+		aria-live="polite"
+		class="text-on-surface-dim text-label-small"
+	>
+		<slot />
 	</p>
 </template>

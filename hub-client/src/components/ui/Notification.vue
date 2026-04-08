@@ -1,42 +1,77 @@
 <template>
 	<!-- Notification Bell Button -->
-	<div v-if="notifications.length > 0" class="flex h-full flex-col items-end justify-center">
-		<button @click.stop="showNotifications = !showNotifications" class="bg-surface-low hover:bg-surface absolute rounded-2xl p-2 shadow-sm">
-			<Icon type="bell" size="md" />
-			<span v-if="notifications.length > 0" class="bg-accent-red text-on-accent-red absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs">
+	<div
+		v-if="notifications.length > 0"
+		class="flex h-full flex-col items-end justify-center"
+	>
+		<button
+			class="bg-surface-low hover:bg-surface absolute rounded-2xl p-2 shadow-sm"
+			@click.stop="showNotifications = !showNotifications"
+		>
+			<Icon
+				size="md"
+				type="bell"
+			/>
+			<span
+				v-if="notifications.length > 0"
+				class="bg-accent-red text-on-accent-red absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs"
+			>
 				{{ notifications.length }}
 			</span>
 		</button>
 	</div>
 	<!-- Notification Panel (directly under the bell) -->
-	<div v-if="showNotifications" @click.stop class="border-surface-high bg-surface absolute top-20 right-0 z-50 mt-2 mb-8 max-h-96 overflow-y-auto rounded-lg border p-4 shadow-lg">
+	<div
+		v-if="showNotifications"
+		class="border-surface-high bg-surface absolute top-20 right-0 z-50 mt-2 mb-8 max-h-96 overflow-y-auto rounded-lg border p-4 shadow-lg"
+		@click.stop
+	>
 		<div class="mb-2 flex items-center justify-between">
 			<span class="font-semibold">{{ t('notifications.heading') }}</span>
 		</div>
-		<div v-for="notification in notifications" :key="notification.type" class="bg-surface-low mt-2 flex flex-col items-end justify-between rounded-xs p-2 shadow-xs">
+		<div
+			v-for="notification in notifications"
+			:key="notification.type"
+			class="bg-surface-low mt-2 flex flex-col items-end justify-between rounded-xs p-2 shadow-xs"
+		>
 			<div class="flex flex-row">
-				<p class="mr-2">{{ t(`notifications.${notification.type}`, notification.message_values) }}</p>
-				<Icon @click="dismissNotification(notification)" type="trash" class="text-accent-red flex justify-end hover:cursor-pointer">{{ t('notifications.dismiss') }}</Icon>
+				<p class="mr-2">
+					{{ t(`notifications.${notification.type}`, notification.message_values) }}
+				</p>
+				<Icon
+					class="text-accent-red flex justify-end hover:cursor-pointer"
+					type="trash"
+					@click="dismissNotification(notification)"
+				>
+					{{ t('notifications.dismiss') }}
+				</Icon>
 			</div>
 			<div class="flex flex-row items-center gap-2">
-				<Button v-if="(notification.type === TNotificationType.RemovedFromSecuredRoom || notification.type === TNotificationType.SoonRemovedFromSecuredRoom) && notification.room_id" @click="panelOpen = notification.room_id">{{
-					t('notifications.rejoin')
-				}}</Button>
+				<Button
+					v-if="
+						(notification.type === TNotificationType.RemovedFromSecuredRoom ||
+							notification.type === TNotificationType.SoonRemovedFromSecuredRoom) &&
+						notification.room_id
+					"
+					@click="panelOpen = notification.room_id"
+				>
+					{{ t('notifications.rejoin') }}
+				</Button>
 			</div>
 			<RoomLoginDialog
 				v-if="notification.room_id && panelOpen === notification.room_id"
-				@click="panelOpen = null"
-				v-model:dialogOpen="panelOpen"
-				title="notifications.rejoin_secured_room"
+				v-model:dialog-open="panelOpen"
 				:message="t(`notifications.${notification.type}`, notification.message_values)"
-				:messageValues="notification.message_values"
+				:message-values="notification.message_values"
 				:secured="true"
+				title="notifications.rejoin_secured_room"
+				@click="panelOpen = null"
 			/>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -47,7 +82,7 @@
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Models
-	import { TNotification, TNotificationType } from '@hub-client/models/users/TNotification';
+	import { type TNotification, TNotificationType } from '@hub-client/models/users/TNotification';
 
 	// Stores
 	import { useNotifications } from '@hub-client/stores/notifications';

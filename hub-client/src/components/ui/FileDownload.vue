@@ -1,22 +1,29 @@
 <template>
-	<a v-if="blobUrl?.url" target="_blank" :href="blobUrl.url" :download="filename"><slot></slot></a>
-	<span v-else><slot></slot></span>
+	<a
+		v-if="blobUrl?.url"
+		:download="filename"
+		:href="blobUrl.url"
+		target="_blank"
+		><slot
+	/></a>
+	<span v-else><slot /></span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 	// Composables
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
-
-	// Stores
-
-	const matrixFiles = useMatrixFiles();
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	const props = defineProps<{ url: string; filename: string }>();
+	const logger = createLogger('FileDownload');
+	const matrixFiles = useMatrixFiles();
+
 	let blobUrl = ref<BlobManager | undefined>(undefined);
 
 	onMounted(async () => {
@@ -38,7 +45,7 @@
 			blobUrl.value = new BlobManager(url);
 		}
 		if (!url) {
-			console.error('Failed to load the file');
+			logger.error('Failed to load the file');
 		}
 	}
 </script>

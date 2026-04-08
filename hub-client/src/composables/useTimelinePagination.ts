@@ -38,15 +38,18 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 			const rect = msg.getBoundingClientRect();
 			if (rect.bottom <= containerRect.top || rect.top >= containerRect.bottom) continue;
 
+			const eventId = msg.dataset.eventId;
+			if (!eventId) continue;
+
 			const offset = rect.top - containerRect.top;
 
 			if (position === 'top') {
 				if (best === null || offset < best.offset) {
-					best = { eventId: msg.dataset.eventId!, offset };
+					best = { eventId, offset };
 				}
 			} else {
 				if (best === null || offset > best.offset) {
-					best = { eventId: msg.dataset.eventId!, offset };
+					best = { eventId, offset };
 				}
 			}
 		}

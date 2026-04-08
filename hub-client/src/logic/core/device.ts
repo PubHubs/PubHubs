@@ -33,7 +33,7 @@ export default {
 	},
 
 	isRunningStandalone() {
-		const iosStandalone: boolean = 'standalone' in navigator && (navigator as any).standalone;
+		const iosStandalone: boolean = 'standalone' in navigator && (navigator as Navigator & { standalone?: boolean }).standalone === true;
 		return window.matchMedia('(display-mode: standalone)').matches || iosStandalone;
 	},
 };

@@ -1,16 +1,36 @@
 <template>
 	<!-- HubLogo with unreadmessages marker -->
-	<div v-if="hub" :class="{ 'border-surface-elevated border-4': active && !hubOrderingIsActive }" class="group relative z-0 block h-full w-full cursor-pointer rounded-xl text-center transition-all ease-in-out" :title="hub.name">
-		<div :class="{ 'border-surface-elevated bg-surface-elevated border-t-4 border-r-4': active && !hubOrderingIsActive }" class="absolute top-1/3 -right-2 -z-10 h-4 w-4 rotate-45"></div>
-		<div v-show="hub && !hubOrderingIsActive && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)" class="absolute -top-1 -right-1 z-10">
-			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="pointer-events-none h-300 w-300 border-none" :id="miniClientId + '_' + hubId"></iframe>
+	<div
+		v-if="hub"
+		class="group relative z-0 block h-full w-full cursor-pointer rounded-xl text-center transition-all ease-in-out"
+		:class="{ 'border-surface-elevated border-4': active }"
+		:title="hub.name"
+	>
+		<div
+			class="absolute top-1/3 -right-2 -z-10 h-4 w-4 rotate-45"
+			:class="{ 'border-surface-elevated bg-surface-elevated border-t-4 border-r-4': active }"
+		/>
+		<div
+			v-show="hub && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)"
+			class="absolute -top-1 -right-1 z-10"
+		>
+			<iframe
+				:id="miniClientId + '_' + hubId"
+				class="pointer-events-none h-300 w-300 border-none"
+				:src="hub.url + '/miniclient.html?accessToken=' + accessToken"
+			/>
 		</div>
 
-		<HubIcon :hub-name="hub.name" :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :is-active="active" />
+		<HubIcon
+			:hub-name="hub.name"
+			:icon-url="hub.iconUrlLight"
+			:icon-url-dark="hub.iconUrlDark"
+			:is-active="active"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
 
@@ -18,7 +38,7 @@
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
 	// Models
-	import { Hub } from '@global-client/models/Hubs';
+	import { type Hub } from '@global-client/models/Hubs';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
@@ -37,11 +57,6 @@
 		active?: boolean;
 	};
 
-	const global = useGlobal();
-	const messagebox = useMessageBox();
-	const settings = useSettings();
-	const hubs = useHubs();
-
 	const props = withDefaults(defineProps<Props>(), {
 		type: 'circle',
 		size: 'xl',
@@ -51,6 +66,10 @@
 		pinnable: false,
 		active: false,
 	});
+	const global = useGlobal();
+	const messagebox = useMessageBox();
+	const settings = useSettings();
+	const hubs = useHubs();
 
 	hubs.setupMiniclient(props.hubId);
 

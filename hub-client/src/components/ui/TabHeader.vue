@@ -1,6 +1,11 @@
 <template>
-	<div class="border-on-surface-disabled z-1 flex border-b" role="tablist" @keydown.arrow-right.prevent="focusNext" @keydown.arrow-left.prevent="focusPrev">
-		<slot></slot>
+	<div
+		class="border-on-surface-disabled z-1 flex border-b"
+		role="tablist"
+		@keydown.arrow-left.prevent="focusPrev"
+		@keydown.arrow-right.prevent="focusNext"
+	>
+		<slot />
 	</div>
 </template>
 

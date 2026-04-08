@@ -1,0 +1,9 @@
+node_modules
+hub-client/node_modules
+global-client/node_modules
+hub-client/dist
+global-client/dist
+hub-client/stories
+hub-client/test
+global-client/test
+.git

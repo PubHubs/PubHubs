@@ -6,22 +6,43 @@
 		</div>
 
 		<div class="flex h-14">
-			<input :accept="accept" ref="fileInput" type="file" class="hidden" @change="handleFileChange" />
+			<input
+				ref="fileInput"
+				:accept="accept"
+				class="hidden"
+				type="file"
+				@change="handleFileChange"
+			/>
 
 			<div class="">
-				<slot name="preview"></slot>
+				<slot name="preview" />
 			</div>
 
 			<div>
-				<Icon @click="fileInput?.click()" type="pencil-simple" size="md" :as-button="true"></Icon>
-				<Icon @click="$emit('remove')" type="trash" size="md" :as-button="true"></Icon>
+				<Icon
+					:as-button="true"
+					size="md"
+					type="pencil-simple"
+					@click="fileInput?.click()"
+				/>
+				<Icon
+					:as-button="true"
+					size="md"
+					type="trash"
+					@click="$emit('remove')"
+				/>
 			</div>
 		</div>
-		<p v-if="errorText" class="text-red">{{ errorText }}</p>
+		<p
+			v-if="errorText"
+			class="text-red"
+		>
+			{{ errorText }}
+		</p>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
 

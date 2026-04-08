@@ -6,7 +6,7 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { api_synapse as api } from '@hub-client/logic/core/api';
-import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
+import { type HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 import { CONFIG } from '@hub-client/logic/logging/Config';
 
 // Stores
@@ -70,9 +70,7 @@ const useHubSettings = defineStore('hub-settings', {
 	state: (): HubSettingsState => {
 		return {
 			_hub: undefined,
-			// @ts-ignore
 			parentUrl: CONFIG._env.PARENT_URL,
-			// @ts-ignore
 			hubUrl: CONFIG._env.HUB_URL,
 			isSolo: globalThis.self === window.top,
 			mobileHubMenu: true,

@@ -2,11 +2,11 @@
 import { ref } from 'vue';
 
 const useKeyStrokes = () => {
-	const items = ref([] as Array<any>);
+	const items = ref([] as Array<unknown>);
 	const cursor = ref(0);
-	const selected = ref(undefined as any);
+	const selected = ref<unknown>(undefined);
 
-	const setItems = (newItems: Array<any>) => {
+	const setItems = (newItems: Array<unknown>) => {
 		items.value = newItems;
 		reset();
 	};
@@ -23,12 +23,12 @@ const useKeyStrokes = () => {
 		}
 	};
 
-	const selectItem = (item: any) => {
+	const selectItem = (item: unknown) => {
 		selected.value = item;
 		cursor.value = 0;
 	};
 
-	const selectItemByEnter = (): any => {
+	const selectItemByEnter = (): unknown => {
 		if (selected.value === undefined) {
 			const item = items.value[cursor.value];
 			selected.value = item;

@@ -1,9 +1,9 @@
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
-import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
-import { TThread } from '@hub-client/models/events/forum/TThread';
-import { TTopicContent, TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
-import Room from '@hub-client/models/rooms/Room';
+import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { type TThread } from '@hub-client/models/events/forum/TThread';
+import { type TTopicContent, type TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
+import type Room from '@hub-client/models/rooms/Room';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
@@ -12,7 +12,16 @@ function useForum() {
 	const pubhubs = usePubhubsStore();
 	const currentRoom = useRooms().currentRoom;
 
-	const constructTopicContent = (title: string, body: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean): any => {
+	const constructTopicContent = (
+		title: string,
+		body: string,
+		closed: boolean,
+		eventId?: string,
+		originalTitle?: string,
+		originalBody?: string,
+		originalClosed?: boolean,
+		// eslint-disable-next-line -- temp code
+	): any => {
 		if (originalTitle && originalBody && eventId) {
 			return {
 				ph_topic_title: originalTitle,
@@ -50,50 +59,59 @@ function useForum() {
 		};
 	};
 
-	const constructTopicReply = (body: string, mainTopicId: string, replyToTopicId?: string, originalBody?: string, eventId?: string): any => {
-		if (originalBody && eventId) {
-			return {
-				body: originalBody,
-				msgtype: PubHubsMgType.ForumTopicReply,
-				'm.new_content': {
-					body,
-					msgtype: PubHubsMgType.ForumTopicReply,
-					'm.mentions': {
-						room: false,
-						user_ids: [],
-					},
-					'm.relates_to': {
-						'm.in_reply_to': {
-							main_event_id: mainTopicId,
-							reply_to_event_id: mainTopicId,
-						},
-					},
-				},
-				'm.relates_to': {
-					rel_type: 'm.replace',
-					event_id: eventId,
-				},
-			};
-		}
-		return {
-			body,
-			msgtype: PubHubsMgType.ForumTopicReply,
-			['m.mentions']: {
-				room: false,
-				user_ids: [],
-			},
-			'm.relates_to': {
-				'm.in_reply_to': {
-					main_event_id: mainTopicId,
-					reply_to_event_id: replyToTopicId,
-				},
-			},
-		};
-	};
+	// const constructTopicReply = (body: string, mainTopicId: string, replyToTopicId?: string, originalBody?: string, eventId?: string): any => {
+	// 	if (originalBody && eventId) {
+	// 		return {
+	// 			body: originalBody,
+	// 			msgtype: PubHubsMgType.ForumTopicReply,
+	// 			'm.new_content': {
+	// 				body,
+	// 				msgtype: PubHubsMgType.ForumTopicReply,
+	// 				'm.mentions': {
+	// 					room: false,
+	// 					user_ids: [],
+	// 				},
+	// 				'm.relates_to': {
+	// 					'm.in_reply_to': {
+	// 						main_event_id: mainTopicId,
+	// 						reply_to_event_id: mainTopicId,
+	// 					},
+	// 				},
+	// 			},
+	// 			'm.relates_to': {
+	// 				rel_type: 'm.replace',
+	// 				event_id: eventId,
+	// 			},
+	// 		};
+	// 	}
+	// 	return {
+	// 		body,
+	// 		msgtype: PubHubsMgType.ForumTopicReply,
+	// 		['m.mentions']: {
+	// 			room: false,
+	// 			user_ids: [],
+	// 		},
+	// 		'm.relates_to': {
+	// 			'm.in_reply_to': {
+	// 				main_event_id: mainTopicId,
+	// 				reply_to_event_id: replyToTopicId,
+	// 			},
+	// 		},
+	// 	};
+	// };
 
-	const sendTopic = async (title: string, description: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean) => {
+	const sendTopic = async (
+		title: string,
+		description: string,
+		closed: boolean,
+		eventId?: string,
+		originalTitle?: string,
+		originalBody?: string,
+		originalClosed?: boolean,
+	) => {
 		const content = constructTopicContent(title, description, closed, eventId, originalTitle, originalBody, originalClosed);
-		return await pubhubs.client.sendEvent(currentRoom!.roomId, PubHubsMgType.ForumTopic as any, content as any);
+		// eslint-disable-next-line -- temp code
+		return await pubhubs.client.sendEvent(currentRoom!.roomId, PubHubsMgType.ForumTopic as any, content as unknown);
 	};
 
 	// async sendTopicReply(parentId: string, description: string, eventId?: string, originalBody?: string) {
@@ -109,19 +127,20 @@ function useForum() {
 	// 	return await this.client.sendEvent(this.room.roomId, PubHubsMgType.ForumTopicReply as any, content as any);
 	// }
 
-	const sendReply = async (parentId: string, description: string, eventId?: string, originalBody?: string) => {
-		let mainTopicId = parentId;
-		const parentEvent = await pubhubs.getEvent(currentRoom!.roomId, parentId);
-		const parentContent = parentEvent.content as TTopicReplyContent;
+	// const sendReply = async (parentId: string, description: string, eventId?: string, originalBody?: string) => {
+	// 	let mainTopicId = parentId;
+	// 	const parentEvent = await pubhubs.getEvent(currentRoom!.roomId, parentId);
+	// 	const parentContent = parentEvent.content as TTopicReplyContent;
 
-		if (!eventId && parentEvent.type === PubHubsMgType.ForumTopicReply && parentContent?.['m.relates_to']?.['m.in_reply_to']?.main_event_id) {
-			mainTopicId = parentContent['m.relates_to']['m.in_reply_to'].main_event_id;
-		}
-		const content = constructTopicReply(description, mainTopicId, parentId, originalBody, eventId);
-		return await pubhubs.client.sendEvent(currentRoom!.roomId, PubHubsMgType.ForumTopicReply as any, content as any);
-	};
+	// 	if (!eventId && parentEvent.type === PubHubsMgType.ForumTopicReply && parentContent?.['m.relates_to']?.['m.in_reply_to']?.main_event_id) {
+	// 		mainTopicId = parentContent['m.relates_to']['m.in_reply_to'].main_event_id;
+	// 	}
+	// 	const content = constructTopicReply(description, mainTopicId, parentId, originalBody, eventId);
+	// 	// eslint-disable-next-line -- temp code
+	// 	return await pubhubs.client.sendEvent(currentRoom!.roomId, PubHubsMgType.ForumTopicReply as any, content as unknown);
+	// };
 
-	const transformBack = (item: TThread): any => {
+	const transformBack = (item: TThread): unknown => {
 		if (item.event) return item.event;
 		return item;
 	};
@@ -155,7 +174,7 @@ function useForum() {
 
 	// Threads are with the parent event, so number of replies is one less
 	const addReplies = async (thread: TThread, room: Room): Promise<TThread> => {
-		if (thread.replies.length == 0 && nrOfReplies(thread, room) > 0) {
+		if (thread.replies.length === 0 && nrOfReplies(thread, room) > 0) {
 			room?.setCurrentThreadId(thread.eventId);
 			const replies = await room?.getCurrentThreadEvents();
 			thread.replies = replies.map((r) => transformTopic(r)!);

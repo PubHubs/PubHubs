@@ -1,11 +1,13 @@
-import { MatrixClient, TimelineWindow } from 'matrix-js-sdk';
+import { type MatrixClient, type TimelineWindow } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 
-import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
+import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { type TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
 import type { TRating } from '@hub-client/models/events/forum/TRating';
 import type { TThread } from '@hub-client/models/events/forum/TThread';
-import Room from '@hub-client/models/rooms/Room';
+import type Room from '@hub-client/models/rooms/Room';
 
 import { AttachmentService } from '@hub-client/services/forum/AttachmentService';
 import { RatingService } from '@hub-client/services/forum/RatingService';
@@ -13,6 +15,8 @@ import { TopicService } from '@hub-client/services/forum/TopicService';
 
 import { SortDirection, SortOptionKey, sortOptions, useSortingStore } from '@hub-client/stores/forum/sortingStore';
 import { useTimelineStore } from '@hub-client/stores/forum/timelineStore';
+
+const logger = createLogger('ForumStore');
 
 export const useForumStore = defineStore('forumStore', {
 	state: () => ({
@@ -69,25 +73,33 @@ export const useForumStore = defineStore('forumStore', {
 		findThreadByEventId(eventId: string): TThread | undefined {
 			return this.threadIndex.get(eventId) as TThread | undefined;
 		},
-		async sendTopic(title: string, description: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean) {
+		async sendTopic(
+			title: string,
+			description: string,
+			closed: boolean,
+			eventId?: string,
+			originalTitle?: string,
+			originalBody?: string,
+			originalClosed?: boolean,
+		) {
 			try {
 				return await this.services.topic.sendTopicMessage(title, description, closed, eventId, originalTitle, originalBody, originalClosed);
 			} catch (error) {
-				console.error('Error sending topic:', error);
+				logger.error('Error sending topic:', error);
 			}
 		},
 		async sendReply(parentId: string, description: string, eventId?: string, originalBody?: string) {
 			try {
 				return await this.services.topic.sendTopicReply(parentId, description, eventId, originalBody);
 			} catch (error) {
-				console.error('Error sending reply:', error);
+				logger.error('Error sending reply:', error);
 			}
 		},
 		async sendRating(eventId: string, rating: string) {
 			try {
 				return await this.services.rating.sendRatingMessage(eventId, rating);
 			} catch (error) {
-				console.error('Error sending rating:', error);
+				logger.error('Error sending rating:', error);
 			}
 		},
 		async sendAttachment(
@@ -101,7 +113,7 @@ export const useForumStore = defineStore('forumStore', {
 			try {
 				return await this.services.attachment.sendAttachment(event, parentId, oldEvent);
 			} catch (error) {
-				console.error('Error sending attachment:', error);
+				logger.error('Error sending attachment:', error);
 				throw error;
 			}
 		},
@@ -135,10 +147,10 @@ export const useForumStore = defineStore('forumStore', {
 
 				this.buildThreadIndex();
 				await this.services.attachment.loadAttachments();
-				console.log('forumTopics length in forumStore: ', forumTopics?.length);
+				logger.info('forumTopics length in forumStore: ', forumTopics?.length);
 				return forumTopics;
 			} catch (error) {
-				console.error('Error sending attachment:', error);
+				logger.error('Error sending attachment:', error);
 			}
 		},
 
@@ -150,6 +162,7 @@ export const useForumStore = defineStore('forumStore', {
 
 		addReplyToTopic(eventId: string, reply: TThread) {
 			// Recursive function to add replies to the local this.forumTopics
+			// eslint-disable-next-line -- code will change or thrown away
 			const replyTreeWalk = (topics: any[]): boolean => {
 				for (const topic of topics) {
 					if (topic.eventId === eventId) {

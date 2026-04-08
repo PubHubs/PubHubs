@@ -1,8 +1,8 @@
-import { Filter, MatrixClient, TimelineWindow } from 'matrix-js-sdk';
-import { Room as MatrixRoom } from 'matrix-js-sdk/lib/models/room';
+import { Filter, type MatrixClient, TimelineWindow } from 'matrix-js-sdk';
+import { type Room as MatrixRoom } from 'matrix-js-sdk/lib/models/room';
 import { defineStore } from 'pinia';
 
-import Room from '@hub-client/models/rooms/Room';
+import type Room from '@hub-client/models/rooms/Room';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
@@ -27,7 +27,7 @@ export const useTimelineStore = defineStore('timelineStore', {
 			}
 		},
 
-		createFilteredTimelineWindow(filterDefinition: any) {
+		createFilteredTimelineWindow(filterDefinition: unknown) {
 			if (!filterDefinition || !this.matrixRoom) return;
 			for (const set of this.matrixRoom.getTimelineSets()) {
 				const oldFilter = set.getFilter();

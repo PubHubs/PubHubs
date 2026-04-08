@@ -1,25 +1,36 @@
 <template>
-	<div class="bg-ph-background-2 z-10 h-20 w-40 max-w-0 overflow-hidden rounded-md transition-all duration-300 ease-in-out" :class="classObject" @click="closeBubble">
+	<div
+		class="bg-ph-background-2 z-10 h-20 w-40 max-w-0 overflow-hidden rounded-md transition-all duration-300 ease-in-out"
+		:class="classObject"
+		@click="closeBubble"
+	>
 		<div class="relative flex h-full w-full items-center p-2">
-			<Icon class="absolute top-1 right-1 w-fit hover:cursor-pointer" type="x" size="xs" />
+			<Icon
+				class="absolute top-1 right-1 w-fit hover:cursor-pointer"
+				size="xs"
+				type="x"
+			/>
 
-			<p><slot></slot></p>
+			<p><slot /></p>
 			<div class="absolute z-10">
-				<div class="bg-ph-background-2" :class="{ triangle: showBubble }"></div>
+				<div
+					class="bg-ph-background-2"
+					:class="{ triangle: showBubble }"
+				/>
 			</div>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, ref } from 'vue';
-
-	const userHidBubble = ref(false);
 
 	const props = defineProps({
 		showBubble: Boolean,
 	});
+
+	const userHidBubble = ref(false);
 
 	const classObject = computed(() => ({
 		'max-w-40 overflow-visible border': props.showBubble && !userHidBubble.value,

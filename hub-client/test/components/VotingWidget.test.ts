@@ -14,12 +14,12 @@ import { en } from '@hub-client/locales/en';
 import { nl } from '@hub-client/locales/nl';
 
 // Models
-import { TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
-import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
+import { type TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
+import { Poll, type PollOption, Scheduler, type SchedulerOption, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { Room } from '@hub-client/stores/rooms';
+import { type Room } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
 
 // Add to VotingWidget-test-setup.ts

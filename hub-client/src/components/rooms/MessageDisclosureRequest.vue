@@ -1,20 +1,40 @@
 <template>
 	<div class="flex flex-col gap-2">
 		<P> {{ discosureRequest.message }} </P>
-		<div class="bg-surface flex h-full items-center justify-evenly gap-x-4 rounded-2xl border p-4" :class="!isMobile ? 'max-w-[700px] flex-row px-12' : 'w-full flex-col'">
+		<div
+			class="bg-surface flex h-full items-center justify-evenly gap-x-4 rounded-2xl border p-4"
+			:class="!isMobile ? 'max-w-[700px] flex-row px-12' : 'w-full flex-col'"
+		>
 			<div class="flex w-full flex-col gap-2">
 				<H3>{{ t('admin.disclosure_dialog_title') }}</H3>
-				<P class="text-body-small"> {{ t('admin.disclosure_message', [roomName]) }} </P>
+				<P class="text-body-small">
+					{{ t('admin.disclosure_message', [roomName]) }}
+				</P>
 				<div class="flex flex-row items-center gap-2 rounded-lg border bg-white p-4 text-black">
-					<img class="h-[1.75rem]" src="@hub-client/assets/yivi-logo.svg" alt="Yivi" />
+					<img
+						alt="Yivi"
+						class="h-[1.75rem]"
+						src="@hub-client/assets/yivi-logo.svg"
+					/>
 					<P>{{ attributeTranslations }}</P>
 				</div>
 			</div>
 
 			<div class="flex h-full w-full items-center justify-center">
-				<div v-if="disclosed" class="scale-75" :id="props.event.event_id.replace(/[^a-zA-Z ]/g, '')"></div>
-				<div v-else class="m-8 flex h-[211.5px] w-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl bg-white text-black" @click="startDisclosure">
-					<icon type="qr-code" size="2xl"> </icon>
+				<div
+					v-if="disclosed"
+					:id="props.event.event_id.replace(/[^a-zA-Z ]/g, '')"
+					class="scale-75"
+				/>
+				<div
+					v-else
+					class="m-8 flex h-[211.5px] w-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl bg-white text-black"
+					@click="startDisclosure"
+				>
+					<icon
+						size="2xl"
+						type="qr-code"
+					/>
 					<P>{{ t('admin.disclose') }}</P>
 				</div>
 			</div>
@@ -22,14 +42,15 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	import { computed, nextTick, ref, toRaw } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
-	import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
 	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -68,11 +89,20 @@
 		disclosed.value = true;
 		// Wait for Vue to update the DOM for id="yivi-disclosure"
 		await nextTick();
-		yiviFlow(EYiviFlow.Disclosure, finishDisclosure, discosureRequest.replyToRoomId!, '#' + props.event.event_id.replace(/[^a-zA-Z ]/g, ''), discosureRequest.attributes, t('admin.ask_disclosure_yivi_message'));
+		yiviFlow(
+			EYiviFlow.Disclosure,
+			finishDisclosure,
+			discosureRequest.replyToRoomId ?? '',
+			'#' + props.event.event_id.replace(/[^a-zA-Z ]/g, ''),
+			discosureRequest.attributes,
+			t('admin.ask_disclosure_yivi_message'),
+		);
 	}
 
-	function finishDisclosure(result: YiviSigningSessionResult) {
-		pubhubs.addDisclosedMessage(rooms.currentRoom?.roomId!, result, undefined);
+	function finishDisclosure(result: YiviSigningSessionResult | SecuredRoomAttributeResult) {
+		if (rooms.currentRoom?.roomId) {
+			pubhubs.addDisclosedMessage(rooms.currentRoom.roomId, result as YiviSigningSessionResult, undefined);
+		}
 		disclosed.value = false;
 	}
 </script>

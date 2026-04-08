@@ -1,6 +1,6 @@
 // Models
-import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
-import { TStateEvent } from '@hub-client/models/events/TStateEvent';
+import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+import { type TStateEvent } from '@hub-client/models/events/TStateEvent';
 
 /**
  * A general event based on matrix's ClientEvent.

@@ -7,67 +7,72 @@
 import { computed, ref } from 'vue';
 
 // Models
-import { FieldValidations, ValidationMessage, ValidationRule } from '@hub-client/models/validation/TValidate';
+import { type FieldValidations, type ValidationMessage, type ValidationRule } from '@hub-client/models/validation/TValidate';
 
-const validateFunctions: { [key: string]: Function } = {
-	required: (value: string | any[]): boolean => {
+const validateFunctions: { [key: string]: (...args: unknown[]) => unknown } = {
+	required: (value: unknown): boolean => {
 		return Array.isArray(value) ? value.length > 0 : !!value;
 	},
 
-	minValue: (value: number, min: number): boolean => {
-		return value >= min;
+	minValue: (value: unknown, min: unknown): boolean => {
+		return (value as number) >= (min as number);
 	},
 
-	maxValue: (value: number, max: number): boolean => {
-		return value <= max;
+	maxValue: (value: unknown, max: unknown): boolean => {
+		return (value as number) <= (max as number);
 	},
 
-	minLength: (value: string | any[], min: number): boolean => {
-		if (value) return value.length >= min;
+	minLength: (value: unknown, min: unknown): boolean => {
+		const v = value as string | unknown[];
+		if (v) return v.length >= (min as number);
 		return false;
 	},
 
-	maxLength: (value: string | any[], max: number): boolean => {
-		if (value) return value.length <= max;
+	maxLength: (value: unknown, max: unknown): boolean => {
+		const v = value as string | unknown[];
+		if (v) return v.length <= (max as number);
 		return true;
 	},
 
-	isNumber: (value: any) => {
-		return !isNaN(value);
+	isNumber: (value: unknown) => {
+		return !isNaN(Number(value));
 	},
 };
 
-const validateMessageFunctions: { [key: string]: Function } = {
-	required: (_: string, keyTranslation: string): ValidationMessage => {
-		return { translationKey: 'validation.required', parameters: [keyTranslation] };
+const validateMessageFunctions: { [key: string]: (...args: unknown[]) => unknown } = {
+	required: (_: unknown, keyTranslation: unknown): ValidationMessage => {
+		return { translationKey: 'validation.required', parameters: [keyTranslation as string] };
 	},
 
-	minLength: (value: string, min: number, keyTranslation: string): ValidationMessage => {
-		return { translationKey: 'validation.min_length', parameters: [keyTranslation, min, value.length] };
+	minLength: (value: unknown, min: unknown, keyTranslation: unknown): ValidationMessage => {
+		const v = value as string;
+		return { translationKey: 'validation.min_length', parameters: [keyTranslation as string, min as number, v.length] };
 	},
 
-	maxLength: (value: string, max: number, keyTranslation: string): ValidationMessage => {
-		return { translationKey: 'validation.max_length', parameters: [keyTranslation, max, value.length] };
+	maxLength: (value: unknown, max: unknown, keyTranslation: unknown): ValidationMessage => {
+		const v = value as string;
+		return { translationKey: 'validation.max_length', parameters: [keyTranslation as string, max as number, v.length] };
 	},
 
-	maxItems: (value: any[], max: number, keyTranslation: string): ValidationMessage => {
-		return { translationKey: 'validation.max_items', parameters: [keyTranslation, max, value.length] };
+	maxItems: (value: unknown, max: unknown, keyTranslation: unknown): ValidationMessage => {
+		const v = value as unknown[];
+		return { translationKey: 'validation.max_items', parameters: [keyTranslation as string, max as number, v.length] };
 	},
 
-	minValue: (value: number, min: number, keyTranslation: string): ValidationMessage => {
-		return { translationKey: 'validation.min_value', parameters: [keyTranslation, min, value] };
+	minValue: (value: unknown, min: unknown, keyTranslation: unknown): ValidationMessage => {
+		return { translationKey: 'validation.min_value', parameters: [keyTranslation as string, min as number, value as number] };
 	},
 
-	maxValue: (value: number, max: number, keyTranslation: string): ValidationMessage => {
-		return { translationKey: 'validation.max_value', parameters: [keyTranslation, max, value] };
+	maxValue: (value: unknown, max: unknown, keyTranslation: unknown): ValidationMessage => {
+		return { translationKey: 'validation.max_value', parameters: [keyTranslation as string, max as number, value as number] };
 	},
 
-	isNumber: (_: number, keyTranslation: string): ValidationMessage => {
-		return { translationKey: 'validation.is_number', parameters: [keyTranslation] };
+	isNumber: (_: unknown, keyTranslation: unknown): ValidationMessage => {
+		return { translationKey: 'validation.is_number', parameters: [keyTranslation as string] };
 	},
 };
 
-function useFieldValidation(name: string, model: any, validation?: FieldValidations) {
+function useFieldValidation(name: string, model: { value: unknown }, validation?: FieldValidations) {
 	const changed = ref(false);
 	const required = ref(false);
 	const rules: ValidationRule[] = [];
@@ -82,7 +87,7 @@ function useFieldValidation(name: string, model: any, validation?: FieldValidati
 			} else {
 				rule = {
 					validator: validateFunctions[key],
-					args: [] as any[],
+					args: [] as unknown[],
 					message: validateMessageFunctions[key],
 				} as ValidationRule;
 				if (validation[key] && typeof validation[key] !== 'boolean') {

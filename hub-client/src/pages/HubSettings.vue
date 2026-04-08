@@ -1,7 +1,10 @@
 <template>
 	<HeaderFooter>
 		<template #header>
-			<div class="flex h-full items-center gap-3" :class="isMobile ? 'pl-4' : 'pl-0'">
+			<div
+				class="flex h-full items-center gap-3"
+				:class="isMobile ? 'pl-4' : 'pl-0'"
+			>
 				<Icon type="sliders-horizontal" />
 				<H3 class="text-on-surface flex">
 					<TruncatedText class="font-headings font-semibold">{{ $t('settings.title') }}</TruncatedText>
@@ -9,19 +12,35 @@
 			</div>
 		</template>
 
-		<form @submit.prevent class="flex flex-col gap-400 px-400 py-200 pb-800">
+		<form
+			class="flex flex-col gap-400 px-400 py-200 pb-800"
+			@submit.prevent
+		>
 			<!-- Description -->
 			<div class="editor flex max-w-14000 flex-col gap-150">
 				<div class="gap-075 flex max-w-7000 flex-col">
 					<Label>{{ $t('hub_settings.description_heading') }}</Label>
 					<p>{{ $t('hub_settings.description_description') }}</p>
 				</div>
-				<mavon-editor v-model="hubDescription" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.description')" />
+				<mavon-editor
+					v-model="hubDescription"
+					:box-shadow="false"
+					language="en"
+					:placeholder="t('hub_settings.description')"
+					:toolbars="toolbarSettings"
+				/>
 			</div>
 
 			<!-- Summary -->
 			<div class="max-w-7000">
-				<TextField v-model="hubSummary" :validation="{ maxLength: maxSummaryLength }" :placeholder="t('hub_settings.summary')" :show-length="true">{{ t('hub_settings.summary_heading') }}</TextField>
+				<TextField
+					v-model="hubSummary"
+					:placeholder="t('hub_settings.summary')"
+					:show-length="true"
+					:validation="{ maxLength: maxSummaryLength }"
+				>
+					{{ t('hub_settings.summary_heading') }}
+				</TextField>
 			</div>
 
 			<!-- Contact -->
@@ -30,22 +49,32 @@
 					<Label>{{ $t('hub_settings.contact_heading') }}</Label>
 					<p>{{ $t('hub_settings.contact_description') }}</p>
 				</div>
-				<mavon-editor v-model="hubContact" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.contact')" />
+				<mavon-editor
+					v-model="hubContact"
+					:box-shadow="false"
+					language="en"
+					:placeholder="t('hub_settings.contact')"
+					:toolbars="toolbarSettings"
+				/>
 			</div>
 
 			<!-- Icon -->
 			<div class="max-w-7000">
 				<MediaUploadSection
-					:title="$t('hub_settings.icon_heading')"
-					:description="$t('hub_settings.icon_description')"
-					:media-url="iconUrl"
 					:accept="'image/*, .svg'"
+					:description="$t('hub_settings.icon_description')"
 					:error-text="iconErrorText"
+					:media-url="iconUrl"
+					:title="$t('hub_settings.icon_heading')"
 					@file-change="onFileChange('icon', $event)"
 					@remove="removeMedia('icon')"
 				>
 					<template #preview>
-						<HubIcon :icon-url="iconUrl" :icon-url-dark="iconUrl" class="mr-200 w-auto max-w-[70px] rounded-xl border p-200" />
+						<HubIcon
+							class="mr-200 w-auto max-w-[70px] rounded-xl border p-200"
+							:icon-url="iconUrl"
+							:icon-url-dark="iconUrl"
+						/>
 					</template>
 				</MediaUploadSection>
 			</div>
@@ -53,16 +82,19 @@
 			<!-- Banner -->
 			<div class="max-w-7000">
 				<MediaUploadSection
-					:title="$t('hub_settings.banner_heading')"
-					:description="$t('hub_settings.banner_description')"
-					:media-url="bannerUrl"
 					:accept="'image/*, .svg'"
+					:description="$t('hub_settings.banner_description')"
 					:error-text="bannerErrorText"
+					:media-url="bannerUrl"
+					:title="$t('hub_settings.banner_heading')"
 					@file-change="onFileChange('banner', $event)"
 					@remove="removeMedia('banner')"
 				>
 					<template #preview>
-						<HubBanner :banner-url="bannerUrl" class="mr-200 rounded-xl border p-200" />
+						<HubBanner
+							:banner-url="bannerUrl"
+							class="mr-200 rounded-xl border p-200"
+						/>
 					</template>
 				</MediaUploadSection>
 			</div>
@@ -73,19 +105,36 @@
 					<Label>{{ $t('hub_settings.consent_heading') }}</Label>
 					<p>{{ $t('hub_settings.consent_description') }}</p>
 				</div>
-				<mavon-editor v-model="hubConsent" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.consent')" />
+				<mavon-editor
+					v-model="hubConsent"
+					:box-shadow="false"
+					language="en"
+					:placeholder="t('hub_settings.consent')"
+					:toolbars="toolbarSettings"
+				/>
 			</div>
 		</form>
 
 		<!-- Fixed save button -->
 		<div class="fixed right-10 bottom-5 z-20 flex items-center gap-200">
-			<p v-if="settingsSaved" class="text-on-surface-dim text-label-small">{{ $t('hub_settings.settings_saved') }}</p>
-			<Button @click="saveChanges()" :disabled="!settingsChanged" :loading="saving">{{ $t('hub_settings.save') }}</Button>
+			<p
+				v-if="settingsSaved"
+				class="text-on-surface-dim text-label-small"
+			>
+				{{ $t('hub_settings.settings_saved') }}
+			</p>
+			<Button
+				:disabled="!settingsChanged"
+				:loading="saving"
+				@click="saveChanges()"
+				>{{ $t('hub_settings.save') }}</Button
+			>
 		</div>
 	</HeaderFooter>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
+	// Packages
 	import { computed, onBeforeMount, onBeforeUnmount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -101,8 +150,7 @@
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
-	import { LOGGER } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
 	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, toolbarSettings, useHubSettings } from '@hub-client/stores/hub-settings';
@@ -116,7 +164,7 @@
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 	const { t } = useI18n();
-	const logger = LOGGER;
+	const logger = createLogger('HubSettings');
 	const maxSummaryLength = 60;
 
 	// Media files
@@ -185,13 +233,13 @@
 		if (!file) return;
 
 		if (!ALLOWED_HUB_ICON_TYPES.includes(file.type)) {
-			logger.info(SMI.HUB_SETTINGS, 'User tried to upload file with type that is not allowed.', { type: file.type });
+			logger.info('User tried to upload file with type that is not allowed.', { type: file.type });
 			showError(mediaType, 'hub_settings.file_format_not_allowed');
 			return;
 		}
 
 		if (file.size > MAX_HUB_ICON_SIZE) {
-			logger.info(SMI.HUB_SETTINGS, 'User tried to upload file that is too large.', { size: file.size });
+			logger.info('User tried to upload file that is too large.', { size: file.size });
 			showError(mediaType, 'hub_settings.file_too_large');
 			return;
 		}
@@ -209,8 +257,13 @@
 	}
 
 	function onHubSettingsChange() {
-		const textChanged = hubDescription.value !== originalDescription.value || hubSummary.value !== originalSummary.value || hubContact.value !== originalContact.value || hubConsent.value !== originalConsent.value;
-		const mediaChanged = Object.values(selectedUrls.value).some((url) => url !== undefined) || Object.values(mediaFiles.value).some((file) => file !== undefined);
+		const textChanged =
+			hubDescription.value !== originalDescription.value ||
+			hubSummary.value !== originalSummary.value ||
+			hubContact.value !== originalContact.value ||
+			hubConsent.value !== originalConsent.value;
+		const mediaChanged =
+			Object.values(selectedUrls.value).some((url) => url !== undefined) || Object.values(mediaFiles.value).some((file) => file !== undefined);
 		settingsChanged.value = textChanged || mediaChanged;
 	}
 
@@ -242,7 +295,13 @@
 	}
 
 	async function saveHubSettings(): Promise<boolean> {
-		if (hubDescription.value === originalDescription.value && hubSummary.value === originalSummary.value && hubContact.value === originalContact.value && hubConsent.value === originalConsent.value) {
+		// Skip if hubsettings have not changed
+		if (
+			hubDescription.value === originalDescription.value &&
+			hubSummary.value === originalSummary.value &&
+			hubContact.value === originalContact.value &&
+			hubConsent.value === originalConsent.value
+		) {
 			return true;
 		}
 		if (hubConsent.value !== originalConsent.value) {
@@ -250,10 +309,10 @@
 		}
 		try {
 			await hubSettings.setHubJSON(new HubSettingsJSONParser(hubDescription.value, hubSummary.value, hubContact.value, hubConsent.value, version.value));
-			logger.info(SMI.HUB_SETTINGS, 'Hub settings updated');
+			logger.info('Hub settings updated');
 			return true;
 		} catch (er) {
-			logger.error(SMI.HUB_SETTINGS, 'Failed to save hub description', { error: er });
+			logger.error('Failed to save hub description', { error: er });
 			return false;
 		}
 	}
@@ -287,7 +346,7 @@
 					await hubSettings.deleteBanner();
 				}
 			} catch (er) {
-				logger.error(SMI.HUB_SETTINGS, `Failed to delete ${mediaType}.`, { error: er });
+				logger.error(`Failed to delete ${mediaType}.`, { error: er });
 				showError(mediaType, mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner');
 				return false;
 			}
@@ -295,14 +354,15 @@
 
 		if (!file) return true;
 
-		logger.info(SMI.HUB_SETTINGS, `Saving new ${mediaType}...`);
+		logger.info(`Saving new ${mediaType}...`);
+
 		try {
 			if (mediaType === 'icon') {
 				await hubSettings.setIcon(file);
 			} else {
 				await hubSettings.setBanner(file);
 			}
-		} catch (er) {
+		} catch {
 			showError(mediaType, mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner');
 			return false;
 		}

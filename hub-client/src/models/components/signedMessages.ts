@@ -1,4 +1,4 @@
-import { Attribute } from '../yivi/Tyivi';
+import { type Attribute } from '../yivi/Tyivi';
 
 type DisclosedAttribute = {
 	id: string;

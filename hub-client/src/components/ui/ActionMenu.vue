@@ -1,42 +1,59 @@
 <template>
-	<div class="relative z-50" ref="menu" v-click-outside="close" role="menubar">
-		<div class="menu-icon flex cursor-pointer justify-items-stretch" @click.stop="toggle" data-testid="actionmenu">
-			<Icon class="bg-surface hover:bg-button-blue rounded-md" :type="icon"></Icon>
+	<div
+		ref="menu"
+		v-click-outside="close"
+		class="relative"
+		role="menubar"
+	>
+		<div
+			class="menu-icon flex cursor-pointer justify-items-stretch"
+			data-testid="actionmenu"
+			@click="toggle"
+		>
+			<Icon
+				class="bg-surface hover:bg-accent-primary rounded-md"
+				type="dots-three-vertical"
+				size="lg"
+			></Icon>
 		</div>
-		<div v-show="open" class="menu-menu bg-surface-elevated absolute -mt-6 ml-6 rounded-md" @click.stop="close" :style="style">
+		<div
+			v-show="open"
+			class="menu-menu bg-surface absolute -mt-6 ml-6 rounded-md"
+			:style="style"
+			@click="close"
+		>
 			<slot></slot>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { nextTick, ref } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 
-	const open = ref(false);
-	const style = ref('');
-	const menu = ref<HTMLElement | null>(null);
-
-	const props = defineProps({
+	defineProps({
 		icon: {
 			type: String,
 			default: 'dots-three-vertical',
 		},
 	});
+	const open = ref(false);
+	const style = ref('');
+	const menu = ref<HTMLElement | null>(null);
 
 	const toggle = () => {
 		open.value = !open.value;
 		nextTick(() => {
 			const split = Math.floor(window.innerWidth / 2);
-			const menuX = menu.value?.offsetLeft;
-			const buttonWidth = menu.value?.getElementsByClassName('menu-icon')[0].clientWidth;
-			const menuWidth = menu.value?.getElementsByClassName('menu-menu')[0].clientWidth;
+			const menuX = menu.value?.offsetLeft ?? 0;
+			const buttonWidth = menu.value?.getElementsByClassName('menu-icon')[0]?.clientWidth ?? 0;
+			const menuWidth = menu.value?.getElementsByClassName('menu-menu')[0]?.clientWidth ?? 0;
 			let margin = buttonWidth;
-			if (menuX! > split) {
-				margin = -menuWidth!;
+			if (menuX > split) {
+				margin = -menuWidth;
 			}
 			style.value += 'margin-left:' + margin + 'px;';
 		});

@@ -1,10 +1,16 @@
 // Packages
-import { EventType, IRoomEvent, IStateEvent, type MatrixClient, RoomEvent } from 'matrix-js-sdk';
-import { MSC3575List, MSC3575RoomData, MSC3575SlidingSyncResponse, SlidingSync, SlidingSyncEvent, SlidingSyncState } from 'matrix-js-sdk/lib/sliding-sync';
+import { EventType, type IStateEvent, type MatrixClient, RoomEvent } from 'matrix-js-sdk';
+import {
+	type MSC3575List,
+	type MSC3575RoomData,
+	type MSC3575SlidingSyncResponse,
+	SlidingSync,
+	SlidingSyncEvent,
+	SlidingSyncState,
+} from 'matrix-js-sdk/lib/sliding-sync';
 
 // Logic
-import { LOGGER } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 import { MainRoomSubscription, RoomLists, makeMainRoomSubscriptionName } from '@hub-client/logic/matrix.logic.js';
 
 // Models
@@ -15,6 +21,8 @@ import { DirectRooms } from '@hub-client/models/rooms/TBaseRoom';
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
+
+const logger = createLogger('Sync');
 
 /**
  * Service for the Matrix client
@@ -58,14 +66,16 @@ class MatrixService {
 		if (!this.client) throw new Error('Matrix client required');
 		if (this.slidingSync) throw new Error('SlidingSync already started');
 
-		LOGGER.log(SMI.SYNC, 'Starting Sliding Sync');
+		logger.info('Starting Sliding Sync');
 
-		const initialRoomListFilter = new Map<string, MSC3575List>([[SlidingSyncOptions.roomList, RoomLists.get(SlidingSyncOptions.initialRoomList)!]]);
+		const initialRoomList = RoomLists.get(SlidingSyncOptions.initialRoomList);
+		if (!initialRoomList) throw new Error('Initial room list configuration not found');
+		const initialRoomListFilter = new Map<string, MSC3575List>([[SlidingSyncOptions.roomList, initialRoomList]]);
 
 		// TODO sliding sync update: the current version of the Matrix JS SDK does not support new SlidingSync({ client, lists, extensions, });
 		// As soon as this is updated we need to pass the notifications in extensions: { unread_notifications: { enabled: true, }, },
 		// and then the options from this.client.startClient can be removed, see further
-		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 /* global default value */ }, this.client, SystemDefaults.syncIntervalMS);
+		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 }, this.client, SystemDefaults.syncIntervalMS);
 
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
@@ -74,6 +84,7 @@ class MatrixService {
 		// TODO Remove when unread notifications are better handled by sliding sync
 		// Attach event handler for the unread notifications
 		this.client.on(RoomEvent.Timeline, this.roomUnreadNotifications);
+		// @ts-expect-error -- RoomEvent.UnreadNotifications not in EmittedEvents type but works at runtime
 		this.client.on(RoomEvent.UnreadNotifications, this.roomUnreadNotifications);
 
 		try {
@@ -88,9 +99,9 @@ class MatrixService {
 
 			await this.slidingSync.start();
 
-			LOGGER.log(SMI.SYNC, 'Sliding Sync started');
+			logger.info('Sliding Sync started');
 		} catch (err) {
-			LOGGER.error(SMI.SYNC, 'Failed to start the Sliding Sync', { err });
+			logger.error('Failed to start the Sliding Sync', { err });
 			this.stopSync();
 			throw err;
 		}
@@ -105,14 +116,14 @@ class MatrixService {
 	stopSync() {
 		if (!this.slidingSync) return;
 
-		LOGGER.log(SMI.SYNC, 'Stopping Sliding Sync');
+		logger.info('Stopping Sliding Sync');
 
 		// Attempt to remove listeners of the Sliding Sync
 		try {
 			this.slidingSync.off(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
 			this.slidingSync.off(SlidingSyncEvent.RoomData, this.handleRoomDataEvent);
 		} catch (err) {
-			LOGGER.warn(SMI.SYNC, 'Failed to remove listeners from the Sliding Sync', {
+			logger.warn('Failed to remove listeners from the Sliding Sync', {
 				err,
 			});
 			throw err;
@@ -122,7 +133,7 @@ class MatrixService {
 		try {
 			this.slidingSync.stop();
 		} catch (err) {
-			LOGGER.warn(SMI.SYNC, 'Failed to stop the Sliding Sync', {
+			logger.warn('Failed to stop the Sliding Sync', {
 				err,
 			});
 			throw err;
@@ -134,13 +145,13 @@ class MatrixService {
 		try {
 			if (this.client) {
 				this.client.stopClient();
-				LOGGER.log(SMI.SYNC, 'Matrix client stopped');
+				logger.info('Matrix client stopped');
 			}
 		} catch (err) {
-			LOGGER.warn(SMI.SYNC, 'Failed to stop Matrix client', { err });
+			logger.warn('Failed to stop Matrix client', { err });
 		}
 
-		LOGGER.log(SMI.SYNC, 'Sliding Sync stopped');
+		logger.info('Sliding Sync stopped');
 	}
 
 	/**
@@ -149,10 +160,11 @@ class MatrixService {
 	 */
 	private SetRoomSlidingSync() {
 		const mainRoomList = RoomLists.get(SlidingSyncOptions.mainRoomList);
-		mainRoomList!.ranges[0][1] = this.roomsUpperRange;
+		if (!mainRoomList) return;
+		mainRoomList.ranges[0][1] = this.roomsUpperRange;
 
 		// change sliding sync to current mainRoomlist and the allRoomList
-		this.slidingSync?.setList(SlidingSyncOptions.roomList, mainRoomList!);
+		this.slidingSync?.setList(SlidingSyncOptions.roomList, mainRoomList);
 
 		// increase the upperrange for the next time
 		if (this.roomsUpperRange < this.roomsCount) {
@@ -169,7 +181,7 @@ class MatrixService {
 	 */
 	addRoomSubscription(roomId: string): string | undefined {
 		if (!this.slidingSync) {
-			LOGGER.error(SMI.SYNC, `Cannot add room subscription for ${roomId}. There is no active sync`, { roomId });
+			logger.error(`Cannot add room subscription for ${roomId}. There is no active sync`, { roomId });
 			return undefined;
 		}
 
@@ -187,11 +199,11 @@ class MatrixService {
 			this.slidingSync.useCustomSubscription(roomId, timeLineKey);
 			this.slidingSync.modifyRoomSubscriptions(new Set([roomId]));
 
-			LOGGER.log(SMI.SYNC, `Added room subscription for ${roomId} with timeline key ${timeLineKey}`, { roomId, timeLineKey });
+			logger.info(`Added room subscription for ${roomId} with timeline key ${timeLineKey}`, { roomId, timeLineKey });
 
 			return timeLineKey;
 		} catch (err) {
-			LOGGER.error(SMI.SYNC, `Failed to subscribe to ${roomId}`, { roomId, err });
+			logger.error(`Failed to subscribe to ${roomId}`, { roomId, err });
 			throw err;
 		}
 	}
@@ -238,13 +250,15 @@ class MatrixService {
 			}
 			// console.error('handleLifecycleEvent roomList', roomList);
 
-			const joinPromises: Promise<any>[] = [];
+			const joinPromises: Promise<void>[] = [];
 
 			for (const [roomId, roomData] of Object.entries(roomList)) {
 				currentUser.loadFromSlidingSync(roomData);
 
 				// Get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
-				const latestRoomMemberInfo = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
+				const latestRoomMemberInfo = roomData.required_state
+					?.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId)
+					.sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
 
 				// The roomlist is initially send twice: on sync start and later during the sync
 				// Only handle the join when the room is not joined yet
@@ -256,7 +270,8 @@ class MatrixService {
 					// Sliding sync sends delta required_state, so the create event may be absent on subsequent updates.
 					// Fall back to the already-stored room type to avoid overwriting a DM type with the default.
 					const storedRoomType = this.roomsStore.roomList.find((r) => r.roomId === roomId)?.roomType;
-					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? storedRoomType ?? RoomType.PH_MESSAGES_DEFAULT;
+					const roomType =
+						roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? storedRoomType ?? RoomType.PH_MESSAGES_DEFAULT;
 					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state));
 				}
 
@@ -268,7 +283,12 @@ class MatrixService {
 					const roomType = inviteState.find((x) => x.type === EventType.RoomCreate)?.content?.type;
 					const roomName = inviteState.find((x) => x.type === EventType.RoomName)?.content?.name;
 					if (DirectRooms.includes(roomType) && roomName) {
-						const invites = inviteState.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId && x.content?.[MatrixType.MemberShip] === MatrixType.Invite);
+						const invites = inviteState.filter(
+							(x) =>
+								x.type === EventType.RoomMember &&
+								x.state_key === currentUser.userId &&
+								x.content?.[MatrixType.MemberShip] === MatrixType.Invite,
+						);
 						invites.forEach(() => {
 							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state));
 						});
@@ -283,7 +303,7 @@ class MatrixService {
 			this.SetRoomSlidingSync(); // Sets the correct sliding sync for the room
 			this.roomsStore.setRoomsLoaded(true);
 		} catch (err) {
-			LOGGER.error(SMI.SYNC, 'Lifecycle handler failed', { err });
+			logger.error('Lifecycle handler failed', { err });
 			throw err;
 		}
 	};
@@ -299,7 +319,7 @@ class MatrixService {
 			// console.error('handleroomdataevent subscriptions ', this.slidingSync?.getRoomSubscriptions());
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
-			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });
+			logger.error('RoomData handler failed', { roomId, err });
 		}
 	};
 

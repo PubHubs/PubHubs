@@ -1,7 +1,17 @@
 <template>
-	<RoomMessageBubble :event="topic.event!.matrixEvent.event" :room="room" :showActions="false" @click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: topic.eventId } })" class="cursor-pointer">
+	<RoomMessageBubble
+		:event="topic.event!.matrixEvent.event"
+		:room="room"
+		:show-actions="false"
+		class="cursor-pointer"
+		@click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: topic.eventId } })"
+	>
 		<template #extras>
-			<ForumTopicExtras :topic="topic" :room="room" :can_reply="can_reply"></ForumTopicExtras>
+			<ForumTopicExtras
+				:topic="topic"
+				:room="room"
+				:can_reply="can_reply"
+			></ForumTopicExtras>
 		</template>
 		<template #bottom>
 			<ForumBody :topic="topic"></ForumBody>
@@ -16,8 +26,8 @@
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import ForumBody from '@hub-client/components/rooms/forum/ForumBody.vue';
 	import ForumTopicExtras from '@hub-client/components/rooms/forum/ForumTopicExtras.vue';
+
 	// Stores
-	import ThreadItem from '@hub-client/components/rooms/forum/ThreadItem.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
@@ -31,7 +41,7 @@
 			type: Room,
 			required: true,
 		},
-		can_reply: {
+		canReply: {
 			type: Boolean,
 			default: true,
 		},

@@ -1,41 +1,63 @@
 <template>
 	<div id="filePickerContainer">
-		<div v-if="messageInput.state.fileAdded" class="border-on-surface-disabled relative flex w-full justify-center border-b-2">
+		<div
+			v-if="messageInput.state.fileAdded"
+			class="border-on-surface-disabled relative flex w-full justify-center border-b-2"
+		>
 			<div class="m-2 mb-2 rounded-lg">
-				<div v-if="imageTypes.includes(messageInput.state.fileAdded?.type)" class="flex justify-center">
-					<img :src="uri?.url ?? ''" class="max-h-64 max-w-full rounded-lg" />
+				<div
+					v-if="imageTypes.includes(messageInput.state.fileAdded?.type)"
+					class="flex justify-center"
+				>
+					<img
+						:src="uri?.url ?? ''"
+						class="max-h-64 max-w-full rounded-lg"
+					/>
 				</div>
 				<div class="mt-1 flex justify-center">
-					<div class="text-on-surface-dim text-label">{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})</div>
+					<div class="text-on-surface-dim text-label">
+						{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})
+					</div>
 				</div>
 			</div>
-			<div class="flex gap-2 pt-3" :class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }">
-				<Icon type="arrows-clockwise" class="hover:text-accent-secondary cursor-pointer" @click.stop="openFile"></Icon>
-				<Icon type="trash" class="hover:text-accent-error cursor-pointer" @click="removeFile()"></Icon>
+			<div
+				class="flex gap-2 pt-3"
+				:class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }"
+			>
+				<Icon
+					type="arrows-clockwise"
+					class="hover:text-accent-secondary cursor-pointer"
+					@click.stop="openFile"
+				></Icon>
+				<Icon
+					type="trash"
+					class="hover:text-accent-error cursor-pointer"
+					@click="removeFile()"
+				></Icon>
 			</div>
 		</div>
 	</div>
 
-	<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" data-testid="file-input" ref="elFileInput" @change="uploadFileTemporary($event)" @cancel="messageInput.cancelFileUpload()" hidden />
+	<input
+		ref="elFileInput"
+		type="file"
+		:accept="getTypesAsString(allTypes)"
+		class="attach-file"
+		data-testid="file-input"
+		hidden
+		@change="uploadFileTemporary($event)"
+		@cancel="messageInput.cancelFileUpload()"
+	/>
 </template>
 
 <script setup lang="ts">
-	import { PropType, onBeforeUnmount, ref, watch } from 'vue';
+	import { type PropType, onBeforeUnmount, ref, watch } from 'vue';
 
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import filters from '@hub-client/logic/core/filters';
-	import { useMessageInput } from '@hub-client/logic/messageInput';
-
-	const { allTypes, imageTypes, getTypesAsString } = useMatrixFiles();
-
-	const uri = ref<BlobManager>();
-	const elFileInput = ref<HTMLInputElement | null>(null);
-
-	const emit = defineEmits<{
-		uploadFile: [blobManager: BlobManager | undefined];
-	}>();
+	import { type useMessageInput } from '@hub-client/logic/messageInput';
 
 	const props = defineProps({
 		messageInput: {
@@ -51,6 +73,15 @@
 			default: false,
 		},
 	});
+
+	const emit = defineEmits<{
+		uploadFile: [blobManager: BlobManager | undefined];
+	}>();
+
+	const { allTypes, imageTypes, getTypesAsString } = useMatrixFiles();
+
+	const uri = ref<BlobManager>();
+	const elFileInput = ref<HTMLInputElement | null>(null);
 
 	// FilePicker starts as owner of the blob URL and can transfer ownership to parent.
 	const ownsBlobMemory = ref(true);
@@ -83,7 +114,7 @@
 		if (ownsBlobMemory.value) {
 			uri.value?.revoke();
 		}
-		props.messageInput.state.fileAdded = null;
+		props.messageInput.setFileAdded(null);
 		emit('uploadFile', undefined);
 	}
 
@@ -97,8 +128,8 @@
 			}
 			// Once the file has been selected from the filesystem.
 			// Set props to be passed to the component.
-			props.messageInput.state.fileAdded = choosenFile;
-			uri.value = new BlobManager(props.messageInput.state.fileAdded);
+			props.messageInput.setFileAdded(choosenFile);
+			uri.value = new BlobManager(choosenFile);
 			ownsBlobMemory.value = true;
 			props.messageInput.activateSendButton();
 			if (elFileInput.value) {

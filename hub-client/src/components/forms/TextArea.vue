@@ -2,28 +2,34 @@
 	<textarea
 		ref="elTextarea"
 		v-tw-class="'p-2'"
-		rows="1"
 		class="text-body focus:border-on-surface w-full resize-none rounded-lg border focus:ring-0 focus:outline-0 focus:outline-offset-0"
+		:disabled="disabled === true"
 		:maxlength="maxLength"
 		:placeholder="placeholder"
+		rows="1"
 		:title="placeholder"
 		:value="modelValue"
-		:disabled="disabled === true"
 		@input="update(($event.target as HTMLTextAreaElement).value)"
-		@keyup="onKeyUp"
 		@keydown.enter.exact.prevent="submit()"
 		@keydown.esc="cancel()"
+		@keyup="onKeyUp"
 	/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { Ref, nextTick, ref, watch } from 'vue';
+	import { type Ref, nextTick, ref, watch } from 'vue';
 
 	// Composables
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useGetCaretPos } from '@hub-client/composables/useGetCaretPos';
 
+	const props = withDefaults(defineProps<Props>(), {
+		placeholder: '',
+		maxLength: 1500,
+		disabled: false,
+	});
+	const emit = defineEmits([...usedEvents, 'caretPos']);
 	const { getCaretPos } = useGetCaretPos();
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
@@ -33,13 +39,6 @@
 		maxLength?: number;
 		disabled?: boolean;
 	};
-	const props = withDefaults(defineProps<Props>(), {
-		placeholder: '',
-		maxLength: 1500,
-		disabled: false,
-	});
-
-	const emit = defineEmits([...usedEvents, 'caretPos']);
 	const { update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);
 
 	watch(

@@ -1,17 +1,61 @@
 <template>
-	<Dialog :title="$t('admin.ask_disclosure_title')" :width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'" @close="close($event)">
-		<ValidatedForm @submit.prevent class="flex flex-col p-200" :class="isMobile ? 'w-full' : 'w-[450px]'" v-slot="{ isValidated }">
-			<DropDown v-model="form.user" :transformer="dropDownData.transformUser" :options="userOptions" :filtered="true" :validation="{ required: true }">{{ $t('admin.ask_disclosure_user_title') }}</DropDown>
-			<DropDown v-model="form.attributes" :transformer="dropDownData.transformYiviAttribute" :options="yiviAttributes" :multiple="true" :filtered="true" :validation="{ required: true }">{{
-				$t('admin.secured_yivi_attributes')
-			}}</DropDown>
-			<DropDown v-model="form.where_room" :transformer="dropDownData.transformRoom" :options="roomOptions" :filtered="true" :validation="{ required: true }">{{ $t('rooms.room') }}</DropDown>
+	<Dialog
+		:title="$t('admin.ask_disclosure_title')"
+		:width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'"
+		@close="close()"
+	>
+		<ValidatedForm
+			v-slot="{ isValidated }"
+			class="flex flex-col p-200"
+			:class="isMobile ? 'w-full' : 'w-[450px]'"
+			@submit.prevent
+		>
+			<DropDown
+				v-model="form.user"
+				:transformer="dropDownData.transformUser"
+				:options="userOptions"
+				:filtered="true"
+				:validation="{ required: true }"
+				>{{ $t('admin.ask_disclosure_user_title') }}</DropDown
+			>
+			<DropDown
+				v-model="form.attributes"
+				:transformer="dropDownData.transformYiviAttribute"
+				:options="yiviAttributes"
+				:multiple="true"
+				:filtered="true"
+				:validation="{ required: true }"
+				>{{ $t('admin.secured_yivi_attributes') }}</DropDown
+			>
+			<DropDown
+				v-model="form.where_room"
+				:transformer="dropDownData.transformRoom"
+				:options="roomOptions"
+				:filtered="true"
+				:validation="{ required: true }"
+				>{{ $t('rooms.room') }}</DropDown
+			>
 
-			<TextArea placeholder="Add a message to your disclosure request" :validation="{ required: true, maxLength: 100 }" v-model="form.message" @keydown.esc.stop>{{ $t('admin.ask_disclosure_message_title') }}</TextArea>
+			<TextArea
+				v-model="form.message"
+				placeholder="Add a message to your disclosure request"
+				:validation="{ required: true, maxLength: 100 }"
+				@keydown.esc.stop
+				>{{ $t('admin.ask_disclosure_message_title') }}</TextArea
+			>
 
 			<ButtonGroup>
-				<Button variant="error" @click.stop.prevent="close()">{{ t('dialog.cancel') }}</Button>
-				<Button type="submit" :disabled="!isValidated" @click.stop.prevent="onSubmit()">{{ t('dialog.submit') }}</Button>
+				<Button
+					variant="error"
+					@click.stop.prevent="close()"
+					>{{ t('dialog.cancel') }}</Button
+				>
+				<Button
+					type="submit"
+					:disabled="!isValidated"
+					@click.stop.prevent="onSubmit()"
+					>{{ t('dialog.submit') }}</Button
+				>
 			</ButtonGroup>
 		</ValidatedForm>
 	</Dialog>
@@ -26,13 +70,13 @@
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Models
-	import { AskDisclosure, AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
-	import { TUserAccount } from '@hub-client/models/users/TUser';
-	import { Attribute } from '@hub-client/models/yivi/Tyivi';
+	import { type AskDisclosure, type AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
+	import { type TUserAccount } from '@hub-client/models/users/TUser';
+	import { type Attribute } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { TPublicRoom } from '@hub-client/stores/rooms';
+	import { type TPublicRoom } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
@@ -42,21 +86,19 @@
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 
-	// const yiviStore = useYivi();
+	const props = defineProps<{
+		user: TUserAccount;
+	}>();
+	const emit = defineEmits(['close']);
 	const pubhubsStore = usePubhubsStore();
 	const dropDownData = useDropDownData();
 
 	const { t } = useI18n();
-	const emit = defineEmits(['close']);
 	const roomOptions = ref<TPublicRoom[]>([]);
 	const userOptions = ref<TUserAccount[]>([]);
 	const yiviAttributes = dropDownData.yiviAttributes();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
-
-	const props = defineProps<{
-		user: TUserAccount;
-	}>();
 
 	const defaultPrivateRoom = { room_id: '', name: t('admin.private_room') };
 
@@ -83,14 +125,13 @@
 	}
 
 	async function onSubmit() {
-		let roomId = form.value.where_room.room_id;
-		if (!roomId || form.value.where_room.name === t('admin.private_room')) {
-			const privateRoom = await pubhubsStore.createPrivateRoomWith([form.value.user.name]);
-			roomId = privateRoom!.room_id;
-		}
+		const privateRoom = await pubhubsStore.createPrivateRoomWith([form.value.user.name]);
+		if (!privateRoom) return;
+		const roomId = privateRoom.room_id;
+
 		const result: AskDisclosureMessage = {
 			userId: form.value.user?.name,
-			replyToRoomId: roomId,
+			replyToRoomId: form.value.where_room.room_id,
 			message: form.value.message,
 			attributes: form.value.attributes.map((item: Attribute) => item.attribute),
 		};

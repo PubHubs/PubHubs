@@ -2,11 +2,11 @@
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 
 // Models
-import { TState } from '@hub-client/models/events/TStateEvent';
-import { AccessToken } from '@hub-client/models/hubmanagement/types/authType';
-import { RoomMembers } from '@hub-client/models/hubmanagement/types/roomMembers';
-import { UserAccount } from '@hub-client/models/hubmanagement/types/userAccount';
-import { TUserAccountList, TUserJoinedRooms } from '@hub-client/models/users/TUser';
+import { type TState } from '@hub-client/models/events/TStateEvent';
+import { type AccessToken } from '@hub-client/models/hubmanagement/types/authType';
+import { type RoomMembers } from '@hub-client/models/hubmanagement/types/roomMembers';
+import { type UserAccount } from '@hub-client/models/hubmanagement/types/userAccount';
+import { type TUserAccountList, type TUserJoinedRooms } from '@hub-client/models/users/TUser';
 
 export class APIService {
 	/** See https://github.com/element-hq/synapse/blob/develop/docs/admin_api/user_admin_api.md#list-accounts
@@ -35,6 +35,10 @@ export class APIService {
 	 */
 	static async adminGetRoomState(roomId: string): Promise<TState> {
 		return await api_synapse.apiGET<TState>(`${api_synapse.apiURLS.roomsAPIV1}${roomId}/state`);
+	}
+
+	static async adminGetReports(): Promise<TState> {
+		return await api_synapse.apiGET<TState>(`${api_synapse.apiURLS.reports}`);
 	}
 
 	/**

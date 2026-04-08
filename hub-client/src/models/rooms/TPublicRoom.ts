@@ -1,4 +1,4 @@
 // Models
-import { TBaseRoom } from '@hub-client/models/rooms/TBaseRoom';
+import { type TBaseRoom } from '@hub-client/models/rooms/TBaseRoom';
 
-export interface TPublicRoom extends TBaseRoom {}
+export type TPublicRoom = TBaseRoom;

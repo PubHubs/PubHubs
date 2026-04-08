@@ -1,5 +1,10 @@
 <template>
-	<TextArea v-if="!reply" v-model="title" :validation="{ required: true, minLength: TITLE_MIN_LENGTH, maxLength: TITLE_MAX_LENGTH }">Title</TextArea>
+	<TextArea
+		v-if="!reply"
+		v-model="title"
+		:validation="{ required: true, minLength: TITLE_MIN_LENGTH, maxLength: TITLE_MAX_LENGTH }"
+		>Title</TextArea
+	>
 	<ForumInput
 		:min_length="Math.max(REPLY_MIN_LENGTH, TITLE_MIN_LENGTH)"
 		:max_length="REPLY_MAX_LENGTH"
@@ -20,10 +25,10 @@
 	import ForumInput from '@hub-client/components/rooms/forum/ForumInput.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
-	import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent } from '@hub-client/models/events/TMessageEvent';
-	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
-	import { TThread } from '@hub-client/models/events/forum/TThread';
-	import Room from '@hub-client/models/rooms/Room';
+	import { type TFileMessageEventContent, type TImageMessageEventContent, type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { type TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+	import { type TThread } from '@hub-client/models/events/forum/TThread';
+	import type Room from '@hub-client/models/rooms/Room';
 
 	import { createDummyEventTopic, createDummyFile, createDummyImage } from '@hub-client/services/forum/forumHelpers';
 	import { REPLY_MAX_LENGTH, REPLY_MIN_LENGTH, TITLE_MAX_LENGTH, TITLE_MIN_LENGTH } from '@hub-client/services/forum/properties';

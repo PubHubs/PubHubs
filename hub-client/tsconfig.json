@@ -16,12 +16,11 @@
 		"sourceMap": true,
 		"outDir": "dist",
 		"types": ["vite/client"],
-		"baseUrl": ".",
 		"paths": {
-			"@hub-client/*": ["src/*"]
+			"@hub-client/*": ["./src/*"]
 		},
 		"lib": ["esnext", "dom", "dom.iterable", "scripthost"]
 	},
-	"include": ["env.d.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "tests/**/*.ts", "tests/**/*.tsx", "vite.config.ts"],
+	"include": ["env.d.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.vue", "vite.config.ts"],
 	"exclude": ["node_modules"]
 }

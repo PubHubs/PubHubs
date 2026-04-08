@@ -1,7 +1,12 @@
 <template>
 	<div class="flex flex-row items-center gap-1 wrap-break-word">
 		<ActionMenu icon="arrows-down-up">
-			<ActionMenuItem v-for="option in sortOptions" :key="option.key" @click="sortingStore.toggleOption(option.key)" class="flex items-center gap-2">
+			<ActionMenuItem
+				v-for="option in sortOptions"
+				:key="option.key"
+				class="flex items-center gap-2"
+				@click="sortingStore.toggleOption(option.key)"
+			>
 				<Icon :type="option.icon"></Icon>
 				{{ option.label }}
 				<Icon :type="sortingStore.getDirectionIcon(option.key)"></Icon>

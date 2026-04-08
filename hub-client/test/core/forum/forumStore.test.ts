@@ -1,9 +1,9 @@
-import { MatrixClient, Room, TimelineWindow } from 'matrix-js-sdk';
+import { type MatrixClient, type Room, type TimelineWindow } from 'matrix-js-sdk';
 import { SortDirection, SortOptionKey, useSortingStore } from '@hub-client/stores/forum/sortingStore';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
-import { RatingService } from '@hub-client/services/forum/RatingService';
+import { type RatingService } from '@hub-client/services/forum/RatingService';
 import type { TRating } from '@hub-client/models/events/forum/TRating';
 import type { TThread } from '@hub-client/models/events/forum/TThread';
 import { useForumStore } from '@hub-client/stores/forum/forumStore';
@@ -14,9 +14,9 @@ const mockRatings: TRating[] = [];
 
 vi.mock('@hub-client/services/forum/TopicService', () => ({
 	TopicService: class {
-		// eslint-disable-next-line
+		 
 		constructor(_c: MatrixClient, _r: Room, _rs: RatingService) {}
-		// eslint-disable-next-line
+		 
 		async fetchTopics(_tw: TimelineWindow) {
 			return { forumTopics: mockTopics, forumRatings: mockRatings };
 		}

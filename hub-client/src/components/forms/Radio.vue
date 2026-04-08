@@ -1,27 +1,34 @@
 <template>
-	<ul v-for="option in options" :key="option.value">
+	<ul
+		v-for="option in options"
+		:key="option.value"
+	>
 		<li>
 			<input
-				type="radio"
 				v-model="inputValue"
-				:value="option.value"
 				class="focus:ring-offset-width-0 focus:shadow-0 focus:ring-0 focus:ring-offset-0 focus:outline-0 focus:outline-offset-0"
+				type="radio"
+				:value="option.value"
 				@change="
 					selectOption(option);
 					changed();
 				"
 			/>
-			<label class="ml-2" :for="option.value">{{ option.label }}</label>
+			<label
+				class="ml-2"
+				:for="String(option.value)"
+				>{{ option.label }}</label
+			>
 		</li>
 	</ul>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packagges
-	import { PropType } from 'vue';
+	import { type PropType } from 'vue';
 
 	// Composables
-	import { Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { type Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
 	const props = defineProps({
 		options: {

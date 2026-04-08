@@ -23,7 +23,11 @@ function convertToPng(blob: Blob): Promise<Blob> {
 			const canvas = document.createElement('canvas');
 			canvas.width = img.naturalWidth;
 			canvas.height = img.naturalHeight;
-			const ctx = canvas.getContext('2d')!;
+			const ctx = canvas.getContext('2d');
+			if (!ctx) {
+				reject(new Error('Failed to get 2d canvas context'));
+				return;
+			}
 			ctx.drawImage(img, 0, 0);
 			canvas.toBlob((pngBlob) => {
 				if (pngBlob) resolve(pngBlob);

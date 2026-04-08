@@ -1,8 +1,8 @@
 // Packages
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 
 // Stores
-import { Room } from '@hub-client/stores/rooms';
+import { type Room } from '@hub-client/stores/rooms';
 import { useSettings } from '@hub-client/stores/settings';
 
 export enum SidebarTab {
@@ -16,7 +16,7 @@ export enum SidebarTab {
 }
 
 const activeTab = ref<SidebarTab>(SidebarTab.None);
-const selectedDMRoom = ref<Room | null>(null);
+const selectedDMRoom = shallowRef<Room | null>(null);
 const LAST_DM_ROOM_KEY = 'pubhubs_lastDMRoomId';
 const lastDMRoomId = ref<string | null>(sessionStorage.getItem(LAST_DM_ROOM_KEY));
 const skipTransition = ref(false);

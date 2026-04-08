@@ -2,7 +2,7 @@
 	<div
 		class="relative z-0 rounded-lg"
 		:class="{
-			'outline outline-2 outline-black': datePicked && pickedOptionId == props.option.id,
+			'outline-2 outline-black': datePicked && pickedOptionId == props.option.id,
 			'opacity-50': datePicked && pickedOptionId !== props.option.id,
 		}"
 	>
@@ -10,25 +10,65 @@
 			<div class="flex items-end">
 				{{ filters.getDateStr(option.date, is24HourFormat, d) }}
 			</div>
-			<div v-if="!closedAndPicking" class="ml-auto flex items-center justify-end gap-2">
-				<OptionButton color="bg-accent-lime" :colorwhen="uservote === 'yes'" :disabled="closed" @click="vote('yes')">
-					<Icon type="check" class="m-auto" />
+			<div
+				v-if="!closedAndPicking"
+				class="ml-auto flex items-center justify-end gap-2"
+			>
+				<OptionButton
+					color="bg-accent-green text-on-accent-green"
+					:colorwhen="uservote === 'yes'"
+					:disabled="closed"
+					@click="vote('yes')"
+				>
+					<Icon
+						type="check"
+						class="m-auto"
+					/>
 				</OptionButton>
-				<OptionButton color="bg-accent-orange" :colorwhen="uservote === 'maybe'" :disabled="closed" @click="vote('maybe')">
-					<Icon type="tilde" class="m-auto" />
+				<OptionButton
+					color="bg-accent-orange text-on-accent-orange"
+					:colorwhen="uservote === 'maybe'"
+					:disabled="closed"
+					@click="vote('maybe')"
+				>
+					<Icon
+						type="tilde"
+						class="m-auto"
+					/>
 				</OptionButton>
-				<OptionButton color="bg-accent-red" :colorwhen="uservote === 'no'" :disabled="closed" @click="vote('no')">
-					<Icon type="x" class="m-auto" />
+				<OptionButton
+					color="bg-accent-red text-on-accent-red"
+					:colorwhen="uservote === 'no'"
+					:disabled="closed"
+					@click="vote('no')"
+				>
+					<Icon
+						type="x"
+						class="m-auto"
+					/>
 				</OptionButton>
 			</div>
-			<div v-if="closedAndPicking" class="ml-auto justify-end">
-				<Button @click="pickDate()" size="sm">{{ $t('message.pick') }}</Button>
+			<div
+				v-if="closedAndPicking"
+				class="ml-auto justify-end"
+			>
+				<Button
+					size="sm"
+					@click="pickDate()"
+					>{{ $t('message.pick') }}</Button
+				>
 			</div>
 		</div>
-		<div v-if="showVotes" class="bg-surface-high relative flex px-5">
+		<div
+			v-if="showVotes"
+			class="bg-surface-high relative flex px-5"
+		>
 			<ViewVotesSchedulerOption :votes="votes"></ViewVotesSchedulerOption>
 		</div>
-		<ProgressBarMulti class="relative -z-10 -mt-2 mb-2" :percentages="[getPercentage('yes'), getPercentage('maybe'), getPercentage('no')]"></ProgressBarMulti>
+		<ProgressBarMulti
+			class="relative -z-10 -mt-2 mb-2"
+			:percentages="[getPercentage('yes'), getPercentage('maybe'), getPercentage('no')]"
+		></ProgressBarMulti>
 	</div>
 </template>
 <script setup lang="ts">
@@ -44,18 +84,13 @@
 	import filters from '@hub-client/logic/core/filters';
 
 	// Models
-	import { SchedulerOption, vote as voteType } from '@hub-client/models/events/voting/VotingTypes';
+	import { type SchedulerOption, type vote as voteType } from '@hub-client/models/events/voting/VotingTypes';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	const pubhubs = usePubhubsStore();
-	const rooms = useRooms();
-	const settings = useSettings();
-	const { d } = useI18n();
 
 	const props = defineProps<{
 		option: SchedulerOption;
@@ -68,6 +103,10 @@
 		showVotesBeforeVoting: boolean | undefined;
 		showVotes: boolean;
 	}>();
+	const pubhubs = usePubhubsStore();
+	const rooms = useRooms();
+	const settings = useSettings();
+	const { d } = useI18n();
 
 	const user = useUser();
 

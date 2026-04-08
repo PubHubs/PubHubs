@@ -13,9 +13,17 @@ import filters from '@hub-client/logic/core/filters';
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
-import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, Source } from '@global-client/models/MSS/TAuths';
-import { DecodedAttributes, EnterStartResp, HubInfoResp, InfoResp, ResultResponse, ReturnCard, isResult } from '@global-client/models/MSS/TGeneral';
-import { Attr, Constellation, HubInformation, PHCEnterMode, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
+import { type AuthAttrKeyReq, type AuthStartReq, type CardReq, type LoginMethod, Source } from '@global-client/models/MSS/TAuths';
+import {
+	type DecodedAttributes,
+	type EnterStartResp,
+	type HubInfoResp,
+	type InfoResp,
+	ResultResponse,
+	type ReturnCard,
+	isResult,
+} from '@global-client/models/MSS/TGeneral';
+import { type Attr, type Constellation, type HubInformation, PHCEnterMode, type UserSecretObject, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
 // Stores
@@ -37,7 +45,11 @@ const useMSS = defineStore('mss', {
 	},
 
 	actions: {
-		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode, registerOnlyWithUniqueAttrs = false): Promise<{ key: string; values?: string[] } | undefined> {
+		async enterPubHubs(
+			loginMethod: LoginMethod,
+			enterMode: PHCEnterMode,
+			registerOnlyWithUniqueAttrs = false,
+		): Promise<{ key: string; values?: string[] } | undefined> {
 			const settings = useSettings();
 			const cardFeature = settings.isFeatureEnabled(FeatureFlag.phCard);
 			const authServer = await this.getAuthServer();
@@ -150,7 +162,10 @@ const useMSS = defineStore('mss', {
 				} else if (signedHhpp === 'RetryWithNewPpp') {
 					throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
 				}
-				assert.isDefined(signedHhpp, 'Something went wrong, signedHhpp should be defined or you should have logged out or gone back to requesting a new Ppp.');
+				assert.isDefined(
+					signedHhpp,
+					'Something went wrong, signedHhpp should be defined or you should have logged out or gone back to requesting a new Ppp.',
+				);
 				return signedHhpp;
 			}
 		},
@@ -215,7 +230,10 @@ const useMSS = defineStore('mss', {
 			if (!this._authServer) {
 				await this.initializeServers();
 			}
-			return this._authServer!;
+			if (!this._authServer) {
+				throw new Error('AuthServer failed to initialize');
+			}
+			return this._authServer;
 		},
 
 		async getTranscryptor(): Promise<{
@@ -224,7 +242,10 @@ const useMSS = defineStore('mss', {
 			if (!this._transcryptor) {
 				await this.initializeServers();
 			}
-			return this._transcryptor!;
+			if (!this._transcryptor) {
+				throw new Error('Transcryptor failed to initialize');
+			}
+			return this._transcryptor;
 		},
 
 		logout(): void {
@@ -293,7 +314,7 @@ const useMSS = defineStore('mss', {
 
 			return { identifying, additional, attributeValues };
 		},
-		validateAttributes(authSuccess: { attrs: {} }, isRegisteringOrNoCard: boolean, loginMethod: LoginMethod): void {
+		validateAttributes(authSuccess: { attrs: Record<string, unknown> }, isRegisteringOrNoCard: boolean, loginMethod: LoginMethod): void {
 			const keys = Object.keys(authSuccess.attrs);
 			let allowedAttributeSets: string[];
 
@@ -308,7 +329,10 @@ const useMSS = defineStore('mss', {
 				throw new Error('Disclosed attributes do not match the requested ones.');
 			}
 		},
-		buildAttributeKeyRequest(signedIdentifyingAttrs: Record<string, { id: string; value: string; signedAttr: any }>, userSecretObject: any): AuthAttrKeyReq {
+		buildAttributeKeyRequest(
+			signedIdentifyingAttrs: Record<string, { id: string; value: string; signedAttr: string }>,
+			userSecretObject: UserSecretObject | null,
+		): AuthAttrKeyReq {
 			const attrKeyReq: AuthAttrKeyReq = {};
 
 			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs)) {

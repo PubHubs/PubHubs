@@ -1,10 +1,14 @@
-import { EventType, MsgType, User } from 'matrix-js-sdk';
+import { EventType, MsgType, type User } from 'matrix-js-sdk';
 
-import { TFileMessageEventContent, TImageMessageEventContent, TMessageEvent } from '@hub-client/models/events/TMessageEvent';
-import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
-import { TThread } from '@hub-client/models/events/forum/TThread';
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
+import { type TFileMessageEventContent, type TImageMessageEventContent, type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+import { type TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+import { type TThread } from '@hub-client/models/events/forum/TThread';
 
 import { useForumStore } from '@hub-client/stores/forum/forumStore';
+
+const logger = createLogger('forumHelpers');
 
 // Instead of using the listener we make use of dummyEvents and add this to our local list containing the topics and replies
 // We do not have enough time to change this to use this listener implemtation.
@@ -54,7 +58,7 @@ export function createDummyEvent(
 		const forumStore = useForumStore();
 		const oldEvent: TThread = forumStore.findThreadByEventId(eventId)!;
 
-		console.info('oldEvent', eventId, oldEvent);
+		logger.info('oldEvent', eventId, oldEvent);
 
 		return {
 			...oldEvent,
@@ -91,11 +95,11 @@ export function createDummyEventTopic(
 	dummyFile?: TMessageEvent<TFileMessageEventContent>,
 ): TThread {
 	if (editEvent) {
-		const forumStore = useForumStore();
+		// const forumStore = useForumStore();
 		const eventId = topic.eventId;
 		const oldEvent: TThread = topic;
 
-		console.info('oldEvent', eventId, oldEvent);
+		logger.info('oldEvent', eventId, oldEvent);
 
 		return {
 			...oldEvent,

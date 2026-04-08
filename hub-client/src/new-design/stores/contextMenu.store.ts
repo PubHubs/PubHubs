@@ -2,14 +2,19 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
+// Logic
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { useSettings } from '@hub-client/stores/settings';
 
 // Models
-import type { ContextMenuItemProps, MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 
 let wheelHandler: ((e: Event) => void) | undefined;
+
+const logger = createLogger('ContextMenu');
 
 export const useContextMenuStore = defineStore('contextMenu', () => {
 	// State
@@ -75,7 +80,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		try {
 			item.onClick?.();
 		} catch (err) {
-			console.error(err);
+			logger.error(err);
 		}
 
 		document.dispatchEvent(

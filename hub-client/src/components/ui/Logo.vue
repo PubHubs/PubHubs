@@ -1,9 +1,17 @@
 <template>
-	<img alt="PubHubs logo" :src="logoLightUrl" class="h-full w-full dark:hidden" />
-	<img alt="PubHubs logo" :src="logoDarkUrl" class="hidden h-full w-full dark:block" />
+	<img
+		alt="PubHubs logo"
+		class="h-full w-full dark:hidden"
+		:src="logoLightUrl"
+	/>
+	<img
+		alt="PubHubs logo"
+		class="hidden h-full w-full dark:block"
+		:src="logoDarkUrl"
+	/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Assets
 	const logoLightUrl = '/img/pubhubs-logo.svg';
 	const logoDarkUrl = '/img/pubhubs-logo-dark.svg';

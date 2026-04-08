@@ -2,8 +2,8 @@
 // Logic
 import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 
-import { TEvent } from '@hub-client/models/events/TEvent';
-import { TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { type TEvent } from '@hub-client/models/events/TEvent';
+import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 /**
  * This class handles all changes that should be made to incoming timeline events
@@ -41,7 +41,7 @@ class EventTimeLineHandler {
 			}
 		}
 
-		eventContent.ph_body = this.createClickableLinks(eventContent.ph_body!);
+		eventContent.ph_body = this.createClickableLinks(eventContent.ph_body ?? eventContent.body ?? '');
 		eventContent.ph_body = this.addMentions(eventContent.ph_body);
 		eventContent.ph_body = this.addLineBreaks(eventContent.ph_body);
 		eventContent.ph_body = this.sanitizeEventContent(eventContent.ph_body);

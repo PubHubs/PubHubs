@@ -1,16 +1,33 @@
 <template>
-	<li role="menuitem" :class="{ 'bg-surface-low text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }" @click="handleClick" class="hover:bg-surface-low rounded-base h-fit transition-all duration-200 ease-in-out">
-		<router-link :to="to" class="flex items-center gap-4 px-4 py-2">
-			<Icon class="" :type="icon" :size="iconSize" />
+	<li
+		role="menuitem"
+		:class="{ 'bg-surface-low text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }"
+		class="hover:bg-surface-low rounded-base h-fit transition-all duration-200 ease-in-out"
+		@click="handleClick"
+	>
+		<router-link
+			:to="to"
+			class="flex items-center gap-4 px-4 py-2"
+		>
+			<Icon
+				class=""
+				:type="icon"
+				:size="iconSize"
+			/>
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
-			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" class="ml-auto shrink-0" color="hub" :size="badgeSize(newMessage)" />
+			<Badge
+				v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && newMessage > 0"
+				class="ml-auto shrink-0"
+				color="hub"
+				:size="badgeSize(newMessage)"
+			/>
 		</router-link>
 	</li>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed } from 'vue';
+	import { type PropType, computed } from 'vue';
 	import { useRouter } from 'vue-router';
 
 	// Components
@@ -25,12 +42,31 @@
 	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Models
-	import { RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+	import { type RoomListRoom } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useMenu } from '@hub-client/stores/menu';
 	import { useRooms } from '@hub-client/stores/rooms';
 
+	const props = defineProps({
+		to: {
+			type: [String, Object],
+			default: '',
+		},
+		icon: {
+			type: String,
+			default: 'circle',
+		},
+		iconSize: {
+			type: String,
+			default: 'base',
+		},
+		room: {
+			type: Object as PropType<RoomListRoom | undefined>,
+			required: false,
+			default: undefined,
+		},
+	});
 	const menu = useMenu();
 	const rooms = useRooms();
 	const router = useRouter();
@@ -60,25 +96,6 @@
 		if (!props.room) return false;
 		const pathRoomId = router.currentRoute.value.path.split('/').pop();
 		return props.room.roomId === decodeURIComponent(pathRoomId || '');
-	});
-
-	const props = defineProps({
-		to: {
-			type: [String, Object],
-			default: '',
-		},
-		icon: {
-			type: String,
-			default: 'circle',
-		},
-		iconSize: {
-			type: String,
-			default: 'base',
-		},
-		room: {
-			type: Object as PropType<RoomListRoom | undefined>,
-			required: false,
-		},
 	});
 
 	function handleClick() {

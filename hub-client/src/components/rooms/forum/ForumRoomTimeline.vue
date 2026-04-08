@@ -1,13 +1,30 @@
 <template>
-	<div v-if="!topicId" class="mx-auto w-full overflow-y-scroll p-4">
+	<div
+		v-if="!topicId"
+		class="mx-auto w-full overflow-y-scroll p-4"
+	>
 		<SubheaderForum />
-		<ul v-if="topics.length > 0" class="flex flex-col gap-y-2">
-			<li v-for="topic in topics" :key="topic.eventId">
-				<ForumThreadItem :topic="topic" :room="room" :can_reply="false"></ForumThreadItem>
+		<ul
+			v-if="topics.length > 0"
+			class="flex flex-col gap-y-2"
+		>
+			<li
+				v-for="topic in topics"
+				:key="topic.eventId"
+			>
+				<ForumThreadItem
+					:topic="topic"
+					:room="room"
+					:can_reply="false"
+				></ForumThreadItem>
 			</li>
 		</ul>
 	</div>
-	<ForumThread v-if="currentTopic" :topic="currentTopic" :room="room"></ForumThread>
+	<ForumThread
+		v-if="currentTopic"
+		:topic="currentTopic"
+		:room="room"
+	></ForumThread>
 </template>
 
 <script setup lang="ts">
@@ -21,12 +38,9 @@
 	import { useForum } from '@hub-client/composables/forum.composable';
 
 	// Logic
-	import { TThread } from '@hub-client/models/events/forum/TThread';
+	import { type TThread } from '@hub-client/models/events/forum/TThread';
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-
-	const forum = useForum();
-	const initialLoadComplete = ref(false);
 
 	const props = defineProps({
 		room: {
@@ -35,8 +49,11 @@
 		},
 		topicId: {
 			type: String,
+			default: undefined,
 		},
 	});
+	const forum = useForum();
+	const initialLoadComplete = ref(false);
 
 	onMounted(() => {
 		initialLoadComplete.value = true;

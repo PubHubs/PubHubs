@@ -1,34 +1,61 @@
 <template>
-	<Dialog :title="$t('settings.profile_title')" :buttons="buttonsSubmitCancel" @close="dialogAction($event)">
+	<Dialog
+		:buttons="buttonsSubmitCancel"
+		:title="$t('settings.profile_title')"
+		@close="dialogAction($event)"
+	>
 		<form @submit.prevent>
 			<div class="mb-4 flex flex-col items-center md:flex-row md:items-start">
 				<label class="text-gray font-semibold md:w-2/6">{{ $t('settings.avatar') }}</label>
-				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="chooseAvatar($event)" />
+				<input
+					id="avatar"
+					accept="image/png, image/jpeg, image/svg"
+					class="hidden"
+					type="file"
+					@change="chooseAvatar($event)"
+				/>
 
 				<div class="flex flex-col justify-between md:w-4/6 md:flex-row">
-					<Avatar :avatar-url="blobUrl?.url" class="h-32 w-32 rounded-full"></Avatar>
+					<Avatar
+						:avatar-url="blobUrl?.url"
+						class="h-32 w-32 rounded-full"
+					/>
 
 					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
-							<Icon size="lg" type="pencil-simple" class="hover:text-on-surface-variant cursor-pointer group-hover:block" data-testid="change-avatar" />
+							<Icon
+								class="hover:text-on-surface-variant cursor-pointer group-hover:block"
+								data-testid="change-avatar"
+								size="lg"
+								type="pencil-simple"
+							/>
 						</label>
-						<Icon size="lg" type="trash" class="hover:text-on-surface-variant cursor-pointer group-hover:block" @click="removeAvatar" data-testid="remove-avatar" />
+						<Icon
+							class="hover:text-on-surface-variant cursor-pointer group-hover:block"
+							data-testid="remove-avatar"
+							size="lg"
+							type="trash"
+							@click="removeAvatar"
+						/>
 					</div>
 				</div>
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.displayname') }}</label>
 				<TextInput
+					v-model.trim="formState.data.displayName.value as string"
 					class="text-body rounded-xs border p-1 focus:border-blue-500 focus:outline-none md:w-4/6"
 					name="displayname"
-					v-model.trim="formState.data.displayName.value as string"
 					:placeholder="$t('settings.displayname')"
 					@changed="formState.updateData('displayName', $event)"
 				/>
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.userId') }}</label>
-				<div title="Hub specific User ID" class="text-on-surface-dim text-body p-1 text-lg italic md:w-4/6">
+				<div
+					class="text-on-surface-dim text-body p-1 text-lg italic md:w-4/6"
+					title="Hub specific User ID"
+				>
 					{{ user.userId }}
 				</div>
 			</div>
@@ -36,13 +63,16 @@
 
 		<ValidationErrors :errors="formState.validationErrors.value" />
 
-		<div v-if="formState.message.value !== ''" class="bg-green-dark mt-2 rounded-lg p-2 text-white">
+		<div
+			v-if="formState.message.value !== ''"
+			class="bg-green-dark mt-2 rounded-lg p-2 text-white"
+		>
 			{{ formState.message }}
 		</div>
 	</Dialog>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -56,17 +86,20 @@
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
-	import { FormDataType, useFormState } from '@hub-client/composables/useFormState';
+	import { type FormDataType, useFormState } from '@hub-client/composables/useFormState';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
-	import { DialogButtonAction, DialogSubmit, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
+	import { type DialogButtonAction, DialogSubmit, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	const logger = createLogger('SettingsDialog');
 	const { t } = useI18n();
 	const user = useUser();
 	const settings = useSettings();
@@ -81,7 +114,7 @@
 
 	formState.setData({
 		displayName: {
-			value: user.userDisplayName(user.userId!) as string,
+			value: user.userDisplayName(user.userId ?? '') as string,
 			validation: {
 				required: true,
 				max_length: settings.getDisplayNameMaxLength,
@@ -95,8 +128,8 @@
 
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());
-		formState.data.displayName.value = user.userDisplayName(user.userId!) as FormDataType;
-		blobUrl.value = new BlobManager(user.userAvatar(user.userId!));
+		formState.data.displayName.value = user.userDisplayName(user.userId ?? '') as FormDataType;
+		blobUrl.value = new BlobManager(user.userAvatar(user.userId ?? ''));
 	});
 
 	onBeforeUnmount(() => {
@@ -157,7 +190,7 @@
 				}
 			});
 		} else {
-			console.error('Access Token is invalid for File upload.');
+			logger.error('Access Token is invalid for File upload.');
 		}
 	}
 

@@ -7,12 +7,23 @@
 			<H2>{{ $t('register.yivi_faq') }}</H2>
 		</div>
 		<div class="flex flex-col gap-4">
-			<div v-for="(item, index) in faqs" :key="index" class="bg-surface-low flex w-full flex-col gap-2 rounded-2xl">
-				<div class="flex w-full justify-between rounded-2xl px-4 py-2 font-semibold hover:cursor-pointer" :class="openIndex === index && 'bg-surface'" @click="toggle(index)">
+			<div
+				v-for="(item, index) in faqs"
+				:key="index"
+				class="bg-surface-low flex w-full flex-col gap-2 rounded-2xl"
+			>
+				<div
+					class="flex w-full justify-between rounded-2xl px-4 py-2 font-semibold hover:cursor-pointer"
+					:class="openIndex === index && 'bg-surface'"
+					@click="toggle(index)"
+				>
 					<span>{{ item.question }}</span>
 					<span>{{ openIndex === index ? '−' : '+' }}</span>
 				</div>
-				<div v-if="openIndex === index" class="p-4">
+				<div
+					v-if="openIndex === index"
+					class="p-4"
+				>
 					{{ item.answer }}
 				</div>
 			</div>
@@ -20,7 +31,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';

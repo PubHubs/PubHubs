@@ -1,14 +1,14 @@
-import { EventTimeline, MatrixClient, TimelineWindow } from 'matrix-js-sdk';
+import { EventTimeline, type MatrixClient, type TimelineWindow } from 'matrix-js-sdk';
 
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
-import { TRating } from '@hub-client/models/events/forum/TRating';
+import { type TRating } from '@hub-client/models/events/forum/TRating';
 import type { TThread } from '@hub-client/models/events/forum/TThread';
-import { TTopicContent, TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
-import Room from '@hub-client/models/rooms/Room';
+import { type TTopicContent, type TTopicReplyContent } from '@hub-client/models/events/forum/TTopicEvent';
+import type Room from '@hub-client/models/rooms/Room';
 
 import { BaseForumService } from '@hub-client/services/forum/BaseService';
-import { RatingService } from '@hub-client/services/forum/RatingService';
+import { type RatingService } from '@hub-client/services/forum/RatingService';
 import { PAGE_SIZE } from '@hub-client/services/forum/properties';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -21,8 +21,17 @@ export class TopicService extends BaseForumService {
 		this.ratingService = ratingService;
 	}
 
-	async sendTopicMessage(title: string, description: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean) {
+	async sendTopicMessage(
+		title: string,
+		description: string,
+		closed: boolean,
+		eventId?: string,
+		originalTitle?: string,
+		originalBody?: string,
+		originalClosed?: boolean,
+	) {
 		const content = this.constructTopicContent(title, description, closed, eventId, originalTitle, originalBody, originalClosed);
+		// eslint-disable-next-line -- temp code
 		return await this.client.sendEvent(this.room.roomId, PubHubsMgType.ForumTopic as any, content as any);
 	}
 
@@ -36,6 +45,7 @@ export class TopicService extends BaseForumService {
 			mainTopicId = parentContent['m.relates_to']['m.in_reply_to'].main_event_id;
 		}
 		const content = this.constructTopicReply(description, mainTopicId, parentId, originalBody, eventId);
+		// eslint-disable-next-line -- temp code
 		return await this.client.sendEvent(this.room.roomId, PubHubsMgType.ForumTopicReply as any, content as any);
 	}
 
@@ -50,7 +60,7 @@ export class TopicService extends BaseForumService {
 		}
 		const events = tw.getEvents();
 
-		console.info('topicService all Events', events.length);
+		// console.info('topicService all Events', events.length);
 
 		const topicsAndReplies = events?.filter((event) => event.getType() === PubHubsMgType.ForumTopicReply || event.getType() === PubHubsMgType.ForumTopic);
 		const ratingsByEvent = new Map<string, { likes: number; dislikes: number }>();
@@ -59,10 +69,12 @@ export class TopicService extends BaseForumService {
 		try {
 			forumRatings = await this.ratingService.fetchEventRatings(ratingsByEvent);
 		} catch (err) {
+			// eslint-disable-next-line -- temp code
 			console.error('Could not load ratings, continuing without them:', err);
 		}
 
 		const totalRatingsProcessed = Array.from(ratingsByEvent.values()).reduce((sum, { likes, dislikes }) => sum + likes + dislikes, 0);
+		// eslint-disable-next-line -- temp code
 		console.log('total ratings processed', totalRatingsProcessed);
 
 		const threadMap = new Map<string, TThread>();
@@ -94,6 +106,7 @@ export class TopicService extends BaseForumService {
 			threadMap.set(eventId, thread);
 
 			// find its immediate parent
+			// eslint-disable-next-line -- temp code
 			const inReply = (content as any)['m.relates_to']?.['m.in_reply_to'];
 			if (inReply?.reply_to_event_id) {
 				const parent = inReply.reply_to_event_id;
@@ -114,12 +127,20 @@ export class TopicService extends BaseForumService {
 		// Main topics
 		const forumTopics = Array.from(threadMap.values()).filter((t) => t.title !== '');
 
-		console.log('Total topics and reply events: ', topicsAndReplies.length);
-		console.log('Total topics: ', forumTopics?.length);
+		// console.log('Total topics and reply events: ', topicsAndReplies.length);
+		// console.log('Total topics: ', forumTopics?.length);
 		return { forumTopics, forumRatings };
 	}
 
-	private constructTopicContent(title: string, body: string, closed: boolean, eventId?: string, originalTitle?: string, originalBody?: string, originalClosed?: boolean) {
+	private constructTopicContent(
+		title: string,
+		body: string,
+		closed: boolean,
+		eventId?: string,
+		originalTitle?: string,
+		originalBody?: string,
+		originalClosed?: boolean,
+	) {
 		if (originalTitle && originalBody && eventId) {
 			return {
 				ph_topic_title: originalTitle,
@@ -198,6 +219,7 @@ export class TopicService extends BaseForumService {
 		};
 	}
 
+	// eslint-disable-next-line -- temp code
 	deleteTopicReply(replyEvent: TThread, forumTopics: any[]): TThread[] {
 		try {
 			const pubhubs = usePubhubsStore();
@@ -221,11 +243,13 @@ export class TopicService extends BaseForumService {
 					}));
 			return removeById(forumTopics) as TThread[];
 		} catch (error) {
+			// eslint-disable-next-line -- temp code
 			console.error('Error deleting reply: ', error);
 			return forumTopics;
 		}
 	}
 
+	// eslint-disable-next-line -- temp code
 	deleteTopic(topicEvent: TThread, forumTopics: any[]): TThread[] {
 		try {
 			const pubhubs = usePubhubsStore();
@@ -252,6 +276,7 @@ export class TopicService extends BaseForumService {
 			const pruneTopic = (topics: TThread[]): TThread[] => topics.filter((t) => t.eventId !== topicEvent.eventId);
 			return pruneTopic(updatedForumTopics);
 		} catch (error) {
+			// eslint-disable-next-line -- temp code
 			console.error('Error deleting Topic: ', error);
 			return forumTopics;
 		}

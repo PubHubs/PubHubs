@@ -1,11 +1,21 @@
 <template>
 	<div class="flex">
-		<UserDisplayName v-if="showDisplayname" class="mr-2 ml-6" :user-id="userId" :userDisplayName="user.userDisplayName(userId)"></UserDisplayName>
-		<Avatar class="h-6 w-6 border" :avatar-url="user.userAvatar(userId)" :user-id="userId" :title="displayName"></Avatar>
+		<UserDisplayName
+			v-if="showDisplayname"
+			class="mr-2 ml-6"
+			:user-display-name="user.userDisplayName(userId)"
+			:user-id="userId"
+		/>
+		<Avatar
+			:avatar-url="user.userAvatar(userId)"
+			class="h-6 w-6 border"
+			:title="displayName"
+			:user-id="userId"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
@@ -23,11 +33,10 @@
 		showDisplayname?: boolean;
 	};
 
+	const props = withDefaults(defineProps<Props>(), { showDisplayname: false });
 	const rooms = useRooms();
 	const user = useUser();
 	const currentRoom = rooms.currentRoom;
-	const props = withDefaults(defineProps<Props>(), { showDisplayname: false });
-
 	const displayName = computed(() => {
 		return currentRoom?.getMember(props.userId)?.user?.rawDisplayName;
 	});

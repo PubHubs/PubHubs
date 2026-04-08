@@ -1,13 +1,22 @@
 <template>
 	<div>
-		<slot name="visible" :collapsed="collapsed"></slot>
+		<slot
+			:collapsed="collapsed"
+			name="visible"
+		/>
 	</div>
-	<div v-show="!collapsed" class="-z-10 mt-2">
-		<slot name="collapsed" :collapsed="collapsed"></slot>
+	<div
+		v-show="!collapsed"
+		class="-z-10 mt-2"
+	>
+		<slot
+			:collapsed="collapsed"
+			name="collapsed"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	import { provide, ref } from 'vue';
 
 	const collapsed = ref(true);

@@ -1,12 +1,22 @@
 <template>
-	<Dialog :buttons="buttonsOkCancel" @close="close($event)" v-click-outside="close">
+	<Dialog
+		v-click-outside="close"
+		:buttons="buttonsOkCancel"
+		@close="close($event)"
+	>
 		<template #header>
 			<div class="">
 				{{ $t('file.upload_file') }}
 			</div>
 		</template>
-		<div v-if="isImage" class="flex items-center justify-center">
-			<img :src="blobURL" class="max-h-96 max-w-full rounded-lg" />
+		<div
+			v-if="isImage"
+			class="flex items-center justify-center"
+		>
+			<img
+				:src="blobURL"
+				class="max-h-96 max-w-full rounded-lg"
+			/>
 		</div>
 		<div class="mt-4 flex justify-center">
 			<div class="text-on-surface-dim ~text-label-min/label-max">{{ file.name }} ({{ `${filters.formatBytes(file.size, 2)}` }})</div>
@@ -22,12 +32,9 @@
 
 	import filters from '@hub-client/logic/core/filters';
 
-	import { TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
+	import { type TLocalAttachmentMessageEventContent } from '@hub-client/models/events/forum/TLocalEventContent';
 
 	import { buttonsOkCancel } from '@hub-client/stores/dialog';
-
-	const { imageTypes } = useMatrixFiles();
-	const emit = defineEmits(['close', 'submit']);
 
 	const props = defineProps({
 		file: {
@@ -40,9 +47,11 @@
 		},
 		threadId: {
 			type: String,
+			default: undefined,
 		},
 	});
-
+	const emit = defineEmits(['close', 'submit']);
+	const { imageTypes } = useMatrixFiles();
 	const isImage = computed(() => imageTypes.includes(props.file?.type));
 
 	async function close(action: number = 0) {

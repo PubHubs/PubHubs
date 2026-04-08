@@ -4,24 +4,30 @@
 			class="after:border-on-surface-dim relative my-2 flex list-none items-start pr-6 after:absolute after:right-1 after:mt-1 after:ml-2 after:rotate-45 after:border-r-2 after:border-b-2 after:p-1 group-open:after:mt-2 group-open:after:-rotate-135"
 		>
 			<div class="bg-accent-primary text-on-accent-primary mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-				<Icon type="info" size="xs" />
+				<Icon
+					size="xs"
+					type="info"
+				/>
 			</div>
 			{{ props.question }}
 		</summary>
 		<p class="mb-2 whitespace-pre-line">
 			<slot>
-				Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec vitae tincidunt nunc, rutrum dapibus ipsum. Nunc feugiat auctor nunc, in tempor dui porttitor ac. In hac habitasse platea dictumst. Sed pellentesque ipsum est,
-				vitae dictum lectus bibendum commodo. Sed eget erat quam. Fusce pellentesque tristique pharetra. Nam mattis scelerisque tortor, eu malesuada dolor elementum a. Vivamus fringilla augue purus, in efficitur eros fringilla
-				ultrices. Ut pretium dui id mi cursus, sit amet vestibulum tellus maximus. Phasellus sodales pharetra arcu, nec mollis felis dictum ut. Duis sagittis pulvinar tempor. Morbi ut pretium enim, dictum porttitor lectus.
-				Pellentesque vel augue id lorem pretium ullamcorper. Suspendisse ultricies, ante id rutrum ornare, augue sapien tristique ex, at tincidunt magna magna quis justo. Aliquam gravida lacinia urna eget egestas.
+				Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec vitae tincidunt nunc, rutrum dapibus ipsum. Nunc feugiat auctor nunc, in tempor
+				dui porttitor ac. In hac habitasse platea dictumst. Sed pellentesque ipsum est, vitae dictum lectus bibendum commodo. Sed eget erat quam. Fusce
+				pellentesque tristique pharetra. Nam mattis scelerisque tortor, eu malesuada dolor elementum a. Vivamus fringilla augue purus, in efficitur eros
+				fringilla ultrices. Ut pretium dui id mi cursus, sit amet vestibulum tellus maximus. Phasellus sodales pharetra arcu, nec mollis felis dictum
+				ut. Duis sagittis pulvinar tempor. Morbi ut pretium enim, dictum porttitor lectus. Pellentesque vel augue id lorem pretium ullamcorper.
+				Suspendisse ultricies, ante id rutrum ornare, augue sapien tristique ex, at tincidunt magna magna quis justo. Aliquam gravida lacinia urna eget
+				egestas.
 			</slot>
 		</p>
 	</details>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	const props = defineProps({
-		question: { type: String },
+		question: { type: String, default: '' },
 	});
 </script>
 

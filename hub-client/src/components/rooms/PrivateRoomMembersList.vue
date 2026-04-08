@@ -1,13 +1,16 @@
 <template>
-	<span v-for="(member, index) in members" :key="index">
+	<span
+		v-for="(member, index) in members"
+		:key="index"
+	>
 		<span v-if="index > 0"> &bull; </span>
 		{{ member.name }}
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { RoomMember } from 'matrix-js-sdk';
+	import { type RoomMember } from 'matrix-js-sdk';
 
 	defineProps({
 		members: {

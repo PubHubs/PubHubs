@@ -1,43 +1,107 @@
 <template>
-	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" type="global">
+	<Dialog
+		:buttons="buttonsSubmitCancel"
+		:title="$t('settings.title')"
+		type="global"
+	>
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.theme') }}</Label>
-				<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)" />
+				<ButtonGroup
+					v-model="data.theme.value"
+					:options="settings.getThemeOptions(t)"
+					size="sm"
+					:value="data.theme.value as string"
+					@changed="updateData('theme', $event)"
+				/>
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.language') }}</Label>
-				<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)" />
+				<ButtonGroup
+					v-model="data.language.value"
+					:options="settings.getLanguageOptions ?? []"
+					size="sm"
+					:value="data.language.value as string"
+					@changed="updateData('language', $event)"
+				/>
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.timeformat') }}</Label>
-				<ButtonGroup size="sm" v-model="data.timeformat.value" :value="data.timeformat.value" :options="settings.getTimeFormatOptions(t)" @changed="updateData('timeformat', $event)" />
+				<ButtonGroup
+					v-model="data.timeformat.value"
+					:options="settings.getTimeFormatOptions(t)"
+					size="sm"
+					:value="data.timeformat.value as string"
+					@changed="updateData('timeformat', $event)"
+				/>
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.notifications') }}</Label>
-				<ButtonGroup v-if="notificationSupported" size="sm" v-model="data.notifications.value" :value="data.notifications.value" :options="settings.getNotificationOptions(t)" @changed="updateNotificationsPermission($event)" />
-				<p v-if="!notificationSupported">{{ $t('notifications.notSupported') }}</p>
+				<ButtonGroup
+					v-if="notificationSupported"
+					v-model="data.notifications.value"
+					:options="settings.getNotificationOptions(t)"
+					size="sm"
+					:value="data.notifications.value as string"
+					@changed="updateNotificationsPermission($event)"
+				/>
+				<p v-if="!notificationSupported">
+					{{ $t('notifications.notSupported') }}
+				</p>
 			</div>
-			<div v-if="promptAllow || promptReset" class="flex">
-				<Icon type="warning" size="sm" class="mt-[3px] mr-1 shrink-0" />
-				<p v-if="promptAllow" class="italic">{{ $t('notifications.promptAllow') }}</p>
-				<p v-if="promptReset" class="italic">{{ $t('notifications.promptReset') }}</p>
+			<div
+				v-if="promptAllow || promptReset"
+				class="flex"
+			>
+				<Icon
+					class="mt-[3px] mr-1 shrink-0"
+					size="sm"
+					type="warning"
+				/>
+				<p
+					v-if="promptAllow"
+					class="italic"
+				>
+					{{ $t('notifications.promptAllow') }}
+				</p>
+				<p
+					v-if="promptReset"
+					class="italic"
+				>
+					{{ $t('notifications.promptReset') }}
+				</p>
 			</div>
-			<div v-if="promptInfo" class="flex">
+			<div
+				v-if="promptInfo"
+				class="flex"
+			>
 				<div class="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2">
-					<Icon type="info" size="xs" />
+					<Icon
+						size="xs"
+						type="info"
+					/>
 				</div>
-				<p class="italic">{{ $t('notifications.info') }}</p>
+				<p class="italic">
+					{{ $t('notifications.info') }}
+				</p>
 			</div>
-			<div v-if="installPromptStore.conditionsMet" class="flex flex-col justify-between md:flex-row">
+			<div
+				v-if="installPromptStore.conditionsMet"
+				class="flex flex-col justify-between md:flex-row"
+			>
 				<Label>{{ $t('pwa.add_app') }}</Label>
-				<Button class="w-fit" @click="installPromptStore.setShowPrompt(true)">{{ $t('pwa.open_instructions') }}</Button>
+				<Button
+					class="w-fit"
+					@click="installPromptStore.setShowPrompt(true)"
+				>
+					{{ $t('pwa.open_instructions') }}
+				</Button>
 			</div>
 		</div>
 	</Dialog>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { nextTick, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -50,13 +114,13 @@
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Composables
-	import { FormDataType, useFormState } from '@hub-client/composables/useFormState';
+	import { type FormDataType, useFormState } from '@hub-client/composables/useFormState';
 
 	// Stores
 	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
 
 	import { DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
-	import { NotificationsPermission, Theme, TimeFormat, useSettings } from '@hub-client/stores/settings';
+	import { NotificationsPermission, type Theme, type TimeFormat, useSettings } from '@hub-client/stores/settings';
 
 	const { t } = useI18n();
 

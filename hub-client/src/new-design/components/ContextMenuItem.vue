@@ -5,12 +5,20 @@
 		type="button"
 		:aria-disabled="props.disabled ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
-		:class="[disabled ? 'text-on-surface-dim' : isDelicate ? 'text-button-red' : 'text-on-surface', isMobile ? 'gap-200 px-400 py-200' : 'border-l-4 px-200 py-150 not-focus:border-transparent']"
+		:class="[
+			disabled ? 'text-on-surface-dim' : variant ? variant : 'text-on-surface',
+			isMobile ? 'gap-200 px-400 py-200' : 'border-l-4 px-200 py-150 not-focus:border-transparent',
+			variant,
+		]"
 		:disabled="disabled"
 		:title="computedTitle"
 		@click="handleClick"
 	>
-		<Icon v-if="icon" :type="icon" class="shrink-0" />
+		<Icon
+			v-if="icon"
+			:type="icon"
+			class="shrink-0"
+		/>
 		<span class="truncate">{{ label }}</span>
 	</button>
 </template>
@@ -24,14 +32,18 @@
 
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
-	import type { ContextMenuItemProps } from '@hub-client/new-design/models/contextMenu.models';
+	import { type ContextMenuItemProps, type ContextVariant } from '@hub-client/new-design/models/contextMenu.models';
 
 	// Props
 	const props = withDefaults(defineProps<ContextMenuItemProps>(), {
 		disabled: false,
-		isDelicate: false,
+		variant: '' as ContextVariant,
 	});
 
+	// Lifecycle
+	const emit = defineEmits<{
+		(e: 'click', evt: MouseEvent): void;
+	}>();
 	// Computed
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
@@ -47,11 +59,6 @@
 		if (props.label) return props.label;
 		return undefined;
 	});
-
-	// Lifecycle
-	const emit = defineEmits<{
-		(e: 'click', evt: MouseEvent): void;
-	}>();
 
 	const handleClick = (evt: MouseEvent) => {
 		emit('click', evt);

@@ -14,17 +14,35 @@
 				<span>{{ nrOfReplies }}</span>
 			</div>
 			<div>
-				<Icon v-if="topic.closed" type="lock" />
-				<Icon v-else type="lock-open" class="text-accent-secondary" />
+				<Icon
+					v-if="topic.closed"
+					type="lock"
+				/>
+				<Icon
+					v-else
+					type="lock-open"
+					class="text-accent-secondary"
+				/>
 			</div>
 			<ActionMenu v-if="currentUserIsTopicAuthor">
-				<ActionMenuItem v-if="!topic.closed" @click.stop="closeOrOpenTopic(true)">Close</ActionMenuItem>
-				<ActionMenuItem v-else @click.stop="closeOrOpenTopic(false)">Open</ActionMenuItem>
+				<ActionMenuItem
+					v-if="!topic.closed"
+					@click.stop="closeOrOpenTopic(true)"
+					>Close</ActionMenuItem
+				>
+				<ActionMenuItem
+					v-else
+					@click.stop="closeOrOpenTopic(false)"
+					>Open</ActionMenuItem
+				>
 				<ActionMenuItem @click.stop="deleteTopic(topic.eventId)">Delete</ActionMenuItem>
 				<ActionMenuItem @click.stop="editTopic(topic.eventId)">Edit</ActionMenuItem>
 			</ActionMenu>
 		</div>
-		<div class="flex justify-end" v-if="can_reply">
+		<div
+			v-if="can_reply"
+			class="flex justify-end"
+		>
 			<Icon type="arrow-bend-up-left"></Icon>
 		</div>
 	</div>
@@ -48,11 +66,6 @@
 
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 
-	const currentUser = useUser().user;
-
-	const forum = useForum();
-	const nrOfReplies = ref(0);
-
 	const props = defineProps({
 		topic: {
 			type: Object,
@@ -62,11 +75,17 @@
 			type: Room,
 			required: true,
 		},
+		// eslint-disable-next-line -- temp code
 		can_reply: {
 			type: Boolean,
 			default: true,
 		},
 	});
+
+	const currentUser = useUser().user;
+
+	const forum = useForum();
+	const nrOfReplies = ref(0);
 
 	onMounted(() => {
 		nrOfReplies.value = forum.nrOfReplies(props.topic, props.room);
@@ -75,14 +94,17 @@
 	const currentUserIsTopicAuthor = computed(() => currentUser.userId === props.topic.author?.userId);
 
 	const closeOrOpenTopic = (close: boolean) => {
+		// eslint-disable-next-line -- temp code
 		console.info('closeOrOpenTopic', close);
 	};
 
 	const editTopic = (eventId: string) => {
+		// eslint-disable-next-line -- temp code
 		console.info('editTopic', eventId);
 	};
 
 	const deleteTopic = (eventId: string) => {
+		// eslint-disable-next-line -- temp code
 		console.info('deleteTopic', eventId);
 	};
 </script>

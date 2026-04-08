@@ -1,19 +1,24 @@
 <template>
 	<div class="flex shrink-0 items-center justify-between px-4 pb-4">
-		<h3 class="text-on-surface text-md font-semibold first-letter:uppercase">{{ title }}</h3>
+		<h3 class="text-on-surface text-md font-semibold first-letter:uppercase">
+			{{ title }}
+		</h3>
 		<button
 			v-if="!isMobile"
-			class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer"
 			:aria-label="t('dialog.close')"
-			@click="sidebar.close()"
+			class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer"
 			:title="t('dialog.close')"
+			@click="sidebar.close()"
 		>
-			<Icon type="x" size="sm" />
+			<Icon
+				size="sm"
+				type="x"
+			/>
 		</button>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';

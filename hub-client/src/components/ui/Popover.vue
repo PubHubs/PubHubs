@@ -1,11 +1,25 @@
 <template>
-	<div class="z-40 rounded-md" v-click-outside="close" role="toolbar">
-		<IconButton v-if="showClosingCross" type="x" size="base" @click="close()" class="absolute top-2 right-2" />
-		<slot></slot>
+	<div
+		v-click-outside="close"
+		class="z-40 rounded-md"
+		role="toolbar"
+	>
+		<IconButton
+			v-if="showClosingCross"
+			class="absolute top-2 right-2"
+			size="base"
+			type="x"
+			@click="close()"
+		/>
+		<slot />
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
+	withDefaults(defineProps<Props>(), {
+		showClosingCross: false,
+	});
+
 	const emit = defineEmits(['close']);
 
 	window.addEventListener(
@@ -21,10 +35,6 @@
 	type Props = {
 		showClosingCross?: boolean;
 	};
-
-	withDefaults(defineProps<Props>(), {
-		showClosingCross: false,
-	});
 
 	async function close() {
 		emit('close');

@@ -1,10 +1,21 @@
 <template>
-	<div v-if="user.isLoggedIn && setupReady" class="bg-background font-body text-on-surface text-body flex h-screen w-full overflow-hidden">
-		<HeaderFooter class="relative shrink-0" :class="isMobile && !hubSettings.isSolo ? 'w-[calc(50%-40px)]!' : 'flex max-w-[280px]'">
+	<div
+		v-if="user.isLoggedIn && setupReady"
+		class="bg-background font-body text-on-surface text-body flex h-screen w-full overflow-hidden"
+	>
+		<HeaderFooter
+			class="relative shrink-0"
+			:class="isMobile && !hubSettings.isSolo ? 'w-[calc(50%-40px)]!' : 'flex max-w-[280px]'"
+		>
 			<template #header>
 				<div class="flex h-full w-full items-center justify-between">
 					<div class="flex items-center justify-between gap-2">
-						<div class="group relative flex items-center gap-2" v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])">
+						<div
+							v-context-menu="
+								(evt: Event) => openMenu(evt as MouseEvent, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])
+							"
+							class="group relative flex items-center gap-2"
+						>
 							<H2 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H2>
 						</div>
 					</div>
@@ -12,11 +23,20 @@
 				</div>
 			</template>
 
-			<div class="flex flex-col gap-8 p-3 md:p-4" role="menu">
+			<div
+				class="flex flex-col gap-8 p-3 md:p-4"
+				role="menu"
+			>
 				<section class="flex flex-col gap-2">
-					<div class="bg-surface text-hub-text group rounded-base flex h-16 items-center justify-between overflow-hidden py-2 pr-4 pl-2" role="complementary">
+					<div
+						class="bg-surface text-hub-text group rounded-base flex h-16 items-center justify-between overflow-hidden py-2 pr-4 pl-2"
+						role="complementary"
+					>
 						<div class="flex w-full items-center gap-2 truncate">
-							<Avatar :avatarUrl="user.userAvatar(user.userId!) ?? user.avatarUrl" :userId="user.userId!" />
+							<Avatar
+								:avatar-url="user.userAvatar(user.userId!) ?? user.avatarUrl"
+								:user-id="user.userId!"
+							/>
 							<div class="flex h-fit w-full flex-col overflow-hidden">
 								<p class="truncate leading-tight font-bold">
 									{{ user.userDisplayName(user.userId!) }}
@@ -38,42 +58,81 @@
 
 					<!-- General menu -->
 					<Menu>
-						<template v-for="(item, index) in menu.getMenu" :key="index">
-							<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ t(item.key) }}</MenuItem>
+						<template
+							v-for="(item, index) in menu.getMenu"
+							:key="index"
+						>
+							<MenuItem
+								:to="item.to"
+								:icon="item.icon"
+								@click="hubSettings.hideBar()"
+								>{{ t(item.key) }}</MenuItem
+							>
 						</template>
 					</Menu>
 				</section>
 
 				<!-- Public rooms -->
-				<CollapsibleHeader v-if="hasPublicRooms" :label="$t('admin.public_rooms')">
-					<RoomList :roomTypes="PublicRooms" />
+				<CollapsibleHeader
+					v-if="hasPublicRooms"
+					:label="$t('admin.public_rooms')"
+				>
+					<RoomList :room-types="PublicRooms" />
 				</CollapsibleHeader>
 
 				<!-- Secured rooms -->
-				<CollapsibleHeader v-if="hasSecuredRooms" :label="$t('admin.secured_rooms')" :title="$t('admin.secured_rooms_tooltip')">
-					<RoomList :roomTypes="SecuredRooms" />
+				<CollapsibleHeader
+					v-if="hasSecuredRooms"
+					:label="$t('admin.secured_rooms')"
+					:title="$t('admin.secured_rooms_tooltip')"
+				>
+					<RoomList :room-types="SecuredRooms" />
 				</CollapsibleHeader>
 
 				<!-- When user is admin, show the admin tools menu -->
-				<CollapsibleHeader v-if="roles.userIsHubAdmin()" :label="$t('menu.admin_tools')">
+				<CollapsibleHeader
+					v-if="roles.userIsHubAdmin()"
+					:label="$t('menu.admin_tools')"
+				>
 					<Menu>
-						<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
-						<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
-						<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
+						<MenuItem
+							:to="{ name: 'admin' }"
+							icon="chats-circle"
+							>{{ t('menu.admin_tools_rooms') }}
+						</MenuItem>
+						<MenuItem
+							:to="{ name: 'manage-users' }"
+							icon="users"
+							>{{ t('menu.admin_tools_users') }}</MenuItem
+						>
+						<MenuItem
+							:to="{ name: 'hub-settings' }"
+							icon="sliders-horizontal"
+							>{{ t('menu.admin_tools_hub_settings') }}</MenuItem
+						>
 					</Menu>
 				</CollapsibleHeader>
 			</div>
 		</HeaderFooter>
 
-		<div class="h-full min-w-0 flex-1 overflow-x-hidden" :class="isMobile && !hubSettings.isSolo ? 'w-screen' : ''" role="document">
+		<div
+			class="h-full min-w-0 flex-1 overflow-x-hidden"
+			:class="isMobile && !hubSettings.isSolo ? 'w-screen' : ''"
+			role="document"
+		>
 			<router-view />
 		</div>
 
-		<Disclosure v-if="disclosureEnabled" />
+		<SettingsDialog
+			v-if="settingsDialog"
+			@close="settingsDialog = false"
+		/>
 
-		<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false" />
-
-		<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
+		<Dialog
+			v-if="dialog.visible"
+			:type="dialog.properties.type"
+			@close="dialog.close"
+		/>
 
 		<ContextMenu v-if="!isMobile" />
 	</div>
@@ -81,10 +140,10 @@
 
 <script setup lang="ts">
 	// Packages
-	import { ConditionKind, IPushRule, NotificationCountType, PushRuleKind } from 'matrix-js-sdk';
+	import { ConditionKind, type IPushRule, NotificationCountType, PushRuleKind } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { NavigationFailure, RouteParamValue, isNavigationFailure, useRouter } from 'vue-router';
+	import { type NavigationFailure, type RouteParamValue, type RouteRecordNameGeneric, isNavigationFailure, useRouter } from 'vue-router';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -106,8 +165,7 @@
 
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
-	import { LOGGER } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
@@ -115,19 +173,21 @@
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
-	import { HubInformation } from '@hub-client/stores/hub-settings';
+	import { type HubInformation } from '@hub-client/stores/hub-settings';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMenu } from '@hub-client/stores/menu';
 	import { Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { useNotifications } from '@hub-client/stores/notifications';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+
+	const logger = createLogger('App');
 
 	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
@@ -144,7 +204,6 @@
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const pendingRouteFromParent = ref<RouteParamValue | null>(null);
-	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
 	const { scrollToEnd, scrollToStart } = useGlobalScroll();
 	const roles = useRoles();
@@ -162,16 +221,16 @@
 		return 0;
 	}
 
-	const publicRoomsUnreadCount = computed(() => {
+	const _publicRoomsUnreadCount = computed(() => {
 		return rooms.loadedPublicRooms.reduce((total, room) => total + getUnreadCount(room.roomId), 0);
 	});
 
-	const securedRoomsUnreadCount = computed(() => {
+	const _securedRoomsUnreadCount = computed(() => {
 		return rooms.loadedSecuredRooms.reduce((total, room) => total + getUnreadCount(room.roomId), 0);
 	});
 
 	onMounted(async () => {
-		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
+		logger.debug('App.vue onMounted');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed
@@ -220,7 +279,7 @@
 			pendingRouteFromParent.value = null;
 		}
 
-		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted done');
+		logger.debug('App.vue onMounted done');
 	});
 
 	const handleViewport = (e: MessageEvent) => {
@@ -251,7 +310,7 @@
 
 			// Listen to event change
 			messagebox.addCallback('parentFrame', MessageType.EventChange, (message: Message) => {
-				const url = message.content;
+				const url = message.content as string;
 
 				const [routePart, queryPart] = url.split('?');
 
@@ -306,7 +365,7 @@
 		if (content.startsWith('!')) {
 			navigationResult = await router.push({ name: 'room', params: { id: content } });
 		} else {
-			navigationResult = await router.push({ name: content as any });
+			navigationResult = await router.push({ name: content as RouteRecordNameGeneric });
 		}
 
 		// FALLBACK to homepage if there is a navigation failure.

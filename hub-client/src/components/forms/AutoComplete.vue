@@ -1,29 +1,53 @@
 <template>
-	<div ref="autocompleteRef" class="relative w-full" @keydown.arrow-down.prevent="cursorDown" @keydown.tab.prevent="cursorDown" @keydown.arrow-up.prevent="cursorUp" @keydown.enter.stop="onEnter" @keydown.esc.stop="onEscape">
+	<div
+		class="relative w-full"
+		@keydown.arrow-down.prevent="cursorDown"
+		@keydown.arrow-up.prevent="cursorUp"
+		@keydown.enter.stop="onEnter"
+		@keydown.esc.stop="onEscape"
+		@keydown.tab.prevent="cursorDown"
+	>
 		<input
-			v-if="dropdown"
+			v-if="dropdownOpen"
 			ref="inputRef"
-			type="text"
 			v-model="search"
 			class="bg-background text-label placeholder:text-surface-subtle focus:ring-accent-primary h-10 w-full rounded-lg px-2 py-1"
-			:placeholder="''"
 			:disabled="disabled"
 			:maxlength="maxlength"
+			:placeholder="''"
+			type="text"
 		/>
-		<ul v-if="results.length > 0 && dropdown" class="bg-background absolute z-50 w-full overflow-y-scroll rounded-lg px-2 py-1 shadow-md">
-			<li v-for="(item, index) in results" :key="index" @click="selectItem(item)" class="cursor-pointer" :class="{ 'bg-surface-low': cursor === index }">
+		<ul
+			v-if="results.length > 0 && dropdownOpen"
+			class="bg-background absolute z-50 w-full overflow-y-scroll rounded-lg px-2 py-1 shadow-md"
+		>
+			<li
+				v-for="(item, index) in results"
+				:key="index"
+				class="cursor-pointer"
+				:class="{ 'bg-surface-low': cursor === index }"
+				@click="selectItem(item)"
+			>
 				{{ getLabel(item) }}
 			</li>
 		</ul>
-		<div v-if="!dropdown" @click="openDropdown" class="bg-background flex h-10 w-full cursor-pointer flex-row items-center justify-between gap-x-2 rounded-lg border px-2 py-1">
-			<P v-if="props.modelValue">{{ displayValue }}</P>
-			<P v-else>{{ t(props.default) }}</P>
-			<Icon type="caret-down"></Icon>
+		<div
+			v-if="!dropdownOpen"
+			class="bg-background flex h-10 w-full cursor-pointer flex-row items-center justify-between gap-x-2 rounded-lg border px-2 py-1"
+			@click="openDropdown"
+		>
+			<P v-if="props.modelValue">
+				{{ displayValue }}
+			</P>
+			<P v-else>
+				{{ t(props.default) }}
+			</P>
+			<Icon type="caret-down" />
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	import { computed, nextTick, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -46,6 +70,7 @@
 		allowCustom: false,
 		dropdown: 'yes',
 		default: 'others.select_value',
+		maxlength: undefined,
 	});
 
 	const emit = defineEmits(['update:modelValue', 'select']);
@@ -55,7 +80,7 @@
 	const search = ref('');
 	const cursor = ref(-1);
 	const items = ref<Option[]>([]);
-	const dropdown = ref<boolean>(false);
+	const dropdownOpen = ref<boolean>(false);
 	const inputRef = ref<HTMLInputElement | null>(null);
 
 	onMounted(() => {
@@ -74,7 +99,7 @@
 	watch(
 		() => props.dropdown,
 		(newVal) => {
-			if (newVal !== props.default) dropdown.value = false;
+			if (newVal !== props.default) dropdownOpen.value = false;
 		},
 	);
 
@@ -132,7 +157,7 @@
 	function openDropdown() {
 		emit('update:modelValue', '');
 		emit('select', '');
-		dropdown.value = true;
+		dropdownOpen.value = true;
 		nextTick(() => {
 			inputRef.value?.focus();
 		});
@@ -140,7 +165,7 @@
 
 	// Close dropdown
 	function closeDropdown() {
-		dropdown.value = false;
+		dropdownOpen.value = false;
 		cursor.value = -1;
 		items.value = [];
 

@@ -1,6 +1,6 @@
 // Packages
 import * as sdk from 'matrix-js-sdk';
-import { ICreateClientOpts, MatrixClient } from 'matrix-js-sdk';
+import { type ICreateClientOpts, type MatrixClient } from 'matrix-js-sdk';
 
 import { CONFIG } from '@hub-client/logic/logging/Config';
 
@@ -50,7 +50,7 @@ class Authentication {
 			if (accessToken && userId) {
 				auth.accessToken = accessToken;
 				auth.userId = userId;
-				this.user.setUserId(auth.userId!);
+				this.user.setUserId(auth.userId ?? '');
 			}
 		}
 		return { auth, newToken };
@@ -90,36 +90,35 @@ class Authentication {
 	 * Actual login method
 	 */
 
-	login() {
+	async login() {
 		this.user = useUser();
-		return new Promise(async (resolve, reject) => {
-			// First check if we have an accesstoken stored
-			const { auth, newToken } = this._fetchAuth();
-			if (auth !== null && auth.baseUrl === this.baseUrl) {
-				auth.timelineSupport = true;
 
-				// create store for indexedDB caching
-				const indexedDBStore = new sdk.IndexedDBStore({ indexedDB: window.indexedDB, dbName: `pubhubs-db-${this.user.userId}` });
+		// First check if we have an accesstoken stored
+		const { auth, newToken } = this._fetchAuth();
+		if (auth === null || auth.baseUrl !== this.baseUrl) {
+			// There should be an accesstoken (and userId) stored, otherwise something went wrong
+			throw new Error('Could not find an access token and/or userId for this hub.');
+		}
 
-				auth.store = indexedDBStore;
+		auth.timelineSupport = true;
 
-				this.client = sdk.createClient(auth);
+		// create store for indexedDB caching
+		const indexedDBStore = new sdk.IndexedDBStore({ indexedDB: window.indexedDB, dbName: `pubhubs-db-${this.user.userId}` });
 
-				await indexedDBStore.startup();
-			} else {
-				// There should be an accesstoken (and userId) stored, otherwise something went wrong
-				reject('Could not find an access token and/or userId for this hub.');
+		auth.store = indexedDBStore;
+
+		this.client = sdk.createClient(auth);
+
+		await indexedDBStore.startup();
+
+		if (this.client.baseUrl === this.baseUrl) {
+			if (newToken === 'true' && auth.accessToken && auth.userId) {
+				this._storeAccessTokenAndUserId(auth.accessToken, auth.userId);
 			}
-
-			if (this.client.baseUrl === this.baseUrl) {
-				if (newToken === 'true' && auth.accessToken && auth.userId) {
-					this._storeAccessTokenAndUserId(auth.accessToken, auth.userId);
-				}
-				resolve(this.client);
-			} else {
-				resolve(false);
-			}
-		});
+			return this.client;
+		} else {
+			return false;
+		}
 	}
 
 	logout() {

@@ -5,9 +5,9 @@ import { EventType } from 'matrix-js-sdk';
 import { APIService } from '@hub-client/logic/core/apiHubManagement';
 
 // Models
-import { TRoomCreate, TState } from '@hub-client/models/events/TStateEvent';
-import { RoomMembers } from '@hub-client/models/hubmanagement/types/roomMembers';
-import { TUserAccount } from '@hub-client/models/users/TUser';
+import { type TRoomCreate, type TState } from '@hub-client/models/events/TStateEvent';
+import { type RoomMembers } from '@hub-client/models/hubmanagement/types/roomMembers';
+import { type TUserAccount } from '@hub-client/models/users/TUser';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -59,7 +59,7 @@ export class ManagementUtils {
 	static async roomCreatorIsMember(roomId: string): Promise<boolean> {
 		const roomState = await APIService.adminGetRoomState(roomId);
 		// Room State is empty when creator leaves the room without any users joining the room.
-		if (Array.isArray(roomState.state) && roomState.state.length == 0) throw Error('Room state is empty');
+		if (Array.isArray(roomState.state) && roomState.state.length === 0) throw Error('Room state is empty');
 		//Otherwise, we check if the creator has left the room, because
 		const roomMembers: RoomMembers = await APIService.adminGetRoomMembers(roomId);
 		const roomCreator: TRoomCreate | undefined = roomState.state.find((roomEvent) => roomEvent.type === EventType.RoomCreate);

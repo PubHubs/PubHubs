@@ -1,20 +1,47 @@
 <template>
-	<div class="rounded-t-base flex h-500 items-center justify-between gap-100 border-b px-200" :class="containerClass">
+	<div
+		class="rounded-t-base flex h-500 items-center justify-between gap-100 border-b px-200"
+		:class="containerClass"
+	>
 		<div class="flex min-w-0 items-center gap-100">
-			<Icon :type="icon" size="sm" class="shrink-0" :class="textClass" />
-			<span class="text-label-small shrink-0" :class="textClass">{{ label }}</span>
-			<span v-if="tooltip" :title="tooltip" class="shrink-0 hover:cursor-help">
-				<Icon type="info" size="sm" class="text-on-surface-dim" />
+			<Icon
+				class="shrink-0"
+				:class="textClass"
+				size="sm"
+				:type="icon"
+			/>
+			<span
+				class="text-label-small shrink-0"
+				:class="textClass"
+				>{{ label }}</span
+			>
+			<span
+				v-if="tooltip"
+				class="shrink-0 hover:cursor-help"
+				:title="tooltip"
+			>
+				<Icon
+					class="text-on-surface-dim"
+					size="sm"
+					type="info"
+				/>
 			</span>
 			<slot />
 		</div>
-		<button @click="$emit('close')" class="shrink-0 hover:cursor-pointer">
-			<Icon type="x" size="sm" :class="textClass" />
+		<button
+			class="shrink-0 hover:cursor-pointer"
+			@click="$emit('close')"
+		>
+			<Icon
+				:class="textClass"
+				size="sm"
+				type="x"
+			/>
 		</button>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
@@ -22,10 +49,12 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Props
+	type Variant = 'admin' | 'steward' | 'sign' | 'reply';
+
 	const props = defineProps<{
 		icon: string;
 		label: string;
-		variant: 'admin' | 'steward' | 'sign' | 'reply';
+		variant: Variant;
 		tooltip?: string;
 	}>();
 

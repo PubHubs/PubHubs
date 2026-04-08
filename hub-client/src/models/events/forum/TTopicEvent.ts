@@ -1,4 +1,4 @@
-import { TMentions } from '@hub-client/models/events/TMessageEvent';
+import { type TMentions } from '@hub-client/models/events/TMessageEvent';
 
 interface BaseContent {
 	body: string;

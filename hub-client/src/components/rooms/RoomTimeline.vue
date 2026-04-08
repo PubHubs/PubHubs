@@ -1,75 +1,134 @@
 <template>
 	<div class="flex h-full flex-col">
 		<div class="shrink-0">
-			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
+			<DateDisplayer
+				v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0"
+				:event-time-stamp="dateInformation.valueOf()"
+				:scroll-status="userHasScrolled"
+			/>
 		</div>
 
 		<div class="relative min-h-0 flex-1">
-			<div v-if="room" ref="elRoomTimeline" class="flex h-full flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain" style="overflow-anchor: none">
+			<div
+				v-if="room"
+				ref="elRoomTimeline"
+				class="flex h-full flex-col-reverse space-y-reverse overflow-x-hidden overflow-y-scroll overscroll-y-contain"
+				style="overflow-anchor: none"
+			>
 				<!-- Bottom sentinel (appears at visual bottom, near newest messages) -->
-				<div ref="bottomSentinel" class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"></div>
+				<div
+					ref="bottomSentinel"
+					class="pointer-events-none mb-0! h-[1px] shrink-0 opacity-0"
+				/>
 
 				<!-- Expands if the timeline height < the vieport, to top-align the content -->
 				<div class="flex h-full items-center justify-center px-4 md:px-16">
 					<InlineSpinner v-if="!initialLoadComplete && reversedTimeline.length === 0" />
-					<P v-else-if="initialLoadComplete && reversedTimeline.length === 0" class="text-on-surface-dim text-center">
+					<P
+						v-else-if="initialLoadComplete && reversedTimeline.length === 0"
+						class="text-on-surface-dim text-center"
+					>
 						{{ $t('rooms.no_messages_yet') }}
 					</P>
 				</div>
 
 				<template v-if="reversedTimeline.length > 0">
-					<div v-for="(item, index) in reversedTimeline" :key="item.matrixEvent.event.event_id">
-						<div ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
+					<div
+						v-for="(item, index) in reversedTimeline"
+						:key="item.matrixEvent.event.event_id"
+					>
+						<div
+							:id="item.matrixEvent.event.event_id"
+							ref="elRoomEvent"
+						>
 							<RoomMessageBubble
-								class="room-event"
-								:room="room"
-								:event="item.matrixEvent.event"
-								:event-thread-length="item.threadLength"
-								:deleted-event="item.isDeleted"
-								:is-grouped="isGroupedMessage(index)"
-								:is-followed-by-grouped="isFollowedByGrouped(index)"
-								:add-whisper-spacing="shouldAddWhisperSpacing(index)"
-								:data-event-id="item.matrixEvent.event.event_id"
-								:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
 								:active-reaction-panel="activeReactionPanel"
-								@in-reply-to-click="onInReplyToClick"
+								:add-whisper-spacing="shouldAddWhisperSpacing(index)"
+								class="room-event"
+								:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
+								:data-event-id="item.matrixEvent.event.event_id"
+								:deleted-event="item.isDeleted"
+								:event="item.matrixEvent.event"
+								:event-thread-length="item.threadLength.value"
+								:is-followed-by-grouped="isFollowedByGrouped(index)"
+								:is-grouped="isGroupedMessage(index)"
+								:room="room"
+								@clicked-emoticon="sendEmoji"
 								@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
 								@edit-poll="onEditPoll"
 								@edit-scheduler="onEditScheduler"
-								@reaction-panel-toggle="toggleReactionPanel"
+								@in-reply-to-click="onInReplyToClick"
 								@reaction-panel-close="closeReactionPanel"
-								@clicked-emoticon="sendEmoji"
+								@reaction-panel-toggle="toggleReactionPanel"
 							>
 								<template #reactions>
-									<div v-if="reactionExistsForMessage(item)" class="mt-2 mb-1 flex flex-wrap gap-2" :class="isMobile ? 'px-2' : 'px-5'">
-										<Reaction :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!" class="pl-16"></Reaction>
+									<div
+										v-if="reactionExistsForMessage(item)"
+										class="mt-2 mb-1 flex flex-wrap gap-2"
+										:class="isMobile ? 'px-2' : 'px-5'"
+									>
+										<Reaction
+											class="pl-16"
+											:message-event-id="item.matrixEvent.event.event_id!"
+											:react-event="onlyReactionEvent(item.matrixEvent.event.event_id!)"
+										/>
 									</div>
 								</template>
 							</RoomMessageBubble>
-							<LastReadMarker :currentEventId="item.matrixEvent.event.event_id ?? ''" :lastReadEventId="displayedReadMarker ?? undefined" :room="props.room" />
+							<LastReadMarker
+								:current-event-id="item.matrixEvent.event.event_id ?? ''"
+								:last-read-event-id="displayedReadMarker ?? undefined"
+								:room="props.room"
+							/>
 						</div>
 					</div>
 				</template>
 
 				<!-- Room created indicator-->
-				<div v-if="oldestEventIsLoaded" class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase">
+				<div
+					v-if="oldestEventIsLoaded"
+					class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase"
+				>
 					{{ $t('rooms.roomCreated') }}
 				</div>
 
 				<!-- Top sentinel (appears at visual top, near oldest messages) -->
-				<div ref="topSentinel" class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"></div>
+				<div
+					ref="topSentinel"
+					class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"
+				/>
 			</div>
 
-			<JumpToUnreadThreadButton v-if="unreadThreadAboveId" @click="scrollToUnreadThread" />
-			<JumpToBottomButton v-if="showJumpToBottomButton" :count="newMessageCount" @click="scrollToNewest" />
+			<JumpToUnreadThreadButton
+				v-if="unreadThreadAboveId"
+				@click="scrollToUnreadThread"
+			/>
+			<JumpToBottomButton
+				v-if="showJumpToBottomButton"
+				:count="newMessageCount"
+				@click="scrollToNewest"
+			/>
 		</div>
 
-		<MessageInput class="z-10 shrink-0" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler" />
+		<MessageInput
+			v-if="room"
+			class="z-10 shrink-0"
+			:editing-poll="editingPollProp"
+			:editing-scheduler="editingSchedulerProp"
+			:in-thread="false"
+			:room="room"
+		/>
 	</div>
-	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage" />
+	<DeleteMessageDialog
+		v-if="showConfirmDelMsgDialog"
+		:event="eventToBeDeleted!"
+		:room="rooms.currentRoom!"
+		@close="showConfirmDelMsgDialog = false"
+		@yes="deleteMessage"
+	/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	import { EventType, NotificationCountType } from 'matrix-js-sdk';
 	import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -92,14 +151,13 @@
 	// Logic
 	import { ElementObserver } from '@hub-client/logic/core/elementObserver';
 	import { PubHubsInvisibleMsgType, PubHubsMgType } from '@hub-client/logic/core/events';
-	import { LOGGER } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { RelationType, ScrollPosition, SystemDefaults, TimelineScrollConstants } from '@hub-client/models/constants';
-	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
-	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
-	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+	import { type Poll, type Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
 
 	// Store
@@ -108,13 +166,28 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	const props = defineProps({
+		room: {
+			type: Room,
+			required: true,
+		},
+		eventIdToScroll: {
+			type: String,
+			default: undefined,
+		},
+		lastReadEventId: {
+			type: String,
+			default: undefined,
+		},
+	});
+	const logger = createLogger('RoomTimeline');
 	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
 	const pubhubs = usePubhubsStore();
 
 	const elRoomTimeline = ref<HTMLElement | null>(null);
-	const elRoomEvent = ref<HTMLElement | null>(null);
+	const elRoomEvent = ref<HTMLElement[]>([]);
 	const topSentinel = ref<HTMLElement | null>(null);
 	const bottomSentinel = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
@@ -122,6 +195,8 @@
 	const eventToBeDeleted = ref<TMessageEvent>();
 	const editingPoll = ref<{ poll: Poll; eventId: string } | undefined>(undefined);
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
+	const editingPollProp = computed(() => editingPoll.value as { poll: Poll; eventId: string } | undefined);
+	const editingSchedulerProp = computed(() => editingScheduler.value as { scheduler: Scheduler; eventId: string } | undefined);
 	const initialLoadComplete = ref(false);
 
 	const { READ_DELAY_MS, PAGINATION_COOLDOWN, SCROLL_DEBOUNCE } = TimelineScrollConstants;
@@ -132,31 +207,19 @@
 	let eventObserver: ElementObserver | null = null;
 	const isMobile = computed(() => settings.isMobileState);
 
-	const props = defineProps({
-		room: {
-			type: Room,
-			required: true,
-		},
-		eventIdToScroll: {
-			type: String,
-		},
-		lastReadEventId: {
-			type: String,
-			default: undefined,
-		},
-	});
-
 	// Initialize composables
-	const { scrollToEvent, scrollToNewest, performInitialScroll, handleNewMessage, isInitialScrollComplete, showJumpToBottomButton, newMessageCount } = useTimelineScroll(elRoomTimeline, props.room, user.userId || '');
-	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded, timelineVersion, refreshTimelineVersion } = useTimelinePagination(elRoomTimeline, props.room);
-	const { displayedReadMarker, initialize: initializeReadMarker, update: updateReadMarker } = useReadMarker(props.room, user.userId || '');
+	const { scrollToEvent, scrollToNewest, performInitialScroll, handleNewMessage, isInitialScrollComplete, showJumpToBottomButton, newMessageCount } =
+		useTimelineScroll(elRoomTimeline, props.room, user.userId || '');
+	const { setupPaginationObserver, isLoadingPrevious, isLoadingNext, oldestEventIsLoaded, newestEventIsLoaded, timelineVersion, refreshTimelineVersion } =
+		useTimelinePagination(elRoomTimeline, props.room);
+	const { displayedReadMarker, initialize: initializeReadMarker, update: updateReadMarker } = useReadMarker(props.room, user.userId || '', undefined);
 	const userHasScrolled = ref(true);
 
 	/**
 	 * Timeline in reverse order [newest, ..., oldest] for column-reverse rendering
 	 */
 	const reversedTimeline = computed(() => {
-		timelineVersion.value; // Dependency to trigger re-computation
+		void timelineVersion.value; // Dependency to trigger re-computation
 		return [...props.room.getChronologicalTimeline()].reverse();
 	});
 
@@ -241,7 +304,13 @@
 
 		const currentMsgType = current.matrixEvent.event.content?.msgtype;
 		const previousMsgType = previous.matrixEvent.event.content?.msgtype;
-		if (currentMsgType === PubHubsMgType.AnnouncementMessage || previousMsgType === PubHubsMgType.AnnouncementMessage || currentMsgType === PubHubsMgType.WhisperMessage || previousMsgType === PubHubsMgType.WhisperMessage) return false;
+		if (
+			currentMsgType === PubHubsMgType.AnnouncementMessage ||
+			previousMsgType === PubHubsMgType.AnnouncementMessage ||
+			currentMsgType === PubHubsMgType.WhisperMessage ||
+			previousMsgType === PubHubsMgType.WhisperMessage
+		)
+			return false;
 
 		const currentTs = current.matrixEvent.event.origin_server_ts || 0;
 		const previousTs = previous.matrixEvent.event.origin_server_ts || 0;
@@ -272,7 +341,7 @@
 
 	// Timeline in chronological order [oldest, ..., newest]
 	const roomTimeLine = computed(() => {
-		timelineVersion.value; // Dependency to trigger re-computation
+		void timelineVersion.value; // Dependency to trigger re-computation
 		return props.room.getChronologicalTimeline();
 	});
 
@@ -337,7 +406,9 @@
 		await new Promise((resolve) => requestAnimationFrame(resolve));
 
 		// Perform initial scroll
-		LOGGER.log(SMI.ROOM_TIMELINE, `performInitialScroll called with explicitEventId: ${props.eventIdToScroll}, lastReadEventId: ${displayedReadMarker.value ?? props.lastReadEventId}`);
+		logger.info(
+			`performInitialScroll called with explicitEventId: ${props.eventIdToScroll}, lastReadEventId: ${displayedReadMarker.value ?? props.lastReadEventId}`,
+		);
 		await performInitialScroll({
 			explicitEventId: props.eventIdToScroll,
 			lastReadEventId: displayedReadMarker.value ?? props.lastReadEventId,
@@ -377,7 +448,9 @@
 	);
 
 	function onlyReactionEvent(eventId: string) {
-		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
+		props.room
+			.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation })
+			.forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	}
 
@@ -409,8 +482,8 @@
 			eventObserver.disconnectObserver();
 		}
 
-		// TODO Element Observer  we pass elRoomEvent as a single value, but underwater it has become an array because of the loop over all events, we need to make that clear both in type as in the parameter of new ElementObserver
-		eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
+		const observedEvents = Array.from(new Set(elRoomEvent.value)).filter((element) => element.isConnected);
+		eventObserver = new ElementObserver(observedEvents, { threshold: 0.95 });
 
 		// Combined handler - ElementObserver only supports ONE callback (each setUpObserver replaces the previous)
 		const combinedHandler = (entries: IntersectionObserverEntry[]) => {
@@ -494,7 +567,9 @@
 			const matrixEvent = props.room.findEventById(eventId);
 			if (matrixEvent && matrixEvent.getType() === EventType.RoomMessage) {
 				if (props.room.getFirstVisibleTimeStamp() < matrixEvent.localTimestamp || props.room.getFirstVisibleTimeStamp() === 0) {
-					matrixEvent.event.event_id && props.room.setFirstVisibleEventId(matrixEvent.event.event_id);
+					if (matrixEvent.event.event_id) {
+						props.room.setFirstVisibleEventId(matrixEvent.event.event_id);
+					}
 					props.room.setFirstVisibleTimeStamp(matrixEvent.localTimestamp);
 				}
 			}
@@ -558,7 +633,7 @@
 			return;
 		}
 
-		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange ended`);
+		logger.info(`onTimelineChange ended`);
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
@@ -590,7 +665,7 @@
 	async function deleteMessage() {
 		if (eventToBeDeleted.value) {
 			rooms.currentRoom?.deleteMessage(eventToBeDeleted.value, eventToBeDeletedIsThreadRoot);
-			LOGGER.log(SMI.ROOM_TIMELINE, `Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
+			logger.info(`Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
 		}
 	}
 

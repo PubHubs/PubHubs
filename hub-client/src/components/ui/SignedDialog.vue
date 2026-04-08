@@ -1,19 +1,35 @@
 <template>
-	<Icon type="check-circle" @click="togglePopup()" class="cursor-pointer"></Icon>
+	<Icon
+		class="cursor-pointer"
+		type="check-circle"
+		@click="togglePopup()"
+	/>
 
-	<Dialog v-if="showPopup" :title="$t('roomlibrary.signed_info')" :buttons="buttonsOk" @close="togglePopup()">
-		<p>{{ $t('roomlibrary.used_attribute') }} '{{ attributes.toString() }}' {{ $t('roomlibrary.with_value') }} '{{ displayDisclosedAttribute.toString() }}'</p>
+	<Dialog
+		v-if="showPopup"
+		:buttons="buttonsOk"
+		:title="$t('roomlibrary.signed_info')"
+		@close="togglePopup()"
+	>
+		<p>
+			{{ $t('roomlibrary.used_attribute') }} '{{ attributes.toString() }}' {{ $t('roomlibrary.with_value') }} '{{ displayDisclosedAttribute.toString() }}'
+		</p>
 
 		<p class="mt-2">
-			<a class="flex gap-2" v-if="fileUrl" :href="fileUrl.url" :download="fileName">
+			<a
+				v-if="fileUrl"
+				class="flex gap-2"
+				:download="fileName"
+				:href="fileUrl.url"
+			>
 				<span>{{ $t('roomlibrary.download_info') }}</span>
-				<IconButton type="download-simple"></IconButton>
+				<IconButton type="download-simple" />
 			</a>
 		</p>
 	</Dialog>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 
@@ -23,22 +39,21 @@
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 
 	// Models
-	import { TFileMessageEventContent, TSignedMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-	import Room from '@hub-client/models/rooms/Room';
+	import { type TFileMessageEventContent, type TSignedMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import type Room from '@hub-client/models/rooms/Room';
 
 	// Stores
 	import { buttonsOk } from '@hub-client/stores/dialog';
 
-	const showPopup = ref(false);
-	const fileUrl = ref<BlobManager>();
-	const fileName = ref<string>('');
-
 	const props = defineProps<{
-		event: any;
-		originalEvent: any;
+		event: { content: TSignedMessageEventContent };
+		originalEvent: { content: TFileMessageEventContent };
 		room: Room;
 		attributes: string[];
 	}>();
+	const showPopup = ref(false);
+	const fileUrl = ref<BlobManager>();
+	const fileName = ref<string>('');
 
 	const signedMessage = computed((): TSignedMessageEventContent => {
 		return props.event.content;

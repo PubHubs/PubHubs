@@ -34,7 +34,7 @@ describe('ProfileAttributes.vue Test', () => {
 		wrapper = mount(ProfileAttributes, {
 			props: {
 				user: 'user',
-				room_id: 'room',
+				roomId: 'room',
 			},
 			global: {
 				plugins: [i18n, createTestingPinia()],

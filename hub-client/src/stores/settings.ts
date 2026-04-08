@@ -17,7 +17,7 @@ enum Theme {
 	Dark = 'dark',
 }
 
-type i18nSettings = { locale: any; availableLocales: any };
+type i18nSettings = { locale: { value: string }; availableLocales: string[] };
 
 enum TimeFormat {
 	format12 = 'format12',
@@ -32,7 +32,6 @@ enum NotificationsPermission {
 enum FeatureFlag {
 	signedMessages = 'signedMessages',
 	dateSplitter = 'dateSplitter',
-	disclosure = 'disclosure',
 	notifications = 'notifications',
 	deleteMessages = 'deleteMessages',
 	hubSettings = 'hubSettings',
@@ -94,9 +93,14 @@ const defaultSettings: Settings = {
 	pagination: 150,
 	displayNameMaxLength: 40,
 	language: fallbackLanguage,
-	_i18n: { locale: undefined, availableLocales: undefined },
+	_i18n: undefined,
 	// First check if the Notifications API is supported.
-	notificationsPermission: 'Notification' in globalThis ? (Notification.permission === 'denied' || Notification.permission === 'default' ? NotificationsPermission.Deny : NotificationsPermission.Allow) : NotificationsPermission.Deny,
+	notificationsPermission:
+		'Notification' in globalThis
+			? Notification.permission === 'denied' || Notification.permission === 'default'
+				? NotificationsPermission.Deny
+				: NotificationsPermission.Allow
+			: NotificationsPermission.Deny,
 
 	/**
 	 * Enable/disable feature flags here.
@@ -106,7 +110,6 @@ const defaultSettings: Settings = {
 		main: {
 			signedMessages: true,
 			dateSplitter: true,
-			disclosure: false,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
@@ -115,13 +118,12 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
-			phCard: true,
+			phCard: false,
 			whisper: false,
 		},
 		stable: {
 			signedMessages: true,
 			dateSplitter: true,
-			disclosure: false,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
@@ -136,7 +138,6 @@ const defaultSettings: Settings = {
 		local: {
 			signedMessages: true,
 			dateSplitter: true,
-			disclosure: true,
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
@@ -197,7 +198,7 @@ const useSettings = defineStore('settings', {
 		 * Get timeformats as options (for form selecting).
 		 * The function must be the localisation function $t.
 		 */
-		getTimeFormatOptions: () => (formats: Function) => {
+		getTimeFormatOptions: () => (formats: (key: string) => string) => {
 			const options = Object.values(TimeFormat).map((e) => {
 				return { label: formats('timeformats.' + e), value: e };
 			});
@@ -208,7 +209,7 @@ const useSettings = defineStore('settings', {
 		 * Get themes as options (for form selecting).
 		 * If nothing is given the label will be a capitalized version of the theme. If a function is given, the function will be used to generate the label. So you can give the localisation function $t.
 		 */
-		getThemeOptions: () => (themes: Function | undefined) => {
+		getThemeOptions: () => (themes: ((key: string) => string) | undefined) => {
 			const options = Object.values(Theme).map((e) => {
 				if (typeof themes === 'function') {
 					return { label: themes('themes.' + e), value: e };
@@ -226,7 +227,7 @@ const useSettings = defineStore('settings', {
 			return options;
 		},
 
-		getNotificationOptions: () => (notifications: Function | undefined) => {
+		getNotificationOptions: () => (notifications: ((key: string) => string) | undefined) => {
 			const options = Object.values(NotificationsPermission).map((e) => {
 				if (typeof notifications === 'function') {
 					return { label: notifications('notifications.' + e), value: e };
@@ -239,29 +240,23 @@ const useSettings = defineStore('settings', {
 	},
 
 	actions: {
-		initI18b(init: any) {
-			// @ts-ignore
+		initI18b(init: i18nSettings) {
 			this._i18n = init;
-			// @ts-ignore
 			this.language = init.locale.value;
 		},
 
 		setPagination(newPagination: number) {
-			// @ts-ignore
 			this.pagination = newPagination;
 		},
 
 		setTheme(newTheme: Theme, send: boolean = false) {
-			// @ts-ignore
 			if (this.theme !== newTheme) {
-				// @ts-ignore
 				this.theme = newTheme;
 				if (send) this.sendSettings();
 			}
 		},
 
 		setTimeFormat(format: TimeFormat) {
-			// @ts-ignore
 			this.timeformat = format;
 		},
 
@@ -270,9 +265,7 @@ const useSettings = defineStore('settings', {
 		},
 
 		setLanguage(newLanguage: string, send: boolean = false) {
-			// @ts-ignore
-			if (this.language !== newLanguage && this._i18n?.availableLocales.indexOf(newLanguage) >= 0) {
-				// @ts-ignore
+			if (this.language !== newLanguage && (this._i18n?.availableLocales.indexOf(newLanguage) ?? -1) >= 0) {
 				this.language = newLanguage;
 				if (send) this.sendSettings();
 			}
@@ -283,11 +276,8 @@ const useSettings = defineStore('settings', {
 			if (messagebox.type === MessageBoxType.Parent) {
 				messagebox.sendMessage(
 					new Message(MessageType.Settings, {
-						// @ts-ignore
-						theme: this.theme as any,
-						// @ts-ignore
-						timeformat: this.timeformat as any,
-						// @ts-ignore
+						theme: this.theme as Theme,
+						timeformat: this.timeformat as TimeFormat,
 						language: this.language,
 					}),
 				);

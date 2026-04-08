@@ -14,7 +14,7 @@ export type SortOption = {
 	key: SortOptionKey;
 	label?: string;
 	icon?: string;
-	sortFn: (a: any, b: any) => number;
+	sortFn: (a: unknown, b: unknown) => number;
 };
 
 export const sortOptions: SortOption[] = [

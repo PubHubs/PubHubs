@@ -1,11 +1,22 @@
 <template>
 	<div class="rounded-md">
 		<div class="mb-2 flex border-b p-2">
-			<Icon type="chart-bar" size="base" class="mx-2 mt-1 flex-none"></Icon>
-			<H2 class="flex-grow">{{ $t('message.poll') }}</H2>
+			<Icon
+				class="mx-2 mt-1 flex-none"
+				size="base"
+				type="chart-bar"
+			/>
+			<H2 class="grow">
+				{{ $t('message.poll') }}
+			</H2>
 			<div class="mt-1 flex flex-none">
 				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
-				<IconButton type="x" size="sm" @click="emit('closePoll')" class="ml-2"></IconButton>
+				<IconButton
+					class="ml-2"
+					size="sm"
+					type="x"
+					@click="emit('closePoll')"
+				/>
 			</div>
 		</div>
 		<div class="flex items-center p-2">
@@ -13,38 +24,63 @@
 				<div class="flex w-full flex-row">
 					<input
 						v-model="poll.title"
-						type="text"
 						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-						:placeholder="$t('message.voting.enter_title')"
 						maxlength="100"
+						:placeholder="$t('message.voting.enter_title')"
+						type="text"
 						@input="updatePoll"
 					/>
 				</div>
 				<div class="-mb-1 flex w-full flex-row">
-					<div class="scrollbar-emojipicker mr-2 max-h-[184px] w-2/3 overflow-auto" id="optionsContainer">
-						<div v-for="option in poll.options" :key="option.id" class="relative">
+					<div
+						id="optionsContainer"
+						class="scrollbar-emojipicker mr-2 max-h-[184px] w-2/3 overflow-auto"
+					>
+						<div
+							v-for="option in poll.options"
+							:key="option.id"
+							class="relative"
+						>
 							<input
 								v-model="option.title"
-								type="text"
 								class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-								:placeholder="$t('message.voting.enter_option')"
 								maxlength="70"
-								@input="updateOptions"
+								:placeholder="$t('message.voting.enter_option')"
+								type="text"
 								@blur="cleanupPollOption(option)"
+								@input="updateOptions"
 							/>
-							<Icon type="x" size="sm" :as-button="true" @click="removeOption(option.id)" v-if="option.title !== ''" class="absolute top-2 right-2"></Icon>
+							<Icon
+								v-if="option.title !== ''"
+								:as-button="true"
+								class="absolute top-2 right-2"
+								size="sm"
+								type="x"
+								@click="removeOption(option.id)"
+							/>
 						</div>
 						<input
 							v-if="poll.options.length < 3"
 							class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 							disabled
 						/>
-						<Checkbox :label="$t('message.voting.show_votes_before_voting')" v-model="poll.showVotesBeforeVoting" @input="updatePoll"></Checkbox>
+						<Checkbox
+							v-model="poll.showVotesBeforeVoting"
+							:label="$t('message.voting.show_votes_before_voting')"
+							@input="updatePoll"
+						/>
 					</div>
-					<div class="bg-background mb-1 max-h-full w-1/3 rounded-lg border" v-if="settingsMenu">
+					<div
+						v-if="settingsMenu"
+						class="bg-background mb-1 max-h-full w-1/3 rounded-lg border"
+					>
 						<div class="mt-3 ml-3">
 							<div>
-								<Checkbox :label="$t('message.voting.show_votes_before_voting')" v-model="poll.showVotesBeforeVoting" @input="updatePoll"></Checkbox>
+								<Checkbox
+									v-model="poll.showVotesBeforeVoting"
+									:label="$t('message.voting.show_votes_before_voting')"
+									@input="updatePoll"
+								/>
 							</div>
 						</div>
 					</div>
@@ -55,15 +91,20 @@
 						maxlength="500"
 						:placeholder="$t('message.voting.enter_description')"
 						@input="updatePoll"
-					></textarea>
+					/>
 				</div>
 			</div>
 		</div>
-		<VotingWidgetSubmitButton :disabled="!poll.canSend()" :isEdit="isEdit" @send="emit('sendPoll')" @edit="emit('editPoll')"></VotingWidgetSubmitButton>
+		<VotingWidgetSubmitButton
+			:disabled="!poll.canSend()"
+			:is-edit="isEdit"
+			@edit="emit('editPoll')"
+			@send="emit('sendPoll')"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { nextTick, ref, watch } from 'vue';
 
@@ -72,7 +113,7 @@
 	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
 
 	/// Models
-	import { Poll, PollOption } from '@hub-client/models/events/voting/VotingTypes';
+	import { Poll, type PollOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	const props = defineProps({
 		pollObject: {

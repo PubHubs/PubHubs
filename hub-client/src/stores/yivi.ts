@@ -6,7 +6,7 @@
 import { defineStore } from 'pinia';
 
 // Models
-import { Attribute } from '@hub-client/models/yivi/Tyivi';
+import { type Attribute } from '@hub-client/models/yivi/Tyivi';
 
 const attributes: Attribute[] = [
 	{ attribute: 'pbdf.sidn-pbdf.email.email' },
@@ -44,7 +44,7 @@ const useYivi = defineStore('yivi', {
 	},
 
 	actions: {
-		getAttributes(t: (key: string, ...args: any[]) => string): Attribute[] {
+		getAttributes(t: (key: string, ...args: unknown[]) => string): Attribute[] {
 			return this.attributes.map((a: Attribute) => {
 				return {
 					attribute: a.attribute,

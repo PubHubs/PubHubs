@@ -1,7 +1,7 @@
-import { User as MatrixUser } from 'matrix-js-sdk';
+import { type User as MatrixUser } from 'matrix-js-sdk';
 
-import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 
 export type TThread = {
 	eventId: string;

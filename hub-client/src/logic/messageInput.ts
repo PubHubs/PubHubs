@@ -2,7 +2,7 @@
 import { computed, reactive } from 'vue';
 
 // Models
-import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+import { type Poll, type Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 
 // This is used on multiple messageinputs at the same time, so we need to create a new instance of it for each message input.
 // That's why it is a composable and not a store.
@@ -66,6 +66,10 @@ function useMessageInput() {
 		state.fileAdded = null;
 	}
 
+	function setFileAdded(file: File | null) {
+		state.fileAdded = file;
+	}
+
 	function cancelFileUpload() {
 		state.fileDialog = false;
 		state.fileAdded = null;
@@ -126,6 +130,7 @@ function useMessageInput() {
 		togglePopover,
 		openTextArea,
 		activateSendButton,
+		setFileAdded,
 		toggleEmojiPicker,
 		openFileDialog,
 		cancelFileUpload,

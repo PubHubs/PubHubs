@@ -1,11 +1,11 @@
-import { IRelationsRequestOpts, MatrixClient } from 'matrix-js-sdk';
+import { type IRelationsRequestOpts, MatrixClient } from 'matrix-js-sdk';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { RatingService } from '@hub-client/services/forum/RatingService';
-import Room from '@hub-client/models/rooms/Room';
-import { TRating } from '@hub-client/models/events/forum/TRating';
+import type Room from '@hub-client/models/rooms/Room';
+import { type TRating } from '@hub-client/models/events/forum/TRating';
 
 let mockEvents: any = [];
 let sentEvent: any = {};
@@ -21,7 +21,7 @@ vi.mock('matrix-js-sdk', async (importOriginal) => {
 
 			constructor() {
 				this.http = {
-					// eslint-disable-next-line
+					 
 					authedRequest(_type: string, _url: string, _body: string) {
 						const temp = mockEvents;
 						return { chunk: temp, headers: {}, code: {} };
@@ -29,7 +29,7 @@ vi.mock('matrix-js-sdk', async (importOriginal) => {
 				};
 			}
 
-			// eslint-disable-next-line
+			 
 			relations(roomId: string, eventId: string, _relationType: string, _eventType: string, _opts?: IRelationsRequestOpts) {
 				return eventId === 'event2' && roomId === mockRoomId
 					? {

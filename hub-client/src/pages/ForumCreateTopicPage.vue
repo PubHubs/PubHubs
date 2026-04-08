@@ -1,5 +1,8 @@
 <template>
-	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+	<HeaderFooter
+		bg-bar-low="bg-background"
+		bg-bar-medium="bg-surface-low"
+	>
 		<template #header>
 			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
 				<span class="font-semibold uppercase">New Forum topic</span>
@@ -7,14 +10,27 @@
 			</div>
 			<div class="flex h-full items-center">
 				<div class="flex w-fit items-center gap-3">
-					<Icon type="caret-left" data-testid="back" class="cursor-pointer" @click.stop="router.back()" />
+					<Icon
+						type="caret-left"
+						data-testid="back"
+						class="cursor-pointer"
+						@click.stop="router.back()"
+					/>
 					<H3 class="font-headings text-on-surface font-semibold">{{ title }}</H3>
 				</div>
 			</div>
 		</template>
 
-		<ValidatedForm v-slot="{ isValidated }" :disabled="isSubmitting" class="p-200">
-			<TextArea v-model="title" placeholder="Type your title here" help="Be specific and imagine you\'re asking a question to another person" :validation="{ required: true, minLength: TITLE_MIN_LENGTH, maxLength: TITLE_MAX_LENGTH }"
+		<ValidatedForm
+			v-slot="{ isValidated }"
+			:disabled="isSubmitting"
+			class="p-200"
+		>
+			<TextArea
+				v-model="title"
+				placeholder="Type your title here"
+				help="Be specific and imagine you\'re asking a question to another person"
+				:validation="{ required: true, minLength: TITLE_MIN_LENGTH, maxLength: TITLE_MAX_LENGTH }"
 				>Title</TextArea
 			>
 			<TextArea
@@ -26,8 +42,17 @@
 			>
 
 			<ButtonGroup>
-				<Button variant="error" @click.stop.prevent="router.back()">{{ $t('dialog.cancel') }}</Button>
-				<Button type="submit" :disabled="!isValidated" @click.stop.prevent="submitPost()">{{ $t('forms.submit') }}</Button>
+				<Button
+					variant="error"
+					@click.stop.prevent="router.back()"
+					>{{ $t('dialog.cancel') }}</Button
+				>
+				<Button
+					type="submit"
+					:disabled="!isValidated"
+					@click.stop.prevent="submitPost()"
+					>{{ $t('forms.submit') }}</Button
+				>
 			</ButtonGroup>
 		</ValidatedForm>
 		<InlineSpinner v-if="isSubmitting"></InlineSpinner>
@@ -43,8 +68,7 @@
 
 	import { useForum } from '@hub-client/composables/forum.composable';
 
-	import { LOGGER } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_MIN_LENGTH, TITLE_MAX_LENGTH, TITLE_MIN_LENGTH } from '@hub-client/services/forum/properties';
 
@@ -54,6 +78,8 @@
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
+
+	const logger = createLogger('ForumCreateTopicPage');
 
 	const router = useRouter();
 	const title = ref<string>('');
@@ -68,13 +94,13 @@
 			isSubmitting.value = true;
 			const topic = await forum.sendTopic(title.value, description.value, false);
 			if (!topic) {
-				LOGGER.error(SMI.STORE, 'Failed to create topic');
+				logger.error('Failed to create topic');
 				return;
 			}
 			const rooms = useRooms();
 			await router.push({ name: 'room', params: { id: rooms.currentRoomId } });
 		} catch (error) {
-			LOGGER.trace(SMI.STORE, 'error in submiting forum post', { error });
+			logger.error('error in submiting forum post', { error });
 		} finally {
 			isSubmitting.value = false;
 		}

@@ -1,9 +1,30 @@
 <template>
-	<div v-if="topic" class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-		<TopicItem :topic="topic" :room="currentRoom" :current-user="currentUser" :main-topic="topic" />
-		<LabelWithDescription class="ml-5" label-class="text-3xl"> Answers: {{ replies?.length }} </LabelWithDescription>
+	<div
+		v-if="topic"
+		class="flex h-full min-w-0 flex-1 flex-col overflow-hidden"
+	>
+		<TopicItem
+			:topic="topic"
+			:room="currentRoom"
+			:current-user="currentUser"
+			:main-topic="topic"
+		/>
+		<LabelWithDescription
+			class="ml-5"
+			label-class="text-3xl"
+		>
+			Answers: {{ replies?.length }}
+		</LabelWithDescription>
 		<div>
-			<TopicItem v-for="reply in replies" :key="reply.eventId" :topic="reply" :room="currentRoom" :current-user="currentUser" :replies="true" :main-topic="topic" />
+			<TopicItem
+				v-for="reply in replies"
+				:key="reply.eventId"
+				:topic="reply"
+				:room="currentRoom"
+				:current-user="currentUser"
+				:replies="true"
+				:main-topic="topic"
+			/>
 		</div>
 	</div>
 </template>
@@ -11,7 +32,7 @@
 <script setup lang="ts">
 	import { computed } from 'vue';
 	// import { useI18n } from 'vue-i18n';
-	import { useRoute, useRouter } from 'vue-router';
+	import { useRoute } from 'vue-router';
 
 	import LabelWithDescription from '@hub-client/components/rooms/forum/LabelWithDescription.vue';
 	import TopicItem from '@hub-client/components/rooms/forum/TopicItem.vue';

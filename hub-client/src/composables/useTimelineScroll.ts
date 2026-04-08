@@ -2,13 +2,14 @@
 import { type Ref, computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // Logic
-import { LOGGER } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { ScrollBehavior, ScrollPosition, TimelineScrollConstants } from '@hub-client/models/constants';
 import type { TCurrentEvent } from '@hub-client/models/events/types';
 import type Room from '@hub-client/models/rooms/Room';
+
+const logger = createLogger('RoomTimeline');
 
 // Types
 export interface ScrollOptions {
@@ -93,13 +94,13 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 					}
 				}
 			} catch (error) {
-				LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${eventId}`, { error });
+				logger.error(`Failed to load event ${eventId}`, { error });
 				throw error;
 			}
 		}
 
 		if (!element) {
-			LOGGER.warn(SMI.ROOM_TIMELINE, `Event ${eventId} not found after loading`);
+			logger.warn(`Event ${eventId} not found after loading`);
 			throw new Error(`Event ${eventId} not found`);
 		}
 

@@ -1,7 +1,12 @@
 <template>
 	<teleport to="body">
 		<!-- Desktop backdrop -->
-		<div v-if="store.isOpen && !isMobile" class="fixed inset-0 z-9998 bg-transparent" @pointerdown.prevent.stop="store.close" @click.prevent.stop />
+		<div
+			v-if="store.isOpen && !isMobile"
+			class="fixed inset-0 z-9998 bg-transparent"
+			@pointerdown.prevent.stop="store.close"
+			@click.prevent.stop
+		/>
 
 		<!-- Desktop menu -->
 		<div
@@ -14,15 +19,41 @@
 			tabindex="-1"
 			@keydown="onKeydown"
 		>
-			<template v-for="(item, i) in store.items" :key="i">
-				<div v-if="item.divider" class="bg-surface-low my-50 h-px shrink-0" />
-				<ContextMenuItem v-else :aria-label="item.ariaLabel" :disabled="item.disabled" :icon="item.icon" :is-delicate="item.isDelicate" :label="item.label" :title="item.title" @click="store.select(item)" @mousedown.stop />
+			<template
+				v-for="(item, i) in store.items"
+				:key="i"
+			>
+				<div
+					v-if="item.divider"
+					class="bg-surface-low my-50 h-px shrink-0"
+				/>
+				<ContextMenuItem
+					v-else
+					:aria-label="item.ariaLabel"
+					:disabled="item.disabled"
+					:icon="item.icon"
+					:variant="item.variant"
+					:label="item.label"
+					:title="item.title"
+					@click="store.select(item)"
+					@mousedown.stop
+				/>
 			</template>
 		</div>
 
 		<!-- Mobile scrim -->
-		<Transition enter-active-class="transition-opacity duration-250 ease-in-out" leave-active-class="transition-opacity duration-250 ease-in-out" enter-from-class="opacity-0" leave-to-class="opacity-0">
-			<div v-if="store.isOpen && isMobile" class="fixed inset-0 z-9998 bg-black/40" @pointerdown.prevent.stop="store.close" @click.prevent.stop />
+		<Transition
+			enter-active-class="transition-opacity duration-250 ease-in-out"
+			leave-active-class="transition-opacity duration-250 ease-in-out"
+			enter-from-class="opacity-0"
+			leave-to-class="opacity-0"
+		>
+			<div
+				v-if="store.isOpen && isMobile"
+				class="fixed inset-0 z-9998 bg-black/40"
+				@pointerdown.prevent.stop="store.close"
+				@click.prevent.stop
+			/>
 		</Transition>
 
 		<!-- Mobile drawer menu -->
@@ -44,9 +75,25 @@
 				<!-- Drag handle -->
 				<div class="flex justify-center py-200"></div>
 
-				<template v-for="(item, i) in store.items" :key="i">
-					<div v-if="item.divider" class="bg-surface-low my-100 h-px shrink-0" />
-					<ContextMenuItem v-else :aria-label="item.ariaLabel" :disabled="item.disabled" :icon="item.icon" :is-delicate="item.isDelicate" :label="item.label" :title="item.title" @click="store.select(item)" @mousedown.stop />
+				<template
+					v-for="(item, i) in store.items"
+					:key="i"
+				>
+					<div
+						v-if="item.divider"
+						class="bg-surface-low my-100 h-px shrink-0"
+					/>
+					<ContextMenuItem
+						v-else
+						:aria-label="item.ariaLabel"
+						:disabled="item.disabled"
+						:icon="item.icon"
+						:variant="item.variant"
+						:label="item.label"
+						:title="item.title"
+						@click="store.select(item)"
+						@mousedown.stop
+					/>
 				</template>
 
 				<div class="h-200" />

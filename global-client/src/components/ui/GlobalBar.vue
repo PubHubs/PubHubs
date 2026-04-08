@@ -1,10 +1,17 @@
 <template>
 	<div class="border-on-surface-disabled relative flex h-full w-[80px] shrink-0 snap-start flex-col border-r">
 		<Modal :show="global.isModalVisible">
-			<div class="flex h-full w-full max-w-[100svh] flex-col overflow-y-hidden">
+			<div class="flex h-full w-full max-w-svh flex-col overflow-y-hidden">
 				<div class="border-on-surface-disabled flex aspect-square h-[80px] items-center justify-center border-b p-2">
-					<router-link to="/" class="h-full">
-						<img alt="PubHubs logo" :src="logoUrl" class="h-full w-full object-contain" />
+					<router-link
+						class="h-full"
+						to="/"
+					>
+						<img
+							alt="PubHubs logo"
+							class="h-full w-full object-contain"
+							:src="logoUrl"
+						/>
 					</router-link>
 				</div>
 
@@ -12,9 +19,18 @@
 					<HubMenu />
 
 					<div class="flex h-fit w-full flex-col gap-8 self-end p-4">
-						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
-							<GlobalbarButton type="sliders-horizontal" @click="settingsDialog = true" />
-							<GlobalbarButton type="sign-out" @click="logout" />
+						<div
+							v-if="global.loggedIn"
+							class="flex flex-col items-center gap-4"
+						>
+							<GlobalbarButton
+								type="sliders-horizontal"
+								@click="settingsDialog = true"
+							/>
+							<GlobalbarButton
+								type="sign-out"
+								@click="logout"
+							/>
 						</div>
 					</div>
 				</div>
@@ -23,10 +39,13 @@
 	</div>
 
 	<!-- Dialogs -->
-	<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false" />
+	<SettingsDialog
+		v-if="settingsDialog"
+		@close="settingsDialog = false"
+	/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';

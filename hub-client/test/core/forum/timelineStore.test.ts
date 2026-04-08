@@ -1,8 +1,8 @@
-import { Filter, MatrixClient, TimelineWindow } from 'matrix-js-sdk';
+import { Filter, type MatrixClient, TimelineWindow } from 'matrix-js-sdk';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
-import { Room as MatrixRoom } from 'matrix-js-sdk/lib/models/room';
+import { type Room as MatrixRoom } from 'matrix-js-sdk/lib/models/room';
 import { useTimelineStore } from '@hub-client/stores/forum/timelineStore';
 
 // Mock dependencies

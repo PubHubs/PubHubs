@@ -1,22 +1,23 @@
 <template>
 	<span v-if="DirectRooms.includes(room?.getType() as RoomType)">
 		{{ $t('rooms.private_members') }}
-		<PrivateRoomMembersList :members="room?.getOtherJoinedAndInvitedMembers()" />
+		<PrivateRoomMembersList :members="(room?.getOtherJoinedAndInvitedMembers() ?? []) as import('matrix-js-sdk').RoomMember[]" />
 	</span>
 	<span v-else>{{ room?.getTopic() }}</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Components
 	import PrivateRoomMembersList from '@hub-client/components/rooms/PrivateRoomMembersList.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { DirectRooms, type RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
-	const props = defineProps({
+	defineProps({
 		room: {
 			type: Room,
+			default: undefined,
 		},
 	});
 </script>

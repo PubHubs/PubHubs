@@ -1,23 +1,46 @@
 <template>
 	<Teleport to="body">
-		<Dialog v-if="props.dialogOpen" @close="handleClose" :title="t(title)" :buttons="props.secured ? buttonsCancel : buttonsYesNo" :allowOverflow="true">
+		<Dialog
+			v-if="props.dialogOpen"
+			:allow-overflow="true"
+			:buttons="props.secured ? buttonsCancel : buttonsYesNo"
+			:title="t(title)"
+			@close="handleClose"
+		>
 			<P class="text-wrap">
 				{{ t(message, messageValues) }}
 			</P>
 
-			<div v-if="props.secured && requiredAttributes.length > 0" class="my-4 flex flex-wrap gap-3">
-				<Chip v-for="attr in requiredAttributes" :key="attr">
+			<div
+				v-if="props.secured && requiredAttributes.length > 0"
+				class="my-4 flex flex-wrap gap-3"
+			>
+				<Chip
+					v-for="attr in requiredAttributes"
+					:key="attr"
+				>
 					{{ attr }}
 				</Chip>
 			</div>
-			<P v-if="roomDescription" class="my-4">{{ roomDescription }}</P>
+			<P
+				v-if="roomDescription"
+				class="my-4"
+			>
+				{{ roomDescription }}
+			</P>
 
-			<SecuredRoomLogin v-if="props.secured" :securedRoomId="props.dialogOpen" :showClose="false" @success="handleClose" class="relative left-1/2 mb-24 w-max -translate-x-1/2 transform" />
+			<SecuredRoomLogin
+				v-if="props.secured"
+				class="relative left-1/2 mb-24 w-max -translate-x-1/2 transform"
+				:secured-room-id="props.dialogOpen"
+				:show-close="false"
+				@success="handleClose"
+			/>
 		</Dialog>
 	</Teleport>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Vue
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -53,13 +76,13 @@
 
 	const roomDescription = computed(() => {
 		if (!props.dialogOpen) return '';
-		const room = rooms.securedRoom(props.dialogOpen);
+		const room = rooms.securedRoomById(props.dialogOpen);
 		return room?.user_txt ?? '';
 	});
 
 	const requiredAttributes = computed(() => {
 		if (!props.dialogOpen) return [];
-		const room = rooms.securedRoom(props.dialogOpen);
+		const room = rooms.securedRoomById(props.dialogOpen);
 		const accepted = room?.accepted;
 		if (!accepted) return [];
 		const attrKeys = Object.keys(accepted);

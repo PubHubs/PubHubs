@@ -1,31 +1,71 @@
 <template>
-	<div v-if="hub" class="bg-background relative flex h-60 w-full max-w-full flex-col overflow-hidden rounded-xl shadow-md hover:cursor-pointer" @click="enterHub(hub)">
-		<Button v-if="contact" class="!absolute top-2 right-2 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-black bg-white" @click="toggleDescription($event)">
-			<Icon :type="showDescription ? 'x' : 'info'" size="lg" class="text-black" />
+	<div
+		v-if="hub"
+		class="bg-background relative flex h-60 w-full max-w-full flex-col overflow-hidden rounded-xl shadow-md hover:cursor-pointer"
+		@click="enterHub(hub)"
+	>
+		<Button
+			v-if="contact"
+			class="absolute! top-2 right-2 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-black bg-white"
+			@click="toggleDescription($event)"
+		>
+			<Icon
+				class="text-black"
+				size="lg"
+				:type="showDescription ? 'x' : 'info'"
+			/>
 		</Button>
-		<div v-if="showDescription" class="global-preview bg-background absolute top-0 right-0 z-30 h-full max-h-60 w-full overflow-y-auto rounded-xl p-4">
+		<div
+			v-if="showDescription"
+			class="global-preview bg-background absolute top-0 right-0 z-30 h-full max-h-60 w-full overflow-y-auto rounded-xl p-4"
+		>
 			<H3>{{ $t('home.contact_details') }}</H3>
-			<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="contact" :boxShadow="false" />
+			<mavon-editor
+				v-model="contact"
+				:box-shadow="false"
+				default-open="preview"
+				:subfield="false"
+				:toolbars-flag="false"
+			/>
 		</div>
-		<div v-if="!showDescription" class="h-24 w-full">
-			<HubBanner :banner-url="hub.bannerUrl" :hub-name="hub.name" />
+		<div
+			v-if="!showDescription"
+			class="h-24 w-full"
+		>
+			<HubBanner
+				:banner-url="hub.bannerUrl"
+				:hub-name="hub.name"
+			/>
 		</div>
 		<div class="flex h-min items-start gap-4 px-4 py-2">
 			<div class="bg-surface-high -mt-8 aspect-square h-16 w-16 overflow-clip rounded-xl">
-				<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" />
+				<HubIcon
+					:hub-name="hub.name"
+					:icon-url="hub.iconUrlLight"
+					:icon-url-dark="hub.iconUrlDark"
+				/>
 			</div>
 			<div class="flex h-full w-full max-w-full flex-col justify-center gap-2 overflow-hidden pt-1 pb-2 text-left">
-				<H2 class="line-clamp-1 w-full overflow-hidden text-ellipsis">{{ hub.hubName }}</H2>
+				<H2 class="line-clamp-1 w-full overflow-hidden text-ellipsis">
+					{{ hub.hubName }}
+				</H2>
 				<div class="h-16">
-					<TruncatedText class="text-label-small font-bold uppercase">{{ $t('home.hub_card_about') }}</TruncatedText>
-					<Pre v-model="summary" class="font-body max-w-[calc(100%_-_2em)] break-words hyphens-auto whitespace-pre-line" :class="isMobile ? 'line-clamp-3 text-xl' : 'line-clamp-2'">{{ summary }}</Pre>
+					<TruncatedText class="text-label-small font-bold uppercase">
+						{{ $t('home.hub_card_about') }}
+					</TruncatedText>
+					<Pre
+						v-model="summary"
+						class="font-body max-w-[calc(100%-2em)] wrap-break-word hyphens-auto whitespace-pre-line"
+						:class="isMobile ? 'line-clamp-3 text-xl' : 'line-clamp-2'"
+						>{{ summary }}</Pre
+					>
 				</div>
 			</div>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onBeforeMount, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -39,7 +79,7 @@
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
 	// Models
-	import { Hub } from '@global-client/models/Hubs';
+	import { type Hub } from '@global-client/models/Hubs';
 
 	import { useGlobal } from '@global-client/stores/global';
 	import { useMSS } from '@global-client/stores/mss';
@@ -48,14 +88,13 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
 
+	const props = defineProps<{ hub: Hub }>();
 	const router = useRouter();
 	const dialog = useDialog();
 	const settings = useSettings();
 	const { t } = useI18n();
-	const mss = useMSS();
-	const global = useGlobal();
-
-	const props = defineProps<{ hub: Hub }>();
+	const _mss = useMSS();
+	const _global = useGlobal();
 
 	const isMobile = computed(() => settings.isMobileState);
 	const summary = ref<string>('');

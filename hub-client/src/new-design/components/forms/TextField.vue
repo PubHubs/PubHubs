@@ -1,33 +1,44 @@
 <template>
-	<ValidateField :help="help" :info="lenText" :name="fieldName" :validation="validation" v-model="model" v-slot="{ id, validated, required }" class="form-textfield gap-075 flex w-full flex-col items-start justify-start">
-		<Label :for="id"><slot></slot></Label>
+	<ValidateField
+		v-slot="{ id: fieldId, validated, required }"
+		v-model="model"
+		class="form-textfield gap-075 flex w-full flex-col items-start justify-start"
+		:help="help"
+		:info="lenText"
+		:name="fieldName"
+		:validation="validation"
+	>
+		<Label :for="fieldId"><slot /></Label>
 
 		<!-- Input element -->
 		<div class="flex w-full items-center">
-			<div class="grow" :class="{ 'w-full': !showLength }">
+			<div
+				class="grow"
+				:class="{ 'w-full': !showLength }"
+			>
 				<textarea
 					v-if="type === 'textarea'"
-					class="bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
+					:id="fieldId"
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
+					class="bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-button-blue'"
 					:disabled="disabled"
 					:name="fieldName"
-					:id="id"
 					:placeholder="placeholder"
 					@input="update()"
 				/>
 				<input
 					v-else
-					class="bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
+					:id="fieldId"
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
+					class="bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-button-blue'"
 					:disabled="disabled"
 					:name="fieldName"
-					:id="id"
 					:placeholder="placeholder"
 					:type="type"
 					@input="update()"
@@ -37,12 +48,15 @@
 	</ValidateField>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, ref, useAttrs, watch } from 'vue';
 
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
+
 	// Models
-	import { FieldValidations } from '@hub-client/models/validation/TValidate';
+	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// New design
 	import Label from '@hub-client/new-design/components/forms/Label.vue';
@@ -64,6 +78,8 @@
 		{
 			disabled: false,
 			help: '',
+			id: undefined,
+			name: undefined,
 			placeholder: '',
 			showLength: false,
 			type: 'text',
@@ -75,6 +91,7 @@
 	const model = defineModel<string | number>();
 	const modelLen = ref(0);
 
+	const logger = createLogger('TextField');
 	const { slotDefault, fieldName, update } = useFormInput(props, model);
 
 	// Computed
@@ -105,11 +122,11 @@
 	});
 
 	onMounted(() => {
-		if (process.env.NODE_ENV !== 'production') {
+		if (import.meta.env.DEV) {
 			const hasVisibleLabel = !!slotDefault.value || !!props.name;
-			const hasAriaLabel = !!(attrs as any)['aria-label'];
+			const hasAriaLabel = !!(attrs as Record<string, unknown>)['aria-label'];
 			if (!hasVisibleLabel && !hasAriaLabel) {
-				console.warn('[TextField] Accessible name missing. Provide either a visible label (slot / name prop) or `aria-label` attribute.');
+				logger.warn('[TextField] Accessible name missing. Provide either a visible label (slot / name prop) or `aria-label` attribute.');
 			}
 		}
 		calculateLen();
