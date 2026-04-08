@@ -3,11 +3,16 @@ enum VotingWidgetType {
 	SCHEDULER = 'scheduler',
 }
 
+interface UserVote {
+	userId: string;
+	time: string;
+}
+
 interface vote {
 	choice?: string;
-	//TODO: remove userIds and use userTime everywhere, since that stores the userId as the first part of the tuple
+	//TODO: remove userIds and use userVotes everywhere
 	userIds: Array<string>;
-	userTime?: Array<[string, string]>;
+	userVotes?: Array<UserVote>;
 }
 
 interface votesForOption {
@@ -23,7 +28,7 @@ class VotingOptions {
 			for (const userChoices of option.votes) {
 				if (userChoices.choice === 'redacted') {
 					userChoices.userIds = [];
-					userChoices.userTime = [];
+					userChoices.userVotes = [];
 				}
 			}
 		}
@@ -42,13 +47,13 @@ class VotingOptions {
 				for (const user of vote.userIds) {
 					newUserIds.push(user);
 				}
-				for (const time of vote.userTime ?? []) {
+				for (const time of vote.userVotes ?? []) {
 					newUserTime.push(time);
 				}
 				newvFo.votes.push({
 					choice: vote.choice,
 					userIds: newUserIds,
-					userTime: newUserTime,
+					userVotes: newUserTime,
 				});
 			}
 			newVotes.push(newvFo);

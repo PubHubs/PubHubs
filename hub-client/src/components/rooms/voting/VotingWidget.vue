@@ -219,15 +219,15 @@
 		const votesForOption: votesForOption = { optionId: option.id, votes: [] };
 		if (type === VotingWidgetType.SCHEDULER) {
 			votesForOption.votes = [
-				{ choice: 'yes', userIds: [], userTime: [] },
-				{ choice: 'maybe', userIds: [], userTime: [] },
-				{ choice: 'no', userIds: [], userTime: [] },
-				{ choice: 'redacted', userIds: [], userTime: [] },
+				{ choice: 'yes', userIds: [], userVotes: [] },
+				{ choice: 'maybe', userIds: [], userVotes: [] },
+				{ choice: 'no', userIds: [], userVotes: [] },
+				{ choice: 'redacted', userIds: [], userVotes: [] },
 			];
 		} else {
 			votesForOption.votes = [
-				{ choice: 'yes', userIds: [], userTime: [] },
-				{ choice: 'redacted', userIds: [], userTime: [] },
+				{ choice: 'yes', userIds: [], userVotes: [] },
+				{ choice: 'redacted', userIds: [], userVotes: [] },
 			];
 		}
 		return votesForOption;
@@ -461,11 +461,11 @@
 			if (userVoteAlreadyRegistered) {
 				//remove the old vote
 				alreadyRegisteredUserChoices?.userIds.splice(alreadyRegisteredUserIndex, 1);
-				alreadyRegisteredUserChoices?.userTime?.splice(alreadyRegisteredUserIndex, 1);
+				alreadyRegisteredUserChoices?.userVotes?.splice(alreadyRegisteredUserIndex, 1);
 			}
 			//add the vote
 			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userIds.push(reply_user);
-			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userTime?.push([reply_user, reply_time]);
+			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userVotes?.push({ userId: reply_user, time: reply_time });
 
 			if (replyEvent.origin_server_ts > lastEventTimestamp) {
 				lastEventTimestamp = replyEvent.origin_server_ts;
