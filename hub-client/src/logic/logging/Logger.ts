@@ -1,11 +1,11 @@
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'silent';
+export type LogLevel = 'debug' | 'log' | 'info' | 'warn' | 'error';
 
 const LEVELS: Record<LogLevel, number> = {
 	debug: 0,
-	info: 1,
-	warn: 2,
-	error: 3,
-	silent: 4,
+	log: 1,
+	info: 2,
+	warn: 3,
+	error: 4,
 };
 
 function detectDefaultLevel(): LogLevel {

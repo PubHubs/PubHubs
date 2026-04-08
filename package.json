@@ -14,15 +14,21 @@
 		"dev:hub": "npm run dev --workspace=hub-client",
 		"build:global": "npm run build --workspace=global-client",
 		"build:hub": "npm run build --workspace=hub-client",
-		"lint": "prettier --write --ignore-unknown \"global-client/src/**/*.{ts,vue,js}\" \"hub-client/src/**/*.{ts,vue,js}\" && eslint --fix global-client/src hub-client/src",
+		"lint": "prettier --config .prettierrc --write --ignore-unknown \"global-client/src/**/*.{ts,vue,js}\" \"hub-client/src/**/*.{ts,vue,js}\" && eslint --fix global-client/src hub-client/src",
 		"check": "npm run check:format && npm run check:lint && npm run check:types",
-		"check:format": "prettier --check --ignore-unknown \"global-client/src/**/*.{ts,vue,js}\" \"hub-client/src/**/*.{ts,vue,js}\"",
+		"check:format": "prettier --config .prettierrc --check --ignore-unknown \"global-client/src/**/*.{ts,vue,js}\" \"hub-client/src/**/*.{ts,vue,js}\"",
 		"check:lint": "eslint --max-warnings 0 global-client/src hub-client/src",
 		"check:types": "npm run type-check --workspace=hub-client && npm run type-check --workspace=global-client"
 	},
 	"lint-staged": {
-		"global-client/src/**/*.{ts,vue,js}": ["prettier --write --ignore-unknown", "eslint --fix"],
-		"hub-client/src/**/*.{ts,vue,js}": ["prettier --write --ignore-unknown", "eslint --fix"]
+		"global-client/src/**/*.{ts,vue,js}": [
+			"prettier --config .prettierrc --write --ignore-unknown",
+			"eslint --fix"
+		],
+		"hub-client/src/**/*.{ts,vue,js}": [
+			"prettier --config .prettierrc --write --ignore-unknown",
+			"eslint --fix"
+		]
 	},
 	"devDependencies": {
 		"@eslint-community/eslint-plugin-eslint-comments": "^4",
