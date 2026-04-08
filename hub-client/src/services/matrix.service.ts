@@ -1,5 +1,5 @@
 // Packages
-import { EventType, type IRoomEvent, type IStateEvent, type MatrixClient, type MatrixEvent, type Room as MatrixRoom, RoomEvent } from 'matrix-js-sdk';
+import { EventType, type IStateEvent, type MatrixClient, type MatrixEvent, type Room as MatrixRoom, RoomEvent } from 'matrix-js-sdk';
 import {
 	type MSC3575List,
 	type MSC3575RoomData,
@@ -72,7 +72,7 @@ class MatrixService {
 		if (!initialRoomList) throw new Error('Initial room list configuration not found');
 		const initialRoomListFilter = new Map<string, MSC3575List>([[SlidingSyncOptions.roomList, initialRoomList]]);
 
-		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 /* global default value */ }, this.client, SystemDefaults.syncIntervalMS);
+		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 }, this.client, SystemDefaults.syncIntervalMS);
 
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);

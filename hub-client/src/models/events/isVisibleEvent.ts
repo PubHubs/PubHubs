@@ -6,7 +6,7 @@ import { PubHubsMgType } from '@hub-client/logic/core/events';
 
 // Models
 import { Redaction, RelationType } from '@hub-client/models/constants';
-import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import type { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 
 const visibleEventTypes: string[] = [EventType.RoomMessage];
 const invisibleMessageTypes: string[] = [MsgType.Notice];

@@ -14,7 +14,6 @@ import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
-import TRoomThread from '@hub-client/models/thread/RoomThread';
 
 // Stores
 import { useUser } from '@hub-client/stores/user';

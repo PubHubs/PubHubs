@@ -26,7 +26,7 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
-import { Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
+import { Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';

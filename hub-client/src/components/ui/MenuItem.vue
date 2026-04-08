@@ -45,7 +45,7 @@
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Models
-	import { type RoomListRoom, RoomType, SecuredRooms, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
+	import { type RoomListRoom, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useMenu } from '@hub-client/stores/menu';

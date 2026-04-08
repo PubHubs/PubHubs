@@ -29,8 +29,7 @@
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
 
-	import { LOGGER } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
@@ -81,7 +80,7 @@
 			.then(() => pubhubs.login())
 			.then(() => rooms.fetchAggregateUnreadState())
 			.then((state) => {
-				LOGGER.trace(SMI.STARTUP, 'Miniclient.vue onMounted done');
+				logger.debug('Miniclient.vue onMounted done');
 				updateUnreadState(state);
 				initialized.value = true;
 

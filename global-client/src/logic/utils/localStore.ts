@@ -7,6 +7,9 @@
  * secret so they're unreadable after logout. Keys are prefixed with a hash derived
  * from the user secret so different users' data doesn't collide or leak identity.
  */
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
+const logger = createLogger('LocalStore');
 
 const STORE_PREFIX = 'ph:ls:';
 const USER_SECRET_BYTES = 32;
@@ -68,7 +71,7 @@ export class LocalStore {
 	) {}
 
 	/** Create an initialized LocalStore for the given hub. */
-	static async create(userSecretBase64: string, hubId: string, warn: (message: string) => void = console.warn): Promise<LocalStore> {
+	static async create(userSecretBase64: string, hubId: string, warn: (message: string) => void = logger.warn): Promise<LocalStore> {
 		const rawSecret = Uint8Array.from(atob(userSecretBase64), (c) => c.charCodeAt(0));
 		if (rawSecret.length !== USER_SECRET_BYTES) {
 			throw new Error(`UserSecret must be ${USER_SECRET_BYTES} bytes, got ${rawSecret.length}`);
