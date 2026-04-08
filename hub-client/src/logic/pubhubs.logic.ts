@@ -1,5 +1,5 @@
 // Packages
-import { EventTimeline, EventType, Room as MatrixRoom } from 'matrix-js-sdk';
+import { EventTimeline, EventType, type Room as MatrixRoom } from 'matrix-js-sdk';
 
 // Models
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
@@ -13,7 +13,7 @@ const getRoomType = (matrixRoom: MatrixRoom): string => {
 		if (createEvt?.getContent && createEvt.getContent()?.type) {
 			roomType = createEvt.getContent().type ?? roomType;
 		}
-	} catch (_) {
+	} catch {
 		// Ignore for now
 	}
 

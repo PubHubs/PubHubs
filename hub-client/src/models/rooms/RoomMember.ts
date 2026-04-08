@@ -1,5 +1,5 @@
 // Packages
-import { KnownMembership, RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
+import { type KnownMembership, type RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
 
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';

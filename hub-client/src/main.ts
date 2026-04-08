@@ -1,6 +1,8 @@
 // Packages
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
+// Logic
+import loglevel from 'loglevel';
 import mavonEditor from 'mavon-editor';
 import 'mavon-editor/dist/css/index.css';
 import { createPinia } from 'pinia';
@@ -10,20 +12,19 @@ import { createApp } from 'vue';
 import '@hub-client/assets/datepicker.css';
 import '@hub-client/assets/tailwind.css';
 
-// Logic
 import { clickOutside, contextMenu, focus, twClass } from '@hub-client/logic/core/directives';
 import { router } from '@hub-client/logic/core/router';
+import { getLogLevel } from '@hub-client/logic/logging/Logger';
 
 // Pages
 import App from '@hub-client/pages/App.vue';
 
-import { ReplaceConsole } from '@hub-client/console';
 import { setUpi18n } from '@hub-client/i18n';
 import { registerComponents } from '@hub-client/registerComponents';
 
-// Other
-
-ReplaceConsole();
+// Silence matrix-js-sdk's verbose HTTP logs; match our app log level
+const matrixLevel = getLogLevel() === 'debug' ? 'DEBUG' : getLogLevel() === 'info' ? 'INFO' : getLogLevel() === 'error' ? 'ERROR' : 'WARN';
+loglevel.getLogger('matrix').setLevel(matrixLevel);
 
 const pinia = createPinia();
 const app = createApp(App);

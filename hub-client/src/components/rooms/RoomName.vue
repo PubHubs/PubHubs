@@ -2,20 +2,18 @@
 	<span :title="name">{{ name }}</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { PropType, computed } from 'vue';
-	import { useI18n } from 'vue-i18n';
+	import { type PropType, computed } from 'vue';
 
 	// Models
-	import Room from '@hub-client/models/rooms/Room';
-	import { RoomListRoom } from '@hub-client/models/rooms/TBaseRoom';
-
-	const { t } = useI18n();
+	import type Room from '@hub-client/models/rooms/Room';
+	import { type RoomListRoom } from '@hub-client/models/rooms/TBaseRoom';
 
 	const props = defineProps({
 		room: {
 			type: Object as PropType<Room | RoomListRoom>,
+			default: undefined,
 		},
 	});
 

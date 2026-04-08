@@ -1,8 +1,7 @@
 // Packages
-import { usePubhubsStore } from './pubhubs';
 import { assert } from 'chai';
-import { EventType, MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
-import { MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
+import { EventType, type MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
+import { type MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
 // Composables
@@ -13,9 +12,8 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { api_synapse } from '@hub-client/logic/core/api';
 import filters from '@hub-client/logic/core/filters';
 import { router } from '@hub-client/logic/core/router';
-import { ConsentJSONParser } from '@hub-client/logic/json-utility';
-import { LOGGER } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
+import { type ConsentJSONParser } from '@hub-client/logic/json-utility';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { MatrixType, OnboardingType } from '@hub-client/models/constants';
@@ -58,7 +56,7 @@ type State = {
 	yellowCards: string[];
 };
 
-const logger = LOGGER;
+const logger = createLogger('User');
 
 const useUser = defineStore('user', {
 	state: (): State => ({
@@ -79,7 +77,8 @@ const useUser = defineStore('user', {
 		user({ userId }): MatrixUser | User {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
 			try {
-				const clientUser = this.client.getUser(userId!);
+				if (!userId) return defaultUser;
+				const clientUser = this.client.getUser(userId);
 				return clientUser ?? defaultUser;
 			} catch {
 				return defaultUser;
@@ -104,7 +103,7 @@ const useUser = defineStore('user', {
 
 		pseudonym({ userId }): string {
 			if (!userId) {
-				logger.warn(SMI.USER, 'Missing userId when getting pseudonym, showing pseudonym as "xxx-xxx"');
+				logger.warn('Missing userId when getting pseudonym, showing pseudonym as "xxx-xxx"');
 				return 'xxx-xxx';
 			}
 
@@ -136,7 +135,12 @@ const useUser = defineStore('user', {
 
 		async loadFromSlidingSync(roomData: MSC3575RoomData): Promise<boolean> {
 			// profile data of members is in the join content of roommember events, need only update when there is new content
-			const membersOnlyProfileUpdate = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
+			const membersOnlyProfileUpdate = roomData.required_state?.filter(
+				(x) =>
+					x.type === EventType.RoomMember &&
+					x.content?.membership === MatrixType.Join &&
+					JSON.stringify(x.content) !== JSON.stringify(x.prev_content),
+			);
 			if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
 
 			const { getAuthorizedMediaUrl } = useMatrixFiles();
@@ -150,7 +154,11 @@ const useUser = defineStore('user', {
 				}
 
 				// only update the member if not available yet in userProfile, or if displayname/avatarurl has changed
-				if (!memberToUpdate || memberToUpdate?.displayName !== member.content.displayname || memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
+				if (
+					!memberToUpdate ||
+					memberToUpdate?.displayName !== member.content.displayname ||
+					memberToUpdate?.contentAvatarUrl !== member.content.avatar_url
+				) {
 					// Revoke old avatar blob URL before replacing
 					if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
 						URL.revokeObjectURL(memberToUpdate.avatarUrl);
@@ -201,7 +209,7 @@ const useUser = defineStore('user', {
 
 		// Profile setter method for me.
 		// This method is used during login of me.
-		setProfile(profile: any) {
+		setProfile(profile: { avatar_url?: string; displayname?: string }) {
 			if (profile.avatar_url !== undefined) this.setAvatarUrl(profile.avatar_url);
 			if (profile.displayname !== undefined) this.setDisplayName(profile.displayname);
 		},
@@ -221,7 +229,7 @@ const useUser = defineStore('user', {
 				this.needsConsent = false;
 				this.needsOnboarding = false;
 			} catch (error) {
-				console.log(error);
+				logger.error(error);
 			}
 		},
 		// #endregion
@@ -262,7 +270,7 @@ const useUser = defineStore('user', {
 					this.needsOnboarding = response.needs_onboarding;
 				}
 			} catch (error) {
-				console.error('Could not check if user needs consent, ', error);
+				logger.error('Could not check if user needs consent, ', error);
 				router.push({ name: 'error-page' });
 				this.needsConsent = true;
 			}

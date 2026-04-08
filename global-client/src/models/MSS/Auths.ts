@@ -2,11 +2,11 @@
 import { auths_api } from '@global-client/logic/core/api';
 import { handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
-import { Api } from '@hub-client/logic/core/apiCore';
+import { type Api } from '@hub-client/logic/core/apiCore';
 
 // Models
-import * as TAuths from '@global-client/models/MSS/TAuths';
-import { ErrorCode, Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
+import type * as TAuths from '@global-client/models/MSS/TAuths';
+import { type ErrorCode, type Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
 import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 export default class AuthenticationServer {
@@ -95,9 +95,10 @@ export default class AuthenticationServer {
 		const okWelcomeResp = await handleErrors<TAuths.WelcomeResp>(welcomeResponseFn);
 		return okWelcomeResp.attr_types;
 	}
-	public async YiviWaitForResultEP(argument: any): Promise<TAuths.YiviWaitForResultResp> {
+	public async YiviWaitForResultEP(argument: number[]): Promise<TAuths.YiviWaitForResultResp> {
 		const requestBody = { state: argument };
-		const YiviWaitForResulFn = () => this._authsApi.api<Result<TAuths.YiviWaitForResultResp, ErrorCode>>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
+		const YiviWaitForResulFn = () =>
+			this._authsApi.api<Result<TAuths.YiviWaitForResultResp, ErrorCode>>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
 		return await handleErrors<TAuths.YiviWaitForResultResp>(YiviWaitForResulFn);
 	}
 	public async CardEP(requestBody: TAuths.CardReq): Promise<TAuths.CardRespSuccess> {
@@ -111,8 +112,12 @@ export default class AuthenticationServer {
 			throw new Error('Unexpected response in OK CardEPResponse');
 		}
 	}
-	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq): Promise<{}> {
-		const YiviReleaseNextSessioFn = () => this._authsApi.api<Result<TAuths.YiviReleaseNextSessionResp, ErrorCode>>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
+	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq): Promise<Record<string, never>> {
+		const YiviReleaseNextSessioFn = () =>
+			this._authsApi.api<Result<TAuths.YiviReleaseNextSessionResp, ErrorCode>>(
+				this._authsApi.apiURLS.YiviReleaseNextSessionEP,
+				requestOptions(requestBody),
+			);
 		const YiviReleaseNextSessionResponse = await handleErrors<TAuths.YiviReleaseNextSessionResp>(YiviReleaseNextSessioFn);
 		if (ResultResponse.Success in YiviReleaseNextSessionResponse) {
 			return YiviReleaseNextSessionResponse.Success;
@@ -133,7 +138,8 @@ export default class AuthenticationServer {
 	 * @returns The task and state returned by the AuthStartEP.
 	 */
 	public async authStartEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartRespSuccess> {
-		const authStartRespFn = () => this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
+		const authStartRespFn = () =>
+			this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
 		const okAuthStartResp = await handleErrors<TAuths.StartResp>(authStartRespFn);
 		if ('UnknownAttrType' in okAuthStartResp) {
 			throw new Error(`Unknown attribute handle: ${okAuthStartResp.UnknownAttrType}`);
@@ -156,7 +162,8 @@ export default class AuthenticationServer {
 	 */
 	public async completeAuthEP(proof: TAuths.AuthProof, state: number[]): Promise<TAuths.SuccesResp> {
 		const requestPayload: TAuths.AuthCompleteReq = { proof, state };
-		const authCompleteRespFn = () => this._authsApi.api<TAuths.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<TAuths.AuthCompleteReq>(requestPayload));
+		const authCompleteRespFn = () =>
+			this._authsApi.api<TAuths.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<TAuths.AuthCompleteReq>(requestPayload));
 		const okAuthCompleteResp = await handleErrors<TAuths.CompleteResp>(authCompleteRespFn);
 		if (okAuthCompleteResp === 'PleaseRestartAuth') {
 			throw new Error('Something went wrong. Please start again at AuthStartEP.');
@@ -168,6 +175,8 @@ export default class AuthenticationServer {
 	}
 
 	async attrKeysEP(attrKeyRequest: TAuths.AuthAttrKeyReq) {
-		return await handleErrors<TAuths.AttrKeysResp>(() => this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest)));
+		return await handleErrors<TAuths.AttrKeysResp>(() =>
+			this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest)),
+		);
 	}
 }

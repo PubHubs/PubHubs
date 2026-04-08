@@ -1,20 +1,37 @@
 <template>
 	<div class="bg-surface-high absolute z-50 h-[400px] overflow-auto p-2">
-		<FilteredList :sortby="''" :items="usersList" :filterKey="['displayName']" :placeholder="$t('rooms.private_search_user')" @click="onUser($event)" @filter="filter($event)">
+		<FilteredList
+			:filter-key="['displayName']"
+			:items="usersList"
+			:placeholder="$t('rooms.private_search_user')"
+			:sortby="''"
+			@click="onUser($event)"
+			@filter="filter($event)"
+		>
 			<template #item="{ item }">
 				<div class="hover:bg-surface-low flex items-center justify-between gap-x-2 p-1">
-					<Avatar :avatar-url="user.userAvatar(item.userId)" :user-id="item.userId"></Avatar>
-					<span :title="item.userId" class="w-100 grow truncate">{{ item.displayName }}</span>
-					<Icon type="plus-square" class="flex-none" />
+					<Avatar
+						:avatar-url="user.userAvatar(asString(item.userId))"
+						:user-id="asString(item.userId)"
+					/>
+					<span
+						class="w-100 grow truncate"
+						:title="asString(item.userId)"
+						>{{ item.displayName }}</span
+					>
+					<Icon
+						class="flex-none"
+						type="plus-square"
+					/>
 				</div>
 			</template>
 		</FilteredList>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { type User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onMounted, ref } from 'vue';
 
 	// Components
@@ -22,21 +39,19 @@
 	import FilteredList from '@hub-client/components/ui/FilteredList.vue';
 
 	// Models
-	import { FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
+	import { type FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
 	import { notice } from '@hub-client/models/constants';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useUser } from '@hub-client/stores/user';
 
-	const pubhubs = usePubhubsStore();
-	const user = useUser();
-	const emit = defineEmits(['chosenUser', 'close']);
-
-	const props = defineProps<{
+	defineProps<{
 		header: string;
 	}>();
-
+	const emit = defineEmits(['chosenUser', 'close']);
+	const pubhubs = usePubhubsStore();
+	const user = useUser();
 	const users = ref([] as Array<MatrixUser>);
 
 	onMounted(async () => {
@@ -44,31 +59,33 @@
 	});
 
 	const usersList = computed(() => {
-		let list = users.value as any;
-		list = list.map((user: any) => {
+		const mapped = users.value.map((u) => {
 			return {
-				userId: user.userId,
-				displayName: user.displayName,
-				avatarUrl: user.avatarUrl,
+				userId: u.userId,
+				displayName: u.displayName,
+				avatarUrl: u.avatarUrl,
 			};
 		});
 		// Remove self from list
-		list = list.filter((u: any) => u.userId !== user.userId && u.rawDisplayName !== 'notices');
-		return list;
+		return mapped.filter((u) => u.userId !== user.userId);
 	});
 
-	async function onUser(other: any) {
+	function asString(value: unknown): string {
+		return (value as string) ?? '';
+	}
+
+	async function onUser(other: Record<string, unknown>) {
 		emit('chosenUser', other);
 	}
 
 	async function filter(event: FilteredListEvent) {
 		if (event.length < 10) {
-			let foundUsers = await pubhubs.findUsers(event.filter);
-			foundUsers = foundUsers.map((user) => {
-				user.userId = user.user_id;
-				user.displayName = user.display_name;
-				user.avatarUrl = user.avatar_url;
-				return user;
+			const foundUsers = (await pubhubs.findUsers(event.filter)).map((u) => {
+				return {
+					userId: u.user_id,
+					displayName: u.display_name,
+					avatarUrl: u.avatar_url,
+				} as unknown as MatrixUser;
 			});
 			// combine and unique
 			users.value = [...users.value, ...foundUsers];

@@ -1,5 +1,5 @@
 // Models
-import { SecuredRoomAttributes } from '@hub-client/models/rooms/TSecuredRoom';
+import { type SecuredRoomAttributes } from '@hub-client/models/rooms/TSecuredRoom';
 
 // Types
 type TEditRoom = {

@@ -1,18 +1,23 @@
 <template>
-	<ValidateField :help="help" :validation="validation" role="radiogroup" class="form-radiogroup">
-		<slot></slot>
+	<ValidateField
+		class="form-radiogroup"
+		:help="help"
+		role="radiogroup"
+		:validation="validation"
+	>
+		<slot />
 	</ValidateField>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Models
-	import { FieldValidations } from '@hub-client/models/validation/TValidate';
+	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// Components
 	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
 
 	// Props
-	const props = withDefaults(
+	withDefaults(
 		defineProps<{
 			disabled?: boolean;
 			help?: string;

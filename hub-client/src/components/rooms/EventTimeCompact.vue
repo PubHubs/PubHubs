@@ -1,22 +1,22 @@
 <template>
 	<span class="text-label-small flex items-center gap-1">
-		<Icon type="clock"></Icon>
+		<Icon type="clock" />
 		<span>{{ formatTimestamp(timestamp) }}</span>
-		<Icon type="calendar"></Icon>
+		<Icon type="calendar" />
 		<span>{{ formattedTimeInformation(timestamp) }}</span>
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Composables
 	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 
-	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
-
-	const props = defineProps({
+	defineProps({
 		timestamp: {
 			type: Number,
 			required: true,
 		},
 	});
+
+	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 </script>

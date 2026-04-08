@@ -1,8 +1,17 @@
 <template>
 	<div class="flex h-full flex-col">
-		<Dialog v-if="room?.roomId && user.getYellowCards && user.yellowCards.includes(room.roomId)" :title="capitalize(t('moderation.yellow_card'))" :buttons="yellowCardButtons" @close="onYellowCardClose">
+		<Dialog
+			v-if="room?.roomId && user.getYellowCards && user.yellowCards.includes(room.roomId)"
+			:title="capitalize(t('moderation.yellow_card'))"
+			:buttons="yellowCardButtons"
+			@close="onYellowCardClose"
+		>
 			<div class="flex flex-row gap-3">
-				<Icon type="exclamation-mark" size="3xl" class="text-accent-yellow"></Icon>
+				<Icon
+					type="exclamation-mark"
+					size="3xl"
+					class="text-accent-yellow"
+				></Icon>
 				<div class="flex flex-col gap-2">
 					<p>{{ t('moderation.yellow_card_info') }}</p>
 					<p class="text-on-surface-variant text-sm">{{ yellowCardMembers.find((card) => card.userId === user.userId)?.reason }}</p>
@@ -10,22 +19,65 @@
 			</div>
 		</Dialog>
 		<template v-if="rooms.currentRoomExists">
-			<div v-if="isLoading" class="flex h-full w-full items-center justify-center">
+			<div
+				v-if="isLoading"
+				class="flex h-full w-full items-center justify-center"
+			>
 				<InlineSpinner />
 			</div>
 			<!-- Shared Header -->
-			<div v-else class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8" :class="isMobile ? 'pl-12' : 'pl-8'" data-testid="roomheader">
+			<div
+				v-else
+				class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8"
+				:class="isMobile ? 'pl-12' : 'pl-8'"
+				data-testid="roomheader"
+			>
 				<!-- Left: Room info -->
-				<div v-if="rooms.currentRoom" class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden" data-testid="roomtype">
-					<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
-					<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
-					<div class="group relative" v-context-menu="!rooms.currentRoom.isDirectMessageRoom() ? (evt: any) => openMenu(evt, [{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl() }]) : undefined">
+				<div
+					v-if="rooms.currentRoom"
+					class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden"
+					data-testid="roomtype"
+				>
+					<Icon
+						v-if="!notPrivateRoom()"
+						type="caret-left"
+						data-testid="back"
+						class="cursor-pointer"
+						@click="router.push({ name: 'direct-msg' })"
+					/>
+					<Icon
+						v-else-if="notPrivateRoom()"
+						:type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'"
+					/>
+					<div
+						v-context-menu="
+							!rooms.currentRoom.isDirectMessageRoom()
+								? (evt: any) => openMenu(evt, [{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl() }])
+								: undefined
+						"
+						class="group relative"
+					>
 						<H3 class="text-on-surface flex">
 							<TruncatedText class="font-headings font-semibold">
-								<PrivateRoomHeader v-if="room!.isPrivateRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-								<GroupRoomHeader v-else-if="room!.isGroupRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-								<AdminContactRoomHeader v-else-if="room!.isAdminContactRoom()" :room="room!" :members="room!.getOtherJoinedAndInvitedMembers()" />
-								<RoomName v-else :room="rooms.currentRoom" />
+								<PrivateRoomHeader
+									v-if="room?.isPrivateRoom()"
+									:room="room"
+									:members="room.getOtherJoinedAndInvitedMembers()"
+								/>
+								<GroupRoomHeader
+									v-else-if="room?.isGroupRoom()"
+									:room="room"
+									:members="room.getOtherJoinedAndInvitedMembers()"
+								/>
+								<AdminContactRoomHeader
+									v-else-if="room?.isAdminContactRoom()"
+									:room="room"
+									:members="room.getOtherJoinedAndInvitedMembers()"
+								/>
+								<RoomName
+									v-else
+									:room="rooms.currentRoom"
+								/>
 							</TruncatedText>
 						</H3>
 					</div>
@@ -35,19 +87,43 @@
 				<div class="flex items-center gap-2">
 					<RoomHeaderButtons>
 						<!-- Search -->
-						<GlobalBarButton type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" :title="t('others.search_room')" />
+						<GlobalBarButton
+							type="magnifying-glass"
+							:selected="sidebar.activeTab.value === SidebarTab.Search"
+							:title="t('others.search_room')"
+							@click="sidebar.toggleTab(SidebarTab.Search)"
+						/>
 
 						<!-- Room library -->
-						<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
+						<GlobalBarButton
+							v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)"
+							type="folder-simple"
+							:selected="sidebar.activeTab.value === SidebarTab.Library"
+							@click="sidebar.toggleTab(SidebarTab.Library)"
+						/>
 
 						<!-- Members -->
-						<GlobalBarButton v-if="hasRoomMembers" type="users" :selected="sidebar.activeTab.value === SidebarTab.Members" @click="sidebar.toggleTab(SidebarTab.Members)" />
+						<GlobalBarButton
+							v-if="hasRoomMembers"
+							type="users"
+							:selected="sidebar.activeTab.value === SidebarTab.Members"
+							@click="sidebar.toggleTab(SidebarTab.Members)"
+						/>
 
 						<!-- Thread tab (shown when a thread is selected) -->
-						<GlobalBarButton v-if="room?.getCurrentThreadId()" type="chat-circle" :selected="sidebar.activeTab.value === SidebarTab.Thread" @click="sidebar.toggleTab(SidebarTab.Thread)" />
+						<GlobalBarButton
+							v-if="room?.getCurrentThreadId()"
+							type="chat-circle"
+							:selected="sidebar.activeTab.value === SidebarTab.Thread"
+							@click="sidebar.toggleTab(SidebarTab.Thread)"
+						/>
 
 						<!-- Editing icon for steward (but not for administrator) -->
-						<GlobalBarButton v-if="roles.userHasPermissionForAction(UserAction.StewardPanel, props.id)" type="dots-three-vertical" @click="stewardCanEdit()" />
+						<GlobalBarButton
+							v-if="roles.userHasPermissionForAction(UserAction.StewardPanel, props.id)"
+							type="dots-three-vertical"
+							@click="stewardCanEdit()"
+						/>
 					</RoomHeaderButtons>
 				</div>
 			</div>
@@ -55,27 +131,53 @@
 			<!-- Content row: Timeline + Sidebar -->
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-					<RoomTimeline v-if="room" :key="props.id" :room="room" :event-id-to-scroll="scrollToEventId" :last-read-event-id="lastReadEventId" />
+					<RoomTimeline
+						v-if="room"
+						:key="props.id"
+						:room="room"
+						:event-id-to-scroll="scrollToEventId"
+						:last-read-event-id="lastReadEventId"
+					/>
 				</div>
 
 				<!-- Room sidebar -->
-				<RoomSidebar :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value">
-					<RoomLibrary v-if="sidebar.activeTab.value === SidebarTab.Library" :room="room!" />
+				<RoomSidebar
+					:active-tab="sidebar.activeTab.value"
+					:is-mobile="sidebar.isMobile.value ?? false"
+				>
+					<RoomLibrary
+						v-if="sidebar.activeTab.value === SidebarTab.Library && room"
+						:room="room"
+					/>
 					<RoomThread
 						v-if="sidebar.activeTab.value === SidebarTab.Thread && room?.getCurrentThreadId()"
-						:room="room!"
-						:scroll-to-event-id="room!.getCurrentEvent()?.eventId"
-						@scrolled-to-event-id="room!.setCurrentEvent(undefined)"
+						:room="room"
+						:scroll-to-event-id="room.getCurrentEvent()?.eventId"
+						@scrolled-to-event-id="room.setCurrentEvent(undefined)"
 						@thread-length-changed="currentThreadLengthChanged"
 					/>
-					<RoomMemberList v-if="sidebar.activeTab.value === SidebarTab.Members" :room="room!" />
-					<RoomSearch v-if="sidebar.activeTab.value === SidebarTab.Search" :room="room!" @scroll-to-event-id="onScrollToEventId" />
+					<RoomMemberList
+						v-if="sidebar.activeTab.value === SidebarTab.Members && room"
+						:room="room"
+					/>
+					<RoomSearch
+						v-if="sidebar.activeTab.value === SidebarTab.Search && room"
+						:room="room"
+						@scroll-to-event-id="onScrollToEventId"
+					/>
 				</RoomSidebar>
 			</div>
 		</template>
 	</div>
 	<!-- Secure room join dialog -->
-	<RoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.required_attributes" :messageValues="[]" :secured="true" />
+	<RoomLoginDialog
+		v-if="joinSecuredRoom"
+		v-model:dialog-open="joinSecuredRoom"
+		title="rooms.join_room"
+		message="rooms.required_attributes"
+		:message-values="[]"
+		:secured="true"
+	/>
 </template>
 
 <script setup lang="ts">
@@ -111,8 +213,7 @@
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
-	import { LOGGER } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
@@ -128,6 +229,13 @@
 
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
+	// Passed by the router
+	const props = defineProps({
+		id: { type: String, required: true },
+	});
+
+	const logger = createLogger('Room');
+
 	const yellowCardButtons = computed(() => [
 		{
 			label: 'ok',
@@ -138,7 +246,9 @@
 	]);
 
 	function onYellowCardClose() {
-		user.removeYellowCard(room.value!.roomId);
+		if (room.value) {
+			user.removeYellowCard(room.value.roomId);
+		}
 	}
 
 	const { t } = useI18n();
@@ -155,11 +265,6 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
 	const { yellowCardMembers, watchEffectCardAction } = useModeration();
-
-	// Passed by the router
-	const props = defineProps({
-		id: { type: String, required: true },
-	});
 
 	const joinSecuredRoom = ref<string | null>(null);
 	const scrollToEventId = ref<string>();
@@ -254,7 +359,7 @@
 	});
 
 	function currentThreadLengthChanged(newLength: number) {
-		room.value!.setCurrentThreadLength(newLength);
+		room.value?.setCurrentThreadLength(newLength);
 	}
 
 	async function update(): Promise<boolean> {
@@ -276,7 +381,7 @@
 
 		hubSettings.hideBar();
 
-		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
+		const userIsMember = user.userId ? await pubhubs.isUserRoomMember(user.userId, props.id) : false;
 		if (currentVersion !== updateVersion) return false;
 
 		if (userIsMember) {
@@ -311,22 +416,23 @@
 		return currentVersion === updateVersion;
 	}
 
-	async function onScrollToEventId(ev: any) {
+	async function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
+		if (!room.value) return;
 		// if there is a threadId and this is a valid id in the room: set the current threadId
 
 		if (ev.threadId && ev.threadId !== ev.eventId) {
-			if (!room.value!.findEventById(ev.threadId)) {
+			if (!room.value.findEventById(ev.threadId)) {
 				try {
-					await room.value!.loadToEvent(ev.threadId);
-				} catch (e) {
-					LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${ev.thread}`);
+					await room.value.loadToEvent({ eventId: ev.threadId });
+				} catch {
+					logger.error(`Failed to load event ${ev.threadId}`);
 				}
 			}
-			room.value!.setCurrentThreadId(ev.threadId);
+			room.value.setCurrentThreadId(ev.threadId);
 		} else {
-			room.value!.setCurrentThreadId(undefined);
+			room.value.setCurrentThreadId(undefined);
 		}
-		room.value!.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
+		room.value.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
 		scrollToEventId.value = ev.eventId;
 	}
 
@@ -347,7 +453,8 @@
 		}
 	}
 	function notPrivateRoom() {
-		return !room.value!.isPrivateRoom() && !room.value!.isGroupRoom() && !room.value!.isAdminContactRoom() && !room.value!.isStewardContactRoom();
+		if (!room.value) return true;
+		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
 	}
 
 	watchEffectCardAction();

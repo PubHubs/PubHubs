@@ -1,23 +1,19 @@
-// Logic
-import { LogLevel } from '@hub-client/logic/logging/statusTypes';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
-// Types
+const logger = createLogger('Config');
+
 type ProductionMode = 'production' | 'development' | 'local development' | 'testing';
 
 export default class Config {
 	_productionMode: ProductionMode;
 
-	_logLevelToStartLoggingFrom: LogLevel = LogLevel.Info;
-
-	_env = {
+	_env: Record<string, string> = {
 		HUB_URL: 'https://example.com/hub-url-in-hub-client-not-set!',
 		PARENT_URL: 'https://example.com/parent-url-in-hub-client-not-set!',
 	};
 
 	public constructor() {
 		this._productionMode = this.getInitProductionMode();
-
-		this._logLevelToStartLoggingFrom = this.getInitLogLevel(this._productionMode);
 
 		for (const key of ['HUB_URL', 'PARENT_URL']) {
 			// the global _env (not to be confused with this._env) is set by client-config.js
@@ -30,27 +26,21 @@ export default class Config {
 				this._env[key] = import.meta.env[vite_key];
 			}
 		}
-		if (this._productionMode !== 'testing') console.log('CONFIG', this._productionMode, this._env);
+		if (this._productionMode !== 'testing') logger.info('Initialized', { mode: this._productionMode, env: this._env });
 	}
 
 	public get productionMode(): ProductionMode {
 		return this._productionMode;
 	}
 
-	public get logLevelToStartLoggingFrom(): LogLevel {
-		return this._logLevelToStartLoggingFrom;
-	}
-
 	private getInitProductionMode(): ProductionMode {
-		// @ts-expect-error
 		const globalClientUrl = _env.PUBHUBS_URL || _env.PARENT_URL;
 
 		if (!globalClientUrl || typeof globalClientUrl !== 'string') {
-			// @ts-expect-error
-			if (globalThis._env.HUB_URL === 'http://testing') {
+			if (_env.HUB_URL === 'http://testing') {
 				return 'testing';
 			}
-			console.error('PUBHUBS_URL is not defined in the environment');
+			logger.error('PUBHUBS_URL is not defined in the environment');
 			return 'production';
 		}
 
@@ -62,18 +52,6 @@ export default class Config {
 			return 'testing';
 		} else {
 			return 'production';
-		}
-	}
-
-	private getInitLogLevel(productionMode: ProductionMode) {
-		if (productionMode !== 'testing') console.log('production mode: ', productionMode);
-		switch (productionMode) {
-			case 'production':
-				return LogLevel.Trace;
-			case 'development':
-				return LogLevel.Trace;
-			case 'local development':
-				return LogLevel.Info;
 		}
 	}
 }

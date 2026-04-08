@@ -1,51 +1,134 @@
 <template>
-	<AdminMembers v-if="showPastMemberPanel" :roomId="currentRoomId" @close="closeForm()"> </AdminMembers>
+	<AdminMembers
+		v-if="showPastMemberPanel"
+		:room-id="currentRoomId"
+		@close="closeForm()"
+	/>
 	<HeaderFooter>
 		<template #header>
-			<div class="flex h-full items-center" :class="isMobile ? 'pl-4' : 'pl-0'">
+			<div
+				class="flex h-full items-center"
+				:class="isMobile ? 'pl-4' : 'pl-0'"
+			>
 				<div class="flex w-fit items-center gap-3 overflow-hidden">
 					<Icon type="chats-circle" />
-					<H3 class="font-headings text-h3 text-on-surface font-semibold">{{ t('menu.admin_tools_rooms') }}</H3>
+					<H3 class="font-headings text-h3 text-on-surface font-semibold">
+						{{ t('menu.admin_tools_rooms') }}
+					</H3>
 				</div>
 			</div>
 		</template>
-		<Tabs class="p-3 md:p-4" :open-tab="tab ? Number(tab) - 1 : 0">
+		<Tabs
+			class="p-3 md:p-4"
+			:open-tab="tab ? Number(tab) - 1 : 0"
+		>
 			<TabHeader>
-				<TabPill :value="0" v-slot="slotProps" @click.stop="updateTabInUrl(1)"
-					>{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newPublicRoom()"
-				/></TabPill>
-				<TabPill :value="1" v-slot="slotProps" @click.stop="updateTabInUrl(2)"
-					>{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary ml-2" type="plus" size="sm" @click.stop="newSecuredRoom()"
-				/></TabPill>
+				<TabPill
+					v-slot="slotProps"
+					:value="0"
+					@click.stop="updateTabInUrl(1)"
+				>
+					{{ $t('admin.public_rooms')
+					}}<Icon
+						v-if="slotProps.active"
+						class="hover:text-accent-primary ml-2"
+						size="sm"
+						type="plus"
+						@click.stop="newPublicRoom()"
+					/>
+				</TabPill>
+				<TabPill
+					v-slot="slotProps"
+					:value="1"
+					@click.stop="updateTabInUrl(2)"
+				>
+					{{ $t('admin.secured_rooms')
+					}}<Icon
+						v-if="slotProps.active"
+						class="hover:text-accent-primary ml-2"
+						size="sm"
+						type="plus"
+						@click.stop="newSecuredRoom()"
+					/>
+				</TabPill>
 			</TabHeader>
 			<TabContainer>
 				<TabContent :value="0">
-					<p v-if="nonSecuredPublicRooms.length === 0">{{ $t('admin.no_rooms') }}</p>
-					<FilteredList v-else :items="nonSecuredPublicRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
+					<p v-if="nonSecuredPublicRooms.length === 0">
+						{{ $t('admin.no_rooms') }}
+					</p>
+					<FilteredList
+						v-else
+						:filter-key="['name']"
+						:items="nonSecuredPublicRooms"
+						:placeholder="$t('rooms.filter')"
+						sortby="name"
+					>
 						<template #item="{ item }">
-							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
+							<div
+								class="flex w-full justify-between gap-8 overflow-hidden"
+								:title="itemRoomId(item)"
+							>
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon type="chats-circle" class="fill-accent-lime shrink-0" />
-									<p class="min-w-20 truncate">{{ item.name }}</p>
-									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
-									<span v-if="item.room_type" class="text-gray-light italic">- {{ item.room_type }} </span>
+									<Icon
+										class="fill-accent-lime shrink-0"
+										type="chats-circle"
+									/>
+									<p class="min-w-20 truncate">
+										{{ item.name }}
+									</p>
+									<p class="text-gray-light hidden truncate pr-1 italic md:inline">
+										{{ rooms.getRoomTopic(itemRoomId(item)) }}
+									</p>
+									<span
+										v-if="item.room_type"
+										class="text-gray-light italic"
+										>- {{ item.room_type }}
+									</span>
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="text-label-small ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white">Administrator</span>
+										<span
+											v-if="isUserRoomAdmin(user.userId ?? '', itemRoomId(item))"
+											class="text-label-small ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white"
+											>Administrator</span
+										>
 										<span class="flex items-center">
-											<Icon type="user" size="sm" class="shrink-0" />
+											<Icon
+												class="shrink-0"
+												size="sm"
+												type="user"
+											/>
 											<p>x</p>
 											<p>{{ item.num_joined_members }}</p>
 										</span>
-										<span v-if="rooms.room(item.room_id)?.userIsMember(user.userId)">
-											<Icon type="user" size="sm" class="shrink-0" />
+										<span v-if="rooms.room(itemRoomId(item))?.userIsMember(user.userId ?? '')">
+											<Icon
+												class="shrink-0"
+												size="sm"
+												type="user"
+											/>
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="trash" class="hover:text-accent-red hover:cursor-pointer" @click="removePublicRoom(item)" />
-										<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" v-if="isUserRoomAdmin(user.userId, item.room_id)" @click="editPublicRoom(item)" />
-										<Icon v-else type="arrow-circle-up" data-testid="promote" class="hover:text-accent-primary hover:cursor-pointer" @click="makeRoomAdmin(item.room_id, user.userId)" />
+										<Icon
+											class="hover:text-accent-red hover:cursor-pointer"
+											type="trash"
+											@click="removePublicRoom(asPublicRoom(item))"
+										/>
+										<Icon
+											v-if="isUserRoomAdmin(user.userId ?? '', itemRoomId(item))"
+											class="hover:text-accent-primary hover:cursor-pointer"
+											type="pencil-simple"
+											@click="editPublicRoom(asPublicRoom(item))"
+										/>
+										<Icon
+											v-else
+											class="hover:text-accent-primary hover:cursor-pointer"
+											data-testid="promote"
+											type="arrow-circle-up"
+											@click="makeRoomAdmin(itemRoomId(item), user.userId ?? '')"
+										/>
 									</div>
 								</div>
 							</div>
@@ -57,26 +140,70 @@
 					<p v-if="!rooms.hasSecuredRooms">
 						{{ $t('admin.no_secured_rooms') }}
 					</p>
-					<FilteredList v-else :items="sortedSecuredRooms.filter(Boolean)" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
+					<FilteredList
+						v-else
+						:filter-key="['name']"
+						:items="sortedSecuredRooms.filter(Boolean) as unknown as Record<string, unknown>[]"
+						:placeholder="$t('rooms.filter')"
+						sortby="name"
+					>
 						<template #item="{ item }">
-							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
+							<div
+								class="flex w-full justify-between gap-8 overflow-hidden"
+								:title="itemRoomId(item)"
+							>
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon type="shield" class="text-green shrink-0 group-hover:text-black" />
-									<p class="min-w-20 truncate">{{ item.name }}</p>
-									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
-									<span v-if="item.user_txt !== ''" class="text-gray-light hidden truncate italic md:inline"> [{{ item.user_txt }}]</span>
+									<Icon
+										class="text-green shrink-0 group-hover:text-black"
+										type="shield"
+									/>
+									<p class="min-w-20 truncate">
+										{{ item.name }}
+									</p>
+									<p class="text-gray-light hidden truncate pr-1 italic md:inline">
+										{{ rooms.getRoomTopic(itemRoomId(item)) }}
+									</p>
+									<span
+										v-if="item.user_txt !== ''"
+										class="text-gray-light hidden truncate italic md:inline"
+									>
+										[{{ item.user_txt }}]</span
+									>
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="text-label-small ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white">Administrator</span>
-										<span v-if="rooms.room(item.room_id)?.userIsMember(user.userId)">
-											<Icon type="user" size="sm" class="shrink-0" />
+										<span
+											v-if="isUserRoomAdmin(user.userId ?? '', itemRoomId(item))"
+											class="text-label-small ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white"
+											>Administrator</span
+										>
+										<span v-if="rooms.room(itemRoomId(item))?.userIsMember(user.userId ?? '')">
+											<Icon
+												class="shrink-0"
+												size="sm"
+												type="user"
+											/>
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="trash" class="hover:text-accent-red hover:cursor-pointer" v-if="isUserRoomAdmin(user.userId, item.room_id)" @click="removeSecuredRoom(item)" />
-										<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" v-if="isUserRoomAdmin(user.userId, item.room_id)" @click="EditSecuredRoom(item)" />
-										<Icon v-else type="arrow-circle-up" class="hover:text-accent-primary hover:cursor-pointer" @click="makeRoomAdmin(item.room_id, user.userId)" />
+										<Icon
+											v-if="isUserRoomAdmin(user.userId ?? '', itemRoomId(item))"
+											class="hover:text-accent-red hover:cursor-pointer"
+											type="trash"
+											@click="removeSecuredRoom(asSecuredRoom(item))"
+										/>
+										<Icon
+											v-if="isUserRoomAdmin(user.userId ?? '', itemRoomId(item))"
+											class="hover:text-accent-primary hover:cursor-pointer"
+											type="pencil-simple"
+											@click="EditSecuredRoom(asSecuredRoom(item))"
+										/>
+										<Icon
+											v-else
+											class="hover:text-accent-primary hover:cursor-pointer"
+											type="arrow-circle-up"
+											@click="makeRoomAdmin(itemRoomId(item), user.userId ?? '')"
+										/>
 									</div>
 								</div>
 							</div>
@@ -88,7 +215,7 @@
 	</HeaderFooter>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -115,15 +242,22 @@
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { TPublicRoom, TSecuredRoom, useRooms } from '@hub-client/stores/rooms';
+	import { type TPublicRoom, type TSecuredRoom, useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// Passed by the router
+	defineProps({
+		tab: {
+			type: String,
+			default: undefined,
+		},
+	});
 	const { t } = useI18n();
 	const user = useUser();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
-	const secured = ref(false);
+	const _secured = ref(false);
 	const showPastMemberPanel = ref(false);
 	const currentRoomId = ref('');
 	const settings = useSettings();
@@ -132,9 +266,6 @@
 
 	const nonSecuredPublicRooms = computed(() => rooms.nonSecuredPublicRooms);
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
-
-	// Passed by the router
-	const props = defineProps({ tab: String });
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms(true);
@@ -148,7 +279,7 @@
 			pubhubs
 				.getPoweLevelEventContent(room.roomId)
 				.then((powerLevels) => {
-					const userPowerLevel = powerLevels.users?.[user.userId!] ?? powerLevels.users_default ?? 0;
+					const userPowerLevel = (user.userId ? powerLevels.users?.[user.userId] : undefined) ?? powerLevels.users_default ?? 0;
 					roomAdminStatus.value[room.roomId] = userPowerLevel === 100;
 				})
 				.catch(() => (roomAdminStatus.value[room.roomId] = false)),
@@ -202,7 +333,7 @@
 			return roomAdminStatus.value[roomId];
 		}
 		// Fallback to local room data if available
-		return rooms.room(roomId)?.getStateMemberPowerLevel(userId) == 100 || false;
+		return rooms.room(roomId)?.getStateMemberPowerLevel(userId) === 100 || false;
 	}
 
 	async function makeRoomAdmin(roomId: string, userId: string): Promise<void | Error> {
@@ -213,7 +344,7 @@
 
 		try {
 			await APIService.makeRoomAdmin(roomId, userId);
-		} catch (error: any) {
+		} catch {
 			const roomCreator = await ManagementUtils.getRoomCreator(roomId);
 			if (roomCreator === user.userId) {
 				await pubhubs.joinRoom(roomId);
@@ -233,6 +364,18 @@
 		}
 		await pubhubs.joinRoom(roomId);
 		roomAdminStatus.value[roomId] = true;
+	}
+
+	function asPublicRoom(item: Record<string, unknown>): TPublicRoom {
+		return item as unknown as TPublicRoom;
+	}
+
+	function asSecuredRoom(item: Record<string, unknown>): TSecuredRoom {
+		return item as unknown as TSecuredRoom;
+	}
+
+	function itemRoomId(item: Record<string, unknown>): string {
+		return (item.room_id as string) ?? '';
 	}
 
 	function updateTabInUrl(tab: number) {

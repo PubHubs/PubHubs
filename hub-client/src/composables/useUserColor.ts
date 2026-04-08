@@ -1,6 +1,22 @@
-const textColors = ['text-accent-lime', 'text-accent-pink', 'text-accent-yellow', 'text-accent-red', 'text-accent-teal', 'text-accent-blue', 'text-accent-orange'];
+const textColors = [
+	'text-accent-lime',
+	'text-accent-pink',
+	'text-accent-yellow',
+	'text-accent-red',
+	'text-accent-teal',
+	'text-accent-blue',
+	'text-accent-orange',
+];
 const bgColors = ['bg-accent-lime', 'bg-accent-pink', 'bg-accent-yellow', 'bg-accent-red', 'bg-accent-teal', 'bg-accent-blue', 'bg-accent-orange'];
-const onAccentColors = ['text-on-accent-lime', 'text-on-accent-pink', 'text-on-accent-yellow', 'text-on-accent-red', 'text-on-accent-teal', 'text-on-accent-blue', 'text-on-accent-orange'];
+const onAccentColors = [
+	'text-on-accent-lime',
+	'text-on-accent-pink',
+	'text-on-accent-yellow',
+	'text-on-accent-red',
+	'text-on-accent-teal',
+	'text-on-accent-blue',
+	'text-on-accent-orange',
+];
 
 const useUserColor = () => {
 	/**

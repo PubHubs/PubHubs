@@ -1,19 +1,28 @@
 <template>
 	<div class="flex h-full w-full items-center justify-center overflow-hidden rounded-xl">
-		<img class="h-full w-full object-cover" v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" />
-		<Icon v-if="fallback" type="lightning-slash" />
+		<img
+			v-show="!fallback"
+			:alt="'logo of ' + hubId"
+			class="h-full w-full object-cover"
+			:src="hubUrl + logoPath"
+			@load="hideFallback"
+		/>
+		<Icon
+			v-if="fallback"
+			type="lightning-slash"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, ref } from 'vue';
 
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
-	const settings = useSettings();
 	const props = defineProps<{ hubUrl: string; hubId: string; changeToDark: boolean }>();
+	const settings = useSettings();
 	let fallback = ref(true);
 
 	const logoPath = computed(() => {

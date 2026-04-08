@@ -1,31 +1,52 @@
 <template>
 	<div class="flex w-full flex-col">
 		<div class="flex w-full items-center gap-4 pb-4">
-			<Icon type="compass" class="text-surface-high dark:text-on-surface-dim" />
-			<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="bg-surface-low text-label h-8 w-full border-none" :class="inputClass" @input="changed()" />
+			<Icon
+				class="text-surface-high dark:text-on-surface-dim"
+				type="compass"
+			/>
+			<TextInput
+				v-if="!listTop"
+				v-model="filter"
+				class="bg-surface-low text-label h-8 w-full border-none"
+				:class="inputClass"
+				:placeholder="placeholder"
+				@input="changed()"
+			/>
 		</div>
-		<ul v-if="filteredItems.length > 0" :class="listClass + ' flex h-full flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-md'">
-			<li v-for="(item, index) in filteredItems" :key="index" class="group block" @click="clickedItem(item)">
-				<slot name="item" v-bind="{ item }"></slot>
+		<ul
+			v-if="filteredItems.length > 0"
+			:class="listClass + ' flex h-full flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-md'"
+		>
+			<li
+				v-for="(item, index) in filteredItems"
+				:key="index"
+				class="group block"
+				@click="clickedItem(item)"
+			>
+				<slot
+					v-bind="{ item }"
+					name="item"
+				/>
 			</li>
 		</ul>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { type User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, ref } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Models
-	import { FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
+	import { type FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
 
 	// Types
 	type Props = {
-		items: Array<Record<string, any>>;
+		items: Array<Record<string, unknown>>;
 		filterKey?: string[];
 		minLength?: number;
 		listTop?: boolean;
@@ -36,9 +57,6 @@
 		placeholder: string;
 		selected?: Array<MatrixUser>;
 	};
-
-	const emit = defineEmits(['click', 'filter']);
-	const filter = ref('');
 
 	const props = withDefaults(defineProps<Props>(), {
 		items: () => [],
@@ -52,6 +70,11 @@
 		showCompleteList: true,
 		selected: () => [],
 	});
+	const emit = defineEmits<{
+		(e: 'click', item: Record<string, unknown>): void;
+		(e: 'filter', event: FilteredListEvent): void;
+	}>();
+	const filter = ref('');
 
 	const filteredItems = computed(() => {
 		let itemsToFilter = props.items;
@@ -59,24 +82,24 @@
 		if (props.selected && props.selected.length > 0) {
 			// Check if 'selected' exists and has items
 			const selectedUserIds = new Set(props.selected.map((user) => user.userId));
-			itemsToFilter = itemsToFilter.filter((item: any) => !selectedUserIds.has(item.userId));
+			itemsToFilter = itemsToFilter.filter((item) => !selectedUserIds.has(item['userId'] as string));
 		}
 
 		if (filter.value.length >= props.minLength) {
 			const lcFilter = filter.value.toLowerCase();
-			itemsToFilter = itemsToFilter.filter((item: any) => {
+			itemsToFilter = itemsToFilter.filter((item) => {
 				if (filter.value === '') {
 					return true;
 				}
 				for (const filterKey of props.filterKey) {
-					const lcItem = item[filterKey]?.toLowerCase();
+					const lcItem = (item[filterKey] as string | undefined)?.toLowerCase();
 					if (lcItem && lcItem.includes(lcFilter)) return true;
 				}
 				return false;
 			});
 			if (props.sortby !== '') {
-				itemsToFilter = itemsToFilter.toSorted((a: Record<string, any>, b: Record<string, any>) => {
-					return a[props.sortby].toLowerCase().localeCompare(b[props.sortby].toLowerCase());
+				itemsToFilter = itemsToFilter.toSorted((a: Record<string, unknown>, b: Record<string, unknown>) => {
+					return (a[props.sortby] as string).toLowerCase().localeCompare((b[props.sortby] as string).toLowerCase());
 				});
 			}
 		} else {
@@ -96,7 +119,7 @@
 		emit('filter', event);
 	}
 
-	function clickedItem(item: any) {
+	function clickedItem(item: Record<string, unknown>) {
 		filter.value = '';
 		emit('click', item);
 	}

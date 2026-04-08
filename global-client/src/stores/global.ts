@@ -3,11 +3,8 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { api } from '@global-client/logic/core/api';
-import { withTimeout } from '@global-client/logic/utils/generalUtils';
 
-import { CONFIG } from '@hub-client/logic/logging/Config';
-import { Logger } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { Hub } from '@global-client/models/Hubs';
@@ -50,12 +47,12 @@ const useGlobal = defineStore('global', {
 			pinnedHubs: [] as PinnedHubs,
 			hubsLoading: false,
 
-			logger: new Logger('GC', CONFIG),
+			logger: createLogger('Global'),
 		};
 	},
 
 	getters: {
-		isModalVisible(state): Boolean {
+		isModalVisible(state): boolean {
 			return state.modalVisible;
 		},
 
@@ -70,7 +67,7 @@ const useGlobal = defineStore('global', {
 			return globalSettings;
 		},
 
-		hasPinnedHubs(state): Boolean {
+		hasPinnedHubs(state): boolean {
 			if (!state.pinnedHubs) return false;
 			return state.pinnedHubs.length > 0;
 		},
@@ -94,7 +91,7 @@ const useGlobal = defineStore('global', {
 				try {
 					settingsUserObject = await mss.requestUserObject('globalsettings');
 				} catch (error) {
-					console.error('Failure getting global settings from server, attempting to load default settings', error);
+					this.logger.error('Failure getting global settings from server, attempting to load default settings', error);
 				}
 				let data: GlobalSettings;
 				if (settingsUserObject) {
@@ -107,7 +104,7 @@ const useGlobal = defineStore('global', {
 				this.loggedIn = true;
 				return true;
 			} catch (error) {
-				console.error('Failure to set global settings', error);
+				this.logger.error('Failure to set global settings', error);
 				// Remove PHauthToken and userSecret from local storage in case the enterEP did successfully return an authToken for the user
 				localStorage.removeItem('PHauthToken');
 				localStorage.removeItem('UserSecret');
@@ -116,17 +113,17 @@ const useGlobal = defineStore('global', {
 			}
 		},
 
-		async setGlobalSettings(data: any) {
-			this.logger.log(SMI.STARTUP, 'setGlobalSettings', data);
+		async setGlobalSettings(data: GlobalSettings) {
+			this.logger.info('setGlobalSettings', data);
 			const settings = useSettings();
 			settings.setTheme(data.theme);
-			if (!data.timeformat || data.timeformat === '') {
+			if (!data.timeformat || (data.timeformat as string) === '') {
 				data.timeformat = TimeFormat.format24;
 			}
 			settings.setTimeFormat(data.timeformat);
 			if (!data.language || data.language === '') {
 				if (settings._i18n?.locale) {
-					data.language = settings._i18n?.locale;
+					data.language = settings._i18n?.locale.value ?? navigator.language;
 				} else {
 					data.language = navigator.language;
 				}
@@ -165,7 +162,7 @@ const useGlobal = defineStore('global', {
 			mss.logout();
 
 			// TODO: find a way router can be part of a store that TypeScript swallows.
-			// @ts-ignore
+			// @ts-expect-error -- router is injected as plugin, not in store type
 			await this.router.replace({ name: 'login' });
 		},
 
@@ -178,9 +175,9 @@ const useGlobal = defineStore('global', {
 				const mss = useMSS();
 				await mss.storeUserObject<GlobalSettings>('globalsettings', this.getGlobalSettings);
 			} catch (error) {
-				// @ts-ignore
+				// @ts-expect-error -- router is injected as plugin, not in store type
 				this.router.push({ name: 'error' });
-				this.logger.error(SMI.ERROR, String(error));
+				this.logger.error(String(error));
 			}
 		},
 
@@ -227,7 +224,7 @@ const useGlobal = defineStore('global', {
 						hubsStore.addHub(hub);
 					})
 					.catch((error) => {
-						this.logger.error(SMI.ERROR, `Could not fetch hub info for hub '${item.name}' with url ${item.url}: ${error.message}`);
+						this.logger.error(`Could not fetch hub info for hub '${item.name}' with url ${item.url}: ${error.message}`);
 					}),
 			);
 			await Promise.all(hubPromises);

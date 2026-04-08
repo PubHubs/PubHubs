@@ -2,20 +2,20 @@
 	<input
 		v-tw-class="'w-full'"
 		class="bg-background text-on-surface placeholder:text-on-surface truncate rounded-lg border px-2 py-1 break-all"
-		type="text"
-		:placeholder="placeholder"
-		:title="placeholder"
-		:value="modelValue"
+		data-test="textinput"
 		:disabled="props.disabled"
 		:maxlength="maxlength"
-		@input="update($event.target.value)"
+		:placeholder="placeholder"
+		:title="placeholder"
+		type="text"
+		:value="modelValue"
+		@input="update(($event.target as HTMLInputElement).value)"
 		@keydown.enter="submit()"
 		@keydown.esc="cancel()"
-		data-test="textinput"
 	/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Composables
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
@@ -26,6 +26,7 @@
 		},
 		modelValue: {
 			type: String,
+			default: '',
 		},
 		disabled: {
 			type: Boolean,

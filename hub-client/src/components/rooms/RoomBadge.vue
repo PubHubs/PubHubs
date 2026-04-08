@@ -1,10 +1,16 @@
 <template>
-	<span v-if="shouldShowBadge" class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-2 border uppercase" :class="badgeClasses" data-testid="event-badges" :title="badgeLabel">
+	<span
+		v-if="shouldShowBadge"
+		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-2 border uppercase"
+		:class="badgeClasses"
+		data-testid="event-badges"
+		:title="badgeLabel"
+	>
 		<span class="line-clamp-1 truncate">{{ badgeLabel }}</span>
 	</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -18,7 +24,7 @@
 	// Types
 	interface Props {
 		user: string;
-		room_id: string;
+		roomId: string;
 		isHubAdmin?: boolean;
 	}
 
@@ -28,7 +34,7 @@
 	const { t } = useI18n();
 	const rooms = useRooms();
 
-	const room = computed(() => rooms.room(props.room_id));
+	const room = computed(() => rooms.room(props.roomId));
 	const powerLevelState = computed(() => room.value?.getStatePowerLevel()?.content);
 
 	const userPowerLevel = computed(() => {
@@ -49,7 +55,7 @@
 	const hasPrivileges = computed(() => isExpert.value || isSteward.value || isSuperSteward.value || isAdmin.value);
 
 	const roomAttributes = computed(() => {
-		return rooms.roomNotices[props.room_id]?.[props.user] ?? [];
+		return rooms.roomNotices[props.roomId]?.[props.user] ?? [];
 	});
 
 	const shouldShowBadge = computed(() => {

@@ -1,5 +1,5 @@
 // Models
-import { TUser } from '@hub-client/models/users/TUser';
+import { type TUser } from '@hub-client/models/users/TUser';
 
 export type TRoomMember = {
 	rawDisplayName: string;

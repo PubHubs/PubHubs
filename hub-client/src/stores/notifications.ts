@@ -3,9 +3,12 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { api_synapse } from '@hub-client/logic/core/api';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Modelsu
-import { TNotification, TNotificationType } from '@hub-client/models/users/TNotification';
+import { type TNotification, TNotificationType } from '@hub-client/models/users/TNotification';
+
+const logger = createLogger('Notifications');
 
 export const useNotifications = defineStore('notifications', {
 	state: () => ({
@@ -23,7 +26,7 @@ export const useNotifications = defineStore('notifications', {
 					}
 				});
 			} catch (error) {
-				console.error('Could not retrieve secured room notifications', error);
+				logger.error('Could not retrieve secured room notifications', error);
 			}
 			return this.notifications;
 		},
@@ -47,7 +50,7 @@ export const useNotifications = defineStore('notifications', {
 			try {
 				await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=remove_allowed_join_room_row`, { room_id: roomId });
 			} catch (error) {
-				console.error(`Could not remove notification for room ${roomId}`, error);
+				logger.error(`Could not remove notification for room ${roomId}`, error);
 			}
 		},
 	},

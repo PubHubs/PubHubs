@@ -3,10 +3,10 @@ import { useI18n } from 'vue-i18n';
 
 import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
-import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
-import { TUser, TUserAccount } from '@hub-client/models/users/TUser';
-import { FieldOption } from '@hub-client/models/validation/TFormOption';
-import { Attribute } from '@hub-client/models/yivi/Tyivi';
+import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
+import { type TUser, type TUserAccount } from '@hub-client/models/users/TUser';
+import { type FieldOption } from '@hub-client/models/validation/TFormOption';
+import { type Attribute } from '@hub-client/models/yivi/Tyivi';
 
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';
@@ -17,7 +17,7 @@ const useDropDownData = () => {
 	/**
 	 * Every transformed data object (to FieldOption) keeps the original object inside `.data`, so it is easy to transform back for whatever form the original data had.
 	 */
-	const transformBack = (item: FieldOption): any => {
+	const transformBack = (item: FieldOption): unknown => {
 		if (item.data) return item.data;
 		return item;
 	};
@@ -33,15 +33,14 @@ const useDropDownData = () => {
 				data: undefined,
 			};
 		} else {
-			if (user.userId) {
+			if ((user as TUser).userId) {
 				userId = (user as TUser).userId;
 				displayname = (user as TUser).rawDisplayName as string;
 			} else {
 				userId = (user as TUserAccount).name;
 				displayname = (user as TUserAccount).displayname || userId;
 			}
-			let avatar = userStore.userAvatar(userId);
-			if (typeof avatar === 'undefined') avatar = '';
+			const avatar = userStore.userAvatar(userId) ?? '';
 			return {
 				value: userId,
 				label: displayname,
@@ -70,7 +69,7 @@ const useDropDownData = () => {
 	const transformYiviAttribute = (attribute: Attribute): FieldOption => {
 		return {
 			value: attribute.attribute,
-			label: attribute.label,
+			label: attribute.label ?? '',
 			data: attribute,
 		};
 	};
@@ -88,7 +87,7 @@ const useDropDownData = () => {
 
 	const userListWithoutMe = async () => {
 		const userStore = useUser();
-		const me = userStore.userId;
+		const me = userStore.userId ?? '';
 		return await userList([me]);
 	};
 
@@ -99,7 +98,7 @@ const useDropDownData = () => {
 	// }
 
 	// Rooms
-	const publicRoomList = async (addedRoom = {}): Promise<Array<TPublicRoom>> => {
+	const publicRoomList = async (): Promise<Array<TPublicRoom>> => {
 		const roomsStore = useRooms();
 		await roomsStore.fetchPublicRooms();
 		const rooms = roomsStore.publicRooms;

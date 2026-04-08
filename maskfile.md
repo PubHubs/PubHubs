@@ -17,10 +17,10 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 This requires [tmux](https://github.com/tmux/tmux) to be installed.
 
-> Windows users should run the lines in `run-all.sh` separately, as TMUX is not available on Windows.
+> Windows users should run the lines in `scripts/run-all.sh` separately, as TMUX is not available on Windows.
 
 ```sh
-sh run-all.sh
+sh scripts/run-all.sh
 ```
 
 #### cleanup
@@ -28,7 +28,7 @@ sh run-all.sh
 > Kills everything in the TMUX session.
 
 ```sh
-sh run-all-cleanup.sh
+sh scripts/run-all-cleanup.sh
 ```
 
 ### init
@@ -263,16 +263,48 @@ cd pubhubs_hub
 docker build -t pubhubs-hub .
 ```
 
+## lint
+
+> Format and lint source code (applies fixes)
+
+```sh
+npm run lint
+```
+
 ## check
 
-> Commands for checking your local PubHubs development environment
+> Check source code without modifying it
 
 ### all
 
-> Run all checks
+> Run all checks (format, lint, types) and environment versions
 
 ```sh
-mask check versions
+npm run check && mask check versions
+```
+
+### format
+
+> Check formatting with Prettier
+
+```sh
+npm run check:format
+```
+
+### lint
+
+> Check linting with ESLint
+
+```sh
+npm run check:lint
+```
+
+### types
+
+> Check types with TypeScript
+
+```sh
+npm run check:types
 ```
 
 ### versions
@@ -288,6 +320,6 @@ then
     exit 1
 fi
 
-python3 check-python3-version.py
-python3 check-versions.py
+python3 scripts/check-python3-version.py
+python3 scripts/check-versions.py
 ```

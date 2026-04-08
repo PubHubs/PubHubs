@@ -1,45 +1,104 @@
 <template>
-	<button v-if="option.status === 'empty'" class="bg-background hover:bg-surface-high relative mb-1 flex h-[42px] w-full rounded-lg border text-left">
+	<button
+		v-if="option.status === 'empty'"
+		class="bg-background hover:bg-surface-high relative mb-1 flex h-[42px] w-full rounded-lg border text-left"
+	>
 		<div class="mx-2 flex w-full items-center">
-			<VueDatePicker id="schedulerDatePickerInput" class="" offset="20" v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" @update:model-value="updateDateOption">
+			<VueDatePicker
+				id="schedulerDatePickerInput"
+				v-model="date"
+				class=""
+				dark
+				:is-24="is24HourFormat"
+				:locale="locale"
+				:min-date="new Date()"
+				offset="20"
+				range
+				:six-weeks="'fair'"
+				@update:model-value="updateDateOption"
+			>
 				<template #trigger>
-					<p class="text-label flex-1">{{ $t('message.voting.add_option') }}</p>
+					<p class="text-label flex-1">
+						{{ $t('message.voting.add_option') }}
+					</p>
 				</template>
 				<template #action-preview="{ value }">
-					<div class="text-left text-balance">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
+					<div class="text-left text-balance">
+						{{ filters.getDateStr(value, is24HourFormat, d, true) }}
+					</div>
 				</template>
 			</VueDatePicker>
 		</div>
 	</button>
-	<button v-else-if="option.status === 'filled'" class="bg-background hover:bg-surface-high mb-1 flex h-[42px] w-full items-center justify-between rounded-lg border">
+	<button
+		v-else-if="option.status === 'filled'"
+		class="bg-background hover:bg-surface-high mb-1 flex h-[42px] w-full items-center justify-between rounded-lg border"
+	>
 		<div class="flex w-full">
-			<VueDatePicker v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" class="m-auto min-w-10" @internal-model-change="handleInternal" @update:model-value="updateDateOption">
+			<VueDatePicker
+				v-model="date"
+				class="m-auto min-w-10"
+				dark
+				:is-24="is24HourFormat"
+				:locale="locale"
+				:min-date="new Date()"
+				range
+				:six-weeks="'fair'"
+				@internal-model-change="handleInternal"
+				@update:model-value="updateDateOption"
+			>
 				<template #trigger>
 					<div class="mx-2 text-left">
 						<div>{{ filters.getDateStr(option.date, is24HourFormat, d) }}</div>
 					</div>
 				</template>
 				<template #action-preview="{ value }">
-					<div class="text-left text-balance">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
+					<div class="text-left text-balance">
+						{{ filters.getDateStr(value, is24HourFormat, d, true) }}
+					</div>
 				</template>
 				<!-- Add a custom time picker overlay, because model-auto with range does not allow for changing the time for a single date. -->
 				<template #time-picker-overlay>
 					<div class="time-picker-overlay">
 						<div v-if="isRangeComplete">
-							<VueDatePicker v-model="time" auto-apply inline dark :range="rangeOptions" :time-picker="true" :time="time" @update:modelValue="updateTime" />
+							<VueDatePicker
+								v-model="time"
+								auto-apply
+								dark
+								inline
+								:range="rangeOptions"
+								:time="time"
+								:time-picker="true"
+								@update:model-value="updateTime"
+							/>
 						</div>
 						<div v-else>
-							<VueDatePicker v-model="time" auto-apply inline dark :time-picker="true" :time="time" @update:modelValue="updateTime" />
+							<VueDatePicker
+								v-model="time"
+								auto-apply
+								dark
+								inline
+								:time="time"
+								:time-picker="true"
+								@update:model-value="updateTime"
+							/>
 						</div>
 					</div>
 				</template>
 			</VueDatePicker>
-			<Icon type="trash" :as-button="true" size="sm" :icon-color="'text-accent-red'" @click="emit('removeOption')" class="m-auto mr-2"></Icon>
+			<Icon
+				:as-button="true"
+				class="m-auto mr-2"
+				:icon-color="'text-accent-red'"
+				size="sm"
+				type="trash"
+				@click="emit('removeOption')"
+			/>
 		</div>
 	</button>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -51,13 +110,16 @@
 	import filters from '@hub-client/logic/core/filters';
 
 	// Models
-	import { SchedulerOption } from '@hub-client/models/events/voting/VotingTypes';
+	import { type SchedulerOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	// Stores
 	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 
 	import { languageLocale } from '@hub-client/i18n';
 
+	const props = defineProps<{
+		option: SchedulerOption;
+	}>();
 	const emit = defineEmits(['updateOption', 'removeOption']);
 	const settings = useSettings();
 	const { d, locale: i18nLocale } = useI18n();
@@ -65,13 +127,9 @@
 	// Get the locale of the current language
 	const locale = languageLocale[i18nLocale.value];
 
-	const props = defineProps<{
-		option: SchedulerOption;
-	}>();
-
 	const date = ref<[Date | null, Date | null]>([null, null]);
-	const dateBeforeSaved = ref();
-	const time = ref();
+	const dateBeforeSaved = ref<[Date | null, Date | null]>([null, null]);
+	const time = ref<{ hours: number; minutes: number } | Array<{ hours: number; minutes: number }>>();
 	const rangeOptions = ref({ disableTimeRangeValidation: false });
 
 	const is24HourFormat = computed(() => {
@@ -109,11 +167,11 @@
 		}
 	});
 
-	const handleInternal = (dates: any) => {
+	const handleInternal = (dates: Date[] | null) => {
 		if (dates && dates.length === 1) {
 			dateBeforeSaved.value = [dates[0], null];
 		} else if (dates) {
-			dateBeforeSaved.value = dates;
+			dateBeforeSaved.value = [dates[0] ?? null, dates[1] ?? null];
 			time.value = [getTime(dates[0]), getTime(dates[1])];
 			if (equalDayMonthYear(dates[0], dates[1])) {
 				// If we have a range with the same start and end day, the start time needs to be before the end time.
@@ -140,6 +198,7 @@
 		if (!Array.isArray(time)) {
 			time = [time]; // Convert to an array if we get a single time object
 		}
+		if (!dateBeforeSaved.value[0]) return;
 		const updatedStartDate = new Date(dateBeforeSaved.value[0]);
 		updatedStartDate.setHours(time[0].hours, time[0].minutes);
 		let updatedEndDate = null; // The updated end date will be null if we do not have a complete range selected

@@ -1,11 +1,14 @@
 <template>
-	<div class="cursor-pointer" @click="toggle()">
-		<slot></slot>
+	<div
+		class="cursor-pointer"
+		@click="toggle()"
+	>
+		<slot />
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	import { inject } from 'vue';
 
-	const toggle = inject('toggle') as Function;
+	const toggle = inject('toggle') as () => void;
 </script>

@@ -1,13 +1,22 @@
 <template>
 	<div class="flex h-screen max-h-screen w-full overflow-hidden">
 		<!-- Mobile Layout -->
-		<div v-if="isMobile" class="flex h-full w-full flex-col overflow-y-auto">
-			<HubBanner :class="'h-[20svh]! shrink-0'" :banner-url="hubSettings.bannerUrl" />
+		<div
+			v-if="isMobile"
+			class="flex h-full w-full flex-col overflow-y-auto"
+		>
+			<HubBanner
+				:banner-url="hubSettings.bannerUrl"
+				:class="'h-[20svh]! shrink-0'"
+			/>
 
 			<div class="relative flex h-full flex-col gap-8 px-4 pt-20">
 				<!-- Hub Icon -->
 				<div class="bg-surface-low absolute -top-12 h-24 w-24 rounded-2xl p-[3px]">
-					<HubIcon :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" />
+					<HubIcon
+						:icon-url="hubSettings.iconUrlLight"
+						:icon-url-dark="hubSettings.iconUrlDark"
+					/>
 				</div>
 
 				<!-- Welcome Message -->
@@ -17,18 +26,32 @@
 				</div>
 
 				<!-- Step 1: Set Username -->
-				<div v-if="step == 1" class="flex flex-col justify-between gap-8 pb-4">
+				<div
+					v-if="step == 1"
+					class="flex flex-col justify-between gap-8 pb-4"
+				>
 					<div class="flex flex-col gap-8">
 						<!-- Username Input -->
 						<div class="flex flex-col gap-2">
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="placeholder-on-surface-dim! text-label h-10" maxlength="24" />
+								<TextInput
+									v-model="inputValue"
+									class="placeholder-on-surface-dim! text-label h-10"
+									:maxlength="24"
+									:placeholder="pseudonym"
+								/>
 								<Button @click="fileInput!.click()">
-									<Icon type="image-square"></Icon>
+									<Icon type="image-square" />
 								</Button>
-								<input ref="fileInput" type="file" accept="image/png, image/jpeg, image/svg" class="hidden" @change="handleFileUpload" />
+								<input
+									ref="fileInput"
+									accept="image/png, image/jpeg, image/svg"
+									class="hidden"
+									type="file"
+									@change="handleFileUpload"
+								/>
 							</div>
 							<p class="text-on-surface-variant italic">
 								{{ t('onboarding.username_disclaimer') }}
@@ -36,16 +59,35 @@
 						</div>
 
 						<!-- Preview Message -->
-						<div v-if="isUsernameChanged" class="flex flex-col gap-2">
+						<div
+							v-if="isUsernameChanged"
+							class="flex flex-col gap-2"
+						>
 							<P>{{ t('onboarding.message_example') }}</P>
 							<div class="bg-surface-low flex w-full items-center gap-6 rounded-xl p-4 xl:w-1/2">
-								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
-									<img v-if="avatarPreviewUrl?.url" data-testid="avatar" :src="avatarPreviewUrl.url" class="h-full w-full" />
-									<Icon v-else size="lg" type="user" />
+								<div
+									class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
+									:class="textColor(color(user.userId!))"
+								>
+									<img
+										v-if="avatarPreviewUrl?.url"
+										class="h-full w-full"
+										data-testid="avatar"
+										:src="avatarPreviewUrl.url"
+									/>
+									<Icon
+										v-else
+										size="lg"
+										type="user"
+									/>
 								</div>
 								<div class="flex flex-col gap-2">
 									<div class="flex items-center gap-2">
-										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} text-label truncate font-semibold`">
+										<span
+											v-if="inputValue"
+											:class="`${textColor(color(user.userId!))} text-label truncate font-semibold`"
+											data-testid="display-name"
+										>
 											{{ inputValue }}
 										</span>
 										<span class="text-label-small">|</span>
@@ -59,19 +101,34 @@
 
 					<!-- Next Button -->
 					<div class="flex w-full justify-end">
-						<Button @click="nextStep" class="w-fit">
+						<Button
+							class="w-fit"
+							@click="nextStep"
+						>
 							{{ isUsernameChanged ? t('forms.next') : t('forms.skip') }}
 						</Button>
 					</div>
 				</div>
 
 				<!-- Step 2: Consent -->
-				<div v-if="step === 2" class="flex flex-col gap-8 pb-4">
+				<div
+					v-if="step === 2"
+					class="flex flex-col gap-8 pb-4"
+				>
 					<!-- House Rules -->
 					<div class="flex flex-col gap-2 overflow-y-auto">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div v-if="consentText" class="bg-surface-low rounded-3xl p-4 break-all">
-							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
+						<div
+							v-if="consentText"
+							class="bg-surface-low rounded-3xl p-4 break-all"
+						>
+							<mavon-editor
+								v-model="consentText"
+								:box-shadow="false"
+								default-open="preview"
+								:subfield="false"
+								:toolbars-flag="false"
+							/>
 						</div>
 					</div>
 
@@ -82,11 +139,23 @@
 					</div>
 
 					<!-- Buttons -->
-					<div class="flex gap-4" :class="isConsentOnly ? 'justify-end' : 'justify-between'">
-						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="text-on-surface-variant w-fit px-0">
+					<div
+						class="flex gap-4"
+						:class="isConsentOnly ? 'justify-end' : 'justify-between'"
+					>
+						<Button
+							v-if="!isConsentOnly"
+							class="text-on-surface-variant w-fit px-0"
+							color="text"
+							@click="prevStep"
+						>
 							{{ t('forms.back') }}
 						</Button>
-						<Button :disabled="submitted || !hasAgreed" class="w-fit" @click="submit">
+						<Button
+							class="w-fit"
+							:disabled="submitted || !hasAgreed"
+							@click="submit"
+						>
 							{{ t('onboarding.enter_hub') }}
 						</Button>
 					</div>
@@ -95,14 +164,24 @@
 		</div>
 
 		<!-- Desktop Layout -->
-		<div v-else class="relative flex h-full w-full items-center justify-center">
+		<div
+			v-else
+			class="relative flex h-full w-full items-center justify-center"
+		>
 			<div class="relative flex aspect-auto h-auto max-h-[90%] w-3/4 rounded-3xl shadow-sm xl:aspect-3/2 xl:h-2/3 xl:w-auto">
 				<!-- Step 1 -->
-				<div v-if="step === 1" class="bg-surface-low flex w-full flex-col overflow-hidden rounded-3xl lg:flex-row">
+				<div
+					v-if="step === 1"
+					class="bg-surface-low flex w-full flex-col overflow-hidden rounded-3xl lg:flex-row"
+				>
 					<!-- Left Image -->
 					<div class="flex h-[250px] w-full flex-col gap-6 overflow-y-auto lg:h-auto lg:w-1/2">
 						<figure class="h-full w-full">
-							<img alt="Placeholder" src="../assets/onboarding_placeholder.svg" class="h-full w-full object-cover" />
+							<img
+								alt="Placeholder"
+								class="h-full w-full object-cover"
+								src="../assets/onboarding_placeholder.svg"
+							/>
 						</figure>
 					</div>
 
@@ -117,11 +196,21 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="!placeholder-on-surface-dim text-label h-10" />
+								<TextInput
+									v-model="inputValue"
+									class="placeholder-on-surface-dim! text-label h-10"
+									:placeholder="pseudonym"
+								/>
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square" />
 								</Button>
-								<input ref="fileInput" type="file" accept="image/png, image/jpeg, image/svg" class="hidden" @change="handleFileUpload" />
+								<input
+									ref="fileInput"
+									accept="image/png, image/jpeg, image/svg"
+									class="hidden"
+									type="file"
+									@change="handleFileUpload"
+								/>
 							</div>
 							<p class="text-on-surface-variant italic">
 								{{ t('onboarding.username_disclaimer') }}
@@ -129,16 +218,35 @@
 						</div>
 
 						<!-- Message Preview -->
-						<div v-if="isUsernameChanged" class="flex flex-col gap-2">
+						<div
+							v-if="isUsernameChanged"
+							class="flex flex-col gap-2"
+						>
 							<P>{{ t('onboarding.message_example') }}</P>
 							<div class="bg-background flex w-full items-center gap-6 rounded-xl p-4">
-								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
-									<img v-if="avatarPreviewUrl?.url" data-testid="avatar" :src="avatarPreviewUrl.url" class="h-full w-full" />
-									<Icon v-else size="lg" type="user" />
+								<div
+									class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
+									:class="textColor(color(user.userId!))"
+								>
+									<img
+										v-if="avatarPreviewUrl?.url"
+										class="h-full w-full"
+										data-testid="avatar"
+										:src="avatarPreviewUrl.url"
+									/>
+									<Icon
+										v-else
+										size="lg"
+										type="user"
+									/>
 								</div>
 								<div class="flex flex-col gap-2">
 									<div class="flex flex-wrap items-center gap-2">
-										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} text-label truncate font-semibold break-all`">
+										<span
+											v-if="inputValue"
+											:class="`${textColor(color(user.userId!))} text-label truncate font-semibold break-all`"
+											data-testid="display-name"
+										>
 											{{ inputValue }}
 										</span>
 										<span class="text-label-small">|</span>
@@ -149,25 +257,45 @@
 							</div>
 						</div>
 
-						<Button @click="nextStep" class="w-fit">
+						<Button
+							class="w-fit"
+							@click="nextStep"
+						>
 							{{ isUsernameChanged ? t('forms.next') : t('forms.skip') }}
 						</Button>
 					</div>
 				</div>
 
 				<!-- Step 2 -->
-				<div v-if="step === 2" class="bg-surface-low flex w-full overflow-hidden rounded-3xl">
+				<div
+					v-if="step === 2"
+					class="bg-surface-low flex w-full overflow-hidden rounded-3xl"
+				>
 					<!-- Left Rules -->
 					<div class="flex h-full w-1/2 flex-col gap-6 overflow-y-auto px-16 pt-32">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div v-if="consentText" class="bg-surface-low rounded-3xl p-4">
-							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
+						<div
+							v-if="consentText"
+							class="bg-surface-low rounded-3xl p-4"
+						>
+							<mavon-editor
+								v-model="consentText"
+								:box-shadow="false"
+								default-open="preview"
+								:subfield="false"
+								:toolbars-flag="false"
+							/>
 						</div>
 					</div>
 
 					<!-- Right Consent -->
 					<div class="bg-surface flex h-full w-1/2 flex-col gap-6 overflow-y-auto px-16 py-32">
-						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="text-on-surface-variant w-fit px-0">
+						<Button
+							v-if="!isConsentOnly"
+							class="text-on-surface-variant w-fit px-0"
+							color="text"
+							@click="prevStep"
+						>
 							{{ t('forms.back') }}
 						</Button>
 						<div class="flex flex-col gap-2">
@@ -178,7 +306,11 @@
 							<Checkbox v-model="hasAgreed" />
 							<span>{{ t('onboarding.consent_text') }}</span>
 						</div>
-						<Button :disabled="submitted || !hasAgreed" class="w-fit" @click="submit">
+						<Button
+							class="w-fit"
+							:disabled="submitted || !hasAgreed"
+							@click="submit"
+						>
 							{{ t('onboarding.enter_hub') }}
 						</Button>
 					</div>
@@ -186,14 +318,17 @@
 
 				<!-- Mascot -->
 				<figure class="absolute -right-16 -bottom-12 hidden w-64 md:w-48 lg:block xl:-right-24 xl:w-auto">
-					<img alt="PubHubs mascotte" src="../assets/mascotte.svg" />
+					<img
+						alt="PubHubs mascotte"
+						src="../assets/mascotte.svg"
+					/>
 				</figure>
 			</div>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onBeforeMount, onBeforeUnmount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -216,6 +351,8 @@
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -223,6 +360,7 @@
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	const logger = createLogger('Onboarding');
 	const { t } = useI18n();
 	const router = useRouter();
 	const route = useRoute();
@@ -260,7 +398,7 @@
 
 	const uploadAvatar = async () => {
 		const accessToken = pubhubs.Auth.getAccessToken();
-		if (!accessToken) return console.error('Access Token is invalid for File upload.');
+		if (!accessToken) return logger.error('Access Token is invalid for File upload.');
 
 		const syntheticEvent = {
 			currentTarget: {
@@ -278,7 +416,7 @@
 				}
 			});
 		} catch (error) {
-			console.error('Error uploading avatar:', error);
+			logger.error('Error uploading avatar:', error);
 		}
 	};
 
@@ -319,7 +457,7 @@
 			await user.setUserConsentVersion(consentVersion.value);
 			router.push(typeof originalRoute === 'string' ? originalRoute : '/');
 		} catch (error) {
-			console.error('Error during submit:', error);
+			logger.error('Error during submit:', error);
 		}
 	};
 

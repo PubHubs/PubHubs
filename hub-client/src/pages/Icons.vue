@@ -2,14 +2,35 @@
 	<div class="p-4">
 		<H1 class="mb-4">Icons</H1>
 		<div class="mb-4 flex gap-2">
-			<Button v-for="(s, key) in iconSizes" @click="setSize(key)" size="sm" :color="size === key ? 'red' : 'primary'">{{ key }}</Button>
+			<Button
+				v-for="(s, key) in iconSizes"
+				:key="key"
+				size="sm"
+				:color="size === key ? 'red' : 'primary'"
+				@click="setSize(String(key))"
+				>{{ key }}</Button
+			>
 		</div>
 		<div class="mb-4">
-			<input v-model="search" type="text" placeholder="Search icons..." class="border-surface bg-surface-subtle focus:ring-accent-primary w-64 rounded border px-3 py-1.5 text-sm focus:ring-2 focus:outline-none" />
+			<input
+				v-model="search"
+				type="text"
+				placeholder="Search icons..."
+				class="border-surface bg-surface-subtle focus:ring-accent-primary w-64 rounded border px-3 py-1.5 text-sm focus:ring-2 focus:outline-none"
+			/>
 		</div>
 		<div class="flex flex-wrap items-center gap-4">
-			<div v-for="(_, key) in filteredIcons" class="bg-surface-subtle h-36 w-32 place-content-center text-center">
-				<Icon :type="key" :size="size" class="bg-surface hover:bg-accent-primary m-auto cursor-pointer" :title="key"></Icon>
+			<div
+				v-for="(_, key) in filteredIcons"
+				:key="key"
+				class="bg-surface-subtle h-36 w-32 place-content-center text-center"
+			>
+				<Icon
+					:type="key"
+					:size="size"
+					class="bg-surface hover:bg-accent-primary m-auto cursor-pointer"
+					:title="key"
+				></Icon>
 				<TruncatedText class="pt-2 text-sm text-nowrap">{{ key }}</TruncatedText>
 			</div>
 		</div>

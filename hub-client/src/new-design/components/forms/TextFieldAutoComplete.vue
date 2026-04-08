@@ -1,27 +1,44 @@
 <template>
 	<div
+		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+		:help="help"
 		:name="fieldName"
 		:validation="validation"
-		:help="help"
-		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+		@focusin="focus(true)"
+		@focusout="focus(false, 100)"
 		@keydown.arrow-down.prevent="cursorDown()"
 		@keydown.arrow-up.prevent="cursorUp()"
 		@keydown.enter.stop="enter()"
 		@keydown.esc.stop="stop()"
-		@focusin="focus(true)"
-		@focusout="focus(false, 100)"
 	>
-		<TextField v-model="search" :placeholder="placeholder" :disabled="disabled" :validation="validation">{{ label }}</TextField>
+		<TextField
+			v-model="search"
+			:disabled="disabled"
+			:placeholder="placeholder"
+			:validation="validation"
+		>
+			{{ label }}
+		</TextField>
 
-		<div v-if="result.length > 0 && hasFocus" class="absolute top-800 z-50 flex w-full grow flex-col pb-300">
+		<div
+			v-if="result.length > 0 && hasFocus"
+			class="absolute top-800 z-50 flex w-full grow flex-col pb-300"
+		>
 			<div class="bg-surface-low outline-offset-thin rounded outline">
-				<DropDownOption v-for="(item, index) in result" :value="item" :highlighted="cursor === index" @click.stop="select(item)" class="-ml-[1px]"></DropDownOption>
+				<DropDownOption
+					v-for="(item, index) in result"
+					:key="index"
+					class="-ml-[1px]"
+					:highlighted="cursor === index"
+					:value="item"
+					@click.stop="select(item)"
+				/>
 			</div>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 
@@ -29,8 +46,8 @@
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
 	// Models
-	import { FieldOption, FieldOptions, InputType, LabeledFieldOptions } from '@hub-client/models/validation/TFormOption';
-	import { FieldValidations } from '@hub-client/models/validation/TValidate';
+	import { type FieldOption, type FieldOptions, type InputType, type LabeledFieldOptions } from '@hub-client/models/validation/TFormOption';
+	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
 	// New design
@@ -56,7 +73,7 @@
 		},
 	);
 
-	const search = ref<InputType>('');
+	const search = ref<string | number | undefined>('');
 	const hasFocus = ref(false);
 	const selected = defineModel<InputType>();
 
@@ -65,8 +82,8 @@
 
 	// Lifecycle
 	onMounted(() => {
-		if (selected.value) {
-			search.value = selected.value;
+		if (selected.value !== undefined && selected.value !== false) {
+			search.value = selected.value as string | number;
 		}
 	});
 
@@ -87,7 +104,11 @@
 	});
 
 	const result = computed(() => {
-		if (search.value === '' || search.value === undefined || labeledOptions.value.find((item) => search.value?.toString().toLowerCase() === item?.label.toLowerCase())) {
+		if (
+			search.value === '' ||
+			search.value === undefined ||
+			labeledOptions.value.find((item) => search.value?.toString().toLowerCase() === item?.label.toLowerCase())
+		) {
 			setItems([]);
 			return [];
 		}
@@ -107,15 +128,15 @@
 
 	const enter = () => {
 		const item = selectItemByEnter();
-		select(item);
+		select(item as FieldOption);
 	};
 
 	const select = (item: FieldOption) => {
-		selected.value = item;
+		selected.value = item as unknown as InputType;
 		if (item.label) {
 			search.value = item.label;
 		} else {
-			search.value = item as unknown as InputType;
+			search.value = String(item);
 		}
 		update();
 	};

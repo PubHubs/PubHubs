@@ -1,18 +1,18 @@
 <template>
-	<div v-if="props.scrollStatus && displayDate() !== ''" class="pointer-events-none fixed top-6 z-40 flex w-full justify-end">
+	<div
+		v-if="props.scrollStatus && displayDate() !== ''"
+		class="pointer-events-none fixed top-6 z-40 flex w-full justify-end"
+	>
 		<span class="text-on-surface-variant rounded-full px-6 text-right">{{ displayDate() }}</span>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Components
 	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
-
-	const { formattedTimeInformation } = useTimeFormat();
-	const rooms = useRooms();
 
 	const props = defineProps({
 		eventTimeStamp: {
@@ -24,6 +24,8 @@
 			required: true,
 		},
 	});
+	const { formattedTimeInformation } = useTimeFormat();
+	const rooms = useRooms();
 
 	function displayDate(): string {
 		if (!rooms.currentRoom?.hasMessages()) return '';

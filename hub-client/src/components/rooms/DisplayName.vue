@@ -1,11 +1,16 @@
 <template>
-	<span class="truncate" :title="displayname" :class="`${textColor(color(user?.userId))}`">{{ displayname }}</span>
-	<span class="text-label-small mt-1 text-nowrap">{{ filters.extractPseudonym(user?.userId) }}</span>
+	<span
+		class="truncate"
+		:class="`${textColor(color(user?.userId ?? ''))}`"
+		:title="displayname"
+		>{{ displayname }}</span
+	>
+	<span class="text-label-small mt-1 text-nowrap">{{ filters.extractPseudonym(user?.userId ?? '') }}</span>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { type User as MatrixUser } from 'matrix-js-sdk';
 	import { computed } from 'vue';
 
 	// Composables
@@ -17,13 +22,6 @@
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
-	const { color, textColor } = useUserColor();
-
-	const pubhubs = usePubhubsStore();
-
-	const user = computed(getMatrixUser);
-	const displayname = computed(getDisplayName);
-
 	const props = defineProps({
 		userId: {
 			type: String,
@@ -31,9 +29,16 @@
 		},
 	});
 
+	const { color, textColor } = useUserColor();
+
+	const pubhubs = usePubhubsStore();
+
+	const user = computed(getMatrixUser);
+	const displayname = computed(getDisplayName);
+
 	function getMatrixUser(): MatrixUser | undefined {
 		if (pubhubs.client.getUser) {
-			return pubhubs.client.getUser(props.userId)!;
+			return pubhubs.client.getUser(props.userId) ?? undefined;
 		}
 		return undefined;
 	}

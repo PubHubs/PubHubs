@@ -1,43 +1,69 @@
 <template>
 	<button
-		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-4000 shrink-0 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:aria-busy="loading ? 'true' : undefined"
 		:aria-disabled="disabled || loading ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
-		:disabled="disabled || loading"
+		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-4000 shrink-0 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:class="computedClasses"
+		:disabled="disabled || loading"
 		:tabindex="nofocus ? -1 : undefined"
-		:type="type"
 		:title="computedTitle"
+		:type="type"
 		@click="handleClick"
 	>
 		<!-- Primary icon -->
-		<Icon v-if="icon && !loading" aria-hidden="true" :size="iconSize" :type="icon" />
+		<Icon
+			v-if="icon && !loading"
+			aria-hidden="true"
+			:size="iconSize"
+			:type="icon"
+		/>
 
 		<!-- Label -->
 		<template v-if="slots.default">
-			<div class="truncate" :class="loading && 'opacity-0'">
-				<slot></slot>
+			<div
+				class="truncate"
+				:class="loading && 'opacity-0'"
+			>
+				<slot />
 			</div>
 		</template>
 
 		<!-- SR-only label -->
 		<template v-else-if="slots['sr-label'] && !loading">
 			<span class="sr-only">
-				<slot name="sr-label"></slot>
+				<slot name="sr-label" />
 			</span>
 		</template>
 
 		<!-- Secondary icon -->
-		<Icon v-if="secondaryIcon && !isIconOnly && !loading" aria-hidden="true" :size="iconSize" :type="secondaryIcon" />
+		<Icon
+			v-if="secondaryIcon && !isIconOnly && !loading"
+			aria-hidden="true"
+			:size="iconSize"
+			:type="secondaryIcon"
+		/>
 
 		<!-- Loading spinner -->
-		<div v-if="loading" class="absolute flex h-full w-full items-center justify-center">
-			<Icon aria-hidden="true" class="animate-spin" type="spinner" />
+		<div
+			v-if="loading"
+			class="absolute flex h-full w-full items-center justify-center"
+		>
+			<Icon
+				aria-hidden="true"
+				class="animate-spin"
+				type="spinner"
+			/>
 		</div>
 
 		<!-- Loading indicator for SR -->
-		<span v-if="loading" class="sr-only" role="status" aria-live="polite">Loading...</span>
+		<span
+			v-if="loading"
+			aria-live="polite"
+			class="sr-only"
+			role="status"
+			>Loading...</span
+		>
 	</button>
 </template>
 
@@ -46,7 +72,7 @@
 	const buttonVariants = {
 		primary: 'bg-button-blue text-on-button-blue ring-button-blue hover:opacity-75',
 		secondary: 'bg-surface-base text-on-surface ring-button-blue hover:opacity-75',
-		tertiary: 'outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
+		tertiary: 'outline outline-1 -outline-offset-1 outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
 		error: 'bg-button-red text-on-button-red ring-button-red hover:opacity-75',
 		primaryIcon: 'text-button-blue ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
 		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
@@ -54,9 +80,12 @@
 	export type TVariant = keyof typeof buttonVariants;
 </script>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, useSlots } from 'vue';
+
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
@@ -77,22 +106,31 @@
 		}>(),
 		{
 			variant: 'primary',
+			icon: undefined,
+			secondaryIcon: undefined,
 			disabled: false,
+			title: undefined,
 			type: 'button',
+			ariaLabel: undefined,
 			size: '',
 			loading: false,
 			nofocus: false,
 		},
 	);
 
+	//  Lifecycle
+	const emit = defineEmits<{
+		(e: 'click', evt: MouseEvent): void;
+	}>();
+	const logger = createLogger('Button');
 	const slots = useSlots();
 
 	const isIconOnly = computed(() => !slots.default && props.icon);
 
-	const iconSize = computed(() => {
+	const iconSize = computed((): 'base' | 'sm' | undefined => {
 		if (isIconOnly.value && props.size === '') return 'base';
 		if (!isIconOnly.value && props.size === '') return 'sm';
-		return props.size;
+		return props.size || undefined;
 	});
 
 	// Sets the aria label (used by screen readers when there is no visible text), as a fallback for sr-label
@@ -118,11 +156,6 @@
 		return [variantClass, iconClass, focusClass];
 	});
 
-	//  Lifecycle
-	const emit = defineEmits<{
-		(e: 'click', evt: MouseEvent): void;
-	}>();
-
 	const handleClick = (evt: MouseEvent) => {
 		if (props.disabled || props.loading) {
 			evt.preventDefault();
@@ -134,9 +167,15 @@
 
 	// Accessibility
 	onMounted(() => {
-		if (process.env.NODE_ENV !== 'production') {
+		if (import.meta.env.DEV) {
 			if (isIconOnly.value && !props.ariaLabel && !props.title) {
-				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot. [', props.type, props.variant, props.icon, ']');
+				logger.warn(
+					'[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot. [',
+					props.type,
+					props.variant,
+					props.icon,
+					']',
+				);
 			}
 		}
 	});

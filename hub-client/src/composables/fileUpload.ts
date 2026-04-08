@@ -1,5 +1,5 @@
 // Stores
-import { BlobManager } from '@hub-client/logic/core/blobManager';
+import { type BlobManager } from '@hub-client/logic/core/blobManager';
 
 import { useDialog } from '@hub-client/stores/dialog';
 
@@ -46,7 +46,7 @@ const fileUpload = (errorMsg: string, accessToken: string, uploadUrl: string, fi
 	}
 };
 
-const asyncFileUpload = (accessToken: string, uploadUrl: string, file: File, onProgress: Function, onReady: Function) => {
+const asyncFileUpload = (accessToken: string, uploadUrl: string, file: File, onProgress: (e: ProgressEvent) => void, onReady: (uri: string) => void) => {
 	const fileReader = new FileReader();
 	fileReader.readAsArrayBuffer(file);
 

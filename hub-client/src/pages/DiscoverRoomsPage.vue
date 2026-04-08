@@ -1,10 +1,15 @@
 <template>
 	<HeaderFooter>
 		<template #header>
-			<div class="flex h-full items-center" :class="isMobile ? 'pl-4' : 'pl-0'">
+			<div
+				class="flex h-full items-center"
+				:class="isMobile ? 'pl-4' : 'pl-0'"
+			>
 				<div class="flex w-fit items-center gap-3 overflow-hidden">
 					<Icon type="compass" />
-					<H3 class="font-headings text-h3 text-on-surface font-semibold">{{ $t('menu.discover') }}</H3>
+					<H3 class="font-headings text-h3 text-on-surface font-semibold">
+						{{ $t('menu.discover') }}
+					</H3>
 				</div>
 			</div>
 		</template>
@@ -13,34 +18,48 @@
 			<!-- Search bar -->
 			<div class="flex flex-col gap-2">
 				<input
-					type="text"
 					v-model="searchQuery"
-					:placeholder="$t('others.search_rooms')"
 					class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary mb-4 w-full rounded-xs border px-4 py-2"
+					:placeholder="$t('others.search_rooms')"
+					type="text"
 					@keyup="startFilter"
 				/>
 			</div>
 
 			<div class="h-4">
-				<InlineSpinner v-if="!roomsLoaded || isFiltering" class="mx-auto w-full" />
+				<InlineSpinner
+					v-if="!roomsLoaded || isFiltering"
+					class="mx-auto w-full"
+				/>
 			</div>
 
 			<!-- Room grid -->
-			<div v-if="roomsLoaded" class="@container flex w-full flex-col gap-2">
+			<div
+				v-if="roomsLoaded"
+				class="@container flex w-full flex-col gap-2"
+			>
 				<div class="flex w-full justify-center rounded-xl py-8">
-					<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="grid w-full grid-cols-1 gap-8 transition-all duration-300 @2xl:grid-cols-2 @7xl:grid-cols-3">
+					<TransitionGroup
+						v-if="filteredRooms.length > 0"
+						class="grid w-full grid-cols-1 gap-8 transition-all duration-300 @2xl:grid-cols-2 @7xl:grid-cols-3"
+						name="room-grid"
+						tag="div"
+					>
 						<RoomCard
 							v-for="room in filteredRooms"
 							:key="room.room_id"
+							:is-secured="rooms.publicRoomIsSecure(room.room_id)"
+							:member-of-room="rooms.memberOfPublicRoom(room.room_id)"
 							:room="room"
-							:isSecured="rooms.publicRoomIsSecure(room.room_id)"
-							:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
 							:timestamp="roomTimestamps[room.room_id]"
 						/>
 					</TransitionGroup>
 
 					<!-- No results message -->
-					<div v-else class="flex w-full items-center justify-center">
+					<div
+						v-else
+						class="flex w-full items-center justify-center"
+					>
 						<P>{{ t('rooms.no_rooms_found') }}</P>
 					</div>
 				</div>
@@ -49,7 +68,7 @@
 	</HeaderFooter>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onBeforeMount, onMounted, ref, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -62,13 +81,13 @@
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
+	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const pubhubsStore = usePubhubsStore();
 	const rooms = useRooms();
 	const { t } = useI18n();
-	const timestamps = ref<any[]>(rooms.roomtimestamps);
+	const timestamps = ref<Array<Array<number | string>>>(rooms.roomtimestamps);
 	const roomTimestamps = ref<Record<string, Date>>({});
 	const searchQuery = ref('');
 	let roomsLoaded = ref(true);
@@ -82,7 +101,7 @@
 
 	const visiblePublicRooms = ref<TVisiblePublicRoom[]>([]);
 	const filteredRooms = ref<TVisiblePublicRoom[]>([]);
-	const filterTimer = ref();
+	const filterTimer = ref<ReturnType<typeof setTimeout>>();
 	const isFiltering = ref(false);
 	const filterTimeOut = 400;
 
@@ -91,7 +110,7 @@
 		isFiltering.value = true;
 		filterTimer.value = setTimeout(() => {
 			const query = searchQuery.value.toLowerCase().trim();
-			if (query == '') {
+			if (query === '') {
 				filteredRooms.value = visiblePublicRooms.value;
 				isFiltering.value = false;
 			} else {
@@ -118,7 +137,7 @@
 		const timestampMap: Record<string, Date> = {};
 		timestamps.value.forEach((timestamp) => {
 			if (timestamp && timestamp.length >= 2) {
-				timestampMap[timestamp[1]] = new Date(timestamp[0]) || 0;
+				timestampMap[timestamp[1]] = new Date(timestamp[0]);
 			}
 		});
 		roomTimestamps.value = timestampMap;
