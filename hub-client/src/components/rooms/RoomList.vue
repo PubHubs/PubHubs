@@ -23,7 +23,7 @@
 				:room="room"
 				class="no-callout group inline-block w-full select-none"
 				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
-				:icon="isSecuredRoom(room) ? 'shield' : 'chats-circle'"
+				:icon="menuIcon(room)"
 				@click="hubSettings.hideBar()"
 			>
 				<span class="flex w-full items-center justify-between gap-4">
@@ -241,7 +241,7 @@
 		return SecuredRooms.includes(room.roomType as RoomType);
 	}
 
-	// eslint-disable-next-line -- temp code
+	 
 	const menuIcon = (room: RoomListRoom): string => {
 		if (isSecuredRoom(room)) return 'shield';
 		if (room.roomType === RoomType.PH_FORUM_ROOM) return 'chat-circle-text';
