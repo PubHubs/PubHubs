@@ -12,9 +12,8 @@
 		>
 			<Icon
 				class="bg-surface hover:bg-accent-primary rounded-md"
-				type="dots-three-vertical"
-				size="lg"
-			></Icon>
+				:type="icon"
+			/>
 		</div>
 		<div
 			v-show="open"
@@ -22,7 +21,7 @@
 			:style="style"
 			@click="close"
 		>
-			<slot></slot>
+			<slot />
 		</div>
 	</div>
 </template>

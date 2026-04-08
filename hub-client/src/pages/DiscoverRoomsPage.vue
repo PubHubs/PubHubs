@@ -50,7 +50,6 @@
 							:key="room.room_id"
 							:is-secured="rooms.publicRoomIsSecure(room.room_id)"
 							:member-of-room="rooms.memberOfPublicRoom(room.room_id)"
-							:is-forum="rooms.publicRoomIsForum(room.room_id)"
 							:room="room"
 							:timestamp="roomTimestamps[room.room_id]"
 						/>

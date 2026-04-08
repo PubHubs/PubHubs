@@ -7,7 +7,7 @@
 			<H2 class="line-clamp-2">{{ room.name }}</H2>
 			<div
 				v-if="isSecured"
-				class="bg-accent-primary text-on-accent-primary rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
+				class="bg-button-blue text-on-button-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
 				:title="t('admin.secured_room')"
 			>
 				<Icon type="shield"></Icon>

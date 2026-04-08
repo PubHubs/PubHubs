@@ -44,14 +44,14 @@
 			</button>
 		</div>
 	</Teleport>
-	<template v-if="message.body !== message.filename">
-		<!-- eslint-disable vue/no-v-html -->
-		<p
-			:class="{ 'text-on-surface-dim': deleted }"
-			class="overflow-hidden text-ellipsis"
-			v-html="message.body"
-		></p>
-	</template>
+	<!-- eslint-disable vue/no-v-html -- sanitized message body -->
+	<p
+		v-if="message.body !== message.filename"
+		:class="{ 'text-on-surface-dim': deleted }"
+		class="overflow-hidden text-ellipsis"
+		v-html="message.body"
+	></p>
+	<!-- eslint-enable vue/no-v-html -->
 </template>
 
 <script setup lang="ts">
