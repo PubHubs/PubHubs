@@ -68,12 +68,7 @@
 					:current-user="currentUser"
 					:main-topic="topic"
 				/>
-				<LabelWithDescription
-					class="ml-5"
-					label-class="text-3xl"
-				>
-					Answers: {{ replies?.length }}
-				</LabelWithDescription>
+				<LabelWithDescription label-class="text-3xl"> Answers: {{ replies?.length }} </LabelWithDescription>
 				<div>
 					<TopicItem
 						v-for="reply in replies"

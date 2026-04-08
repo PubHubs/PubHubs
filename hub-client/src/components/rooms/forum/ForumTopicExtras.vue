@@ -40,8 +40,9 @@
 			</ActionMenu>
 		</div>
 		<div
-			v-if="can_reply"
+			v-if="canReply"
 			class="flex justify-end"
+			@click="replyTo(topic.eventId)"
 		>
 			<Icon type="arrow-bend-up-left"></Icon>
 		</div>
@@ -75,12 +76,13 @@
 			type: Room,
 			required: true,
 		},
-		// eslint-disable-next-line -- temp code
-		can_reply: {
+		canReply: {
 			type: Boolean,
 			default: true,
 		},
 	});
+
+	const emit = defineEmits(['reply']);
 
 	const currentUser = useUser().user;
 
@@ -106,5 +108,11 @@
 	const deleteTopic = (eventId: string) => {
 		// eslint-disable-next-line -- temp code
 		console.info('deleteTopic', eventId);
+	};
+
+	const replyTo = (eventId: string) => {
+		// eslint-disable-next-line -- temp code
+		console.info('replyTo', eventId);
+		emit('reply', eventId);
 	};
 </script>

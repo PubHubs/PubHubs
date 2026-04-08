@@ -10,7 +10,8 @@
 			<ForumTopicExtras
 				:topic="topic"
 				:room="room"
-				:can_reply="can_reply"
+				:can-reply="canReply"
+				@reply="replyTo($event)"
 			></ForumTopicExtras>
 		</template>
 		<template #bottom>
@@ -46,4 +47,12 @@
 			default: true,
 		},
 	});
+
+	const emit = defineEmits(['reply']);
+
+	const replyTo = (eventId: string) => {
+		// eslint-disable-next-line -- temp code
+		console.info('replyTo', eventId);
+		emit('reply', eventId);
+	};
 </script>

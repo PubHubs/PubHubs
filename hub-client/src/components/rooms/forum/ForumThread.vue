@@ -3,19 +3,15 @@
 		<ForumThreadItem
 			:topic="topic"
 			:room="room"
+			@reply="replyTo($event)"
 		></ForumThreadItem>
-		<TopicItem
+		<!-- <TopicItem
 			:topic="topic"
 			:room="room"
 			:current-user="topic.author"
 			:main-topic="topic"
-		/>
-		<LabelWithDescription
-			class="ml-5"
-			label-class="text-3xl"
-		>
-			Answers: {{ nrOfReplies }}
-		</LabelWithDescription>
+		/> -->
+		<LabelWithDescription label-class="text-3xl"> Answers: {{ nrOfReplies }} </LabelWithDescription>
 		<div
 			v-if="loadedReplies"
 			class="ml-800"
@@ -43,6 +39,11 @@
 				<TopicItem :topic="reply" :room="room" :current-user="topic.author" :replies="true" :main-topic="topic" /> -->
 			</div>
 		</div>
+		<MessageInput
+			v-if="room"
+			:room="room"
+			:in-thread="true"
+		></MessageInput>
 		<InlineSpinner v-else></InlineSpinner>
 	</div>
 </template>
@@ -54,7 +55,7 @@
 	// Components
 	import ForumThreadItem from '@hub-client/components/rooms/forum/ForumThreadItem.vue';
 	import LabelWithDescription from '@hub-client/components/rooms/forum/LabelWithDescription.vue';
-	import TopicItem from '@hub-client/components/rooms/forum/TopicItem.vue';
+	// import TopicItem from '@hub-client/components/rooms/forum/TopicItem.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Composables
@@ -85,4 +86,10 @@
 		topicWithReplies.value = await forum.addReplies(topicWithReplies.value, props.room);
 		loadedReplies.value = true;
 	});
+
+	const replyTo = (eventId: string) => {
+		// eslint-disable-next-line -- temp code
+		console.info('replyTo', eventId);
+		// emit('reply', eventId);
+	};
 </script>

@@ -46,6 +46,13 @@
 						@click="router.push({ name: 'direct-msg' })"
 					/>
 					<Icon
+						v-if="rooms.currentRoom.isForumRoom() && props.topicId"
+						type="caret-left"
+						data-testid="back"
+						class="cursor-pointer"
+						@click="router.push({ name: 'room', params: { id: rooms.currentRoomId } })"
+					/>
+					<Icon
 						v-else-if="notPrivateRoom()"
 						:type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'"
 					/>

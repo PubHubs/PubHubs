@@ -1,5 +1,5 @@
 <template>
-	<div class="mb-100">
+	<div class="my-100 ml-5">
 		<label
 			v-tw-class="'text-3xl font-bold text-black dark:text-white break-words'"
 			:class="labelClass"
