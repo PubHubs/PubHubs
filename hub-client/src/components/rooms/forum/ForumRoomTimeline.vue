@@ -3,7 +3,28 @@
 		v-if="!topicId"
 		class="mx-auto w-full overflow-y-scroll p-4"
 	>
-		<SubheaderForum />
+		<div class="mb-2 flex items-center justify-between gap-2 px-5">
+			<div class="flex items-center gap-2">
+				<PostsFilterButton />
+				<AddNewPostButton />
+			</div>
+			<div class="flex items-center gap-2">
+				<Button
+					:icon="orderIcon(ORDER.Activity)"
+					variant="secondary"
+					@click="setOrder(ORDER.Activity)"
+					>Last Activity</Button
+				>
+				<Button
+					:icon="orderIcon(ORDER.Created)"
+					variant="secondary"
+					@click="setOrder(ORDER.Created)"
+					>Created</Button
+				>
+				<SortPostsButton />
+			</div>
+		</div>
+
 		<ul
 			v-if="events.length > 0"
 			class="flex flex-col gap-y-2"
@@ -31,11 +52,16 @@
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 
+	import AddNewPostButton from '@hub-client/components/rooms/forum/AddNewPostButton.vue';
 	// Components
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
+	import PostsFilterButton from '@hub-client/components/rooms/forum/PostsFilterButton.vue';
+	import SortPostsButton from '@hub-client/components/rooms/forum/SortPostsButton.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
+
+	import Button from '@hub-client/new-design/components/Button.vue';
 
 	const props = defineProps({
 		room: {
@@ -47,7 +73,19 @@
 			default: undefined,
 		},
 	});
+
+	enum ORDER {
+		Activity = 'activity',
+		Created = 'created',
+	}
+	enum ORDER_DIR {
+		desc = -1,
+		asc = 1,
+	}
+
 	const initialLoadComplete = ref(false);
+	const orderType = ref(ORDER.Created);
+	const orderDir = ref(ORDER_DIR.desc);
 
 	onMounted(() => {
 		initialLoadComplete.value = true;
@@ -64,4 +102,28 @@
 		}
 		return undefined;
 	});
+
+	const orderIcon = (orderOption: ORDER): string => {
+		if (orderOption === orderType.value) {
+			if (orderDir.value === ORDER_DIR.asc) {
+				return 'arrow-up';
+			} else {
+				return 'arrow-down';
+			}
+		}
+		return 'arrows-down-up';
+	};
+
+	const setOrder = (orderOption: ORDER) => {
+		if (orderOption === orderType.value) {
+			orderDir.value = orderDir.value * -1;
+		} else {
+			if (orderType.value === ORDER.Activity) {
+				orderType.value = ORDER.Created;
+			} else {
+				orderType.value = ORDER.Activity;
+			}
+			orderDir.value = ORDER_DIR.desc;
+		}
+	};
 </script>
