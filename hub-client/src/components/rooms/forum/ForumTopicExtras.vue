@@ -7,7 +7,7 @@
 			</div>
 			<div>
 				<Icon
-					v-if="topic.closed"
+					v-if="event.closed"
 					type="lock"
 				/>
 				<Icon
@@ -18,7 +18,7 @@
 			</div>
 			<ActionMenu v-if="currentUserIsTopicAuthor">
 				<ActionMenuItem
-					v-if="!topic.closed"
+					v-if="!event.closed"
 					@click.stop="closeOrOpenTopic(true)"
 					>Close</ActionMenuItem
 				>
@@ -27,8 +27,8 @@
 					@click.stop="closeOrOpenTopic(false)"
 					>Open</ActionMenuItem
 				>
-				<ActionMenuItem @click.stop="deleteTopic(topic.eventId)">Delete</ActionMenuItem>
-				<ActionMenuItem @click.stop="editTopic(topic.eventId)">Edit</ActionMenuItem>
+				<ActionMenuItem @click.stop="deleteTopic(event.event_id)">Delete</ActionMenuItem>
+				<ActionMenuItem @click.stop="editTopic(event.event_id)">Edit</ActionMenuItem>
 			</ActionMenu>
 		</div>
 	</div>
@@ -50,7 +50,7 @@
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	const props = defineProps({
-		topic: {
+		event: {
 			type: Object,
 			required: true,
 		},
@@ -68,12 +68,12 @@
 
 	onMounted(() => {
 		const currentThreadId = props.room.getCurrentThreadId();
-		if (currentThreadId !== props.topic.eventId && props.topic.eventId) props.room.setCurrentThreadId(props.topic.eventId);
+		if (currentThreadId !== props.event.event_id && props.event.event_id) props.room.setCurrentThreadId(props.event.event_id);
 		nrOfReplies.value = props.room.getCurrentThreadLength() - 1;
-		if (currentThreadId !== props.topic.eventId) props.room.setCurrentThreadId(currentThreadId);
+		if (currentThreadId !== props.event.event_id) props.room.setCurrentThreadId(currentThreadId);
 	});
 
-	const currentUserIsTopicAuthor = computed(() => currentUser.userId === props.topic.author?.userId);
+	const currentUserIsTopicAuthor = computed(() => currentUser.userId === props.event.author?.userId);
 
 	const closeOrOpenTopic = (close: boolean) => {
 		// eslint-disable-next-line -- temp code

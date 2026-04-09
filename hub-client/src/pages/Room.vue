@@ -145,7 +145,6 @@
 						:event-id-to-scroll="scrollToEventId"
 						:last-read-event-id="lastReadEventId"
 					/>
-					<!-- <ForumOverview v-if="room && room.isForumRoom()" :roomId="props.id" :topicId="topicId"></ForumOverview> -->
 					<ForumRoomTimeline
 						v-if="room && room.isForumRoom()"
 						:room="room"

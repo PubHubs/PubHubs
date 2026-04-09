@@ -30,7 +30,7 @@
 					<template #extras>
 						<ForumTopicExtras
 							v-if="isForum"
-							:topic="props.room.currentThread?.rootEvent?.event ?? {}"
+							:event="props.room.currentThread?.rootEvent?.event ?? {}"
 							:room="room"
 						></ForumTopicExtras>
 					</template>
@@ -70,7 +70,7 @@
 						<template #extras>
 							<ForumTopicExtras
 								v-if="isForum && index === 0"
-								:topic="item.matrixEvent.event"
+								:event="item.matrixEvent.event"
 								:room="room"
 							></ForumTopicExtras>
 						</template>

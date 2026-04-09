@@ -14,7 +14,7 @@
 <script setup lang="ts">
 	// Packages
 	import RoomThread from '../RoomThread.vue';
-	import { onMounted, ref } from 'vue';
+	import { onMounted } from 'vue';
 
 	// Components
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
@@ -30,10 +30,10 @@
 		},
 	});
 
-	const threadEvents = ref();
+	// const threadEvents = ref();
 
 	onMounted(async () => {
 		props.room.setCurrentThreadId(props.topic.eventId);
-		threadEvents.value = await props.room.getCurrentThreadEvents();
+		// threadEvents.value = await props.room.getCurrentThreadEvents();
 	});
 </script>
