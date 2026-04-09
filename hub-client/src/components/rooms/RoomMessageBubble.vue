@@ -341,7 +341,7 @@
 						/>
 					</template>
 
-					<div class="flex items-end gap-4">
+					<div class="flex items-end justify-between gap-4">
 						<!-- Extra slot bottom: forum stuff -->
 						<slot name="bottom"></slot>
 						<!-- Extra slot right: forum stuff -->
