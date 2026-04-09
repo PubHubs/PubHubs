@@ -4,5 +4,3 @@ export const DESCRIPTION_MIN_LENGTH = 40;
 export const DESCRIPTION_MAX_LENGTH = 1500;
 export const REPLY_MIN_LENGTH = 5;
 export const REPLY_MAX_LENGTH = 1500;
-
-export const PAGE_SIZE = 250;
