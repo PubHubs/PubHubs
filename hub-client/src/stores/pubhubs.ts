@@ -992,7 +992,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					rooms.notifyUnreadCountChanged(roomId);
 				}, 100);
 			} catch (error) {
-				logger.warn(SMI.ROOM, `sendPrivateReceipt failed for ${roomId}/${eventId}`, { error });
+				logger.warn(`sendPrivateReceipt failed for ${roomId}/${eventId}`, { error });
 			}
 		},
 

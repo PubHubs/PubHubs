@@ -15,7 +15,7 @@ const STORE_PREFIX = 'ph:ls:';
 const USER_SECRET_BYTES = 32;
 
 /** SHA-256(context || rawSecret) — domain-separated key derivation. */
-async function deriveBytes(rawSecret: Uint8Array, context: string): Promise<Uint8Array> {
+async function deriveBytes(rawSecret: Uint8Array, context: string): Promise<Uint8Array<ArrayBuffer>> {
 	const contextBytes = new TextEncoder().encode(context);
 	const input = new Uint8Array(contextBytes.length + rawSecret.length);
 	input.set(contextBytes);
@@ -44,7 +44,7 @@ async function deriveEncryptionKey(rawSecret: Uint8Array): Promise<CryptoKey> {
 	return crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
-async function encrypt(key: CryptoKey, plaintext: string, __only_for_testing_iv?: Uint8Array): Promise<string> {
+async function encrypt(key: CryptoKey, plaintext: string, __only_for_testing_iv?: Uint8Array<ArrayBuffer>): Promise<string> {
 	const iv = __only_for_testing_iv ?? crypto.getRandomValues(new Uint8Array(12));
 	const encoded = new TextEncoder().encode(plaintext);
 	const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
@@ -85,7 +85,7 @@ export class LocalStore {
 	}
 
 	/** Store an encrypted value. */
-	async set(key: string, value: string, __only_for_testing_iv?: Uint8Array): Promise<void> {
+	async set(key: string, value: string, __only_for_testing_iv?: Uint8Array<ArrayBuffer>): Promise<void> {
 		const encrypted = await encrypt(this.cryptoKey, value, __only_for_testing_iv);
 		localStorage.setItem(this.storageKey(key), encrypted);
 	}

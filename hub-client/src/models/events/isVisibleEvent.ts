@@ -24,18 +24,28 @@ const invisibleRelatesToTypes: string[] = [RelationType.Thread];
  * - whispers to other users
  * - redacted thread events
  */
-export function isVisibleEvent(event: Partial<TBaseEvent>, currentUserId: string): boolean {
+export function isVisibleEvent(event: Partial<TBaseEvent>, currentUserId: string | null): boolean {
 	if (event.type && !visibleEventTypes.includes(event.type)) return false;
 
-	if (event.content?.msgtype) {
-		if (invisibleMessageTypes.includes(event.content.msgtype)) return false;
-	}
+	// Loosely-typed view of event.content. The strict TBaseEvent.content is Record<string, unknown>,
+	// which prevents nested property access like content[RelatesTo].rel_type without casts everywhere.
+	const content = event.content as
+		| {
+				msgtype?: string;
+				whisper_to?: string;
+				[RelationType.RelatesTo]?: { rel_type?: string };
+		  }
+		| undefined;
 
-	if (invisibleRelatesToTypes.includes(event.content?.[RelationType.RelatesTo]?.rel_type)) return false;
+	if (content?.msgtype && invisibleMessageTypes.includes(content.msgtype)) return false;
 
-	if (event.content?.msgtype === PubHubsMgType.WhisperMessage) {
-		const whisperToUserId = event.content?.whisper_to;
-		if (!currentUserId || (event.sender !== currentUserId && whisperToUserId !== currentUserId)) return false;
+	const relatesToRelType = content?.[RelationType.RelatesTo]?.rel_type;
+	if (relatesToRelType && invisibleRelatesToTypes.includes(relatesToRelType)) return false;
+
+	if (content?.msgtype === PubHubsMgType.WhisperMessage) {
+		// currentUserId may be null if we have not finished authenticating yet; treat all whispers as
+		// invisible in that case (we can't verify they're for us). This matches the pre-extraction behaviour.
+		if (!currentUserId || (event.sender !== currentUserId && content.whisper_to !== currentUserId)) return false;
 	}
 
 	if (event.unsigned?.redacted_because?.redacts) {
