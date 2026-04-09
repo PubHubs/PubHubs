@@ -15,6 +15,7 @@
 				<ForumThreadItem
 					:topic="topic"
 					:room="room"
+					:show-actions="false"
 				></ForumThreadItem>
 			</li>
 		</ul>

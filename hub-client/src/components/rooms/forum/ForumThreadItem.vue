@@ -2,7 +2,7 @@
 	<RoomMessageBubble
 		:event="topic.event!.matrixEvent.event"
 		:room="room"
-		:show-actions="true"
+		:show-actions="showActions"
 		class="cursor-pointer"
 		@click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: topic.eventId } })"
 	>
@@ -35,6 +35,10 @@
 		room: {
 			type: Room,
 			required: true,
+		},
+		showActions: {
+			type: Boolean,
+			default: true,
 		},
 	});
 </script>

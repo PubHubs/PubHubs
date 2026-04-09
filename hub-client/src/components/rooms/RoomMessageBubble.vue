@@ -341,12 +341,13 @@
 						/>
 					</template>
 
-					<!-- Extra slot bottom: forum stuff -->
-					<slot name="bottom"></slot>
+					<div class="flex items-end gap-4">
+						<!-- Extra slot bottom: forum stuff -->
+						<slot name="bottom"></slot>
+						<!-- Extra slot right: forum stuff -->
+						<slot name="extras"></slot>
+					</div>
 				</div>
-
-				<!-- Extra slot right: forum stuff -->
-				<slot name="extras"></slot>
 			</div>
 
 			<!-- Reactions Slot -->
