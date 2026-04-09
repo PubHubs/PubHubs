@@ -5,15 +5,15 @@
 	>
 		<SubheaderForum />
 		<ul
-			v-if="topics.length > 0"
+			v-if="events.length > 0"
 			class="flex flex-col gap-y-2"
 		>
 			<li
-				v-for="topic in topics"
-				:key="topic.eventId"
+				v-for="event in events"
+				:key="event.matrixEvent.event_id"
 			>
 				<ForumThreadItem
-					:topic="topic"
+					:event="event.matrixEvent.event"
 					:room="room"
 					:show-actions="false"
 				></ForumThreadItem>
@@ -22,7 +22,7 @@
 	</div>
 	<ForumThread
 		v-if="currentTopic"
-		:topic="currentTopic"
+		:event="currentTopic"
 		:room="room"
 	></ForumThread>
 </template>
@@ -34,11 +34,6 @@
 	// Components
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
 
-	// Composables
-	import { useForum } from '@hub-client/composables/forum.composable';
-
-	// Logic
-	import { type TThread } from '@hub-client/models/events/forum/TThread';
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 
@@ -52,29 +47,20 @@
 			default: undefined,
 		},
 	});
-	const forum = useForum();
 	const initialLoadComplete = ref(false);
 
 	onMounted(() => {
 		initialLoadComplete.value = true;
 	});
 
-	const topics = computed(() => {
-		const threadMap = new Map<string, TThread>();
-		for (const event of props.room.getChronologicalTimeline()) {
-			const thread = forum.transformTopic(event)!;
-			threadMap.set(thread.eventId, thread);
-		}
-		// console.info('Map', threadMap);
-		let topics = Array.from(threadMap.values());
-		// console.info('Topics', topics);
-		return topics;
+	const events = computed(() => {
+		return props.room.getChronologicalTimeline();
 	});
 
 	const currentTopic = computed(() => {
-		if (topics.value.length > 0 && props.topicId) {
-			const topic = topics.value.find((t) => t.eventId === props.topicId);
-			return topic;
+		if (events.value.length > 0 && props.topicId) {
+			const topic = events.value.find((t) => t.matrixEvent.event.event_id === props.topicId);
+			return topic?.matrixEvent.event;
 		}
 		return undefined;
 	});

@@ -7,7 +7,6 @@
 			:scroll-to-event-id="room.getCurrentEvent()?.eventId"
 			@scrolled-to-event-id="room.setCurrentEvent(undefined)"
 		></RoomThread>
-		<InlineSpinner v-else></InlineSpinner>
 	</div>
 </template>
 
@@ -16,11 +15,8 @@
 	import RoomThread from '../RoomThread.vue';
 	import { onMounted } from 'vue';
 
-	// Components
-	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
-
 	const props = defineProps({
-		topic: {
+		event: {
 			type: Object,
 			required: true,
 		},
@@ -30,10 +26,7 @@
 		},
 	});
 
-	// const threadEvents = ref();
-
 	onMounted(async () => {
-		props.room.setCurrentThreadId(props.topic.eventId);
-		// threadEvents.value = await props.room.getCurrentThreadEvents();
+		props.room.setCurrentThreadId(props.event.event_id);
 	});
 </script>

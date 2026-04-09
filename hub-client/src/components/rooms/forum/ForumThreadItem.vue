@@ -1,19 +1,19 @@
 <template>
 	<RoomMessageBubble
-		:event="topic.event!.matrixEvent.event"
+		:event="event"
 		:room="room"
 		:show-actions="showActions"
 		class="cursor-pointer"
-		@click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: topic.eventId } })"
+		@click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: event.event_id } })"
 	>
 		<template #extras>
 			<ForumTopicExtras
-				:event="topic.event!.matrixEvent.event"
+				:event="event"
 				:room="room"
 			></ForumTopicExtras>
 		</template>
 		<template #bottom>
-			<ForumEventBody :event="topic.event!.matrixEvent.event"></ForumEventBody>
+			<ForumEventBody :event="event"></ForumEventBody>
 		</template>
 	</RoomMessageBubble>
 </template>
@@ -28,7 +28,7 @@
 	import Room from '@hub-client/models/rooms/Room';
 
 	const props = defineProps({
-		topic: {
+		event: {
 			type: Object,
 			required: true,
 		},

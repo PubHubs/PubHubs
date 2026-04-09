@@ -94,6 +94,11 @@
 					</div>
 				</div>
 			</div>
+
+			<InlineSpinner
+				v-if="loadingEvents"
+				class="mx-auto my-100"
+			></InlineSpinner>
 		</div>
 
 		<!-- Thread input -->
@@ -192,6 +197,7 @@
 
 	const activeReactionPanel = ref<string | null>(null);
 	const { READ_DELAY_MS } = TimelineScrollConstants;
+	const loadingEvents = ref(false);
 
 	watch(
 		() => props.room.threadUpdated,
@@ -278,6 +284,7 @@
 	}
 
 	async function getThreadEvents() {
+		loadingEvents.value = true;
 		const events = await props.room.getCurrentThreadEvents();
 		threadEvents.splice(0, threadEvents.length, ...events);
 
@@ -287,6 +294,7 @@
 				nextTick(() => scrollToEvent(lastEventId));
 			}
 		}
+		loadingEvents.value = false;
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
