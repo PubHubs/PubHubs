@@ -243,7 +243,7 @@
 
 	const menuIcon = (room: RoomListRoom): string => {
 		if (isSecuredRoom(room)) return 'shield';
-		if (room.roomType === RoomType.PH_FORUM_ROOM) return 'chat-circle-text';
+		if (settings.isFeatureEnabled(FeatureFlag.forumRooms) && room.roomType === RoomType.PH_FORUM_ROOM) return 'chat-circle-text';
 		return 'chats-circle';
 	};
 </script>
