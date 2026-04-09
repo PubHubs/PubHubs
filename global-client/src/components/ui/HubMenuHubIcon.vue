@@ -17,7 +17,7 @@
 			<iframe
 				:id="miniClientId + '_' + hubId"
 				class="pointer-events-none h-300 w-300 border-none"
-				:src="hub.url + '/miniclient.html?accessToken=' + accessToken"
+				:src="miniclientSrc"
 			/>
 		</div>
 
@@ -32,7 +32,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { ref } from 'vue';
+	import { computed, ref } from 'vue';
 
 	// Components
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
@@ -74,6 +74,7 @@
 	hubs.setupMiniclient(props.hubId);
 
 	const accessToken = ref<string>(JSON.stringify(global.getAuthInfo(props.hubId)));
+	const miniclientSrc = computed(() => `${props.hub?.url}/miniclient.html?${new URLSearchParams({ accessToken: accessToken.value, hubId: props.hubId })}`);
 
 	// When a user opens the hub for the first time on a device or in a browser, the accessToken
 	// and userId are only stored after the receivedMessage action with a message of type addAuthInfo

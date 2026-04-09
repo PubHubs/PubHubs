@@ -62,6 +62,28 @@ async function decrypt(key: CryptoKey, stored: string): Promise<string> {
 	return new TextDecoder().decode(decrypted);
 }
 
+/**
+ * Per-hub LocalStore instances for a single user. The user secret is fixed at
+ * construction; on logout the entire LocalStores instance is dropped (and a
+ * fresh one created on next login) so cached encryption material doesn't
+ * outlive the user secret it was derived from. See useLocalStores.
+ */
+export class LocalStores {
+	private cache = new Map<string, Promise<LocalStore>>();
+
+	constructor(private readonly userSecretBase64: string) {}
+
+	/** Get the cached LocalStore for a hub, or create one. */
+	getOrCreate(hubId: string): Promise<LocalStore> {
+		let p = this.cache.get(hubId);
+		if (!p) {
+			p = LocalStore.create(this.userSecretBase64, hubId);
+			this.cache.set(hubId, p);
+		}
+		return p;
+	}
+}
+
 export class LocalStore {
 	private constructor(
 		private readonly keyPrefix: string,

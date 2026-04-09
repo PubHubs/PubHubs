@@ -3,6 +3,11 @@ import { assert } from 'chai';
 import { defineStore } from 'pinia';
 import { type RouteParams } from 'vue-router';
 
+// Logic
+import { type LocalStore } from '@global-client/logic/utils/localStore';
+
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
 // Models
 import { Hub, type HubList } from '@global-client/models/Hubs';
 
@@ -10,6 +15,7 @@ import { QueryParameterKey } from '@hub-client/models/constants';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
+import { useLocalStores } from '@global-client/stores/localStores';
 import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
 import { Message, MessageType, iframeHubId, miniClientId, useMessageBox } from '@hub-client/stores/messagebox';
@@ -19,6 +25,8 @@ import { useSettings } from '@hub-client/stores/settings';
 import { setLanguage, setUpi18n } from '@hub-client/i18n';
 import { type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+
+const logger = createLogger('hubs');
 
 const useHubs = defineStore('hubs', {
 	state: () => {
@@ -112,6 +120,10 @@ const useHubs = defineStore('hubs', {
 			messagebox.addCallback(miniClientId + '_' + hubId, MessageType.UnreadMessages, () => {
 				sendNotification(this.hubs[hubId].hubName);
 			});
+
+			// Per-miniclient frameId encodes the hubId, so it's a constant for the
+			// lifetime of this iframe — no race with hub switches.
+			attachLocalStoreHandlers(messagebox, miniClientId + '_' + hubId, () => hubId);
 		},
 
 		async changeHub(params: RouteParams) {
@@ -154,6 +166,10 @@ const useHubs = defineStore('hubs', {
 
 				// Start conversation with hub frame and sync latest settings
 				await messagebox.startCommunication(this.currentHub.url, iframeHubId);
+
+				// The main hub iframe reuses iframeHubId across hubs — read currentHubId
+				// at message-arrival time so callbacks always use the current hub.
+				attachLocalStoreHandlers(messagebox, iframeHubId, () => this.currentHubId || undefined);
 
 				//Show bar both client and global-side so we always enter a hub with them and we start in the same state of the bar. Hub rooms should close the bar themselves.
 				toggleMenu.showMenuAndSendToHub();
@@ -250,6 +266,48 @@ function sendNotification(hubName: string) {
 		icon: img,
 		badge: img,
 	});
+}
+
+/**
+ * Register the LocalStore message handlers for a hub iframe (main or
+ * miniclient). Each handler cross-checks the hubId claimed in the message
+ * payload against the trusted hubId from getExpectedHubId() — on mismatch
+ * the message is dropped with a warning. This guards against in-flight
+ * messages from a previous hub iframe instance arriving at the new iframe's
+ * callbacks.
+ */
+function attachLocalStoreHandlers(messagebox: ReturnType<typeof useMessageBox>, frameId: string, getExpectedHubId: () => string | undefined): void {
+	messagebox.addCallback(frameId, MessageType.LocalStoreLoad, async (message: Message) => {
+		const store = await resolveVerifiedStore(message, getExpectedHubId, 'LocalStoreLoad');
+		if (!store) return;
+		const all = await store.getAll();
+		messagebox.sendMessage(new Message(MessageType.LocalStoreLoaded, all), frameId);
+	});
+
+	messagebox.addCallback(frameId, MessageType.LocalStoreUpdate, async (message: Message) => {
+		const store = await resolveVerifiedStore(message, getExpectedHubId, 'LocalStoreUpdate');
+		if (!store) return;
+		const content = message.content as { key?: string; value?: string };
+		if (content.key === undefined || content.value === undefined) return;
+		await store.set(content.key, content.value);
+	});
+}
+
+/**
+ * Verify that a LocalStore message's claimed hubId matches the expected one,
+ * then resolve the corresponding LocalStore. Returns null on mismatch (logged)
+ * or when the user is logged out.
+ */
+async function resolveVerifiedStore(message: Message, getExpectedHubId: () => string | undefined, action: string): Promise<LocalStore | null> {
+	const expectedHubId = getExpectedHubId();
+	const claimedHubId = (message.content as { hubId?: string } | undefined)?.hubId;
+	if (!expectedHubId || claimedHubId !== expectedHubId) {
+		logger.warn(`${action}: hubId mismatch (expected ${expectedHubId}, got ${claimedHubId}); dropping`);
+		return null;
+	}
+	const localStores = await useLocalStores().retrieve();
+	if (!localStores) return null;
+	return await localStores.getOrCreate(expectedHubId);
 }
 
 export { useHubs };

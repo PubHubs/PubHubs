@@ -170,6 +170,7 @@
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+	import { loadUnreadInfoCache } from '@hub-client/models/rooms/unreadInfoCache';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -242,6 +243,12 @@
 		}
 
 		await startMessageBox();
+
+		// Fire-and-forget: hydrate the persisted unread cache from the global
+		// client. Runs in parallel with login. When it resolves, refresh the
+		// dots so any rooms whose previously-computed state is stale (or was
+		// 'unknown' before the cache loaded) get updated.
+		void loadUnreadInfoCache().then(() => rooms.refreshAllUnreadStates());
 
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks

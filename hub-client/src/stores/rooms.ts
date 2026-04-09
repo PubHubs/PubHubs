@@ -267,6 +267,16 @@ const useRooms = defineStore('rooms', {
 			if (!loaded) return;
 			// Rooms are added to roomList with unreadState 'unknown'. Compute the
 			// real state now that all rooms and the SDK are ready.
+			this.refreshAllUnreadStates();
+		},
+
+		/**
+		 * Recompute the unread state for every room in roomList. Useful after
+		 * any source of truth changes — e.g. after the persisted unread cache
+		 * is loaded from the global client, the previously-computed dots may
+		 * be stale and need to be re-derived.
+		 */
+		refreshAllUnreadStates() {
 			for (const entry of this.roomList) {
 				this.notifyUnreadCountChanged(entry.roomId);
 			}

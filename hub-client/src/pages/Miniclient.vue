@@ -33,6 +33,7 @@
 
 	// Models
 	import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
+	import { loadUnreadInfoCache } from '@hub-client/models/rooms/unreadInfoCache';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -74,6 +75,12 @@
 		logger.debug('Miniclient.vue onMounted');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
+
+		// Fire-and-forget: hydrate the persisted unread cache from the global
+		// client. Runs in parallel with login. When it resolves, refresh the
+		// dots so any rooms whose previously-computed state is stale (or was
+		// 'unknown' before the cache loaded) get updated.
+		void loadUnreadInfoCache().then(() => rooms.refreshAllUnreadStates());
 
 		// Startup, login, fetch the initial unread state, set watch for read receipt event
 		startMessageBox()

@@ -35,6 +35,7 @@ import { type TCurrentEvent } from '@hub-client/models/events/types';
 import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
 import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+import { getStoredUnreadInfo, updateStoredUnreadInfo } from '@hub-client/models/rooms/unreadInfoCache';
 import TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
@@ -58,52 +59,6 @@ type RoomThread = {
 	thread: TRoomThread | undefined;
 	threadLength: number;
 };
-
-/**
- * Persisted per-room data for resolving unread state when the current
- * timeline doesn't contain a visible event (e.g. timeline_limit:1
- * delivered only a state event or reaction).
- *
- * - lastVisibleTs: timestamp of the most recent visible event we've
- *   ever seen. Compared against the read receipt to determine
- *   unread (receipt < ts) or read (receipt >= ts).
- * - lastEventTs: timestamp of the last timeline event we saw. If the
- *   current last event has the same timestamp, nothing new arrived
- *   since we last checked.
- * - unreadState: the last computed unread state. Returned directly
- *   when lastEventTs hasn't changed (nothing new to evaluate).
- */
-// When adding fields, also update storedUnreadInfoEqual.
-type StoredUnreadInfo = { lastVisibleTs: number; lastEventTs: number; unreadState: UnreadState };
-
-function storedUnreadInfoEqual(a: StoredUnreadInfo, b: StoredUnreadInfo): boolean {
-	return a.lastVisibleTs === b.lastVisibleTs && a.lastEventTs === b.lastEventTs && a.unreadState === b.unreadState;
-}
-
-// In-memory cache of per-room unread info. Not persisted — recomputed on
-// page load from the SDK timeline. Persistence via the global client's
-// localStorage is planned (stage 2) but not yet implemented.
-const unreadInfoCache = new Map<string, StoredUnreadInfo>();
-
-function getStoredUnreadInfo(roomId: string): StoredUnreadInfo | null {
-	return unreadInfoCache.get(roomId) ?? null;
-}
-
-/** Merge new knowledge into stored unread info. Both timestamps only advance. */
-function updateStoredUnreadInfo(roomId: string, update: { lastEventTs: number; unreadState: UnreadState; visibleEventTs?: number }): void {
-	const current = unreadInfoCache.get(roomId);
-	const newLastVisibleTs = Math.max(current?.lastVisibleTs ?? 0, update.visibleEventTs ?? 0);
-	const newLastEventTs = Math.max(current?.lastEventTs ?? 0, update.lastEventTs);
-	// 'unknown' means insufficient information — only overwrite a
-	// previous definitive state ('read' or 'unread') with new certainty.
-	let newUnreadState = current?.unreadState ?? 'unknown';
-	if (update.unreadState !== 'unknown') {
-		newUnreadState = update.unreadState;
-	}
-	const info: StoredUnreadInfo = { lastVisibleTs: newLastVisibleTs, lastEventTs: newLastEventTs, unreadState: newUnreadState };
-	if (current && storedUnreadInfoEqual(current, info)) return;
-	unreadInfoCache.set(roomId, info);
-}
 
 const BotName = {
 	NOTICE: 'notices',
@@ -629,18 +584,23 @@ export default class Room {
 		const roomId = matrixRoom.roomId;
 		const events = matrixRoom.getLiveTimeline().getEvents();
 		const stored = getStoredUnreadInfo(roomId);
+		const receiptTs = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate)?.data.ts ?? 0;
 
-		// SDK hasn't populated the timeline yet — trust stored state.
-		if (events.length === 0) return stored?.unreadState ?? 'unknown';
+		// SDK hasn't populated the timeline yet — fall back to the cache plus
+		// the current receipt. A known visible event we haven't read is unread;
+		// a previous "everything was read" snapshot still implies read; otherwise
+		// we don't know.
+		if (events.length === 0) {
+			if (stored && receiptTs < stored.lastVisibleTs) return 'unread';
+			if (stored?.lastReadAllTs !== undefined) return 'read';
+			return 'unknown';
+		}
 
 		const lastEventTs = events[events.length - 1].getTs();
 
-		// Only use cached 'read': it stays valid until new events arrive (lastEventTs changes).
-		// Cached 'unread' can't be trusted — a receipt may have been sent since.
-		// Cached 'unknown' can't be trusted — the timeline may have grown with older events.
-		if (stored && stored.unreadState === 'read' && stored.lastEventTs === lastEventTs) return stored.unreadState;
-
-		const receiptTs = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate)?.data.ts ?? 0;
+		// Cached "read covers up to here" is still valid as long as no events
+		// past lastReadAllTs have arrived in the timeline.
+		if (stored?.lastReadAllTs !== undefined && stored.lastReadAllTs >= lastEventTs) return 'read';
 
 		function compute(): { state: UnreadState; visibleEventTs?: number } {
 			// Scan backwards for the last visible event.
@@ -678,7 +638,10 @@ export default class Room {
 		}
 
 		const { state, visibleEventTs } = compute();
-		updateStoredUnreadInfo(roomId, { lastEventTs, unreadState: state, visibleEventTs });
+		updateStoredUnreadInfo(roomId, {
+			lastVisibleTs: visibleEventTs ?? 0,
+			lastReadAllTs: state === 'read' ? lastEventTs : undefined,
+		});
 		return state;
 	}
 
