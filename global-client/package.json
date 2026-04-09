@@ -8,10 +8,11 @@
 		"dev": "vite",
 		"pwa": "vite build && npx http-server dist",
 		"type-check": "vue-tsc --noEmit",
-		"test": "vitest",
-		"test:run": "vitest run",
-		"test:ui": "vitest --ui",
-		"coverage": "vitest run --coverage"
+		"//test": "NODE_OPTIONS=--no-experimental-webstorage disables Node 25's default Web Storage API, which installs a stub globalThis.localStorage that shadows jsdom's. The alternative --localstorage-file=PATH would make Node's storage real, but it backs everything with a single SQLite file that persists across test runs and is shared by parallel workers, breaking test isolation, so it is not a substitute for jsdom's per-window storage. CI on Node 24 only knows the long flag form (the short --no-webstorage alias was added in Node 25). See vitest-dev/vitest#8757 and nodejs/node#57658.",
+		"test": "NODE_OPTIONS=--no-experimental-webstorage vitest",
+		"test:run": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
+		"test:ui": "NODE_OPTIONS=--no-experimental-webstorage vitest --ui",
+		"coverage": "NODE_OPTIONS=--no-experimental-webstorage vitest run --coverage"
 	},
 	"engines": {
 		"npm": ">=9.8.1",
