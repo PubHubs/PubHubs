@@ -8,7 +8,7 @@
 		<div
 			class="menu-icon flex cursor-pointer justify-items-stretch"
 			data-testid="actionmenu"
-			@click="toggle"
+			@click.stop="toggle"
 		>
 			<Icon
 				class="bg-surface hover:bg-accent-primary rounded-md"
@@ -19,7 +19,7 @@
 			v-show="open"
 			class="menu-menu bg-surface absolute -mt-6 ml-6 rounded-md"
 			:style="style"
-			@click="close"
+			@click.stop="close"
 		>
 			<slot />
 		</div>
