@@ -11,12 +11,12 @@
 			<div>{{ yesVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', yesVotes.length) }}</div>
 			<div
 				v-for="vote in yesVotes"
-				:key="vote.id"
+				:key="vote.userId"
 				class="mr-2 flex gap-2"
 			>
 				<UserDisplayName
-					:user-id="vote.id"
-					:user-display-name="user.userDisplayName(vote.id)"
+					:user-id="vote.userId"
+					:user-display-name="user.userDisplayName(vote.userId)"
 				></UserDisplayName>
 			</div>
 		</div>
@@ -31,12 +31,12 @@
 			<div>{{ maybeVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', maybeVotes.length) }}</div>
 			<div
 				v-for="vote in maybeVotes"
-				:key="vote.id"
+				:key="vote.userId"
 				class="mr-2 flex gap-2"
 			>
 				<UserDisplayName
-					:user-id="vote.id"
-					:user-display-name="user.userDisplayName(vote.id)"
+					:user-id="vote.userId"
+					:user-display-name="user.userDisplayName(vote.userId)"
 				></UserDisplayName>
 			</div>
 		</div>
@@ -51,12 +51,12 @@
 			<div>{{ noVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', noVotes.length) }}</div>
 			<div
 				v-for="vote in noVotes"
-				:key="vote.id"
+				:key="vote.userId"
 				class="mr-2 flex gap-2"
 			>
 				<UserDisplayName
-					:user-id="vote.id"
-					:user-display-name="user.userDisplayName(vote.id)"
+					:user-id="vote.userId"
+					:user-display-name="user.userDisplayName(vote.userId)"
 				></UserDisplayName>
 			</div>
 		</div>
@@ -72,17 +72,14 @@
 
 	const props = defineProps<{
 		votes: {
-			userTime: {
-				id: string;
-				time: string;
-			}[];
+			userVotes: { userId: string; time: string }[];
 			choice: string;
 		}[];
 	}>();
 
 	const user = useUser();
 
-	const yesVotes = props.votes.filter((vote) => vote.choice === 'yes')[0].userTime;
-	const maybeVotes = props.votes.filter((vote) => vote.choice === 'maybe')[0].userTime;
-	const noVotes = props.votes.filter((vote) => vote.choice === 'no')[0].userTime;
+	const yesVotes = props.votes.filter((vote) => vote.choice === 'yes')[0].userVotes;
+	const maybeVotes = props.votes.filter((vote) => vote.choice === 'maybe')[0].userVotes;
+	const noVotes = props.votes.filter((vote) => vote.choice === 'no')[0].userVotes;
 </script>

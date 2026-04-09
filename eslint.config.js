@@ -33,7 +33,7 @@ export default defineConfig([
 		rules: {
 			// Require a description whenever a rule is disabled inline
 			'@eslint-community/eslint-comments/require-description': 'error',
-			// Disallow unused disable directives (catches stale suppression comments)
+			// Disallow unused disable directives
 			'@eslint-community/eslint-comments/no-unused-disable': 'error',
 
 			// General

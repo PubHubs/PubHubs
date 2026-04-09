@@ -20,10 +20,7 @@
 		votesByOption: {
 			optionId: number;
 			votes: {
-				userTime: {
-					id: string;
-					time: string;
-				}[];
+				userVotes: { userId: string; time: string }[];
 				choice: string;
 			}[];
 		}[];
