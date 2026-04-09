@@ -241,7 +241,6 @@
 		return SecuredRooms.includes(room.roomType as RoomType);
 	}
 
-	 
 	const menuIcon = (room: RoomListRoom): string => {
 		if (isSecuredRoom(room)) return 'shield';
 		if (room.roomType === RoomType.PH_FORUM_ROOM) return 'chat-circle-text';
