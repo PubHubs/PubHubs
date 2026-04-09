@@ -38,6 +38,7 @@ import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('Room');
 
@@ -147,6 +148,8 @@ export default class Room {
 	}
 
 	public isForumRoom(): boolean {
+		const settings = useSettings();
+		if (!settings.isFeatureEnabled(FeatureFlag.forumRooms)) return false;
 		return this.getType() === RoomType.PH_FORUM_ROOM;
 	}
 
