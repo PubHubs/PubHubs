@@ -66,6 +66,7 @@
 					</p>
 					<Badge
 						v-if="newMessage > 0"
+						data-testid="unread-badge"
 						class="shrink-0"
 					>
 						{{ newMessage }}
