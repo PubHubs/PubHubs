@@ -94,6 +94,17 @@ enum MessageType {
 	LocalStoreLoad = 'local-store-load', // Hub → global: request all stored key-value pairs
 	LocalStoreLoaded = 'local-store-loaded', // Global → hub: response with all pairs
 	LocalStoreUpdate = 'local-store-update', // Hub → global: update { key, value }
+
+	// Miniclient unread state mirroring. A miniclient iframe renders one of two
+	// inner components: MiniclientIndependent (runs its own MatrixClient and
+	// computes unread state locally) or MiniclientLinked (no MatrixClient;
+	// mirrors the aggregate state pushed by the currently-active hub client).
+	// HubActive tells a miniclient which of the two to mount; each hub's
+	// miniclient switches to Linked when its hub becomes the globally active
+	// one. This avoids running two sliding syncs per hub and guarantees only
+	// one writer to the LocalStore.
+	HubActive = 'hub-active', // Parent → miniclient: { active: boolean }; whether the miniclient's hub is the globally active hub.
+	AggregateUnreadState = 'aggregate-unread-state', // Hub-client → parent → matching miniclient: { hubId, state: UnreadState }.
 }
 
 /**

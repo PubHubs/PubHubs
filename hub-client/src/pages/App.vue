@@ -159,6 +159,7 @@
 
 	// Composables
 	import { useRoles } from '@hub-client/composables/roles.composable';
+	import { useUnreadAggregate } from '@hub-client/composables/unreadAggregate.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
@@ -166,11 +167,11 @@
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
+	import { hubId } from '@hub-client/logic/utils/hubId';
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
-	import { loadUnreadInfoCache } from '@hub-client/models/rooms/unreadInfoCache';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -213,6 +214,34 @@
 	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
 	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || notifications.notifications.length > 0 || !rooms.roomsLoaded);
 
+	// Aggregate unread state for this hub. The composable hydrates the
+	// persisted cache, keeps `unreadState` in sync with unreadCountVersion
+	// bumps, and subscribes to RoomEvent.Receipt once we've logged in and
+	// called setupUnreadAggregateTracking().
+	const { unreadState, setupUnreadAggregateTracking } = useUnreadAggregate();
+
+	/**
+	 * When this hub client is running inside the global client it is, by
+	 * definition, the currently active hub — its miniclient sibling is in
+	 * "linked" mode and does not run its own sync, and just mirrors what we
+	 * push to the parent. Fire AggregateUnreadState on every state change;
+	 * and on the read → unread transition also fire UnreadMessages so the
+	 * parent shows a desktop notification for this hub (that trigger used
+	 * to live in the miniclient, and moved here because a linked miniclient
+	 * no longer sees the transition itself).
+	 *
+	 * Solo mode is skipped: the messagebox is a no-op there and there's no
+	 * parent to forward to. See the "Solo-mode desktop notifications for
+	 * hub client" follow-up task.
+	 */
+	watch(unreadState, (state, previous) => {
+		if (hubSettings.isSolo || !hubId) return;
+		messagebox.sendMessage(new Message(MessageType.AggregateUnreadState, { hubId, state }));
+		if (state === 'unread' && previous !== 'unread') {
+			messagebox.sendMessage(new Message(MessageType.UnreadMessages));
+		}
+	});
+
 	onMounted(async () => {
 		logger.debug('App.vue onMounted');
 
@@ -244,17 +273,12 @@
 
 		await startMessageBox();
 
-		// Fire-and-forget: hydrate the persisted unread cache from the global
-		// client. Runs in parallel with login. When it resolves, refresh the
-		// dots so any rooms whose previously-computed state is stale (or was
-		// 'unknown' before the cache loaded) get updated.
-		void loadUnreadInfoCache().then(() => rooms.refreshAllUnreadStates());
-
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {
 			// With sliding-sync, loading is faster.
 			await pubhubs.login();
+			await setupUnreadAggregateTracking();
 			setupReady.value = true;
 			addPushRules();
 		}

@@ -12,6 +12,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 import { Hub, type HubList } from '@global-client/models/Hubs';
 
 import { QueryParameterKey } from '@hub-client/models/constants';
+import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
@@ -27,6 +28,17 @@ import { type MenuItem } from '@hub-client/new-design/models/contextMenu.models'
 import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 const logger = createLogger('hubs');
+
+/**
+ * Last-known aggregate unread state per hub, as pushed by whichever hub
+ * iframe was most recently the globally active one. Used to replay the
+ * state to a miniclient that has just entered Linked mode (either because
+ * its iframe just mounted and completed its handshake, or because its hub
+ * just became the active one) — this avoids a window where the miniclient
+ * would display 'unknown' until the next organic AggregateUnreadState
+ * comes through.
+ */
+const lastUnreadStatePerHub = new Map<string, UnreadState>();
 
 const useHubs = defineStore('hubs', {
 	state: () => {
@@ -110,20 +122,29 @@ const useHubs = defineStore('hubs', {
 
 		async setupMiniclient(hubId: string) {
 			const messagebox = useMessageBox();
+			const frameId = miniClientId + '_' + hubId;
 
 			assert.isDefined(this.hubs[hubId], 'Current hub is not initialized');
 
 			// Start conversation with hub frame and sync latest settings
-			await messagebox.startCommunication(this.hubs[hubId].url, miniClientId + '_' + hubId);
+			await messagebox.startCommunication(this.hubs[hubId].url, frameId);
 
 			// Hub client signals when it transitions to having unread messages
-			messagebox.addCallback(miniClientId + '_' + hubId, MessageType.UnreadMessages, () => {
+			messagebox.addCallback(frameId, MessageType.UnreadMessages, () => {
 				sendNotification(this.hubs[hubId].hubName);
 			});
 
 			// Per-miniclient frameId encodes the hubId, so it's a constant for the
 			// lifetime of this iframe — no race with hub switches.
-			attachLocalStoreHandlers(messagebox, miniClientId + '_' + hubId, () => hubId);
+			attachLocalStoreHandlers(messagebox, frameId, () => hubId);
+
+			// Tell this fresh miniclient whether its hub is the globally active
+			// one. If yes it will render MiniclientLinked (no own sync) and
+			// we replay the last known aggregate state so the badge appears
+			// immediately rather than after the next organic update.
+			const active = this.currentHubId === hubId;
+			messagebox.sendMessage(new Message(MessageType.HubActive, { active }), frameId);
+			if (active) replayLastUnreadState(messagebox, frameId, hubId);
 		},
 
 		async changeHub(params: RouteParams) {
@@ -137,7 +158,19 @@ const useHubs = defineStore('hubs', {
 			const previousHubId = this.currentHubId;
 			this.currentHubId = hubId;
 
-			// Only change to a Hub if there is a hubId given of a valid hub, otherwise return
+			// If we are moving away from a previously-active hub (either to a
+			// different hub or to no hub at all), tell its miniclient it is no
+			// longer the globally active one so it goes back to running its
+			// own sync. When the hub is unchanged (same-hub room navigation)
+			// this is a no-op.
+			if (previousHubId && previousHubId !== hubId) {
+				messagebox.sendMessage(new Message(MessageType.HubActive, { active: false }), miniClientId + '_' + previousHubId);
+			}
+
+			// If the target is not a valid hub, reset currentHubId to '' and
+			// navigate the global client to home. This is still a hub change
+			// (from whatever we were on to "no hub"), so the HubActive(false)
+			// above for the previous hub is correct and we return afterwards.
 			if (typeof hubId === 'undefined' || !this.currentHubExists) {
 				this.currentHubId = '';
 				messagebox.resetCurrentHub();
@@ -170,6 +203,31 @@ const useHubs = defineStore('hubs', {
 				// The main hub iframe reuses iframeHubId across hubs — read currentHubId
 				// at message-arrival time so callbacks always use the current hub.
 				attachLocalStoreHandlers(messagebox, iframeHubId, () => this.currentHubId || undefined);
+
+				// Forward AggregateUnreadState from the active hub client to
+				// its miniclient, updating the per-hub buffer on the way. The
+				// hubId check in the payload guards against messages arriving
+				// in-flight from a previous iframe instance.
+				messagebox.addCallback(iframeHubId, MessageType.AggregateUnreadState, (message: Message) => {
+					const content = message.content as { hubId?: string; state?: UnreadState };
+					if (!content.hubId || content.state === undefined) return;
+					if (content.hubId !== this.currentHubId) {
+						logger.warn(`AggregateUnreadState: hubId mismatch (expected ${this.currentHubId}, got ${content.hubId}); dropping`);
+						return;
+					}
+					lastUnreadStatePerHub.set(content.hubId, content.state);
+					messagebox.sendMessage(
+						new Message(MessageType.AggregateUnreadState, { hubId: content.hubId, state: content.state }),
+						miniClientId + '_' + content.hubId,
+					);
+				});
+
+				// Tell the new hub's miniclient that it is now the active one
+				// so it switches to MiniclientLinked, and replay the last
+				// known aggregate state so the badge renders immediately.
+				const newMiniclientFrameId = miniClientId + '_' + hubId;
+				messagebox.sendMessage(new Message(MessageType.HubActive, { active: true }), newMiniclientFrameId);
+				replayLastUnreadState(messagebox, newMiniclientFrameId, hubId);
 
 				//Show bar both client and global-side so we always enter a hub with them and we start in the same state of the bar. Hub rooms should close the bar themselves.
 				toggleMenu.showMenuAndSendToHub();
@@ -266,6 +324,19 @@ function sendNotification(hubName: string) {
 		icon: img,
 		badge: img,
 	});
+}
+
+/**
+ * Replay the last-known aggregate unread state for `hubId` to the given
+ * miniclient frame, if we have one. Used right after telling a miniclient it
+ * just became linked, so its badge reflects the cached state immediately
+ * rather than waiting for the next organic AggregateUnreadState from the
+ * active hub client.
+ */
+function replayLastUnreadState(messagebox: ReturnType<typeof useMessageBox>, miniclientFrameId: string, hubId: string): void {
+	const state = lastUnreadStatePerHub.get(hubId);
+	if (state === undefined) return;
+	messagebox.sendMessage(new Message(MessageType.AggregateUnreadState, { hubId, state }), miniclientFrameId);
 }
 
 /**

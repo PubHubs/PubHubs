@@ -17,22 +17,12 @@ import { sleep } from 'matrix-js-sdk/lib/utils';
 
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { hubId } from '@hub-client/logic/utils/hubId';
 
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 
 const logger = createLogger('LocalStoreClient');
-
-// Read hubId from the iframe URL once on module load. The global client embeds
-// it when launching the hub iframe (Hub.vue / HubMenuHubIcon.vue). If absent
-// we run without persistence — see file-level comment.
-const hubId: string | null = (() => {
-	try {
-		return new URLSearchParams(window.location.search).get('hubId');
-	} catch {
-		return null;
-	}
-})();
 
 // Timeout for waiting on LocalStoreLoaded after sending LocalStoreLoad. Needs
 // to be generous enough for a slow handshake but short enough that callers

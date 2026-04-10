@@ -330,14 +330,22 @@ class MatrixService {
 let matrixService: MatrixService | null = null;
 
 /**
- * Initializes the MatrixService singleton with a Matrix client.
- * If already initialized, returns the existing instance.
+ * (Re)initializes the MatrixService singleton with a Matrix client. If there
+ * is already an instance (e.g. the miniclient previously ran a sync that has
+ * since been stopped), the previous instance is discarded and replaced with a
+ * fresh one wrapping the new client. Callers must have called stopSync on the
+ * previous instance first — this is enforced by throwing if the existing
+ * instance is still actively syncing.
  *
  * @param client - The Matrix client instance
  * @returns The initialized MatrixService singleton
+ * @throws {Error} If a previous MatrixService is still actively syncing
  */
 const initMatrixService = (client: MatrixClient) => {
-	if (!matrixService) matrixService = new MatrixService(client);
+	if (matrixService && matrixService.hasActiveSync()) {
+		throw new Error('initMatrixService called while the previous instance is still syncing; call stopSync first');
+	}
+	matrixService = new MatrixService(client);
 	return matrixService;
 };
 
