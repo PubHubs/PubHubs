@@ -14,10 +14,7 @@
 			@start="onDragStart"
 		>
 			<template #item="{ element }">
-				<div
-					v-if="hubs.hub(element.hubId)"
-					class="flex h-auto justify-center gap-4"
-				>
+				<div class="flex h-auto justify-center gap-4">
 					<router-link
 						v-slot="{ isActive }"
 						class="w-full"
@@ -27,7 +24,6 @@
 							v-if="global.loggedIn || element.hubId === hubs.currentHubId"
 							:active="isActive"
 							class="text-on-surface"
-							:hub="hubs.hub(element.hubId)"
 							:hub-id="element.hubId"
 							:pinned="true"
 							@click="sendToHub"

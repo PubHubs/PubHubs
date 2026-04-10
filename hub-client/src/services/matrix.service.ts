@@ -233,12 +233,7 @@ class MatrixService {
 			if (state !== SlidingSyncState.Complete) return;
 
 			this.roomsCount = response?.lists.roomList.count ?? 0;
-			const roomList = response?.rooms;
-			if (this.roomsCount <= 0 || !roomList || Object.keys(roomList).length <= 0) {
-				this.roomsStore.setRoomsLoaded(true);
-				return;
-			}
-			// console.error('handleLifecycleEvent roomList', roomList);
+			const roomList = response?.rooms ?? {};
 
 			const joinPromises: Promise<void>[] = [];
 
@@ -289,9 +284,9 @@ class MatrixService {
 			await Promise.all(joinPromises);
 			if (this.initialRoomLoading) {
 				this.initialRoomLoading = false;
+				this.roomsStore.setRoomsLoaded(true);
 			}
 			this.SetRoomSlidingSync(); // Sets the correct sliding sync for the room
-			this.roomsStore.setRoomsLoaded(true);
 		} catch (err) {
 			logger.error('Lifecycle handler failed', { err });
 			throw err;

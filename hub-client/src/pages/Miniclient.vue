@@ -38,7 +38,7 @@
 	 * it goes straight to MiniclientIndependent.
 	 */
 	// Packages
-	import { onMounted, ref } from 'vue';
+	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Logic
@@ -61,21 +61,33 @@
 
 	const hubActive = ref<boolean | undefined>(hubSettings.isSolo ? false : undefined);
 
-	messagebox.addCallback('parentFrame', MessageType.HubActive, (message: Message) => {
-		const content = message.content as { active?: boolean };
-		hubActive.value = content.active === true;
-		logger.debug(`HubActive → ${hubActive.value}`);
-	});
-
 	onMounted(async () => {
 		logger.debug('Miniclient.vue onMounted');
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		if (!hubSettings.isSolo) {
 			messagebox.init(MessageBoxType.Child);
+			// Register AFTER init (which calls reset and clears callbacks).
+			messagebox.addCallback('parentFrame', MessageType.HubActive, (message: Message) => {
+				const content = message.content as { active?: boolean };
+				hubActive.value = content.active === true;
+				logger.debug(`HubActive → ${hubActive.value}`);
+			});
 			await messagebox.startCommunication(hubSettings.parentUrl);
-			// Fallback: if no HubActive message arrived during the handshake
-			// (e.g. old global client without this protocol), default to
-			// Independent so the miniclient still shows something.
+			// Wait for HubActive (sent by the global client right after the
+			// handshake). Fall back to Independent after a timeout (e.g. old
+			// global client without this protocol).
+			await new Promise<void>((resolve) => {
+				if (hubActive.value !== undefined) {
+					resolve();
+					return;
+				}
+				const timeout = setTimeout(resolve, 2000);
+				const unwatch = watch(hubActive, () => {
+					clearTimeout(timeout);
+					unwatch();
+					resolve();
+				});
+			});
 			if (hubActive.value === undefined) hubActive.value = false;
 		}
 	});

@@ -35,7 +35,7 @@ import { type TCurrentEvent } from '@hub-client/models/events/types';
 import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
 import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
-import { getStoredUnreadInfo, updateStoredUnreadInfo } from '@hub-client/models/rooms/unreadInfoCache';
+import { type StoredUnreadInfo, getStoredUnreadInfo, updateStoredUnreadInfo } from '@hub-client/models/rooms/unreadInfoCache';
 import TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
@@ -566,16 +566,8 @@ export default class Room {
 	}
 
 	/**
-	 * Determines the unread state of a room by scanning the timeline for the
-	 * last visible event (see isVisibleEvent) and comparing its timestamp
-	 * against the user's private read receipt. When no visible event is in
-	 * the timeline (e.g. timeline_limit:1 delivered only a state event),
-	 * falls back to in-memory cached data from a previous check.
-	 *
-	 * Returns one of three states:
-	 * - 'unread': there are definitely unread messages
-	 * - 'read': the room is definitely read
-	 * - 'unknown': we cannot determine the state
+	 * Determines the unread state of a room by extracting four parameters
+	 * from the timeline and delegating to computeUnreadState.
 	 */
 	static unreadState(matrixRoom: MatrixRoom): UnreadState {
 		const userId = matrixRoom.client.getUserId();
@@ -586,61 +578,15 @@ export default class Room {
 		const stored = getStoredUnreadInfo(roomId);
 		const receiptTs = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate)?.data.ts ?? 0;
 
-		// SDK hasn't populated the timeline yet — fall back to the cache plus
-		// the current receipt. A known visible event we haven't read is unread;
-		// a previous "everything was read" snapshot still implies read; otherwise
-		// we don't know.
 		if (events.length === 0) {
-			if (stored && receiptTs < stored.lastVisibleTs) return 'unread';
-			if (stored?.lastReadAllTs !== undefined) return 'read';
-			return 'unknown';
+			return computeUnreadState(receiptTs, undefined, undefined, stored);
 		}
 
-		const lastEventTs = events[events.length - 1].getTs();
-
-		// Cached "read covers up to here" is still valid as long as no events
-		// past lastReadAllTs have arrived in the timeline.
-		if (stored?.lastReadAllTs !== undefined && stored.lastReadAllTs >= lastEventTs) return 'read';
-
-		function compute(): { state: UnreadState; visibleEventTs?: number } {
-			// Scan backwards for the last visible event.
-			let lastVisible: MatrixEvent | undefined;
-			for (let i = events.length - 1; i >= 0; i--) {
-				if (isVisibleEvent(events[i].event, userId)) {
-					lastVisible = events[i];
-					break;
-				}
-				// Reached room creation with no messages — room is empty.
-				if (events[i].getType() === EventType.RoomCreate) return { state: 'read' };
-			}
-
-			if (lastVisible) {
-				// Timeline contains a visible event — compare against receipt.
-				const visibleEventTs = lastVisible.getTs();
-				if (lastVisible.getSender() === userId) return { state: 'read', visibleEventTs };
-				if (receiptTs === 0 || visibleEventTs > receiptTs) return { state: 'unread', visibleEventTs };
-				return { state: 'read', visibleEventTs };
-			}
-
-			// Short timeline with no visible event and no room creation.
-			// Fall back to previously stored data from earlier visits.
-			if (!stored || stored.lastVisibleTs === 0) {
-				// Never seen a visible event in this room — can't determine state.
-				return { state: 'unknown' };
-			}
-			if (receiptTs < stored.lastVisibleTs) {
-				// Receipt is older than a visible event we saw before — unread.
-				return { state: 'unread' };
-			}
-			// Receipt covers all known visible events, but new non-visible
-			// events arrived that we can't evaluate — stay uncertain.
-			return { state: 'unknown' };
-		}
-
-		const { state, visibleEventTs } = compute();
+		const { effectiveReceiptTs, lastVisibleTs, timelineStartTs } = extractTimelineParams(events, userId, receiptTs);
+		const state = computeUnreadState(effectiveReceiptTs, lastVisibleTs, timelineStartTs, stored);
 		updateStoredUnreadInfo(roomId, {
-			lastVisibleTs: visibleEventTs ?? 0,
-			lastReadAllTs: state === 'read' ? lastEventTs : undefined,
+			lastVisibleTs: lastVisibleTs ?? 0,
+			lastReadAllTs: state === 'read' ? events[events.length - 1].getTs() : undefined,
 		});
 		return state;
 	}
@@ -997,3 +943,99 @@ export default class Room {
 
 	// #endregion
 }
+
+// #region Unread state helpers
+
+/**
+ * Extract timeline parameters for computeUnreadState from a non-empty event list.
+ * Own visible events advance effectiveReceiptTs (sending a message is an implicit receipt).
+ * Reaching m.room.create sets timelineStartTs to 0 (no gap — timeline covers the full room).
+ */
+function extractTimelineParams(
+	events: MatrixEvent[],
+	userId: string,
+	receiptTs: number,
+): { effectiveReceiptTs: number; lastVisibleTs: number | undefined; timelineStartTs: number } {
+	let effectiveReceiptTs = receiptTs;
+	let lastVisibleTs: number | undefined;
+	let timelineStartTs = events[0].getTs();
+	let foundLastVisible = false;
+	let foundOwnReceipt = false;
+
+	for (let i = events.length - 1; i >= 0; i--) {
+		if (events[i].getType() === EventType.RoomCreate) {
+			timelineStartTs = 0;
+			break;
+		}
+		if (!isVisibleEvent(events[i].event, userId)) continue;
+		if (!foundLastVisible) {
+			lastVisibleTs = events[i].getTs();
+			foundLastVisible = true;
+		}
+		if (!foundOwnReceipt && events[i].getSender() === userId) {
+			effectiveReceiptTs = Math.max(effectiveReceiptTs, events[i].getTs());
+			foundOwnReceipt = true;
+		}
+		if (foundLastVisible && foundOwnReceipt) break;
+	}
+
+	return { effectiveReceiptTs, lastVisibleTs, timelineStartTs };
+}
+
+/**
+ * Pure decision function: determines unread state from five parameters.
+ *
+ * The function is a monotone (order-preserving) map from the product of
+ * five partially ordered sets to {unread < unknown < read}:
+ *
+ *   receiptTs           ∈ (ℝ≥0, ≤)          — order-preserving (↑ → more read)
+ *   lastReadAllTs       ∈ (ℝ>0 ∪ {⊥}, ≤)   — order-preserving (↑ → more read); ⊥ incomparable
+ *   lastVisibleTs       ∈ (ℝ>0 ∪ {⊥}, ≥)   — order-reversing  (↑ → less read); ⊥ incomparable
+ *   timelineStartTs     ∈ (ℝ>0 ∪ {⊥}, ≥)   — order-reversing  (↑ → less read); ⊥ incomparable
+ *   storedLastVisibleTs ∈ (ℝ>0 ∪ {⊥}, ≥)   — order-reversing  (↑ → less read); ⊥ incomparable
+ *
+ * The decision models the existence of a hypothetical unread visible event
+ * at timestamp Ts > receiptTs:
+ *   - unread:  evidence that Ts exists
+ *   - read:    proof that Ts cannot exist
+ *   - unknown: neither
+ *
+ * lastReadAllTs is a cached proof that the room was read at a specific
+ * point. It may account for information not captured by receiptTs alone
+ * (e.g. own messages acting as implicit receipts). When it falls within
+ * the timeline window and no visible event appeared after it, the room
+ * is still read — even if non-visible events (e.g. display name changes)
+ * advanced the timeline.
+ */
+export function computeUnreadState(
+	receiptTs: number,
+	lastVisibleTs: number | undefined,
+	timelineStartTs: number | undefined,
+	stored: StoredUnreadInfo | undefined,
+): UnreadState {
+	// Cache: lastReadAllTs covers the timeline window, and no visible event
+	// appeared after it (lastVisibleTs is either absent or older).
+	if (stored?.lastReadAllTs !== undefined && timelineStartTs !== undefined && stored.lastReadAllTs >= timelineStartTs) {
+		if (lastVisibleTs === undefined || lastVisibleTs <= stored.lastReadAllTs) return 'read';
+	}
+
+	// Direct evidence: a visible event exists in the timeline.
+	if (lastVisibleTs !== undefined) {
+		return lastVisibleTs > receiptTs ? 'unread' : 'read';
+	}
+
+	// No visible event in timeline. Could an unread event hide in a blind spot?
+	if (timelineStartTs !== undefined) {
+		if (timelineStartTs <= receiptTs) return 'read';
+		if (stored && stored.lastVisibleTs > receiptTs) return 'unread';
+		return 'unknown';
+	}
+
+	// Empty timeline — no direct evidence at all.
+	if (stored?.lastReadAllTs !== undefined) return 'read';
+	if (stored && stored.lastVisibleTs > receiptTs) return 'unread';
+	if (stored && stored.lastVisibleTs > 0 && stored.lastVisibleTs <= receiptTs) return 'read';
+	return 'unknown';
+}
+
+// #endregion

@@ -52,8 +52,8 @@ const cache = new Map<string, StoredUnreadInfo>();
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /** Synchronous in-memory read. Returns null if no data for this room. */
-export function getStoredUnreadInfo(roomId: string): StoredUnreadInfo | null {
-	return cache.get(roomId) ?? null;
+export function getStoredUnreadInfo(roomId: string): StoredUnreadInfo | undefined {
+	return cache.get(roomId);
 }
 
 /**

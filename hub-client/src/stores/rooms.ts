@@ -263,6 +263,7 @@ const useRooms = defineStore('rooms', {
 		},
 
 		setRoomsLoaded(loaded: boolean) {
+			if (this.initialRoomsLoaded === loaded) return;
 			this.initialRoomsLoaded = loaded;
 			if (!loaded) return;
 			// Rooms are added to roomList with unreadState 'unknown'. Compute the
