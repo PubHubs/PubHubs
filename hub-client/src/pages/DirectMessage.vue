@@ -62,6 +62,7 @@
 			<div
 				class="flex h-full flex-col overflow-y-auto p-3 md:p-4"
 				:class="isMobile ? 'w-full' : 'w-[360px] shrink-0'"
+				:data-loaded="!dmLoading || undefined"
 			>
 				<div
 					v-if="dmLoading && sortedPrivateRooms.length === 0"
