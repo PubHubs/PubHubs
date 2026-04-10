@@ -130,6 +130,7 @@ export class LocalStore {
 	async getAll(): Promise<Record<string, string>> {
 		const hubPrefix = this.keyPrefix + this.hubHash + ':';
 		const result: Record<string, string> = {};
+		const toRemove: string[] = [];
 		for (let i = 0; i < localStorage.length; i++) {
 			const sk = localStorage.key(i);
 			if (!sk?.startsWith(hubPrefix)) continue;
@@ -140,9 +141,10 @@ export class LocalStore {
 				result[key] = await decrypt(this.cryptoKey, raw);
 			} catch {
 				this.warn(`Removing unreadable LocalStore entry: ${sk}`);
-				localStorage.removeItem(sk);
+				toRemove.push(sk);
 			}
 		}
+		for (const sk of toRemove) localStorage.removeItem(sk);
 		return result;
 	}
 }
