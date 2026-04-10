@@ -5,12 +5,14 @@
 	>
 		<div
 			ref="elReactionPopUp"
-			class="group hover:bg-surface-base flex flex-col"
+			class="group flex flex-col"
 			:class="[
 				props.isGrouped ? 'pt-1!' : 'pt-4!',
 				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
 				getMessageContainerClasses,
-				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y border-l-4',
+				!redactedMessage && 'group-hover:border-l-accent-primary! hover:border-l-accent-primary! border-l-4',
+				!isPrivilegedMessage && !redactedMessage && 'border-l-transparent',
+				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y',
 				(isAnnouncementMessage || isWhisperMessage) &&
 					!redactedMessage &&
 					(props.room.getPowerLevel(props.event.sender) === 100

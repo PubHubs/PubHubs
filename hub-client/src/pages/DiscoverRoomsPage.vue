@@ -14,31 +14,49 @@
 			</div>
 		</template>
 
-		<div class="mx-auto my-16 flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
+		<div class="mx-auto my-10 flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
 			<!-- Search bar -->
-			<div class="flex flex-col gap-2">
-				<input
-					v-model="searchQuery"
-					class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary mb-4 w-full rounded-xs border px-4 py-2"
-					:placeholder="$t('others.search_rooms')"
-					type="text"
-					@keyup="startFilter"
-				/>
+			<div class="mb-4">
+				<div class="relative w-full md:ml-auto md:w-[320px]">
+					<input
+						v-model="searchQuery"
+						class="outline-offset-thin outline-on-surface-dim focus:ring-button-blue text-on-surface placeholder-on-surface-dim w-full rounded px-175 py-100 pr-10 outline focus:ring-3 focus:outline-none"
+						:placeholder="$t('others.search_rooms')"
+						type="text"
+						@keyup="startFilter"
+					/>
+					<Icon
+						v-if="!searchQuery"
+						type="magnifying-glass"
+						size="sm"
+						class="text-on-surface-dim pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+					/>
+					<button
+						v-else
+						type="button"
+						class="text-on-surface-dim hover:text-on-surface absolute top-1/2 right-3 -translate-y-1/2"
+						:aria-label="t('others.clear_search')"
+						@click="clearSearch"
+					>
+						<Icon
+							type="x"
+							size="sm"
+						/>
+					</button>
+				</div>
 			</div>
 
-			<div class="h-4">
-				<InlineSpinner
-					v-if="!roomsLoaded || isFiltering"
-					class="mx-auto w-full"
-				/>
-			</div>
+			<InlineSpinner
+				v-if="!roomsLoaded || isFiltering"
+				class="mx-auto w-full"
+			/>
 
 			<!-- Room grid -->
 			<div
 				v-if="roomsLoaded"
 				class="@container flex w-full flex-col gap-2"
 			>
-				<div class="flex w-full justify-center rounded-xl py-8">
+				<div class="flex w-full justify-center rounded-xl pb-8">
 					<TransitionGroup
 						v-if="filteredRooms.length > 0"
 						class="grid w-full grid-cols-1 gap-8 transition-all duration-300 @2xl:grid-cols-2 @7xl:grid-cols-3"
@@ -104,6 +122,11 @@
 	const filterTimer = ref<ReturnType<typeof setTimeout>>();
 	const isFiltering = ref(false);
 	const filterTimeOut = 400;
+
+	const clearSearch = () => {
+		searchQuery.value = '';
+		startFilter();
+	};
 
 	const startFilter = () => {
 		clearTimeout(filterTimer.value);

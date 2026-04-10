@@ -4,10 +4,11 @@
 		class="flex w-full items-center gap-x-1"
 	>
 		<span
-			v-for="value in roomAttributes"
-			:key="value"
+			v-for="[attribute, value] in roomAttributes"
+			:key="attribute"
 			class="text-background text-label-small flex w-fit items-center gap-1 rounded-full px-2 lowercase"
 			:class="value === 'admin.title_administrator' ? 'bg-accent-primary' : 'bg-surface text-on-surface-variant'"
+			:title="value === 'admin.title_administrator' ? $t(value) : `${attribute}: ${value}`"
 		>
 			<Icon
 				class="py-1"
@@ -47,11 +48,11 @@
 
 	const props = defineProps<Props>();
 	const rooms = useRooms();
-	const roomAttributes = ref<string[]>([]);
+	const roomAttributes = ref<Array<[string, string]>>([]);
 
 	function update_attributes() {
 		if (rooms.roomNotices[props.roomId] && rooms.roomNotices[props.roomId][props.user]) {
-			roomAttributes.value = rooms.roomNotices[props.roomId][props.user];
+			roomAttributes.value = Object.entries(rooms.roomNotices[props.roomId][props.user]);
 		}
 	}
 

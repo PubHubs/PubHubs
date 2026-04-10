@@ -91,6 +91,7 @@ const nl = {
 		hub_card_about: 'Over',
 		heading: 'Hub beschrijving:',
 		contact_details: 'Contactgegevens:',
+		contact_copied: 'Gekopieerd naar klembord',
 	},
 	mss: {
 		system_offline: 'Systeem offline',

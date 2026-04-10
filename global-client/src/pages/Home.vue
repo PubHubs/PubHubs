@@ -12,64 +12,74 @@
 				</div>
 			</div>
 		</div>
-		<div class="mx-auto mb-16 flex w-full flex-col gap-16 md:w-4/6">
-			<div class="mt-4 flex flex-col gap-2 px-8 md:px-0">
-				<div class="relative">
+		<div class="mx-auto mb-16 flex w-full flex-col gap-10 px-8 md:w-4/6 md:px-0">
+			<!-- Search bar -->
+			<div class="mt-10">
+				<div class="relative w-full md:ml-auto md:w-[320px]">
 					<input
 						v-model="searchQuery"
-						type="text"
+						class="outline-offset-thin outline-on-surface-dim focus:ring-button-blue text-on-surface placeholder-on-surface-dim w-full rounded px-175 py-100 pr-10 outline focus:ring-3 focus:outline-none"
 						:placeholder="$t('others.search_hubs')"
-						class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary mb-4 w-full rounded-xs border px-4 py-2"
+						type="text"
 					/>
 					<Icon
+						v-if="!searchQuery"
 						type="magnifying-glass"
-						class="text-on-surface-variant pointer-events-none absolute top-[20%] right-2 z-10"
 						size="sm"
+						class="text-on-surface-dim pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
 					/>
+					<button
+						v-else
+						type="button"
+						class="text-on-surface-dim hover:text-on-surface absolute top-1/2 right-3 -translate-y-1/2"
+						:aria-label="$t('others.clear_search')"
+						@click="searchQuery = ''"
+					>
+						<Icon
+							type="x"
+							size="sm"
+						/>
+					</button>
 				</div>
 			</div>
-			<div class="flex flex-col gap-2">
-				<div class="bg-surface-low rounded-xl px-8 py-8 md:px-12">
-					<!-- Loading skeletons -->
+			<div class="@container flex w-full flex-col gap-2">
+				<!-- Loading skeletons -->
+				<div
+					v-if="global.hubsLoading && filteredHubs.length === 0"
+					class="grid w-full grid-cols-1 gap-8 @2xl:grid-cols-2 @7xl:grid-cols-3"
+				>
 					<div
-						v-if="global.hubsLoading && filteredHubs.length === 0"
-						class="3xl:grid-cols-3 grid w-full gap-8 md:grid-cols-2"
+						v-for="n in 4"
+						:key="n"
+						class="bg-surface w-full animate-pulse overflow-hidden rounded-xl"
 					>
-						<div
-							v-for="n in 4"
-							:key="n"
-							class="bg-background h-60 w-full animate-pulse overflow-hidden rounded-xl shadow-md"
-						>
-							<div class="bg-surface-high h-24 w-full"></div>
-							<div class="flex items-start gap-4 px-4 py-2">
-								<div class="bg-surface-high -mt-8 h-16 w-16 shrink-0 rounded-xl"></div>
-								<div class="flex w-full flex-col gap-2 pt-1">
-									<div class="bg-surface-high h-6 w-3/4 rounded"></div>
-									<div class="bg-surface-high h-4 w-1/3 rounded"></div>
-									<div class="bg-surface-high h-4 w-full rounded"></div>
-									<div class="bg-surface-high h-4 w-2/3 rounded"></div>
-								</div>
+						<div class="bg-surface-high h-30 w-full"></div>
+						<div class="flex h-30 items-start gap-4 p-5 sm:p-6">
+							<div class="bg-surface-high h-12 w-12 shrink-0 rounded-xl"></div>
+							<div class="flex w-full flex-col gap-2 pt-1">
+								<div class="bg-surface-high h-4 w-3/4 rounded"></div>
+								<div class="bg-surface-high h-3 w-full rounded"></div>
+								<div class="bg-surface-high h-3 w-2/3 rounded"></div>
 							</div>
 						</div>
 					</div>
-					<!-- Hub cards -->
-					<div
-						v-else-if="filteredHubs.length > 0"
-						class="3xl:grid-cols-3 grid w-full gap-8 md:grid-cols-2"
-					>
-						<div
-							v-for="hub in filteredHubs"
-							:key="hub.hubId"
-						>
-							<HubBlock :hub="hub" />
-						</div>
-					</div>
-					<div
-						v-else
-						class="flex w-full items-center justify-center"
-					>
-						<P>{{ $t('others.search_hubs_not_found') }}</P>
-					</div>
+				</div>
+				<!-- Hub cards -->
+				<div
+					v-else-if="filteredHubs.length > 0"
+					class="grid w-full grid-cols-1 gap-8 @2xl:grid-cols-2 @7xl:grid-cols-3"
+				>
+					<HubBlock
+						v-for="hub in filteredHubs"
+						:key="hub.hubId"
+						:hub="hub"
+					/>
+				</div>
+				<div
+					v-else
+					class="flex w-full items-center justify-center"
+				>
+					<P>{{ $t('others.search_hubs_not_found') }}</P>
 				</div>
 			</div>
 		</div>

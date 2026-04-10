@@ -1,6 +1,6 @@
 <template>
 	<figure
-		class="h-[80px] w-full"
+		class="h-full w-full"
 		:class="props.class"
 	>
 		<img

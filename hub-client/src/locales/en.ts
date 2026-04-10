@@ -94,6 +94,7 @@ const en = {
 		hub_card_about: 'About',
 		heading: 'Hub description:',
 		contact_details: 'Contact details:',
+		contact_copied: 'Copied to clipboard',
 	},
 	mss: {
 		system_offline: 'System offline',

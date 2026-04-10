@@ -76,7 +76,7 @@ const useRooms = defineStore('rooms', {
 			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
-			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },
+			roomNotices: {} as { [room_id: string]: { [user_id: string]: Record<string, string> } },
 			securedRoom: undefined as TSecuredRoom | undefined,
 			initialRoomsLoaded: false,
 			timestamps: [] as Array<Array<number | string>>,
@@ -509,8 +509,11 @@ const useRooms = defineStore('rooms', {
 
 		addProfileNotice(roomId: string, body: string) {
 			const user_id = body.split(' ', 1)[0];
-			let attributes: string[] = Object.values(JSON.parse(body.split('joined the room with attributes', 2)[1].trim().replaceAll("'", '"')));
-			attributes = attributes.filter((x) => x !== '');
+			const parsed: Record<string, string> = JSON.parse(body.split('joined the room with attributes', 2)[1].trim().replaceAll("'", '"'));
+			const attributes: Record<string, string> = {};
+			for (const [key, value] of Object.entries(parsed)) {
+				if (value !== '') attributes[key] = value;
+			}
 			if (!this.roomNotices[roomId]) {
 				this.roomNotices[roomId] = {};
 			}
