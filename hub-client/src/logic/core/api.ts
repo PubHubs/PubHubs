@@ -9,6 +9,7 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	securedRooms: 'client/secured_rooms',
 	notice: 'client/notices',
 	securedRoom: 'client/srextra',
+	videoCall: 'client/videocall',
 
 	// User admin API
 	usersAPIV1: 'admin/v1/users/',

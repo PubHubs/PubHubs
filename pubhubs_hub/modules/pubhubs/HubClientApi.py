@@ -7,6 +7,7 @@ from synapse.module_api.errors import ConfigError
 from twisted.web.server import Request
 
 from ._yivi_proxy import ProxyServlet
+from ._video_call_web import VideoCallServlet
 from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomExtraServlet
 from ._store import HubStore
 from ._web import JoinServlet
@@ -127,6 +128,8 @@ class HubClientApi(object):
 
         api.register_web_resource("/_synapse/client/hub", HubResource(api, self._config, self.store))
         
+        api.register_web_resource("/_synapse/client/videocall", VideoCallServlet( self._config,  self.store, self.module_api))
+
         api.register_spam_checker_callbacks(user_may_join_room=self.joining)
 
 

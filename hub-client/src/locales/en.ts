@@ -745,6 +745,10 @@ const en = {
 			},
 		},
 	},
+	videocall: {
+		start_button: 'Start video call',
+		join_button: 'Join video call',
+	},
 };
 
 export { en };

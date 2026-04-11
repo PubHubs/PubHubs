@@ -102,6 +102,14 @@
 							@click="sidebar.toggleTab(SidebarTab.Library)"
 						/>
 
+						<!-- Video call button -->
+						<GlobalBarButton
+							v-if="showVideocallButton()"
+							type="video"
+							:is-start-button="!ongoingCall"
+							@click="startOrJoinVideoCall()"
+						/>
+
 						<!-- Members -->
 						<GlobalBarButton
 							v-if="hasRoomMembers"
@@ -226,6 +234,7 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
@@ -258,14 +267,17 @@
 	const roles = useRoles();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
+	const videoCall = useVideoCall();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
 	const { openMenu } = useContextMenu();
 	const sidebar = useSidebar();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
+
 	const pubhubs = usePubhubsStore();
 	const { yellowCardMembers, watchEffectCardAction } = useModeration();
 
+	const ongoingCall = computed(() => room.value!.isOngoingCall());
 	const joinSecuredRoom = ref<string | null>(null);
 	const scrollToEventId = ref<string>();
 	const isLoading = ref(!rooms.roomExists(props.id));
@@ -455,6 +467,19 @@
 	function notPrivateRoom() {
 		if (!room.value) return true;
 		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
+	}
+
+	async function startOrJoinVideoCall() {
+		router.push({ name: 'videocall' });
+		if (room.value!.isOngoingCall()) {
+			videoCall.joinCall();
+		} else {
+			videoCall.startCall();
+		}
+	}
+
+	function showVideocallButton(): boolean {
+		return settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.value!.isSecuredRoom() || room.value!.isPrivateRoom());
 	}
 
 	watchEffectCardAction();

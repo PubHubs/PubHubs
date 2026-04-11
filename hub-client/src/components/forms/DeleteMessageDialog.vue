@@ -45,6 +45,8 @@
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
+	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+
 	// Stores
 	import { type DialogButtonAction, buttonsYesNo } from '@hub-client/stores/dialog';
 	import { type Room } from '@hub-client/stores/rooms';
@@ -52,7 +54,7 @@
 
 	const props = defineProps({
 		event: {
-			type: Object,
+			type: Object as PropType<TMessageEvent>,
 			required: true,
 		},
 		threadReactionEvent: {
