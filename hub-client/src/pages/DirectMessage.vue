@@ -46,6 +46,14 @@
 					@click="sidebar.toggleTab(SidebarTab.Members)"
 				/>
 
+				<!-- Video call button (when room is selected and feature enabled) -->
+				<GlobalBarButton
+					v-if="selectedRoom && showVideocallButton()"
+					type="video"
+					:is-start-button="!ongoingCall"
+					@click="startOrJoinVideoCall()"
+				/>
+
 				<!-- New message button -->
 				<GlobalBarButton
 					type="plus"
@@ -218,7 +226,7 @@
 	import { EventTimeline, EventType } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { onBeforeRouteLeave } from 'vue-router';
+	import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
@@ -242,8 +250,9 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { type Room, useRooms } from '@hub-client/stores/rooms';
-	import { useSettings } from '@hub-client/stores/settings';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
@@ -259,7 +268,9 @@
 	const _user = useUser();
 	const { t } = useI18n();
 	const sidebar = useSidebar();
+	const videoCall = useVideoCall();
 
+	const router = useRouter();
 	const isMobile = computed(() => settings.isMobileState);
 
 	const selectedRoom = shallowRef<Room | null>(null);
@@ -391,5 +402,21 @@
 
 	function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
 		scrollToEventId.value = ev.eventId;
+	}
+
+	const ongoingCall = computed(() => selectedRoom.value?.isOngoingCall() ?? false);
+
+	function showVideocallButton(): boolean {
+		if (!selectedRoom.value) return false;
+		return settings.isFeatureEnabled(FeatureFlag.videocalls) && selectedRoom.value.isPrivateRoom();
+	}
+
+	async function startOrJoinVideoCall() {
+		router.push({ name: 'videocall' });
+		if (selectedRoom.value?.isOngoingCall()) {
+			videoCall.joinCall();
+		} else {
+			videoCall.startCall();
+		}
 	}
 </script>

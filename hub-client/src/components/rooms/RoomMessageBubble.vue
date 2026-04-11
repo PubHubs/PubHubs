@@ -80,7 +80,7 @@
 						<!-- Message Snippet -->
 						<Suspense v-if="hasBeenVisible">
 							<MessageSnippet
-								v-if="showReplySnippet(props.event.content.msgtype)"
+								v-if="inReplyToId && showReplySnippet(props.event.content.msgtype)"
 								:event-id="inReplyToId"
 								class="mb-2"
 								:show-in-reply-to="true"
@@ -161,7 +161,7 @@
 							</span>
 						</div>
 
-						<Suspense v-if="hasBeenVisible && showWhisperReplySnippet">
+						<Suspense v-if="hasBeenVisible && inReplyToId && showWhisperReplySnippet">
 							<MessageSnippet
 								:event-id="inReplyToId"
 								class="mb-2"
@@ -297,7 +297,12 @@
 					<template v-if="hasBeenVisible">
 						<PrivilegedMessageBody
 							v-if="isPrivilegedMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)"
-							:event="props.event.content"
+							:event="props.event.content as any"
+						/>
+						<MessageVideoCall
+							v-else-if="props.event.content.msgtype === PubHubsMgType.VideoCall"
+							:event="props.event as any"
+							:room-id="room.roomId"
 						/>
 						<MessageSigned
 							v-else-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage"
@@ -367,6 +372,7 @@
 	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
 	import MessageSigned from '@hub-client/components/rooms/MessageSigned.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
+	import MessageVideoCall from '@hub-client/components/rooms/MessageVideoCall.vue';
 	import PrivilegedMessageBody from '@hub-client/components/rooms/PrivilegedMessageBody.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
@@ -703,7 +709,7 @@
 		if (
 			!props.viewFromThread &&
 			props.eventThreadLength <= 0 &&
-			canReplyInThread &&
+			canReplyInThread.value &&
 			!props.event.msgIsNotSend &&
 			!redactedMessage.value &&
 			!props.room.isDirectMessageRoom()
@@ -716,7 +722,7 @@
 		}
 
 		// Copy message text
-		if (!redactedMessage.value && props.event.content.body) {
+		if (!redactedMessage.value && typeof props.event.content.body === 'string') {
 			utility.push({
 				label: t('menu.copy_message'),
 				icon: 'copy',

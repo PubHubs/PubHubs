@@ -6,6 +6,9 @@ import {
 	type EventTimelineSet,
 	EventType,
 	type Filter,
+	type GroupCall,
+	GroupCallIntent,
+	GroupCallType,
 	type IStateEvent,
 	type MatrixClient,
 	MatrixEvent,
@@ -16,11 +19,14 @@ import {
 	type Thread,
 } from 'matrix-js-sdk';
 import { type CachedReceipt, type WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { type MatrixRTCSession } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
 import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+import { api_synapse } from '@hub-client/logic/core/api';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -908,4 +914,49 @@ export default class Room {
 	}
 
 	// #endregion
+
+	// #region VideoCall
+
+	public startMatrixRTC() {
+		this.matrixRoom.client.matrixRTC.start();
+	}
+
+	public getMatrixRTCSessions(): MatrixRTCSession {
+		return this.matrixRoom.client.matrixRTC.getRoomSession(this.matrixRoom);
+	}
+
+	//TODO maybe move to pubhubsstore
+	public async getLiveKitTokenResponse(): Promise<[string, string]> {
+		const response = await api_synapse.apiGET(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId);
+		// @ts-expect-error -- API response is loosely typed and returns token/livekit_url keys at runtime
+		return [response.token, response.livekit_url];
+	}
+
+	public async createGroupCall(): Promise<GroupCall> {
+		await api_synapse.apiPOST(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId, {});
+		return await this.matrixRoom.client.createGroupCall(this.roomId, GroupCallType.Video, false, GroupCallIntent.Room, true);
+	}
+
+	public getGroupCall(): GroupCall | null {
+		return this.matrixRoom.client.getGroupCallForRoom(this.roomId);
+	}
+
+	public isOngoingCall() {
+		const groupCall = this.matrixRoom.client.getGroupCallForRoom(this.roomId);
+		if (groupCall) return true;
+		return false;
+	}
+
+	public getLastVideoCallTimeLineEvent(): MatrixEvent | undefined {
+		const timeline = this.getLiveTimelineEvents();
+
+		const lastVideoCallMessage = timeline.findLast((e) => e.event.content?.msgtype === PubHubsMgType.VideoCall);
+		if (!lastVideoCallMessage || !lastVideoCallMessage.event.event_id) {
+			return undefined;
+		}
+
+		return lastVideoCallMessage;
+	}
+
+	//#endregion
 }

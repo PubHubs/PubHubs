@@ -14,7 +14,7 @@
  *      const emit = defineEmits(usedEvents);
  *      const { value, changed, submit, cancel } = useFormInputEvents(emit);
  *
- *      // If you need to set the value (according to a propperty of the component for example):
+ *      // If you need to set the value (according to a property of the component for example):
  *
  *      const emit = defineEmits(usedEvents);
  *      const { value, setValue, changed, submit, cancel } = useFormInputEvents(emit);

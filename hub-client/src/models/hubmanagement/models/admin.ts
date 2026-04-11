@@ -80,7 +80,7 @@ export class Administrator implements IUserManagement, IRoomManagement, ISuspend
 
 	async changePermission(userId: string, roomId: string, powerLevel: number): Promise<ISendEventResponse> {
 		const pubhubs = usePubhubsStore();
-		const currentPls: RoomPowerLevelsEventContent = await pubhubs.getPoweLevelEventContent(roomId);
+		const currentPls: RoomPowerLevelsEventContent = await pubhubs.getPowerLevelEventContent(roomId);
 		const users = currentPls['users'] || {};
 		users[userId] = powerLevel;
 		currentPls['users'] = users;

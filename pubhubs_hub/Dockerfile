@@ -16,6 +16,11 @@ RUN GO111MODULE=auto go install ./irma
 FROM ghcr.io/element-hq/synapse:v1.150.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
+COPY --from=livekit/livekit-server:latest /livekit-server /usr/bin/livekit-server
+COPY --chmod=755 config/local/livekit.local.yaml /conf/livekit.local.yaml
+
+# Install livekit Python packages
+RUN pip install --no-cache-dir livekit livekit-api
 
 RUN apt-get update && \
 	apt-get install -y -q postgresql sudo && \

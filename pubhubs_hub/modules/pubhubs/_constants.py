@@ -3,6 +3,7 @@ ROOM_ID = 'room_id'
 # Urls
 CLIENT_URL = "client_url"
 GLOBAL_CLIENT_URL = "global_client_url"
+LIVEKIT_URL = "http://localhost:7880"
 DEV_URL = "dev_url"
 YIVI_URL = 'yivi_url'
 CLIENT_YIVI_URL = 'client_yivi_url'

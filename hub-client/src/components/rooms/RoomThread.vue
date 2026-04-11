@@ -9,12 +9,12 @@
 		<div class="flex-1 overflow-y-scroll pb-4">
 			<!-- Root event -->
 			<div
-				v-if="filteredEvents.length === 0"
+				v-if="filteredEvents.length === 0 && props.room.currentThread?.rootEvent?.event"
 				:id="threadRootId"
 			>
 				<RoomMessageBubble
 					:room="room"
-					:event="props.room.currentThread?.rootEvent?.event ?? {}"
+					:event="props.room.currentThread?.rootEvent?.event"
 					:view-from-thread="true"
 					:active-reaction-panel="activeReactionPanel"
 					class="room-event"
@@ -73,8 +73,8 @@
 
 	<!-- Delete message dialog -->
 	<DeleteMessageDialog
-		v-if="showConfirmDelMsgDialog"
-		:event="eventToBeDeleted ?? {}"
+		v-if="showConfirmDelMsgDialog && eventToBeDeleted"
+		:event="eventToBeDeleted"
 		:room="room"
 		:view-from-thread="true"
 		@close="showConfirmDelMsgDialog = false"

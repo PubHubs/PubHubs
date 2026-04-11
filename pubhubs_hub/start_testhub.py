@@ -83,6 +83,7 @@ def main():
                     "--rm",
                     "--name", f"pubhubs-testhub{args.number}",
                     "-p", f"{8008+args.number}:8008",
+                    "-p", f"{7880}:7880",
                     "-v", f"{os.path.join(".","modules")}:/conf/modules:ro",
                     "-v", f"{os.path.join(".","boot")}:/conf/boot:ro",
                     "-v", f"{os.path.join(".",f"testhub{args.number}")}:/data:rw",

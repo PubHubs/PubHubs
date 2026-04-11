@@ -744,6 +744,10 @@ const nl = {
 			},
 		},
 	},
+	videocall: {
+		start_button: 'Start videogesprek',
+		join_button: 'Neem deel aan videogesprek',
+	},
 };
 
 export { nl };
