@@ -11,16 +11,12 @@
 			<div class="flex items-center gap-2">
 				<span>Sort by:</span>
 				<Button
-					:icon="orderIcon(ORDER.Activity)"
-					variant="secondary"
-					@click="setOrder(ORDER.Activity)"
-					>Last Activity</Button
-				>
-				<Button
-					:icon="orderIcon(ORDER.Created)"
-					variant="secondary"
-					@click="setOrder(ORDER.Created)"
-					>Created</Button
+					v-for="order in ORDER"
+					:key="order"
+					:icon="orderIcon(order)"
+					:variant="order === orderType ? 'primary' : 'secondary'"
+					@click="setOrder(order)"
+					>{{ order }}</Button
 				>
 			</div>
 		</div>
@@ -84,14 +80,20 @@
 
 	const initialLoadComplete = ref(false);
 	const orderType = ref(ORDER.Created);
-	const orderDir = ref(ORDER_DIR.desc);
+	const orderDir = ref(ORDER_DIR.asc);
 
 	onMounted(() => {
 		initialLoadComplete.value = true;
 	});
 
 	const events = computed(() => {
-		return props.room.getChronologicalTimeline();
+		let timeline = [];
+		if (orderDir.value === ORDER_DIR.desc) {
+			timeline = props.room.getChronologicalTimeline();
+		} else {
+			timeline = props.room.getChronologicalTimelineAsc();
+		}
+		return timeline;
 	});
 
 	const currentTopic = computed(() => {
@@ -110,7 +112,7 @@
 				return 'arrow-down';
 			}
 		}
-		return 'arrows-down-up';
+		return '';
 	};
 
 	const setOrder = (orderOption: ORDER) => {

@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref } from 'vue';
+	import { computed } from 'vue';
 
 	// Components
 	import ActionMenu from '@hub-client/components/ui/ActionMenu.vue';
@@ -60,17 +60,15 @@
 		},
 	});
 
-	// const emit = defineEmits(['reply']);
-
 	const currentUser = useUser().user;
 
-	const nrOfReplies = ref(0);
-
-	onMounted(() => {
+	const nrOfReplies = computed(() => {
+		let count = 0;
 		const currentThreadId = props.room.getCurrentThreadId();
 		if (currentThreadId !== props.event.event_id && props.event.event_id) props.room.setCurrentThreadId(props.event.event_id);
-		nrOfReplies.value = props.room.getCurrentThreadLength() - 1;
+		count = props.room.getCurrentThreadLength() - 1;
 		if (currentThreadId !== props.event.event_id) props.room.setCurrentThreadId(currentThreadId);
+		return count;
 	});
 
 	const currentUserIsTopicAuthor = computed(() => currentUser.userId === props.event.author?.userId);

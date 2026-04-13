@@ -755,6 +755,13 @@ export default class Room {
 	}
 
 	/**
+	 * Returns timeline events sorted chronologically (newest first)
+	 */
+	public getChronologicalTimelineAsc(): TimelineEvent[] {
+		return this.timelineManager.getChronologicalTimelineAsc();
+	}
+
+	/**
 	 * Returns the timeline version counter
 	 */
 	public getTimelineVersion(): number {
