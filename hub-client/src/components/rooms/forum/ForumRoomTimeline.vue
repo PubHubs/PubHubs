@@ -53,6 +53,7 @@
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
 	import PostsFilterButton from '@hub-client/components/rooms/forum/PostsFilterButton.vue';
 
+	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 
@@ -87,11 +88,24 @@
 	});
 
 	const events = computed(() => {
-		let timeline = [];
-		if (orderDir.value === ORDER_DIR.desc) {
-			timeline = props.room.getChronologicalTimeline();
+		let timeline = [] as TimelineEvent[];
+		if (orderType.value === ORDER.Created) {
+			if (orderDir.value === ORDER_DIR.desc) {
+				timeline = props.room.getChronologicalTimeline();
+			} else {
+				timeline = props.room.getChronologicalTimelineAsc();
+			}
 		} else {
-			timeline = props.room.getChronologicalTimelineAsc();
+			// order by last timestamp per thread
+			const rawTimeline = props.room.getTimeline();
+			timeline = rawTimeline.sort((a, b) => {
+				const tsa = props.room.getMatrixThreadLastEventTimestamp(a.matrixEvent.event.event_id!)!;
+				const tsb = props.room.getMatrixThreadLastEventTimestamp(b.matrixEvent.event.event_id!)!;
+				if (orderDir.value === ORDER_DIR.asc) {
+					return tsb - tsa;
+				}
+				return tsa - tsb;
+			});
 		}
 		return timeline;
 	});

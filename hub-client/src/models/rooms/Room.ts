@@ -863,6 +863,17 @@ export default class Room {
 		return this.matrixRoom.getThread(eventId) ?? undefined;
 	}
 
+	public getMatrixThreadLastEvent(eventId: string): MatrixEvent | undefined {
+		const thread = this.getMatrixThread(eventId);
+		if (!thread) return undefined;
+		return thread.events[thread.events.length - 1];
+	}
+
+	public getMatrixThreadLastEventTimestamp(eventId: string): number | undefined {
+		const lastEvent = this.getMatrixThreadLastEvent(eventId);
+		return lastEvent?.getTs();
+	}
+
 	public createMatrixThread(eventId: string): Thread {
 		return this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
 	}
