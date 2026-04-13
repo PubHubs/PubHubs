@@ -9,6 +9,7 @@
 				<AddNewPostButton />
 			</div>
 			<div class="flex items-center gap-2">
+				<span>Sort by:</span>
 				<Button
 					:icon="orderIcon(ORDER.Activity)"
 					variant="secondary"
@@ -21,7 +22,6 @@
 					@click="setOrder(ORDER.Created)"
 					>Created</Button
 				>
-				<SortPostsButton />
 			</div>
 		</div>
 
@@ -56,7 +56,6 @@
 	// Components
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
 	import PostsFilterButton from '@hub-client/components/rooms/forum/PostsFilterButton.vue';
-	import SortPostsButton from '@hub-client/components/rooms/forum/SortPostsButton.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
