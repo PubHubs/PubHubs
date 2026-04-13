@@ -2,6 +2,16 @@
 	<div class="flex flex-col justify-between gap-2">
 		<div class="flex items-center justify-between gap-2">
 			<div class="flex items-center gap-1">
+				<template v-if="lastTimestamp > 0">
+					<EventTime
+						:timestamp="lastTimestamp"
+						:show-date="true"
+					></EventTime>
+					<EventTime
+						:timestamp="lastTimestamp"
+						:show-date="false"
+					></EventTime>
+				</template>
 				<Icon type="chat-circle-text" />
 				<span>{{ nrOfReplies }}</span>
 			</div>
@@ -39,6 +49,7 @@
 	import { computed } from 'vue';
 
 	// Components
+	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import ActionMenu from '@hub-client/components/ui/ActionMenu.vue';
 	import ActionMenuItem from '@hub-client/components/ui/ActionMenuItem.vue';
 
@@ -53,6 +64,10 @@
 		event: {
 			type: Object,
 			required: true,
+		},
+		lastTimestamp: {
+			type: Number,
+			default: 0,
 		},
 		room: {
 			type: Room,

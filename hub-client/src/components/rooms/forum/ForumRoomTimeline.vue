@@ -26,11 +26,12 @@
 			class="flex flex-col gap-y-2"
 		>
 			<li
-				v-for="event in events"
-				:key="event.matrixEvent.event_id"
+				v-for="tEvent in events"
+				:key="tEvent.event.matrixEvent.event.event_id"
 			>
 				<ForumThreadItem
-					:event="event.matrixEvent.event"
+					:event="tEvent.event.matrixEvent.event"
+					:last-timestamp="tEvent.timestamp"
 					:room="room"
 					:show-actions="false"
 				></ForumThreadItem>
@@ -46,7 +47,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref } from 'vue';
+	import { computed, ref } from 'vue';
 
 	import AddNewPostButton from '@hub-client/components/rooms/forum/AddNewPostButton.vue';
 	// Components
@@ -79,41 +80,50 @@
 		asc = 1,
 	}
 
-	const initialLoadComplete = ref(false);
-	const orderType = ref(ORDER.Created);
+	interface TimeLineEventWithLastTimestamp {
+		event: TimelineEvent;
+		timestamp: number;
+	}
+
+	const orderType = ref(ORDER.Activity);
 	const orderDir = ref(ORDER_DIR.asc);
 
-	onMounted(() => {
-		initialLoadComplete.value = true;
-	});
-
 	const events = computed(() => {
-		let timeline = [] as TimelineEvent[];
-		if (orderType.value === ORDER.Created) {
-			if (orderDir.value === ORDER_DIR.desc) {
-				timeline = props.room.getChronologicalTimeline();
-			} else {
-				timeline = props.room.getChronologicalTimelineAsc();
+		const rawTimeline = props.room.getTimeline();
+		let timelineWithTimeStamps = [] as TimeLineEventWithLastTimestamp[];
+		timelineWithTimeStamps = rawTimeline.map((event) => {
+			return {
+				event: event,
+				timestamp: props.room.getMatrixThreadLastEventTimestamp(event.matrixEvent.event.event_id!)!,
+			} as TimeLineEventWithLastTimestamp;
+		});
+		// sort
+		timelineWithTimeStamps.sort((a, b) => {
+			if (orderType.value === ORDER.Created) {
+				if (orderDir.value === ORDER_DIR.desc) {
+					return a.event.matrixEvent.getTs() - b.event.matrixEvent.getTs();
+				} else {
+					return b.event.matrixEvent.getTs() - a.event.matrixEvent.getTs();
+				}
 			}
-		} else {
-			// order by last timestamp per thread
-			const rawTimeline = props.room.getTimeline();
-			timeline = rawTimeline.sort((a, b) => {
-				const tsa = props.room.getMatrixThreadLastEventTimestamp(a.matrixEvent.event.event_id!)!;
-				const tsb = props.room.getMatrixThreadLastEventTimestamp(b.matrixEvent.event.event_id!)!;
+			if (orderType.value === ORDER.Activity) {
+				const tsa = props.room.getMatrixThreadLastEventTimestamp(a.event.matrixEvent.event.event_id!)!;
+				const tsb = props.room.getMatrixThreadLastEventTimestamp(b.event.matrixEvent.event.event_id!)!;
 				if (orderDir.value === ORDER_DIR.asc) {
 					return tsb - tsa;
+				} else {
+					return tsa - tsb;
 				}
-				return tsa - tsb;
-			});
-		}
-		return timeline;
+			}
+			return 0;
+		});
+		return timelineWithTimeStamps;
 	});
 
 	const currentTopic = computed(() => {
 		if (events.value.length > 0 && props.topicId) {
-			const topic = events.value.find((t) => t.matrixEvent.event.event_id === props.topicId);
-			return topic?.matrixEvent.event;
+			const topic = events.value.find((t) => t.event.matrixEvent.event.event_id === props.topicId);
+			return topic?.event.matrixEvent.event;
 		}
 		return undefined;
 	});
@@ -121,9 +131,9 @@
 	const orderIcon = (orderOption: ORDER): string => {
 		if (orderOption === orderType.value) {
 			if (orderDir.value === ORDER_DIR.asc) {
-				return 'arrow-up';
-			} else {
 				return 'arrow-down';
+			} else {
+				return 'arrow-up';
 			}
 		}
 		return '';

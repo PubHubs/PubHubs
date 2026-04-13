@@ -10,6 +10,7 @@
 			<ForumTopicExtras
 				:event="event"
 				:room="room"
+				:last-timestamp="lastTimestamp"
 			></ForumTopicExtras>
 		</template>
 		<template #bottom>
@@ -31,6 +32,10 @@
 		event: {
 			type: Object,
 			required: true,
+		},
+		lastTimestamp: {
+			type: Number,
+			default: 0,
 		},
 		room: {
 			type: Room,
