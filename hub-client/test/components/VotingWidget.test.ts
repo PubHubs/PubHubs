@@ -678,6 +678,7 @@ describe('Back end functions', () => {
 		usePubhubsStore().addVote(roomId, eventId, optionId, vote);
 
 		expect(addVoteSpy).toHaveBeenCalledWith(roomId, eventId, optionId, vote);
+
 		expect(sendEventMock).toHaveBeenCalledWith(roomId, 'pubhubs.voting_widget.reply', {
 			msgtype: 'pubhubs.voting_widget.vote',
 			optionId: optionId,

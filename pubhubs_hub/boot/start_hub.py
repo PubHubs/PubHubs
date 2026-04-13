@@ -74,6 +74,20 @@ class Program:
                           replace_sqlite3_by_postgres=self._args.replace_sqlite3_by_postgres,
                           server_name=self._args.server_name)
 
+        # Start LiveKit server.
+        # Priority:
+        # 1) LIVEKIT_CONFIG_PATH env var
+        # 2) new local default path
+        # 3) legacy path kept for backward compatibility with older images
+        livekit_config_path = os.environ.get("LIVEKIT_CONFIG_PATH")
+        if not livekit_config_path:
+            if os.path.exists("/conf/livekit.local.yaml"):
+                livekit_config_path = "/conf/livekit.local.yaml"
+            else:
+                livekit_config_path = "/conf/livekit.yaml"
+        self._waiter.add("livekit", subprocess.Popen(("/usr/bin/livekit-server", 
+                        "--config", livekit_config_path)))
+
         self._waiter.add("yivi", subprocess.Popen(("/usr/bin/irma", 
                         "server",
                         "--issue-perms", "*",

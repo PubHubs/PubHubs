@@ -91,6 +91,7 @@ const nl = {
 		hub_card_about: 'Over',
 		heading: 'Hub beschrijving:',
 		contact_details: 'Contactgegevens:',
+		contact_copied: 'Gekopieerd naar klembord',
 	},
 	mss: {
 		system_offline: 'Systeem offline',
@@ -742,6 +743,10 @@ const nl = {
 				},
 			},
 		},
+	},
+	videocall: {
+		start_button: 'Start videogesprek',
+		join_button: 'Neem deel aan videogesprek',
 	},
 };
 

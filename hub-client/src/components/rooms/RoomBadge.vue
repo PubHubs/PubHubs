@@ -4,7 +4,7 @@
 		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-2 border uppercase"
 		:class="badgeClasses"
 		data-testid="event-badges"
-		:title="badgeLabel"
+		:title="badgeTitle"
 	>
 		<span class="line-clamp-1 truncate">{{ badgeLabel }}</span>
 	</span>
@@ -55,20 +55,34 @@
 	const hasPrivileges = computed(() => isExpert.value || isSteward.value || isSuperSteward.value || isAdmin.value);
 
 	const roomAttributes = computed(() => {
-		return rooms.roomNotices[props.roomId]?.[props.user] ?? [];
+		return rooms.roomNotices[props.roomId]?.[props.user] ?? {};
 	});
 
+	const roomAttributeEntries = computed(() => Object.entries(roomAttributes.value));
+
 	const shouldShowBadge = computed(() => {
-		return props.isHubAdmin || hasPrivileges.value || roomAttributes.value.length > 0;
+		return props.isHubAdmin || hasPrivileges.value || roomAttributeEntries.value.length > 0;
 	});
 
 	const badgeLabel = computed(() => {
 		if (props.isHubAdmin) return t('admin.title_hub_administrator');
 		if (isAdmin.value) return t('admin.title_room_administrator');
 		if (isSteward.value || isSuperSteward.value) return t('admin.title_room_steward');
-		if (roomAttributes.value.length > 0) {
-			const attr = roomAttributes.value[0];
-			return attr.includes('.') ? t(attr) : attr;
+		if (roomAttributeEntries.value.length > 0) {
+			const [, value] = roomAttributeEntries.value[0];
+			return value.includes('.') ? t(value) : value;
+		}
+		return '';
+	});
+
+	const badgeTitle = computed(() => {
+		if (props.isHubAdmin || isAdmin.value || isSteward.value || isSuperSteward.value) {
+			return badgeLabel.value;
+		}
+		if (roomAttributeEntries.value.length > 0) {
+			const [attribute, value] = roomAttributeEntries.value[0];
+			const displayValue = value.includes('.') ? t(value) : value;
+			return `${attribute}: ${displayValue}`;
 		}
 		return '';
 	});

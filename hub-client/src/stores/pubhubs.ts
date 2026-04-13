@@ -13,6 +13,7 @@ import {
 	type User as MatrixUser,
 	Method,
 	MsgType,
+	RoomStateEvent,
 } from 'matrix-js-sdk';
 import { Preset, Visibility } from 'matrix-js-sdk/lib/@types/partials';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -38,7 +39,14 @@ import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-c
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-import { type TMentions, type TMessageEvent, type TTextMessageEventContent, type TWhisperMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import {
+	type TMentions,
+	type TMessageEvent,
+	type TTextMessageEventContent,
+	type TVideoCallEndedMessageEventContent,
+	type TVideoCallMessageEventContent,
+	type TWhisperMessageEventContent,
+} from '@hub-client/models/events/TMessageEvent';
 import {
 	type TVotingWidgetClose,
 	type TVotingWidgetEditEventContent,
@@ -57,6 +65,7 @@ import { useConnection } from '@hub-client/stores/connection';
 import { useMessageActions } from '@hub-client/stores/message-actions';
 import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 import { type User, useUser } from '@hub-client/stores/user';
+import useVideoCall from '@hub-client/stores/videoCall';
 
 const logger = createLogger('PubHubs');
 const publicRoomsLoading: Promise<TPublicRoom[]> | null = null; // Outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -319,7 +328,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			const joinedMembers = await this.client.getJoinedRoomMembers(room_id);
 			// Check power level to see if there are users with PL of 100
-			const powerLevelContext = await this.getPoweLevelEventContent(room_id);
+			const powerLevelContext = await this.getPowerLevelEventContent(room_id);
 
 			// If the current user (i.e., admin) is not in powerlevel - the admin is not 'room' admin.
 			if (!powerLevelContext.users || powerLevelContext.users[user.user.userId] === undefined) return false;
@@ -677,10 +686,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const content = await this._constructMessageContent(text, threadRoot, inReplyTo);
 
 			/*
-               Sendmessage gives a console warning when adding a thread event, because the current timeline does not have a threadId.
-               For now we skip this , since the functionality is not affected by it.
-               These consoles can be used when checking for the reason of the warning.
-            */
+			   Sendmessage gives a console warning when adding a thread event, because the current timeline does not have a threadId.
+			   For now we skip this , since the functionality is not affected by it.
+			   These consoles can be used when checking for the reason of the warning.
+			*/
 			// console.error('getCapabilities: ', this.client.getCapabilities());
 			// console.error('does client support threads: ', this.client.supportsThreads());
 			// console.error('threadTimelineSets: ', room?.matrixRoom.threadsTimelineSets);
@@ -782,6 +791,32 @@ const usePubhubsStore = defineStore('pubhubs', {
 			};
 			// @ts-expect-error -- custom content type not assignable to SDK message type (issue #808)
 			await this.client.sendMessage(roomId, content);
+		},
+
+		async addVideoCallMessage(roomId: string, text: string): Promise<string> {
+			const content: TVideoCallMessageEventContent = {
+				msgtype: PubHubsMgType.VideoCall,
+				body: text,
+				timestamp: Date.now(),
+			};
+			// @ts-expect-error -- SDK sendMessage typing does not include custom videocall content shape
+			const response = await this.client.sendMessage(roomId, content);
+			return response.event_id;
+		},
+
+		async updateVideoCallMessage(roomId: string, eventId: string, text: string) {
+			const content: TVideoCallEndedMessageEventContent = {
+				msgtype: PubHubsMgType.VideoCallEnded,
+				body: text,
+				'm.relates_to': {
+					rel_type: PubHubsMgType.VideoCallEnded,
+					event_id: eventId,
+				},
+				timestamp: Date.now(),
+			};
+
+			// @ts-expect-error -- SDK sendEvent typing does not include custom videocall modify payload
+			await this.client.sendEvent(roomId, PubHubsMgType.VideoCallModify, content);
 		},
 
 		async addWhisperMessage(
@@ -1173,7 +1208,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 *
 		 * @returns Returns the room PowerLevel Event Content
 		 */
-		async getPoweLevelEventContent(roomId: string): Promise<RoomPowerLevelsEventContent> {
+		async getPowerLevelEventContent(roomId: string): Promise<RoomPowerLevelsEventContent> {
 			return await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
 		},
 
@@ -1347,6 +1382,35 @@ const usePubhubsStore = defineStore('pubhubs', {
 		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
 		},
+
+		async initialiseVideoCallPowerLevels(roomId: string) {
+			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
+			powerLevels.events = powerLevels.events || {};
+			powerLevels.events['org.matrix.msc3401.call.member'] = 0;
+			powerLevels.events['org.matrix.msc3401.call'] = 0;
+			await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
+		},
+
+		addEndCallListener() {
+			const rooms = useRooms();
+			const videoCall = useVideoCall();
+			const calledRoom = rooms.currentRoom;
+
+			if (calledRoom === undefined) {
+				return;
+			}
+			const onCallTerminated = async (event: MatrixEvent) => {
+				if (event.getType() === 'org.matrix.msc3401.call' && event.getContent()?.['m.terminated']) {
+					calledRoom.matrixRoom.removeListener(RoomStateEvent.Events, onCallTerminated);
+					// Skip if we're the one ending the call — endCall() handles everything
+					if (videoCall._isEnding) return;
+					router.push({ name: 'room', params: { id: calledRoom.roomId } });
+					videoCall.leaveCall();
+				}
+			};
+			calledRoom.matrixRoom.on(RoomStateEvent.Events, onCallTerminated);
+		},
+
 		async routeToRoomPage(room: { room_id: string }) {
 			await router.push({ name: 'room', params: { id: room.room_id } });
 		},

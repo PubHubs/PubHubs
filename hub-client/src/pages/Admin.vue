@@ -277,8 +277,8 @@
 		const allRooms = [...rooms.fetchRoomList(PublicRooms), ...rooms.fetchRoomList(SecuredRooms)];
 		const roomStatePromises = allRooms.map((room) =>
 			pubhubs
-				.getPoweLevelEventContent(room.roomId)
-				.then((powerLevels) => {
+				.getPowerLevelEventContent(room.roomId)
+				.then((powerLevels: { users?: Record<string, number>; users_default?: number }) => {
 					const userPowerLevel = (user.userId ? powerLevels.users?.[user.userId] : undefined) ?? powerLevels.users_default ?? 0;
 					roomAdminStatus.value[room.roomId] = userPowerLevel === 100;
 				})

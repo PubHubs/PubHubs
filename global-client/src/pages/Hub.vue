@@ -2,11 +2,11 @@
 	<iframe
 		v-if="hubs.currentHubExists"
 		:id="iframeHubId"
-		allow="clipboard-write"
+		allow="camera; microphone; display-capture; autoplay; speaker-selection; clipboard-write"
+		:src="hubUrl"
 		class="h-full w-full"
 		name="hub"
-		:src="hubUrl"
-	/>
+	></iframe>
 </template>
 
 <script lang="ts" setup>
