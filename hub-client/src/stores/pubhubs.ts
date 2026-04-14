@@ -1327,9 +1327,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (!room) {
 				return [];
 			}
-			const joinedMembers = room.getOtherJoinedMembers().map((member) => member.userId);
+			const { allOtherMembers } = useModeration(room);
 			const inviteMembers = room.getOtherInviteMembers().map((member) => member.userId);
-			return [...joinedMembers, ...inviteMembers];
+			return [...allOtherMembers.value, ...inviteMembers];
 		},
 		/**
 		 * Finds any new admin ID that needs to be invited to the room

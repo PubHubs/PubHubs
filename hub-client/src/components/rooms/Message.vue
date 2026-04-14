@@ -86,7 +86,7 @@
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Composables
-	import { useMentions } from '@hub-client/composables/useMentions';
+	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 
 	//Logic
 	import { router } from '@hub-client/logic/core/router';
@@ -113,7 +113,7 @@
 	const pubhubs = usePubhubsStore();
 	const activeMentionCard = ref<string | null>(null);
 	const isSecured = ref<boolean>(false);
-	const mentionComposable = useMentions();
+	const mentionComposable = useMentionsDisplay();
 
 	// Regular message content (for non-deleted, non-mention messages)
 	const messageContent = computed(() => {

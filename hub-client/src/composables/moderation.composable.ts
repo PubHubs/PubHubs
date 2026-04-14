@@ -67,6 +67,8 @@ function useModeration(room?: Room) {
 			.map((m) => m.sender);
 	});
 
+	const allOtherMembers = computed(() => allMembers.value.filter((userId) => userId !== userStore.userId));
+
 	const nonPowerMemberIds = computed(() => {
 		const currentRoom = getCurrentRoom();
 		if (!currentRoom) return [];
@@ -299,6 +301,7 @@ function useModeration(room?: Room) {
 	return {
 		cardDialog,
 		allMembers,
+		allOtherMembers,
 		stewardInvitations,
 		nonPowerMemberIds,
 		powerMembers,
