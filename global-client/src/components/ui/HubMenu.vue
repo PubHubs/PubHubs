@@ -10,6 +10,7 @@
 			:item-key="'hubId'"
 			:list="global.pinnedHubs"
 			:touch-start-threshold="5"
+			@contextmenu="preventNativeContextMenu"
 			@end="onDragEnd"
 			@start="onDragStart"
 		>
@@ -96,6 +97,14 @@
 
 	let backupPinnedHubs = [] as PinnedHubs;
 	let unpinnedHubs = [] as PinnedHubs;
+
+	function preventNativeContextMenu(event: Event) {
+		// Only prevent the browser's native context menu on touch devices to avoid
+		// interfering with the drag delay. Custom context menus can still be triggered.
+		if (window.matchMedia('(pointer: coarse)').matches) {
+			event.preventDefault();
+		}
+	}
 
 	function onDragStart() {
 		backupPinnedHubs = global.pinnedHubs.slice();
