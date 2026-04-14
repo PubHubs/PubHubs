@@ -1,11 +1,13 @@
 <template>
-	<div class="pt-2">
-		{{ event.content.ph_topic_body }}
+	<div class="w-full pt-200">
+		{{ description }}
 	</div>
 </template>
 
 <script setup lang="ts">
-	defineProps({
+	import { computed } from 'vue';
+
+	const props = defineProps({
 		event: {
 			type: Object,
 			required: true,
@@ -14,5 +16,11 @@
 			type: Boolean,
 			default: false,
 		},
+	});
+
+	const description = computed(() => {
+		if (props.event.content.ph_topic_body) return props.event.content.ph_topic_body;
+		if (props.event.content.description) return props.event.content.description;
+		return '';
 	});
 </script>

@@ -24,24 +24,24 @@
 		<ValidatedForm
 			v-slot="{ isValidated }"
 			:disabled="isSubmitting"
-			class="p-200"
+			class="w-min-4000 w-max-7000 w-2/3 p-200"
 		>
-			<TextArea
+			<TextField
 				v-model="title"
 				placeholder="Type your title here"
 				help="Be specific and imagine you\'re asking a question to another person"
-				:validation="{ required: true, minLength: TITLE_MIN_LENGTH, maxLength: TITLE_MAX_LENGTH }"
-				>Title</TextArea
+				:validation="{ required: true, minLength: 15 }"
+				>Title</TextField
 			>
 			<TextArea
 				v-model="description"
 				placeholder="Type your description here"
 				help="Introduce the problem and expand on what you put in the title"
-				:validation="{ required: true, minLength: DESCRIPTION_MIN_LENGTH, maxLength: DESCRIPTION_MAX_LENGTH }"
+				:validation="{ required: true, minLength: 15 }"
 				>Description</TextArea
 			>
 
-			<ButtonGroup>
+			<ButtonGroup class="mt-200">
 				<Button
 					variant="error"
 					@click.stop.prevent="router.back()"
@@ -66,18 +66,24 @@
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
-	import { useForum } from '@hub-client/composables/forum.composable';
-
+	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
-	import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_MIN_LENGTH, TITLE_MAX_LENGTH, TITLE_MIN_LENGTH } from '@hub-client/services/forum/properties';
-
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
+	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
+
+	defineProps({
+		id: {
+			type: String,
+			required: true,
+		},
+	});
 
 	const logger = createLogger('ForumCreateTopicPage');
 
@@ -85,19 +91,24 @@
 	const title = ref<string>('');
 	const description = ref<string>('');
 
-	const forum = useForum();
-
 	const isSubmitting = ref(false);
 
 	const submitPost = async () => {
 		try {
 			isSubmitting.value = true;
-			const topic = await forum.sendTopic(title.value, description.value, false);
-			if (!topic) {
-				logger.error('Failed to create topic');
-				return;
-			}
 			const rooms = useRooms();
+			const pubhubs = usePubhubsStore();
+			const content = {
+				msgtype: PubHubsMgType.ForumTopic,
+				body: title,
+				description: description,
+				'm.mentions': {
+					room: false,
+					user_ids: [],
+				},
+			};
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any -- second param needs any
+			await pubhubs.client.sendEvent(rooms.currentRoomId, PubHubsMgType.ForumTopic as any, content as unknown);
 			await router.push({ name: 'room', params: { id: rooms.currentRoomId } });
 		} catch (error) {
 			logger.error('error in submiting forum post', { error });
