@@ -28,11 +28,11 @@
 					@clicked-emoticon="sendEmoji"
 				>
 					<template #extras>
-						<ForumTopicExtras
+						<ForumEventActions
 							v-if="isForum"
 							:event="props.room.currentThread?.rootEvent?.event ?? {}"
 							:room="room"
-						></ForumTopicExtras>
+						></ForumEventActions>
 					</template>
 					<template #bottom>
 						<ForumEventBody
@@ -68,11 +68,11 @@
 						@reaction-panel-close="closeReactionPanel"
 					>
 						<template #extras>
-							<ForumTopicExtras
+							<ForumEventActions
 								v-if="isForum && index === 0"
 								:event="item.matrixEvent.event"
 								:room="room"
-							></ForumTopicExtras>
+							></ForumEventActions>
 						</template>
 						<template #bottom>
 							<ForumEventBody

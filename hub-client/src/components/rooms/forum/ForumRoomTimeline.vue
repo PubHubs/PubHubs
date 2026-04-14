@@ -5,8 +5,11 @@
 	>
 		<div class="mb-2 flex items-center justify-between gap-2 px-5">
 			<div class="flex items-center gap-2">
-				<PostsFilterButton />
-				<AddNewPostButton />
+				<Button
+					icon="plus"
+					@click="$router.push({ name: 'create-topic' })"
+					>Add New</Button
+				>
 			</div>
 			<div class="flex items-center gap-2">
 				<span>Sort by:</span>
@@ -49,13 +52,11 @@
 	// Packages
 	import { computed, ref } from 'vue';
 
-	import AddNewPostButton from '@hub-client/components/rooms/forum/AddNewPostButton.vue';
 	// Components
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
-	import PostsFilterButton from '@hub-client/components/rooms/forum/PostsFilterButton.vue';
 
-	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	// Models
+	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
 
 	import Button from '@hub-client/new-design/components/Button.vue';

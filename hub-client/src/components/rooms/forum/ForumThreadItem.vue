@@ -7,11 +7,11 @@
 		@click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: event.event_id } })"
 	>
 		<template #extras>
-			<ForumTopicExtras
+			<ForumEventActions
 				:event="event"
 				:room="room"
 				:last-timestamp="lastTimestamp"
-			></ForumTopicExtras>
+			></ForumEventActions>
 		</template>
 		<template #bottom>
 			<ForumEventBody :event="event"></ForumEventBody>
@@ -22,8 +22,8 @@
 <script setup lang="ts">
 	// Components
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
+	import ForumEventActions from '@hub-client/components/rooms/forum/ForumEventActions.vue';
 	import ForumEventBody from '@hub-client/components/rooms/forum/ForumEventBody.vue';
-	import ForumTopicExtras from '@hub-client/components/rooms/forum/ForumTopicExtras.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
