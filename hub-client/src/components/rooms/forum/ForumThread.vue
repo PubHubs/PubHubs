@@ -15,13 +15,15 @@
 	import RoomThread from '../RoomThread.vue';
 	import { onMounted } from 'vue';
 
+	import Room from '@hub-client/models/rooms/Room';
+
 	const props = defineProps({
 		event: {
 			type: Object,
 			required: true,
 		},
 		room: {
-			type: Object,
+			type: Room,
 			required: true,
 		},
 	});

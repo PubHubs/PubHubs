@@ -10,7 +10,7 @@
 			v-if="showClosingCross"
 			class="absolute top-2 right-2"
 			size="base"
-			type="x"
+			icon="x"
 			@click="close()"
 		/>
 		<slot />
