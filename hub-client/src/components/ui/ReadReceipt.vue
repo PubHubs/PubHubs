@@ -36,6 +36,8 @@
 	// Packages
 	import { ref, watchEffect } from 'vue';
 
+	import { useModeration } from '@hub-client/composables/moderation.composable';
+
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
@@ -81,13 +83,13 @@
 		const currentUserID = currentUser.userId;
 
 		// We need to get private room members list each time because new members can be added.
-		const roomUsers = room.getOtherJoinedMembers();
+		const { allOtherMembers } = useModeration(room);
 
 		const readTimestamps: number[] = [];
 
-		roomUsers.forEach((user) => {
-			if (user.user && user.userId !== currentUserID) {
-				const readReceipt = room.getReadReceiptForUserId(user.userId);
+		allOtherMembers.value.forEach((userId) => {
+			if (userId && userId !== currentUserID) {
+				const readReceipt = room.getReadReceiptForUserId(userId);
 				if (readReceipt) {
 					readTimestamps.push(readReceipt.data.ts);
 				}

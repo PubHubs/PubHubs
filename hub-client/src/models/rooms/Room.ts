@@ -353,11 +353,11 @@ export default class Room {
 	}
 
 	public getStateJoinedMembersIds(): string[] {
-		return this.stateEvents.filter((item) => item.content.membership === 'join' || item.content.membership === 'invite').map((item) => item.sender);
+		return this.stateEvents.filter((item) => item.content.membership === 'join').map((item) => item.sender);
 	}
 
 	public getStateJoinedMembers(): RoomMemberStateEvent[] {
-		return this.stateEvents.filter((item) => item.content.membership === 'join' || item.content.membership === 'invite') as RoomMemberStateEvent[];
+		return this.stateEvents.filter((item) => item.content.membership === 'join') as RoomMemberStateEvent[];
 	}
 
 	public getStateMemberPowerLevel(userId: string | null): number {

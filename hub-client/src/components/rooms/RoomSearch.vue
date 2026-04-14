@@ -105,7 +105,7 @@
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
-	import { useMentions } from '@hub-client/composables/useMentions';
+	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
@@ -250,6 +250,6 @@
 
 		const searchSnippet = originalWords.slice(start, end).join(' ');
 
-		return useMentions().formatMentions(searchSnippet);
+		return useMentionsDisplay().formatMentions(searchSnippet);
 	}
 </script>
