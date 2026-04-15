@@ -160,10 +160,17 @@
 						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
 						:placeholder="isAnnouncementMode ? $t('message.announcement_placeholder') : $t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
+						textarea
 						@changed="changed()"
 						@submit="submitMessage()"
 						@cancel="cancel()"
 						@caret-pos="setCaretPos"
+						@focus="messageInput.state.showMention = true"
+						@blur="
+							setTimeout(() => {
+								messageInput.state.showMention = false;
+							}, 150)
+						"
 					/>
 
 					<!--Steward and above can broadcast only in main time line-->
@@ -224,6 +231,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import { setTimeout } from 'node:timers';
 	import { type PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
@@ -243,6 +251,7 @@
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { type UserDetails } from '@hub-client/composables/mention-autocomplete.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
@@ -266,7 +275,7 @@
 	import { buttonsCancel } from '@hub-client/stores/dialog';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { type TPublicRoom, type TRoomMember, useRooms } from '@hub-client/stores/rooms';
+	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -476,10 +485,10 @@
 		fileBlobOwnedByParent.value = !!uriBlob;
 	}
 
-	function insertMention(item: TRoomMember | TPublicRoom, marker: '@' | '#') {
+	function insertMention(item: UserDetails | TPublicRoom, marker: '@' | '#') {
 		const isUserMention = marker === '@';
-		const displayName = isUserMention ? (item as TRoomMember).rawDisplayName : (item as TPublicRoom).name;
-		const id = isUserMention ? (item as TRoomMember).userId : (item as TPublicRoom).room_id;
+		const displayName = isUserMention ? (item as UserDetails).displayName : (item as TPublicRoom).name;
+		const id = isUserMention ? (item as UserDetails).userId : (item as TPublicRoom).room_id;
 
 		const mention = `${marker}${displayName}~${id}~`;
 

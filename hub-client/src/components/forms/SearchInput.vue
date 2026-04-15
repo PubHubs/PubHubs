@@ -145,9 +145,9 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
+	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 	// Composables
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
-	import { useMentions } from '@hub-client/composables/useMentions';
 
 	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
 	// Logic
@@ -302,6 +302,6 @@
 
 		const searchSnippet = originalWords.slice(start, end).join(' ');
 
-		return useMentions().formatMentions(searchSnippet);
+		return useMentionsDisplay().formatMentions(searchSnippet);
 	}
 </script>

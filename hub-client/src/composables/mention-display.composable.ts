@@ -21,7 +21,7 @@ import { useRooms } from '@hub-client/stores/rooms';
  * `formatMentions` uses `parseMentions` and `buildSegments` to:
  *  - Reconstruct the full message string with mentions replaced by their display names
  */
-export function useMentions() {
+export function useMentionsDisplay() {
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
 
