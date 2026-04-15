@@ -58,6 +58,8 @@ const nl = {
 		notid_attribute_already_taken:
 			'Je hebt het telefoonnummer al voor een ander account gebruikt, wil je toch een nieuw account aanmaken klik dan op ok en probeer het opnieuw',
 		notid_taken_title: 'Telefoonnummer is al in gebruik',
+		YiviServerGone:
+			'U kon waarschijnlijk niet volledig inloggen omdat battery-saver javascript blokeerd, probeer de laatste stap nog een keer om de inlog the voltooien.',
 	},
 	file: {
 		upload: 'Upload',
