@@ -22,7 +22,7 @@ use crate::servers::{
     constellation,
 };
 
-use crate::{elgamal, hub};
+use crate::{common::elgamal, hub};
 
 /// PubHubs Central server
 pub type Server = servers::ServerImpl<Details>;

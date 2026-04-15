@@ -5,7 +5,7 @@ use std::ops::Deref;
 use sha2::digest::Digest;
 
 use crate::api;
-use crate::elgamal;
+use crate::common::elgamal;
 use crate::id;
 use crate::phcrypto;
 use crate::servers;

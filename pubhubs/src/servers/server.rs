@@ -7,7 +7,7 @@ use core::convert::Infallible;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
-use crate::elgamal;
+use crate::common::elgamal;
 
 use crate::client;
 

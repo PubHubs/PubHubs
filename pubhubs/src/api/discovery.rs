@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::api::*;
-use crate::elgamal;
+use crate::common::elgamal;
 use actix_web::http;
 
 pub struct DiscoveryInfo {}

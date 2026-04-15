@@ -10,7 +10,9 @@ use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
-    attr, elgamal, hub,
+    attr,
+    common::elgamal,
+    hub,
     misc::{jwt, serde_ext, time_ext},
     servers::yivi,
 };
@@ -392,7 +394,7 @@ pub mod phc {
 
     fn default_auth_token_validity() -> core::time::Duration {
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-        // to their Yivi app
+                                                 // to their Yivi app
     }
 
     fn default_pp_nonce_validity() -> core::time::Duration {
@@ -453,7 +455,7 @@ pub mod auths {
 
     fn default_auth_window() -> core::time::Duration {
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-        // to their Yivi app
+                                                 // to their Yivi app
     }
 
     impl ExtraConfig {

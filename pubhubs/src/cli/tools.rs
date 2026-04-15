@@ -106,7 +106,7 @@ mod generate {
 
     impl ScalarArgs {
         fn run(self) -> Result<()> {
-            let pk = crate::elgamal::PrivateKey::random();
+            let pk = crate::common::elgamal::PrivateKey::random();
 
             println!("x (private key): {}", pk.to_hex());
             println!("xB (public key): {}", pk.public_key().to_hex());
