@@ -641,7 +641,7 @@ const nl = {
 			add_new_thread: 'Maak nieuwe vraag',
 			sortby: 'Sorteer op',
 			sortby_created: 'Aangemaakt',
-			sortby_activity: 'Activiteit',
+			sortby_activity: 'Recente activiteit',
 			title: 'Vraag',
 			description: 'Omschrijving',
 			help_title: 'Wees specifiek en bondig, stel je voor dat je een vraag stelt aan een ander persoon',

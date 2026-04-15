@@ -7,7 +7,8 @@
 			<div class="flex items-center gap-2">
 				<Button
 					icon="plus"
-					@click="$router.push({ name: 'create-topic' })"
+					:variant="addNewThread ? 'primary' : 'secondary'"
+					@click="toggleNewThread()"
 					>{{ $t('message.forum.add_new_thread') }}</Button
 				>
 			</div>
@@ -23,6 +24,12 @@
 				>
 			</div>
 		</div>
+
+		<ForumCreateThread
+			v-if="addNewThread"
+			:id="room.roomId"
+			@close="addNewThread = false"
+		></ForumCreateThread>
 
 		<ul
 			v-if="events.length > 0"
@@ -52,6 +59,7 @@
 	// Packages
 	import { computed, ref } from 'vue';
 
+	import ForumCreateThread from '@hub-client/components/rooms/forum/ForumCreateThread.vue';
 	// Components
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
 
@@ -86,7 +94,8 @@
 		timestamp: number;
 	}
 
-	const orderType = ref(ORDER.Activity);
+	const addNewThread = ref(false);
+	const orderType = ref(ORDER.Created);
 	const orderDir = ref(ORDER_DIR.asc);
 
 	const events = computed(() => {
@@ -151,5 +160,9 @@
 			}
 			orderDir.value = ORDER_DIR.desc;
 		}
+	};
+
+	const toggleNewThread = () => {
+		addNewThread.value = !addNewThread.value;
 	};
 </script>

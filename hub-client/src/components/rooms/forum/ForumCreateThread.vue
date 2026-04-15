@@ -1,30 +1,8 @@
 <template>
-	<HeaderFooter
-		bg-bar-low="bg-background"
-		bg-bar-medium="bg-surface-low"
-	>
-		<template #header>
-			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
-				<span class="font-semibold uppercase">{{ $t('message.forum.add_new_thread') }}</span>
-				<hr class="bg-on-surface-dim h-025 grow" />
-			</div>
-			<div class="flex h-full items-center">
-				<div class="flex w-fit items-center gap-3">
-					<Icon
-						type="caret-left"
-						data-testid="back"
-						class="cursor-pointer"
-						@click.stop="router.back()"
-					/>
-					<H3 class="font-headings text-on-surface font-semibold">{{ title }}</H3>
-				</div>
-			</div>
-		</template>
-
+	<div class="bg-surface-low my-400 p-200">
 		<ValidatedForm
 			v-slot="{ isValidated }"
-			:disabled="isSubmitting"
-			class="w-min-4000 w-max-7000 w-2/3 p-200"
+			class="p-200"
 		>
 			<TextField
 				v-model="title"
@@ -55,16 +33,12 @@
 				>
 			</ButtonGroup>
 		</ValidatedForm>
-		<InlineSpinner v-if="isSubmitting"></InlineSpinner>
-	</HeaderFooter>
+	</div>
 </template>
 
 <script setup lang="ts">
 	import { ref } from 'vue';
 	import { useRouter } from 'vue-router';
-
-	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
-	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -84,25 +58,24 @@
 		},
 	});
 
+	const emit = defineEmits(['close']);
+
 	const logger = createLogger('ForumCreateTopicPage');
 
 	const router = useRouter();
 	const title = ref<string>('');
 	const description = ref<string>('');
 
-	const isSubmitting = ref(false);
-
 	const submitPost = async () => {
 		try {
-			isSubmitting.value = true;
 			const rooms = useRooms();
 			const pubhubs = usePubhubsStore();
 			await pubhubs.addForumThread(rooms.currentRoomId, title.value, description.value);
-			await router.push({ name: 'room', params: { id: rooms.currentRoomId } });
+			emit('close');
 		} catch (error) {
 			logger.error('error in submiting forum post', { error });
 		} finally {
-			isSubmitting.value = false;
+			emit('close');
 		}
 	};
 </script>

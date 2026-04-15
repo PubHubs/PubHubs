@@ -642,7 +642,7 @@ const en = {
 			add_new_thread: 'Create new question',
 			sortby: 'Sort by',
 			sortby_created: 'Created',
-			sortby_activity: 'Activity',
+			sortby_activity: 'Recent activity',
 			title: 'Question',
 			description: 'Description',
 			help_title: "Be specific and imagine you're asking a question to another person",

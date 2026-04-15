@@ -72,13 +72,6 @@ const routes = [
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/create-topic/:id',
-		props: true,
-		name: 'create-topic',
-		component: () => import('@hub-client/pages/ForumCreateThread.vue'),
-		meta: { hideBar: true, onboarding: true },
-	},
-	{
 		path: '/discover-rooms',
 		name: 'discover-rooms',
 		component: () => import('@hub-client/pages/DiscoverRoomsPage.vue'),

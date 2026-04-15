@@ -853,8 +853,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async addForumThread(roomId: string, title: string, description: string) {
 			const content = {
 				msgtype: PubHubsMgType.ForumTopic,
-				body: hasHtml(title),
-				description: hasHtml(description),
+				body: title,
+				description: description,
 				'm.mentions': {
 					room: false,
 					user_ids: [],
