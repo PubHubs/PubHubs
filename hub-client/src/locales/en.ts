@@ -59,6 +59,7 @@ const en = {
 		notid_attribute_already_taken:
 			'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
 		notid_taken_title: 'Phone number already in use',
+		YiviServerGone: 'You could likely not complete the login because battery-saver blocks javascript, try the last step one more time to log in.',
 	},
 	file: {
 		upload: 'Upload',

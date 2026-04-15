@@ -45,6 +45,7 @@ export type AuthStartReq = {
 	attr_types: readonly string[];
 	attr_type_choices: string[][];
 	yivi_chained_session: boolean;
+	yivi_chained_session_drip: boolean;
 };
 
 type AuthTask = {
@@ -55,11 +56,11 @@ type AuthTask = {
 };
 export type YiviWaitForResultResp = { Success: { disclosure: string } } | { PleaseRestartAuth: string } | { SessionGone: string };
 
-export type YiviReleaseNextSessionResp = { Success: Record<string, never> } | { PleaseRestartAuth: string } | { SessionGone: string } | { TooEarly: string };
+export type YiviReleaseNextSessionResp = { Success: Record<string, never> } | 'PleaseRestartAuth' | 'SessionGone' | 'YiviServerGone' | 'TooEarly';
 
 export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string };
 
-export type CardResp = { Success: CardRespSuccess } | { PleaseRetryWithNewCardPseud: string };
+export type CardResp = { Success: CardRespSuccess } | 'PleaseRetryWithNewCardPseud';
 
 export type CardRespSuccess = { attr: string; issuance_request: string; yivi_requestor_url: string };
 
