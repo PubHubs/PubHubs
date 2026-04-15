@@ -31,7 +31,7 @@ import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { router } from '@hub-client/logic/core/router';
-import { hasHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+import { hasHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
@@ -853,8 +853,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async addForumThread(roomId: string, title: string, description: string) {
 			const content = {
 				msgtype: PubHubsMgType.ForumTopic,
-				body: title,
-				description: description,
+				body: removeHtml(title),
+				description: removeHtml(description),
 				'm.mentions': {
 					room: false,
 					user_ids: [],

@@ -28,7 +28,7 @@
 		<ForumCreateThread
 			v-if="addNewThread"
 			:id="room.roomId"
-			@close="addNewThread = false"
+			@close="closeNewThread()"
 		></ForumCreateThread>
 
 		<ul
@@ -44,6 +44,7 @@
 					:last-timestamp="tEvent.timestamp"
 					:room="room"
 					:show-actions="false"
+					@click="closeNewThread()"
 				></ForumThreadItem>
 			</li>
 		</ul>
@@ -164,5 +165,9 @@
 
 	const toggleNewThread = () => {
 		addNewThread.value = !addNewThread.value;
+	};
+
+	const closeNewThread = () => {
+		addNewThread.value = false;
 	};
 </script>
