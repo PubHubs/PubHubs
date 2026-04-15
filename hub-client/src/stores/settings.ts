@@ -121,7 +121,7 @@ const defaultSettings: Settings = {
 			votingWidget: true,
 			forumRooms: false,
 			consent: true,
-			phCard: false,
+			phCard: true,
 			whisper: false,
 		},
 		stable: {

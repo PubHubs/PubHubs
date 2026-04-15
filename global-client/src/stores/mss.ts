@@ -53,6 +53,7 @@ const useMSS = defineStore('mss', {
 			const settings = useSettings();
 			const cardFeature = settings.isFeatureEnabled(FeatureFlag.phCard);
 			const authServer = await this.getAuthServer();
+			let warningMessage = undefined;
 
 			// 1. Fetch supported attr types
 			const supported = await authServer.welcomeEPAuths();
@@ -65,6 +66,7 @@ const useMSS = defineStore('mss', {
 				attr_types: !isRegistering && cardFeature ? loginMethod.login_attr : loginMethod.register_attr,
 				attr_type_choices: [],
 				yivi_chained_session: isRegistering && cardFeature,
+				yivi_chained_session_drip: isRegistering && cardFeature,
 			};
 
 			// 3. Start authentication
@@ -118,8 +120,8 @@ const useMSS = defineStore('mss', {
 			if (isRegistering && cardFeature) {
 				const comment = 'via\n' + attributeValues.join('\n');
 				const { cardAttr, errorMessage } = await this.issueCard(true, comment, identifyingAttr);
-				if (!cardAttr) return errorMessage;
-				identifying['ph_card'] = cardAttr;
+				if (cardAttr) identifying['ph_card'] = cardAttr;
+				else warningMessage = errorMessage;
 			}
 
 			// 10. Get attribute Key Response
@@ -135,6 +137,7 @@ const useMSS = defineStore('mss', {
 			if (ResultResponse.Success in attrKeyResp) {
 				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, identifying, userSecretObject, objectDetails);
 			}
+			return warningMessage;
 		},
 
 		async enterHub(id: string, nonceStatePair: EnterStartResp): Promise<string | undefined> {
@@ -191,14 +194,18 @@ const useMSS = defineStore('mss', {
 			}
 			// 4. Add card to Yivi
 			if (chainedSession) {
-				await authServer.YiviReleaseNextSessionEP({
+				const response = await authServer.YiviReleaseNextSessionEP({
 					state: authServer.getState(),
 					next_session: issuance_request,
 				});
+				if (response === 'YiviServerGone') {
+					return { cardAttr: null, errorMessage: { key: 'YiviServerGone', values: [comment] } };
+				}
 			} else {
 				const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
 				await startYiviAuthentication(yiviUrl, issuance_request);
 			}
+
 			// 5. Decode and return card
 			const decoded = decodeJWT(signedCardAttr) as Attr;
 

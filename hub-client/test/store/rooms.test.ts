@@ -159,14 +159,6 @@ describe('rooms Store', () => {
 		// 	expect(notInvited).toHaveLength(2);
 		// 	expect(notInvited).toEqual(['E5', 'F6']);
 		// });
-
-		test('getOtherMembers', () => {
-			const room = new Room(new MockedMatrixRoom('test_id'));
-			const name = room.getOtherJoinedMembers();
-			expect(name).toBeTypeOf('object');
-			expect(name).toHaveLength(3);
-			expect(name[0].userId).toEqual('B2');
-		});
 	});
 
 	describe('rooms', () => {

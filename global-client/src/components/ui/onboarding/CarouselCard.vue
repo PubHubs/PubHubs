@@ -7,8 +7,20 @@
 				<div class="col-span-1 flex flex-col justify-center overflow-y-auto">
 					<!-- Header -->
 					<div class="mb-6 flex items-center gap-4">
-						<div class="bg-accent-primary text-on-accent-primary flex aspect-square h-6 w-6 items-center justify-center rounded-full">
-							<span class="text-label-small font-semibold">{{ index + 1 }}</span>
+						<div
+							class="flex aspect-square h-6 w-6 items-center justify-center rounded-full"
+							:class="error ? 'bg-accent-error text-on-accent-error' : 'bg-accent-primary text-on-accent-primary'"
+						>
+							<Icon
+								v-if="error"
+								type="warning"
+								class="h-4 w-4"
+							/>
+							<span
+								v-else
+								class="text-label-small font-semibold"
+								>{{ index + 1 }}</span
+							>
 						</div>
 						<slot name="title" />
 					</div>
@@ -61,6 +73,10 @@
 		active: {
 			type: Boolean,
 			default: true,
+		},
+		error: {
+			type: Boolean,
+			default: false,
 		},
 	});
 
