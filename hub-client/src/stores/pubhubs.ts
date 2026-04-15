@@ -850,6 +850,21 @@ const usePubhubsStore = defineStore('pubhubs', {
 			logger.debug('addSignedFile <==', result);
 		},
 
+		async addForumThread(roomId: string, title: string, description: string) {
+			const content = {
+				msgtype: PubHubsMgType.ForumTopic,
+				body: hasHtml(title),
+				description: hasHtml(description),
+				'm.mentions': {
+					room: false,
+					user_ids: [],
+				},
+			};
+			// @ts-expect-error -- custom event type not in SDK types
+			const result = await this.client.sendEvent(roomId, PubHubsMgType.ForumTopic as unknown as keyof TimelineEvents, content);
+			logger.debug('addForumThread', result);
+		},
+
 		/**
 		 * @param roomId
 		 * @param eventId

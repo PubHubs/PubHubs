@@ -66,7 +66,6 @@
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
-	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -98,17 +97,7 @@
 			isSubmitting.value = true;
 			const rooms = useRooms();
 			const pubhubs = usePubhubsStore();
-			const content = {
-				msgtype: PubHubsMgType.ForumTopic,
-				body: title,
-				description: description,
-				'm.mentions': {
-					room: false,
-					user_ids: [],
-				},
-			};
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any -- second param needs any
-			await pubhubs.client.sendEvent(rooms.currentRoomId, PubHubsMgType.ForumTopic as any, content as unknown);
+			await pubhubs.addForumThread(rooms.currentRoomId, title.value, description.value);
 			await router.push({ name: 'room', params: { id: rooms.currentRoomId } });
 		} catch (error) {
 			logger.error('error in submiting forum post', { error });
