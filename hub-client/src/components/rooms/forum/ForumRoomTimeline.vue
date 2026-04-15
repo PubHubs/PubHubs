@@ -8,18 +8,18 @@
 				<Button
 					icon="plus"
 					@click="$router.push({ name: 'create-topic' })"
-					>Add New</Button
+					>{{ $t('message.forum.add_new_thread') }}</Button
 				>
 			</div>
 			<div class="flex items-center gap-2">
-				<span>Sort by:</span>
+				<span>{{ $t('message.forum.sortby') }}:</span>
 				<Button
 					v-for="order in ORDER"
 					:key="order"
 					:icon="orderIcon(order)"
 					:variant="order === orderType ? 'primary' : 'secondary'"
 					@click="setOrder(order)"
-					>{{ order }}</Button
+					>{{ $t('message.forum.sortby_' + order) }}</Button
 				>
 			</div>
 		</div>

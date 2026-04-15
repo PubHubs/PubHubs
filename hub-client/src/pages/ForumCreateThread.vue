@@ -5,7 +5,7 @@
 	>
 		<template #header>
 			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
-				<span class="font-semibold uppercase">New Forum topic</span>
+				<span class="font-semibold uppercase">{{ $t('message.forum.add_new_thread') }}</span>
 				<hr class="bg-on-surface-dim h-025 grow" />
 			</div>
 			<div class="flex h-full items-center">
@@ -28,17 +28,17 @@
 		>
 			<TextField
 				v-model="title"
-				placeholder="Type your title here"
-				help="Be specific and imagine you\'re asking a question to another person"
-				:validation="{ required: true, minLength: 15 }"
-				>Title</TextField
+				:placeholder="$t('message.forum.title')"
+				:help="$t('message.forum.help_title')"
+				:validation="{ required: true, minLength: 15, maxLength: 80 }"
+				>{{ $t('message.forum.title') }}</TextField
 			>
 			<TextArea
 				v-model="description"
-				placeholder="Type your description here"
-				help="Introduce the problem and expand on what you put in the title"
+				:placeholder="$t('message.forum.description')"
+				:help="$t('message.forum.help_description')"
 				:validation="{ required: true, minLength: 15 }"
-				>Description</TextArea
+				>{{ $t('message.forum.description') }}</TextArea
 			>
 
 			<ButtonGroup class="mt-200">

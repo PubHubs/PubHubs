@@ -638,6 +638,16 @@ const en = {
 		threads: {
 			view_thread: 'view thread',
 		},
+		forum: {
+			add_new_thread: 'Create new question',
+			sortby: 'Sort by',
+			sortby_created: 'Created',
+			sortby_activity: 'Activity',
+			title: 'Question',
+			description: 'Description',
+			help_title: "Be specific and imagine you're asking a question to another person",
+			help_description: 'Introduce the problem and expand on your question',
+		},
 	},
 	time: {
 		today: 'Today',

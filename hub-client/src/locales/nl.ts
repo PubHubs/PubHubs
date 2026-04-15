@@ -637,6 +637,16 @@ const nl = {
 		threads: {
 			view_thread: 'bekijk thread',
 		},
+		forum: {
+			add_new_thread: 'Maak nieuwe vraag',
+			sortby: 'Sorteer op',
+			sortby_created: 'Aangemaakt',
+			sortby_activity: 'Activiteit',
+			title: 'Vraag',
+			description: 'Omschrijving',
+			help_title: 'Wees specifiek en bondig, stel je voor dat je een vraag stelt aan een ander persoon',
+			help_description: 'Geef meer informatie over de achtergrond van je vraag',
+		},
 	},
 	time: {
 		today: 'Vandaag',

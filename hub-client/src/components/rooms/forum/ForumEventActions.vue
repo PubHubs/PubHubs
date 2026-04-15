@@ -15,7 +15,7 @@
 				<Icon type="chat-circle-text" />
 				<span>{{ nrOfReplies }}</span>
 			</div>
-			<div>
+			<!-- <div>
 				<Icon
 					v-if="event.closed"
 					type="lock"
@@ -25,7 +25,7 @@
 					type="lock-open"
 					class="text-accent-secondary"
 				/>
-			</div>
+			</div> -->
 			<ActionMenu v-if="currentUserIsTopicAuthor">
 				<ActionMenuItem
 					v-if="!event.closed"
