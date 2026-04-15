@@ -395,13 +395,6 @@ export default class Room {
 		return roomMember;
 	}
 
-	/**
-	 * Gets all joined members of the room except the current user or any bots.
-	 */
-	public getOtherJoinedMembers(): TRoomMember[] {
-		return this.getOtherMembers(this.matrixRoom.getMembersWithMembership('join'));
-	}
-
 	public getOtherInviteMembers(): TRoomMember[] {
 		return this.getOtherMembers(this.matrixRoom.getMembersWithMembership('invite'));
 	}
