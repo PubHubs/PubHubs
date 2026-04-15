@@ -456,13 +456,6 @@ class TimelineManager {
 	}
 
 	/**
-	 * Returns a copy of the timeline events sorted chronologically (newest first)
-	 */
-	public getChronologicalTimelineAsc(): TimelineEvent[] {
-		return [...this.timelineEvents].sort((a, b) => b.matrixEvent.getTs() - a.matrixEvent.getTs());
-	}
-
-	/**
 	 * Returns the current timeline version counter.
 	 */
 	public getTimelineVersion(): number {

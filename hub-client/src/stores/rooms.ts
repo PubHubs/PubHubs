@@ -478,11 +478,6 @@ const useRooms = defineStore('rooms', {
 			return publicRoom?.room_type === RoomType.PH_MESSAGES_RESTRICTED;
 		},
 
-		publicRoomIsForum(roomId: string): boolean {
-			const publicRoom = this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
-			return publicRoom?.room_type === RoomType.PH_FORUM_ROOM;
-		},
-
 		roomIsSecure(roomId: string): boolean {
 			const room = this.fetchRoomById(roomId);
 			return room?.getType() === RoomType.PH_MESSAGES_RESTRICTED;
