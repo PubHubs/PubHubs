@@ -1,3 +1,113 @@
+//! Endpoints for the 'discovery' process by which the pubhubs servers
+//! (pubhubs central, authentication server, and transcryptor)
+//! inform one another of updates in their configuration (URLs, public
+//! key material, etc.) and of updates to their binaries.
+//!
+//! The idea is to minimize the manual coordination required between the
+//! administrators of the different servers.  The transcryptor only
+//! has to configure the URL of PHC, not, say, the public keys used by PHC,
+//! which the transcryptor receives instead automatically via discovery.
+//!
+//! ## How it works
+//!
+//! PubHubs central takes the lead, and pulls information from the other
+//! servers via the **[`DiscoveryInfo`] endpoint** (`GET .ph/discovery/info`),
+//! building a **[`Constellation`]** that it makes available via its
+//! own info endpoint.
+//!
+//! The other two servers wait for PHC to publish a constellation,
+//! and check whether the details they advertised in their info
+//! endpoints have been incorporated.  If so, they adopt
+//! the constellation.  If not, they cue PHC to re-run its discovery
+//! via the **[`DiscoveryRun`] endpoint** (`POST .ph/discovery/run`),
+//! and go back to waiting for PHC to publish a constellation.
+//!
+//! After PHC has assembled its constellation, it checks whether the other
+//! two servers have the same constellation installed.  If so, its discovery
+//! finishes (until restarted by a call to the discovery run endpoint).
+//! If not, and if another server, say, the transcryptor,
+//! has an outdated constellation installed, it invokes the discovery run
+//! endpoint of the transcryptor, poking it to re-run its discovery process
+//! (i.e. pulling and checking the constellation from PHC).  If the transcryptor
+//! has no constellation installed, PHC leaves it be (assuming its
+//! discovery process is running), and will retry a bit later.
+//!
+//! ## A bit more details
+//!
+//! The discovery process running inside each server can result in four outcomes:
+//!  - [`DiscoverVerdict::Alright`]:  My constellation is up-to-date, **discovery done**
+//!  - [`DiscoverVerdict::ConstellationOutdated`]: Discovery yielded an updated constellation.
+//!    This will cause the server to tear down and **restart** its actix HTTP server with the new constellation.
+//!  - [`DiscoverVerdict::BinaryOutdated`]:  Discovery revealed that one
+//!    of the other servers is running a newer version of the `pubhubs` binary.  This will cause
+//!    the current server to **exit** in the expectation that the system running this server will
+//!    pull and spool up the new pubhubs binary.
+//!  - [`ErrorCode::PleaseRetry`]: We're waiting for another server.  If this discovery process was
+//!    invoked during the start-up of this server, the discovery process will simply be called
+//!    again after some pause.  If this discovery was invoked by [`DiscoveryRun`], then the
+//!    [`ErrorCode::PleaseRetry`] will simply be passed along to the requester.  
+//!
+//! # Examples
+//! ## 1. All three servers start blank
+//!
+//! ```text
+//! Transcryptor                PHC                   Auth Server
+//!     |                        |                        |
+//!     |---- info ------------->|                        |
+//!     |<--- no const ----------|                        |
+//! [ retry later ]              |                        |
+//!     |                        |                        |
+//!     |<--- info --------------|                        |
+//!     |--- info, no const ---->|                        |
+//!     |                        |---- info ------------->|
+//!     |                        |<--- info, no const ----|
+//!     |            [ build const, restart ]             |
+//!     |                        |                        |
+//!     |                        |---- info ------------->|
+//!     |                        |<--- info, no const ----|
+//!     |                [ check A later ]                |
+//!     |                        |                        |
+//!     |---- info ------------->|                        |
+//!     |<----- const -----------|                        |
+//! [ check & adopt const ]      |                        |
+//! [ restart             ]      |                        |
+//!     |---- info ------------->|                        |
+//!     |<----- const -----------|                        |
+//! [ matches running     ]      |                        |
+//! [ discovery done      ]      |                        |
+//!     |                        |<--- info --------------|
+//!     |                        |------ const ---------->|
+//!     |                        |            [ check & adopt const ]
+//!     |                        |            [ restart             ]
+//!     |                        |<--- info --------------|
+//!     |                        |------ const ---------->|
+//!     |                        |            [ matches running     ]
+//!     |                        |            [ discovery done      ]
+//!     |<--- info --------------|                        |
+//!     |--- info, const ------->|                        |
+//!     |                        |---- info ------------->|
+//!     |                        |<--- info, const -------|
+//!     |         [ const unchanged, and   ]              |        
+//!     |         [   installed by A and T ]              |        
+//!     |         [ discovery done         ]              |        
+//!     |                        |                        |
+//! ```
+//!
+//!
+//! [`Constellation`]: crate::servers::constellation::Constellation
+//! [`Config::phc_url`]: crate::servers::config::Config::phc_url
+//! [`ServerConfig::self_check_code`]: crate::servers::config::ServerConfig::self_check_code
+//! [`DiscoveryInfo`]: super::DiscoveryInfo
+//! [`DiscoveryInfoResp`]: super::DiscoveryInfoResp
+//! [`constellation_or_id`]: super::DiscoveryInfoResp::constellation_or_id
+//! [`DiscoveryRun`]: super::DiscoveryRun
+//! [`UpToDate`]: super::DiscoveryRunResp::UpToDate
+//! [`Restarting`]: super::DiscoveryRunResp::Restarting
+//! [`PleaseRetry`]: crate::api::ErrorCode::PleaseRetry
+//! [`DiscoverVerdict::Alright`]: crate::servers::DiscoverVerdict::Alright
+//! [`DiscoverVerdict::ConstellationOutdated`]: crate::servers::DiscoverVerdict::ConstellationOutdated
+//! [`DiscoverVerdict::BinaryOutdated`]: crate::servers::DiscoverVerdict::BinaryOutdated
+
 use serde::{Deserialize, Serialize};
 
 use crate::api::*;
