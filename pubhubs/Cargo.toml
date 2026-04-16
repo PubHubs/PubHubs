@@ -80,15 +80,9 @@ clap = { version = "4.5", features = ["derive"] }
 git-version = { version = "0.3" }
 semver = { version = "1.0" }
 
-# mermaid diagrams in rustdoc; only pulled in under `--features doc`, so plain
-# builds don't pay for the proc-macro. Also used by matrix-sdk.
-aquamarine = { version = "0.6", optional = true }
-
-[features]
-doc = ["dep:aquamarine"]
-
-[package.metadata.docs.rs]
-features = ["doc"]
+# mermaid diagrams in rustdoc. Activated via `#[cfg_attr(doc, aquamarine::aquamarine)]`,
+# which rustdoc triggers automatically - no feature flag needed. Also used by matrix-sdk.
+aquamarine = { version = "0.6" }
 
 [dev-dependencies]
 tokio = { version = "1.47", features = ["test-util"] }
