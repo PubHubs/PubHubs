@@ -506,41 +506,41 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             return Err(api::ErrorCode::InternalError);
         };
 
-        if let Some(rs) = self.running_state.as_ref() {
-            if !self.check_constellation(&phc_inf_constellation) {
-                log::warn!(
-                    "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
-                    server_name = S::NAME,
-                    phc = Name::PubhubsCentral
-                );
-
-                // PHC's discovery is out of date; invoke discovery and return
-                let _drr = self
-                    .client
-                    .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
-                    .await
-                    .into_server_result()?;
-
-                // We don't do anything with _drr: whether or not PHC has been updated in the
-                // meantime, we want to start discovery again from the start.
-
-                return Err(api::ErrorCode::PleaseRetry);
-            }
-
-            log::trace!(
-                "{server_name}: {phc}'s constellation looks alright! ",
+        if !self.check_constellation(&phc_inf_constellation) {
+            log::warn!(
+                "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
                 server_name = S::NAME,
                 phc = Name::PubhubsCentral
             );
 
-            if phc_inf_constellation.id == rs.constellation.id {
-                log::info!(
-                    "{server_name}: my constellation is up-to-date!",
-                    server_name = S::NAME,
-                );
+            // PHC's discovery is out of date; invoke discovery and return
+            let _drr = self
+                .client
+                .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
+                .await
+                .into_server_result()?;
 
-                return Ok(DiscoverVerdict::Alright);
-            }
+            // We don't do anything with _drr: whether or not PHC has been updated in the
+            // meantime, we want to start discovery again from the start.
+
+            return Err(api::ErrorCode::PleaseRetry);
+        }
+
+        log::trace!(
+            "{server_name}: {phc}'s constellation looks alright! ",
+            server_name = S::NAME,
+            phc = Name::PubhubsCentral
+        );
+
+        if let Some(rs) = self.running_state.as_ref()
+            && phc_inf_constellation.id == rs.constellation.id
+        {
+            log::info!(
+                "{server_name}: my constellation is up-to-date!",
+                server_name = S::NAME,
+            );
+
+            return Ok(DiscoverVerdict::Alright);
         }
 
         log::info!(
