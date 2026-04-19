@@ -88,6 +88,7 @@ const useVideoCall = defineStore('videoCall', {
 			selfView: true,
 			focus: [null, false] as [Participant | null, boolean],
 			_isEnding: false, // Flag to prevent listener race during endCall
+			_connecting: false,
 		};
 	},
 
@@ -96,10 +97,10 @@ const useVideoCall = defineStore('videoCall', {
 			return this.livekit_room?.remoteParticipants.get(id) as RemoteParticipant;
 		},
 
-		async startCall() {
+		async startCall(): Promise<boolean> {
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
-			if (!currentRoom) return;
+			if (!currentRoom) return false;
 
 			const eventId = await this.pubhubsStore.addVideoCallMessage(currentRoom.roomId, 'VideoCall Started');
 			this.eventId = eventId;
@@ -108,78 +109,111 @@ const useVideoCall = defineStore('videoCall', {
 
 			currentRoom.startMatrixRTC();
 
-			await this.connectToCall();
+			return await this.connectToCall();
 		},
 
-		async joinCall() {
+		async joinCall(): Promise<boolean> {
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
-			if (!currentRoom) return;
+			if (!currentRoom) return false;
 
 			this.groupCall = currentRoom.getGroupCall();
-			if (!this.groupCall) return;
+			if (!this.groupCall) return false;
 
-			await this.connectToCall();
+			const connected = await this.connectToCall();
+			if (!connected) return false;
 
-			if (!this.eventId) return;
-
-			const threadRoot = (await this.pubhubsStore.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
-			await this.pubhubsStore.addMessage(currentRoom.roomId, 'Joined', threadRoot, undefined);
+			// Don't block navigation/UX on this secondary message write.
+			if (this.eventId) {
+				void (async () => {
+					try {
+						const threadRoot = (await this.pubhubsStore.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent;
+						await this.pubhubsStore.addMessage(currentRoom.roomId, 'Joined', threadRoot, undefined);
+					} catch {
+						// Ignore best-effort "Joined" message failures.
+					}
+				})();
+			}
+			return true;
 		},
 
-		async connectToCall() {
+		async connectToCall(): Promise<boolean> {
+			if (this.call_active && this.livekit_room) return true;
+			if (this._connecting) return false;
+			this._connecting = true;
+
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
-			if (!currentRoom) return;
-
-			const LiveKitTokenResponse = await currentRoom.getLiveKitTokenResponse();
-			this.token = LiveKitTokenResponse[0];
-			this.target_url = LiveKitTokenResponse[1];
-
-			this.call_active = true;
-			this.rtc_session = currentRoom.getMatrixRTCSessions();
-			this.rtc_session.joinRoomSession([]);
-			this.pubhubsStore.addEndCallListener();
-
-			const matrix_key_provider = new MatrixKeyProvider();
-			this.matrix_key_provider = matrix_key_provider;
-			matrix_key_provider.setRTCSession(this.rtc_session as MatrixRTCSession);
-
-			// The timeline may lag behind after creating/joining a call.
-			// Never block the LiveKit connect flow on timeline availability.
-			if (!this.eventId) {
-				const lastVideoCallEvent = currentRoom.getLastVideoCallTimeLineEvent();
-				if (lastVideoCallEvent?.event?.event_id) {
-					this.eventId = lastVideoCallEvent.event.event_id;
-				}
+			if (!currentRoom) {
+				this._connecting = false;
+				return false;
 			}
 
-			// E2EE is currently disabled. Don't pass e2ee options to the room —
-			// having a worker/keyProvider configured but disabled corrupts remote video frames.
-			// TODO: Re-enable E2EE when ready:
-			// const e2ee = {
-			// 	keyProvider: matrix_key_provider as BaseKeyProvider,
-			// 	worker: new Worker(new URL('livekit-client/e2ee-worker', import.meta.url)),
-			// };
-			// this.options.e2ee = e2ee;
+			try {
+				const LiveKitTokenResponse = await currentRoom.getLiveKitTokenResponse();
+				this.token = LiveKitTokenResponse[0];
+				this.target_url = LiveKitTokenResponse[1];
+				if (!this.token || !this.target_url) return false;
 
-			const isFirefox = navigator.userAgent.includes('Firefox');
-			const roomOptions: RoomOptions = {
-				...defaultLiveKitOptions,
-				// Firefox is less stable with VP9 + simulcast/dynacast in this setup.
-				dynacast: isFirefox ? false : defaultLiveKitOptions.dynacast,
-				publishDefaults: {
-					...defaultLiveKitPublishOptions,
-					simulcast: isFirefox ? false : defaultLiveKitPublishOptions.simulcast,
-					videoCodec: isFirefox ? 'vp8' : 'vp9',
-				},
-			};
+				this.call_active = true;
+				this.rtc_session = currentRoom.getMatrixRTCSessions();
+				this.rtc_session.joinRoomSession([]);
+				this.pubhubsStore.addEndCallListener();
 
-			this.livekit_room = new LiveKitRoom(roomOptions);
+				const matrix_key_provider = new MatrixKeyProvider();
+				this.matrix_key_provider = matrix_key_provider;
+				matrix_key_provider.setRTCSession(this.rtc_session as MatrixRTCSession);
 
-			await this.livekit_room.connect(this.target_url, this.token, {
-				autoSubscribe: true,
-			});
+				// The timeline may lag behind after creating/joining a call.
+				// Never block the LiveKit connect flow on timeline availability.
+				if (!this.eventId) {
+					const lastVideoCallEvent = currentRoom.getLastVideoCallTimeLineEvent();
+					if (lastVideoCallEvent?.event?.event_id) {
+						this.eventId = lastVideoCallEvent.event.event_id;
+					}
+				}
+
+				// E2EE is currently disabled. Don't pass e2ee options to the room —
+				// having a worker/keyProvider configured but disabled corrupts remote video frames.
+				// TODO: Re-enable E2EE when ready:
+				// const e2ee = {
+				// 	keyProvider: matrix_key_provider as BaseKeyProvider,
+				// 	worker: new Worker(new URL('livekit-client/e2ee-worker', import.meta.url)),
+				// };
+				// this.options.e2ee = e2ee;
+
+				const isFirefox = navigator.userAgent.includes('Firefox');
+				const roomOptions: RoomOptions = {
+					...defaultLiveKitOptions,
+					// Firefox is less stable with VP9 + simulcast/dynacast in this setup.
+					dynacast: isFirefox ? false : defaultLiveKitOptions.dynacast,
+					publishDefaults: {
+						...defaultLiveKitPublishOptions,
+						simulcast: isFirefox ? false : defaultLiveKitPublishOptions.simulcast,
+						videoCodec: isFirefox ? 'vp8' : 'vp9',
+					},
+				};
+
+				this.livekit_room = new LiveKitRoom(roomOptions);
+
+				await this.livekit_room.connect(this.target_url, this.token, {
+					autoSubscribe: true,
+				});
+				return true;
+			} catch {
+				this.call_active = false;
+				if (this.livekit_room) {
+					try {
+						await this.livekit_room.disconnect(true);
+					} catch {
+						// best effort
+					}
+				}
+				this.livekit_room = null;
+				return false;
+			} finally {
+				this._connecting = false;
+			}
 		},
 
 		async leaveCall() {

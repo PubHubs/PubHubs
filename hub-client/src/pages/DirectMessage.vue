@@ -413,11 +413,16 @@
 	}
 
 	async function startOrJoinVideoCall() {
+		let connected = false;
 		if (selectedRoom.value?.isOngoingCall()) {
-			await videoCall.joinCall();
+			connected = await videoCall.joinCall();
+			if (!connected) {
+				connected = await videoCall.startCall();
+			}
 		} else {
-			await videoCall.startCall();
+			connected = await videoCall.startCall();
 		}
+		if (!connected) return;
 		await router.push({ name: 'videocall' });
 	}
 </script>

@@ -41,7 +41,11 @@
 	const timeLine = computed(() => (!hasEndCallReference.value ? currentRoom?.getTimeline() : null));
 
 	async function JoinVideoCall() {
-		await videoCall.joinCall();
+		let connected = await videoCall.joinCall();
+		if (!connected) {
+			connected = await videoCall.startCall();
+		}
+		if (!connected) return;
 		await router.push({ name: 'videocall' });
 	}
 
