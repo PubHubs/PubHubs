@@ -101,7 +101,8 @@ const useVideoCall = defineStore('videoCall', {
 			const currentRoom = rooms.currentRoom;
 			if (!currentRoom) return;
 
-			await this.pubhubsStore.addVideoCallMessage(currentRoom.roomId, 'VideoCall Started');
+			const eventId = await this.pubhubsStore.addVideoCallMessage(currentRoom.roomId, 'VideoCall Started');
+			this.eventId = eventId;
 
 			this.groupCall = await currentRoom.createGroupCall();
 
@@ -144,9 +145,14 @@ const useVideoCall = defineStore('videoCall', {
 			this.matrix_key_provider = matrix_key_provider;
 			matrix_key_provider.setRTCSession(this.rtc_session as MatrixRTCSession);
 
-			const lastVideoCallEvent = currentRoom.getLastVideoCallTimeLineEvent();
-			if (!lastVideoCallEvent || !lastVideoCallEvent.event.event_id) return;
-			this.eventId = lastVideoCallEvent.event.event_id;
+			// The timeline may lag behind after creating/joining a call.
+			// Never block the LiveKit connect flow on timeline availability.
+			if (!this.eventId) {
+				const lastVideoCallEvent = currentRoom.getLastVideoCallTimeLineEvent();
+				if (lastVideoCallEvent?.event?.event_id) {
+					this.eventId = lastVideoCallEvent.event.event_id;
+				}
+			}
 
 			// E2EE is currently disabled. Don't pass e2ee options to the room —
 			// having a worker/keyProvider configured but disabled corrupts remote video frames.
@@ -215,9 +221,10 @@ const useVideoCall = defineStore('videoCall', {
 
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
-			if (!currentRoom || !this.eventId) return;
-			const threadRoot = (await this.pubhubsStore.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
-			await this.pubhubsStore.addMessage(currentRoom.roomId, 'Left', threadRoot, undefined);
+			if (currentRoom && this.eventId) {
+				const threadRoot = (await this.pubhubsStore.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
+				await this.pubhubsStore.addMessage(currentRoom.roomId, 'Left', threadRoot, undefined);
+			}
 
 			this.eventId = null;
 			this.token = null;
@@ -234,12 +241,14 @@ const useVideoCall = defineStore('videoCall', {
 		async endCall() {
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
-			if (!currentRoom || !this.eventId) return;
+			if (!currentRoom) return;
 
 			// Set flag so the addEndCallListener knows not to fire (we handle cleanup ourselves)
 			this._isEnding = true;
 
-			await this.pubhubsStore.updateVideoCallMessage(currentRoom.roomId, this.eventId, 'VideoCall Ended');
+			if (this.eventId) {
+				await this.pubhubsStore.updateVideoCallMessage(currentRoom.roomId, this.eventId, 'VideoCall Ended');
+			}
 
 			// Save reference before leaveCall() clears this.groupCall
 			const groupCallToTerminate = this.groupCall;
