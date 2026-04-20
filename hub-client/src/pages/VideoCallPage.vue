@@ -10,23 +10,27 @@
 				<div class="flex w-1/2 items-center justify-center">
 					<div class="mx-2 w-1/2">
 						<h2>Microphone source</h2>
-						<DropDown
-							v-model="selectedAudioDevice"
+						<VideoCallDropDown
+							value=""
 							:options="audioOptions"
-							:filtered="true"
-						>
-							Microphone source
-						</DropDown>
+							:on-select="
+								(audioDevice: string) => {
+									audioDevice === `no device` ? videoCall.changeAudioDevice(null) : videoCall.changeAudioDevice(audioDevice);
+								}
+							"
+						/>
 					</div>
 					<div class="mx-2 w-1/2">
 						<h2>Video source</h2>
-						<DropDown
-							v-model="selectedVideoDevice"
+						<VideoCallDropDown
+							value=""
 							:options="videoOptions"
-							:filtered="true"
-						>
-							Video source
-						</DropDown>
+							:on-select="
+								(videoDevice: string) => {
+									videoDevice === `no device` ? videoCall.changeVideoDevice(null) : videoCall.changeVideoDevice(videoDevice);
+								}
+							"
+						/>
 					</div>
 				</div>
 				<div class="flex justify-center gap-2 pt-2">
@@ -108,6 +112,7 @@
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRouter } from 'vue-router';
 
+	import VideoCallDropDown from '@hub-client/components/forms/VideoCallDropDown.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import VideoCallPreview from '@hub-client/components/ui/VideoCallPreview.vue';
 	import VideoCallBottomBar from '@hub-client/components/videocall/VideoCallBottomBar.vue';
@@ -115,23 +120,20 @@
 	import VideoCallVideo from '@hub-client/components/videocall/VideoCallVideo.vue';
 	import VideoCallVideoCarrousel from '@hub-client/components/videocall/VideoCallVideoCarrousel.vue';
 
+	import { type Options } from '@hub-client/composables/useFormInputEvents';
+
 	import { useRooms } from '@hub-client/stores/rooms';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
-	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
 
 	const videoCall = useVideoCall();
 	const router = useRouter();
 	const rooms = useRooms();
 	const selfView = computed(() => videoCall.selfView);
 
-	type DeviceOption = { label: string; value: string };
-	const NO_DEVICE_VALUE = 'no device';
-	let audioOptions = ref<DeviceOption[]>([]);
-	let videoOptions = ref<DeviceOption[]>([]);
-	const selectedAudioDevice = ref<DeviceOption | undefined>(undefined);
-	const selectedVideoDevice = ref<DeviceOption | undefined>(undefined);
+	let audioOptions = ref<Options>([]);
+	let videoOptions = ref<Options>([]);
 	let connectInputs = ref(false);
 	let remotes = ref<unknown[]>([]);
 	let remotesNames = ref<string[]>([]);
@@ -161,34 +163,16 @@
 		audioOptions.value = audioDevices.map((device) => {
 			return { label: device.label, value: device.deviceId };
 		});
-		audioOptions.value.unshift({ label: 'Select device', value: NO_DEVICE_VALUE });
-		selectedAudioDevice.value = audioOptions.value[0];
+		audioOptions.value.unshift({ label: 'Select device', value: 'no device' });
 
 		const videoDevices = await LivekitRoom.getLocalDevices('videoinput');
 
 		videoOptions.value = videoDevices.map((device) => {
 			return { label: device.label, value: device.deviceId };
 		});
-		videoOptions.value.unshift({ label: 'Select device', value: NO_DEVICE_VALUE });
-		selectedVideoDevice.value = videoOptions.value[0];
+		videoOptions.value.unshift({ label: 'Select device', value: 'no device' });
 		optionsLoaded.value = true;
 	}
-
-	watch(selectedAudioDevice, async (audioDevice) => {
-		if (!audioDevice || audioDevice.value === NO_DEVICE_VALUE) {
-			await videoCall.changeAudioDevice(null);
-			return;
-		}
-		await videoCall.changeAudioDevice(audioDevice.value);
-	});
-
-	watch(selectedVideoDevice, async (videoDevice) => {
-		if (!videoDevice || videoDevice.value === NO_DEVICE_VALUE) {
-			await videoCall.changeVideoDevice(null);
-			return;
-		}
-		await videoCall.changeVideoDevice(videoDevice.value);
-	});
 
 	//TODO see if I can combine these two arrays?
 	function syncRemoteParticipants() {
