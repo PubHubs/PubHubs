@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+from urllib.parse import urlparse
 
 from livekit import api
 from synapse.http.server import DirectServeJsonResource, respond_with_json
@@ -7,18 +9,42 @@ from synapse.http.servlet import parse_string
 from synapse.http.site import SynapseRequest
 from synapse.module_api import ModuleApi
 
-from ._constants import LIVEKIT_URL
+from ._constants import LIVEKIT_API_KEY_DEFAULT, LIVEKIT_API_SECRET_DEFAULT, LIVEKIT_URL
 from ._store import HubStore
 
 logger = logging.getLogger(__name__)
 
 
+def _is_localhost_url(url: str) -> bool:
+    parsed = urlparse(url)
+    host = parsed.hostname
+    return host in {"localhost", "127.0.0.1", "::1"}
+
+
+def _get_livekit_settings():
+    livekit_url = os.getenv("LIVEKIT_URL", LIVEKIT_URL)
+
+    livekit_api_key = os.getenv("LIVEKIT_API_KEY")
+    livekit_api_secret = os.getenv("LIVEKIT_API_SECRET")
+
+    if livekit_api_key and livekit_api_secret:
+        return livekit_url, livekit_api_key, livekit_api_secret
+
+    if _is_localhost_url(livekit_url):
+        return livekit_url, LIVEKIT_API_KEY_DEFAULT, LIVEKIT_API_SECRET_DEFAULT
+
+    raise RuntimeError(
+        "LIVEKIT_API_KEY and LIVEKIT_API_SECRET must be set when LIVEKIT_URL is not localhost."
+    )
+
+
 async def _create_room(room_name):
-    # Hardcoded url for now, we could have multiple servers up and balance between them.
+    livekit_url, livekit_api_key, livekit_api_secret = _get_livekit_settings()
+
     lkapi = api.LiveKitAPI(
-        LIVEKIT_URL,
-        'devkey',
-        'YAjhCt37a898NLNEhiKpFY6GG8sXfiTL'
+        livekit_url,
+        livekit_api_key,
+        livekit_api_secret,
     )
     livekit_rooms = await lkapi.room.list_rooms(api.ListRoomsRequest())
 
@@ -32,15 +58,14 @@ async def _create_room(room_name):
 
 
 async def _generate_access_token(pseudonym, username, room_name):
-    print("GENERATE TOKEN, pseudonym", pseudonym, "username", username, "room_name", room_name)
+    livekit_url, livekit_api_key, livekit_api_secret = _get_livekit_settings()
+
     token = api.AccessToken(
-        "devkey",
-        "YAjhCt37a898NLNEhiKpFY6GG8sXfiTL"
+        livekit_api_key,
+        livekit_api_secret,
     ).with_grants(api.VideoGrants(room_join=True, room=room_name)).with_identity(pseudonym).with_name(username).to_jwt()
 
-    # Hardcoded url for now, we could have multiple servers up and balance between them.
-
-    return token, LIVEKIT_URL
+    return token, livekit_url
 
 
 class VideoCallServlet(DirectServeJsonResource):
@@ -92,5 +117,5 @@ class VideoCallServlet(DirectServeJsonResource):
             asyncio.get_event_loop().run_until_complete(_create_room(room_name=room_name))
             respond_with_json(request, 200, {}, True)
         except TypeError as e:
-            print("ERROR", e)
+            logger.exception("Failed to create LiveKit room")
             respond_with_json(request, 400, {"errors": f"{str(e)}"}, True)

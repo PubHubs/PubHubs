@@ -116,7 +116,7 @@ const defaultSettings: Settings = {
 			hubSettings: true,
 			authenticatedMedia: true,
 			unreadCounter: true,
-			videocalls: false,
+			videocalls: true,
 			roomLibrary: true,
 			votingWidget: true,
 			forumRooms: false,
