@@ -841,10 +841,10 @@ export default class Room {
 		return this.matrixRoom.getThread(eventId) ?? undefined;
 	}
 
-	public getMatrixThreadLastEvent(eventId: string): MatrixEvent | undefined {
+	public getMatrixThreadLastEvent(eventId: string): MatrixEvent | undefined | null {
 		const thread = this.getMatrixThread(eventId);
 		if (!thread) return undefined;
-		return thread.events[thread.events.length - 1];
+		return thread.replyToEvent;
 	}
 
 	public getMatrixThreadLastEventTimestamp(eventId: string): number | undefined {
