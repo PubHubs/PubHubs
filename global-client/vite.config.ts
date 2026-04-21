@@ -21,6 +21,7 @@ export default defineConfig({
 		tailwindcss(),
 		VitePWA({
 			registerType: 'autoUpdate',
+			selfDestroying: true,
 			manifest: {
 				name: 'PubHubs',
 				short_name: 'PubHubs',
