@@ -27,13 +27,6 @@
 					@reaction-panel-close="closeReactionPanel"
 					@clicked-emoticon="sendEmoji"
 				>
-					<template #extras>
-						<ForumEventActions
-							v-if="isForum"
-							:event="props.room.currentThread?.rootEvent?.event ?? {}"
-							:room="room"
-						></ForumEventActions>
-					</template>
 					<template #bottom>
 						<ForumEventBody
 							v-if="isForum"
@@ -67,13 +60,6 @@
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
 					>
-						<template #extras>
-							<ForumEventActions
-								v-if="isForum && index === 0"
-								:event="item.matrixEvent.event"
-								:room="room"
-							></ForumEventActions>
-						</template>
 						<template #bottom>
 							<ForumEventBody
 								v-if="isForum"
