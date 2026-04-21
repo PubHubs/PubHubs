@@ -222,12 +222,10 @@
 				}
 			}
 			if (orderType.value === ORDER.Activity) {
-				const tsa = props.room.getMatrixThreadLastEventTimestamp(a.event.matrixEvent.event.event_id!)!;
-				const tsb = props.room.getMatrixThreadLastEventTimestamp(b.event.matrixEvent.event.event_id!)!;
 				if (orderDir.value === ORDER_DIR.asc) {
-					return tsb - tsa;
+					return b.timestamp - a.timestamp;
 				} else {
-					return tsa - tsb;
+					return a.timestamp - b.timestamp;
 				}
 			}
 			return 0;
