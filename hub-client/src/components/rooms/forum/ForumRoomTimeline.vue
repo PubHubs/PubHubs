@@ -31,25 +31,13 @@
 			@close="closeNewThread()"
 		></ForumCreateThread>
 
-		<div
-			ref="elForumTimeline"
-			class="flex h-full flex-col"
-		>
-			<!-- Top sentinel -->
-			<div
-				ref="topSentinel"
-				class="pointer-events-none h-[1px] shrink-0 opacity-0"
-			/>
-
+		<div class="flex h-full flex-col">
 			<!-- Loading indicator -->
-			<div class="flex h-full items-center justify-center px-4 md:px-16">
-				<InlineSpinner v-if="!initialLoadComplete && events.length === 0" />
-				<p
-					v-else-if="initialLoadComplete && events.length === 0"
-					class="text-on-surface-dim text-center"
-				>
-					{{ $t('messages.forum.no_threads') }}
-				</p>
+			<div
+				v-if="events.length === 0"
+				class="flex h-full min-h-600 items-center justify-center px-4 md:px-16"
+			>
+				<InlineSpinner />
 			</div>
 
 			<ul
@@ -57,7 +45,7 @@
 				class="flex flex-col gap-y-2"
 			>
 				<li
-					v-for="tEvent in events"
+					v-for="tEvent in orderedEvents"
 					:key="tEvent.event.matrixEvent.event.event_id"
 					:data-thread-id="tEvent.event.matrixEvent.event.event_id"
 				>
@@ -71,12 +59,6 @@
 					</div>
 				</li>
 			</ul>
-
-			<!-- Bottom sentinel -->
-			<div
-				ref="bottomSentinel"
-				class="pointer-events-none h-[1px] shrink-0 opacity-0"
-			/>
 		</div>
 	</div>
 	<ForumThread
@@ -88,20 +70,13 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+	import { computed, ref } from 'vue';
 
 	// Components
 	import ForumCreateThread from '@hub-client/components/rooms/forum/ForumCreateThread.vue';
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
-	// Composables
-	import { useTimelinePagination } from '@hub-client/composables/useTimelinePagination';
-
-	// Logic
-	import { type ElementObserver } from '@hub-client/logic/core/elementObserver';
-
-	import { TimelineScrollConstants } from '@hub-client/models/constants';
 	// Models
 	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
@@ -133,58 +108,25 @@
 		timestamp: number;
 	}
 
-	const elForumTimeline = ref<HTMLElement | null>(null);
-	const topSentinel = ref<HTMLElement | null>(null);
-	const bottomSentinel = ref<HTMLElement | null>(null);
-
-	const { setupPaginationObserver, timelineVersion } = useTimelinePagination(elForumTimeline, props.room);
-
 	const addNewThread = ref(false);
 	const orderType = ref(ORDER.Created);
 	const orderDir = ref(ORDER_DIR.asc);
-	const initialLoadComplete = ref(false);
-	const { SCROLL_DEBOUNCE } = TimelineScrollConstants;
-	let eventObserver: ElementObserver | null = null;
-	let scrollDebounceId: number | null = null;
-
-	defineExpose({ elForumTimeline });
-
-	onMounted(async () => {
-		await nextTick();
-		setupPaginationObserver(topSentinel, bottomSentinel);
-
-		await nextTick();
-		await new Promise((resolve) => requestAnimationFrame(resolve));
-		initialLoadComplete.value = true;
-
-		if (elForumTimeline.value) {
-			elForumTimeline.value.addEventListener('scroll', debouncedScrollHandler, { passive: true });
-		}
-	});
-
-	onBeforeUnmount(() => {
-		if (eventObserver) {
-			eventObserver.disconnectObserver();
-			eventObserver = null;
-		}
-		elForumTimeline.value?.removeEventListener('scroll', debouncedScrollHandler);
-		if (scrollDebounceId !== null) {
-			clearTimeout(scrollDebounceId);
-		}
-	});
 
 	const events = computed(() => {
-		void timelineVersion.value; // Track timeline changes for reactivity
 		const rawTimeline = props.room.getTimeline();
 		let timelineWithTimeStamps = [] as TimeLineEventWithLastTimestamp[];
 		timelineWithTimeStamps = rawTimeline.map((event) => {
 			return {
 				event: event,
-				timestamp: props.room.getMatrixThreadLastEventTimestamp(event.matrixEvent.event.event_id!)!,
+				timestamp: props.room.getMatrixThreadLastEventTimestamp(event.matrixEvent.event.event_id!) ?? event.matrixEvent.getTs(),
 			} as TimeLineEventWithLastTimestamp;
 		});
-		// sort
-		timelineWithTimeStamps.sort((a, b) => {
+		return timelineWithTimeStamps;
+	});
+
+	const orderedEvents = computed(() => {
+		let ordered = events.value;
+		ordered.sort((a, b) => {
 			if (orderType.value === ORDER.Created) {
 				if (orderDir.value === ORDER_DIR.desc) {
 					return a.event.matrixEvent.getTs() - b.event.matrixEvent.getTs();
@@ -201,7 +143,7 @@
 			}
 			return 0;
 		});
-		return timelineWithTimeStamps;
+		return ordered;
 	});
 
 	const currentTopic = computed(() => {
@@ -242,13 +184,4 @@
 	const closeNewThread = () => {
 		addNewThread.value = false;
 	};
-
-	function debouncedScrollHandler() {
-		if (scrollDebounceId !== null) {
-			clearTimeout(scrollDebounceId);
-		}
-		scrollDebounceId = window.setTimeout(() => {
-			scrollDebounceId = null;
-		}, SCROLL_DEBOUNCE);
-	}
 </script>
