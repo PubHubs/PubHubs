@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
+- [NEW] The synapse core module will now automatically be set with phc_url=https://phc.pubhubs.net in production if it is missing from the homeserver.yaml.
 - [NEW] RoomAdmins and Stewards can bar room members from participating in a room by issuing a red card.
 - [NEW] RoomAdmins and Stewards can warn room members by issuing a yellow card.
 - [FIX] Element observer parameter is passed correctly.
@@ -20,15 +21,15 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW, behind a feature flag for now] Stewards (and users with higher privileges) can send whisper messages to other users in a room.
 - [NEW] Messages can be shared.
 - [NEW, behind a feature flag for now] Hubs now use postgres as database instead of sqlite.
-  - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,
-    during which the hub is not reachable. Keep a close eye on the hub's output.
-  - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
-    in `homeserver.live.yaml`.
-  - If the migration was succesfull, `homeserver.db` is moved to `homeserver.db.bak`.
-  - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container)
-    must be removed before the migration can be re-attempted.
-  - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
-    to the hub container's entrypoint.
+    - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,
+      during which the hub is not reachable. Keep a close eye on the hub's output.
+    - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
+      in `homeserver.live.yaml`.
+    - If the migration was succesfull, `homeserver.db` is moved to `homeserver.db.bak`.
+    - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container)
+      must be removed before the migration can be re-attempted.
+    - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
+      to the hub container's entrypoint.
 - [NEW] Startup optimization. Instead of fetching timelines for all joined rooms,
   only a timeline of 1 entry is fetched at selecting a room.
 - [NEW] Changed pagination from the standard pagination that filters client-side
@@ -42,7 +43,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Memberlist is again shown
 - [BUG] Icon reply for root of thread disabled in thread timeline
 - [BUG] Removed timeout for reading of hubs for debugging
-  - _internal_ (remove me after merge): uncomment []
+    - _internal_ (remove me after merge): uncomment []
 
 ## 06 February 2026 - v3.2.0
 
@@ -295,13 +296,13 @@ _nothing in particular_
 
 - New PHC session cookies to solve a CRSF, see #514.
 
-  If you use your own `config.yaml` for local development, you'll probably want to
-  copy this snippet from `default.yaml`:
+    If you use your own `config.yaml` for local development, you'll probably want to
+    copy this snippet from `default.yaml`:
 
-  ```
-  hotfixes:
-    no_secure_cookies: true # browsers should allow secure cookies on insecure localhost, but they don't
-  ```
+    ```
+    hotfixes:
+      no_secure_cookies: true # browsers should allow secure cookies on insecure localhost, but they don't
+    ```
 
 ## 1 Feb 2024
 
