@@ -641,6 +641,7 @@ const nl = {
 		},
 		forum: {
 			add_new_thread: 'Maak nieuwe vraag',
+			no_threads: 'Nog geen vragen',
 			sortby: 'Sorteer op',
 			sortby_created: 'Aangemaakt',
 			sortby_activity: 'Recente activiteit',

@@ -641,6 +641,7 @@ const en = {
 		},
 		forum: {
 			add_new_thread: 'Create new question',
+			no_threads: 'No questions yet',
 			sortby: 'Sort by',
 			sortby_created: 'Created',
 			sortby_activity: 'Recent activity',
