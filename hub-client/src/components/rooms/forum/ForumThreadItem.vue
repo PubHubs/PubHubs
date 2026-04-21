@@ -1,20 +1,19 @@
 <template>
 	<RoomMessageBubble
-		:event="event"
+		:event="event.event.matrixEvent.event"
 		:room="room"
 		:show-actions="showActions"
 		class="cursor-pointer"
-		@click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: event.event_id } })"
+		@click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: event.event.matrixEvent.event.event_id } })"
 	>
 		<template #extras>
 			<ForumEventActions
 				:event="event"
 				:room="room"
-				:last-timestamp="lastTimestamp"
 			></ForumEventActions>
 		</template>
 		<template #bottom>
-			<ForumEventBody :event="event"></ForumEventBody>
+			<ForumEventBody :event="event.event.matrixEvent.event"></ForumEventBody>
 		</template>
 	</RoomMessageBubble>
 </template>

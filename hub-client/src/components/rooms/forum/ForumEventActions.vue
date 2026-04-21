@@ -2,13 +2,13 @@
 	<div class="flex flex-col justify-between gap-2">
 		<div class="flex items-center justify-between gap-2">
 			<div class="flex items-center gap-1">
-				<template v-if="lastTimestamp > 0">
+				<template v-if="event.timestamp > 0">
 					<EventTime
-						:timestamp="lastTimestamp"
+						:timestamp="event.timestamp"
 						:show-date="true"
 					></EventTime>
 					<EventTime
-						:timestamp="lastTimestamp"
+						:timestamp="event.timestamp"
 						:show-date="false"
 					></EventTime>
 				</template>
@@ -36,10 +36,6 @@
 			type: Object,
 			required: true,
 		},
-		lastTimestamp: {
-			type: Number,
-			default: 0,
-		},
 		room: {
 			type: Room,
 			required: true,
@@ -47,11 +43,8 @@
 	});
 
 	const nrOfReplies = computed(() => {
-		let count = 0;
-		const currentThreadId = props.room.getCurrentThreadId();
-		if (currentThreadId !== props.event.event_id && props.event.event_id) props.room.setCurrentThreadId(props.event.event_id);
-		count = props.room.getCurrentThreadLength() - 1;
-		if (currentThreadId !== props.event.event_id) props.room.setCurrentThreadId(currentThreadId);
+		let count = props.event.event.threadLength - 1;
+		if (count < 0) count = 0;
 		return count;
 	});
 </script>

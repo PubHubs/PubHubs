@@ -62,13 +62,14 @@
 					:key="tEvent.event.matrixEvent.event.event_id"
 					:data-thread-id="tEvent.event.matrixEvent.event.event_id"
 				>
-					<ForumThreadItem
-						:event="tEvent.event.matrixEvent.event"
-						:last-timestamp="tEvent.timestamp"
-						:room="room"
-						:show-actions="false"
-						@click="closeNewThread()"
-					></ForumThreadItem>
+					<div>
+						<ForumThreadItem
+							:event="tEvent"
+							:room="room"
+							:show-actions="false"
+							@click="closeNewThread()"
+						></ForumThreadItem>
+					</div>
 				</li>
 			</ul>
 
