@@ -159,7 +159,6 @@
 			} else {
 				orderType.value = ORDER.Activity;
 			}
-			orderDir.value = ORDER_DIR.desc;
 		}
 	};
 
