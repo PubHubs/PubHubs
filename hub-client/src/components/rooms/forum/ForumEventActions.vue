@@ -15,31 +15,6 @@
 				<Icon type="chat-circle-text" />
 				<span>{{ nrOfReplies }}</span>
 			</div>
-			<!-- <div>
-				<Icon
-					v-if="event.closed"
-					type="lock"
-				/>
-				<Icon
-					v-else
-					type="lock-open"
-					class="text-accent-secondary"
-				/>
-			</div> -->
-			<ActionMenu v-if="currentUserIsTopicAuthor">
-				<ActionMenuItem
-					v-if="!event.closed"
-					@click.stop="closeOrOpenTopic(true)"
-					>Close</ActionMenuItem
-				>
-				<ActionMenuItem
-					v-else
-					@click.stop="closeOrOpenTopic(false)"
-					>Open</ActionMenuItem
-				>
-				<ActionMenuItem @click.stop="deleteTopic(event.event_id)">Delete</ActionMenuItem>
-				<ActionMenuItem @click.stop="editTopic(event.event_id)">Edit</ActionMenuItem>
-			</ActionMenu>
 		</div>
 	</div>
 </template>
@@ -50,13 +25,9 @@
 
 	// Components
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
-	import ActionMenu from '@hub-client/components/ui/ActionMenu.vue';
-	import ActionMenuItem from '@hub-client/components/ui/ActionMenuItem.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-
-	import { useUser } from '@hub-client/stores/user';
 
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 
@@ -75,8 +46,6 @@
 		},
 	});
 
-	const currentUser = useUser().user;
-
 	const nrOfReplies = computed(() => {
 		let count = 0;
 		const currentThreadId = props.room.getCurrentThreadId();
@@ -85,21 +54,4 @@
 		if (currentThreadId !== props.event.event_id) props.room.setCurrentThreadId(currentThreadId);
 		return count;
 	});
-
-	const currentUserIsTopicAuthor = computed(() => currentUser.userId === props.event.author?.userId);
-
-	const closeOrOpenTopic = (close: boolean) => {
-		// eslint-disable-next-line -- temp code
-		console.info('closeOrOpenTopic', close);
-	};
-
-	const editTopic = (eventId: string) => {
-		// eslint-disable-next-line -- temp code
-		console.info('editTopic', eventId);
-	};
-
-	const deleteTopic = (eventId: string) => {
-		// eslint-disable-next-line -- temp code
-		console.info('deleteTopic', eventId);
-	};
 </script>
