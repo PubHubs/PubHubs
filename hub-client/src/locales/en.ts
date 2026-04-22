@@ -645,6 +645,7 @@ const en = {
 			sortby: 'Sort by',
 			sortby_created: 'Created',
 			sortby_activity: 'Recent activity',
+			sortby_replies: 'Number of replies',
 			title: 'Question',
 			description: 'Description',
 			help_title: "Be specific and imagine you're asking a question to another person",

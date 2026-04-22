@@ -96,6 +96,7 @@
 
 	enum ORDER {
 		Activity = 'activity',
+		Replies = 'replies',
 		Created = 'created',
 	}
 	enum ORDER_DIR {
@@ -141,6 +142,15 @@
 					return a.timestamp - b.timestamp;
 				}
 			}
+			if (orderType.value === ORDER.Replies) {
+				const ar = a.event.matrixEvent.thread ? a.event.matrixEvent.thread.length : 0;
+				const br = b.event.matrixEvent.thread ? b.event.matrixEvent.thread.length : 0;
+				if (orderDir.value === ORDER_DIR.asc) {
+					return br - ar;
+				} else {
+					return ar - br;
+				}
+			}
 			return 0;
 		});
 		return ordered;
@@ -169,11 +179,7 @@
 		if (orderOption === orderType.value) {
 			orderDir.value = orderDir.value * -1;
 		} else {
-			if (orderType.value === ORDER.Activity) {
-				orderType.value = ORDER.Created;
-			} else {
-				orderType.value = ORDER.Activity;
-			}
+			orderType.value = orderOption;
 		}
 	};
 

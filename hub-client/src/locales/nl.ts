@@ -645,6 +645,7 @@ const nl = {
 			sortby: 'Sorteer op',
 			sortby_created: 'Aangemaakt',
 			sortby_activity: 'Recente activiteit',
+			sortby_replies: 'Aantal antwoorden',
 			title: 'Vraag',
 			description: 'Omschrijving',
 			help_title: 'Wees specifiek en bondig, stel je voor dat je een vraag stelt aan een ander persoon',
