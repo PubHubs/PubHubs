@@ -43,8 +43,7 @@
 	});
 
 	const nrOfReplies = computed(() => {
-		let count = props.event.event.threadLength - 1;
-		if (count < 0) count = 0;
-		return count;
+		if (!props.event.event.matrixEvent.thread) return 0;
+		return props.event.event.matrixEvent.thread.length;
 	});
 </script>
