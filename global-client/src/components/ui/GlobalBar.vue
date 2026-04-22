@@ -28,6 +28,10 @@
 								@click="settingsDialog = true"
 							/>
 							<GlobalbarButton
+								type="question-mark"
+								@click="gotoHelp()"
+							/>
+							<GlobalbarButton
 								type="sign-out"
 								@click="logout"
 							/>
@@ -59,6 +63,7 @@
 	import { useGlobal } from '@global-client/stores/global';
 
 	import { useDialog } from '@hub-client/stores/dialog';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const logoUrl = '/client/img/icons/512x512.svg';
 	const dialog = useDialog();
@@ -71,5 +76,11 @@
 		if (await dialog.yesno(t('logout.logout_sure'), '', 'global')) {
 			await global.logout();
 		}
+	}
+
+	function gotoHelp() {
+		const settings = useSettings();
+		const lang = settings.getActiveLanguage;
+		window.open(`https://www.pubhubs.net/${lang}/help/`, '_blank');
 	}
 </script>
