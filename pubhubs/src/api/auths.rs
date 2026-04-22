@@ -421,6 +421,13 @@ pub struct YiviReleaseNextSessionReq {
     /// was set (because in that case the HTTP status code `200` has already been sent to the Yivi server.)
     /// If `None` is submitted anyway, this causes an `ErrorCode::BadRequest`.
     pub next_session: Option<jwt::JWT>,
+
+    /// If the yivi server has been waiting more than this amount of milliseconds when it is about to be released,
+    /// dont release it, but ghost it.
+    /// The reason is that drip mechanism may be too slow to detect the yivi server timing out.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stale_after: Option<u16>,
 }
 
 /// What's returned by [`YiviReleaseNextSessionEP`]
@@ -442,6 +449,7 @@ pub enum YiviReleaseNextSessionResp {
     SessionGone,
 
     /// The request seems fine, but the Yivi server is gone, perhaps because it timed out.
+    /// Also returned when the authentication server deems the yivi server stale, see [`YiviReleaseNextSessionReq::stale_after`].
     YiviServerGone,
 
     /// Trying to release a yivi server that's not there yet.  You should first call the

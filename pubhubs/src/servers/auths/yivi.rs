@@ -159,13 +159,13 @@ impl App {
         wfns_fut: impl Future<Output = api::Result<NextSession>> + 'static,
     ) -> impl actix_web::Responder {
         let drips = tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(
-            core::time::Duration::from_secs(1),
+            core::time::Duration::from_millis(100),
         ))
         .map(|_| Ok(bytes::Bytes::from_static(b" ")));
 
         let result_bytes_fut = wfns_fut.map(|result| match result {
             Ok(Some(session_request)) => {
-                log::debug!("sent chained session to yivi server");
+                log::debug!("sent chained session to yivi server: {session_request:?}");
                 Ok(serde_json::to_vec_pretty(&session_request)
                     .map_err(|err| {
                         log::error!("failed to serialize session_request to json: {err:#}");
@@ -202,6 +202,7 @@ impl App {
         let api::auths::YiviReleaseNextSessionReq {
             state,
             next_session,
+            stale_after,
         } = req.into_inner();
 
         let Some(state) = AuthState::unseal(&state, &app.auth_state_secret) else {
@@ -241,7 +242,7 @@ impl App {
             None
         };
 
-        csc.release_next_session(session_id, esr).await
+        csc.release_next_session(session_id, esr, stale_after).await
     }
 }
 
@@ -301,6 +302,7 @@ enum CscCommand {
     ReleaseNextSession {
         chained_session_id: id::Id,
         next_session_request: NextSession,
+        stale_after: Option<u16>,
         resp_sender: ReleaseNextSessionCrs,
     },
 }
@@ -377,12 +379,14 @@ impl ChainedSessionsCtl {
         &self,
         chained_session_id: id::Id,
         next_session_request: NextSession,
+        stale_after: Option<u16>,
     ) -> api::Result<api::auths::YiviReleaseNextSessionResp> {
         let (resp_sender, resp_receiver) = tokio::sync::oneshot::channel();
 
         self.send_command(CscCommand::ReleaseNextSession {
             chained_session_id,
             next_session_request,
+            stale_after,
             resp_sender,
         })
         .await?;
@@ -448,6 +452,7 @@ enum ChainedSessionState {
         disclosure: jwt::JWT,
         /// Yivi servers waiting to be released.  The `Id` refers to the yivi server.
         waiters: HashMap<id::Id, WaitForNextSessionCrs>,
+        first_arrived_at: std::time::Instant,
     },
 }
 
@@ -507,11 +512,13 @@ impl ChainedSessionsBackend {
             CscCommand::ReleaseNextSession {
                 chained_session_id,
                 next_session_request,
+                stale_after,
                 resp_sender,
             } => {
                 self.handle_release_next_session(
                     chained_session_id,
                     next_session_request,
+                    stale_after,
                     resp_sender,
                 )
                 .await
@@ -612,6 +619,7 @@ impl ChainedSessionsBackend {
             ChainedSessionState::YiviServerWaiting {
                 disclosure: stored_disclosure,
                 waiters,
+                ..
             } => {
                 if &disclosure != stored_disclosure {
                     log::warn!(
@@ -635,12 +643,13 @@ impl ChainedSessionsBackend {
                 return;
             }
         }
-
+        log::debug!("starting measuring time now");
         let old_session = std::mem::replace(
             session,
             ChainedSessionState::YiviServerWaiting {
                 disclosure: disclosure.clone(),
                 waiters: [(request_id, resp_sender)].into(),
+                first_arrived_at: std::time::Instant::now(),
             },
         );
 
@@ -708,6 +717,7 @@ impl ChainedSessionsBackend {
         &mut self,
         chained_session_id: id::Id,
         next_session_request: NextSession,
+        stale_after: Option<u16>,
         resp_sender: ReleaseNextSessionCrs,
     ) {
         let Some(session) = self.sessions.get_mut(&chained_session_id) else {
@@ -744,13 +754,30 @@ impl ChainedSessionsBackend {
         log::trace!(
             "yivi server is about to be released from chained session {chained_session_id}"
         );
-        let Some(ChainedSessionState::YiviServerWaiting { waiters, .. }) =
-            self.sessions.remove(&chained_session_id)
+        let Some(ChainedSessionState::YiviServerWaiting {
+            waiters,
+            first_arrived_at,
+            ..
+        }) = self.sessions.remove(&chained_session_id)
         else {
             panic!("chained session state changed unexpectedly");
         };
 
         if waiters.is_empty() {
+            Self::respond_to(
+                resp_sender,
+                Ok(api::auths::YiviReleaseNextSessionResp::YiviServerGone),
+                chained_session_id,
+            );
+            return;
+        }
+
+        if let Some(stale_after) = stale_after
+            && std::time::Instant::now()
+                .duration_since(first_arrived_at)
+                .as_millis()
+                > stale_after.into()
+        {
             Self::respond_to(
                 resp_sender,
                 Ok(api::auths::YiviReleaseNextSessionResp::YiviServerGone),
