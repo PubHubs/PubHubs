@@ -395,7 +395,17 @@ class UpdateConfig:
                 mandatory_modules.remove(module["module"])
         # Add modules that are missing to tmp value
         for module_name in mandatory_modules:
-            value.append({"module": module_name})
+            if module_name == "conf.modules.pubhubs.Core":
+                phc_url = (
+                "https://phc.pubhubs.net" if self.check_environment == CheckEnvironment.PRODUCTION
+                else "http://host.docker.internal:5050"
+                )
+                value.append({
+                    "module": module_name,
+                    "config": {"phc_url": phc_url}
+                })
+            else:
+                value.append({"module": module_name})  
         # Update config dict
         homeserver_live[key] = value
 
