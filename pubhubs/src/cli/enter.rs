@@ -602,6 +602,7 @@ impl EnterArgs {
                     api::auths::YiviReleaseNextSessionReq {
                         state: auth_state.clone(),
                         next_session: Some(issuance_request),
+                        stale_after: None,
                     },
                 )
                 .await
