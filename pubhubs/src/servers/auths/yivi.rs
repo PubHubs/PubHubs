@@ -643,7 +643,6 @@ impl ChainedSessionsBackend {
                 return;
             }
         }
-        log::debug!("starting measuring time now");
         let old_session = std::mem::replace(
             session,
             ChainedSessionState::YiviServerWaiting {
