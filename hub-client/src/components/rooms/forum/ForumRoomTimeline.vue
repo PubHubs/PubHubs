@@ -143,10 +143,8 @@
 				}
 			}
 			if (orderType.value === ORDER.Replies) {
-				let ar = 0;
-				if (a.event.matrixEvent.getThread()) ar = a.event.matrixEvent.getThread()!.length ?? 0;
-				let br = 0;
-				if (b.event.matrixEvent.getThread()) br = b.event.matrixEvent.getThread()!.length ?? 0;
+				const ar = (a.event.threadLength ?? 0) as unknown as number;
+				const br = (b.event.threadLength ?? 0) as unknown as number;
 				if (orderDir.value === ORDER_DIR.asc) {
 					return br - ar;
 				} else {
