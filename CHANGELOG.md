@@ -9,7 +9,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
-## Changes not merged to stable yet
+## 28 April 2026 - v3.3.0
 
 - [NEW] The synapse core module will now automatically be set with phc_url=https://phc.pubhubs.net in production if it is missing from the homeserver.yaml.
 - [NEW] RoomAdmins and Stewards can bar room members from participating in a room by issuing a red card.
