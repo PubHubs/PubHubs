@@ -1217,6 +1217,7 @@ async fn request_attributes_chained(
             &api::auths::YiviReleaseNextSessionReq {
                 state: auth_state.clone(),
                 next_session: None,
+                stale_after: None,
             },
         )
         .await

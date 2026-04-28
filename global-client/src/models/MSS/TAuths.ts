@@ -58,7 +58,7 @@ export type YiviWaitForResultResp = { Success: { disclosure: string } } | { Plea
 
 export type YiviReleaseNextSessionResp = { Success: Record<string, never> } | 'PleaseRestartAuth' | 'SessionGone' | 'YiviServerGone' | 'TooEarly';
 
-export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string };
+export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string; stale_after: number };
 
 export type CardResp = { Success: CardRespSuccess } | 'PleaseRetryWithNewCardPseud';
 

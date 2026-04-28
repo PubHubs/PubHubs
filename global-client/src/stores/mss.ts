@@ -197,6 +197,7 @@ const useMSS = defineStore('mss', {
 				const response = await authServer.YiviReleaseNextSessionEP({
 					state: authServer.getState(),
 					next_session: issuance_request,
+					stale_after: 4500,
 				});
 				if (response === 'YiviServerGone') {
 					return { cardAttr: null, errorMessage: { key: 'YiviServerGone', values: [comment] } };
