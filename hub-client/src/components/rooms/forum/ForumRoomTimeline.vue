@@ -114,6 +114,7 @@
 	const orderDir = ref(ORDER_DIR.asc);
 
 	const events = computed(() => {
+		void props.topicId; // react also on changing topicId -> possibly a new event added somewhere, so timestamp etc needs to be updated.
 		const rawTimeline = props.room.getTimeline();
 		let timelineWithTimeStamps = [] as TimeLineEventWithLastTimestamp[];
 		timelineWithTimeStamps = rawTimeline.map((event) => {
