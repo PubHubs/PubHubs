@@ -71,7 +71,6 @@
 			const rooms = useRooms();
 			const pubhubs = usePubhubsStore();
 			await pubhubs.addForumThread(rooms.currentRoomId, title.value, description.value);
-			emit('close');
 		} catch (error) {
 			logger.error('error in submiting forum post', { error });
 		} finally {
