@@ -13,7 +13,7 @@ RUN GO111MODULE=auto go install ./irma
 
 ## FINAL CONTAINER STAGE
 
-FROM ghcr.io/element-hq/synapse:v1.150.0
+FROM ghcr.io/element-hq/synapse:v1.151.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 COPY --from=livekit/livekit-server:latest /livekit-server /usr/bin/livekit-server
