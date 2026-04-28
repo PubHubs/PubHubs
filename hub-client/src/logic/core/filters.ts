@@ -2,8 +2,9 @@
 import { assert } from 'chai';
 
 // Logic
-import { LOGGER } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
+const logger = createLogger('Error');
 
 // Regex describing the general shape of a shortened pseudonym
 // Does not check the checkdigit, nor the fact that the left and right groups must be equally long.
@@ -24,7 +25,7 @@ export default {
 		return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 	},
 
-	getDateStr(date: string | string[] | Date | Date[], hour24: boolean, d: any, preview = false) {
+	getDateStr(date: string | string[] | Date | Date[], hour24: boolean, d: (date: Date, format: string) => string, preview = false) {
 		if (date instanceof Date || typeof date === 'string') {
 			if (typeof date === 'string') {
 				date = new Date(date);
@@ -43,12 +44,15 @@ export default {
 				if (endTime && !preview) {
 					return `${d(startDate, 'short')}, ${startTime} - ${endTime}`;
 				} else if (endTime && preview) {
-					return `${d(startDate, 'short')}, ${startTime} - ${d(endDate, 'short')}, ${endTime}`;
+					return endDate ? `${d(startDate, 'short')}, ${startTime} - ${d(endDate, 'short')}, ${endTime}` : `${d(startDate, 'short')}, ${startTime}`;
 				} else {
 					return `${d(startDate, 'short')}, ${startTime}`;
 				}
 			}
-			return `${d(startDate, 'short')}, ${startTime} - ${d(endDate, 'short')}, ${endTime}`;
+			if (endDate) {
+				return `${d(startDate, 'short')}, ${startTime} - ${d(endDate, 'short')}, ${endTime}`;
+			}
+			return `${d(startDate, 'short')}, ${startTime}`;
 		} else {
 			throw new Error('The date was not provided in one of the allowed types.');
 		}
@@ -94,7 +98,7 @@ export default {
 		const result: RegExpExecArray | null = shortenedPseudonymRegex.exec(localpart);
 
 		if (!result || result.groups?.left.length !== result.groups?.right.length) {
-			LOGGER.log(SMI.ERROR, `Matrix ID passed to extractPseudonym did not contain shortened pseudonym: ${matrixUserId}`);
+			logger.info(`Matrix ID passed to extractPseudonym did not contain shortened pseudonym: ${matrixUserId}`);
 			return '!!!-!!!';
 		}
 

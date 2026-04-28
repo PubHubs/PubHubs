@@ -1,14 +1,11 @@
 <template>
 	<Menu>
 		<!-- MenuItems for all joined rooms, including secured rooms -->
-		<template v-for="room in currentJoinedRooms" :key="room.roomId">
+		<template
+			v-for="room in currentJoinedRooms"
+			:key="room.roomId"
+		>
 			<MenuItem
-				:to="{ name: 'room', params: { id: room.roomId } }"
-				:room="room"
-				class="no-callout group inline-block w-full select-none"
-				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
-				:icon="isSecuredRoom(room) ? 'shield' : 'chats-circle'"
-				@click="hubSettings.hideBar()"
 				v-context-menu="
 					(evt: any) =>
 						openMenu(
@@ -17,66 +14,107 @@
 								{ label: t('menu.enter_room'), icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: room.roomId } }) },
 								{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl(room.roomId) },
 								{ divider: true, label: '' },
-								{ label: t('menu.leave_room'), icon: 'x', isDelicate: true, onClick: () => leaveRoom(room.roomId) },
+								{ label: t('menu.leave_room'), icon: 'x', variant: ContextVariant.delicate, onClick: () => leaveRoom(room.roomId) },
 							],
 							room.roomId,
 						)
 				"
+				:to="{ name: 'room', params: { id: room.roomId } }"
+				:room="room"
+				class="no-callout group inline-block w-full select-none"
+				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
+				:icon="isSecuredRoom(room) ? 'shield' : 'chats-circle'"
+				@click="hubSettings.hideBar()"
 			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
 						<RoomName :room="room" />
 					</TruncatedText>
 
-					<span class="flex items-center gap-1 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
-						<Badge v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0" data-testid="unread-badge" color="hub" :size="roomBadgeSize(getUnreadCount(room.roomId, NotificationCountType.Total))" />
-						<Badge v-if="getUnreadCount(room.roomId, NotificationCountType.Highlight) > 0" color="hub" size="sm" />
+					<span
+						v-if="settings.isFeatureEnabled(FeatureFlag.notifications)"
+						class="flex items-center gap-1 transition-all duration-200 ease-in-out"
+					>
+						<Badge
+							v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0"
+							data-testid="unread-badge"
+							color="hub"
+							:size="roomBadgeSize(getUnreadCount(room.roomId, NotificationCountType.Total))"
+						/>
+						<Badge
+							v-if="getUnreadCount(room.roomId, NotificationCountType.Highlight) > 0"
+							color="hub"
+							size="sm"
+						/>
 					</span>
 				</span>
 			</MenuItem>
 		</template>
 		<!-- MenuItems for secured rooms that the user recently was removed from, not joined rooms -->
-		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications.notifications" :key="notification.room_id" class="relative flex flex-row">
-			<MenuItem
-				v-if="notification.type === 'removed_from_secured_room' && notification.room_id"
-				icon="shield"
-				class="group text-on-surface-dim inline-block w-full"
-				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == notification.room_id && 'bg-surface-base!'"
-				@click="
-					dialogOpen = notification.room_id;
-					messageValues = notification.message_values;
-				"
-				v-context-menu="
-					(evt: any) =>
-						openMenu(
-							evt,
-							[
-								{ label: t('menu.enter_room'), icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: notification.room_id! } }) },
-								{ divider: true, label: '' },
-								{ label: t('menu.leave_room'), icon: 'x', isDelicate: true, onClick: () => dismissNotification(notification.room_id!) },
-							],
-							notification.room_id,
-						)
-				"
+		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED">
+			<template
+				v-for="notification in notifications.notifications"
+				:key="notification.room_id"
 			>
-				<span class="flex w-full items-center justify-between gap-4">
-					<TruncatedText>
-						<span>{{ notification.message_values[0] }}</span>
-					</TruncatedText>
-				</span>
-			</MenuItem>
+				<MenuItem
+					v-if="notification.type === 'removed_from_secured_room' && notification.room_id"
+					v-context-menu="
+						(evt: any) =>
+							openMenu(
+								evt,
+								[
+									{
+										label: t('menu.enter_room'),
+										icon: 'arrow-right',
+										onClick: () => router.push({ name: 'room', params: { id: notification.room_id! } }),
+									},
+									{ divider: true, label: '' },
+									{
+										label: t('menu.leave_room'),
+										icon: 'x',
+										variant: ContextVariant.delicate,
+										onClick: () => dismissNotification(notification.room_id!),
+									},
+								],
+								notification.room_id,
+							)
+					"
+					icon="shield"
+					class="group text-on-surface-dim relative flex w-full flex-row"
+					:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == notification.room_id && 'bg-surface-base!'"
+					@click="
+						dialogOpen = notification.room_id;
+						messageValues = notification.message_values;
+					"
+				>
+					<span class="flex w-full items-center justify-between gap-4">
+						<TruncatedText>
+							<span>{{ notification.message_values[0] }}</span>
+						</TruncatedText>
+					</span>
+				</MenuItem>
+			</template>
 		</template>
 		<template v-if="!roomsLoaded && currentJoinedRooms.length === 0">
-			<MenuItemSkeleton v-for="n in 3" :key="n" />
+			<MenuItemSkeleton
+				v-for="n in 3"
+				:key="n"
+			/>
 		</template>
 	</Menu>
-	<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" :secured="true" />
+	<RoomLoginDialog
+		v-model:dialog-open="dialogOpen"
+		title="notifications.rejoin_secured_room"
+		message="notifications.removed_from_secured_room"
+		:message-values="messageValues"
+		:secured="true"
+	/>
 </template>
 
 <script setup lang="ts">
 	// Packages
 	import { NotificationCountType } from 'matrix-js-sdk';
-	import { PropType, computed, ref } from 'vue';
+	import { type PropType, computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
@@ -97,7 +135,7 @@
 	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Models
-	import { DirectRooms, PublicRooms, RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
 	// Stores
@@ -110,8 +148,16 @@
 
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { ContextVariant } from '@hub-client/new-design/models/contextMenu.models';
 	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
+	const props = defineProps({
+		roomTypes: {
+			type: Array as PropType<RoomType[]>,
+			required: true,
+			default: () => [RoomType.PH_MESSAGES_DEFAULT], // To make sure vue recognizes it, this needs a real array as default
+		},
+	});
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
 	const settings = useSettings();
@@ -126,14 +172,6 @@
 	const messageValues = ref<(string | number)[]>([]);
 	const dialogOpen = ref<string | null>(null);
 	const dialog = useDialog();
-
-	const props = defineProps({
-		roomTypes: {
-			type: Array as PropType<RoomType[]>,
-			required: true,
-			default: () => [RoomType.PH_MESSAGES_DEFAULT], // To make sure vue recognizes it, this needs a real array as default
-		},
-	});
 
 	const currentJoinedRooms = computed(() => {
 		if (props.roomTypes.every((t) => PublicRooms.includes(t))) {

@@ -1,6 +1,9 @@
 <template>
-	<div class="bg-surface-base" :class="direction === 'horizontal' ? 'h-px w-full' : 'h-full w-px'">
-		<slot></slot>
+	<div
+		class="bg-surface-base"
+		:class="direction === 'horizontal' ? 'h-px w-full' : 'h-full w-px'"
+	>
+		<slot />
 	</div>
 </template>
 
@@ -9,7 +12,7 @@
 	export type TDirection = 'horizontal' | 'vertical';
 </script>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Props
 	withDefaults(
 		defineProps<{

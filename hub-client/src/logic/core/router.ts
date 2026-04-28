@@ -82,7 +82,11 @@ const routes = [
 		path: '/error-page',
 		name: 'error-page',
 		component: () => import('@hub-client/pages/ErrorPage.vue'),
-		props: (route: { query: { errorKey: String; errorValues: Array<String | Number> } }) => ({ errorKey: route.query.errorKey || 'errors.general_error', errorValues: route.query.errorValues || [] }),
+		props: (route: { query: { errorKey: string; errorValues: Array<string | number>; fromRoute: string } }) => ({
+			errorKey: route.query.errorKey || 'errors.general_error',
+			errorValues: route.query.errorValues || [],
+			fromRoute: route.query.fromRoute || null,
+		}),
 		meta: { hideBar: true },
 	},
 	{
@@ -103,6 +107,7 @@ const routes = [
 		name: 'nop',
 		component: () => import('@hub-client/pages/NotImplemented.vue'),
 	},
+	{ path: '/videocall', name: 'videocall', component: () => import('@hub-client/pages/VideoCallPage.vue') },
 ];
 
 // Create the router instance
@@ -158,13 +163,21 @@ router.beforeEach((to, from) => {
 		if (accessRoles.length === 1 && accessRoles[0] === UserRole.Admin && !user.adminStatusLoaded) {
 			return true;
 		}
+		// eslint-disable-next-line no-console -- log navigation errors for debugging
 		console.error('ONLY FOR ROLES: ', to.meta.accessFor, roomId);
 		return { name: 'home' };
 	}
 
 	// Redirect to home if coming from a browser refresh (undefined)
-	if (to.name === 'error-page' && from.name === undefined) {
+	if (to.name === 'error-page' && (from.name === undefined || from.name === 'error-page')) {
 		return { name: 'home' };
+	}
+	// Preserve the originating route so the error-page can navigate back to it
+	if (to.name === 'error-page' && from.name !== undefined && !to.query.fromRoute) {
+		return {
+			...to,
+			query: { ...to.query, fromRoute: from.fullPath },
+		};
 	}
 
 	// Default allow navigation

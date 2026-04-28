@@ -1,13 +1,18 @@
 <template>
 	<button class="bg-surface-high flex items-center justify-center rounded-md p-1">
-		<Icon :type="type" :size="size" :weight="weight" :mirrored="mirrored"></Icon>
+		<Icon
+			:mirrored="mirrored"
+			:size="size"
+			:type="type"
+			:weight="weight"
+		/>
 	</button>
 </template>
 
-<script setup lang="ts">
-	import { PropType } from 'vue';
+<script lang="ts" setup>
+	import { type PropType } from 'vue';
 
-	const props = defineProps({
+	defineProps({
 		type: {
 			type: String,
 			default: 'empty',

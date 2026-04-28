@@ -1,11 +1,21 @@
 <template>
 	<figure class="rounded-base flex aspect-square h-full w-auto items-center justify-center overflow-hidden">
-		<img v-show="imageLoaded" :src="url" @load="imageLoaded = true" :alt="`Icon of Hub ${hubNameForImgAlt ?? ''}`" class="bg-surface-base dark:bg-on-surface h-full w-full object-cover" />
-		<Icon v-if="fallback && !imageLoaded" type="lightning-slash" class="text-on-surface-variant h-full w-full" />
+		<img
+			v-show="imageLoaded"
+			:alt="`Icon of Hub ${hubNameForImgAlt ?? ''}`"
+			class="bg-surface-base dark:bg-on-surface h-full w-full object-cover"
+			:src="url"
+			@load="imageLoaded = true"
+		/>
+		<Icon
+			v-if="fallback && !imageLoaded"
+			class="text-on-surface-variant h-full w-full"
+			type="lightning-slash"
+		/>
 	</figure>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 

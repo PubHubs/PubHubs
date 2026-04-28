@@ -47,7 +47,8 @@ const en = {
 		admin_error: 'You are not an admin!',
 		no_room_error: 'User {0} has not joined any room in the hub.',
 		room_creator: 'Room Creator not found',
-		account_does_not_exist: 'A PubHubs account with these attributes does not exist. Try to register a new account with these attributes or try to login with different attributes.',
+		account_does_not_exist:
+			'A PubHubs account with these attributes does not exist. Try to register a new account with these attributes or try to login with different attributes.',
 		attribute_banned: 'The following attribute is banned and therefore cannot be used to register a new PubHubs account: {0}.',
 		banned: 'This account is banned and can no longer be used to login to PubHubs.',
 		attribute_already_taken: 'The following attribute is already tied to a PubHubs account: {0}. Try logging in.',
@@ -55,8 +56,10 @@ const en = {
 		retry_with_new_attr: 'Please add your attributes again in Yivi and retry.',
 		no_hubs_found: 'Unfortunately we could not show any hubs. Try again later and contact the developers if the problem persists.',
 		cant_find: 'Sorry, we could not find the page or room that you were looking for.',
-		notid_attribute_already_taken: 'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
+		notid_attribute_already_taken:
+			'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
 		notid_taken_title: 'Phone number already in use',
+		YiviServerGone: 'You could likely not complete the login because battery-saver blocks javascript, try the last step one more time to log in.',
 	},
 	file: {
 		upload: 'Upload',
@@ -85,16 +88,19 @@ const en = {
 		hub_homepage_welcome_auth: 'Welcome to the {0}-hub.',
 		welcome: 'Welcome',
 		highlighted_hubs: 'Highlighted hubs',
-		highlighted_hubs_info: 'PubHubs consist of seperate hubs, where local conversations happen, under a central login. These hubs are run by seperate, participating organisations.',
+		highlighted_hubs_info:
+			'PubHubs consist of seperate hubs, where local conversations happen, under a central login. These hubs are run by seperate, participating organisations.',
 		welcome_to: '{0} Hub overview',
 		discover_hubs: 'Discover hubs',
 		hub_card_about: 'About',
 		heading: 'Hub description:',
 		contact_details: 'Contact details:',
+		contact_copied: 'Copied to clipboard',
 	},
 	mss: {
 		system_offline: 'System offline',
-		system_offline_description: 'Our system is offline right now, so not everything works as expected.\nPlease try again later. Contact the developers if the problem persists.',
+		system_offline_description:
+			'Our system is offline right now, so not everything works as expected.\nPlease try again later. Contact the developers if the problem persists.',
 	},
 	register: {
 		have_account: 'Do you already have a {0} account?',
@@ -152,7 +158,8 @@ const en = {
 		yivi_why: 'Why Yivi for PubHubs?',
 		yivi_why_answer:
 			'Within PubHubs, Yivi is used for two things. {reasons} Yivi, like PubHubs, is privacy-friendly and open about how it works, via open-source software. Yivi is a separate app used by PubHubs, but not part of PubHubs. Yivi is also used on other websites for logging in.',
-		yivi_why_central_login: 'For central login. You then share your email address and your mobile number. Those data are only known at the central login and not in the different hubs you visit. Your data is not shared with others.',
+		yivi_why_central_login:
+			'For central login. You then share your email address and your mobile number. Those data are only known at the central login and not in the different hubs you visit. Your data is not shared with others.',
 		yivi_why_room_login:
 			'To log in to some rooms, where more information is requested about the participants. This may happen, for example, in a room for people in your neighborhood, where you must first prove what your zip code is to get in. You may also have to prove that your email address is on a list for a particular room before you can get in.',
 		yivi_link: 'https://yivi.app/en/',
@@ -266,7 +273,8 @@ const en = {
 		typing: 'Start typing...',
 		load_more_results: 'Load more results',
 		help: 'Are you struggling with using PubHubs?',
-		work_in_progress: 'PubHubs is a work in progress. A manual is currently being worked on. In the meantime, please ask your question in one of the rooms.',
+		work_in_progress:
+			'PubHubs is a work in progress. A manual is currently being worked on. In the meantime, please ask your question in one of the rooms.',
 		no_private_message: "It's looks a little quiet here. Lets start something new! Just tap the + icon to begin your first conversation.",
 		select_conversation: 'Select a conversation to start messaging',
 		start_new_conversation: 'Start a new conversation using the + button',
@@ -494,7 +502,22 @@ const en = {
 		admin_contact_subtitle: 'For hub-wide issues only',
 		admin_contact_main_msg:
 			'For room-related questions, please contact the room steward first. You can find the steward contact in the members panel of the room. The hub administrator is only for hub-wide issues or when the steward cannot help. Do you want to continue?',
-		if_admin_contact_not_present: 'The Hub Administrator is not available at the moment. For room-related questions, you can contact the room steward via the members panel in the room.',
+		if_admin_contact_not_present:
+			'The Hub Administrator is not available at the moment. For room-related questions, you can contact the room steward via the members panel in the room.',
+	},
+	moderation: {
+		admins: 'admins',
+		yellow_card: 'yellow card',
+		yellow_card_info: 'you have received a yellow card as a warning for this room. reason: ',
+		issue_yellow_card: 'issue a yellow card',
+		issue_yellow_card_info: 'the member will receive a warning',
+		red_card: 'red card',
+		red_card_info: 'you have received a red card and are no longer able to enter this room. reason: ',
+		issue_red_card: 'issue a red card',
+		issue_red_card_info: 'the member will be barred from the room',
+		revoke_red_card: 'revoke red card',
+		card_reason_label: 'reason for issuing this card',
+		sanctioned_members: 'sanctioned members',
 	},
 	themes: {
 		dark: 'Dark',
@@ -514,7 +537,8 @@ const en = {
 		info: `Continue in your browser: Click 'allow' in the pop-up on your screen to receive PubHubs notifications in your browser.`,
 		heading: 'Notifications',
 		dismiss: 'Dismiss',
-		removed_from_secured_room: 'You have been removed from the secured room {0} because {1} days have passed or someone has modified the room; use Yivi to re-enter the room.',
+		removed_from_secured_room:
+			'You have been removed from the secured room {0} because {1} days have passed or someone has modified the room; use Yivi to re-enter the room.',
 		soon_removed_from_secured_room: 'You will be removed from the secured room {0} within {1} days; use Yivi to stay in the room.',
 		rejoin: 'rejoin',
 		rejoin_secured_room: 'Rejoin room',
@@ -536,10 +560,12 @@ const en = {
 
 		info_first_time: 'This is your first visit. It is nice that you are here.',
 		info_abt_pseudonym: 'This hub has given you a random name (pseudonym)',
-		info_issue_identity: 'This pseudonym hides your identity for privacy reasons. But it is not very convenient for others in the hub. Therefore, You can choose a nickname yourself that others in the hub will see',
+		info_issue_identity:
+			'This pseudonym hides your identity for privacy reasons. But it is not very convenient for others in the hub. Therefore, You can choose a nickname yourself that others in the hub will see',
 		info_abt_nickname_use: 'Please note that other participants may also use self-chosen name that need not be their real names.',
 		info_abt_choose_later: 'You can also choose a name later, or change it again.',
-		info_abt_yivi_room: 'For certain rooms in this hub, you may be asked to reveal (part of) your identity, via the Yivi app. This gives participants in those rooms certainty about each other.',
+		info_abt_yivi_room:
+			'For certain rooms in this hub, you may be asked to reveal (part of) your identity, via the Yivi app. This gives participants in those rooms certainty about each other.',
 		info_misbehave: 'If you misbhehave, you can be banned from this hub.',
 		continue: 'Continue',
 		success_msg: 'You can explore the rooms and chat with the community!',
@@ -719,6 +745,10 @@ const en = {
 				},
 			},
 		},
+	},
+	videocall: {
+		start_button: 'Start video call',
+		join_button: 'Join video call',
 	},
 };
 

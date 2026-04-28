@@ -1,10 +1,8 @@
-/// <reference types="vitest" />
 import tailwindcss from '@tailwindcss/vite';
 import Vue from '@vitejs/plugin-vue';
-import path from 'node:path';
 import { URL, fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	logLevel: 'warn',
@@ -17,7 +15,7 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		setupFiles: ['./test/setup-teardown-hooks.ts'],
-		onConsoleLog(log) {
+		onConsoleLog(log: string) {
 			if (log.includes('Expected Room, got Object')) return false;
 			if (log.includes('Failed to resolve directive')) return false;
 		},
@@ -26,8 +24,6 @@ export default defineConfig({
 		alias: {
 			'@hub-client': fileURLToPath(new URL('./src', import.meta.url)),
 			process: 'process/browser',
-			vue: path.resolve(__dirname, 'node_modules/vue'),
-			pinia: path.resolve(__dirname, 'node_modules/pinia'),
 		},
 	},
 	build: {

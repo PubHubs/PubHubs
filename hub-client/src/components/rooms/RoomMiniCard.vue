@@ -2,13 +2,16 @@
 	<div class="bg-surface-subtle relative min-h-full overflow-hidden rounded-md">
 		<div class="relative">
 			<div class="relative z-10 flex flex-row items-center justify-around px-4 py-4">
-				<Icon type="chats-circle" size="xl"></Icon>
+				<Icon
+					size="xl"
+					type="chats-circle"
+				/>
 				<Button @click="join(props.roomId)"> Join Room </Button>
 			</div>
 		</div>
 	</div>
 </template>
-<script setup lang="ts">
+<script lang="ts" setup>
 	import Button from '../elements/Button.vue';
 	import Icon from '../elements/Icon.vue';
 

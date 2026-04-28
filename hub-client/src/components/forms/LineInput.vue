@@ -1,9 +1,12 @@
 <template>
 	<div>
-		<div v-if="isFormVisible" class="flex flex-row">
+		<div
+			v-if="isFormVisible"
+			class="flex flex-row"
+		>
 			<TextInput
 				class="grow"
-				v-model="value"
+				:model-value="String(value)"
 				:placeholder="placeholder"
 				@keydown="changed()"
 				@keydown.enter="
@@ -14,14 +17,25 @@
 					cancel();
 					resetVisibility();
 				"
+				@update:model-value="value = $event"
 			/>
-			<Icon type="plus" size="lg" class="m-2 cursor-pointer" @click="submit()" />
+			<Icon
+				class="m-2 cursor-pointer"
+				size="lg"
+				type="plus"
+				@click="submit()"
+			/>
 		</div>
-		<Icon v-else type="plus" class="cursor-pointer" @click="showForm()" />
+		<Icon
+			v-else
+			class="cursor-pointer"
+			type="plus"
+			@click="showForm()"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
 

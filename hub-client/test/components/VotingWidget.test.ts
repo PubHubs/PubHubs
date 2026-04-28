@@ -100,19 +100,19 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
-					{ choice: 'maybe', userIds: [], userTime: [] },
-					{ choice: 'no', userIds: [], userTime: [] },
-					{ choice: 'redacted', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'maybe', userIds: [], userVotes: [] },
+					{ choice: 'no', userIds: [], userVotes: [] },
+					{ choice: 'redacted', userIds: [], userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
-					{ choice: 'maybe', userIds: [], userTime: [] },
-					{ choice: 'no', userIds: [], userTime: [] },
-					{ choice: 'redacted', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'maybe', userIds: [], userVotes: [] },
+					{ choice: 'no', userIds: [], userVotes: [] },
+					{ choice: 'redacted', userIds: [], userVotes: [] },
 				],
 			},
 		];
@@ -150,15 +150,15 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
-					{ choice: 'redacted', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'redacted', userIds: [], userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
-					{ choice: 'redacted', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'redacted', userIds: [], userVotes: [] },
 				],
 			},
 		];
@@ -174,30 +174,30 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
 					{
 						choice: 'maybe',
 						userIds: ['2', '3'],
-						userTime: ['12:20', '12:21'],
+						userVotes: ['12:20', '12:21'],
 					},
-					{ choice: 'no', userIds: ['1'], userTime: ['12:34'] },
+					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
 					{
 						choice: 'redacted',
 						userIds: ['1', '2', '3'],
-						userTime: ['13:57', '1:30', '23:37'],
+						userVotes: ['13:57', '1:30', '23:37'],
 					},
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
-					{ choice: 'maybe', userIds: [], userTime: [] },
-					{ choice: 'no', userIds: ['2', '3'], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'maybe', userIds: [], userVotes: [] },
+					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
 					{
 						choice: 'redacted',
 						userIds: ['1', '2', '3'],
-						userTime: ['13:57', '1:30', '23:37'],
+						userVotes: ['13:57', '1:30', '23:37'],
 					},
 				],
 			},
@@ -232,23 +232,23 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
 					{
 						choice: 'maybe',
 						userIds: ['2', '3'],
-						userTime: ['12:20', '12:21'],
+						userVotes: ['12:20', '12:21'],
 					},
-					{ choice: 'no', userIds: ['1'], userTime: ['12:34'] },
-					{ choice: 'redacted', userIds: [], userTime: [] },
+					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
+					{ choice: 'redacted', userIds: [], userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
-					{ choice: 'maybe', userIds: [], userTime: [] },
-					{ choice: 'no', userIds: ['2', '3'], userTime: [] },
-					{ choice: 'redacted', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'maybe', userIds: [], userVotes: [] },
+					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
+					{ choice: 'redacted', userIds: [], userVotes: [] },
 				],
 			},
 		];
@@ -264,22 +264,22 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: ['12'], userTime: ['12:30'] },
+					{ choice: 'yes', userIds: ['12'], userVotes: ['12:30'] },
 					{
 						choice: 'redacted',
 						userIds: ['1', '2', '3'],
-						userTime: ['13:57', '1:30', '23:37'],
+						userVotes: ['13:57', '1:30', '23:37'],
 					},
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: ['1'], userTime: ['00:12'] },
+					{ choice: 'yes', userIds: ['1'], userVotes: ['00:12'] },
 					{
 						choice: 'redacted',
 						userIds: ['1', '2', '3'],
-						userTime: ['13:57', '1:30', '23:37'],
+						userVotes: ['13:57', '1:30', '23:37'],
 					},
 				],
 			},
@@ -316,15 +316,15 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: ['12'], userTime: ['12:30'] },
-					{ choice: 'redacted', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: ['12'], userVotes: ['12:30'] },
+					{ choice: 'redacted', userIds: [], userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: ['1'], userTime: ['00:12'] },
-					{ choice: 'redacted', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: ['1'], userVotes: ['00:12'] },
+					{ choice: 'redacted', userIds: [], userVotes: [] },
 				],
 			},
 		];
@@ -362,30 +362,30 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userTime: [] },
+					{ choice: 'yes', userIds: [], userVotes: [] },
 					{
 						choice: 'maybe',
 						userIds: ['2', '3'],
-						userTime: ['12:20', '12:21'],
+						userVotes: ['12:20', '12:21'],
 					},
-					{ choice: 'no', userIds: ['1'], userTime: ['12:34'] },
+					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
 					{
 						choice: 'redacted',
 						userIds: ['1', '2', '3'],
-						userTime: ['13:57', '1:30', '23:37'],
+						userVotes: ['13:57', '1:30', '23:37'],
 					},
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: ['1'], userTime: [] },
-					{ choice: 'maybe', userIds: [], userTime: [] },
-					{ choice: 'no', userIds: ['2', '3'], userTime: [] },
+					{ choice: 'yes', userIds: ['1'], userVotes: [] },
+					{ choice: 'maybe', userIds: [], userVotes: [] },
+					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
 					{
 						choice: 'redacted',
 						userIds: ['1', '2', '3'],
-						userTime: ['13:57', '1:30', '23:37'],
+						userVotes: ['13:57', '1:30', '23:37'],
 					},
 				],
 			},
@@ -409,17 +409,17 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: ['4'], userTime: ['15:09'] },
+					{ choice: 'yes', userIds: ['4'], userVotes: ['15:09'] },
 					{
 						choice: 'maybe',
 						userIds: ['2', '3'],
-						userTime: ['12:20', '12:21'],
+						userVotes: ['12:20', '12:21'],
 					},
-					{ choice: 'no', userIds: ['1'], userTime: ['12:34'] },
+					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
 					{
 						choice: 'redacted',
 						userIds: ['1', '2', '3'],
-						userTime: ['13:57', '1:30', '23:37'],
+						userVotes: ['13:57', '1:30', '23:37'],
 					},
 				],
 			},
@@ -429,14 +429,14 @@ describe('VotingWidget functions', () => {
 					{
 						choice: 'yes',
 						userIds: ['1', '4', '5'],
-						userTime: ['12:20', '12:21', '15:00'],
+						userVotes: ['12:20', '12:21', '15:00'],
 					},
-					{ choice: 'maybe', userIds: [], userTime: [] },
-					{ choice: 'no', userIds: ['2', '3'], userTime: ['12:20', '12:21'] },
+					{ choice: 'maybe', userIds: [], userVotes: [] },
+					{ choice: 'no', userIds: ['2', '3'], userVotes: ['12:20', '12:21'] },
 					{
 						choice: 'redacted',
 						userIds: ['1', '2', '3'],
-						userTime: ['13:57', '1:30', '23:37'],
+						userVotes: ['13:57', '1:30', '23:37'],
 					},
 				],
 			},
@@ -678,6 +678,7 @@ describe('Back end functions', () => {
 		usePubhubsStore().addVote(roomId, eventId, optionId, vote);
 
 		expect(addVoteSpy).toHaveBeenCalledWith(roomId, eventId, optionId, vote);
+
 		expect(sendEventMock).toHaveBeenCalledWith(roomId, 'pubhubs.voting_widget.reply', {
 			msgtype: 'pubhubs.voting_widget.vote',
 			optionId: optionId,

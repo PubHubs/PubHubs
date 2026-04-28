@@ -1,8 +1,15 @@
 <template>
-	<iframe v-if="hubs.currentHubExists" :src="hubUrl" class="h-full w-full" name="hub" :id="iframeHubId" allow="clipboard-write"></iframe>
+	<iframe
+		v-if="hubs.currentHubExists"
+		:id="iframeHubId"
+		allow="camera; microphone; display-capture; autoplay; speaker-selection; clipboard-write"
+		:src="hubUrl"
+		class="h-full w-full"
+		name="hub"
+	></iframe>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { assert } from 'chai';
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
@@ -11,9 +18,9 @@
 	// Logic
 	import { delay } from '@global-client/logic/utils/generalUtils';
 
-	import { CONFIG } from '@hub-client/logic/logging/Config';
-	import { Logger } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
+
+	import { type EnterStartResp } from '@global-client/models/MSS/TGeneral';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
@@ -26,7 +33,7 @@
 	const router = useRouter();
 	const hubs = useHubs();
 	const global = useGlobal();
-	const LOGGER = new Logger('GC', CONFIG);
+	const logger = createLogger('Hub');
 
 	onMounted(onRouteChange);
 
@@ -48,7 +55,7 @@
 			try {
 				hubId = hubs.hubId(route.params.name as string);
 			} catch (error) {
-				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempt}`, { error });
+				logger.error(`Could not execute function onRouteChange on attempt: ${attempt}`, { error });
 			}
 			if (!hubId) {
 				await delay(attempt);
@@ -66,8 +73,9 @@
 	}
 
 	async function handleHubAuth(id: string) {
-		const hub = hubs.hub(id)!;
-		const hubId = hub?.hubId!;
+		const hub = hubs.hub(id);
+		if (!hub) return;
+		const hubId = hub.hubId ?? '';
 		const state = hubloggedinstatus(hubId);
 
 		switch (state.kind) {
@@ -82,7 +90,7 @@
 							delay(attempt - 1);
 						}
 						const mss = useMSS();
-						const enterStartResp = await hub.enterStartEP();
+						const enterStartResp: EnterStartResp | undefined = await hub.enterStartEP();
 						assert.isDefined(enterStartResp, 'Something went wrong receiving/handling the response from enterStartEP.');
 						const hhpp = await mss.enterHub(id, enterStartResp);
 						assert.isDefined(hhpp, 'Something went wrong with getting the signedHhpp.');
@@ -99,12 +107,12 @@
 						break;
 					}
 				} catch (error) {
-					LOGGER.error(SMI.ERROR, 'Error during Hub MSS login', { error });
+					logger.error('Error during Hub MSS login', { error });
 					router.push({ name: 'error' });
 				}
 				break;
 			}
-			case Status.MSSAccessToken:
+			case Status.MSSAccessToken: {
 				const authInfo = JSON.stringify({
 					token: state.token,
 					userId: state.userId,
@@ -112,6 +120,7 @@
 				// TODO: make sure that accessToken is no longer passed in query parameter
 				hubUrl.value = hub.url + '?accessToken=' + authInfo;
 				break;
+			}
 		}
 	}
 

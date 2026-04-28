@@ -46,7 +46,8 @@ const nl = {
 		cant_find_room: 'Deze kamer is op het moment niet beschikbaar',
 		admin_error: 'Je bent geen beheerder!',
 		no_room_error: 'Gebruiker {0} is niet aangesloten bij een kamer in de hub.',
-		account_does_not_exist: 'Er bestaat geen PubHubs account met deze attributen. Probeer een nieuw account te registreren met deze attributen of probeer in te loggen met andere attributen.',
+		account_does_not_exist:
+			'Er bestaat geen PubHubs account met deze attributen. Probeer een nieuw account te registreren met deze attributen of probeer in te loggen met andere attributen.',
 		attribute_banned: 'Het volgende attribuut is verbannen en kan daarom niet worden gebruikt om een nieuw PubHubs account te registreren: {0}.',
 		banned: 'Dit account is verbannen en kan niet langer worden gebruikt om in te loggen bij PubHubs.',
 		attribute_already_taken: 'Het volgende attribuut is al gekoppeld aan een PubHubs account: {0}. Probeer in te loggen.',
@@ -54,8 +55,11 @@ const nl = {
 		retry_with_new_attr: 'Voeg uw attribuuten opnieuw toe in Yivi en probeer het nog een keer.',
 		no_hubs_found: 'Helaas konden we geen hubs tonen.  Probeer het later opnieuw en neem contact op met de ontwikkelaars als het probleem blijft bestaan.',
 		cant_find: 'Sorry, we konden de pagina of kamer die u zocht niet vinden.',
-		notid_attribute_already_taken: 'Je hebt het telefoonnummer al voor een ander account gebruikt, wil je toch een nieuw account aanmaken klik dan op ok en probeer het opnieuw',
+		notid_attribute_already_taken:
+			'Je hebt het telefoonnummer al voor een ander account gebruikt, wil je toch een nieuw account aanmaken klik dan op ok en probeer het opnieuw',
 		notid_taken_title: 'Telefoonnummer is al in gebruik',
+		YiviServerGone:
+			'U kon waarschijnlijk niet volledig inloggen omdat battery-saver javascript blokeerd, probeer de laatste stap nog een keer om de inlog the voltooien.',
 	},
 	file: {
 		upload: 'Upload',
@@ -89,10 +93,12 @@ const nl = {
 		hub_card_about: 'Over',
 		heading: 'Hub beschrijving:',
 		contact_details: 'Contactgegevens:',
+		contact_copied: 'Gekopieerd naar klembord',
 	},
 	mss: {
 		system_offline: 'Systeem offline',
-		system_offline_description: 'Ons systeem is nu offline, dus niet alles werkt zoals verwacht.\nProbeer het later opnieuw. Neem concact op met de ontwikkelaars als het probleem blijft bestaan.',
+		system_offline_description:
+			'Ons systeem is nu offline, dus niet alles werkt zoals verwacht.\nProbeer het later opnieuw. Neem concact op met de ontwikkelaars als het probleem blijft bestaan.',
 	},
 	register: {
 		have_account: 'Heb je al een {0} account?',
@@ -114,13 +120,16 @@ const nl = {
 		yivi_explained: '{0} uitgelegd in 1,5 minuut',
 		yivi_faq: 'Veelgestelde vragen',
 		yivi_faq_1_question: 'Wat is Yivi?',
-		yivi_faq_1_answer: 'Yivi is een identiteitsapp waarmee je veilig kunt inloggen en gegevens kunt delen zonder te veel persoonlijke informatie vrij te geven.',
+		yivi_faq_1_answer:
+			'Yivi is een identiteitsapp waarmee je veilig kunt inloggen en gegevens kunt delen zonder te veel persoonlijke informatie vrij te geven.',
 		yivi_faq_2_question: 'Hoe werkt Yivi?',
-		yivi_faq_2_answer: 'Yivi gebruikt attributen die je kunt tonen wanneer een website of app dat nodig heeft, zonder dat je alles over jezelf hoeft te delen.',
+		yivi_faq_2_answer:
+			'Yivi gebruikt attributen die je kunt tonen wanneer een website of app dat nodig heeft, zonder dat je alles over jezelf hoeft te delen.',
 		yivi_faq_3_question: 'Waarom gebruikt PubHubs Yivi?',
 		yivi_faq_3_answer: 'PubHubs gebruikt Yivi om jouw identiteit veilig te verifiëren en privacy te garanderen.',
 		yivi_faq_4_question: 'Hoe voeg ik gegevens toe aan Yivi?',
-		yivi_faq_4_answer: 'Je kunt via de Yivi-app persoonlijke gegevens toevoegen door ze op te halen van betrouwbare bronnen zoals de overheid of je werkgever.',
+		yivi_faq_4_answer:
+			'Je kunt via de Yivi-app persoonlijke gegevens toevoegen door ze op te halen van betrouwbare bronnen zoals de overheid of je werkgever.',
 		yivi_faq_5_question: 'Waarom heeft PubHubs mijn e-mail adres en telefoonnummer nodig?',
 		yivi_faq_5_answer: 'Deze gegevens zijn nodig om je te kunnen garanderen dat je een uniek individu bent.',
 
@@ -493,9 +502,23 @@ const nl = {
 		admin_contact_subtitle: 'Alleen voor hub-brede zaken',
 		admin_contact_main_msg:
 			'Voor kamergerelateerde vragen kunt u het beste eerst de kamersteward benaderen. De steward is te bereiken via het ledenpaneel in de kamer. De hub beheerder is alleen bedoeld voor hub-brede zaken of wanneer de steward niet kan helpen. Wilt u doorgaan?',
-		if_admin_contact_not_present: 'De Hub Beheerder is momenteel niet beschikbaar. Voor kamergerelateerde vragen kunt u de kamersteward bereiken via het ledenpaneel in de kamer.',
+		if_admin_contact_not_present:
+			'De Hub Beheerder is momenteel niet beschikbaar. Voor kamergerelateerde vragen kunt u de kamersteward bereiken via het ledenpaneel in de kamer.',
 	},
-
+	moderation: {
+		admins: 'admins',
+		yellow_card: 'gele kaart',
+		yellow_card_info: 'je hebt een gele kaart ontvangen als waarschuwing voor deze ruimte. reden: ',
+		issue_yellow_card: 'geef een gele kaart',
+		issue_yellow_card_info: 'het lid ontvangt een waarschuwing',
+		red_card: 'rode kaart',
+		red_card_info: 'je hebt een rode kaart ontvangen en kan deze ruimte niet meer betreden. reden: ',
+		issue_red_card: 'geef een rode kaart',
+		issue_red_card_info: 'het lid wordt de toegang tot de ruimte ontzegd',
+		revoke_red_card: 'rode kaart intrekken',
+		card_reason_label: 'reden voor het geven van deze kaart',
+		sanctioned_members: 'gesanctioneerde leden',
+	},
 	themes: {
 		dark: 'Donker',
 		light: 'Licht',
@@ -514,7 +537,8 @@ const nl = {
 		info: `Ga verder in je bowser: Klik op 'toestaan' in de pop-up op je scherm om PubHubs meldingen in je browser te krijgen.`,
 		heading: 'Meldingen',
 		dismiss: 'Verwijder',
-		removed_from_secured_room: 'Je bent verwijderd uit de beveiligde kamer {0} omdat {1} dagen zijn verlopen of iemand de kamer heeft aangepast; gebruik Yivi om je opnieuw aan te sluiten bij de kamer.',
+		removed_from_secured_room:
+			'Je bent verwijderd uit de beveiligde kamer {0} omdat {1} dagen zijn verlopen of iemand de kamer heeft aangepast; gebruik Yivi om je opnieuw aan te sluiten bij de kamer.',
 		soon_removed_from_secured_room: 'Je wordt binnen {1} dagen verwijderd uit de beveiligde kamer {0}; gebruik Yivi om in de kamer te blijven.',
 		rejoin: 'weer meedoen',
 		rejoin_secured_room: 'Sluit je opnieuw aan',
@@ -535,10 +559,12 @@ const nl = {
 		welcome_consent_description: 'Accepteer de voorwaarden opnieuw om de hub te betreden.',
 
 		info_abt_pseudonym: 'Deze hub heeft je een willekeurige naam gegeven (pseudonym)',
-		info_issue_identity: 'Dit pseudonym verbergt om privacyredenen je identiteit. Maar voor anderen in de hub is het niet zo handig. Je kunt zelf een naam kiezen die anderen in de hub zien',
+		info_issue_identity:
+			'Dit pseudonym verbergt om privacyredenen je identiteit. Maar voor anderen in de hub is het niet zo handig. Je kunt zelf een naam kiezen die anderen in de hub zien',
 		info_abt_nickname_use: 'Houd er rekening mee dat andere deelnemers ook zelfgekozen namen kunnen gebruiken die niet hun echte naam hoeven te zijn.',
 		info_abt_choose_later: 'Je kunt ook later een naam kiezen of deze opnieuw wijzigen.',
-		info_abt_yivi_room: 'Voor bepaalde kamers in deze hub kan het zijn dat je wordt gevraagd (een deel van) je identiteit bekend te maken, via de Yivi app. Dit geeft deelnemers in die ruimtes zekerheid over elkaar.',
+		info_abt_yivi_room:
+			'Voor bepaalde kamers in deze hub kan het zijn dat je wordt gevraagd (een deel van) je identiteit bekend te maken, via de Yivi app. Dit geeft deelnemers in die ruimtes zekerheid over elkaar.',
 		info_misbehave: 'Als je je misdraagt, kun je uiteindelijk van deze hub worden verbannen.',
 		continue: 'Doorgaan',
 		success_msg: 'Je kunt de kamers verkennen en chatten met de community!',
@@ -591,7 +617,8 @@ const nl = {
 			heading: 'Bericht verwijderen?',
 			user: 'verwijderde gebruiker',
 			beware: 'Let op!',
-			file_not_deleted: 'Je bericht is na het verwijderen niet meer zichtbaar voor anderen, maar het bestand kan nog steeds gedownload worden door gebruikers die de link hebben opgeslagen.',
+			file_not_deleted:
+				'Je bericht is na het verwijderen niet meer zichtbaar voor anderen, maar het bestand kan nog steeds gedownload worden door gebruikers die de link hebben opgeslagen.',
 			original_message_deleted: 'Oorspronkelijk bericht verwijderd',
 			message_deleted: 'Verwijderd bericht',
 		},
@@ -718,6 +745,10 @@ const nl = {
 				},
 			},
 		},
+	},
+	videocall: {
+		start_button: 'Start videogesprek',
+		join_button: 'Neem deel aan videogesprek',
 	},
 };
 

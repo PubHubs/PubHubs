@@ -1,12 +1,29 @@
 // Packages
-import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, Method, MsgType } from 'matrix-js-sdk';
+import {
+	ContentHelpers,
+	EventTimeline,
+	EventType,
+	type ICreateRoomOpts,
+	type ISearchResults,
+	type ISendEventResponse,
+	type MatrixClient,
+	MatrixError,
+	type MatrixEvent,
+	type Room as MatrixRoom,
+	type User as MatrixUser,
+	Method,
+	MsgType,
+	RoomStateEvent,
+} from 'matrix-js-sdk';
+import { Preset, Visibility } from 'matrix-js-sdk/lib/@types/partials';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
-import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
-import { RoomMessageEventContent, TimelineEvents } from 'matrix-js-sdk/lib/types';
+import { type RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
+import { KnownMembership, type RoomMessageEventContent, type TimelineEvents } from 'matrix-js-sdk/lib/types';
 import { defineStore } from 'pinia';
 
 // Composables
 import { useMatrix } from '@hub-client/composables/matrix.composable';
+import { useModeration } from '@hub-client/composables/moderation.composable';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
@@ -15,28 +32,43 @@ import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { router } from '@hub-client/logic/core/router';
 import { hasHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
-import { LOGGER } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
-import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { SystemDefaults } from '@hub-client/models/constants';
-import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
-import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
-import Room from '@hub-client/models/rooms/Room';
-import { RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
-import { TSearchParameters } from '@hub-client/models/search/TSearch';
+import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import {
+	type TMentions,
+	type TMessageEvent,
+	type TTextMessageEventContent,
+	type TVideoCallEndedMessageEventContent,
+	type TVideoCallMessageEventContent,
+	type TWhisperMessageEventContent,
+} from '@hub-client/models/events/TMessageEvent';
+import {
+	type TVotingWidgetClose,
+	type TVotingWidgetEditEventContent,
+	type TVotingWidgetMessageEventContent,
+	type TVotingWidgetOpen,
+	type TVotingWidgetPickOption,
+	type TVotingWidgetVote,
+} from '@hub-client/models/events/voting/TVotingMessageEvent';
+import { type Poll, type Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+import type Room from '@hub-client/models/rooms/Room';
+import { type RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { type TSearchParameters } from '@hub-client/models/search/TSearch';
 
 // Stores
 import { useConnection } from '@hub-client/stores/connection';
 import { useMessageActions } from '@hub-client/stores/message-actions';
-import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
-import { User, useUser } from '@hub-client/stores/user';
+import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
+import { type User, useUser } from '@hub-client/stores/user';
+import useVideoCall from '@hub-client/stores/videoCall';
 
-const logger = LOGGER;
-const publicRoomsLoading: Promise<any> | null = null; // Outside of defineStore to guarantee lifetime, not accessible outside this module
+const logger = createLogger('PubHubs');
+const publicRoomsLoading: Promise<TPublicRoom[]> | null = null; // Outside of defineStore to guarantee lifetime, not accessible outside this module
 const updateRoomsPerforming: Promise<void> | null = null; // Outside of defineStore to guarantee lifetime, not accessible outside this module
 
 const usePubhubsStore = defineStore('pubhubs', {
@@ -60,17 +92,16 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 	actions: {
 		centralLoginPage() {
-			// @ts-expect-error
 			const centralLoginUrl = _env.PARENT_URL + '/client';
 			window.top?.location.replace(centralLoginUrl);
 		},
 
 		async login() {
-			logger.trace(SMI.STARTUP, 'START PubHubs.login');
+			logger.debug('START PubHubs.login');
 			try {
 				const _client = await this.Auth.login();
 
-				logger.trace(SMI.STARTUP, 'PubHubs.logged in (X) - started client');
+				logger.debug('PubHubs.logged in (X) - started client');
 				this.client = _client as MatrixClient;
 
 				const user = useUser();
@@ -80,15 +111,17 @@ const usePubhubsStore = defineStore('pubhubs', {
 				init(_client as MatrixClient);
 				startSync(); // Do not await this async function, since it will be running continuously in the background
 
-				logger.trace(SMI.STARTUP, 'PubHubs.logged in ()');
+				logger.debug('PubHubs.logged in ()');
 
 				const connection = useConnection();
 				connection.on();
 
 				const newUserId = user.userId;
 				if (newUserId !== null) {
-					api_synapse.setAccessToken(this.Auth.getAccessToken()!); // Since user isn't null, we expect there to be an access token.
-					api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+					const accessToken = this.Auth.getAccessToken();
+					if (!accessToken) throw new Error('Access token not available after login');
+					api_synapse.setAccessToken(accessToken);
+					api_matrix.setAccessToken(accessToken);
 					user.fetchIsAdministrator(this.client as MatrixClient);
 					user.fetchIfUserNeedsConsent();
 
@@ -96,11 +129,11 @@ const usePubhubsStore = defineStore('pubhubs', {
 						const profile = await this.client.getProfileInfo(newUserId);
 						user.setProfile(profile);
 					} catch (error) {
-						logger.trace(SMI.STARTUP, 'There is no profile information (avatar or displayname) for this user.', { error });
+						logger.debug('There is no profile information (avatar or displayname) for this user.', { error });
 					}
 				}
-			} catch (error: any) {
-				logger.trace(SMI.STARTUP, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
+			} catch (error: unknown) {
+				logger.debug('Something went wrong while creating a matrix-js client instance or logging in', { error });
 				router.push({ name: 'error-page' });
 			}
 		},
@@ -157,7 +190,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			// update the rooms in the store with the known rooms
 			if (knownRooms?.length > 0) {
-				rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: any) => joinedRooms.indexOf(room.roomId) !== -1));
+				rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: MatrixRoom) => joinedRooms.indexOf(room.roomId) !== -1));
 			}
 
 			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
@@ -165,8 +198,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 			// this actually does nothing when already joined, but it will return the room to be stored
 
 			for (const room_id of joinedRooms) {
-				if (!knownRooms.some((kr: any) => kr.roomId === room_id)) {
-					const roomName = allPublicRooms.find((r: any) => r.room_id === room_id)?.name ?? undefined;
+				if (!knownRooms.some((kr: MatrixRoom) => kr.roomId === room_id)) {
+					const roomName = allPublicRooms.find((r: TPublicRoom) => r.room_id === room_id)?.name ?? undefined;
 
 					// join again and then store the room in the client store
 					// and when the name is known in the rooms store
@@ -197,10 +230,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
 			// Since the SDK not always has knowledge of the rooms in time we rejoin every room in joinedRooms
 			// this actually does nothing when already joined, but it will return the room to be stored
-			const roomsToJoin = joinedRooms.filter((joinedRoomId) => allPublicRooms.some((publicRoom) => publicRoom.room_id === joinedRoomId && publicRoom.name));
+			const roomsToJoin = joinedRooms.filter((joinedRoomId) =>
+				allPublicRooms.some((publicRoom) => publicRoom.room_id === joinedRoomId && publicRoom.name),
+			);
 
 			for (const room_id of roomsToJoin) {
-				const roomName = allPublicRooms.find((r: any) => r.room_id === room_id)?.name;
+				const roomName = allPublicRooms.find((r: TPublicRoom) => r.room_id === room_id)?.name;
 				this.client.joinRoom(room_id).then((room) => {
 					this.client.store.storeRoom(room);
 					rooms.updateRoomsWithMatrixRoom(room, roomName);
@@ -229,7 +264,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				if (matrixRoom) {
 					this.client.store.storeRoom(matrixRoom);
 
-					const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === roomId);
+					const publicRoomEntry = (await this.getAllPublicRooms()).find((r: TPublicRoom) => r.room_id === roomId);
 					const roomName = publicRoomEntry?.name ?? matrixRoom.name ?? undefined;
 
 					let roomType: string = RoomType.PH_MESSAGES_DEFAULT;
@@ -239,14 +274,14 @@ const usePubhubsStore = defineStore('pubhubs', {
 						if (createEvt?.getContent && createEvt.getContent()?.type) {
 							roomType = createEvt.getContent().type ?? roomType;
 						}
-					} catch (_) {
+					} catch {
 						// Ignore for now
 					}
 
 					rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
 				}
 			} catch (err) {
-				logger.trace(SMI.STORE, 'updateRoom failed', { roomId, err });
+				logger.debug('updateRoom failed', { roomId, err });
 				throw err;
 			}
 		},
@@ -265,7 +300,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			} else if (error.errcode !== 'M_FORBIDDEN' && error.data) {
 				this.showDialog(error.data.error as string);
 			} else {
-				logger.trace(SMI.STORE, 'showing error dialog', { error });
+				logger.debug('showing error dialog', { error });
 			}
 		},
 
@@ -293,11 +328,11 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			const joinedMembers = await this.client.getJoinedRoomMembers(room_id);
 			// Check power level to see if there are users with PL of 100
-			const powerLevelContext = await this.getPoweLevelEventContent(room_id);
+			const powerLevelContext = await this.getPowerLevelEventContent(room_id);
 
 			// If the current user (i.e., admin) is not in powerlevel - the admin is not 'room' admin.
-			if (powerLevelContext.users![user.user.userId] === undefined) return false;
-			const usersPL100 = Object.keys(powerLevelContext.users!);
+			if (!powerLevelContext.users || powerLevelContext.users[user.user.userId] === undefined) return false;
+			const usersPL100 = Object.keys(powerLevelContext.users);
 
 			// Check membership of users with PL100.
 			const membershipAdmins = usersPL100.map((userId) => rooms.currentRoom?.getMember(userId)?.membership === 'join');
@@ -373,35 +408,60 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @param knownRoomType - Pre-known room type, avoids unreliable detection from live timeline
 		 * @param knownRoomName - Pre-known room name
 		 */
-		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<void> {
-			const rooms = useRooms();
-
+		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<number> {
+			const roomStore = useRooms();
+			const userStore = useUser();
+			const room = roomStore.room(room_id);
 			try {
+				const { membershipEvents } = useModeration(room);
+				const hasYellowCard = membershipEvents.value.some(
+					(event) =>
+						event.content.membership === KnownMembership.Leave &&
+						event.state_key === userStore.userId &&
+						event.sender !== event.state_key &&
+						event.content.reason,
+				);
+				if (hasYellowCard) {
+					userStore.addYellowCard(room_id);
+				}
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: any) => r.room_id === room_id);
+				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: TPublicRoom) => r.room_id === room_id);
 				const roomType: string = knownRoomType ?? publicRoomEntry?.room_type ?? getRoomType(matrixRoom);
 				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
-				rooms.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-				rooms.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false });
+				roomStore.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
+				roomStore.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false });
 			} catch (err) {
-				throw err;
+				if (err instanceof MatrixError) {
+					const isBanned = err.errcode === 'M_BAD_STATE' && err.httpStatus === 403;
+					if (isBanned) {
+						router.push({ name: 'error-page', query: { errorKey: 'moderation.red_card_info' } });
+					} else {
+						logger.error('MatrixError:', err);
+						router.push({ name: 'error-page' });
+					}
+				} else {
+					logger.error(err as string);
+					router.push({ name: 'error-page' });
+				}
+				return -1;
 			}
+			return 0;
 		},
 
 		async invite(room_id: string, user_id: string, reason = undefined) {
 			await this.client.invite(room_id, user_id, reason);
 		},
 
-		async createRoom(options: any): Promise<{ room_id: string }> {
+		async createRoom(options: ICreateRoomOpts): Promise<{ room_id: string }> {
 			const room = await this.client.createRoom(options);
-			await this.joinRoom(room.room_id, options.creation_content?.type, options.name);
+			await this.joinRoom(room.room_id, (options.creation_content as Record<string, unknown>)?.type as string | undefined, options.name);
 			return room;
 		},
 
-		getPrivateRoomWithMembers(memberIds: Array<string>, rooms: Array<any>, stewardRoomId: string = ''): boolean | string {
+		getPrivateRoomWithMembers(memberIds: Array<string>, rooms: Array<MatrixRoom>, stewardRoomId: string = ''): boolean | string {
 			for (let index = rooms.length - 1; index >= 0; index--) {
-				const roomId = (rooms[index] as Room).roomId;
+				const roomId = (rooms[index] as unknown as Room).roomId;
 				const room = this.client.getRoom(roomId);
 				if (!room) continue;
 				const roomMembers = room.getMembers();
@@ -424,7 +484,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return false;
 		},
 
-		async createPrivateRoomWith(otherUsers: string[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
+		async createPrivateRoomWith(
+			otherUsers: string[],
+			adminContact: boolean = false,
+			stewardContact: boolean = false,
+			roomIdForStewardRoomCreate: string = '',
+		): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user;
 			let roomType: RoomType;
@@ -435,7 +500,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_DM;
 			}
 
-			const memberIds = [me.userId!, ...otherUsers];
+			if (!me.userId) return null;
+			const memberIds = [me.userId, ...otherUsers];
 			const allRoomsByType = this.getAllRooms().filter((room) => room.getType() === roomType);
 			let existingRoomId;
 			if (roomIdForStewardRoomCreate) {
@@ -448,7 +514,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
 				const rooms = useRooms();
 				// Ensure we're a member before modifying room state
-				if (!(await this.isUserRoomMember(me.userId!, existingRoomId))) {
+				if (!(await this.isUserRoomMember(me.userId, existingRoomId))) {
 					await this.joinRoom(existingRoomId);
 				}
 				let name = rooms.room(existingRoomId)?.name;
@@ -464,19 +530,21 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			// Create new room
 			if (existingRoomId === false) {
-				const privateRoomName = createNewPrivateRoomName([me.userId!, ...otherUsers]);
+				const privateRoomName = createNewPrivateRoomName([me.userId, ...otherUsers]);
 				const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
 
 				const room = await this.createRoom({
-					preset: 'trusted_private_chat',
+					preset: Preset.TrustedPrivateChat,
 					name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
-					visibility: 'private',
+					visibility: Visibility.Private,
 					invite: otherUsers,
 					is_direct: true,
 					creation_content: { type: roomType },
 					topic: `PRIVATE: ${me.userId}, ${otherUsers.join(', ')}`,
-					history_visibility: 'shared',
-					guest_can_join: false,
+					initial_state: [
+						{ type: 'm.room.history_visibility', state_key: '', content: { history_visibility: 'shared' } },
+						{ type: 'm.room.guest_access', state_key: '', content: { guest_access: 'forbidden' } },
+					],
 				});
 				return room;
 			}
@@ -530,7 +598,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const mentionedUsers = content.body.split('@');
 				const mentionedUsersName = users
 					.filter((user) => {
-						return mentionedUsers.some((menUser: any) => user.rawDisplayName !== undefined && menUser.includes(user.rawDisplayName));
+						return mentionedUsers.some((menUser: string) => user.rawDisplayName !== undefined && menUser.includes(user.rawDisplayName));
 					})
 					.map((users) => users.userId)
 					.filter((displayName): displayName is string => displayName !== undefined);
@@ -580,7 +648,11 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @param inReplyTo Original event for when message is a reply
 		 * @returns The content
 		 */
-		async _constructMessageContent(text: string, threadRoot: TMessageEvent | undefined, inReplyTo: TMessageEvent | undefined): Promise<TTextMessageEventContent> {
+		async _constructMessageContent(
+			text: string,
+			threadRoot: TMessageEvent | undefined,
+			inReplyTo: TMessageEvent | undefined,
+		): Promise<TTextMessageEventContent> {
 			let content = undefined;
 
 			// Set body of content
@@ -614,10 +686,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const content = await this._constructMessageContent(text, threadRoot, inReplyTo);
 
 			/*
-               Sendmessage gives a console warning when adding a thread event, because the current timeline does not have a threadId.
-               For now we skip this , since the functionality is not affected by it.
-               These consoles can be used when checking for the reason of the warning.
-            */
+			   Sendmessage gives a console warning when adding a thread event, because the current timeline does not have a threadId.
+			   For now we skip this , since the functionality is not affected by it.
+			   These consoles can be used when checking for the reason of the warning.
+			*/
 			// console.error('getCapabilities: ', this.client.getCapabilities());
 			// console.error('does client support threads: ', this.client.supportsThreads());
 			// console.error('threadTimelineSets: ', room?.matrixRoom.threadsTimelineSets);
@@ -660,7 +732,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					const rooms = useRooms();
 					await this.addSignedMessage(rooms.currentRoomId, result, threadRoot);
 					resolve();
-				} catch (error) {
+				} catch {
 					reject();
 				}
 			};
@@ -673,7 +745,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
 			const content = {
-				msgtype: PubHubsMgType.SignedMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
+				msgtype: PubHubsMgType.SignedMessage as unknown as MsgType, // client expects string from MsgType enum
 				body: 'signed message',
 				signed_message: signedMessage,
 				ph_body: '',
@@ -688,11 +760,11 @@ const usePubhubsStore = defineStore('pubhubs', {
 				'm.new_content': undefined,
 			};
 			const threadId = threadRoot?.event_id ?? null;
-			await this.client.sendMessage(roomId, threadId, content);
+			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 		},
 		async addDisclosedMessage(roomId: string, signedMessage: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
 			const content = {
-				msgtype: PubHubsMgType.DisclosedMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
+				msgtype: PubHubsMgType.DisclosedMessage as unknown as MsgType, // client expects string from MsgType enum
 				body: 'signed message',
 				signed_message: signedMessage,
 				ph_body: '',
@@ -707,7 +779,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				'm.new_content': undefined,
 			};
 			const threadId = threadRoot?.event_id ?? null;
-			await this.client.sendMessage(roomId, threadId, content);
+			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 		},
 
 		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {
@@ -717,16 +789,48 @@ const usePubhubsStore = defineStore('pubhubs', {
 				// Sender power level
 				sender: userPL,
 			};
-			// @ts-ignore
-			// todo: fix this (issue #808)
+			// @ts-expect-error -- custom content type not assignable to SDK message type (issue #808)
 			await this.client.sendMessage(roomId, content);
 		},
 
-		async addWhisperMessage(roomId: string, text: string, userPL: number, whisperToUserId: string, threadRoot: TMessageEvent | undefined, inReplyTo: TMessageEvent | undefined) {
+		async addVideoCallMessage(roomId: string, text: string): Promise<string> {
+			const content: TVideoCallMessageEventContent = {
+				msgtype: PubHubsMgType.VideoCall,
+				body: text,
+				timestamp: Date.now(),
+			};
+			// @ts-expect-error -- SDK sendMessage typing does not include custom videocall content shape
+			const response = await this.client.sendMessage(roomId, content);
+			return response.event_id;
+		},
+
+		async updateVideoCallMessage(roomId: string, eventId: string, text: string) {
+			const content: TVideoCallEndedMessageEventContent = {
+				msgtype: PubHubsMgType.VideoCallEnded,
+				body: text,
+				'm.relates_to': {
+					rel_type: PubHubsMgType.VideoCallEnded,
+					event_id: eventId,
+				},
+				timestamp: Date.now(),
+			};
+
+			// @ts-expect-error -- SDK sendEvent typing does not include custom videocall modify payload
+			await this.client.sendEvent(roomId, PubHubsMgType.VideoCallModify, content);
+		},
+
+		async addWhisperMessage(
+			roomId: string,
+			text: string,
+			userPL: number,
+			whisperToUserId: string,
+			threadRoot: TMessageEvent | undefined,
+			inReplyTo: TMessageEvent | undefined,
+		) {
 			const content = await this._constructMessageContent(text, threadRoot, inReplyTo);
-			content.msgtype = PubHubsMgType.WhisperMessage as any;
-			content.userPL = userPL as any;
-			content.whisper_to = whisperToUserId as any;
+			(content as unknown as TWhisperMessageEventContent).msgtype = PubHubsMgType.WhisperMessage;
+			(content as unknown as TWhisperMessageEventContent).userPL = userPL;
+			(content as unknown as TWhisperMessageEventContent).whisper_to = whisperToUserId;
 			const threadId = threadRoot?.event_id ?? null;
 			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 		},
@@ -740,11 +844,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 					event_id: originalEventId,
 				},
 			};
-			// @ts-ignore
-			// todo: fix this (issue #808)
-			console.log('addSignedFile ==>', roomId, content);
-			const result = await this.client.sendEvent(roomId, PubHubsMgType.LibraryFileMessage, content);
-			console.log('addSignedFile <==', result);
+			logger.debug('addSignedFile ==>', roomId, content);
+			// @ts-expect-error -- custom event type not in SDK types
+			const result = await this.client.sendEvent(roomId, PubHubsMgType.LibraryFileMessage as unknown as keyof TimelineEvents, content);
+			logger.debug('addSignedFile <==', result);
 		},
 
 		/**
@@ -774,7 +877,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				type: poll.type,
 				showVotesBeforeVoting: poll.showVotesBeforeVoting,
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom content type not assignable to SDK message type
 			await this.client.sendMessage(roomId, content);
 		},
 
@@ -789,7 +892,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				type: scheduler.type,
 				showVotesBeforeVoting: scheduler.showVotesBeforeVoting,
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom content type not assignable to SDK message type
 			await this.client.sendMessage(roomID, content);
 		},
 
@@ -803,7 +906,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					rel_type: PubHubsMgType.VotingWidgetVote,
 				},
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom event type not assignable to SDK types
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetReply, content);
 		},
 
@@ -817,7 +920,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					key: emoji,
 				},
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom content type not assignable to SDK event content type
 			await this.client.sendEvent(roomId, EventType.Reaction, content);
 		},
 
@@ -832,7 +935,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					user_ids: user_ids,
 				},
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom event type not assignable to SDK types
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
@@ -847,7 +950,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					user_ids: user_ids,
 				},
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom event type not assignable to SDK types
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
@@ -860,7 +963,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				},
 				optionId: optionId,
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom event type not assignable to SDK types
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetPickOption, content);
 		},
 
@@ -877,7 +980,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				type: widget.type,
 				showVotesBeforeVoting: widget.showVotesBeforeVoting,
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom event type not assignable to SDK types
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
@@ -895,7 +998,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				type: widget.type,
 				showVotesBeforeVoting: widget.showVotesBeforeVoting,
 			};
-			//@ts-ignore
+			//@ts-expect-error -- custom event type not assignable to SDK types
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
@@ -916,7 +1019,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 			try {
 				// Direct API call since SDK's sendReceipt uses event.getRoomId() which may be undefined
 				const path = `/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(ReceiptType.ReadPrivate)}/${encodeURIComponent(eventId)}`;
-				// @ts-ignore - using internal http client for direct API call
 				const threadIdParameter = threadId ?? 'main';
 				await this.client.http.authedRequest(Method.Post, path, undefined, { thread_id: threadIdParameter });
 
@@ -931,7 +1033,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
 			const content = {
-				msgtype: PubHubsMgType.AskDisclosureMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
+				msgtype: PubHubsMgType.AskDisclosureMessage as unknown as MsgType, // client expects string from MsgType enum
 				body: body,
 				ask_disclosure_message: askDisclosureMessage,
 
@@ -940,17 +1042,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 				'm.relates_to': undefined,
 			};
 
-			await this.client.sendMessage(roomId, content);
+			await this.client.sendMessage(roomId, content as RoomMessageEventContent);
 		},
 
-		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: PubHubsMgType = PubHubsMgType.Default, inReplyTo?: TMessageEvent): Promise<Boolean> {
+		async addFile(
+			roomId: string,
+			threadId: string | undefined,
+			file: File,
+			uri: string,
+			message: string = '',
+			eventType: PubHubsMgType = PubHubsMgType.Default,
+			inReplyTo?: TMessageEvent,
+		): Promise<boolean> {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
 			let fileType = MsgType.File;
 			let body = message;
 			if (body === '') body = file.name;
 			if (imageTypes.includes(file?.type)) fileType = MsgType.Image;
 
-			let relatesTo: any = undefined;
+			let relatesTo: { event_id?: string; rel_type?: string; 'm.in_reply_to'?: { event_id: string } } | undefined = undefined;
 			if (thread || inReplyTo) {
 				relatesTo = {};
 				if (thread) {
@@ -985,12 +1095,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 				}
 				return true;
 			} catch (error) {
-				logger.trace(SMI.STORE, 'swallowing add file error', { error });
+				logger.debug('swallowing add file error', { error });
 				return false;
 			}
 		},
 
-		async resendEvent(event: any) {
+		async resendEvent(event: TBaseEvent) {
 			const roomId = event.room_id;
 			const type = event.type;
 			const content = event.content;
@@ -999,15 +1109,16 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const rooms = useRooms();
 				rooms.currentRoom?.removeEvent(event.event_id);
 				// Resend
-				await this.client.sendEvent(roomId, type, content);
+				// @ts-expect-error -- custom event type not in SDK types
+				await this.client.sendEvent(roomId, type as keyof TimelineEvents, content);
 			} catch (error) {
-				logger.trace(SMI.STORE, 'swallowing resend event error', {
+				logger.debug('swallowing resend event error', {
 					error,
 				});
 			}
 		},
 
-		async findUsers(term: string): Promise<Array<any>> {
+		async findUsers(term: string): Promise<Array<{ user_id: string; display_name?: string; avatar_url?: string }>> {
 			const response = await this.client.searchUserDirectory({
 				term: term,
 			});
@@ -1066,7 +1177,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
-				console.error('Access token is missing');
+				logger.error('Access token is missing');
 				return null;
 			}
 
@@ -1088,7 +1199,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				}
 				return null;
 			} catch (error) {
-				console.error('Error downloading the file: ', error);
+				logger.error('Error downloading the file: ', error);
 				return null;
 			}
 		},
@@ -1097,7 +1208,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 *
 		 * @returns Returns the room PowerLevel Event Content
 		 */
-		async getPoweLevelEventContent(roomId: string): Promise<RoomPowerLevelsEventContent> {
+		async getPowerLevelEventContent(roomId: string): Promise<RoomPowerLevelsEventContent> {
 			return await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
 		},
 
@@ -1191,7 +1302,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * Creates a new admin contact room if none exists
 		 */
 		async createNewAdminRoom(adminIds: string[]): Promise<string | undefined> {
-			const adminUsers = adminIds.map((adminId) => this.client.getUser(adminId)!.userId).filter((user) => user !== null);
+			const adminUsers = adminIds
+				.map((adminId) => this.client.getUser(adminId)?.userId)
+				.filter((user): user is string => user !== null && user !== undefined);
 
 			const room = await this.createPrivateRoomWith(adminUsers, true);
 			// Returns room_id if it exists
@@ -1214,9 +1327,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (!room) {
 				return [];
 			}
-			const joinedMembers = room.getOtherJoinedMembers().map((member) => member.userId);
+			const { allOtherMembers } = useModeration(room);
 			const inviteMembers = room.getOtherInviteMembers().map((member) => member.userId);
-			return [...joinedMembers, ...inviteMembers];
+			return [...allOtherMembers.value, ...inviteMembers];
 		},
 		/**
 		 * Finds any new admin ID that needs to be invited to the room
@@ -1248,7 +1361,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		isAdminRoomReady(): boolean {
 			const rooms = useRooms();
-			return rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length != 0;
+			return rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length !== 0;
 		},
 		/*
 		 * Get Admin Room Id
@@ -1263,19 +1376,48 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		hasNewAdmin(adminIds: string[]): boolean {
 			const existingAdminIds = this.getExistingAdminMemberIds();
-			return existingAdminIds.length != adminIds.length;
+			return existingAdminIds.length !== adminIds.length;
 		},
 
 		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
 		},
+
+		async initialiseVideoCallPowerLevels(roomId: string) {
+			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
+			powerLevels.events = powerLevels.events || {};
+			powerLevels.events['org.matrix.msc3401.call.member'] = 0;
+			powerLevels.events['org.matrix.msc3401.call'] = 0;
+			await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
+		},
+
+		addEndCallListener() {
+			const rooms = useRooms();
+			const videoCall = useVideoCall();
+			const calledRoom = rooms.currentRoom;
+
+			if (calledRoom === undefined) {
+				return;
+			}
+			const onCallTerminated = async (event: MatrixEvent) => {
+				if (event.getType() === 'org.matrix.msc3401.call' && event.getContent()?.['m.terminated']) {
+					calledRoom.matrixRoom.removeListener(RoomStateEvent.Events, onCallTerminated);
+					// Skip if we're the one ending the call — endCall() handles everything
+					if (videoCall._isEnding) return;
+					router.push({ name: 'room', params: { id: calledRoom.roomId } });
+					videoCall.leaveCall();
+				}
+			};
+			calledRoom.matrixRoom.on(RoomStateEvent.Events, onCallTerminated);
+		},
+
 		async routeToRoomPage(room: { room_id: string }) {
 			await router.push({ name: 'room', params: { id: room.room_id } });
 		},
 
 		// Set up admin room. Corner case is that members might not have joined yet and room is available.
 		// Therefore, room setup continues until room members have been joined.
-		async setUpAdminRoom(): Promise<Boolean | string> {
+		async setUpAdminRoom(): Promise<boolean | string> {
 			const rooms = useRooms();
 
 			let room_id = await this.initializeOrExtendAdminContactRoom();

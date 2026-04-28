@@ -1,11 +1,9 @@
-/// <reference types="vitest" />
 import tailwindcss from '@tailwindcss/vite';
 import Vue from '@vitejs/plugin-vue';
-import path from 'node:path';
 import { URL, fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	logLevel: 'warn',
@@ -23,6 +21,7 @@ export default defineConfig({
 		tailwindcss(),
 		VitePWA({
 			registerType: 'autoUpdate',
+			selfDestroying: true,
 			manifest: {
 				name: 'PubHubs',
 				short_name: 'PubHubs',
@@ -93,7 +92,7 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		setupFiles: ['./test/setup-teardown-hooks.ts'],
-		onConsoleLog(log) {
+		onConsoleLog(log: string) {
 			if (log.includes('Expected Room, got Object')) return false;
 			if (log.includes('Failed to resolve directive')) return false;
 		},
@@ -103,8 +102,6 @@ export default defineConfig({
 			'@global-client': fileURLToPath(new URL('./src', import.meta.url)),
 			'@hub-client': fileURLToPath(new URL('../hub-client/src', import.meta.url)),
 			process: 'process/browser',
-			vue: path.resolve(__dirname, 'node_modules/vue'),
-			pinia: path.resolve(__dirname, 'node_modules/pinia'),
 		},
 		dedupe: ['pinia'], // Necessary to avoid duplicate pinia instances
 	},

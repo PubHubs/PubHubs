@@ -1,15 +1,27 @@
 <template>
-	<div ref="fieldRef" :class="fieldClass">
-		<slot :id="id" :validated="validated" :changed="changed" :required="required"></slot>
+	<div
+		ref="fieldRef"
+		:class="fieldClass"
+	>
+		<slot
+			:id="id"
+			:changed="changed"
+			:required="required"
+			:validated="validated"
+		/>
 
 		<FieldInfoBox :info="info">
-			<FieldHelperText v-if="props.help && !(!validated && changed)">{{ help }}</FieldHelperText>
-			<FieldValidationError v-if="!validated && changed">{{ $t(validateField!.translationKey, validateField!.parameters) }}</FieldValidationError>
+			<FieldHelperText v-if="props.help && !(!validated && changed)">
+				{{ help }}
+			</FieldHelperText>
+			<FieldValidationError v-if="!validated && changed">
+				{{ $t(validateField!.translationKey, validateField!.parameters) }}
+			</FieldValidationError>
 		</FieldInfoBox>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, inject, onMounted, provide, ref, watch } from 'vue';
 
@@ -17,7 +29,7 @@
 	import { useFieldValidation } from '@hub-client/composables/validation.composable';
 
 	// Models
-	import { FieldValidations } from '@hub-client/models/validation/TValidate';
+	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// New design
 	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
@@ -43,24 +55,24 @@
 		},
 	);
 
-	const fieldRef = ref();
+	const fieldRef = ref<HTMLElement>();
 	const fixedWidth = ref(0);
 	// const fieldClass = ref('');
 
-	const model = defineModel<any>();
-	const originalValue = ref<any>(undefined);
+	const model = defineModel<unknown>();
+	const originalValue = ref<unknown>(undefined);
 
 	const { id, fieldName, changed } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(props.name, model, props.validation);
 
 	// Lifecycle
 	onMounted(() => {
-		fixedWidth.value = fieldRef.value.clientWidth;
+		fixedWidth.value = fieldRef.value?.clientWidth ?? 0;
 
 		originalValue.value = Object.assign({}, model);
 
 		if (props.validation) {
-			const addField = inject('addField', () => {}) as Function;
+			const addField = inject('addField', () => {}) as (...args: unknown[]) => unknown;
 			if (typeof addField === 'function') {
 				addField(fieldName.value, model, changed, validated);
 			}

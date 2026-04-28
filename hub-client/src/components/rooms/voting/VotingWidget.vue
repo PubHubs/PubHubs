@@ -3,41 +3,78 @@
 		<div class="mb-4">
 			<div class="flex justify-between">
 				<div class="mb-2">
-					<Icon v-if="votingWidgetClosed" class="text-accent-orange float-left -mt-1 mr-1" type="lock" />
+					<Icon
+						v-if="votingWidgetClosed"
+						class="text-accent-orange float-left -mt-1 mr-1"
+						type="lock"
+					/>
 					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
-					<span v-if="votingWidgetClosed" class="text-label-small italic"><br />{{ $t('message.scheduler_closed') }}</span>
+					<span
+						v-if="votingWidgetClosed"
+						class="text-label-small italic"
+						><br />{{ $t('message.scheduler_closed') }}</span
+					>
 				</div>
 
 				<div class="flex">
 					<Icon
 						v-if="hasUserVoted"
-						type="user"
-						size="lg"
 						class="bg-surface hover:bg-accent-primary rounded-md"
+						size="lg"
 						:title="$t(showVotes ? 'message.voting.hide_votes' : 'message.voting.show_votes')"
+						type="user"
 						@click.stop="toggleShowVotes()"
-					></Icon>
-					<ActionMenu v-if="isCreator" class="ml-2">
+					/>
+					<ActionMenu
+						v-if="isCreator"
+						class="ml-2"
+					>
 						<template v-if="votingWidget.type === VotingWidgetType.SCHEDULER">
-							<ActionMenuItem v-if="votingWidgetClosed == false" @click="closeWidget">
+							<ActionMenuItem
+								v-if="votingWidgetClosed == false"
+								@click="closeWidget"
+							>
 								{{ $t('message.close') }}
 							</ActionMenuItem>
-							<ActionMenuItem v-else @click="reopenWidget">
+							<ActionMenuItem
+								v-else
+								@click="reopenWidget"
+							>
 								{{ $t('message.reopen') }}
 							</ActionMenuItem>
 						</template>
-						<ActionMenuItem v-if="votingWidgetClosed == false" @click="editWidget">{{ $t('message.edit') }}</ActionMenuItem>
+						<ActionMenuItem
+							v-if="votingWidgetClosed == false"
+							@click="editWidget"
+						>
+							{{ $t('message.edit') }}
+						</ActionMenuItem>
 					</ActionMenu>
 				</div>
 			</div>
 
-			<span class="flex [overflow-wrap:anywhere]" v-if="votingWidget.location">
-				<Icon class="mt-1 mr-1" type="map-pin" size="sm" />
+			<span
+				v-if="votingWidget.location"
+				class="flex wrap-anywhere"
+			>
+				<Icon
+					class="mt-1 mr-1"
+					size="sm"
+					type="map-pin"
+				/>
 				{{ votingWidget.location }}
 			</span>
-			<span class="mt-2 flex [overflow-wrap:anywhere]">{{ votingWidget.description }}</span>
-			<span class="text-on-surface-variant flex" v-if="isEdited"> ({{ $t('message.voting.edited') }}) </span>
-			<div v-if="isCreator && votingWidgetClosed && pickedOptionId === -1" class="flex justify-center">
+			<span class="mt-2 flex wrap-anywhere">{{ votingWidget.description }}</span>
+			<span
+				v-if="isEdited"
+				class="text-on-surface-variant flex"
+			>
+				({{ $t('message.voting.edited') }})
+			</span>
+			<div
+				v-if="isCreator && votingWidgetClosed && pickedOptionId === -1"
+				class="flex justify-center"
+			>
 				<div class="bg-background flex items-center rounded-md px-2 py-1">
 					<div class="bg-accent-orange mr-2 h-5 w-5 rounded-full text-center">!</div>
 					<span>{{ $t('message.pick_option') }} :</span>
@@ -47,32 +84,32 @@
 
 		<PollOptionList
 			v-if="votingWidget.type === VotingWidgetType.POLL"
+			:event-id="event.event_id"
+			:has-user-voted="hasUserVoted"
 			:options="votingWidget.options as PollOption[]"
-			:votesByOption="votesByOption.options"
-			:eventId="event.event_id"
-			:hasUserVoted="hasUserVoted"
-			:showVotesBeforeVoting="votingWidget.showVotesBeforeVoting"
-			:showVotes="showVotes"
+			:show-votes="showVotes"
+			:show-votes-before-voting="votingWidget.showVotesBeforeVoting"
+			:votes-by-option="votesByOption.options"
 		/>
 		<SchedulerOptionList
 			v-if="votingWidget.type === VotingWidgetType.SCHEDULER"
-			:options="votingWidget.options as SchedulerOption[]"
-			:votesByOption="votesByOption.options"
 			:closed="votingWidgetClosed"
-			:isCreator="isCreator"
-			:eventId="event.event_id"
-			:pickedOptionId="pickedOptionId"
-			:showVotesBeforeVoting="votingWidget.showVotesBeforeVoting"
-			:showVotes="showVotes"
-			:sortBasedOnScore="votingWidgetClosed && isCreator"
+			:event-id="event.event_id"
+			:is-creator="isCreator"
+			:options="votingWidget.options as SchedulerOption[]"
+			:picked-option-id="pickedOptionId"
+			:show-votes="showVotes"
+			:show-votes-before-voting="votingWidget.showVotesBeforeVoting"
+			:sort-based-on-score="votingWidgetClosed && isCreator"
+			:votes-by-option="votesByOption.options"
 		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { MatrixEvent } from 'matrix-js-sdk';
-	import { Ref, computed, onMounted, ref, watch } from 'vue';
+	import { type MatrixEvent } from 'matrix-js-sdk';
+	import { type Ref, computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -87,22 +124,25 @@
 	import filters from '@hub-client/logic/core/filters';
 
 	// Models
-	import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-	import { TVotingMessageEvent } from '@hub-client/models/events/voting/TVotingMessageEvent';
-	import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidget, VotingWidgetType, votesForOption } from '@hub-client/models/events/voting/VotingTypes';
-	import Room from '@hub-client/models/rooms/Room';
+	import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+	import { type TVotingMessageEvent } from '@hub-client/models/events/voting/TVotingMessageEvent';
+	import {
+		Poll,
+		type PollOption,
+		Scheduler,
+		type SchedulerOption,
+		VotingOptions,
+		type VotingWidget,
+		VotingWidgetType,
+		type votesForOption,
+	} from '@hub-client/models/events/voting/VotingTypes';
+	import type Room from '@hub-client/models/rooms/Room';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	const rooms = useRooms();
-	const pubhubs = usePubhubsStore();
-	const user = useUser();
-	const settings = useSettings();
-	const { d } = useI18n();
 
 	const props = withDefaults(
 		defineProps<{
@@ -111,14 +151,18 @@
 		}>(),
 		{},
 	);
-
 	const emit = defineEmits<{
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
 	}>();
+	const rooms = useRooms();
+	const pubhubs = usePubhubsStore();
+	const user = useUser();
+	const settings = useSettings();
+	const { d } = useI18n();
 
 	let lastEventTimestamp: number;
-	const isCreator = user.userId == props.event.sender;
+	const isCreator = user.userId === props.event.sender;
 
 	const isEdited = ref(false);
 	const showVotes = ref(false);
@@ -126,15 +170,26 @@
 	const hasUserVoted = ref<boolean>(false);
 	const votingWidget = ref<VotingWidget>(new Poll());
 	if (props.event.content.type === VotingWidgetType.POLL) {
-		votingWidget.value = new Poll(props.event.content.title, props.event.content.description, props.event.content.showVotesBeforeVoting, props.event.content.options as PollOption[]);
+		votingWidget.value = new Poll(
+			props.event.content.title,
+			props.event.content.description,
+			props.event.content.showVotesBeforeVoting,
+			props.event.content.options as PollOption[],
+		);
 	} else if (props.event.content.type === VotingWidgetType.SCHEDULER) {
-		votingWidget.value = new Scheduler(props.event.content.title, props.event.content.description, props.event.content.location, props.event.content.showVotesBeforeVoting, props.event.content.options as SchedulerOption[]);
+		votingWidget.value = new Scheduler(
+			props.event.content.title,
+			props.event.content.description,
+			props.event.content.location,
+			props.event.content.showVotesBeforeVoting,
+			props.event.content.options as SchedulerOption[],
+		);
 	}
 
 	watch(
 		() => votesByOption.value.options,
 		() => {
-			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId)));
+			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId ?? '')));
 		},
 	);
 
@@ -164,15 +219,15 @@
 		const votesForOption: votesForOption = { optionId: option.id, votes: [] };
 		if (type === VotingWidgetType.SCHEDULER) {
 			votesForOption.votes = [
-				{ choice: 'yes', userIds: [], userTime: [] },
-				{ choice: 'maybe', userIds: [], userTime: [] },
-				{ choice: 'no', userIds: [], userTime: [] },
-				{ choice: 'redacted', userIds: [], userTime: [] },
+				{ choice: 'yes', userIds: [], userVotes: [] },
+				{ choice: 'maybe', userIds: [], userVotes: [] },
+				{ choice: 'no', userIds: [], userVotes: [] },
+				{ choice: 'redacted', userIds: [], userVotes: [] },
 			];
 		} else {
 			votesForOption.votes = [
-				{ choice: 'yes', userIds: [], userTime: [] },
-				{ choice: 'redacted', userIds: [], userTime: [] },
+				{ choice: 'yes', userIds: [], userVotes: [] },
+				{ choice: 'redacted', userIds: [], userVotes: [] },
 			];
 		}
 		return votesForOption;
@@ -192,13 +247,13 @@
 	function sort_score(v: votesForOption) {
 		let score = 0.0;
 		for (const userChoices of v.votes) {
-			if (userChoices.choice == 'redacted') {
+			if (userChoices.choice === 'redacted') {
 				continue;
 			}
-			if (userChoices.choice == 'yes') {
+			if (userChoices.choice === 'yes') {
 				score += 1.0 * userChoices.userIds.length;
 			}
-			if (userChoices.choice == 'maybe') {
+			if (userChoices.choice === 'maybe') {
 				score += 0.5 * userChoices.userIds.length;
 			}
 		}
@@ -221,9 +276,22 @@
 		return res.map((x) => x.optionId);
 	}
 
+	type VotingReplyContent = {
+		msgtype?: string;
+		title?: string;
+		description?: string;
+		location?: string;
+		voting_type?: VotingWidgetType;
+		showVotesBeforeVoting?: boolean;
+		options?: PollOption[] | SchedulerOption[];
+		'm.relates_to'?: { event_id?: string };
+		optionId?: number;
+		vote?: string;
+	};
+
 	//modify a voting widget with a modify event sent by it's creator
 	function modifyVotingWidgetWithEvent(replyEvent: TBaseEvent) {
-		const reply_content = replyEvent.content;
+		const reply_content = replyEvent.content as VotingReplyContent;
 		switch (reply_content.msgtype) {
 			case PubHubsMgType.VotingWidgetClose:
 				votingWidgetClosed.value = true;
@@ -249,16 +317,18 @@
 					}
 					votingWidget.value.showVotesBeforeVoting = !!reply_content.showVotesBeforeVoting;
 
-					const newVotesByOption = initializeVotesByOption(reply_content.options);
+					const newVotesByOption = initializeVotesByOption(reply_content.options ?? []);
 
-					for (let i = 0; i < reply_content.options.length; i++) {
-						if (votingWidget.value.type === VotingWidgetType.POLL) {
-							if (reply_content.options[i].title == '') {
-								reply_content.options.splice(i--, 1);
-							}
-						} else if (votingWidget.value.type === VotingWidgetType.SCHEDULER) {
-							if (reply_content.options[i].date == '') {
-								reply_content.options.splice(i--, 1);
+					if (reply_content.options) {
+						for (let i = 0; i < reply_content.options.length; i++) {
+							if (votingWidget.value.type === VotingWidgetType.POLL) {
+								if ((reply_content.options[i] as PollOption).title === '') {
+									reply_content.options.splice(i--, 1);
+								}
+							} else if (votingWidget.value.type === VotingWidgetType.SCHEDULER) {
+								if ((reply_content.options[i] as SchedulerOption).date.length === 0) {
+									reply_content.options.splice(i--, 1);
+								}
 							}
 						}
 					}
@@ -274,14 +344,17 @@
 								if (votingWidget.value.type === VotingWidgetType.POLL) {
 									const new_option = new_options[i] as PollOption;
 									const old_option_poll = old_option as PollOption;
-									if (new_option.title == old_option_poll.title) {
+									if (new_option.title === old_option_poll.title) {
 										index_in_new_options = i;
 										break;
 									}
 								} else if (votingWidget.value.type === VotingWidgetType.SCHEDULER) {
 									const new_option = new_options[i] as SchedulerOption;
 									const old_option_sched = old_option as SchedulerOption;
-									if (filters.getDateStr(new_option.date, is24HourFormat.value, d) == filters.getDateStr(old_option_sched.date, is24HourFormat.value, d)) {
+									if (
+										filters.getDateStr(new_option.date, is24HourFormat.value, d) ===
+										filters.getDateStr(old_option_sched.date, is24HourFormat.value, d)
+									) {
 										index_in_new_options = i;
 										break;
 									}
@@ -289,10 +362,10 @@
 							}
 
 							//if option still exists, copy over votes
-							if (index_in_new_options != -1) {
+							if (index_in_new_options !== -1) {
 								let votes_old_option_index = -1;
 								for (let i = 0; i < votesByOption.value.options.length; i++) {
-									if (votesByOption.value.options[i].optionId == old_option.id) {
+									if (votesByOption.value.options[i].optionId === old_option.id) {
 										votes_old_option_index = i;
 										break;
 									}
@@ -300,7 +373,7 @@
 
 								let new_index = -1;
 								for (let i = 0; i < newVotesByOption.length; i++) {
-									if (newVotesByOption[i].optionId == new_options[index_in_new_options].id) {
+									if (newVotesByOption[i].optionId === new_options[index_in_new_options].id) {
 										new_index = i;
 										break;
 									}
@@ -326,18 +399,18 @@
 
 	//must be called in chronological timeline order for each event, so old events before new ones.
 	function updateVotingWidgetWithEvent(replyEvent: TBaseEvent) {
-		const reply_content = replyEvent.content;
+		const reply_content = replyEvent.content as VotingReplyContent;
 		//check wether 'replyEvent' is in response to this event
 		if (reply_content?.['m.relates_to']?.event_id !== props.event.event_id) {
 			return;
 		}
 
-		if (replyEvent.type == PubHubsMgType.VotingWidgetModify) {
+		if (replyEvent.type === PubHubsMgType.VotingWidgetModify) {
 			modifyVotingWidgetWithEvent(replyEvent);
 		}
 
-		if (replyEvent.type == PubHubsMgType.VotingWidgetPickOption) {
-			pickedOptionId.value = reply_content.optionId;
+		if (replyEvent.type === PubHubsMgType.VotingWidgetPickOption) {
+			pickedOptionId.value = reply_content.optionId ?? 0;
 		}
 
 		//ignore votes when closed and ignore non vote events from here
@@ -388,18 +461,20 @@
 			if (userVoteAlreadyRegistered) {
 				//remove the old vote
 				alreadyRegisteredUserChoices?.userIds.splice(alreadyRegisteredUserIndex, 1);
-				alreadyRegisteredUserChoices?.userTime!.splice(alreadyRegisteredUserIndex, 1);
+				alreadyRegisteredUserChoices?.userVotes?.splice(alreadyRegisteredUserIndex, 1);
 			}
 			//add the vote
 			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userIds.push(reply_user);
-			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userTime!.push([reply_user, reply_time]);
+			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userVotes?.push({ userId: reply_user, time: reply_time });
 
 			if (replyEvent.origin_server_ts > lastEventTimestamp) {
 				lastEventTimestamp = replyEvent.origin_server_ts;
 			}
 
 			//check if the user has voted but don't count redacted votes
-			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId) && v.choice !== 'redacted'));
+			hasUserVoted.value = votesByOption.value.options.some((vote) =>
+				vote.votes.some((v) => v.userIds.includes(user.userId ?? '') && v.choice !== 'redacted'),
+			);
 		}
 	}
 
@@ -412,7 +487,7 @@
 			votesByOption.value.options = initializeVotesByOption(votingWidget.value.options); //clear any stored data in votesByOption
 			events?.forEach((event) => {
 				lastEventTimestamp = event.event.origin_server_ts as number;
-				updateVotingWidgetWithEvent(event.event as TBaseEvent);
+				updateVotingWidgetWithEvent(event.event as unknown as TBaseEvent);
 			});
 			votesByOption.value.removeRedactedVotes();
 		}
@@ -420,7 +495,7 @@
 
 	function collectNewVotes(events: MatrixEvent[]) {
 		events.forEach((event) => {
-			updateVotingWidgetWithEvent(event.event);
+			updateVotingWidgetWithEvent(event.event as unknown as TBaseEvent);
 		});
 		votesByOption.value.removeRedactedVotes();
 	}
@@ -429,7 +504,7 @@
 		let user_ids: string[] = [];
 		for (const option of votesByOption.value.options) {
 			for (const userChoices of option.votes) {
-				if (userChoices.choice == 'redacted') {
+				if (userChoices.choice === 'redacted') {
 					continue;
 				}
 				user_ids = [...new Set([...user_ids, ...userChoices.userIds])];
@@ -461,7 +536,12 @@
 			poll.updateOptionsId();
 			emit('editPoll', poll, props.event.event_id);
 		} else if (votingWidget.value.type === VotingWidgetType.SCHEDULER) {
-			const scheduler = new Scheduler(votingWidget.value.title, votingWidget.value.description, votingWidget.value.location, votingWidget.value.showVotesBeforeVoting);
+			const scheduler = new Scheduler(
+				votingWidget.value.title,
+				votingWidget.value.description,
+				votingWidget.value.location,
+				votingWidget.value.showVotesBeforeVoting,
+			);
 			scheduler.addDeepCopyOfSchedulerOptions(votingWidget.value.options as SchedulerOption[]);
 			scheduler.updateOptionsId();
 			emit('editScheduler', scheduler, props.event.event_id);

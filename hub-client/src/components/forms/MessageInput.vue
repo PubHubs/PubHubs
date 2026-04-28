@@ -1,52 +1,114 @@
 <template>
-	<div class="w-full px-3 pb-3 md:px-6" v-bind="$attrs">
+	<div
+		class="w-full px-3 pb-3 md:px-6"
+		v-bind="$attrs"
+	>
 		<!-- Floating -->
 		<div class="relative">
-			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
+			<Popover
+				v-if="messageInput.state.popover"
+				class="absolute bottom-4"
+				@close="messageInput.togglePopover()"
+			>
 				<div class="flex flex-wrap items-center gap-2">
-					<PopoverButton icon="upload-simple" data-testid="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
+					<PopoverButton
+						icon="upload-simple"
+						data-testid="upload"
+						@click="clickedAttachment"
+						>{{ $t('message.upload_file') }}</PopoverButton
+					>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
-						<PopoverButton icon="chart-bar" data-testid="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
-						<PopoverButton icon="calendar" data-testid="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
+						<PopoverButton
+							icon="chart-bar"
+							data-testid="poll"
+							@click="messageInput.openPoll()"
+							>{{ $t('message.poll') }}</PopoverButton
+						>
+						<PopoverButton
+							icon="calendar"
+							data-testid="scheduler"
+							@click="messageInput.openScheduler()"
+							>{{ $t('message.scheduler') }}</PopoverButton
+						>
 					</template>
-					<PopoverButton icon="seal-check" data-testid="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{
-						$t('message.sign.add_signature')
-					}}</PopoverButton>
+					<PopoverButton
+						v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)"
+						icon="seal-check"
+						data-testid="sign"
+						@click="messageInput.openSignMessage()"
+						>{{ $t('message.sign.add_signature') }}</PopoverButton
+					>
 				</div>
 			</Popover>
-			<MentionAutoComplete v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="(item, marker) => insertMention(item, marker)" />
-			<div v-if="messageInput.state.emojiPicker" class="xs:right-4 absolute right-0 bottom-2 z-20 md:right-12">
-				<EmojiPicker @emojiSelected="clickedEmoticon" @close="messageInput.toggleEmojiPicker()" />
+			<MentionAutoComplete
+				v-if="messageInput.state.showMention"
+				:msg="value as string"
+				:top="caretPos.top"
+				:left="caretPos.left"
+				:room="room"
+				@click="(item, marker) => insertMention(item, marker)"
+			/>
+			<div
+				v-if="messageInput.state.emojiPicker"
+				class="xs:right-4 absolute right-0 bottom-2 z-20 md:right-12"
+			>
+				<EmojiPicker
+					@emoji-selected="clickedEmoticon"
+					@close="messageInput.toggleEmojiPicker()"
+				/>
 			</div>
 		</div>
 
 		<div class="flex max-h-[50vh] items-end justify-between gap-2">
 			<div class="bg-surface-high rounded-base w-full shadow-xs">
 				<!-- In reply to -->
-				<InputModeBar v-if="inReplyTo" icon="arrow-bend-up-left" :label="$t('message.in_reply_to')" variant="reply" @close="messageActions.replyingTo = undefined">
+				<InputModeBar
+					v-if="inReplyTo"
+					icon="arrow-bend-up-left"
+					:label="$t('message.in_reply_to')"
+					variant="reply"
+					@close="messageActions.replyingTo = undefined"
+				>
 					<Suspense>
-						<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room" />
+						<MessageSnippet
+							:event-id="messageActions.replyingTo ?? ''"
+							:room="room"
+						/>
 						<template #fallback>
 							<p class="text-on-surface-dim text-label-small">{{ $t('state.loading_message') }}</p>
 						</template>
 					</Suspense>
 				</InputModeBar>
-				<InputModeBar v-if="messageActions.whisperingToUserId" icon="whisper" :label="$t('menu.whisper')" :variant="announcementVariant" @close="clearWhisperMode()">
+				<InputModeBar
+					v-if="messageActions.whisperingToUserId"
+					icon="whisper"
+					:label="$t('menu.whisper')"
+					:variant="announcementVariant"
+					@close="clearWhisperMode()"
+				>
 					<Suspense v-if="messageActions.whisperingToEventId">
-						<MessageSnippet :eventId="messageActions.whisperingToEventId" :room="room" />
+						<MessageSnippet
+							:event-id="messageActions.whisperingToEventId"
+							:room="room"
+						/>
 						<template #fallback>
 							<p class="text-on-surface-dim text-label-small">{{ $t('state.loading_message') }}</p>
 						</template>
 					</Suspense>
 				</InputModeBar>
 
-				<FilePicker ref="filePickerEl" :messageInput="messageInput" :upload-ownership-transferred="fileBlobOwnedByParent" @uploadFile="handleFileUpload"></FilePicker>
+				<FilePicker
+					ref="filePickerEl"
+					:message-input="messageInput"
+					:upload-ownership-transferred="fileBlobOwnedByParent"
+					@upload-file="handleFileUpload"
+				></FilePicker>
 
 				<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget)">
 					<PollMessageInput
 						v-if="messageInput.state.poll"
-						:poll-object="messageInput.state.pollObject"
-						:isEdit="messageInput.isEdit.value"
+						:poll-object="messageInput.state.pollObject as Poll"
+						:is-edit="messageInput.isEdit.value"
 						@create-poll="createPoll"
 						@send-poll="submitMessage"
 						@edit-poll="editMessage"
@@ -54,8 +116,8 @@
 					/>
 					<SchedulerMessageInput
 						v-if="messageInput.state.scheduler"
-						:scheduler-object="messageInput.state.schedulerObject"
-						:isEdit="messageInput.isEdit.value"
+						:scheduler-object="messageInput.state.schedulerObject as Scheduler"
+						:is-edit="messageInput.isEdit.value"
 						@create-scheduler="createScheduler"
 						@send-scheduler="submitMessage"
 						@edit-scheduler="editMessage"
@@ -63,7 +125,13 @@
 					/>
 				</template>
 
-				<InputModeBar v-if="isAnnouncementMode" icon="megaphone-simple" :label="$t('message.announcement_mode')" :variant="announcementVariant" @close="isAnnouncementMode = false" />
+				<InputModeBar
+					v-if="isAnnouncementMode"
+					icon="megaphone-simple"
+					:label="$t('message.announcement_mode')"
+					:variant="announcementVariant"
+					@close="isAnnouncementMode = false"
+				/>
 				<InputModeBar
 					v-if="messageInput.state.signMessage"
 					icon="seal-check"
@@ -73,26 +141,36 @@
 					@close="messageInput.resetAll(true)"
 				/>
 
-				<div v-if="messageInput.state.textArea" class="rounded-base flex items-center gap-x-4 px-4 py-2">
+				<div
+					v-if="messageInput.state.textArea"
+					class="rounded-base flex items-center gap-x-4 px-4 py-2"
+				>
 					<IconButton
 						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
 						data-testid="paperclip"
 						size="lg"
-						@click.stop="messageInput.togglePopover()"
 						class="transition-transform duration-200 hover:cursor-pointer"
 						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
+						@click.stop="messageInput.togglePopover()"
 					/>
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
+						v-model="valueAsString"
 						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
 						:placeholder="isAnnouncementMode ? $t('message.announcement_placeholder') : $t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
-						v-model="value"
+						textarea
 						@changed="changed()"
 						@submit="submitMessage()"
 						@cancel="cancel()"
-						@caretPos="setCaretPos"
+						@caret-pos="setCaretPos"
+						@focus="messageInput.state.showMention = true"
+						@blur="
+							setTimeout(() => {
+								messageInput.state.showMention = false;
+							}, 150)
+						"
 					/>
 
 					<!--Steward and above can broadcast only in main time line-->
@@ -100,15 +178,22 @@
 						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
 						class="hover:cursor-pointer"
 						:class="isAnnouncementMode ? (announcementVariant === 'admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
-						@click="isAnnouncementMode = !isAnnouncementMode"
 						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
+						@click="isAnnouncementMode = !isAnnouncementMode"
 					>
-						<Icon type="megaphone-simple" size="lg"></Icon>
+						<Icon
+							type="megaphone-simple"
+							size="lg"
+						></Icon>
 					</button>
 
 					<!-- Emoji picker -->
 					<button class="hover:cursor-pointer">
-						<Icon type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" />
+						<Icon
+							type="smiley"
+							size="lg"
+							@click.stop="messageInput.toggleEmojiPicker()"
+						/>
 					</button>
 
 					<!-- Sendbutton -->
@@ -118,7 +203,10 @@
 						:disabled="!messageInput.state.sendButtonEnabled"
 						@click="submitMessage"
 					>
-						<Icon type="paper-plane-right" size="lg" />
+						<Icon
+							type="paper-plane-right"
+							size="lg"
+						/>
 					</button>
 				</div>
 			</div>
@@ -127,15 +215,24 @@
 
 	<!-- Yivi signing dialog -->
 	<Teleport to="body">
-		<Dialog v-if="messageInput.state.showYiviQR" @close="messageInput.state.showYiviQR = false" :title="$t('message.sign.heading')" :buttons="signingDialogButtons">
-			<div :id="EYiviFlow.Sign" ref="yivi-login-ref"></div>
+		<Dialog
+			v-if="messageInput.state.showYiviQR"
+			:title="$t('message.sign.heading')"
+			:buttons="signingDialogButtons"
+			@close="messageInput.state.showYiviQR = false"
+		>
+			<div
+				:id="EYiviFlow.Sign"
+				ref="yivi-login-ref"
+			></div>
 		</Dialog>
 	</Teleport>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, onWatcherCleanup, ref, useTemplateRef, watch } from 'vue';
+	import { setTimeout } from 'node:timers';
+	import { type PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
@@ -154,44 +251,33 @@
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { type UserDetails } from '@hub-client/composables/mention-autocomplete.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useYiviIosWorkaround } from '@hub-client/composables/yiviIosWorkaround.composable';
 
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
+	import { type BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
 	import { useMessageInput } from '@hub-client/logic/messageInput';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	// Models
-	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { RelationType } from '@hub-client/models/constants';
-	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
 	import { UserAction } from '@hub-client/models/users/TUser';
-	import { EYiviFlow } from '@hub-client/models/yivi/Tyivi';
+	import { EYiviFlow, type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
 	import { buttonsCancel } from '@hub-client/stores/dialog';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { TPublicRoom, TRoomMember, useRooms } from '@hub-client/stores/rooms';
+	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	defineOptions({ inheritAttrs: false });
-
-	const { t } = useI18n();
-	const user = useUser();
-	const route = useRoute();
-	const roles = useRoles();
-	const rooms = useRooms();
-	const pubhubs = usePubhubsStore();
-	const settings = useSettings();
-	const messageActions = useMessageActions();
-	const messageInput = useMessageInput();
 
 	const props = defineProps({
 		room: {
@@ -213,7 +299,26 @@
 	});
 
 	const emit = defineEmits(usedEvents);
+
+	defineOptions({ inheritAttrs: false });
+
+	const { t } = useI18n();
+	const user = useUser();
+	const route = useRoute();
+	const roles = useRoles();
+	const rooms = useRooms();
+	const pubhubs = usePubhubsStore();
+	const settings = useSettings();
+	const messageActions = useMessageActions();
+	const messageInput = useMessageInput();
+
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
+	const valueAsString = computed({
+		get: () => (value.value as string) ?? '',
+		set: (v: string) => {
+			value.value = v;
+		},
+	});
 	const { allTypes, uploadUrl } = useMatrixFiles();
 
 	const pollObject = ref<Poll>(new Poll());
@@ -231,7 +336,7 @@
 	const isAnnouncementMode = ref(false);
 
 	const announcementVariant = computed<'admin' | 'steward'>(() => {
-		const powerLevel = props.room.getPowerLevel(user.userId);
+		const powerLevel = props.room.getPowerLevel(user.userId ?? '');
 		return powerLevel === 100 ? 'admin' : 'steward';
 	});
 
@@ -380,10 +485,10 @@
 		fileBlobOwnedByParent.value = !!uriBlob;
 	}
 
-	function insertMention(item: TRoomMember | TPublicRoom, marker: '@' | '#') {
+	function insertMention(item: UserDetails | TPublicRoom, marker: '@' | '#') {
 		const isUserMention = marker === '@';
-		const displayName = isUserMention ? (item as TRoomMember).rawDisplayName : (item as TPublicRoom).name;
-		const id = isUserMention ? (item as TRoomMember).userId : (item as TPublicRoom).room_id;
+		const displayName = isUserMention ? (item as UserDetails).displayName : (item as TPublicRoom).name;
+		const id = isUserMention ? (item as UserDetails).userId : (item as TPublicRoom).room_id;
 
 		const mention = `${marker}${displayName}~${id}~`;
 
@@ -407,20 +512,27 @@
 		if (messageInput.state.signMessage) {
 			messageInput.state.showYiviQR = true;
 			await nextTick();
-			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot);
+			signMessage(String(value.value), selectedAttributesSigningMessage.value, threadRoot);
 		} else if (isAnnouncementMode.value) {
 			// Send as announcement
-			const powerLevel = props.room.getPowerLevel(user.userId);
-			await pubhubs.addAnnouncementMessage(props.room.roomId, value.value!.toString(), powerLevel);
+			const powerLevel = props.room.getPowerLevel(user.userId ?? '');
+			await pubhubs.addAnnouncementMessage(props.room.roomId, String(value.value), powerLevel);
 			value.value = '';
 			isAnnouncementMode.value = false;
 		} else if (messageActions.whisperingToUserId) {
-			const powerLevel = props.room.getPowerLevel(user.userId);
+			const powerLevel = props.room.getPowerLevel(user.userId ?? '');
 			let whisperReplyEvent: TMessageEvent | undefined = undefined;
 			if (messageActions.whisperingToEventId) {
 				whisperReplyEvent = ((await pubhubs.getEvent(props.room.roomId, messageActions.whisperingToEventId)) as TMessageEvent) ?? undefined;
 			}
-			await pubhubs.addWhisperMessage(props.room.roomId, value.value!.toString(), powerLevel, messageActions.whisperingToUserId, threadRoot, whisperReplyEvent);
+			await pubhubs.addWhisperMessage(
+				props.room.roomId,
+				String(value.value),
+				powerLevel,
+				messageActions.whisperingToUserId,
+				threadRoot,
+				whisperReplyEvent,
+			);
 			clearWhisperMode();
 			value.value = '';
 		} else if (messageInput.state.poll) {
@@ -440,7 +552,9 @@
 					files: [messageInput.state.fileAdded],
 				},
 			} as unknown as Event;
-			fileUpload(t('errors.file_upload'), pubhubs.Auth.getAccessToken(), uploadUrl, allTypes, syntheticEvent, (url) => {
+			const accessToken = pubhubs.Auth.getAccessToken();
+			if (!accessToken) return;
+			fileUpload(t('errors.file_upload'), accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
 				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string, undefined, replyTo);
 				uriForFileUpload.value?.revoke();
 				fileBlobOwnedByParent.value = false;
@@ -449,11 +563,11 @@
 				messageInput.cancelFileUpload();
 			});
 		} else if (messageActions.replyingTo && inReplyTo.value) {
-			pubhubs.addMessage(props.room.roomId, value.value!.toString(), threadRoot, inReplyTo.value);
+			pubhubs.addMessage(props.room.roomId, String(value.value), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
 			value.value = '';
 		} else {
-			pubhubs.submitMessage(value.value!.toString(), props.room.roomId, threadRoot, inReplyTo.value);
+			pubhubs.submitMessage(String(value.value), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';
 		}
 	}
@@ -473,8 +587,8 @@
 		yiviFlow(EYiviFlow.Sign, finishedSigningMessage, rooms.currentRoomId, '#' + EYiviFlow.Sign, attributes, message, threadRoot);
 	}
 
-	function finishedSigningMessage(result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
-		pubhubs.addSignedMessage(props.room.roomId, result, threadRoot);
+	function finishedSigningMessage(result: YiviSigningSessionResult | SecuredRoomAttributeResult, threadRoot: TMessageEvent | undefined) {
+		pubhubs.addSignedMessage(props.room.roomId, result as YiviSigningSessionResult, threadRoot);
 		messageInput.state.showYiviQR = false;
 		messageInput.state.signMessage = false;
 		value.value = '';

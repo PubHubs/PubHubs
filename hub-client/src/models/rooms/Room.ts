@@ -1,29 +1,50 @@
 // Packages
 import { VotingWidgetType } from '../events/voting/VotingTypes';
-import { Direction, EventTimeline, EventTimelineSet, EventType, Filter, IStateEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread } from 'matrix-js-sdk';
-import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
-import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
+import {
+	type Direction,
+	EventTimeline,
+	type EventTimelineSet,
+	EventType,
+	type Filter,
+	type GroupCall,
+	GroupCallIntent,
+	GroupCallType,
+	type IStateEvent,
+	type MatrixClient,
+	MatrixEvent,
+	type Room as MatrixRoom,
+	type RoomMember as MatrixRoomMember,
+	MsgType,
+	NotificationCountType,
+	type Thread,
+} from 'matrix-js-sdk';
+import { type CachedReceipt, type WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { type MatrixRTCSession } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
+import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+import { api_synapse } from '@hub-client/logic/core/api';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
 // Logic
-import { LOGGER } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
-import { Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
-import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
-import { TCurrentEvent } from '@hub-client/models/events/types';
+import { Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
+import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { type TCurrentEvent } from '@hub-client/models/events/types';
 import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
-import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+const logger = createLogger('Room');
 
 // Types
 enum RoomType {
@@ -91,12 +112,10 @@ export default class Room {
 
 	private stateEvents: IStateEvent[];
 
-	logger = LOGGER;
-
 	constructor(matrixRoom: MatrixRoom);
 	constructor(matrixRoom: MatrixRoom, roomType: string, stateEvents: IStateEvent[]);
 	constructor(matrixRoom: MatrixRoom, roomType?: string, stateEvents?: IStateEvent[]) {
-		LOGGER.trace(SMI.ROOM, `Roomclass Constructor `, {
+		logger.debug(`Roomclass Constructor `, {
 			roomId: matrixRoom.roomId,
 		});
 
@@ -198,6 +217,10 @@ export default class Room {
 
 	public setStateEvents(stateEvents: IStateEvent[] | undefined) {
 		this.stateEvents = stateEvents ?? [];
+	}
+
+	public getStateEvents(): IStateEvent[] {
+		return this.stateEvents;
 	}
 
 	// Merges new state events into stateEvents, keyed by (type, state_key)
@@ -330,11 +353,11 @@ export default class Room {
 	}
 
 	public getStateJoinedMembersIds(): string[] {
-		return this.stateEvents.filter((item) => item.content.membership === 'join' || item.content.membership === 'invite').map((item) => item.sender);
+		return this.stateEvents.filter((item) => item.content.membership === 'join').map((item) => item.sender);
 	}
 
 	public getStateJoinedMembers(): RoomMemberStateEvent[] {
-		return this.stateEvents.filter((item) => item.content.membership === 'join' || item.content.membership === 'invite') as RoomMemberStateEvent[];
+		return this.stateEvents.filter((item) => item.content.membership === 'join') as RoomMemberStateEvent[];
 	}
 
 	public getStateMemberPowerLevel(userId: string | null): number {
@@ -344,20 +367,11 @@ export default class Room {
 		if (!event) return 0;
 		return event.content.users[userId] ?? event.content.users_default;
 	}
+
 	public getStatePowerLevel() {
 		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
 		if (!event) return null;
 		return event;
-	}
-	private updatePowerLevelEvent(powerLevelEvents: MatrixEvent[]) {
-		if (powerLevelEvents && powerLevelEvents.length > 0) {
-			this.stateEvents = this.stateEvents.map((state) => {
-				if (state.type === EventType.RoomPowerLevels) {
-					return powerLevelEvents[powerLevelEvents.length - 1].event as IStateEvent;
-				}
-				return state;
-			});
-		}
 	}
 
 	// End of sliding sync state methods //
@@ -381,13 +395,6 @@ export default class Room {
 		return roomMember;
 	}
 
-	/**
-	 * Gets all joined members of the room except the current user or any bots.
-	 */
-	public getOtherJoinedMembers(): TRoomMember[] {
-		return this.getOtherMembers(this.matrixRoom.getMembersWithMembership('join'));
-	}
-
 	public getOtherInviteMembers(): TRoomMember[] {
 		return this.getOtherMembers(this.matrixRoom.getMembersWithMembership('invite'));
 	}
@@ -396,7 +403,9 @@ export default class Room {
 	 * Gets all joined and invited members of the room except the current user or any bots.
 	 */
 	public getOtherJoinedAndInvitedMembers(): TRoomMember[] {
-		return this.getOtherMembers(Array.from(new Set([...this.matrixRoom.getMembersWithMembership('join'), ...this.matrixRoom.getMembersWithMembership('invite')])));
+		return this.getOtherMembers(
+			Array.from(new Set([...this.matrixRoom.getMembersWithMembership('join'), ...this.matrixRoom.getMembersWithMembership('invite')])),
+		);
 	}
 
 	private getOtherMembers(baseMembers: TRoomMember[]): TRoomMember[] {
@@ -415,11 +424,10 @@ export default class Room {
 		return roomMemberIds;
 	}
 
-	// FIXME: Typing error
 	public getRoomStewards(): Array<TRoomMember> {
 		return this.getMembersIds()
 			.map((member) => this.getMember(member))
-			.filter((roomMember) => roomMember?.powerLevel === 50);
+			.filter((roomMember) => roomMember !== null && roomMember.powerLevel === 50) as unknown as Array<TRoomMember>;
 	}
 	public getMembersIdsFromName(): Array<string> {
 		const roomMemberIds = this.name.split(',');
@@ -591,7 +599,7 @@ export default class Room {
 			const relatedEventsByOption = Object.values(
 				relatedEvents.reduce(
 					(acc, event) => {
-						const optionId = event.event.content!.optionId;
+						const optionId = event.event.content?.optionId;
 						const userId = event.getSender();
 
 						if (!acc[optionId]) {
@@ -602,13 +610,13 @@ export default class Room {
 						if (existingIndex === -1) {
 							acc[optionId].push(event);
 						} else {
-							if (acc[optionId][existingIndex].event.origin_server_ts < event.event.origin_server_ts) {
+							if ((acc[optionId][existingIndex].event.origin_server_ts ?? 0) < (event.event.origin_server_ts ?? 0)) {
 								acc[optionId][existingIndex] = event;
 							}
 						}
 						return acc;
 					},
-					{} as Record<string, any>,
+					{} as Record<string, MatrixEvent[]>,
 				),
 			).flat();
 			return relatedEventsByOption;
@@ -617,8 +625,8 @@ export default class Room {
 			const latestEventsPerUser = Object.values(
 				relatedEvents.reduce(
 					(acc, event) => {
-						const userId = event.getSender(); // or event.user_id if available
-						if (!acc[userId] || acc[userId].event.origin_server_ts < event.event.origin_server_ts) {
+						const userId = event.getSender();
+						if (userId && (!acc[userId] || (acc[userId].event.origin_server_ts ?? 0) < (event.event.origin_server_ts ?? 0))) {
 							acc[userId] = event;
 						}
 						return acc;
@@ -673,16 +681,20 @@ export default class Room {
 		// Threads are kept on room-level, so all events regarding the current thread need to be filtered and handled first.
 
 		// Handle thread redactions, for now only the DeletedFromThread events
-		const redactions = eventList.filter((event) => event.getContent()?.[Redaction.Redacts] && event.getContent()?.[Redaction.Reason] === Redaction.DeletedFromThread);
+		const redactions = eventList.filter(
+			(event) => event.getContent()?.[Redaction.Redacts] && event.getContent()?.[Redaction.Reason] === Redaction.DeletedFromThread,
+		);
 		if (redactions.length > 0) {
 			this.currentThread?.thread?.addRedactions(redactions);
 		}
 		// Handle thread events, only when they are from the currentthread (otherwise they will be fetched on opening the thread)
 		const currentThreadEvents = eventList.filter(
-			(event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread && this.currentThread?.threadId === event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
+			(event) =>
+				event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread &&
+				this.currentThread?.threadId === event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
 		);
-		if (currentThreadEvents.length > 0) {
-			this.currentThread!.thread!.addEvents(currentThreadEvents);
+		if (currentThreadEvents.length > 0 && this.currentThread?.thread) {
+			this.currentThread.thread.addEvents(currentThreadEvents);
 		}
 
 		// set toggle to force vue component updates when something in the threads has changed, will also set current event for thread
@@ -693,29 +705,30 @@ export default class Room {
 		// Events in threads that are NOT in the currentThread only need to update the specific counters
 		// This is done by notifying them the length has changed
 		const otherThreadEvents = eventList.filter(
-			(event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread && this.currentThread?.threadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
+			(event) =>
+				event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread &&
+				this.currentThread?.threadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
 		);
 		if (otherThreadEvents.length > 0) {
 			// make a set of all the rootIds of the otherThreadEvents
-			const otherThreadEventIds = new Set(otherThreadEvents.map((x) => x.getContent()[RelationType.RelatesTo]![RelationType.EventId]));
+			const otherThreadEventIds = new Set(otherThreadEvents.map((x) => x.getContent()[RelationType.RelatesTo]?.[RelationType.EventId]));
 
 			const currentEvents = this.timelineManager.getEvents();
 
 			// get the visible other threads by checking on the id
 			const visibleOtherThreads = currentEvents.filter((x) => otherThreadEventIds.has(x.matrixEvent.event.event_id));
 			visibleOtherThreads.forEach((event) => {
-				event.thread.setMatrixThread(this.getOrCreateMatrixThread(event.matrixEvent.event.event_id!));
-				event.thread.getEvents(this.matrixRoom.client).then((x) => event.thread.notifyLengthChange());
+				const eventId = event.matrixEvent.event.event_id;
+				if (eventId) {
+					event.thread.setMatrixThread(this.getOrCreateMatrixThread(eventId));
+				}
+				event.thread.getEvents(this.matrixRoom.client).then((_x) => event.thread.notifyLengthChange());
 			});
 		}
 
 		// END THREADS
 
 		const nonCurrentThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
-
-		// Update power levels so that steward promotions and demotions are quickly updated for all users
-		const powerLevelEvents = nonCurrentThreadEvents.filter((x) => x.getType() === 'm.room.power_levels');
-		this.updatePowerLevelEvent(powerLevelEvents);
 
 		this.timelineManager.loadFromSlidingSync(nonCurrentThreadEvents).then((scrollToEventId) => {
 			if (scrollToEventId) {
@@ -894,4 +907,49 @@ export default class Room {
 	}
 
 	// #endregion
+
+	// #region VideoCall
+
+	public startMatrixRTC() {
+		this.matrixRoom.client.matrixRTC.start();
+	}
+
+	public getMatrixRTCSessions(): MatrixRTCSession {
+		return this.matrixRoom.client.matrixRTC.getRoomSession(this.matrixRoom);
+	}
+
+	//TODO maybe move to pubhubsstore
+	public async getLiveKitTokenResponse(): Promise<[string, string]> {
+		const response = await api_synapse.apiGET(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId);
+		// @ts-expect-error -- API response is loosely typed and returns token/livekit_url keys at runtime
+		return [response.token, response.livekit_url];
+	}
+
+	public async createGroupCall(): Promise<GroupCall> {
+		await api_synapse.apiPOST(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId, {});
+		return await this.matrixRoom.client.createGroupCall(this.roomId, GroupCallType.Video, false, GroupCallIntent.Room, true);
+	}
+
+	public getGroupCall(): GroupCall | null {
+		return this.matrixRoom.client.getGroupCallForRoom(this.roomId);
+	}
+
+	public isOngoingCall() {
+		const groupCall = this.matrixRoom.client.getGroupCallForRoom(this.roomId);
+		if (groupCall) return true;
+		return false;
+	}
+
+	public getLastVideoCallTimeLineEvent(): MatrixEvent | undefined {
+		const timeline = this.getLiveTimelineEvents();
+
+		const lastVideoCallMessage = timeline.findLast((e) => e.event.content?.msgtype === PubHubsMgType.VideoCall);
+		if (!lastVideoCallMessage || !lastVideoCallMessage.event.event_id) {
+			return undefined;
+		}
+
+		return lastVideoCallMessage;
+	}
+
+	//#endregion
 }

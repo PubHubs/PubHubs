@@ -2,11 +2,11 @@
 import { auths_api } from '@global-client/logic/core/api';
 import { handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
-import { Api } from '@hub-client/logic/core/apiCore';
+import { type Api } from '@hub-client/logic/core/apiCore';
 
 // Models
-import * as TAuths from '@global-client/models/MSS/TAuths';
-import { ErrorCode, Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
+import type * as TAuths from '@global-client/models/MSS/TAuths';
+import { type ErrorCode, type Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
 import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 export default class AuthenticationServer {
@@ -17,13 +17,22 @@ export default class AuthenticationServer {
 		this._state = [];
 		this._authsApi = auths_api(authServerUrl);
 	}
+
 	public getState() {
 		return this._state;
 	}
+
 	public setState(newState: number[]) {
 		this._state = newState;
 	}
 
+	private isObject(value: unknown): value is Record<string, unknown> {
+		return typeof value === 'object' && value !== null;
+	}
+
+	private hasSuccess<T>(value: unknown): value is { Success: T } {
+		return this.isObject(value) && ResultResponse.Success in value;
+	}
 	/**
 	 * Check whether the attributes that will be used for registration/login are in the list of supported attribute types
 	 * and if they contain at least one identifying and at least one bannable attribute.
@@ -38,12 +47,9 @@ export default class AuthenticationServer {
 		}
 		// Build a map from all handles (current handle + old handles) to the attributes for efficient lookup
 		const handleToAttrMap = new Map<string, TAuths.AttrType>();
-
 		for (const [handle, attr] of Object.entries(supportedAttrTypes)) {
-			handleToAttrMap.set(handle, attr); // active handle mapping
-			attr.handles.forEach((oldHandle) => {
-				handleToAttrMap.set(oldHandle, attr);
-			});
+			handleToAttrMap.set(handle, attr);
+			attr.handles.forEach((oldHandle) => handleToAttrMap.set(oldHandle, attr));
 		}
 
 		const identifyingAttrsSet = new Set<string>();
@@ -57,11 +63,9 @@ export default class AuthenticationServer {
 			if (!type) {
 				throw new Error(`The attribute "${attr}" is not in the list of supported attributes.`);
 			}
-
 			if (loginMethod.identifying_attr.includes(attr) && !type.identifying) {
 				throw new Error(`The attribute that is to be used as an identifying attribute (${attr}) is not an identifying attribute.`);
 			}
-
 			if (type.identifying) {
 				hasIdentifying = true;
 				identifyingAttrsSet.add(attr);
@@ -73,10 +77,8 @@ export default class AuthenticationServer {
 
 		if (!hasIdentifying || !hasBannable) {
 			const missing = [];
-
 			if (!hasIdentifying) missing.push('an identifying attribute');
 			if (!hasBannable) missing.push('a bannable attribute');
-
 			throw new Error(`Invalid attribute list: Missing ${missing.join(' and ')} required for registration/login.`);
 		}
 
@@ -95,36 +97,50 @@ export default class AuthenticationServer {
 		const okWelcomeResp = await handleErrors<TAuths.WelcomeResp>(welcomeResponseFn);
 		return okWelcomeResp.attr_types;
 	}
-	public async YiviWaitForResultEP(argument: any): Promise<TAuths.YiviWaitForResultResp> {
+
+	public async YiviWaitForResultEP(argument: number[]): Promise<TAuths.YiviWaitForResultResp> {
 		const requestBody = { state: argument };
-		const YiviWaitForResulFn = () => this._authsApi.api<Result<TAuths.YiviWaitForResultResp, ErrorCode>>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
+		const YiviWaitForResulFn = () =>
+			this._authsApi.api<Result<TAuths.YiviWaitForResultResp, ErrorCode>>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
 		return await handleErrors<TAuths.YiviWaitForResultResp>(YiviWaitForResulFn);
 	}
+
 	public async CardEP(requestBody: TAuths.CardReq): Promise<TAuths.CardRespSuccess> {
 		const CardFn = () => this._authsApi.api<Result<TAuths.CardResp, ErrorCode>>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
 		const CardEPResponse = await handleErrors<TAuths.CardResp>(CardFn);
-		if (ResultResponse.Success in CardEPResponse) {
-			return CardEPResponse.Success;
-		} else if ('PleaseRetryWithNewCardPseud' in CardEPResponse) {
+
+		if (CardEPResponse === 'PleaseRetryWithNewCardPseud') {
 			throw new Error('Card issuance failed — retry with a new PseudoCard.');
-		} else {
+		} else if (typeof CardEPResponse === 'string') {
+			throw new Error(`Unexpected string response in CardEPResponse: ${CardEPResponse}`);
+		} else if (!this.hasSuccess<TAuths.CardRespSuccess>(CardEPResponse)) {
 			throw new Error('Unexpected response in OK CardEPResponse');
 		}
+		return CardEPResponse.Success;
 	}
-	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq): Promise<{}> {
-		const YiviReleaseNextSessioFn = () => this._authsApi.api<Result<TAuths.YiviReleaseNextSessionResp, ErrorCode>>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
+
+	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq): Promise<Record<string, never> | string> {
+		const YiviReleaseNextSessioFn = () =>
+			this._authsApi.api<Result<TAuths.YiviReleaseNextSessionResp, ErrorCode>>(
+				this._authsApi.apiURLS.YiviReleaseNextSessionEP,
+				requestOptions(requestBody),
+			);
 		const YiviReleaseNextSessionResponse = await handleErrors<TAuths.YiviReleaseNextSessionResp>(YiviReleaseNextSessioFn);
-		if (ResultResponse.Success in YiviReleaseNextSessionResponse) {
-			return YiviReleaseNextSessionResponse.Success;
-		} else if ('PleaseRestartAuth' in YiviReleaseNextSessionResponse) {
+
+		if (YiviReleaseNextSessionResponse === 'YiviServerGone') {
+			return YiviReleaseNextSessionResponse;
+		} else if (YiviReleaseNextSessionResponse === 'PleaseRestartAuth') {
 			throw new Error('Something went wrong; please start again at AuthStartEP.');
-		} else if ('SessionGone' in YiviReleaseNextSessionResponse) {
+		} else if (YiviReleaseNextSessionResponse === 'SessionGone') {
 			throw new Error('The session provided to YiviReleaseNextSessionEP can not be found');
-		} else if ('TooEarly' in YiviReleaseNextSessionResponse) {
-			throw new Error('Trying to release a yivi servder thats not there yet');
-		} else {
+		} else if (YiviReleaseNextSessionResponse === 'TooEarly') {
+			throw new Error('Trying to release a yivi server that is not there yet');
+		} else if (typeof YiviReleaseNextSessionResponse === 'string') {
+			throw new Error(`Unexpected string response in YiviReleaseNextSessionEP: ${YiviReleaseNextSessionResponse}`);
+		} else if (!this.hasSuccess<Record<string, never>>(YiviReleaseNextSessionResponse)) {
 			throw new Error('Unexpected Result in Ok YiviReleaseNextSessionResponse');
 		}
+		return YiviReleaseNextSessionResponse.Success;
 	}
 
 	/**
@@ -133,15 +149,15 @@ export default class AuthenticationServer {
 	 * @returns The task and state returned by the AuthStartEP.
 	 */
 	public async authStartEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartRespSuccess> {
-		const authStartRespFn = () => this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
+		const authStartRespFn = () =>
+			this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
 		const okAuthStartResp = await handleErrors<TAuths.StartResp>(authStartRespFn);
+
 		if ('UnknownAttrType' in okAuthStartResp) {
 			throw new Error(`Unknown attribute handle: ${okAuthStartResp.UnknownAttrType}`);
-		}
-		if ('SourceNotAvailableFor' in okAuthStartResp) {
+		} else if ('SourceNotAvailableFor' in okAuthStartResp) {
 			throw new Error(`Source ${requestBody.source} not available for attribute: ${okAuthStartResp.SourceNotAvailableFor}`);
-		}
-		if (!(ResultResponse.Success in okAuthStartResp)) {
+		} else if (!this.hasSuccess<TAuths.StartRespSuccess>(okAuthStartResp)) {
 			throw new Error('Unexpected response from startAuth.');
 		}
 		return okAuthStartResp.Success;
@@ -156,18 +172,23 @@ export default class AuthenticationServer {
 	 */
 	public async completeAuthEP(proof: TAuths.AuthProof, state: number[]): Promise<TAuths.SuccesResp> {
 		const requestPayload: TAuths.AuthCompleteReq = { proof, state };
-		const authCompleteRespFn = () => this._authsApi.api<TAuths.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<TAuths.AuthCompleteReq>(requestPayload));
+		const authCompleteRespFn = () =>
+			this._authsApi.api<TAuths.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<TAuths.AuthCompleteReq>(requestPayload));
 		const okAuthCompleteResp = await handleErrors<TAuths.CompleteResp>(authCompleteRespFn);
+
 		if (okAuthCompleteResp === 'PleaseRestartAuth') {
 			throw new Error('Something went wrong. Please start again at AuthStartEP.');
-		} else if ('Success' in okAuthCompleteResp) {
-			return okAuthCompleteResp.Success;
-		} else {
+		} else if (typeof okAuthCompleteResp === 'string') {
+			throw new Error(`Unexpected string response in completeAuthEP: ${okAuthCompleteResp}`);
+		} else if (!this.hasSuccess<TAuths.SuccesResp>(okAuthCompleteResp)) {
 			throw new Error('Unknown response from the completeAuth endpoint.');
 		}
+		return okAuthCompleteResp.Success;
 	}
 
 	async attrKeysEP(attrKeyRequest: TAuths.AuthAttrKeyReq) {
-		return await handleErrors<TAuths.AttrKeysResp>(() => this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest)));
+		return await handleErrors<TAuths.AttrKeysResp>(() =>
+			this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest)),
+		);
 	}
 }

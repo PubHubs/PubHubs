@@ -34,7 +34,7 @@ describe('ProfileAttributes.vue Test', () => {
 		wrapper = mount(ProfileAttributes, {
 			props: {
 				user: 'user',
-				room_id: 'room',
+				roomId: 'room',
 			},
 			global: {
 				plugins: [i18n, createTestingPinia()],
@@ -54,8 +54,8 @@ describe('ProfileAttributes.vue Test', () => {
 		rooms.$patch({
 			roomNotices: {
 				room: {
-					user: ['an attr', 'another attr'],
-					another_user: ['some other attribute'],
+					user: { attr1: 'an attr', attr2: 'another attr' },
+					another_user: { attr: 'some other attribute' },
 				},
 			},
 		});
@@ -69,7 +69,7 @@ describe('ProfileAttributes.vue Test', () => {
 		rooms.$patch({
 			roomNotices: {
 				room: {
-					user: ['admin.title_administrator'],
+					user: { role: 'admin.title_administrator' },
 				},
 			},
 		});

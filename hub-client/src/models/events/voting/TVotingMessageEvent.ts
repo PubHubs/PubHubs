@@ -1,13 +1,13 @@
 // Packages
-import { EventType } from 'matrix-js-sdk';
+import { type EventType } from 'matrix-js-sdk';
 
 // Logic
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { type PubHubsMgType } from '@hub-client/logic/core/events';
 
 // Models
-import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-import { TBaseMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-import { PollOption, SchedulerOption, VotingWidget, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
+import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TBaseMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { type PollOption, type SchedulerOption, type VotingWidget, type VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
 
 // Types
 export interface TVotingMessageEvent<C extends TVotingWidgetMessageBaseEvent = TVotingWidgetMessageBaseEvent> extends TBaseEvent {

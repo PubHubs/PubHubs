@@ -9,4 +9,9 @@ enum EYiviFlow {
 	Sign = 'sign',
 }
 
-export { Attribute, EYiviFlow };
+type SecuredRoomAttributeResult = {
+	goto: string;
+	not_correct: string;
+};
+
+export { Attribute, EYiviFlow, type SecuredRoomAttributeResult };

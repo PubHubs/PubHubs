@@ -4,41 +4,72 @@
 		<!-- Search input -->
 		<div class="px-4">
 			<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
-				<Icon type="magnifying-glass" size="sm" class="text-on-surface-dim" />
+				<Icon
+					class="text-on-surface-dim"
+					size="sm"
+					type="magnifying-glass"
+				/>
 				<input
 					ref="searchInput"
 					v-model="searchTerm"
-					type="text"
-					role="searchbox"
 					class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
 					:placeholder="t('others.search_room')"
+					role="searchbox"
+					type="text"
 					@keydown.enter="search()"
 				/>
-				<button v-if="searchTerm" @click="clearSearch()" class="text-on-surface-dim hover:text-on-surface">
-					<Icon type="x" size="sm" />
+				<button
+					v-if="searchTerm"
+					class="text-on-surface-dim hover:text-on-surface"
+					@click="clearSearch()"
+				>
+					<Icon
+						size="sm"
+						type="x"
+					/>
 				</button>
 			</div>
 		</div>
 
 		<!-- Search results -->
-		<div class="mt-4 h-full flex-1 overflow-y-auto px-4" data-testid="search-result">
+		<div
+			class="mt-4 h-full flex-1 overflow-y-auto px-4"
+			data-testid="search-result"
+		>
 			<template v-if="isSearching">
 				<div class="flex items-center gap-2 p-2">
 					<InlineSpinner />
-					<p role="status">{{ t('others.searching') }}</p>
+					<p role="status">
+						{{ t('others.searching') }}
+					</p>
 				</div>
 			</template>
 			<template v-else-if="searched && searchResults.length === 0">
-				<p role="status" class="text-on-surface-dim p-2">
+				<p
+					class="text-on-surface-dim p-2"
+					role="status"
+				>
 					{{ t('others.search_nothing_found') }}
 				</p>
 			</template>
 			<template v-else-if="searchResults.length > 0">
-				<div v-for="item in searchResults" :key="item.event_id" class="group" role="listitem">
-					<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
+				<div
+					v-for="item in searchResults"
+					:key="item.event_id"
+					class="group"
+					role="listitem"
+				>
+					<a
+						href="#"
+						@click.prevent="onScrollToEventId(item.event_id, item.event_threadId)"
+					>
 						<div class="hover:bg-surface-high flex flex-col gap-1 rounded-md p-2">
 							<div class="flex items-center gap-2">
-								<Avatar :avatar-url="user.userAvatar(item.event_sender)" :user-id="item.event_sender" class="h-8 w-8 shrink-0" />
+								<Avatar
+									:avatar-url="user.userAvatar(item.event_sender)"
+									class="h-8 w-8 shrink-0"
+									:user-id="item.event_sender"
+								/>
 								<div class="min-w-0 flex-1">
 									<TruncatedText>{{ item.event_body }}</TruncatedText>
 								</div>
@@ -51,15 +82,17 @@
 				</div>
 			</template>
 			<template v-else>
-				<p class="text-on-surface-dim p-2">{{ t('others.search_room_hint') }}</p>
+				<p class="text-on-surface-dim p-2">
+					{{ t('others.search_room_hint') }}
+				</p>
 			</template>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
+	import { type SearchResult } from 'matrix-js-sdk';
 	import { onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -72,15 +105,16 @@
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
-	import { useMentions } from '@hub-client/composables/useMentions';
+	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
-	// Logic
 	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
-	import Room from '@hub-client/models/rooms/Room';
-	import { TSearchResult } from '@hub-client/models/search/TSearch';
+	import type Room from '@hub-client/models/rooms/Room';
+	import { type TSearchResult } from '@hub-client/models/search/TSearch';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -88,20 +122,19 @@
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	const { t } = useI18n();
-	const pubhubs = usePubhubsStore();
-	const rooms = useRooms();
-	const settings = useSettings();
-	const sidebar = useSidebar();
-	const user = useUser();
-
 	const props = defineProps<{
 		room: Room;
 	}>();
-
 	const emit = defineEmits<{
 		(e: 'scrollToEventId', payload: { eventId: string; threadId?: string }): void;
 	}>();
+	const logger = createLogger('RoomSearch');
+	const { t } = useI18n();
+	const pubhubs = usePubhubsStore();
+	const _rooms = useRooms();
+	const settings = useSettings();
+	const sidebar = useSidebar();
+	const user = useUser();
 
 	const searchInput = ref<HTMLInputElement | null>(null);
 	const searchTerm = ref('');
@@ -136,7 +169,7 @@
 				searchResults.value = mapSearchResult(searchResponse.results);
 			}
 		} catch (err) {
-			console.error('An error occurred while searching the room: ', err);
+			logger.error('An error occurred while searching the room: ', err);
 		}
 
 		isSearching.value = false;
@@ -166,7 +199,7 @@
 			(result) =>
 				({
 					rank: result.rank,
-					event_id: result.context.ourEvent.event.event_id!,
+					event_id: result.context.ourEvent.event.event_id ?? '',
 					event_threadId: result.context.ourEvent.getThread()?.id,
 					event_type: result.context.ourEvent.event.type,
 					event_body: result.context.ourEvent.event.content?.body,
@@ -217,6 +250,6 @@
 
 		const searchSnippet = originalWords.slice(start, end).join(' ');
 
-		return useMentions().formatMentions(searchSnippet);
+		return useMentionsDisplay().formatMentions(searchSnippet);
 	}
 </script>

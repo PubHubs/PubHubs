@@ -1,14 +1,21 @@
 <template>
-	<div ref="elThreadTimeline" class="flex h-full w-full flex-col pt-4" data-testid="thread-sidekick">
+	<div
+		ref="elThreadTimeline"
+		class="flex h-full w-full flex-col pt-4"
+		data-testid="thread-sidekick"
+	>
 		<SidebarHeader :title="t('rooms.thread')" />
 		<!-- Thread message list -->
 		<div class="flex-1 overflow-y-scroll pb-4">
 			<!-- Root event -->
-			<div v-if="filteredEvents.length === 0" :id="threadRootId">
+			<div
+				v-if="filteredEvents.length === 0 && props.room.currentThread?.rootEvent?.event"
+				:id="threadRootId"
+			>
 				<RoomMessageBubble
 					:room="room"
 					:event="props.room.currentThread?.rootEvent?.event"
-					:viewFromThread="true"
+					:view-from-thread="true"
 					:active-reaction-panel="activeReactionPanel"
 					class="room-event"
 					@in-reply-to-click="onInReplyToClick"
@@ -21,12 +28,19 @@
 			</div>
 
 			<!-- Thread replies -->
-			<div v-for="item in filteredEvents" :key="item.matrixEvent.event.event_id">
-				<div :ref="setEventRef" class="mx-3 rounded-md" :id="item.matrixEvent.event.event_id">
+			<div
+				v-for="item in filteredEvents"
+				:key="item.matrixEvent.event.event_id"
+			>
+				<div
+					:id="item.matrixEvent.event.event_id"
+					:ref="setEventRef"
+					class="mx-3 rounded-md"
+				>
 					<RoomMessageBubble
 						:room="room"
 						:event="item.matrixEvent.event"
-						:viewFromThread="true"
+						:view-from-thread="true"
 						:active-reaction-panel="activeReactionPanel"
 						class="room-event"
 						@clicked-emoticon="sendEmoji"
@@ -38,24 +52,40 @@
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id" />
+						<Reaction
+							v-if="reactionExistsForMessage(item as TimelineEvent)"
+							:react-event="onlyReactionEvent(item.matrixEvent.event.event_id ?? '')"
+							:message-event-id="item.matrixEvent.event.event_id ?? ''"
+						/>
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<!-- Thread input -->
-		<MessageInput class="z-10 -mt-4" v-if="room" :room="room" :in-thread="true"></MessageInput>
+		<MessageInput
+			v-if="room"
+			class="z-10 -mt-4"
+			:room="room"
+			:in-thread="true"
+		></MessageInput>
 	</div>
 
 	<!-- Delete message dialog -->
-	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="room" :view-from-thread="true" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage(eventToBeDeleted)"></DeleteMessageDialog>
+	<DeleteMessageDialog
+		v-if="showConfirmDelMsgDialog && eventToBeDeleted"
+		:event="eventToBeDeleted"
+		:room="room"
+		:view-from-thread="true"
+		@close="showConfirmDelMsgDialog = false"
+		@yes="deleteMessage(eventToBeDeleted)"
+	></DeleteMessageDialog>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { EventType, MatrixEvent } from 'matrix-js-sdk';
-	import { Reactive, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+	import { EventType, type MatrixEvent } from 'matrix-js-sdk';
+	import { type Reactive, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, shallowReactive, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -69,28 +99,31 @@
 
 	import { ElementObserver } from '@hub-client/logic/core/elementObserver';
 	// Logic
-	import { LOGGER } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { RelationType, RoomEmit, ScrollPosition, ScrollSelect, TimelineScrollConstants } from '@hub-client/models/constants';
-	import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+	import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	const { t } = useI18n();
-
 	const props = defineProps({
 		room: {
 			type: Room,
 			required: true,
 		},
-		scrollToEventId: String,
+		scrollToEventId: { type: String, default: undefined },
 	});
+
+	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
+
+	const logger = createLogger('RoomThread');
+
+	const { t } = useI18n();
 
 	const threadRootId = computed(() => {
 		return props.room.currentThread?.rootEvent?.event.event_id;
@@ -107,9 +140,9 @@
 	const user = useUser();
 
 	let deletedEvents: Reactive<MatrixEvent[]> = reactive<MatrixEvent[]>([]);
-	let threadEvents: Reactive<TimelineEvent[]> = reactive<TimelineEvent[]>([]);
+	let threadEvents: TimelineEvent[] = shallowReactive<TimelineEvent[]>([]);
 	let eventObserver: ElementObserver | null = null;
-	const elRoomEvent = ref<HTMLElement | null>(null);
+	const elRoomEvent = ref<HTMLElement[]>([]);
 	const elThreadTimeline = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
 	const eventToBeDeleted = ref<TMessageEvent>();
@@ -117,8 +150,6 @@
 
 	const activeReactionPanel = ref<string | null>(null);
 	const { READ_DELAY_MS } = TimelineScrollConstants;
-
-	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
 
 	watch(
 		() => props.room.threadUpdated,
@@ -145,7 +176,7 @@
 	);
 
 	onMounted(() => {
-		LOGGER.log(SMI.ROOM_THREAD, 'RoomThread mounted');
+		logger.debug('RoomThread mounted');
 		setupEventIntersectionObserver();
 	});
 
@@ -163,21 +194,15 @@
 
 	function onlyReactionEvent(eventId: string) {
 		// To stop from having duplicate events
-		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
+		props.room
+			.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation })
+			.forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	}
 
-	// TODO Element Observer Because of the way the ElementObserver is set up we need elRoomEvent to be a single variable, but actually pass it as an array
-	// Here we ignore the TypeScript errors for now until this is solved
-	function setEventRef(el: Element | null | any) {
+	function setEventRef(el: Element | null | unknown) {
 		if (el instanceof HTMLElement) {
-			if (elRoomEvent.value) {
-				// @ts-ignore
-				elRoomEvent.value.push(el);
-			} else {
-				// @ts-ignore
-				elRoomEvent.value = [el];
-			}
+			elRoomEvent.value.push(el);
 		}
 	}
 
@@ -194,8 +219,9 @@
 
 		setupEventIntersectionObserver();
 
-		if (props.room.getCurrentEvent()) {
-			scrollToEvent(props.room.getCurrentEvent()!.eventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
+		const currentEvent = props.room.getCurrentEvent();
+		if (currentEvent) {
+			scrollToEvent(currentEvent.eventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 		} else {
 			const lastEvent = filteredEvents.value[filteredEvents.value.length - 1];
 			if (lastEvent?.matrixEvent.event?.event_id) {
@@ -204,7 +230,7 @@
 		}
 	}
 
-	async function onScrollToEventId(newEventId?: string, oldEventId?: string) {
+	async function onScrollToEventId(newEventId?: string, _oldEventId?: string) {
 		if (!newEventId) return;
 		scrollToEvent(newEventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
@@ -214,7 +240,10 @@
 		threadEvents.splice(0, threadEvents.length, ...events);
 
 		if (threadEvents.length > 0) {
-			nextTick(() => scrollToEvent(threadEvents[threadEvents.length - 1].matrixEvent.event.event_id!));
+			const lastEventId = threadEvents[threadEvents.length - 1].matrixEvent.event.event_id;
+			if (lastEventId) {
+				nextTick(() => scrollToEvent(lastEventId));
+			}
 		}
 	}
 
@@ -222,8 +251,13 @@
 		scrollToEvent(inReplyToId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
-	async function scrollToEvent(eventId: string, options: { position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End; select?: ScrollSelect.Highlight | ScrollSelect.Select } = { position: ScrollPosition.Start }) {
-		LOGGER.log(SMI.ROOM_THREAD, `scroll to event: ${eventId}`, { eventId });
+	async function scrollToEvent(
+		eventId: string,
+		options: { position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End; select?: ScrollSelect.Highlight | ScrollSelect.Select } = {
+			position: ScrollPosition.Start,
+		},
+	) {
+		logger.debug(`scroll to event: ${eventId}`, { eventId });
 
 		const doScroll = (elEvent: Element) => {
 			elEvent.scrollIntoView({ block: options.position });
@@ -298,7 +332,8 @@
 			eventObserver.disconnectObserver();
 		}
 
-		eventObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
+		const observedEvents = Array.from(new Set(elRoomEvent.value)).filter((element) => element.isConnected);
+		eventObserver = new ElementObserver(observedEvents, { threshold: 0.95 });
 
 		// Combined handler - ElementObserver only supports ONE callback (each setUpObserver replaces the previous)
 		const combinedHandler = (entries: IntersectionObserverEntry[]) => {

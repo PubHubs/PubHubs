@@ -1,20 +1,22 @@
-FROM node:24-slim AS builder
+FROM node:25-slim AS builder
 
 WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
-RUN npm ci && npm cache clean --force
-COPY . . 
-RUN npm run build
+COPY hub-client/package.json ./hub-client/
+COPY global-client/package.json ./global-client/
+RUN npm ci --ignore-scripts && npm cache clean --force
+COPY hub-client/ ./hub-client/
+RUN npm run build --workspace=hub-client
 
 FROM nginx:alpine-slim
 
-COPY --from=builder /usr/src/app/dist /usr/var/static 
+COPY --from=builder /usr/src/app/hub-client/dist /usr/var/static
 
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+COPY hub-client/nginx.conf /etc/nginx/templates/default.conf.template
 
-COPY start.sh .
-COPY rebrand.sh .
-COPY branding ./branding
+COPY hub-client/start.sh .
+COPY hub-client/rebrand.sh .
+COPY hub-client/branding ./branding
 
 RUN chmod +x ./start.sh
 RUN chmod +x ./rebrand.sh
@@ -24,4 +26,4 @@ EXPOSE 8800
 ENV HUB_URL="provide_me_when_running_as_a_container"
 ENV PARENT_URL="provide_me_when_running_as_a_container"
 
-CMD ./start.sh && /docker-entrypoint.sh nginx -g "daemon off;"
+CMD ["sh", "-c", "./start.sh && /docker-entrypoint.sh nginx -g 'daemon off;'"]

@@ -1,23 +1,26 @@
 <template>
-	<ViewVotesSchedulerOption v-for="option in options" :key="option.id" :option="option" :votes="votesOfOption(option.id)" :hideTime="false"></ViewVotesSchedulerOption>
+	<ViewVotesSchedulerOption
+		v-for="option in options"
+		:key="option.id"
+		:hide-time="false"
+		:option="option"
+		:votes="votesOfOption(option.id)"
+	/>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Components
 	import ViewVotesSchedulerOption from '@hub-client/components/rooms/voting/view-votes/ViewVotesSchedulerOption.vue';
 
 	// Models
-	import { SchedulerOption } from '@hub-client/models/events/voting/VotingTypes';
+	import { type SchedulerOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	const props = defineProps<{
 		options: SchedulerOption[];
 		votesByOption: {
 			optionId: number;
 			votes: {
-				userTime: {
-					id: string;
-					time: string;
-				}[];
+				userVotes: { userId: string; time: string }[];
 				choice: string;
 			}[];
 		}[];

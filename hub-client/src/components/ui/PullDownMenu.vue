@@ -1,45 +1,90 @@
 <template>
-	<div class="bg-surface-low relative flex w-full items-center rounded-md" v-click-outside="close" role="menubar">
+	<div
+		v-click-outside="close"
+		class="bg-surface-low relative flex w-full items-center rounded-md"
+		role="menubar"
+	>
 		<div class="bg-surface-low absolute top-1 w-full cursor-pointer rounded-md whitespace-nowrap">
 			<div v-show="open">
-				<div v-for="(option, index) in options" class="text-on-surface-dim hover:bg-on-surface-variant flex items-center gap-1 rounded-md pl-2 hover:text-white" :class="selectedClass(index)" @click="select(index)">
+				<div
+					v-for="(option, index) in options"
+					:key="index"
+					class="text-on-surface-dim hover:bg-on-surface-variant flex items-center gap-1 rounded-md pl-2 hover:text-white"
+					:class="selectedClass(index)"
+					@click="select(index)"
+				>
 					<template v-if="toggleOrder">
 						<template v-if="index === selectedIndex">
-							<Icon v-if="selectedOrder === SortOrder.asc" type="arrow-down"></Icon>
-							<Icon v-else type="arrow-up"></Icon>
+							<Icon
+								v-if="selectedOrder === SortOrder.asc"
+								type="arrow-down"
+							/>
+							<Icon
+								v-else
+								type="arrow-up"
+							/>
 						</template>
 						<template v-else>
-							<Icon v-if="selectedOrder === SortOrder.asc" type="arrow-up"></Icon>
-							<Icon v-else type="arrow-down"></Icon>
+							<Icon
+								v-if="selectedOrder === SortOrder.asc"
+								type="arrow-up"
+							/>
+							<Icon
+								v-else
+								type="arrow-down"
+							/>
 						</template>
 					</template>
-					<span class="flex-grow">
+					<span class="grow">
 						{{ $t(option as string) }}
 					</span>
 				</div>
 			</div>
-			<div v-show="!open" class="pl-2" @click="toggle">
+			<div
+				v-show="!open"
+				class="pl-2"
+				@click="toggle"
+			>
 				<span v-if="!changed">{{ title }}</span>
-				<div v-else class="flex items-center gap-1">
+				<div
+					v-else
+					class="flex items-center gap-1"
+				>
 					<template v-if="toggleOrder">
-						<Icon v-if="selectedOrder === SortOrder.asc" type="arrow-up"></Icon>
-						<Icon v-else type="arrow-down"></Icon>
+						<Icon
+							v-if="selectedOrder === SortOrder.asc"
+							type="arrow-up"
+						/>
+						<Icon
+							v-else
+							type="arrow-down"
+						/>
 					</template>
-					<span class="flex-grow">{{ $t(options[selectedIndex] as string) }}</span>
+					<span class="grow">{{ $t(options[selectedIndex] as string) }}</span>
 				</div>
 			</div>
 		</div>
-		<div class="absolute right-1 cursor-pointer rounded-md bg-transparent" @click="toggle">
-			<Icon type="caret-down" size="md"></Icon>
+		<div
+			class="absolute right-1 cursor-pointer rounded-md bg-transparent"
+			@click="toggle"
+		>
+			<Icon
+				size="md"
+				type="caret-down"
+			/>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	import Icon from '../elements/Icon.vue';
 	import { computed, ref } from 'vue';
 
-	import { SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
+	import { type SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
+
+	const props = withDefaults(defineProps<Props>(), {
+		toggleOrder: false,
+	});
 
 	const emit = defineEmits(['select']);
 
@@ -49,10 +94,6 @@
 		selected: number | SortOption;
 		toggleOrder?: boolean;
 	}
-
-	const props = withDefaults(defineProps<Props>(), {
-		toggleOrder: false,
-	});
 
 	const open = ref(false);
 	const changed = ref(false);
@@ -78,7 +119,7 @@
 		return '';
 	};
 
-	const select = (index: Number) => {
+	const select = (index: number) => {
 		changed.value = true;
 		if (props.toggleOrder) {
 			let result = { index: index, order: selectedOrder.value };

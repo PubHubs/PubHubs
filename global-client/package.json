@@ -1,16 +1,18 @@
 {
 	"name": "@pubhubs/global-client",
-	"version": "3.2.0",
+	"version": "3.2.2",
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"format": "npx prettier ./src --write --ignore-unknown --config ./.prettierrc",
-		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",
+		"build": "vite build",
+		"dev": "vite",
 		"pwa": "vite build && npx http-server dist",
-		"test": "vitest",
-		"test:run": "vitest run",
-		"test:ui": "vitest --ui",
-		"coverage": "vitest run --coverage"
+		"type-check": "vue-tsc --noEmit",
+		"//test": "NODE_OPTIONS=--no-experimental-webstorage disables Node 25's default Web Storage API, which installs a stub globalThis.localStorage that shadows jsdom's. The alternative --localstorage-file=PATH would make Node's storage real, but it backs everything with a single SQLite file that persists across test runs and is shared by parallel workers, breaking test isolation, so it is not a substitute for jsdom's per-window storage. CI on Node 24 only knows the long flag form (the short --no-webstorage alias was added in Node 25). See vitest-dev/vitest#8757 and nodejs/node#57658.",
+		"test": "NODE_OPTIONS=--no-experimental-webstorage vitest",
+		"test:run": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
+		"test:ui": "NODE_OPTIONS=--no-experimental-webstorage vitest --ui",
+		"coverage": "NODE_OPTIONS=--no-experimental-webstorage vitest run --coverage"
 	},
 	"engines": {
 		"npm": ">=9.8.1",
@@ -20,72 +22,31 @@
 		"@privacybydesign/yivi-client": "^0",
 		"@privacybydesign/yivi-core": "^0",
 		"@privacybydesign/yivi-web": "^0",
-		"@vitejs/plugin-vue": "^5.2.1",
-		"@vue/test-utils": "^2.2.3",
-		"chai": "^6.2.1",
 		"mavon-editor": "^3.0.2",
 		"pinia": "^3",
-"typescript-cookie": "^1.0.4",
+		"typescript-cookie": "^1.0.4",
 		"util": "^0.12.5",
 		"vue": "^3.2.13",
 		"vue-i18n": "^11",
-		"vue-router": "^4.1.5",
+		"vue-router": "^5.0.4",
 		"vuedraggable": "^4"
 	},
 	"devDependencies": {
-		"@tailwindcss/vite": "^4.1.11",
-		"@trivago/prettier-plugin-sort-imports": "^6.0.0",
+		"@tailwindcss/vite": "^4.2.2",
 		"@vitejs/plugin-vue": "^6",
-		"@vue/eslint-config-typescript": "^13",
+		"@vue/test-utils": "^2.2.3",
 		"autoprefixer": "^10.4.21",
-		"eslint": "^8.57.1",
-		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-vue": "^9",
+		"chai": "^6.2.1",
 		"jsdoc": "^4.0.2",
-		"jsdom": "^27",
+		"jsdom": "^29",
 		"msw": "^2.12.4",
 		"postcss": "^8.5.3",
-		"prettier": "^3.5.0",
-		"prettier-eslint": "^16.3.0",
-		"prettier-plugin-tailwindcss": "^0.7.2",
-		"tailwindcss": "^4.1.11",
-		"typescript": "^5.0.2",
-		"vite-plugin-node-polyfills": "^0.24.0",
-		"vite-plugin-pwa": "^1.0.0",
-		"vitest": "^4"
-	},
-	"eslintConfig": {
-		"root": true,
-		"env": {
-			"node": true,
-			"vue/setup-compiler-macros": true
-		},
-		"extends": [
-			"@vue/typescript",
-			"eslint:recommended",
-			"plugin:vue/vue3-essential",
-			"prettier"
-		],
-		"parserOptions": {
-			"parser": "@typescript-eslint/parser"
-		},
-		"rules": {
-			"no-unused-vars": "off",
-			"@typescript-eslint/no-unused-vars": [
-				"error",
-				{
-					"vars": "all",
-					"args": "after-used",
-					"varsIgnorePattern": "^props|value|Hub",
-					"ignoreRestSiblings": false
-				}
-			],
-			"vue/multi-word-component-names": "off",
-			"no-mixed-spaces-and-tabs": [
-				"warn",
-				"smart-tabs"
-			]
-		}
+		"tailwindcss": "^4.2.2",
+		"typescript": "^6.0.2",
+		"vite-plugin-node-polyfills": "^0.26.0",
+		"vite-plugin-pwa": "^1.2.0",
+		"vitest": "^4",
+		"vue-tsc": "^2"
 	},
 	"browserslist": [
 		"> 1%",
@@ -96,3 +57,4 @@
 	"_id": "@",
 	"readme": "ERROR: No README data found!"
 }
+

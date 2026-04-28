@@ -1,4 +1,4 @@
-import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
+import { type ErrorCode, type Result } from '@global-client/models/MSS/TGeneral';
 
 export type EhpppReq = {
 	hub_nonce: string;

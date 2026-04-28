@@ -1,17 +1,23 @@
 // Packages
-import { Pinia } from 'pinia';
+import { type Pinia } from 'pinia';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
 import { handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
-import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
+import { type HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 
 // Models
-import { EnterCompleteResp, EnterStartResp, HubEnterCompleteReq, HubEnterCompleteResp, HubEnterStartResp } from '@global-client/models/MSS/TGeneral';
+import {
+	type EnterCompleteResp,
+	type EnterStartResp,
+	type HubEnterCompleteReq,
+	type HubEnterCompleteResp,
+	type HubEnterStartResp,
+} from '@global-client/models/MSS/TGeneral';
 
 // Stores
-import { FeatureFlag, SettingsStore, useSettings } from '@hub-client/stores/settings';
+import { FeatureFlag, type SettingsStore, useSettings } from '@hub-client/stores/settings';
 
 class Hub {
 	readonly hubId: string;
@@ -87,7 +93,8 @@ class Hub {
 
 	public async enterCompleteEP(state: string, hhpp: string) {
 		const requestPayload: HubEnterCompleteReq = { state, hhpp };
-		const enterCompleteRespFn = () => hub_api.api<HubEnterCompleteResp>(`${this.serverUrl}${hub_api.apiURLS.enterComplete}`, requestOptions<HubEnterCompleteReq>(requestPayload));
+		const enterCompleteRespFn = () =>
+			hub_api.api<HubEnterCompleteResp>(`${this.serverUrl}${hub_api.apiURLS.enterComplete}`, requestOptions<HubEnterCompleteReq>(requestPayload));
 		const okEnterCompleteResp = await handleErrors<EnterCompleteResp>(enterCompleteRespFn);
 		if (okEnterCompleteResp === 'RetryFromStart') {
 			return okEnterCompleteResp;
@@ -98,7 +105,7 @@ class Hub {
 }
 
 // Array of Hubs
-interface HubList extends Array<Hub> {}
+type HubList = Array<Hub>;
 
 // Exports
 export { Hub, HubList };

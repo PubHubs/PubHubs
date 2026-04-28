@@ -1,5 +1,5 @@
 // Packages
-import { RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
+import { type KnownMembership, type RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
 
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
@@ -10,11 +10,14 @@ export type RoomMemberStateEvent = {
 	content: {
 		displayname?: string;
 		membership: string;
+		reason: string;
 	};
 	state_key: string;
 	origin_server_ts: number;
 	unsigned: {
 		age: number;
+		prev_content?: { membership: KnownMembership; reason: string };
+		prev_sender: string;
 	};
 	event_id: string;
 };

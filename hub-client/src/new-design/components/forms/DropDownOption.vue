@@ -4,13 +4,13 @@
 		:class="{ 'border-surface-elevated bg-surface-elevated': active, 'border-surface-on-surface-dim bg-on-surface-dim!': highlighted }"
 		role="option"
 	>
-		<DropDownValue :value="value"></DropDownValue>
+		<DropDownValue :value="value" />
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Models
-	import { FieldOption } from '@hub-client/models/validation/TFormOption';
+	import { type FieldOption } from '@hub-client/models/validation/TFormOption';
 
 	// New design
 	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';

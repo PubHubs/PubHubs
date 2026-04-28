@@ -1,31 +1,46 @@
 <template>
-	<div class="form-toggle flex items-center justify-start gap-200" :class="disabled ? '' : 'cursor-pointer'" @click="toggle(disabled)" @focusin="setFocus(true)" @focusout="setFocus(false)">
+	<div
+		class="form-toggle flex items-center justify-start gap-200"
+		:class="disabled ? '' : 'cursor-pointer'"
+		@click="toggle(disabled)"
+		@focusin="setFocus(true)"
+		@focusout="setFocus(false)"
+	>
 		<div
 			v-if="!model"
 			class="bg-surface-base outline-surface-on-surface-dim px-050 py-050 outline-offset-thin flex items-center justify-start rounded-[999px] outline"
 			:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
 		>
-			<div class="bg-on-surface-dim h-150 w-150 rounded-full"></div>
-			<div class="h-150 w-150 rounded-full"></div>
+			<div class="bg-on-surface-dim h-150 w-150 rounded-full" />
+			<div class="h-150 w-150 rounded-full" />
 		</div>
 		<div
 			v-else
 			class="bg-on-accent-blue outline-accent-blue px-050 py-050 outline-050 outline-offset-thin inline-flex items-center justify-start rounded-[999px] outline"
 			:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
 		>
-			<div class="h-150 w-150 rounded-full"></div>
-			<div class="bg-accent-blue h-150 w-150 rounded-full"></div>
+			<div class="h-150 w-150 rounded-full" />
+			<div class="bg-accent-blue h-150 w-150 rounded-full" />
 		</div>
 
-		<input type="checkbox" class="sr-only" :disabled="disabled" :value="model" />
+		<input
+			class="sr-only"
+			:disabled="disabled"
+			type="checkbox"
+			:value="model"
+		/>
 
 		<div class="pt-thin">
-			<label class="justify-start" :class="disabled ? 'text-on-surface-disabled' : 'text-surface-on-surface cursor-pointer'"><slot></slot></label>
+			<label
+				class="justify-start"
+				:class="disabled ? 'text-on-surface-disabled' : 'text-surface-on-surface cursor-pointer'"
+				><slot
+			/></label>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// New design
 	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 

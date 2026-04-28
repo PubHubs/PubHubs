@@ -2,19 +2,19 @@
 	<div class="border-on-surface-disabled relative flex h-full w-full flex-col justify-between overflow-hidden border-r">
 		<div class="z-10 flex h-full flex-col overflow-hidden">
 			<div class="border-on-surface-disabled flex h-[80px] flex-col justify-start border-b px-8">
-				<slot name="header"></slot>
+				<slot name="header" />
 			</div>
 			<div class="relative flex-1 overflow-x-hidden overflow-y-auto">
-				<slot class="p-4 md:p-4"></slot>
+				<slot class="p-4 md:p-4" />
 			</div>
 		</div>
 		<div>
-			<slot name="footer"></slot>
+			<slot name="footer" />
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
@@ -22,5 +22,5 @@
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
-	const isMobile = computed(() => settings.isMobileState);
+	const _isMobile = computed(() => settings.isMobileState);
 </script>

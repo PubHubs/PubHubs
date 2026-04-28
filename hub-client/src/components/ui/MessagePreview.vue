@@ -1,36 +1,85 @@
 <template>
-	<div class="@container w-full rounded-xl p-4" :class="active ? 'bg-surface' : 'bg-surface-low'">
+	<div
+		class="@container w-full rounded-xl p-4"
+		:class="active ? 'bg-surface' : 'bg-surface-low'"
+	>
 		<div class="flex gap-3">
-			<Avatar class="shrink-0" :avatar-url="avatarOverrideUrl" :user-id="displayUserId" :icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'" />
+			<Avatar
+				:avatar-url="avatarOverrideUrl"
+				class="shrink-0"
+				:icon="roomType === RoomType.PH_MESSAGES_DM ? 'user' : 'users'"
+				:user-id="displayUserId"
+			/>
 
 			<div class="flex min-w-0 flex-1 flex-col gap-1">
 				<!-- Name + Timestamp -->
 				<div class="flex items-baseline gap-2">
-					<UserDisplayName v-if="displayUserId" class="min-w-0 flex-1" :userId="displayUserId" :userDisplayName="userStore.userDisplayName(displayUserId)" :showPseudonym="false" />
-					<p v-else class="min-w-0 flex-1 truncate leading-tight font-bold">{{ displayName }}</p>
-					<EventTime v-if="lastMessageTimestamp" :timestamp="lastMessageTimestamp" :showDate="true" :time-for-msg-preview="true" class="text-on-surface-dim shrink-0" />
+					<UserDisplayName
+						v-if="displayUserId"
+						class="min-w-0 flex-1"
+						:show-pseudonym="false"
+						:user-display-name="userStore.userDisplayName(displayUserId)"
+						:user-id="displayUserId"
+					/>
+					<p
+						v-else
+						class="min-w-0 flex-1 truncate leading-tight font-bold"
+					>
+						{{ displayName }}
+					</p>
+					<EventTime
+						v-if="lastMessageTimestamp"
+						class="text-on-surface-dim shrink-0"
+						:show-date="true"
+						:time-for-msg-preview="true"
+						:timestamp="lastMessageTimestamp"
+					/>
 				</div>
 
 				<!-- Secondary info -->
-				<p v-if="secondaryInfo" class="text-label-small text-on-surface-dim hidden min-w-0 truncate leading-tight @xs:block">{{ secondaryInfo }}</p>
+				<p
+					v-if="secondaryInfo"
+					class="text-label-small text-on-surface-dim hidden min-w-0 truncate leading-tight @xs:block"
+				>
+					{{ secondaryInfo }}
+				</p>
 
 				<!-- Message preview + Unread badge -->
 				<div class="flex items-center gap-2">
-					<div v-if="room.hasMessages()" class="text-on-surface-dim flex min-w-0 flex-1 items-center gap-1 truncate">
-						<Icon v-if="preview.icon" :type="preview.icon" size="sm" class="shrink-0" />
+					<div
+						v-if="room.hasMessages()"
+						class="text-on-surface-dim flex min-w-0 flex-1 items-center gap-1 truncate"
+					>
+						<Icon
+							v-if="preview.icon"
+							class="shrink-0"
+							size="sm"
+							:type="preview.icon"
+						/>
 						<span class="truncate">{{ preview.text }}</span>
 					</div>
-					<p v-else class="text-on-surface-dim min-w-0 flex-1 truncate">{{ t('rooms.no_messages_yet') }}</p>
-					<Badge v-if="newMessage > 0" class="shrink-0">{{ newMessage }}</Badge>
+					<p
+						v-else
+						class="text-on-surface-dim min-w-0 flex-1 truncate"
+					>
+						{{ t('rooms.no_messages_yet') }}
+					</p>
+					<Badge
+						v-if="newMessage > 0"
+						data-testid="unread-badge"
+						class="shrink-0"
+					>
+						{{ newMessage }}
+					</Badge>
 				</div>
 			</div>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { EventType, MsgType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
+	import { EventType, MsgType, NotificationCountType } from 'matrix-js-sdk';
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -40,9 +89,9 @@
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
-	import { useModeration } from '@hub-client/composables/moderation.composable';
 	// Composables
-	import { useMentions } from '@hub-client/composables/useMentions';
+	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
+	import { useModeration } from '@hub-client/composables/moderation.composable';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
@@ -74,14 +123,14 @@
 	const userStore = useUser();
 	const { t } = useI18n();
 	const { stewardSourceRoomName } = useModeration();
-	const { formatMentions } = useMentions();
+	const { formatMentions } = useMentionsDisplay();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
 	const roomType = computed(() => props.room.getType());
 
 	const displayUserId = computed(() => {
 		if (roomType.value === RoomType.PH_MESSAGES_DM) {
-			return getOtherDMUser()?.userId ?? getOtherUserIdFromRoomName();
+			return getOtherDMUserId() ?? getOtherUserIdFromRoomName();
 		}
 		return undefined;
 	});
@@ -154,7 +203,7 @@
 		if (roomType.value === RoomType.PH_MESSAGE_STEWARD_CONTACT) return t('rooms.steward_support');
 
 		// Resolve userId from the member object, falling back to parsing the room name
-		const userId = getOtherDMUser()?.userId ?? getOtherUserIdFromRoomName();
+		const userId = getOtherDMUserId() ?? getOtherUserIdFromRoomName();
 		if (!userId) return undefined;
 
 		// userDisplayName is from the user profile store (populated via member state events).
@@ -166,7 +215,7 @@
 	const secondaryInfo = computed(() => {
 		const type = roomType.value;
 		if (type === RoomType.PH_MESSAGES_DM) {
-			const userId = getOtherDMUser()?.userId ?? getOtherUserIdFromRoomName();
+			const userId = getOtherDMUserId() ?? getOtherUserIdFromRoomName();
 			return userId ? filters.extractPseudonym(userId) : '';
 		}
 		if (type === RoomType.PH_MESSAGE_ADMIN_CONTACT) {
@@ -183,17 +232,17 @@
 		return '';
 	});
 
-	function getOtherDMUser(): RoomMember | null | undefined {
+	function getOtherDMUserId(): string | null | undefined {
 		// For avatars - there needs to be a valid user if the override url needs to work.
-		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return event.value?.sender;
+		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return event.value?.getSender();
 		if (roomType.value !== RoomType.PH_MESSAGES_DM) return;
 
-		const otherMembers = props.room.getOtherJoinedMembers();
-		if (otherMembers.length > 0) {
-			return otherMembers[0] as RoomMember;
+		const { allOtherMembers } = useModeration(props.room);
+		if (allOtherMembers.value.length > 0) {
+			return allOtherMembers.value[0];
 		} else {
 			const notInvitedMembersIds = props.room.notInvitedMembersIdsOfPrivateRoom();
-			return props.room.getMember(notInvitedMembersIds[0]);
+			return props.room.getMember(notInvitedMembersIds[0])?.userId;
 		}
 	}
 
@@ -205,10 +254,8 @@
 
 	function getOtherUserDisplayName(): string | undefined {
 		// Admin contact has a private one-to-one room
-		if (props.room.getOtherJoinedMembers().length > 1) return undefined;
-		return props.room
-			.getOtherJoinedMembers()
-			.map((event) => event.rawDisplayName)
-			.pop();
+		const { allOtherMembers } = useModeration(props.room);
+		if (allOtherMembers.value.length > 1) return undefined;
+		return allOtherMembers.value.map((userId) => userStore.userDisplayName(userId)).pop();
 	}
 </script>

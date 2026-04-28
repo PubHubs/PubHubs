@@ -1,19 +1,19 @@
 // Packages
-import { ISendEventResponse } from 'matrix-js-sdk';
-import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
+import { type ISendEventResponse } from 'matrix-js-sdk';
+import { type RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 
 // Logic
 import { APIService } from '@hub-client/logic/core/apiHubManagement';
 
 // Models
-import { IRoomManagement } from '@hub-client/models/hubmanagement/interfaces/IRoomManagement';
-import { ISuspendUser } from '@hub-client/models/hubmanagement/interfaces/ISuspendUser';
-import { IUserManagement } from '@hub-client/models/hubmanagement/interfaces/IUserManagement';
+import { type IRoomManagement } from '@hub-client/models/hubmanagement/interfaces/IRoomManagement';
+import { type ISuspendUser } from '@hub-client/models/hubmanagement/interfaces/ISuspendUser';
+import { type IUserManagement } from '@hub-client/models/hubmanagement/interfaces/IUserManagement';
 import { SharedAccessManagement } from '@hub-client/models/hubmanagement/models/sharedmanagement';
-import { UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
+import { type UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
 import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
-import { TUserAccountList } from '@hub-client/models/users/TUser';
-import { TUserJoinedRooms } from '@hub-client/models/users/TUser';
+import { type TUserAccountList } from '@hub-client/models/users/TUser';
+import { type TUserJoinedRooms } from '@hub-client/models/users/TUser';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -80,18 +80,18 @@ export class Administrator implements IUserManagement, IRoomManagement, ISuspend
 
 	async changePermission(userId: string, roomId: string, powerLevel: number): Promise<ISendEventResponse> {
 		const pubhubs = usePubhubsStore();
-		const currentPls: RoomPowerLevelsEventContent = await pubhubs.getPoweLevelEventContent(roomId);
+		const currentPls: RoomPowerLevelsEventContent = await pubhubs.getPowerLevelEventContent(roomId);
 		const users = currentPls['users'] || {};
 		users[userId] = powerLevel;
 		currentPls['users'] = users;
 		return await pubhubs.setPowerLevelEventContent(roomId, currentPls);
 	}
 
-	banUser(userId: string): void {
-		/*  */ userId;
+	banUser(_userId: string): void {
+		// Not yet implemented
 	}
 
-	kickUser(userId: string): void {
-		/**/ userId;
+	kickUser(_userId: string): void {
+		// Not yet implemented
 	}
 }

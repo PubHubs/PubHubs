@@ -1,66 +1,73 @@
 <template>
-	<div v-if="hub" class="bg-background relative flex h-60 w-full max-w-full flex-col overflow-hidden rounded-xl shadow-md hover:cursor-pointer" @click="enterHub(hub)">
-		<Button v-if="contact" class="!absolute top-2 right-2 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-black bg-white" @click="toggleDescription($event)">
-			<Icon :type="showDescription ? 'x' : 'info'" size="lg" class="text-black" />
-		</Button>
-		<div v-if="showDescription" class="global-preview bg-background absolute top-0 right-0 z-30 h-full max-h-60 w-full overflow-y-auto rounded-xl p-4">
-			<H3>{{ $t('home.contact_details') }}</H3>
-			<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="contact" :boxShadow="false" />
+	<div
+		v-if="hub"
+		class="bg-surface ring-accent-secondary relative flex w-full max-w-full flex-col overflow-hidden rounded-xl hover:cursor-pointer hover:ring-3"
+		@click="enterHub(hub)"
+	>
+		<span
+			v-if="contact"
+			class="bg-on-surface-bright text-surface-base absolute top-2 right-2 z-40 flex cursor-pointer items-center justify-center rounded-full p-[1px]"
+			:title="copied ? t('home.contact_copied') : contact"
+			@click.stop="copyContact"
+		>
+			<Icon :type="copied ? 'check' : 'info'" />
+		</span>
+		<div class="bg-surface-high h-24 w-full shrink-0">
+			<HubBanner
+				:banner-url="hub.bannerUrl"
+				:hub-name="hub.name"
+				class="h-full! w-full"
+			/>
 		</div>
-		<div v-if="!showDescription" class="h-24 w-full">
-			<HubBanner :banner-url="hub.bannerUrl" :hub-name="hub.name" />
-		</div>
-		<div class="flex h-min items-start gap-4 px-4 py-2">
-			<div class="bg-surface-high -mt-8 aspect-square h-16 w-16 overflow-clip rounded-xl">
-				<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" />
+		<div class="flex h-30 items-start gap-4 p-5 sm:p-6">
+			<div class="bg-surface-high aspect-square h-12 w-12 shrink-0 overflow-clip rounded-xl">
+				<HubIcon
+					:hub-name="hub.name"
+					:icon-url="hub.iconUrlLight"
+					:icon-url-dark="hub.iconUrlDark"
+				/>
 			</div>
-			<div class="flex h-full w-full max-w-full flex-col justify-center gap-2 overflow-hidden pt-1 pb-2 text-left">
-				<H2 class="line-clamp-1 w-full overflow-hidden text-ellipsis">{{ hub.hubName }}</H2>
-				<div class="h-16">
-					<TruncatedText class="text-label-small font-bold uppercase">{{ $t('home.hub_card_about') }}</TruncatedText>
-					<Pre v-model="summary" class="font-body max-w-[calc(100%_-_2em)] break-words hyphens-auto whitespace-pre-line" :class="isMobile ? 'line-clamp-3 text-xl' : 'line-clamp-2'">{{ summary }}</Pre>
-				</div>
+			<div class="flex min-w-0 flex-col gap-1 pr-4">
+				<h2 class="truncate font-bold">
+					{{ hub.hubName }}
+				</h2>
+				<p class="text-label text-on-surface-dim line-clamp-2">
+					{{ summary }}
+				</p>
 			</div>
 		</div>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { computed, onBeforeMount, onMounted, onUnmounted, ref } from 'vue';
+	import { onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
 	// Components
-	import Button from '@hub-client/components/elements/Button.vue';
-	import Pre from '@hub-client/components/elements/Pre.vue';
-	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
 	// Models
-	import { Hub } from '@global-client/models/Hubs';
+	import { type Hub } from '@global-client/models/Hubs';
 
 	import { useGlobal } from '@global-client/stores/global';
 	import { useMSS } from '@global-client/stores/mss';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
-	import { useSettings } from '@hub-client/stores/settings';
-
-	const router = useRouter();
-	const dialog = useDialog();
-	const settings = useSettings();
-	const { t } = useI18n();
-	const mss = useMSS();
-	const global = useGlobal();
 
 	const props = defineProps<{ hub: Hub }>();
+	const router = useRouter();
+	const dialog = useDialog();
+	const { t } = useI18n();
+	const _mss = useMSS();
+	const _global = useGlobal();
 
-	const isMobile = computed(() => settings.isMobileState);
 	const summary = ref<string>('');
 	const contact = ref<string>('');
-	const showDescription = ref(false);
+	const copied = ref(false);
 
 	async function enterHub(hub: Hub) {
 		let canEnterHub = false;
@@ -82,24 +89,18 @@
 		}
 	}
 
-	function toggleDescription(event: Event) {
-		event.stopPropagation();
-		showDescription.value = !showDescription.value;
+	async function copyContact() {
+		try {
+			await navigator.clipboard.writeText(contact.value);
+			copied.value = true;
+			setTimeout(() => (copied.value = false), 1500);
+		} catch {
+			// intentionally left empty
+		}
 	}
 
-	function handleGlobalClick() {
-		showDescription.value = false;
-	}
 	onBeforeMount(() => {
 		loadHubSettings(props.hub);
-	});
-
-	onMounted(() => {
-		document.addEventListener('click', handleGlobalClick);
-	});
-
-	onUnmounted(() => {
-		document.removeEventListener('click', handleGlobalClick);
 	});
 	async function loadHubSettings(hub: Hub): Promise<void> {
 		const hubSettingsJSON = await hub.getHubJSON();

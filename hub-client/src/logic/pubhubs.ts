@@ -1,11 +1,5 @@
 // Packages
-import type { MatrixClient, Room as MatrixRoom } from 'matrix-js-sdk';
-
-// Logic
-import { api_synapse } from '@hub-client/logic/core/api';
-
-// Stores
-import type { TPublicRoom } from '@hub-client/stores/rooms';
+import type { Room as MatrixRoom } from 'matrix-js-sdk';
 
 /**
  * Small pure helper that ensures only one instance of an async operation runs at a time.

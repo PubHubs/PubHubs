@@ -1,10 +1,17 @@
 <template>
-	<div v-if="shouldShowScrollBack && isMobile && !global.isModalVisible" class="absolute top-0 left-0 flex h-[80px] items-center p-4 select-none" @click="handleBackClick()">
-		<Icon type="arrow-left" class="stroke-0 hover:cursor-pointer" />
+	<div
+		v-if="shouldShowScrollBack && isMobile && !global.isModalVisible"
+		class="absolute top-0 left-0 flex h-[80px] items-center p-4 select-none"
+		@click="handleBackClick()"
+	>
+		<Icon
+			class="stroke-0 hover:cursor-pointer"
+			type="arrow-left"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 

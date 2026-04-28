@@ -1,5 +1,5 @@
 {
-	"printWidth": 240,
+	"printWidth": 160,
 	"tabWidth": 4,
 	"useTabs": true,
 	"semi": true,
@@ -13,7 +13,7 @@
 	"vueIndentScriptAndStyle": true,
 	"endOfLine": "lf",
 	"embeddedLanguageFormatting": "auto",
-	"singleAttributePerLine": false,
+	"singleAttributePerLine": true,
 
 	"importOrder": [
 		"<THIRD_PARTY_MODULES>",

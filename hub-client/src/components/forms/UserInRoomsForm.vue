@@ -1,48 +1,90 @@
 <!-- Protection against the issue of multiple admin. Only add admin that creates the room can only see the room.
 	TODO: Discuss in PH general meeting about the issue of PH admins - we should have only one admin who can create the room. -->
 <template>
-	<Dialog v-if="listUserRooms.length > 0" :title="$t('admin.user_perm_heading')" @close="emit('close')" :buttons="buttonsSubmitCancel">
+	<Dialog
+		v-if="listUserRooms.length > 0"
+		:buttons="buttonsSubmitCancel"
+		:title="$t('admin.user_perm_heading')"
+		@close="emit('close')"
+	>
 		<div class="flex p-2 sm:p-4">
-			<Avatar :avatar-url="user.userAvatar(userId)" :user-id="userId"></Avatar>
+			<Avatar
+				:avatar-url="user.userAvatar(userId)"
+				:user-id="userId"
+			/>
 			<div class="ml-2 flex flex-col">
 				<div>{{ displayName }}</div>
-				<div class="text-on-surface-dim mb-2 italic sm:mb-4">{{ userId }}</div>
+				<div class="text-on-surface-dim mb-2 italic sm:mb-4">
+					{{ userId }}
+				</div>
 			</div>
 		</div>
 		<div class="bg-accent-primary text-on-accent-primary flex gap-2 rounded-md p-2">
-			<Icon type="warning-circle" class="" />
+			<Icon
+				class=""
+				type="warning-circle"
+			/>
 			<span class="font-medium">{{ t('admin.important_perm_msg') }}</span>
 		</div>
 
 		<!-- Table header -->
 		<div class="text-label-small-min/label-small-max text-on-surface-dim mt-8 mb-2 grid w-full grid-cols-3 text-left rtl:text-right">
-			<div class="font-medium sm:px-6">{{ t('admin.title_room') }}</div>
-			<div class="font-medium">{{ t('admin.title_permission') }}</div>
-			<div class="font-medium sm:px-8">{{ t('admin.title_update') }}</div>
+			<div class="font-medium sm:px-6">
+				{{ t('admin.title_room') }}
+			</div>
+			<div class="font-medium">
+				{{ t('admin.title_permission') }}
+			</div>
+			<div class="font-medium sm:px-8">
+				{{ t('admin.title_update') }}
+			</div>
 		</div>
 
 		<!-- Scrollable table body -->
 		<div class="text-label max-h-[180px] w-full overflow-x-hidden overflow-y-auto sm:max-h-[250px]">
-			<div v-for="room in listUserRooms" :key="room.room_id" class="border-on-surface-dim grid w-full grid-cols-3 border-t">
-				<div class="truncate px-2 py-2 sm:px-6 sm:py-4">{{ room.room_name }}</div>
+			<div
+				v-for="room in listUserRooms"
+				:key="room.room_id"
+				class="border-on-surface-dim grid w-full grid-cols-3 border-t"
+			>
+				<div class="truncate px-2 py-2 sm:px-6 sm:py-4">
+					{{ room.room_name }}
+				</div>
 				<div class="px-1 py-2 sm:py-4">
-					<span :class="'inline-block rounded-md px-1 sm:px-2 ' + getTagClassBasedOnRole(room.room_pl)">{{ roles.getRoleByPowerLevel(room.room_pl) }}</span>
+					<span :class="'inline-block rounded-md px-1 sm:px-2 ' + getTagClassBasedOnRole(room.room_pl)">{{
+						roles.getRoleByPowerLevel(room.room_pl)
+					}}</span>
 				</div>
 				<div class="px-4 py-2 sm:px-6 sm:py-4">
-					<div v-if="adminIsMember(room.room_id)" class="ml-0 sm:ml-2">
+					<div
+						v-if="adminIsMember(room.room_id)"
+						class="ml-0 sm:ml-2"
+					>
 						<select
-							:disabled="isRoomAdmin(room.room_id)"
+							v-model="room.room_pl"
 							class="w-full truncate px-2 py-2 ring-1 focus:outline-none sm:px-8 sm:py-2"
 							:class="isRoomAdmin(room.room_id) ? 'bg-transparent bg-none' : ''"
-							v-model="room.room_pl"
+							:disabled="isRoomAdmin(room.room_id)"
 							@change="updateData('permission', { roomId: room.room_id, pl: room.room_pl })"
 						>
-							<option :value="0" class="active:bg-accent-primary">{{ t('admin.title_user') }}</option>
-							<option :value="50">{{ t('admin.title_steward') }}</option>
+							<option
+								class="active:bg-accent-primary"
+								:value="0"
+							>
+								{{ t('admin.title_user') }}
+							</option>
+							<option :value="50">
+								{{ t('admin.title_steward') }}
+							</option>
 						</select>
 					</div>
 					<div v-else>
-						<button @click="adminJoinRoom(room.room_id)" class="bg-accent-primary ml-0 rounded-xs px-2 py-1 transition sm:ml-2 sm:px-3">{{ $t('admin.join') }}</button>
+						<button
+							class="bg-accent-primary ml-0 rounded-xs px-2 py-1 transition sm:ml-2 sm:px-3"
+							@click="adminJoinRoom(room.room_id)"
+						>
+							{{ $t('admin.join') }}
+						</button>
 					</div>
 				</div>
 			</div>
@@ -50,7 +92,7 @@
 	</Dialog>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -60,21 +102,27 @@
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	import { useRoles } from '@hub-client/composables/roles.composable';
-	import { FormDataType, useFormState } from '@hub-client/composables/useFormState';
+	import { type FormDataType, useFormState } from '@hub-client/composables/useFormState';
 
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiHubManagement';
 
 	// Models
 	import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
-	import { UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
-	import { TUserJoinedRooms, UserPowerLevel, UserRole } from '@hub-client/models/users/TUser';
+	import { type UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
+	import { type TUserJoinedRooms, UserPowerLevel, UserRole } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useUser } from '@hub-client/stores/user';
 
+	const props = defineProps({
+		userId: { type: String, required: true },
+		displayName: { type: String, required: true },
+		administrator: { type: Administrator, required: true },
+	});
+	const emit = defineEmits(['close']);
 	const { t } = useI18n();
 	const pubhubs = usePubhubsStore();
 	const roles = useRoles();
@@ -91,24 +139,17 @@
 		permission: { value: {} as FormDataType },
 	});
 
-	const emit = defineEmits(['close']);
-
-	const props = defineProps({
-		userId: { type: String, required: true },
-		displayName: { type: String, required: true },
-		administrator: { type: Administrator, required: true },
-	});
-
 	onMounted(async () => {
 		listUserRooms.value = await fetchRoomUserPermissions();
 
-		joinedMembers.value = await APIService.adminListJoinedRoomId(user.userId);
+		joinedMembers.value = await APIService.adminListJoinedRoomId(user.userId ?? '');
 
 		dialog.addCallback(DialogOk, async () => {
 			if (changed) {
 				if (dataIsChanged('permission')) {
-					const roomId = data.permission.value.roomId;
-					const powerlevel = data.permission.value.pl;
+					const permValue = data.permission.value as { roomId: string; pl: number };
+					const roomId = permValue.roomId;
+					const powerlevel = permValue.pl;
 
 					try {
 						await props.administrator.changePermission(props.userId, roomId, powerlevel);
@@ -127,7 +168,7 @@
 		async () => {
 			listUserRooms.value = await fetchRoomUserPermissions();
 
-			joinedMembers.value = await APIService.adminListJoinedRoomId(user.userId);
+			joinedMembers.value = await APIService.adminListJoinedRoomId(user.userId ?? '');
 		},
 	);
 
@@ -163,7 +204,7 @@
 	}
 
 	function isRoomAdmin(roomId: string) {
-		return listUserRooms.value.find((room) => room.room_id === roomId)!.room_pl === UserPowerLevel.Admin;
+		return listUserRooms.value.find((room) => room.room_id === roomId)?.room_pl === UserPowerLevel.Admin;
 	}
 
 	// Presentation methods //

@@ -3,27 +3,28 @@
 		<Button
 			v-for="(option, index) in options"
 			:key="index"
+			:class="roundedClass(index)"
 			:color="optionIsSelected(option) ? 'primary' : 'gray'"
 			:size="size"
-			:class="roundedClass(index)"
 			@click="
 				selectOption(option);
 				changed();
 			"
-			>{{ option.label }}</Button
 		>
+			{{ option.label }}
+		</Button>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
-	import { PropType, watch } from 'vue';
+	import { type PropType, watch } from 'vue';
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 
 	// Composables
-	import { Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { type Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
 	const props = defineProps({
 		options: {
@@ -40,6 +41,8 @@
 		},
 	});
 
+	const emit = defineEmits(usedEvents);
+
 	watch(
 		() => props.value,
 		() => {
@@ -47,7 +50,6 @@
 		},
 	);
 
-	const emit = defineEmits(usedEvents);
 	const { setValue, setOptions, selectOption, optionIsSelected, changed } = useFormInputEvents(emit);
 
 	setValue(props.value);

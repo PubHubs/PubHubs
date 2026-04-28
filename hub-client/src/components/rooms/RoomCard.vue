@@ -1,8 +1,15 @@
 <template>
-	<div role="article" class="bg-surface-low @container flex w-full flex-col justify-between gap-4 rounded-xl p-6 shadow-md">
+	<div
+		role="article"
+		class="bg-surface-low @container flex w-full flex-col justify-between gap-4 rounded-xl p-6 shadow-md"
+	>
 		<div class="flex items-center justify-between gap-2">
 			<H2 class="line-clamp-2">{{ room.name }}</H2>
-			<div v-if="isSecured" class="bg-accent-primary text-on-accent-primary rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1" :title="t('admin.secured_room')">
+			<div
+				v-if="isSecured"
+				class="bg-button-blue text-on-button-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
+				:title="t('admin.secured_room')"
+			>
 				<Icon type="shield"></Icon>
 			</div>
 		</div>
@@ -14,29 +21,60 @@
 		<div class="flex w-full flex-col gap-4 @sm:flex-row @sm:items-end @sm:justify-between">
 			<div class="text-on-surface-dim text-label flex flex-wrap items-center gap-2">
 				<div class="flex items-center gap-2">
-					<Icon type="user" size="sm"></Icon>
+					<Icon
+						type="user"
+						size="sm"
+					></Icon>
 					<span class="truncate whitespace-nowrap">{{ memberCount }}</span>
 				</div>
-				<div v-if="timestamp" class="flex items-center gap-2">
-					<Icon type="clock" size="sm"></Icon>
+				<div
+					v-if="timestamp"
+					class="flex items-center gap-2"
+				>
+					<Icon
+						type="clock"
+						size="sm"
+					></Icon>
 					<span>{{ timestamp.toLocaleDateString() }}</span>
 				</div>
 			</div>
 
 			<div class="shrink-0">
-				<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-full whitespace-nowrap @sm:w-fit">
+				<Button
+					v-if="memberOfRoom"
+					:title="t('rooms.already_joined')"
+					class="w-full whitespace-nowrap @sm:w-fit"
+					@click="enterRoom"
+				>
 					{{ t('rooms.already_joined') }}
 				</Button>
-				<Button v-else-if="isSecured" @click="joinSecureRoom" class="w-full whitespace-nowrap @sm:w-fit" :title="t('rooms.view_access_requirements')" color="primary">
+				<Button
+					v-else-if="isSecured"
+					class="w-full whitespace-nowrap @sm:w-fit"
+					:title="t('rooms.view_access_requirements')"
+					color="primary"
+					@click="joinSecureRoom"
+				>
 					{{ t('rooms.join_secured_room') }}
 				</Button>
-				<Button v-else @click="joinRoom" class="w-full whitespace-nowrap @sm:w-fit" :title="t('rooms.join_room')">
+				<Button
+					v-else
+					class="w-full whitespace-nowrap @sm:w-fit"
+					:title="t('rooms.join_room')"
+					@click="joinRoom"
+				>
 					{{ t('rooms.join_room') }}
 				</Button>
 			</div>
 		</div>
 
-		<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.required_attributes" :messageValues="[]" :secured="true" />
+		<RoomLoginDialog
+			v-model:dialog-open="dialogOpen"
+			title="rooms.join_room"
+			message="rooms.required_attributes"
+			:message-values="[]"
+			:secured="true"
+		/>
 	</div>
 </template>
 
@@ -99,7 +137,8 @@
 	const joinRoom = async () => {
 		if (!props.room?.room_id) return;
 
-		await pubhubsStore.joinRoom(props.room.room_id);
+		const result = await pubhubsStore.joinRoom(props.room.room_id);
+		if (result === -1) return;
 
 		// Wait for room membership with timeout
 		const maxRetries = 10;

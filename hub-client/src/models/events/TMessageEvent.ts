@@ -1,14 +1,16 @@
 // Packages
-import { EventType, MsgType } from 'matrix-js-sdk';
+import { type EventType, type MsgType } from 'matrix-js-sdk';
+// Types from Matrix SDK
+import { type EncryptedFile, type FileInfo, type ImageInfo } from 'matrix-js-sdk/lib/@types/media';
 
 // Logic
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { type PubHubsMgType } from '@hub-client/logic/core/events';
 
 // Models
-import { SignedMessage } from '@hub-client/models/components/signedMessages';
-import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-import { TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
-import { WithRequired } from '@hub-client/models/utility/utility';
+import { type SignedMessage } from '@hub-client/models/components/signedMessages';
+import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
+import { type WithRequired } from '@hub-client/models/utility/utility';
 
 /**
  * Event used for sending messages in a room. Not limited to text.
@@ -22,6 +24,7 @@ export interface TMessageEvent<C extends TMessageEventContent = TMessageEventCon
 
 // In future Matrix spec some refacturing is needed: https://github.com/matrix-org/matrix-spec-proposals/blob/main/proposals/1767-extensible-events.md
 export interface TBaseMessageEventContent {
+	[key: string]: unknown;
 	body?: string;
 	// Custom body type, which has all the processed body or formatted body content, for use in our components
 	ph_body?: string;
@@ -31,6 +34,7 @@ export interface TBaseMessageEventContent {
 		| MsgType.Text
 		| MsgType.Image
 		| MsgType.File
+		| MsgType.Video
 		| PubHubsMgType.SignedMessage
 		| PubHubsMgType.AnnouncementMessage
 		| PubHubsMgType.WhisperMessage
@@ -40,7 +44,9 @@ export interface TBaseMessageEventContent {
 		| PubHubsMgType.VotingWidgetClose
 		| PubHubsMgType.VotingWidgetOpen
 		| PubHubsMgType.VotingWidgetPickOption
-		| PubHubsMgType.VotingWidgetAddVoteOption;
+		| PubHubsMgType.VotingWidgetAddVoteOption
+		| PubHubsMgType.VideoCall
+		| PubHubsMgType.VideoCallEnded;
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
@@ -97,11 +103,24 @@ export interface TWhisperMessageEventContent extends TPrivilegedMessageEventCont
 	whisper_to: string;
 }
 
+export interface TVideoCallMessageEventContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.VideoCall;
+	timestamp: number;
+}
+
+export interface TVideoCallEndedMessageEventContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.VideoCallEnded;
+	timestamp: number;
+}
+
 export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;
 
-export type TMessageEventContent = TTextMessageEventContent | TImageMessageEventContent | TFileMessageEventContent | TSignedMessageEventContent | TPrivilegedMessageEventContent | TVotingWidgetMessageEventContent;
-
-// To be implemented
-type EncryptedFile = any;
-type ImageInfo = any;
-type FileInfo = any;
+export type TMessageEventContent =
+	| TTextMessageEventContent
+	| TImageMessageEventContent
+	| TFileMessageEventContent
+	| TSignedMessageEventContent
+	| TPrivilegedMessageEventContent
+	| TVotingWidgetMessageEventContent
+	| TVideoCallMessageEventContent
+	| TVideoCallEndedMessageEventContent;

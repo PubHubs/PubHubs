@@ -40,117 +40,146 @@
 }
 
 :root {
-	/* New values */
-	--surface-background: #ffffff; /* Used for backgrounds */
-	--surface-base: #e3e5e8; /* Used for large surfaces */
-	--surface-elevated: #d1d1d1; /* Used for surfaces on top of a background or surface */
-	--on-surface-dim: #717171; /* Used for dim text */
-	--on-surface: #3d3c3c; /* Used for text */
-	--on-surface-bright: #202020; /* Used for bright text */
-	--accent-blue: #005a9e; /* Used for theming */
-	--on-accent-blue: #c0e3fd; /* Used for text on primary accent */
-	--accent-green: #4c6b1f;
-	--on-accent-green: #d3f1a7;
-	--accent-orange: #a54800;
-	--on-accent-orange: #fedec8;
-	--accent-red: #ae2e24;
-	--on-accent-red: #ffd5d2;
-	--accent-purple: #5e24ae;
-	--on-accent-purple: #e8d2ff;
+	/* Surfaces */
+	--surface-background: #ffffff;
+	--surface-base: #e3e5e8;
+	--surface-elevated: #d1d1d1;
+	--surface-low: #f2f3f5; /* legacy */
+	--surface-subtle: #d4d4d4; /* legacy */
+	--surface-high: #d9dbde; /* legacy */
+	--on-surface: #3d3c3c;
+	--on-surface-dim: #717171;
+	--on-surface-bright: #202020;
+	--on-surface-variant: #333333;
+	--on-surface-disabled: #aaaaaa;
+
+	/* Accents */
+	--accent-blue: #0c66e4;
+	--on-accent-blue: #84b8ff;
+	--accent-green: #1f845a;
+	--on-accent-green: #7ee2b8;
+	--accent-teal: #227d9b;
+	--on-accent-teal: #9dd9ee;
+	--accent-lime: #5b7f24;
+	--on-accent-lime: #b3df72;
+	--accent-orange: #c25100;
+	--on-accent-orange: #fec195;
+	--accent-red: #c9372c;
+	--on-accent-red: #fd9891;
+	--accent-yellow: #7f5f01;
+	--on-accent-yellow: #f5cd47;
+	--accent-purple: #6e5dc6;
+	--on-accent-purple: #b8acf6;
+	--accent-pink: #ae4787;
+	--on-accent-pink: #f797d2;
+	--accent-secondary: #5c5e66;
+	--on-accent-secondary: #ffffff;
+
+	/* Buttons */
 	--button-blue: #1868db;
 	--on-button-blue: #eaf3ff;
 	--button-red: #c9372c;
 	--on-button-red: #ffeeec;
 
+	/* Fonts */
 	--font-atkinson: 'Atkinson Hyperlegible', sans-serif;
 	--font-inter: 'Inter', sans-serif;
-
-	/* Old values */
-	--background: #ffffff; /* Used for room background */
-	--surface-low: #f2f3f5; /* Used for the room top bar and hub bar */
-	--surface: #e3e5e8; /* Used for the hub top bar and global bar */
-	--surface-subtle: #d4d4d4; /* Used for the voting widget */
-	--surface-high: #d9dbde; /* Used for the global top bar */
-	--on-surface-variant: #333333; /* Used for secondary text */
-	--on-surface-disabled: #aaaaaa; /* Used for disabled text */
-	--accent-primary: #00adee; /* Used for theming */
-	--on-accent-primary: #ffffff; /* Used for text on primary accent */
-	--accent-secondary: #5c5e66; /* Used for theming */
-	--on-accent-secondary: #ffffff; /* Used for text on secondary accent */
-	--accent-error: #e45959; /* Used for error messages */
-	--on-accent-error: #ffffff; /* Used for text on error accent */
-	--accent-lime: #61fe8d; /* Used for avatar colors */
-	--on-accent-lime: #000000;
-	--accent-pink: #bf5cd8;
-	--on-accent-pink: #ffffff;
-	--accent-yellow: #e7d63d;
-	--on-accent-yellow: #000000;
-	--accent-teal: #27e0bf;
-	--on-accent-teal: #000000;
 }
 
 .dark {
-	/* New values (dark) */
-	--surface-background: #464545; /* Used for backgrounds */
-	--surface-base: #2f2e2e; /* Used for large surfaces */
-	--surface-elevated: #202020; /* Used for surfaces on top of a background or surface */
-	--on-surface-dim: #bbbbbb; /* Used for dim text */
-	--on-surface: #e3e5e8; /* Used for text */
-	--on-surface-bright: #ffffff; /* Used for bright text */
-	--accent-blue: #c0e3fd; /* Used for theming */
-	--on-accent-blue: #005a9e; /* Used for text on primary accent */
-	--accent-green: #d3f1a7;
-	--on-accent-green: #4c6b1f;
-	--accent-orange: #fedec8;
-	--on-accent-orange: #a54800;
-	--accent-red: #ffd5d2;
-	--on-accent-red: #ae2e24;
-	--accent-purple: #e8d2ff;
-	--on-accent-purple: #5e24ae;
+	/* Surfaces */
+	--surface-background: #464545;
+	--surface-base: #2f2e2e;
+	--surface-elevated: #202020;
+	--surface-low: #3d3c3c; /* legacy */
+	--surface-subtle: #686868; /* legacy */
+	--surface-high: #202020; /* legacy */
+	--on-surface: #e3e5e8;
+	--on-surface-dim: #bbbbbb;
+	--on-surface-bright: #ffffff;
+	--on-surface-variant: #cccccc;
+	--on-surface-disabled: #555555;
+
+	/* Accents */
+	--accent-blue: #84b8ff;
+	--on-accent-blue: #0c66e4;
+	--accent-green: #7ee2b8;
+	--on-accent-green: #1f845a;
+	--accent-teal: #9dd9ee;
+	--on-accent-teal: #227d9b;
+	--accent-lime: #b3df72;
+	--on-accent-lime: #5b7f24;
+	--accent-orange: #fec195;
+	--on-accent-orange: #c25100;
+	--accent-red: #fd9891;
+	--on-accent-red: #c9372c;
+	--accent-yellow: #f5cd47;
+	--on-accent-yellow: #7f5f01;
+	--accent-purple: #b8acf6;
+	--on-accent-purple: #6e5dc6;
+	--accent-pink: #f797d2;
+	--on-accent-pink: #ae4787;
+	--accent-secondary: #b0b3b8;
+	--on-accent-secondary: #202020;
+
+	/* Buttons */
 	--button-blue: #3dadff;
 	--on-button-blue: #003178;
 	--button-red: #f87168;
 	--on-button-red: #600700;
-
-	/* Old values (dark) */
-	--background: #464545;
-	--surface-low: #3d3c3c;
-	--surface: #2f2e2e;
-	--surface-subtle: #686868;
-	--surface-high: #202020;
-	--on-surface-variant: #cccccc;
-	--on-surface-disabled: #555555;
 }
 
 @theme {
-	/* New theme */
 	--color-*: initial;
 	--color-currentColor: currentColor;
 	--color-transparent: transparent;
 	--color-black: #202020;
 	--color-white: #ffffff;
+
+	/* Surfaces */
 	--color-surface-background: var(--surface-background);
 	--color-surface-base: var(--surface-base);
 	--color-surface-elevated: var(--surface-elevated);
+	--color-surface-low: var(--surface-low);
+	--color-surface-subtle: var(--surface-subtle);
+	--color-surface-high: var(--surface-high);
 	--color-on-surface: var(--on-surface);
 	--color-on-surface-dim: var(--on-surface-dim);
 	--color-on-surface-bright: var(--on-surface-bright);
+	--color-on-surface-variant: var(--on-surface-variant);
+	--color-on-surface-disabled: var(--on-surface-disabled);
+	--color-background: var(--surface-background);
+	--color-surface: var(--surface-base);
+
+	/* Accents */
 	--color-accent-blue: var(--accent-blue);
 	--color-on-accent-blue: var(--on-accent-blue);
 	--color-accent-green: var(--accent-green);
 	--color-on-accent-green: var(--on-accent-green);
+	--color-accent-teal: var(--accent-teal);
+	--color-on-accent-teal: var(--on-accent-teal);
+	--color-accent-lime: var(--accent-lime);
+	--color-on-accent-lime: var(--on-accent-lime);
 	--color-accent-orange: var(--accent-orange);
 	--color-on-accent-orange: var(--on-accent-orange);
 	--color-accent-red: var(--accent-red);
 	--color-on-accent-red: var(--on-accent-red);
+	--color-accent-yellow: var(--accent-yellow);
+	--color-on-accent-yellow: var(--on-accent-yellow);
 	--color-accent-purple: var(--accent-purple);
 	--color-on-accent-purple: var(--on-accent-purple);
+	--color-accent-pink: var(--accent-pink);
+	--color-on-accent-pink: var(--on-accent-pink);
+	--color-accent-secondary: var(--accent-secondary);
+	--color-on-accent-secondary: var(--on-accent-secondary);
+
+	/* Buttons */
 	--color-button-blue: var(--button-blue);
 	--color-on-button-blue: var(--on-button-blue);
 	--color-button-red: var(--button-red);
 	--color-on-button-red: var(--on-button-red);
 
-	/* Aliases */
+	/* Semantic aliases */
 	--color-accent-primary: var(--accent-blue);
 	--color-on-accent-primary: var(--on-accent-blue);
 	--color-accent-success: var(--accent-green);
@@ -161,8 +190,8 @@
 	--color-on-accent-error: var(--on-accent-red);
 	--color-accent-steward: var(--accent-purple);
 	--color-on-accent-steward: var(--on-accent-purple);
-	--color-accent-admin: var(--color-accent-orange);
-	--color-on-accent-admin: var(--color-on-accent-orange);
+	--color-accent-admin: var(--accent-orange);
+	--color-on-accent-admin: var(--on-accent-orange);
 
 	--font-*: initial;
 	--font-headings: var(--font-atkinson);
@@ -224,7 +253,6 @@
 	--text-display-small--line-height: 1.3;
 	--text-display-small--font-weight: 500;
 
-	/* Old theme */
 	--breakpoint-xs: 480px;
 	--breakpoint-sm: 640px;
 	--breakpoint-md: 768px;
@@ -233,47 +261,12 @@
 	--breakpoint-2xl: 1536px;
 	--breakpoint-3xl: 1920px;
 
-	/* --color-currentColor: currentColor; */
-	/* --color-transparent: transparent; */
-	--color-background: var(--background);
-	--color-surface: var(--surface);
-	--color-surface-low: var(--surface-low);
-	--color-surface-subtle: var(--surface-subtle);
-	--color-surface-high: var(--surface-high);
-	--color-on-surface: var(--on-surface);
-	--color-on-surface-variant: var(--on-surface-variant);
-	--color-on-surface-dim: var(--on-surface-dim);
-	--color-on-surface-disabled: var(--on-surface-disabled);
-
-	--color-accent-primary: var(--accent-primary);
-	--color-on-accent-primary: var(--on-accent-primary);
-	--color-accent-secondary: var(--accent-secondary);
-	--color-on-accent-secondary: var(--on-accent-secondary);
-	--color-accent-error: var(--accent-error);
-	--color-on-accent-error: var(--on-accent-error);
-	--color-accent-lime: var(--accent-lime);
-	--color-on-accent-lime: var(--on-accent-lime);
-	--color-accent-pink: var(--accent-pink);
-	--color-on-accent-pink: var(--on-accent-pink);
-	--color-accent-yellow: var(--accent-yellow);
-	--color-on-accent-yellow: var(--on-accent-yellow);
-	--color-accent-red: var(--accent-red);
-	--color-on-accent-red: var(--on-accent-red);
-	--color-accent-teal: var(--accent-teal);
-	--color-on-accent-teal: var(--on-accent-teal);
-	--color-accent-blue: var(--accent-blue);
-	--color-on-accent-blue: var(--on-accent-blue);
-	--color-accent-orange: var(--accent-orange);
-	--color-on-accent-orange: var(--on-accent-orange);
-
-	/* --spacing-0: 0; */
 	--spacing-1: 4px;
 	--spacing-2: 8px;
 	--spacing-3: 12px;
 	--spacing-4: 16px;
 	--spacing-5: 20px;
 	--spacing-6: 24px;
-	--spacing-8: 28px;
 	--spacing-8: 32px;
 	--spacing-10: 40px;
 	--spacing-12: 48px;
@@ -389,7 +382,6 @@
 
 	.scrollbar {
 		scrollbar-width: thin;
-		/* scrollbar-color: theme(colors.hub.background.5) theme(colors.hub.background.4); */
 	}
 
 	::-webkit-scrollbar {

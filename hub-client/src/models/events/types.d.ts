@@ -1,4 +1,4 @@
-import { ScrollPosition } from '../constants';
+import { type ScrollPosition } from '../constants';
 
 export type TThread = {
 	count: number;
