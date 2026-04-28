@@ -181,7 +181,7 @@ deploy-stable-hubs:
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-open-source-dev-matrix
 
 .node-setup:
-  image: node:24.14.1
+  image: node:24.15.0
   tags: [docker]
   cache:
     key:
@@ -304,7 +304,7 @@ build-and-deploy-global-client-main:
     - client-type-check
     - globalclient-unit-test
   tags: [docker]
-  image: node:24.14.1
+  image: node:24.15.0
   script:
     - cd global-client/dist
     - chmod 600 $UPDATE_GLOBAL_CLIENT_MAIN_KEY
@@ -326,7 +326,7 @@ build-and-deploy-global-client-stable:
     - job: globalclient-unit-test
       optional: true
   tags: [docker]
-  image: node:24.14.1
+  image: node:24.15.0
   script:
     - cd global-client/dist
     - chmod 600 $UPDATE_GLOBAL_CLIENT_STABLE_KEY
