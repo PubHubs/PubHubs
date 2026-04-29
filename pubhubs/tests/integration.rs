@@ -372,12 +372,16 @@ async fn main_integration_test_local(
         "0645678901",
     )
     .await;
-    assert!(attrs
-        .get::<handle::Handle>(&"email".parse().unwrap())
-        .is_some());
-    assert!(attrs
-        .get::<handle::Handle>(&"phone".parse().unwrap())
-        .is_some());
+    assert!(
+        attrs
+            .get::<handle::Handle>(&"email".parse().unwrap())
+            .is_some()
+    );
+    assert!(
+        attrs
+            .get::<handle::Handle>(&"phone".parse().unwrap())
+            .is_some()
+    );
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client

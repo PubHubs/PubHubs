@@ -32,7 +32,7 @@
 //! has no constellation installed, PHC leaves it be (assuming its
 //! discovery process is running), and will retry a bit later.
 //!
-//! ## A bit more details
+//! ## A bit more detail
 //!
 //! The discovery process running inside each server can result in four outcomes:
 //!  - [`DiscoverVerdict::Alright`]:  My constellation is up-to-date, **discovery done**
@@ -73,7 +73,7 @@
 //! [ restart             ]      |                        |
 //!     |---- info ------------->|                        |
 //!     |<----- const -----------|                        |
-//! [ matches running     ]      |                        |
+//! [ matches installed   ]      |                        |
 //! [ discovery done      ]      |                        |
 //!     |                        |<--- info --------------|
 //!     |                        |------ const ---------->|
@@ -81,7 +81,7 @@
 //!     |                        |            [ restart             ]
 //!     |                        |<--- info --------------|
 //!     |                        |------ const ---------->|
-//!     |                        |            [ matches running     ]
+//!     |                        |            [ matches installed   ]
 //!     |                        |            [ discovery done      ]
 //!     |<--- info --------------|                        |
 //!     |--- info, const ------->|                        |
@@ -93,6 +93,97 @@
 //!     |                        |                        |
 //! ```
 //!
+//! ## 2. PHC is upgraded to a new version
+//!
+//! All servers are on constellation `C_old` when PHC is restarted and upgraded
+//! from version `V_old` to `V_new`.
+//!
+//! ```text
+//! Transcryptor                PHC                   Auth Server
+//!     |                        |                        |
+//!     |             [ upgraded to V_new ]               |
+//!     |                        |                        |
+//!     |<--- info --------------|---- info ------------->|
+//!     |--- info, C_old ------->|<--- info, C_old -------|
+//!     |             [ build C_new, restart ]            |
+//!     |                        |                        |
+//!     |<--- info --------------|---- info ------------->|
+//!     |--- info, C_old ------->|<--- info, C_old -------|
+//!     |     [ C_new unchanged, but                   ]  |
+//!     |     [ T, A on C_old: trigger their discovery ]  |
+//!     |                        |                        |
+//!     |<--- run ---------------|------------- run ----->|
+//!     |              [ check A and T later ]            |
+//!     |                        |                        |
+//!     |--- info -------------->|<------------ info -----|
+//!     |<- C_new (inc. V_new) --|------------- C_new --->|
+//! [ V_old < V_new: exit ]      |     [ V_old < V_new: exit ]
+//! [   upgraded to V_new ]      |     [   upgraded to V_new ]
+//!     |                        |                        |
+//!     |--- info -------------->|<------------ info -----|
+//!     |<-- C_new --------------|------------- C_new --->|
+//! [ check & adopt C_new ]      |     [ check & adopt C_new ]
+//! [ restart             ]      |     [ restart             ]
+//!     |                        |                        |
+//!     |--- info -------------->|<------------ info -----|
+//!     |<--- C_new -------------|------------- C_new --->|
+//! [ matches installed   ]      |     [ matches installed   ]
+//! [ discovery done      ]      |     [ discovery done      ]
+//!     |                        |                        |
+//!     |<--- info --------------|---- info ------------->|
+//!     |--- info, C_new ------->|<--- info, C_new -------|
+//!     |              [ C_new unchanged, and   ]         |
+//!     |              [   installed by A and T ]         |
+//!     |              [ discovery done         ]         |
+//!
+//! ```
+//!
+//! ## 3. Transcryptor rotates a key
+//!
+//! All servers are on constellation `C_old`, when the transcryptor changes one
+//! of its keys, and restarts.
+//!
+//! ```text
+//! Transcryptor                PHC                   Auth Server
+//!     |                        |                        |
+//! [ changes key and restarts ] |                        |
+//!     |                        |                        |
+//!     |--- info -------------->|                        |
+//!     |<-- C_old --------------|                        |
+//! [ C_old has wrong key   ]    |                        |
+//! [ trigger PHC discovery ]    |                        |
+//!     |                        |                        |
+//!     |---- run -------------->|                        |
+//! [ check PHC later ]          |                        |
+//!     |                        |                        |
+//!     |<--- info --------------|---- info ------------->|
+//!     |--- info, C_old ------->|<--- info, C_old -------|
+//!     |           [ build C_new, restart ]              |
+//!     |                        |                        |
+//!     |<--- info --------------|---- info ------------->|
+//!     |--- info, C_old ------->|<--- info, C_old -------|
+//!     |     [ C_new unchanged, but                   ]  |
+//!     |     [ T, A on C_old: trigger their discovery ]  |
+//!     |                        |                        |
+//!     |<--- run ---------------|------------- run ----->|
+//!     |              [ check A and T later ]            |
+//!     |                        |                        |
+//!     |--- info -------------->|<------------ info -----|
+//!     |<- C_new ---------------|------------- C_new --->|
+//! [ check & adopt C_new ]      |     [ check & adopt C_new ]
+//! [ restart             ]      |     [ restart             ]
+//!     |                        |                        |
+//!     |--- info -------------->|<------------ info -----|
+//!     |<--- C_new -------------|------------- C_new --->|
+//! [ matches installed   ]      |     [ matches installed   ]
+//! [ discovery done      ]      |     [ discovery done      ]
+//!     |                        |                        |
+//!     |<--- info --------------|---- info ------------->|
+//!     |--- info, C_new ------->|<--- info, C_new -------|
+//!     |              [ C_new unchanged, and   ]         |
+//!     |              [   installed by A and T ]         |
+//!     |              [ discovery done         ]         |
+//! ```
 //!
 //! [`Constellation`]: crate::servers::constellation::Constellation
 //! [`Config::phc_url`]: crate::servers::config::Config::phc_url
@@ -114,6 +205,10 @@ use crate::api::*;
 use crate::common::elgamal;
 use actix_web::http;
 
+/// Public details about this server, including its current [`Constellation`].
+/// Used by `PHC` to build and publish its [`Constellation`].
+///
+/// [`Constellation`]: crate::servers::constellation::Constellation
 pub struct DiscoveryInfo {}
 impl EndpointDetails for DiscoveryInfo {
     type RequestType = NoPayload;
@@ -123,6 +218,7 @@ impl EndpointDetails for DiscoveryInfo {
     const PATH: &'static str = ".ph/discovery/info";
 }
 
+/// Has the server run its discovery procedure, if it isn't already.
 pub struct DiscoveryRun {}
 impl EndpointDetails for DiscoveryRun {
     type RequestType = NoPayload;
@@ -132,14 +228,19 @@ impl EndpointDetails for DiscoveryRun {
     const PATH: &'static str = ".ph/discovery/run";
 }
 
-/// What's returned by the `.ph/discovery/info` endpoint
+/// What's returned by the [`DiscoveryInfo`].
 ///
-/// NOTE: when modifying [`DiscoveryInfoResp`] make sure that
-///  (1) PHC will not crash on the outdated disovery info responses returned by
+/// <div class="warning">
+///
+/// **Warning:** when modifying [`DiscoveryInfoResp`] make sure that
+///
+///  1.  PHC will not crash on the outdated disovery info responses returned by
 ///  the transcryptor and authentication server before they are updated;
 ///
-///  (2) Old authentication server and transcryptor code will not crash on the updated  discovery
+///  2.  Old authentication server and transcryptor code will not crash on the updated  discovery
 ///  info response returned by PHC.
+///
+/// </div>
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 #[must_use]
@@ -170,12 +271,11 @@ pub struct DiscoveryInfoResp {
 
     /// Details of the other PubHubs servers, according to this server
     /// `None` when discovery has not been completed.
-    /// TODO: rename to `constellation_or_id`
     #[serde(rename = "constellation")]
     pub constellation_or_id: Option<crate::servers::constellation::ConstellationOrId>,
 }
 
-/// Result of the `.ph/discovery/run` endpoint
+/// What's returned by the [`DiscoveryRun`].
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[serde(deny_unknown_fields)]
 #[must_use]
