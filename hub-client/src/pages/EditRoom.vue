@@ -35,15 +35,13 @@
 			>
 				{{ t('admin.topic') }}
 			</TextField>
-			<TextField
+			<DropDown
 				v-if="!isSecured"
 				v-model="editRoom.type"
 				:placeholder="t('admin.room_type_placeholder')"
-				:show-length="true"
-				:validation="{ maxLength: roomValidations.maxTypeLength }"
-			>
-				{{ t('admin.room_type') }}
-			</TextField>
+				:options="roomTypeOptions"
+				>{{ t('admin.room_type') }}
+			</DropDown>
 
 			<div
 				v-if="isSecured"
@@ -227,9 +225,11 @@
 	import { trimSplit } from '@hub-client/logic/core/extensions';
 	import { router } from '@hub-client/logic/core/router';
 
+	import { PublicRoomType } from '@hub-client/models/rooms/TBaseRoom';
 	// Models
 	import type { TEditRoom } from '@hub-client/models/rooms/TEditRoom';
 	import { type TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
+	import { type FieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { type ValidationRule } from '@hub-client/models/validation/TValidate';
 
 	// Stores
@@ -279,13 +279,14 @@
 		user_txt: '',
 	});
 
+	const roomTypeOptions = Object.values(PublicRoomType) as FieldOptions;
+
 	const roomValidations = {
 		maxNameLength: 100,
 		maxTopicLength: 100,
 		maxDescriptionLength: 100,
 		maxAttributes: 12,
 		maxValues: 400,
-		maxTypeLength: 100,
 	};
 
 	const title = computed(() =>

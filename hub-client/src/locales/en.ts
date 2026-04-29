@@ -428,7 +428,7 @@ const en = {
 		secured_rooms: 'Secured rooms',
 		secured_rooms_tooltip: 'To access secured rooms, users must share certain information via the Yivi app.',
 		room_type: 'Room type',
-		room_type_placeholder: 'example: ph.plugin.xxx',
+		room_type_placeholder: 'Example: ph.forum-room',
 		edit_name: 'Change room name',
 		edit_secured_room: 'Change secured room',
 		added_room: 'Room added',

@@ -428,7 +428,7 @@ const nl = {
 		secured_rooms: 'Beveiligde kamers',
 		secured_rooms_tooltip: 'Om toegang te krijgen tot beveiligde kamers, moeten gebruikers bepaalde gegevens delen via de Yivi app.',
 		room_type: 'Type kamer',
-		room_type_placeholder: 'bijvoorbeeld: ph.plugin.xxx',
+		room_type_placeholder: 'Bijvoorbeeld: ph.forum-room',
 		edit_name: 'Pas naam van kamer aan',
 		edit_secured_room: 'Pas beveiligde kamer aan',
 		added_room: 'kamer toegevoegd',
