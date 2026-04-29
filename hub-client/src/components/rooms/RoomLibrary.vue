@@ -4,7 +4,10 @@
 		<div class="flex flex-1 flex-col gap-4 overflow-auto px-4">
 			<!-- Upload area -->
 			<div class="w-full">
-				<DropFiles />
+				<DropFiles
+					:max-number-of-files="SystemDefaults.maxLibraryFiles"
+					:current-file-names="roomTimeLineFiles.map((x) => x.matrixEvent.event.content?.filename)"
+				/>
 			</div>
 
 			<!-- Search and sort -->
@@ -244,7 +247,7 @@
 	import FileDownload from '../ui/FileDownload.vue';
 	import InlineCollapse from '../ui/InlineCollapse.vue';
 	import SidebarHeader from '../ui/SidebarHeader.vue';
-	import type { Room as MatrixRoom } from 'matrix-js-sdk';
+	import { type Room as MatrixRoom } from 'matrix-js-sdk';
 	// Composables
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -258,6 +261,7 @@
 
 	import { type SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+	import { SystemDefaults } from '@hub-client/models/constants';
 	import { type TFileMessageEventContent, type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import type Room from '@hub-client/models/rooms/Room';
@@ -267,7 +271,6 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	const props = defineProps<{
@@ -278,7 +281,6 @@
 	const rooms = useRooms();
 	const user = useUser();
 
-	const _settings = useSettings();
 	const pubhubs = usePubhubsStore();
 	const { makeHash, deleteMedia, removeFromTimeline } = useRoomLibrary();
 	const { formUrlfromMxc, deleteMediaUrlfromMxc } = useMatrixFiles();
@@ -297,6 +299,7 @@
 
 	onMounted(() => {
 		window.addEventListener('keydown', handleEsc);
+		props.room.initFileLibrary();
 	});
 
 	onUnmounted(() => {

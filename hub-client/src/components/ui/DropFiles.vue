@@ -4,7 +4,7 @@
 		@drop.prevent="onDroppedFile"
 		@click="openBrowse()"
 	>
-		<template v-if="maxNumerOfFilesReached">
+		<template v-if="files.length >= maxNumberToUpload">
 			<div class="text-accent-error font-bold md:text-center">
 				<Icon
 					type="warning"
@@ -70,6 +70,7 @@
 		<div>
 			<Button
 				size="sm"
+				:disabled="uploadIsActive"
 				@click="uploadFiles()"
 				>{{ $t('file.start_upload') }}</Button
 			>
@@ -90,8 +91,8 @@
 		data-testid="file-list"
 	>
 		<BarListItem
-			v-for="(file, index) in files"
-			:key="index"
+			v-for="file in files"
+			:key="file.name"
 		>
 			<div class="mb-1 flex h-6 items-center gap-2">
 				<div><FileIcon :filename="file.name"></FileIcon></div>
@@ -102,7 +103,7 @@
 						v-if="file.status !== 2"
 						type="trash"
 						class="cursor-pointer"
-						@click.stop="removeFileFromList(index)"
+						@click.stop="removeFileFromList(file.name)"
 					></Icon>
 					<Icon
 						v-else
@@ -127,9 +128,9 @@
 	import BarList from './BarList.vue';
 	import BarListItem from './BarListItem.vue';
 	import ProgressBar from './ProgressBar.vue';
-	import { computed, onBeforeUnmount, onMounted, onUnmounted, ref } from 'vue';
+	import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 
-	import { type ExtendedFile, asyncFileUpload } from '@hub-client/composables/fileUpload';
+	import { type ExtendedFile, asyncFileUpload, generateUniqueName } from '@hub-client/composables/fileUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
@@ -140,6 +141,17 @@
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
+
+	const props = withDefaults(
+		defineProps<{
+			maxNumberOfFiles: number;
+			currentFileNames: string[];
+		}>(),
+		{
+			maxNumberOfFiles: SystemDefaults.MaxNumberFileUploads,
+			currentFileNames: () => [] as string[],
+		},
+	);
 
 	const emit = defineEmits(['update']);
 
@@ -155,6 +167,11 @@
 
 	const files = ref([] as Array<ExtendedFile>);
 	const uploadError = ref(false);
+	const uploadIsActive = ref(false);
+
+	const maxNumberToUpload = computed(() => {
+		return props.maxNumberOfFiles - props.currentFileNames.length;
+	});
 
 	onMounted(() => {
 		events.forEach((eventName) => {
@@ -174,12 +191,24 @@
 		});
 	});
 
+	watch(
+		() => files.value.length,
+		(newlength: number) => {
+			if (newlength === 0) {
+				emit('update');
+			}
+		},
+	);
+
 	const preventDefaults = (e: Event) => {
 		e.preventDefault();
 	};
 
 	const openBrowse = () => {
-		fileInput.value?.click();
+		if (fileInput.value) {
+			fileInput.value.value = ''; // Reset value so fileInput keeps working
+			fileInput.value?.click();
+		}
 	};
 
 	const browseFiles = (e: Event) => {
@@ -194,7 +223,7 @@
 	const addFiles = (newFiles: FileList) => {
 		uploadError.value = false;
 		for (let i = 0; i < newFiles.length; i++) {
-			if (files.value.length >= SystemDefaults.MaxNumberFileUploads) {
+			if (files.value.length >= maxNumberToUpload.value) {
 				break;
 			}
 			const file = newFiles[i] as ExtendedFile;
@@ -208,15 +237,13 @@
 		}
 	};
 
-	const removeFileFromList = (index: number) => {
+	const removeFileFromList = (name: string) => {
+		const index = files.value.findIndex((x) => x.name === name);
+		if (index === -1) return;
+
 		const file = files.value[index];
 		file.blobManager?.revoke();
 		files.value.splice(index, 1);
-	};
-
-	const removeFileFromListByFile = (file: File) => {
-		const index = files.value.findIndex((f) => f.name === file.name);
-		removeFileFromList(index);
 	};
 
 	const cancelFiles = () => {
@@ -229,63 +256,50 @@
 
 	const uploadFiles = async () => {
 		uploadError.value = false;
-		const tmpFiles = [...files.value];
-		checkEmptyList();
-		for (let i = 0; i < tmpFiles.length; i++) {
-			const file = tmpFiles[i];
+		uploadIsActive.value = true;
+
+		for (const file of files.value) {
+			const fileName = generateUniqueName(file.name, (name) => props.currentFileNames.includes(name));
+
 			file.status = FileReader.LOADING;
 			file.progress = 0;
-			files.value = tmpFiles;
 
-			asyncFileUpload(
-				pubhubs.Auth.getAccessToken() as string,
-				uploadUrl,
-				file,
-				(progress: ProgressEvent) => {
-					const tmpFiles = [...files.value];
-					const tmpFile = tmpFiles[i];
-					tmpFile.progress = (progress.loaded / progress.total) * 100;
-					files.value = tmpFiles;
-				},
-				async (uri: string) => {
-					const tmpFiles = [...files.value];
-					const tmpFile = tmpFiles[i];
-					tmpFile.progress = 100;
-					tmpFile.status = FileReader.DONE;
+			await new Promise<void>((resolve) => {
+				asyncFileUpload(
+					pubhubs.Auth.getAccessToken() as string,
+					uploadUrl,
+					file,
 
-					const uriBlobManager = new BlobManager(uri);
+					// Progress callback
+					(progress: ProgressEvent) => {
+						const updatedIndex = files.value.findIndex((x) => x.name === file.name);
+						if (updatedIndex !== -1) {
+							files.value[updatedIndex].progress = (progress.loaded / progress.total) * 100;
+							files.value = [...files.value]; // force array-level change for vue to display the progress
+						}
+					},
 
-					const success = await pubhubs.addFile(rooms.currentRoomId, undefined, file, uri, '', PubHubsMgType.LibraryFileMessage);
-					if (success) {
-						// Revoke server URI
-						uriBlobManager.revoke();
-						// Revoke file preview blob
-						tmpFile.blobManager?.revoke();
-						setTimeout(() => {
-							removeFileFromListByFile(file);
-						}, 500);
-					} else {
-						tmpFile.progress = 0;
-						tmpFile.status = FileReader.EMPTY;
-						uploadError.value = true;
-						uriBlobManager.revoke();
-					}
-					files.value = tmpFiles;
-				},
-			);
+					// Ready callback
+					async (uri: string) => {
+						file.progress = 100;
+
+						const success = await pubhubs.addFile(rooms.currentRoomId, undefined, fileName, file, uri, '', PubHubsMgType.LibraryFileMessage);
+
+						if (success) {
+							file.status = FileReader.DONE;
+							// Revoke server URI
+							file.blobManager?.revoke();
+						} else {
+							file.progress = 0;
+							file.status = FileReader.EMPTY;
+							uploadError.value = true;
+						}
+						resolve();
+					},
+				);
+			});
+			files.value = files.value.filter((x) => x.status !== FileReader.DONE);
 		}
+		uploadIsActive.value = false;
 	};
-
-	const checkEmptyList = () => {
-		const emptyListTimer = setInterval(() => {
-			if (files.value.length === 0) {
-				emit('update');
-				clearInterval(emptyListTimer);
-			}
-		}, 100);
-	};
-
-	const maxNumerOfFilesReached = computed(() => {
-		return files.value.length >= SystemDefaults.MaxNumberFileUploads;
-	});
 </script>
