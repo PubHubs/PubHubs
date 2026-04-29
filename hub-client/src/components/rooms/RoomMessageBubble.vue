@@ -243,7 +243,14 @@
 							<!-- Thread Reply Button -->
 							<div class="relative">
 								<button
-									v-if="!deleteMessageDialog && !viewFromThread && canReplyInThread && !msgIsNotSend && !redactedMessage"
+									v-if="
+										!deleteMessageDialog &&
+										!viewFromThread &&
+										canReplyInThread &&
+										!msgIsNotSend &&
+										!redactedMessage &&
+										!props.room.isDirectMessageRoom()
+									"
 									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
 									:class="
 										eventThreadLength > 0
