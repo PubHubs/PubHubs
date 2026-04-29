@@ -10,10 +10,11 @@ const SystemDefaults = {
 	paginationBatchSize: 40, // Messages to fetch per pagination
 	initialRoomListRange: 99999, // Initial number of rooms to fetch, in the future perhaps paginate this?
 	publicRoomsReload: 86_400_000, // Time to cache public rooms. Reload will be forced after creating.editing new rooms, so this can be long. Now set to one day.
-	MaxNumberFileUploads: 50, // Maximum number of files that can be dropped/uploaded
 	mainRoomListRange: 40, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
 	longPressDuration: 250, // Amount of milliseconds for a long-press
 	messageGroupGap: 60 * 60 * 1000, // Amount of miliseconds for the message group threshold
+	MaxNumberFileUploads: 50, // Maximum number of files that can be dropped/uploaded
+	maxLibraryFiles: 100, // Maximum amount of files to store in the file library
 } as const;
 
 // options for sliding sync

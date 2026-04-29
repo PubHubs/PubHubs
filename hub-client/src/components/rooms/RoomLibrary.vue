@@ -4,13 +4,16 @@
 		<div class="flex flex-1 flex-col gap-4 overflow-auto px-4">
 			<!-- Upload area -->
 			<div class="w-full">
-				<DropFiles />
+				<DropFiles
+					:max-number-of-files="SystemDefaults.maxLibraryFiles"
+					:current-file-names="roomTimeLineFiles.map((x) => x.matrixEvent.event.content?.filename)"
+				/>
 			</div>
 
 			<!-- Search and sort -->
 			<div class="w-full">
 				<div class="mb-4 flex w-full gap-4">
-					<div class="bg-surface-high flex w-1/2 items-center gap-2 rounded-md px-3 py-2 sm:w-3/4">
+					<div class="bg-surface-high flex w-2/3 items-center gap-2 rounded-md px-3 py-2">
 						<Icon
 							class="text-on-surface-dim"
 							size="sm"
@@ -25,7 +28,7 @@
 							type="text"
 						/>
 					</div>
-					<div class="flex w-1/2 sm:w-1/4">
+					<div class="flex w-1/3">
 						<PullDownMenu
 							:options="orderByOptionsNames"
 							:selected="order"
@@ -43,16 +46,10 @@
 				>
 					<BarListItem
 						v-if="user.isAdmin"
-						class="bg-background! mb-0! flex justify-end"
+						class="bg-background! mb-0! flex"
 						data-testid="filemanager-admin"
 					>
 						<div class="flex items-center gap-1">
-							<IconButton
-								v-if="hasSelection()"
-								class="hover:text-accent-red"
-								type="trash"
-								@click.stop="deleteSelected()"
-							/>
 							<IconButton
 								v-if="!selectedAll"
 								type="square"
@@ -62,6 +59,12 @@
 								v-else
 								type="check-square"
 								@click.stop="unselectAll()"
+							/>
+							<IconButton
+								v-if="hasSelection()"
+								class="hover:text-accent-red"
+								type="trash"
+								@click.stop="deleteSelected()"
 							/>
 						</div>
 					</BarListItem>
@@ -76,7 +79,22 @@
 								<div>
 									<InlineCollapse>
 										<template #visible="{ collapsed }">
-											<div class="flex h-6 items-center gap-2">
+											<div class="flex h-6 items-center gap-1">
+												<div
+													v-if="user.isAdmin"
+													class="flex items-center gap-1"
+												>
+													<IconButton
+														v-if="isSelected(item)"
+														type="check-square"
+														@click.stop="removeFromSelection(item)"
+													/>
+													<IconButton
+														v-else
+														type="square"
+														@click.stop="addToSelection(item)"
+													/>
+												</div>
 												<div v-if="deletingAll && isSelected(item)">
 													<InlineSpinner />
 												</div>
@@ -97,14 +115,16 @@
 													<FileDownload
 														:filename="item.matrixEvent.getContent().filename"
 														:url="item.matrixEvent.getContent().url"
+														:title="item.matrixEvent.getContent().filename"
 													>
 														<FileIcon :filename="item.matrixEvent.getContent().filename" />
 													</FileDownload>
 												</div>
-												<div class="grow truncate">
+												<div class="text-label-small grow truncate">
 													<FileDownload
 														:filename="item.matrixEvent.getContent().filename"
 														:url="item.matrixEvent.getContent().url"
+														:title="item.matrixEvent.getContent().filename"
 													>
 														{{ item.matrixEvent.getContent().filename }}
 													</FileDownload>
@@ -120,9 +140,9 @@
 												<div class="max-xs:hidden text-right">
 													<span
 														v-if="order.index <= 1"
-														class="text-label-small whitespace-nowrap"
+														class="text-label-tiny whitespace-nowrap"
 													>
-														{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 2) }}
+														{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 0) }}
 													</span>
 													<EventTimeCompact
 														v-else-if="order.index === 2"
@@ -130,36 +150,27 @@
 													/>
 													<AvatarDisplayNameCompact
 														v-else-if="order.index === 3"
+														class="text-label-small text-nowrap"
 														:user-display-name="user.userDisplayName(item.matrixEvent.getSender() ?? '')"
 														:user-id="item.matrixEvent.getSender()"
 													/>
 												</div>
-												<div>
+												<!-- <div>
 													<FileDownload
 														:filename="item.matrixEvent.getContent().filename"
 														:url="item.matrixEvent.getContent().url"
 													>
 														<IconButton type="download-simple" />
 													</FileDownload>
-												</div>
+												</div> -->
 												<div
 													v-if="user.isAdmin"
-													class="flex items-center gap-2"
+													class="flex items-center gap-1"
 												>
 													<IconButton
 														class="hover:text-accent-red"
 														type="trash"
 														@click.stop="confirmDeletion(item.matrixEvent.getContent(), item.matrixEvent.getId())"
-													/>
-													<IconButton
-														v-if="isSelected(item)"
-														type="check-square"
-														@click.stop="removeFromSelection(item)"
-													/>
-													<IconButton
-														v-else
-														type="square"
-														@click.stop="addToSelection(item)"
 													/>
 												</div>
 											</div>
@@ -244,7 +255,7 @@
 	import FileDownload from '../ui/FileDownload.vue';
 	import InlineCollapse from '../ui/InlineCollapse.vue';
 	import SidebarHeader from '../ui/SidebarHeader.vue';
-	import type { Room as MatrixRoom } from 'matrix-js-sdk';
+	import { type Room as MatrixRoom } from 'matrix-js-sdk';
 	// Composables
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -258,6 +269,7 @@
 
 	import { type SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+	import { SystemDefaults } from '@hub-client/models/constants';
 	import { type TFileMessageEventContent, type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import type Room from '@hub-client/models/rooms/Room';
@@ -267,7 +279,6 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	const props = defineProps<{
@@ -278,7 +289,6 @@
 	const rooms = useRooms();
 	const user = useUser();
 
-	const _settings = useSettings();
 	const pubhubs = usePubhubsStore();
 	const { makeHash, deleteMedia, removeFromTimeline } = useRoomLibrary();
 	const { formUrlfromMxc, deleteMediaUrlfromMxc } = useMatrixFiles();
@@ -297,6 +307,7 @@
 
 	onMounted(() => {
 		window.addEventListener('keydown', handleEsc);
+		props.room.initFileLibrary();
 	});
 
 	onUnmounted(() => {

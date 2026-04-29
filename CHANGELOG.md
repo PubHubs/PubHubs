@@ -9,6 +9,10 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+## Changes not merged to stable yet
+
+- [NEW] Different way of fetching library-files, added constant with maximum numbers of files to upload
+
 ## 28 April 2026 - v3.3.0
 
 - [NEW] The synapse core module will now automatically be set with phc_url=https://phc.pubhubs.net in production if it is missing from the homeserver.yaml.
