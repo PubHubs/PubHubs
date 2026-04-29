@@ -1,3 +1,7 @@
+//! Backend servers for [pubhubs](https://app.pubhubs.net).
+//!
+//! See [`api`] for an overview.
+
 pub mod cli;
 
 pub mod api;
