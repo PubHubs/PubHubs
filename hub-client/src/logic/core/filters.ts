@@ -117,8 +117,11 @@ export default {
 
 	formatBytes(bytes: number, decimals: number): string {
 		if (bytes === 0) return '0 Bytes';
-		const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
-			i = Math.floor(Math.log(bytes) / Math.log(1024));
+		const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(1024));
+		if (decimals === 0) {
+			return parseFloat((bytes / Math.pow(1024, i)).toFixed(0)) + ' ' + sizes[i];
+		}
 		return parseFloat((bytes / Math.pow(1024, i)).toFixed(decimals || 2)) + ' ' + sizes[i];
 	},
 };

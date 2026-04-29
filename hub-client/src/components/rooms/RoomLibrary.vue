@@ -13,7 +13,7 @@
 			<!-- Search and sort -->
 			<div class="w-full">
 				<div class="mb-4 flex w-full gap-4">
-					<div class="bg-surface-high flex w-1/2 items-center gap-2 rounded-md px-3 py-2 sm:w-3/4">
+					<div class="bg-surface-high flex w-2/3 items-center gap-2 rounded-md px-3 py-2">
 						<Icon
 							class="text-on-surface-dim"
 							size="sm"
@@ -28,7 +28,7 @@
 							type="text"
 						/>
 					</div>
-					<div class="flex w-1/2 sm:w-1/4">
+					<div class="flex w-1/3">
 						<PullDownMenu
 							:options="orderByOptionsNames"
 							:selected="order"
@@ -46,16 +46,10 @@
 				>
 					<BarListItem
 						v-if="user.isAdmin"
-						class="bg-background! mb-0! flex justify-end"
+						class="bg-background! mb-0! flex"
 						data-testid="filemanager-admin"
 					>
 						<div class="flex items-center gap-1">
-							<IconButton
-								v-if="hasSelection()"
-								class="hover:text-accent-red"
-								type="trash"
-								@click.stop="deleteSelected()"
-							/>
 							<IconButton
 								v-if="!selectedAll"
 								type="square"
@@ -65,6 +59,12 @@
 								v-else
 								type="check-square"
 								@click.stop="unselectAll()"
+							/>
+							<IconButton
+								v-if="hasSelection()"
+								class="hover:text-accent-red"
+								type="trash"
+								@click.stop="deleteSelected()"
 							/>
 						</div>
 					</BarListItem>
@@ -79,7 +79,22 @@
 								<div>
 									<InlineCollapse>
 										<template #visible="{ collapsed }">
-											<div class="flex h-6 items-center gap-2">
+											<div class="flex h-6 items-center gap-1">
+												<div
+													v-if="user.isAdmin"
+													class="flex items-center gap-1"
+												>
+													<IconButton
+														v-if="isSelected(item)"
+														type="check-square"
+														@click.stop="removeFromSelection(item)"
+													/>
+													<IconButton
+														v-else
+														type="square"
+														@click.stop="addToSelection(item)"
+													/>
+												</div>
 												<div v-if="deletingAll && isSelected(item)">
 													<InlineSpinner />
 												</div>
@@ -100,14 +115,16 @@
 													<FileDownload
 														:filename="item.matrixEvent.getContent().filename"
 														:url="item.matrixEvent.getContent().url"
+														:title="item.matrixEvent.getContent().filename"
 													>
 														<FileIcon :filename="item.matrixEvent.getContent().filename" />
 													</FileDownload>
 												</div>
-												<div class="grow truncate">
+												<div class="text-label-small grow truncate">
 													<FileDownload
 														:filename="item.matrixEvent.getContent().filename"
 														:url="item.matrixEvent.getContent().url"
+														:title="item.matrixEvent.getContent().filename"
 													>
 														{{ item.matrixEvent.getContent().filename }}
 													</FileDownload>
@@ -123,9 +140,9 @@
 												<div class="max-xs:hidden text-right">
 													<span
 														v-if="order.index <= 1"
-														class="text-label-small whitespace-nowrap"
+														class="text-label-tiny whitespace-nowrap"
 													>
-														{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 2) }}
+														{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 0) }}
 													</span>
 													<EventTimeCompact
 														v-else-if="order.index === 2"
@@ -133,36 +150,27 @@
 													/>
 													<AvatarDisplayNameCompact
 														v-else-if="order.index === 3"
+														class="text-label-small text-nowrap"
 														:user-display-name="user.userDisplayName(item.matrixEvent.getSender() ?? '')"
 														:user-id="item.matrixEvent.getSender()"
 													/>
 												</div>
-												<div>
+												<!-- <div>
 													<FileDownload
 														:filename="item.matrixEvent.getContent().filename"
 														:url="item.matrixEvent.getContent().url"
 													>
 														<IconButton type="download-simple" />
 													</FileDownload>
-												</div>
+												</div> -->
 												<div
 													v-if="user.isAdmin"
-													class="flex items-center gap-2"
+													class="flex items-center gap-1"
 												>
 													<IconButton
 														class="hover:text-accent-red"
 														type="trash"
 														@click.stop="confirmDeletion(item.matrixEvent.getContent(), item.matrixEvent.getId())"
-													/>
-													<IconButton
-														v-if="isSelected(item)"
-														type="check-square"
-														@click.stop="removeFromSelection(item)"
-													/>
-													<IconButton
-														v-else
-														type="square"
-														@click.stop="addToSelection(item)"
 													/>
 												</div>
 											</div>
