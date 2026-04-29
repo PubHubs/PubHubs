@@ -662,9 +662,19 @@ export default class Room {
 
 	// #region TimelineManager
 
+	/**
+	 * Initialization room timeline
+	 */
 	public initTimeline() {
 		this.syncDataReceived = false;
 		this.timelineManager.initRoomTimeline(this.matrixRoom.roomId);
+	}
+
+	/**
+	 * Initialization room library
+	 */
+	public async initFileLibrary() {
+		return this.timelineManager.initFileLibrary();
 	}
 
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
@@ -770,8 +780,6 @@ export default class Room {
 	public getMessagesFilter(): Filter {
 		return this.timelineManager?.getMessagesFilter();
 	}
-
-	// #region TimelineManager
 
 	// The TimelineManager that controls the visible part of the timeline
 	// this is filtered to show only messages and gets updated by sliding sync or pagination

@@ -83,11 +83,21 @@ class TimelineManager {
 	private readonly timelineFilter: TimelineFilter = {
 		room: {
 			timeline: {
-				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage],
+				types: [EventType.RoomMessage, EventType.RoomRedaction],
 			},
 		},
 	};
 	private readonly MessageFilter: Filter = new Filter(undefined, 'MessageFilter');
+
+	// Filter on timeline for LibraryEvents
+	private readonly fileLibraryFilter: TimelineFilter = {
+		room: {
+			timeline: {
+				types: [PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage],
+			},
+		},
+	};
+	private readonly LibraryFilter: Filter = new Filter(undefined, 'LibraryFilter');
 
 	private readonly relatedEventTypes = new Set([
 		PubHubsMgType.VotingWidgetReply,
@@ -101,11 +111,12 @@ class TimelineManager {
 		this.roomId = roomId;
 		this.client = client;
 		this.MessageFilter.setDefinition(this.timelineFilter);
+		this.LibraryFilter.setDefinition(this.fileLibraryFilter);
 	}
 
 	/**
 	 *
-	 * @returns the default filter that is used for retreiving messages from the timeline
+	 * @returns the default filter that is used for retrieving messages from the timeline
 	 */
 	public getMessagesFilter(): Filter {
 		return this.MessageFilter;
@@ -157,6 +168,37 @@ class TimelineManager {
 
 		this.roomId = roomId;
 		this.roomTimelineKey = matrix.addRoomSubscription(roomId);
+	}
+
+	/**
+	 * Initalizes the file library timeline: fetch all files
+	 * @returns
+	 */
+	async initFileLibrary() {
+		const messageResponse = await this.client.createMessagesRequest(
+			this.roomId,
+			null,
+			SystemDefaults.maxLibraryFiles,
+			Direction.Backward,
+			this.LibraryFilter,
+		);
+		const eventMapper = this.client.getEventMapper();
+		const newEvents = messageResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+		const newTimelineEvents = newEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
+
+		// This is called on opening the filelibrary. Then there may already have been some files added through the sliding sync.
+		// So we need to add these files to the existing, with filtering out the duplicates (by eventId)
+		this.fileLibraryAddEvents(newTimelineEvents);
+	}
+
+	fileLibraryAddEvents(newEvents: TimelineEvent[]) {
+		const existingEventIds = new Set(this.libraryEvents.map((x) => x.matrixEvent.event.event_id));
+		newEvents.forEach((event) => {
+			if (!existingEventIds.has(event.matrixEvent.event.event_id)) {
+				this.libraryEvents.push(event);
+				existingEventIds.add(event.matrixEvent.event.event_id);
+			}
+		});
 	}
 
 	/**
@@ -376,11 +418,7 @@ class TimelineManager {
 				x.getType() !== Redaction.DeletedFromLibrary &&
 				x.getType() !== Redaction.Redacts,
 		);
-		this.libraryEvents = [...this.libraryEvents, ...libraryEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId }))];
-		// Filter out double, sometimes after sync items get doubled
-		this.libraryEvents = this.libraryEvents.filter(
-			(item, index, self) => self.findIndex((innerItem) => innerItem.matrixEvent.getId() === item.matrixEvent.getId()) === index,
-		);
+		this.fileLibraryAddEvents(libraryEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })));
 
 		this.applyIsDeleted([...this.timelineEvents, ...this.libraryEvents]);
 
@@ -482,9 +520,9 @@ class TimelineManager {
 
 	/**
 	 * Paginate from event in given direction for a {limit} number of events
-	 * @param timeline
+	 * @param direction
 	 * @param limit
-	 * @param backwards
+	 * @param timeline
 	 * @returns
 	 */
 	private async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {

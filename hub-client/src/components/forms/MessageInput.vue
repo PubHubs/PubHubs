@@ -555,7 +555,16 @@
 			const accessToken = pubhubs.Auth.getAccessToken();
 			if (!accessToken) return;
 			fileUpload(t('errors.file_upload'), accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
-				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string, undefined, replyTo);
+				pubhubs.addFile(
+					props.room.roomId,
+					threadRoot?.event_id,
+					undefined,
+					messageInput.state.fileAdded as File,
+					url,
+					value.value as string,
+					undefined,
+					replyTo,
+				);
 				uriForFileUpload.value?.revoke();
 				fileBlobOwnedByParent.value = false;
 				uriForFileUpload.value = undefined;

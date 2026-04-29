@@ -1045,9 +1045,31 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content as RoomMessageEventContent);
 		},
 
+		async tryAddFile(eventType: PubHubsMgType, roomId: string, thread: string | null, content: RoomMessageEventContent) {
+			// FileLibrary
+			if (eventType === PubHubsMgType.LibraryFileMessage) {
+				return await this.client.sendEvent(roomId, eventType as unknown as keyof TimelineEvents, content);
+			} else {
+				return await this.client.sendMessage(roomId, thread, content);
+			}
+		},
+
+		/**
+		 * Adds a file as a message
+		 * @param roomId
+		 * @param threadId
+		 * @param filename The filename if different from the original filename
+		 * @param file
+		 * @param uri
+		 * @param message Message to go with the file
+		 * @param eventType
+		 * @param inReplyTo
+		 * @returns
+		 */
 		async addFile(
 			roomId: string,
 			threadId: string | undefined,
+			filename: string | undefined,
 			file: File,
 			uri: string,
 			message: string = '',
@@ -1056,8 +1078,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 		): Promise<boolean> {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
 			let fileType = MsgType.File;
+			const fileName: string = filename ?? file.name;
+
 			let body = message;
-			if (body === '') body = file.name;
+			if (body === '') body = fileName;
 			if (imageTypes.includes(file?.type)) fileType = MsgType.Image;
 
 			let relatesTo: { event_id?: string; rel_type?: string; 'm.in_reply_to'?: { event_id: string } } | undefined = undefined;
@@ -1072,9 +1096,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 				}
 			}
 
-			const content = {
+			const content: RoomMessageEventContent = {
 				body: body,
-				filename: file.name,
+				filename: fileName,
 				info: {
 					mimetype: file.type,
 					size: file.size,
@@ -1086,18 +1110,29 @@ const usePubhubsStore = defineStore('pubhubs', {
 				'm.new_content': undefined,
 				'm.relates_to': relatesTo,
 			};
-			try {
-				// FileLibrary
-				if (eventType === PubHubsMgType.LibraryFileMessage) {
-					await this.client.sendEvent(roomId, eventType as unknown as keyof TimelineEvents, content);
-				} else {
-					await this.client.sendMessage(roomId, thread, content);
+			const maxAttempts = 3;
+			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+				try {
+					await this.tryAddFile(eventType, roomId, thread, content);
+					return true;
+				} catch (error: unknown) {
+					// not an error 429: swallow error
+					if (!(error instanceof MatrixError) || error.httpStatus !== 429) {
+						logger.debug('swallowing add file error', { error });
+						return false;
+					}
+
+					// error 429: retry after returned retry_after_ms
+					const waitTime = error.data?.retry_after_ms ?? 0;
+					await new Promise((resolve) => setTimeout(resolve, waitTime + 500)); // The waitTime is not precise, so we add 500
+
+					if (attempt === maxAttempts) {
+						logger.debug('add file error: max retries', { error });
+						return false;
+					}
 				}
-				return true;
-			} catch (error) {
-				logger.debug('swallowing add file error', { error });
-				return false;
 			}
+			return false; // unreachable but required by TypeScript
 		},
 
 		async resendEvent(event: TBaseEvent) {
