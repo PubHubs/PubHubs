@@ -235,10 +235,10 @@ impl EndpointDetails for DiscoveryRun {
 /// **Warning:** when modifying [`DiscoveryInfoResp`] make sure that
 ///
 ///  1.  PHC will not crash on the outdated disovery info responses returned by
-///  the transcryptor and authentication server before they are updated;
+///      the transcryptor and authentication server before they are updated;
 ///
 ///  2.  Old authentication server and transcryptor code will not crash on the updated  discovery
-///  info response returned by PHC.
+///      info response returned by PHC.
 ///
 /// </div>
 #[derive(Serialize, Deserialize, Debug, Clone)]
