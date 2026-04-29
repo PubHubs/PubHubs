@@ -240,6 +240,7 @@ class Program:
             # This makes some Synapse queries significantly faster
             with sqlite3.connect(uc._sqlite3_path) as conn:
                 conn.execute("PRAGMA optimize;")
+                os.chown(uc._sqlite3_path, 991, 991)
             print("PRAGMA optimize complete.", flush=True)
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
