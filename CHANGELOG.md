@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
+- [NEW] RoomAdmins and Stewards can hide and delete any messages and normal users can hide their own messages.
 - [NEW] Different way of fetching library-files, added constant with maximum numbers of files to upload
 
 ## 28 April 2026 - v3.3.0
@@ -18,7 +19,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] The synapse core module will now automatically be set with phc_url=https://phc.pubhubs.net in production if it is missing from the homeserver.yaml.
 - [NEW] RoomAdmins and Stewards can bar room members from participating in a room by issuing a red card.
 - [NEW] RoomAdmins and Stewards can warn room members by issuing a yellow card.
-- [NEW, behind feature flag for now] Video call functionality in direct rooms and secured rooms. 
+- [NEW, behind feature flag for now] Video call functionality in direct rooms and secured rooms.
 - [FIX] Element observer parameter is passed correctly.
 
 ## 02 April 2026 - v3.2.2

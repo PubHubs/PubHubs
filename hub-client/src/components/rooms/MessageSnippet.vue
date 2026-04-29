@@ -25,7 +25,16 @@
 				:size="'sm'"
 				type="trash"
 			/>
-			<p class="line-clamp-1">
+			<p
+				v-if="hiddenMessageLabel"
+				class="line-clamp-1"
+			>
+				{{ hiddenMessageLabel }}
+			</p>
+			<p
+				v-else
+				class="line-clamp-1"
+			>
 				{{ snippetText }}
 			</p>
 		</div>
@@ -57,10 +66,12 @@
 		// Whether or not to show the text "In reply to:" inside the snippet.
 		showInReplyTo?: boolean;
 		room: Room;
+		hiddenMessageLabel?: string;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
 		showInReplyTo: false,
+		hiddenMessageLabel: '',
 	});
 	const { color, textColor } = useUserColor();
 	const pubhubs = usePubhubsStore();

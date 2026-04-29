@@ -45,6 +45,7 @@ export interface TBaseMessageEventContent {
 		| PubHubsMgType.VotingWidgetOpen
 		| PubHubsMgType.VotingWidgetPickOption
 		| PubHubsMgType.VotingWidgetAddVoteOption
+		| PubHubsMgType.HideMessage
 		| PubHubsMgType.VideoCall
 		| PubHubsMgType.VideoCallEnded;
 	'm.relates_to'?: {
@@ -111,6 +112,10 @@ export interface TVideoCallMessageEventContent extends TBaseMessageEventContent 
 export interface TVideoCallEndedMessageEventContent extends TBaseMessageEventContent {
 	msgtype: PubHubsMgType.VideoCallEnded;
 	timestamp: number;
+}
+export interface THideMessageContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.HideMessage;
+	ph_hidden_label: string | undefined;
 }
 
 export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;

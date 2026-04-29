@@ -40,6 +40,7 @@ import { Redaction, RelationType, imageTypes } from '@hub-client/models/constant
 import { SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import {
+	type THideMessageContent,
 	type TMentions,
 	type TMessageEvent,
 	type TTextMessageEventContent,
@@ -782,6 +783,18 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 		},
 
+		async addVisibilityMessage(roomId: string, targetEventId: string, hide: boolean, label?: string) {
+			const content: THideMessageContent = {
+				msgtype: PubHubsMgType.HideMessage,
+				body: '',
+				[RelationType.RelatesTo]: {
+					rel_type: hide ? RelationType.Hide : RelationType.UnHide,
+					event_id: targetEventId,
+				},
+				ph_hidden_label: label,
+			};
+			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+		},
 		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {
 			const content = {
 				msgtype: PubHubsMgType.AnnouncementMessage,

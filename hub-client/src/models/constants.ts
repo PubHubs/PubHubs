@@ -58,6 +58,8 @@ enum RelationType {
 	Replace = 'm.replace',
 	Annotation = 'm.annotation',
 	EventId = 'event_id',
+	Hide = 'hide',
+	UnHide = 'unhide',
 }
 
 // Redaction strings that are not included in Matrix enums

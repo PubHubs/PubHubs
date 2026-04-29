@@ -4,11 +4,11 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
-import { delay } from '@global-client/logic/utils/generalUtils';
 import { decodeJWT, handleErrors, responseEqualToRequested } from '@global-client/logic/utils/mssUtils';
 import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
+import { delay } from '@hub-client/logic/utils/common';
 
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';

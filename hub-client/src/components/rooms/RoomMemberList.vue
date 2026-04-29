@@ -37,7 +37,7 @@
 						:key="admin.userId"
 						v-context-menu="
 							admin.userId !== user.user?.userId && !props.disableDM
-								? (evt: any) => openMenu(evt, getUserPowerUserMenuItems(admin.userId), admin.userId)
+								? (evt: any) => openMenu(evt, getPowerUserMenuItems(admin.userId), admin.userId)
 								: undefined
 						"
 						class="flex w-full items-center gap-2 rounded-md p-2"
@@ -74,7 +74,7 @@
 						:key="steward.userId"
 						v-context-menu="
 							steward.userId !== user.user?.userId && !props.disableDM
-								? (evt: any) => openMenu(evt, getUserPowerUserMenuItems(steward.userId), steward.userId)
+								? (evt: any) => openMenu(evt, getPowerUserMenuItems(steward.userId), steward.userId)
 								: undefined
 						"
 						class="flex w-full items-center gap-2 rounded-md p-2"
@@ -282,6 +282,7 @@
 		hasSanctionedMembers,
 		canWhisperFromContextMenu,
 		cardDialog,
+		removeMember,
 		openCardDialog,
 		onCardDialogSubmit,
 		revokeRedCard,
@@ -298,13 +299,21 @@
 		if (memberId === user.user?.userId || props.disableDM) return [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
 		const stewardActions: MenuItem[] = [];
-		const destructive: MenuItem[] = [];
 
 		if (canWhisperFromContextMenu.value && settings.isFeatureEnabled(FeatureFlag.whisper)) {
 			stewardActions.push({
 				label: t('menu.whisper'),
 				icon: 'whisper',
 				onClick: () => startWhisperToMember(memberId),
+				variant: ContextVariant.steward,
+			});
+		}
+		if (roles.userHasPermissionForAction(UserAction.Kick)) {
+			stewardActions.push({
+				label: capitalize(t('moderation.remove_from_room')),
+				icon: 'boot',
+				onClick: () => removeMember(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
 			});
 		}
 
@@ -314,41 +323,41 @@
 				icon: 'exclamation-mark',
 				onClick: () => openCardDialog('yellow', props.room.roomId, memberId),
 				variant: ContextVariant.yellow,
-				title: t('moderation.issue_yellow_card_info'),
+				title: capitalize(t('moderation.issue_yellow_card_info')),
 			});
 		}
 
 		if (roles.userHasPermissionForAction(UserAction.Ban)) {
-			destructive.push({
+			stewardActions.push({
 				label: capitalize(t('moderation.issue_red_card')),
 				icon: 'exclamation-mark',
 				onClick: () => openCardDialog('red', props.room.roomId, memberId),
 				variant: ContextVariant.delicate,
-				title: t('moderation.issue_red_card_info'),
+				title: capitalize(t('moderation.issue_red_card_info')),
 			});
 		}
 
 		const divider: MenuItem = { divider: true, label: '' };
-		return [social, stewardActions, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	};
 
 	const getYellowCardContextMenuItems = (memberId: string): MenuItem[] => {
 		if (memberId === user.user?.userId || props.disableDM) return [];
-		const destructive: MenuItem[] = [];
+		const stewardActions: MenuItem[] = [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
 
 		if (roles.userHasPermissionForAction(UserAction.Ban)) {
-			destructive.push({
+			stewardActions.push({
 				label: capitalize(t('moderation.issue_red_card')),
 				icon: 'exclamation-mark',
 				onClick: () => openCardDialog('red', props.room.roomId, memberId),
 				variant: ContextVariant.delicate,
-				title: t('moderation.issue_red_card_info'),
+				title: capitalize(t('moderation.issue_red_card_info')),
 			});
 		}
 
 		const divider: MenuItem = { divider: true, label: '' };
-		return [social, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	};
 
 	const getRedCardContextMenuItems = (memberId: string): MenuItem[] => {
@@ -361,6 +370,7 @@
 				label: capitalize(t('moderation.revoke_red_card')),
 				icon: 'arrow-bend-up-left',
 				onClick: () => revokeRedCard(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
 			});
 		}
 
@@ -368,7 +378,7 @@
 		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	};
 
-	function getUserPowerUserMenuItems(memberId: string) {
+	function getPowerUserMenuItems(memberId: string) {
 		if (memberId === user.user?.userId || props.disableDM) return [];
 		const stewardActions: MenuItem[] = [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
@@ -378,6 +388,7 @@
 				label: t('menu.whisper'),
 				icon: 'whisper',
 				onClick: () => startWhisperToMember(memberId),
+				variant: ContextVariant.steward,
 			});
 		}
 		const divider: MenuItem = { divider: true, label: '' };

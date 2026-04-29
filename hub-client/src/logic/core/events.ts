@@ -35,6 +35,7 @@ enum PubHubsMsgType {
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
 	ForumTopic = MatrixEventType.RoomMessage, // 'm.room.message',
+	HideMessage = 'pubhubs.hide_message',
 }
 
 enum PubHubsInvisibleMsgType {
