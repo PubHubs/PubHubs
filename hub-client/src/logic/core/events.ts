@@ -33,6 +33,7 @@ enum PubHubsMsgType {
 	VideoCallModify = 'pubhubs.videocall.modify',
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
+	HideMessage = 'pubhubs.hide_message',
 }
 
 enum PubHubsInvisibleMsgType {
