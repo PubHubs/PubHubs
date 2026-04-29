@@ -405,6 +405,13 @@
 		@apply text-accent-blue;
 	}
 
+	.dp__main {
+		@apply bg-transparent!;
+	}
+	.dp--menu-wrapper {
+		@apply bg-surface-base;
+	}
+
 	.v-note-wrapper .v-note-show ol {
 		list-style-type: i !important;
 	}
