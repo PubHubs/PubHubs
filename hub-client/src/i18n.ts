@@ -49,7 +49,7 @@ const i18nOptions: I18nOptions = {
 				hour12: true,
 			},
 			short: {
-				year: 'numeric',
+				year: '2-digit',
 				month: 'long',
 				day: 'numeric',
 			},
@@ -74,7 +74,7 @@ const i18nOptions: I18nOptions = {
 				hour12: true,
 			},
 			short: {
-				year: 'numeric',
+				year: '2-digit',
 				month: 'long',
 				day: 'numeric',
 			},

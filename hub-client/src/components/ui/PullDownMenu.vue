@@ -45,10 +45,14 @@
 				class="pl-2"
 				@click="toggle"
 			>
-				<span v-if="!changed">{{ title }}</span>
+				<span
+					v-if="!changed"
+					class="text-label-small"
+					>{{ title }}</span
+				>
 				<div
 					v-else
-					class="flex items-center gap-1"
+					class="flex items-center gap-1 pt-1"
 				>
 					<template v-if="toggleOrder">
 						<Icon
@@ -60,7 +64,7 @@
 							type="arrow-down"
 						/>
 					</template>
-					<span class="grow">{{ $t(options[selectedIndex] as string) }}</span>
+					<span class="text-label-small grow">{{ $t(options[selectedIndex] as string) }}</span>
 				</div>
 			</div>
 		</div>
