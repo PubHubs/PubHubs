@@ -1,5 +1,5 @@
 // Logic
-import { delay } from '@global-client/logic/utils/generalUtils';
+import { delay } from '@hub-client/logic/utils/common';
 
 // Models
 import { ErrorCode, type Result, isOk } from '@global-client/models/MSS/TGeneral';

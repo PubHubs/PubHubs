@@ -85,6 +85,7 @@
 								class="mb-2"
 								:show-in-reply-to="true"
 								:room="room"
+								:hidden-message-label="replyHideState.label"
 								@click="onInReplyToClick"
 							/>
 							<template #fallback>
@@ -167,6 +168,7 @@
 								class="mb-2"
 								:show-in-reply-to="true"
 								:room="room"
+								:hidden-message-label="replyHideState.label"
 								@click="onInReplyToClick"
 							/>
 							<template #fallback>
@@ -300,51 +302,105 @@
 						</div>
 					</div>
 
-					<!-- Heavy components -->
 					<template v-if="hasBeenVisible">
-						<PrivilegedMessageBody
-							v-if="isPrivilegedMessage && !redactedMessage && !DirectRooms.includes(room.getType() as RoomType)"
-							:event="props.event.content as any"
-						/>
-						<MessageVideoCall
-							v-else-if="props.event.content.msgtype === PubHubsMgType.VideoCall"
-							:event="props.event as any"
-							:room-id="room.roomId"
-						/>
-						<MessageSigned
-							v-else-if="props.event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage"
-							:message="props.event.content.signed_message"
-							class="max-w-[90ch]"
-						/>
-						<MessageFile
-							v-else-if="props.event.content.msgtype === MsgType.File && !redactedMessage"
-							:message="props.event.content"
-						/>
-						<MessageImage
-							v-else-if="props.event.content.msgtype === MsgType.Image && !redactedMessage"
-							:message="props.event.content"
-						/>
-						<MessageDisclosureRequest
-							v-else-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage"
-							:event="props.event as TMessageEvent"
-							class="flex flex-col"
-						/>
-						<MessageDisclosed
-							v-else-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage && !redactedMessage"
-							:message="props.event.content.signed_message"
-							class="max-w-[90ch]"
-						/>
-						<VotingWidget
-							v-else-if="
-								settings.isFeatureEnabled(FeatureFlag.votingWidget) &&
-								props.event.content.msgtype === PubHubsMgType.VotingWidget &&
-								!redactedMessage
-							"
-							:room="room"
-							:event="props.event as TVotingMessageEvent"
-							@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
-							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
-						/>
+						<MessageHidden
+							v-if="(props.event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
+							:overridelabel="hideState.label"
+						>
+							<!-- The actual message content goes here as a slot -->
+							<PrivilegedMessageBody
+								v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
+								:event="props.event.content"
+							/>
+							<MessageSigned
+								v-else-if="props.event.content.msgtype === PubHubsMgType.SignedMessage"
+								:message="props.event.content.signed_message"
+								class="max-w-[90ch]"
+							/>
+							<MessageFile
+								v-else-if="props.event.content.msgtype === MsgType.File"
+								:message="props.event.content"
+							/>
+							<MessageImage
+								v-else-if="props.event.content.msgtype === MsgType.Image"
+								:message="props.event.content"
+							/>
+							<MessageDisclosureRequest
+								v-else-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage"
+								:event="props.event as TMessageEvent"
+								class="flex flex-col"
+							/>
+							<MessageDisclosed
+								v-else-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage"
+								:message="props.event.content.signed_message"
+								class="max-w-[90ch]"
+							/>
+							<VotingWidget
+								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget"
+								:room="room"
+								:event="props.event as TVotingMessageEvent"
+								@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+								@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+							/>
+							<MessageVideoCall
+								v-else-if="props.event.content.msgtype === PubHubsMgType.VideoCall"
+								:event="props.event as any"
+								:room-id="room.roomId"
+							/>
+							<Message
+								v-else
+								:event="props.event as TMessageEvent"
+								:deleted="redactedMessage"
+							/>
+						</MessageHidden>
+
+						<!-- Non-hidden messages render directly -->
+						<template v-else-if="!redactedMessage">
+							<PrivilegedMessageBody
+								v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
+								:event="props.event.content"
+							/>
+							<MessageSigned
+								v-else-if="props.event.content.msgtype === PubHubsMgType.SignedMessage"
+								:message="props.event.content.signed_message"
+								class="max-w-[90ch]"
+							/>
+							<MessageFile
+								v-else-if="props.event.content.msgtype === MsgType.File"
+								:message="props.event.content"
+							/>
+							<MessageImage
+								v-else-if="props.event.content.msgtype === MsgType.Image"
+								:message="props.event.content"
+							/>
+							<MessageDisclosureRequest
+								v-else-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage"
+								:event="props.event as TMessageEvent"
+								class="flex flex-col"
+							/>
+							<MessageDisclosed
+								v-else-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage"
+								:message="props.event.content.signed_message"
+								class="max-w-[90ch]"
+							/>
+							<VotingWidget
+								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget"
+								:room="room"
+								:event="props.event as TVotingMessageEvent"
+								@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+								@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+							/>
+							<MessageVideoCall
+								v-else-if="props.event.content.msgtype === PubHubsMgType.VideoCall"
+								:event="props.event as any"
+								:room-id="room.roomId"
+							/>
+							<Message
+								v-else
+								:event="props.event as TMessageEvent"
+								:deleted="redactedMessage"
+							/>
+						</template>
 						<Message
 							v-else
 							:event="props.event as TMessageEvent"
@@ -358,6 +414,11 @@
 			<div v-if="hasBeenVisible">
 				<slot name="reactions"></slot>
 			</div>
+			<HideMessageDialog
+				v-if="hideMessageDialog.visible"
+				@close="hideMessageDialog.visible = false"
+				@submit="onHideMessageDialogSubmit"
+			></HideMessageDialog>
 		</div>
 	</div>
 </template>
@@ -366,16 +427,18 @@
 	// Packages
 	// import { useClipboard } from '@vueuse/core';
 	import { MsgType, NotificationCountType } from 'matrix-js-sdk';
-	import { type PropType, computed, onBeforeUnmount, onMounted, ref } from 'vue';
+	import { type PropType, capitalize, computed, onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import HideMessageDialog from '@hub-client/components/forms/HideMessageDialog.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Message from '@hub-client/components/rooms/Message.vue';
 	import MessageDisclosed from '@hub-client/components/rooms/MessageDisclosed.vue';
 	import MessageDisclosureRequest from '@hub-client/components/rooms/MessageDisclosureRequest.vue';
 	import MessageFile from '@hub-client/components/rooms/MessageFile.vue';
+	import MessageHidden from '@hub-client/components/rooms/MessageHidden.vue';
 	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
 	import MessageSigned from '@hub-client/components/rooms/MessageSigned.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
@@ -387,6 +450,8 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import ReactionMiniPopUp from '@hub-client/components/ui/ReactionMiniPopUp.vue';
 
+	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	// Composables
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
@@ -482,6 +547,7 @@
 	const rooms = useRooms();
 	const sidebar = useSidebar();
 	const user = useUser();
+	const roles = useRoles();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
 	const { t } = useI18n();
@@ -536,6 +602,7 @@
 			emit('profileCardClose');
 		}
 	});
+	const { unHideMessage, hideMessageDialog, onHideMessageDialogSubmit, openHideMessageDialog } = useModeration();
 
 	const inReplyToId = props.event.content?.[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
 
@@ -548,6 +615,9 @@
 	const isThreadRoot = computed(() => props.room.currentThread?.threadId === props.event.event_id);
 
 	const containsRedactedBecause = props.event.unsigned?.redacted_because !== undefined;
+
+	const hideState = computed(() => props.room.getHideState(props.event.event_id));
+	const replyHideState = computed(() => props.room.getHideState(inReplyToId));
 
 	const redactedMessage = computed(() => {
 		return props.deletedEvent || containsRedactedBecause;
@@ -662,6 +732,7 @@
 		const social: MenuItem[] = [];
 		const actions: MenuItem[] = [];
 		const utility: MenuItem[] = [];
+		const stewardActions: MenuItem[] = [];
 		const destructive: MenuItem[] = [];
 
 		// Direct message (only if sender is not current user and not already in a DM)
@@ -680,7 +751,7 @@
 			!props.room.isDirectMessageRoom() &&
 			canWhisperFromContextMenu.value
 		) {
-			social.push({
+			stewardActions.push({
 				label: t('menu.whisper'),
 				icon: 'whisper',
 				onClick: () => {
@@ -689,6 +760,7 @@
 					messageActions.whisperingToDisplayName = user.userDisplayName(props.event.sender);
 					messageActions.whisperingToEventId = props.event.event_id;
 				},
+				variant: ContextVariant.steward,
 			});
 		}
 
@@ -737,11 +809,43 @@
 			});
 		}
 
-		// Delete (only your own messages)
+		// Hide a message
+		if (
+			!hideState.value.isHidden &&
+			!props.event.msgIsNotSend &&
+			(props.event.sender === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
+			!redactedMessage.value &&
+			!(props.viewFromThread && props.event.isThreadRoot)
+		) {
+			stewardActions.push({
+				label: capitalize(t('menu.hide_message')),
+				icon: 'eye-slash',
+				variant: ContextVariant.steward,
+				onClick: () => openHideMessageDialog(props.room.roomId, props.event.event_id),
+			});
+		}
+
+		// UnHide a message
+		if (
+			hideState.value.isHidden &&
+			!props.event.msgIsNotSend &&
+			(props.event.sender === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
+			!redactedMessage.value &&
+			!(props.viewFromThread && props.event.isThreadRoot)
+		) {
+			stewardActions.push({
+				label: capitalize(t('menu.show_message')),
+				icon: 'eye',
+				variant: ContextVariant.steward,
+				onClick: () => unHideMessage(props.room.roomId, props.event.event_id),
+			});
+		}
+
+		// Delete (only your own messages or if you are steward or higher)
 		if (
 			settings.isFeatureEnabled(FeatureFlag.deleteMessages) &&
 			!props.event.msgIsNotSend &&
-			props.event.sender === user.userId &&
+			(props.event.sender === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
 			!redactedMessage.value &&
 			!(props.viewFromThread && props.event.isThreadRoot)
 		) {
@@ -754,7 +858,7 @@
 		}
 
 		const divider: MenuItem = { divider: true, label: '' };
-		return [social, actions, utility, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+		return [social, actions, utility, stewardActions, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	}
 
 	function getUnreadCount(roomId: string, eventId: string, countType: NotificationCountType): number {
