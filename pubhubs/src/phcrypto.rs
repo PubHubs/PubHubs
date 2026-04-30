@@ -25,10 +25,7 @@ pub fn combine_master_enc_key_parts(
 /// Computes the **pseudonymisation factor** $g_H$ for the hub identified by `hub_id`,
 /// from the transcryptor's `pseud_factor_secret`.  See [`crate::api::sso`] for the
 /// exact formula.
-pub fn pseud_factor_for_hub(
-    pseud_factor_secret: impl DigestibleSecret,
-    hub_id: id::Id,
-) -> Scalar {
+pub fn pseud_factor_for_hub(pseud_factor_secret: impl DigestibleSecret, hub_id: id::Id) -> Scalar {
     pseud_factor_secret.derive_scalar(
         sha2::Sha512::new().chain_update(hub_id.as_slice()),
         "pubhubs-pseud-factor",
