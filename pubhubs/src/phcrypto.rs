@@ -22,6 +22,19 @@ pub fn combine_master_enc_key_parts(
     private_part.scale(public_part)
 }
 
+/// Computes the **pseudonymisation factor** $g_H$ for the hub identified by `hub_id`,
+/// from the transcryptor's `pseud_factor_secret`.  See [`crate::api::sso`] for the
+/// exact formula.
+pub fn pseud_factor_for_hub(
+    pseud_factor_secret: impl DigestibleSecret,
+    hub_id: id::Id,
+) -> Scalar {
+    pseud_factor_secret.derive_scalar(
+        sha2::Sha512::new().chain_update(hub_id.as_slice()),
+        "pubhubs-pseud-factor",
+    )
+}
+
 /// Turns the given polymorphic pseudonym `pp` (which should be `Id_U` elgamal encrypted for `x`)
 /// into an encrypted hub pseudonym (which should be `g_H Id_U` elgamal encrypted for `x_PHC`).
 pub fn t_encrypted_hub_pseudonym(
@@ -30,11 +43,7 @@ pub fn t_encrypted_hub_pseudonym(
     master_enc_key_part_inv: &Scalar,
     hub_id: id::Id,
 ) -> elgamal::Triple {
-    let g_h = pseud_factor_secret.derive_scalar(
-        sha2::Sha512::new().chain_update(hub_id.as_slice()),
-        "pubhubs-pseud-factor",
-    );
-
+    let g_h = pseud_factor_for_hub(pseud_factor_secret, hub_id);
     pp.rsk_with_s(&g_h).and_k(master_enc_key_part_inv)
 }
 

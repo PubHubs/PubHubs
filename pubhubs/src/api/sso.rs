@@ -17,31 +17,27 @@
 //!    > used by PHC internally to identify a user.)
 //!
 //!
-//!  - $g_H$ is the **pseudonymisation factor**, a [`scalar`](Scalar)
-//!    unique to the hub $H$ known only by the transcryptor, computed via
-//!    $$g_H\ :=\ \mathrm{Sha512}\bigl(H \Vert \ell_d \Vert d \Vert \ell_g \Vert g\bigr)$$
-//!    where:
-//!    - $g$ is an unchanging **pseudonymisation factor secret** picked by the transcryptor;
-//!    - $H$ is the [**hub id**](crate::hub::BasicInfo::id) configured by PHC (a fixed 32-byte value);
-//!    - $d := \text{"pubhubs-pseud-factor"}$ is a domain separator;
-//!    - $\ell_d$ and $\ell_g$ are the byte lengths of $d$ and $g$, encoded as
-//!      8-byte big-endian unsigned integers.  They are included to prevent
-//!      collisions between $d$ and $g$ of different lengths.
+//!  - $g_H$ is the **pseudonymisation factor**, a [`scalar`](Scalar) unique
+//!    to the hub $H$, known only by the transcryptor:
+//!    $$g_H := \mathrm{Sha512}(H \Vert \ell_d \Vert d \Vert \ell_g \Vert g)$$
+//!    where $H$ is the [**hub id**](crate::hub::BasicInfo::id) (32 bytes),
+//!    $d := \text{"pubhubs-pseud-factor"}$, $g$ is the transcryptor's
+//!    pseudonymisation-factor secret, and $\ell_d, \ell_g$ are the byte
+//!    lengths of $d, g$ encoded as 8-byte big-endian unsigned integers.
 //!
-//!    The example below verifies that the implementation in
-//!    [`crate::phcrypto::t_encrypted_hub_pseudonym`] matches this formula:
+//!    <details class="toggle">
+//!    <summary class="hideme"><span>Expand example </span></summary>
+//!    
+//!    **Example**
 //!    ```
-//!    # use pubhubs::id::Id;
-//!    # use pubhubs::common::secret::DigestibleSecret;
-//!    # use sha2::{Digest, Sha512};
-//!    # use curve25519_dalek::Scalar;
-//!    let h = Id::from([7u8; 32]);
+//!    use sha2::Digest; // brings `chain_update` and `new` into scope
+//!    let h = pubhubs::id::Id::from([7u8; 32]);
 //!    let g: &[u8] = b"abc";          // 3 bytes
-//!    let d = "pubhubs-pseud-factor"; //  20 bytes
+//!    let d = "pubhubs-pseud-factor"; // 20 bytes
 //!    assert_eq!(
-//!        g.derive_scalar(Sha512::new().chain_update(h.as_slice()), d),
-//!        Scalar::from_hash(
-//!            Sha512::new()
+//!        pubhubs::phcrypto::pseud_factor_for_hub(g, h),
+//!        curve25519_dalek::Scalar::from_hash(
+//!            sha2::Sha512::new()
 //!                .chain_update(h.as_slice())
 //!                .chain_update([0, 0, 0, 0, 0, 0, 0, 20u8])
 //!                .chain_update(d.as_bytes())
@@ -50,6 +46,8 @@
 //!        ),
 //!    );
 //!    ```
+//!
+//!    </details>
 //!
 //! > **Note:** The white paper uses $g_H\cdot \mathrm{Id}_U$ instead
 //! > of $\mathrm{Sha512}(g_H\cdot \mathrm{Id}_U)$.  The hash has been added to
