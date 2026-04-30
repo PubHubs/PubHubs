@@ -1,5 +1,4 @@
 // Packages
-import { type THideMessageContent } from '../events/TMessageEvent';
 import { Direction, EventTimeline, EventType, Filter, type IRoomEvent, type MatrixClient, type MatrixEvent, MsgType } from 'matrix-js-sdk';
 
 // Stores
@@ -65,8 +64,8 @@ class TimelineManager {
 	private libraryEvents: TimelineEvent[] = [];
 	/** Contains all related events: reactions, annotations etc. */
 	private relatedEvents: TRelatedEvents[] = [];
-	// Cotains related hide events
-	private hideMessageEvents: MatrixEvent[] = [];
+	// Contains related hide events
+	private hideMessageEvents: Map<string, MatrixEvent> = new Map();
 
 	private roomId: string;
 
@@ -151,8 +150,7 @@ class TimelineManager {
 				return false;
 			}
 		}
-		if (event.getContent().msgtype === PubHubsMgType.HideMessage) {
-			this.hideMessageEvents.push(event);
+		if (this.isHideMessageEvent(event)) {
 			return false;
 		}
 		// Deleted events from threads may not be visible; they have lost the direct connection to their thread
@@ -169,32 +167,10 @@ class TimelineManager {
 	 * and shows the label if it is defined.
 	 */
 	public getHideState(eventId: string): { isHidden: boolean; label?: string } {
-		const isHideOrUnhideEvent = (content: THideMessageContent) =>
-			(content?.[RelationType.RelatesTo]?.rel_type === RelationType.Hide || content?.[RelationType.RelatesTo]?.rel_type === RelationType.UnHide) &&
-			content?.[RelationType.RelatesTo]?.event_id === eventId;
-
-		// Find the most recent matching event from timeline
-		const latestTimelineEvent = this.hideMessageEvents
-			.filter((event) => isHideOrUnhideEvent(event.getContent()))
-			.reduce<
-				(typeof this.hideMessageEvents)[0] | undefined
-			>((latest, event) => (!latest || (event.getTs() ?? 0) > (latest.getTs() ?? 0) ? event : latest), undefined);
-
-		// Find the most recent matching event from related events
-		const latestRelatedEvent = this.getRelatedEvents(eventId)
-			.filter((event) => isHideOrUnhideEvent(event.matrixEvent.getContent()))
-			.reduce<ReturnType<typeof this.getRelatedEvents>[0] | undefined>(
-				(latest, event) => (!latest || (event.matrixEvent.getTs() ?? 0) > (latest?.matrixEvent.getTs() ?? 0) ? event : latest),
-				undefined,
-			);
-
-		// Compare the two to get the absolute latest
-		const latestHideMessage =
-			(latestRelatedEvent?.matrixEvent.getTs() ?? 0) > (latestTimelineEvent?.getTs() ?? 0) ? latestRelatedEvent?.matrixEvent : latestTimelineEvent;
-
+		const event = this.hideMessageEvents.get(eventId);
 		return {
-			isHidden: latestHideMessage?.getContent()?.[RelationType.RelatesTo]?.rel_type === RelationType.Hide,
-			label: latestHideMessage?.getContent()?.ph_hidden_label as string,
+			isHidden: event?.getContent()?.[RelationType.RelatesTo]?.rel_type === RelationType.Hide,
+			label: event?.getContent()?.ph_hidden_label as string,
 		};
 	}
 
@@ -242,12 +218,36 @@ class TimelineManager {
 		});
 	}
 
+	private isHideMessageEvent(event: MatrixEvent): boolean {
+		return event.getContent()?.msgtype === PubHubsMgType.HideMessage;
+	}
+
+	private updateHideMessageEvent(event: MatrixEvent): void {
+		if (!this.isHideMessageEvent(event)) return;
+		const targetEventId = event.getContent()?.[RelationType.RelatesTo]?.event_id;
+		if (!targetEventId) return;
+		const existing = this.hideMessageEvents.get(targetEventId);
+		if (!existing || (event.getTs() ?? 0) > (existing.getTs() ?? 0)) {
+			this.hideMessageEvents.set(targetEventId, event);
+		}
+	}
+
+	private cleanupHideMessageEvents(): void {
+		const timelineEventIds = new Set(this.timelineEvents.map((e) => e.matrixEvent.getId()));
+		for (const targetEventId of this.hideMessageEvents.keys()) {
+			if (!timelineEventIds.has(targetEventId)) {
+				this.hideMessageEvents.delete(targetEventId);
+			}
+		}
+	}
+
 	/**
 	 * Prepares the events for use in the room timeline: filters isVisible and sorts
 	 * @param eventList eventlist coming from Sliding sync, to be prepared for use
 	 * @returns eventList to use in the RoomTimeline
 	 */
 	private prepareEvents(eventList: MatrixEvent[]): MatrixEvent[] {
+		eventList.forEach((e) => this.updateHideMessageEvent(e));
 		return eventList.filter((event) => this.isVisibleEvent(event)).sort((a, b) => a.getTs() - b.getTs());
 	}
 
@@ -258,6 +258,7 @@ class TimelineManager {
 		if (events.length <= 0) return;
 
 		for (const eventToAdd of events) {
+			this.updateHideMessageEvent(eventToAdd);
 			if (eventToAdd.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				// Fetch thread for newly created threads that are not the currentthread and ar not yet recognized as thread in this client
 				const rootId = eventToAdd.getContent()?.[RelationType.RelatesTo]?.event_id;
@@ -326,6 +327,7 @@ class TimelineManager {
 					} else {
 						this.relatedEvents.push({ eventId: eventId, isFetched: true, relatedEvents: relations.events });
 					}
+					relations.events.forEach((e) => this.updateHideMessageEvent(e));
 				})
 				.catch(() => {
 					// Intentionally empty: errors from fetching related events are suppressed
@@ -414,6 +416,7 @@ class TimelineManager {
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
 		this.timelineEvents = mappedEvents;
+		this.cleanupHideMessageEvents();
 		this._timelineVersion++;
 
 		return mappedEvents;
@@ -643,6 +646,7 @@ class TimelineManager {
 		const timeline = await this.getEventTimeline(fromEventId);
 		if (!timeline) {
 			this.timelineEvents = [];
+			this.hideMessageEvents.clear();
 			this._timelineVersion++;
 		} else {
 			// Snapshot timelineEvents IDs before fetching
@@ -674,6 +678,7 @@ class TimelineManager {
 						}
 					}
 
+					this.cleanupHideMessageEvents();
 					this._timelineVersion++;
 				}
 			}
