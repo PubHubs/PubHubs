@@ -285,16 +285,41 @@ async fn main_integration_test_local(
         .open(&*constellation.phc_jwt_key, None)
         .unwrap();
 
-    // request hub encryption key
-    let _hek = client
-        .get_hub_enc_key(client::for_hubs::HubContext {
-            ticket: &ticket,
-            signing_key: &mock_hub.context.sk,
-            constellation: &constellation,
-            timeout: Duration::from_secs(10),
-        })
-        .await
-        .unwrap();
+    // Exercise the HubPingEP demo endpoint against every server.
+    let ping_nonce = B64UU::from(serde_bytes::ByteBuf::from(&b"ping-nonce"[..]));
+    for name in [
+        servers::Name::PubhubsCentral,
+        servers::Name::Transcryptor,
+        servers::Name::AuthenticationServer,
+    ] {
+        let ts_req = api::phc::hub::TicketSigned::new(
+            ticket.clone(),
+            api::Signed::new(
+                &*mock_hub.context.sk,
+                &api::server::PingReq {
+                    nonce: ping_nonce.clone(),
+                },
+                Duration::from_secs(10),
+            )
+            .unwrap(),
+        );
+
+        let api::server::PingResp::Success {
+            hub_handle,
+            nonce,
+            served_by,
+        } = client
+            .query::<api::server::HubPingEP>(constellation.url(name), &ts_req)
+            .await
+            .unwrap()
+        else {
+            panic!("expected PingResp::Success from {name}");
+        };
+
+        assert_eq!(hub_handle, "testhub".parse().unwrap());
+        assert_eq!(nonce.to_string(), ping_nonce.to_string());
+        assert_eq!(served_by, name);
+    }
 
     let attrs = request_attributes(
         &client,

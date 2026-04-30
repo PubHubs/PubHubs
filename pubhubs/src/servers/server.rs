@@ -756,6 +756,28 @@ impl<S: Server> AppBase<S> {
         api::admin::InfoEP::add_to(app, sc, Self::handle_admin_info);
     }
 
+    /// Shared body of [`api::server::HubPingEP`].  Each server has its own `handle_hub_ping`
+    /// method that delegates here.
+    pub async fn handle_hub_ping(
+        app: Rc<S::AppT>,
+        signed_req: web::Json<api::phc::hub::TicketSigned<api::server::PingReq>>,
+    ) -> api::Result<api::server::PingResp> {
+        let running_state = app.running_state_or_please_retry()?;
+
+        let ts_req = signed_req.into_inner();
+
+        let (req, hub_handle) = match ts_req.open(&running_state.constellation.phc_jwt_key) {
+            Ok(opened) => opened,
+            Err(toe) => return toe.default_verdict(api::server::PingResp::RetryWithNewTicket),
+        };
+
+        Ok(api::server::PingResp::Success {
+            hub_handle,
+            nonce: req.nonce,
+            served_by: S::NAME,
+        })
+    }
+
     /// Changes server config, and restarts server
     async fn handle_admin_post_config(
         app: Rc<S::AppT>,

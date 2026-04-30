@@ -179,7 +179,7 @@ pub mod admin;
 pub mod auths;
 pub mod hub;
 pub mod phc;
-pub mod phct;
+pub mod server;
 pub mod tr;
 
 pub mod sso;

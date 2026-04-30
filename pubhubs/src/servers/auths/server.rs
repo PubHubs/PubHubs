@@ -172,6 +172,14 @@ impl AuthState {
 }
 
 impl App {
+    /// Implements [`api::server::HubPingEP`].
+    async fn handle_hub_ping(
+        app: Rc<Self>,
+        signed_req: web::Json<api::phc::hub::TicketSigned<api::server::PingReq>>,
+    ) -> api::Result<api::server::PingResp> {
+        crate::servers::AppBase::<Server>::handle_hub_ping(app, signed_req).await
+    }
+
     /// Implements [`api::auths::WelcomeEP`].
     fn cached_handle_welcome(app: &Self) -> api::Result<api::auths::WelcomeResp> {
         let attr_types: HashMap<handle::Handle, attr::Type> = app
@@ -194,6 +202,7 @@ impl App {
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::auths::WelcomeEP::caching_add_to(self, sc, App::cached_handle_welcome);
+        api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
 
         api::auths::AuthStartEP::add_to(self, sc, App::handle_auth_start);
         api::auths::AuthCompleteEP::add_to(self, sc, App::handle_auth_complete);

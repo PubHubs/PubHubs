@@ -110,6 +110,40 @@ pub mod hub {
         #[error("ticket is valid, but not the signature made using it")]
         Signed(#[source] OpenError),
     }
+
+    impl TicketOpenError {
+        /// Standard verdict for this error: respond with `retry_response` (when the hub can
+        /// recover by obtaining a new ticket), or fail the handler with an [`ErrorCode`].
+        ///
+        /// `retry_response` is typically the handler's `RetryWithNewTicket` response variant.
+        pub fn default_verdict<R>(self, retry_response: R) -> Result<R> {
+            match self {
+                // Ticket failed PHC's signature check or has aged past its TTL: requesting a fresh
+                // ticket from PHC fixes both cases.
+                Self::Ticket(OpenError::InvalidSignature) | Self::Ticket(OpenError::Expired) => {
+                    Ok(retry_response)
+                }
+                // Internal crypto failure.  `Ticket(OtherConstellation)` is defensive: the ticket
+                // is not constellation-bound (see [`Signable::CONSTELLATION_BOUND`]), so this
+                // arm would only fire on a code bug.
+                Self::Ticket(OpenError::InternalError)
+                | Self::Ticket(OpenError::OtherConstellation(..))
+                | Self::Signed(OpenError::InternalError) => Err(ErrorCode::InternalError),
+                // The hub just created the inner `Signed` for this request, so a bad/expired
+                // signature, a malformed JWT, or a constellation mismatch all point to a
+                // hub-side bug; surface as `BadRequest` so the hub investigates rather than
+                // loops on a fresh ticket.  (`Signed(OtherConstellation)` is currently
+                // unreachable: [`TicketSigned`] does not support constellation-bound inner
+                // messages.  If support is added, that arm should get its own
+                // `RetryWithNewConstellation` response variant instead.)
+                Self::Ticket(OpenError::OtherwiseInvalid)
+                | Self::Signed(OpenError::OtherwiseInvalid)
+                | Self::Signed(OpenError::InvalidSignature)
+                | Self::Signed(OpenError::Expired)
+                | Self::Signed(OpenError::OtherConstellation(..)) => Err(ErrorCode::BadRequest),
+            }
+        }
+    }
 }
 
 /// `.ph/user/...` endpoints, used by the ('global') web client
