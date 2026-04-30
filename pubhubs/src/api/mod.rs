@@ -51,7 +51,8 @@
 //! clever use of elliptic curves as described in [the whitepaper](https://academic.oup.com/logcom/article/34/7/1377/7319213)  
 //! The procedure below uses the same
 //! ideas but has been modified to prevent already generated pseudonyms from being linked
-//! when a large quantum computer ever materializes.
+//! when a cryptographically relevant quantum computer materializes.
+//! For the cryptographic details, see [`sso`].
 //!
 //!  1. The global client obtains a sealed  **[`sso::PolymorphicPseudonymPackage`] (PPP)**
 //!     from PHC via [`phc::user::PppEP`] and a **hub nonce** and **hub state**

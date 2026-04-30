@@ -1,12 +1,8 @@
 //! Endpoints served by every PubHubs server (PHC, Transcryptor, Authentication Server)
-//! aside from the ones in [`crate::api::discovery`].
+//! aside from the discovery related endpoints ([`DiscoveryInfo`] and [`DiscoveryRun`]).
 //!
 //! Currently only [`HubPingEP`], a worked example of an endpoint that requires the caller
-//! to authenticate as a hub via a [`phc::hub::TicketSigned`] request.  The shared handler
-//! body lives at [`crate::servers::AppBase::handle_hub_ping`]; each server has its own
-//! `handle_hub_ping` method that delegates there.  Programmers adding a similar endpoint
-//! can look at [`phc::hub::TicketOpenError::default_verdict`] for the standard mapping
-//! from a [`phc::hub::TicketOpenError`] to a response or [`ErrorCode`].
+//! to authenticate as a hub via a [`phc::hub::TicketSigned`] request.
 
 use crate::api::*;
 use crate::handle;
