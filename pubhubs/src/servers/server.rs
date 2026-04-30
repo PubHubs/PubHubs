@@ -304,7 +304,7 @@ pub trait AppCreator<ServerT: Server>:
 ///
 /// We do not use a trait like `(FnOnce(&mut ServerT)) + Send + 'static`,
 /// because it can not (yet) be implemented by users.
-pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
+pub trait Modifier<ServerT: Server>: Send + 'static {
     /// Stops server, perform modification, and restarts server if true was returned.
     fn modify(self: Box<Self>, server: &mut ServerT) -> bool;
 
@@ -337,7 +337,7 @@ impl<S: Server> Modifier<S> for Exiter {
 }
 
 /// Owned dynamically typed [Modifier].
-pub(crate) type BoxModifier<S> = Box<dyn Modifier<S>>;
+pub type BoxModifier<S> = Box<dyn Modifier<S>>;
 
 impl<S: Server> std::fmt::Display for BoxModifier<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -416,6 +416,7 @@ pub enum DiscoverVerdict {
 /// What's common between the [`actix_web::App`]s used by the different PubHubs servers.
 ///
 /// Each [`actix_web::App`] gets access to an instance of the appropriate implementation of [`App`]..
+#[allow(async_fn_in_trait)]
 pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// Allows [`App`] to add server-specific endpoints.  Non-server specific endpoints are added by
     /// [`AppBase::configure_actix_app`].
