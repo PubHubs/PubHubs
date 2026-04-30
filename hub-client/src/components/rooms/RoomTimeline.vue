@@ -671,7 +671,7 @@
 
 	function waitObservingEvent() {
 		let timer = setInterval(function () {
-			if (props.room.getLiveTimelineNewestEvent()?.event_id?.substring(0, 1) !== '~') {
+			if (props.room.getLiveTimelineNewestEvent()?.event.event_id?.substring(0, 1) !== '~') {
 				setupEventIntersectionObserver();
 				clearInterval(timer);
 			}

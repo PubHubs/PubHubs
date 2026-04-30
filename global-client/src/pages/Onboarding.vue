@@ -85,26 +85,24 @@
 							<!-- Card 3 -->
 							<CarouselCardMobile
 								:index="2"
+								:class="error && 'outline-accent-error card-shake text-on-accent-error outline outline-2'"
+								:error="!!error"
 								@next="scrollTo"
 							>
 								<template #title>
-									<H2>{{ $t('register.card_3_title') }}</H2>
+									<H2>{{ error ? $t('errors.oops') : $t('register.card_3_title') }}</H2>
 								</template>
 
 								<div class="flex flex-col gap-2">
-									<div
-										v-if="error"
-										class="items-top bg-surface text-accent-error flex flex-row gap-x-2 rounded-xl py-2"
-									>
-										<Icon type="warning" />
-										<P>{{ $t(error.key, error.values) }}</P>
-									</div>
-
-									<P>{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
+									<P>{{
+										error
+											? $t('errors.' + error.key, error.values ? error.values : [])
+											: $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')])
+									}}</P>
 								</div>
 
 								<template #extra>
-									<div class="flex h-full w-full items-center justify-center">
+									<div class="flex h-full w-full flex-col items-center justify-center gap-4">
 										<div
 											id="yivi-authentication"
 											class="aspect-square w-full"
@@ -183,36 +181,30 @@
 							<!-- Card 3 -->
 							<CarouselCard
 								:active="currentIndex === 2"
-								:class="currentIndex !== 2 && 'pointer-events-none'"
+								:class="[
+									currentIndex !== 2 && 'pointer-events-none',
+									error && 'outline-accent-error card-shake text-on-accent-error outline outline-2',
+								]"
 								:index="2"
+								:error="!!error"
 								@next="scrollTo"
 							>
 								<template #title>
-									<H2>{{ $t('register.card_3_title') }}</H2>
+									<H2>{{ error ? $t('errors.oops') : $t('register.card_3_title') }}</H2>
 								</template>
 
 								<div class="flex flex-col gap-2">
-									<P>{{ $t('register.card_3_text_1') }}</P>
-									<P class="mb-6">
+									<P>{{ error ? $t('errors.' + error.key, error.values ? error.values : []) : $t('register.card_3_text_1') }}</P>
+									<P
+										v-if="!error"
+										class="mb-6"
+									>
 										{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}
 									</P>
-
-									<div
-										v-if="error"
-										class="items-top bg-surface text-accent-error flex flex-row gap-x-4 rounded-xl py-2"
-									>
-										<Icon
-											class="mt-1"
-											type="warning"
-										/>
-										<P class="mt-1">
-											{{ $t(error.key, error.values) }}
-										</P>
-									</div>
 								</div>
 
 								<template #right>
-									<div class="flex h-full w-full items-center justify-center">
+									<div class="flex h-full w-full flex-col items-center justify-center gap-4">
 										<div
 											id="yivi-authentication"
 											class="h-fit w-fit"
@@ -280,8 +272,6 @@
 	import DownloadLinks from '@global-client/components/ui/onboarding/DownloadLinks.vue';
 	import FaqSection from '@global-client/components/ui/onboarding/FaqSection.vue';
 
-	import Icon from '@hub-client/components/elements/Icon.vue';
-
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -300,7 +290,7 @@
 	const { t } = useI18n();
 	const router = useRouter();
 	const route = useRoute();
-	const error = ref();
+	const error = ref<{ key: string; values?: string[] } | undefined>();
 	const dialog = useDialog();
 
 	// Logging
@@ -358,6 +348,7 @@
 			currentIndex.value = closestIndex;
 		});
 	};
+
 	const handleResize = debounce(async () => {
 		await startYiviSessionMSS();
 	}, 300);
@@ -384,7 +375,6 @@
 		window.removeEventListener('resize', handleResize);
 	});
 
-	// Lifecycle
 	function debounce(fn: () => void, delay: number) {
 		let timer: number;
 		return () => {
@@ -394,14 +384,17 @@
 	}
 
 	async function startYiviSessionMSS(registerOnlyWithUniqueAttrs = true) {
-		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
+		const loginMethod = loginMethods.Yivi;
 
 		try {
 			const mss = useMSS();
-			let errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister, registerOnlyWithUniqueAttrs);
+			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister, registerOnlyWithUniqueAttrs);
 			if (errorMessage?.key === 'errors.notid_attribute_already_taken') {
 				handleDuplicateAttributeError();
 				return;
+			} else if (errorMessage?.key === 'YiviServerGone') {
+				error.value = errorMessage;
+				await mss.issueCard(false, errorMessage?.values?.pop() ?? '');
 			} else if (errorMessage) {
 				error.value = errorMessage;
 				return;
@@ -411,11 +404,12 @@
 			} else {
 				await router.push({ name: 'home' });
 			}
-		} catch (error) {
+		} catch (err) {
 			router.push({ name: 'error' });
-			logger.error('Error during MSS Registration', { error });
+			logger.error('Error during MSS Registration', { err });
 		}
 	}
+
 	async function handleDuplicateAttributeError() {
 		dialog.okcancel(t('errors.notid_taken_title'), t('errors.notid_attribute_already_taken'));
 
@@ -438,3 +432,34 @@
 		dialog.addCallback(DialogCancel, handleCancel);
 	}
 </script>
+
+<style scoped>
+	@keyframes card-shake {
+		0%,
+		100% {
+			transform: translateX(0);
+		}
+		15% {
+			transform: translateX(-6px);
+		}
+		30% {
+			transform: translateX(6px);
+		}
+		45% {
+			transform: translateX(-4px);
+		}
+		60% {
+			transform: translateX(4px);
+		}
+		75% {
+			transform: translateX(-2px);
+		}
+		90% {
+			transform: translateX(2px);
+		}
+	}
+
+	.card-shake {
+		animation: card-shake 0.6s ease-in-out;
+	}
+</style>

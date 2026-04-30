@@ -104,10 +104,11 @@ class Authentication {
 
 		// create store for indexedDB caching
 		const indexedDBStore = new sdk.IndexedDBStore({ indexedDB: window.indexedDB, dbName: `pubhubs-db-${this.user.userId}` });
+		// Video call information supplied to synapse client about starting the video call.
+		const videoCallInfo = { deviceId: 'template', useE2eForGroupCall: true, useLivekitForGroupCalls: true };
+		const authWithVideoCallInfo = { ...auth, ...videoCallInfo, store: indexedDBStore };
 
-		auth.store = indexedDBStore;
-
-		this.client = sdk.createClient(auth);
+		this.client = sdk.createClient(authWithVideoCallInfo);
 
 		await indexedDBStore.startup();
 

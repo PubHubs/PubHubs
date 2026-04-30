@@ -107,6 +107,7 @@ const routes = [
 		name: 'nop',
 		component: () => import('@hub-client/pages/NotImplemented.vue'),
 	},
+	{ path: '/videocall', name: 'videocall', component: () => import('@hub-client/pages/VideoCallPage.vue') },
 ];
 
 // Create the router instance

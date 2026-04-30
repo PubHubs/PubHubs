@@ -167,8 +167,13 @@ mod signed;
 pub use signed::*;
 mod sealed;
 pub use sealed::*;
+
 mod discovery;
 pub use discovery::*;
+
+#[cfg(test)]
+mod wire_compat;
+
 pub mod admin;
 
 pub mod auths;

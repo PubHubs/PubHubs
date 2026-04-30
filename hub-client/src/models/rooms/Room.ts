@@ -6,6 +6,9 @@ import {
 	type EventTimelineSet,
 	EventType,
 	type Filter,
+	type GroupCall,
+	GroupCallIntent,
+	GroupCallType,
 	type IStateEvent,
 	type MatrixClient,
 	MatrixEvent,
@@ -17,17 +20,19 @@ import {
 	type Thread,
 } from 'matrix-js-sdk';
 import { type CachedReceipt, type WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { type MatrixRTCSession } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
 import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+import { api_synapse } from '@hub-client/logic/core/api';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
-import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
@@ -308,22 +313,6 @@ export default class Room {
 
 	// #reaction region  ///
 
-	public ifLastEventHasReaction(eventId: string): boolean {
-		const lastMessageEventId = this.matrixRoom
-			.getLiveTimeline()
-			.getEvents()
-			.filter((event) => event.getType() === EventType.RoomMessage)
-			.at(-1)?.event.event_id;
-		const reactEvent = this.getReactEventsFromTimeLine().find((event) => event.event.event_id === eventId);
-		if (reactEvent) {
-			const eventIdForMessage = reactEvent.getContent()[RelationType.RelatesTo]?.event_id;
-			if (eventIdForMessage === lastMessageEventId) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	/**
 	 *  Gets reaction event based on relation event Id
 	 * @param eventId string Relation Event Id
@@ -339,6 +328,10 @@ export default class Room {
 
 	// Sliding sync state methods //
 
+	public getHideState(eventId: string) {
+		return this.timelineManager.getHideState(eventId);
+	}
+
 	public getStateMember(): RoomMemberStateEvent[];
 	public getStateMember(userId?: string): RoomMemberStateEvent | RoomMemberStateEvent[] | undefined {
 		if (userId !== undefined) {
@@ -351,11 +344,11 @@ export default class Room {
 	}
 
 	public getStateJoinedMembersIds(): string[] {
-		return this.stateEvents.filter((item) => item.content.membership === 'join' || item.content.membership === 'invite').map((item) => item.sender);
+		return this.stateEvents.filter((item) => item.content.membership === 'join').map((item) => item.sender);
 	}
 
 	public getStateJoinedMembers(): RoomMemberStateEvent[] {
-		return this.stateEvents.filter((item) => item.content.membership === 'join' || item.content.membership === 'invite') as RoomMemberStateEvent[];
+		return this.stateEvents.filter((item) => item.content.membership === 'join') as RoomMemberStateEvent[];
 	}
 
 	public getStateMemberPowerLevel(userId: string | null): number {
@@ -391,13 +384,6 @@ export default class Room {
 		const roomMember = new RoomMember(matrixRoomMember);
 		this.roomMembers.set(userId, roomMember);
 		return roomMember;
-	}
-
-	/**
-	 * Gets all joined members of the room except the current user or any bots.
-	 */
-	public getOtherJoinedMembers(): TRoomMember[] {
-		return this.getOtherMembers(this.matrixRoom.getMembersWithMembership('join'));
 	}
 
 	public getOtherInviteMembers(): TRoomMember[] {
@@ -607,11 +593,11 @@ export default class Room {
 		//return this.matrixRoom.getLiveTimeline().getEvents();
 	}
 
-	public getLiveTimelineNewestEvent(): Partial<TBaseEvent> | undefined {
+	public getLiveTimelineNewestEvent(): MatrixEvent | undefined {
 		return this.timelineManager
 			.getEvents()
 			.map((x) => x.matrixEvent)
-			.at(-1)?.event;
+			.at(-1);
 		//return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
 	}
 
@@ -634,7 +620,7 @@ export default class Room {
 			const relatedEventsByOption = Object.values(
 				relatedEvents.reduce(
 					(acc, event) => {
-						const optionId = event.event.content?.optionId;
+						const optionId = event.getContent()?.optionId;
 						const userId = event.getSender();
 
 						if (!acc[optionId]) {
@@ -645,7 +631,7 @@ export default class Room {
 						if (existingIndex === -1) {
 							acc[optionId].push(event);
 						} else {
-							if ((acc[optionId][existingIndex].event.origin_server_ts ?? 0) < (event.event.origin_server_ts ?? 0)) {
+							if ((acc[optionId][existingIndex].getTs() ?? 0) < (event.getTs() ?? 0)) {
 								acc[optionId][existingIndex] = event;
 							}
 						}
@@ -661,7 +647,7 @@ export default class Room {
 				relatedEvents.reduce(
 					(acc, event) => {
 						const userId = event.getSender();
-						if (userId && (!acc[userId] || (acc[userId].event.origin_server_ts ?? 0) < (event.event.origin_server_ts ?? 0))) {
+						if (userId && (!acc[userId] || (acc[userId].getTs() ?? 0) < (event.getTs() ?? 0))) {
 							acc[userId] = event;
 						}
 						return acc;
@@ -697,9 +683,19 @@ export default class Room {
 
 	// #region TimelineManager
 
+	/**
+	 * Initialization room timeline
+	 */
 	public initTimeline() {
 		this.syncDataReceived = false;
 		this.timelineManager.initRoomTimeline(this.matrixRoom.roomId);
+	}
+
+	/**
+	 * Initialization room library
+	 */
+	public async initFileLibrary() {
+		return this.timelineManager.initFileLibrary();
 	}
 
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
@@ -751,9 +747,9 @@ export default class Room {
 			const currentEvents = this.timelineManager.getEvents();
 
 			// get the visible other threads by checking on the id
-			const visibleOtherThreads = currentEvents.filter((x) => otherThreadEventIds.has(x.matrixEvent.event.event_id));
+			const visibleOtherThreads = currentEvents.filter((x) => otherThreadEventIds.has(x.matrixEvent.getId()));
 			visibleOtherThreads.forEach((event) => {
-				const eventId = event.matrixEvent.event.event_id;
+				const eventId = event.matrixEvent.getId();
 				if (eventId) {
 					event.thread.setMatrixThread(this.getOrCreateMatrixThread(eventId));
 				}
@@ -806,8 +802,6 @@ export default class Room {
 		return this.timelineManager?.getMessagesFilter();
 	}
 
-	// #region TimelineManager
-
 	// The TimelineManager that controls the visible part of the timeline
 	// this is filtered to show only messages and gets updated by sliding sync or pagination
 
@@ -835,8 +829,8 @@ export default class Room {
 		return this.timelineManager?.isNewestMessageLoaded();
 	}
 
-	public isVisibleEvent(event: Partial<TBaseEvent>): boolean {
-		return this.timelineManager.isVisibleEvent(event);
+	public isVisibleEvent(event: MatrixEvent): boolean {
+		return this.timelineManager.isVisibleEvent(event.event);
 	}
 
 	public getRoomOldestMessageId(): string | undefined {
@@ -942,6 +936,51 @@ export default class Room {
 	}
 
 	// #endregion
+
+	// #region VideoCall
+
+	public startMatrixRTC() {
+		this.matrixRoom.client.matrixRTC.start();
+	}
+
+	public getMatrixRTCSessions(): MatrixRTCSession {
+		return this.matrixRoom.client.matrixRTC.getRoomSession(this.matrixRoom);
+	}
+
+	//TODO maybe move to pubhubsstore
+	public async getLiveKitTokenResponse(): Promise<[string, string]> {
+		const response = await api_synapse.apiGET(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId);
+		// @ts-expect-error -- API response is loosely typed and returns token/livekit_url keys at runtime
+		return [response.token, response.livekit_url];
+	}
+
+	public async createGroupCall(): Promise<GroupCall> {
+		await api_synapse.apiPOST(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId, {});
+		return await this.matrixRoom.client.createGroupCall(this.roomId, GroupCallType.Video, false, GroupCallIntent.Room, true);
+	}
+
+	public getGroupCall(): GroupCall | null {
+		return this.matrixRoom.client.getGroupCallForRoom(this.roomId);
+	}
+
+	public isOngoingCall() {
+		const groupCall = this.matrixRoom.client.getGroupCallForRoom(this.roomId);
+		if (groupCall) return true;
+		return false;
+	}
+
+	public getLastVideoCallTimeLineEvent(): MatrixEvent | undefined {
+		const timeline = this.getLiveTimelineEvents();
+
+		const lastVideoCallMessage = timeline.findLast((e) => e.event.content?.msgtype === PubHubsMgType.VideoCall);
+		if (!lastVideoCallMessage || !lastVideoCallMessage.event.event_id) {
+			return undefined;
+		}
+
+		return lastVideoCallMessage;
+	}
+
+	//#endregion
 }
 
 // #region Unread state helpers

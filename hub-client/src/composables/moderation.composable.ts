@@ -1,5 +1,5 @@
 import { Direction, EventType, Filter, type IRoomEvent, KnownMembership } from 'matrix-js-sdk';
-import { computed, reactive, ref, watch, watchEffect } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 
 import { useSidebar } from '@hub-client/composables/useSidebar';
 
@@ -58,6 +58,16 @@ function useModeration(room?: Room) {
 		memberId: '',
 	});
 
+	const hideMessageDialog = reactive<{
+		visible: boolean;
+		roomId: string;
+		eventId: string;
+	}>({
+		visible: false,
+		roomId: '',
+		eventId: '',
+	});
+
 	const allMembers = computed(() => {
 		const currentRoom = getCurrentRoom();
 		if (!currentRoom) return [];
@@ -66,6 +76,8 @@ function useModeration(room?: Room) {
 			.filter((m) => !m.state_key.startsWith('@notices_user:'))
 			.map((m) => m.sender);
 	});
+
+	const allOtherMembers = computed(() => allMembers.value.filter((userId) => userId !== userStore.userId));
 
 	const nonPowerMemberIds = computed(() => {
 		const currentRoom = getCurrentRoom();
@@ -115,6 +127,7 @@ function useModeration(room?: Room) {
 			.filter(
 				(event) =>
 					(event.content.membership === KnownMembership.Leave || event.unsigned.prev_content?.membership === KnownMembership.Leave) &&
+					(event.content.reason || event.unsigned.prev_content?.reason) &&
 					(event.sender !== event.state_key || event.sender !== event.unsigned.prev_sender) &&
 					event.content.membership !== KnownMembership.Ban &&
 					event.unsigned.prev_content?.membership !== KnownMembership.Ban,
@@ -234,11 +247,17 @@ function useModeration(room?: Room) {
 		}
 	};
 
+	const removeMember = (roomId: string, userId: string) => pubhubsStore.client.kick(roomId, userId);
+
 	const issueYellowCard = (roomId: string, userId: string, reason: string) => pubhubsStore.client.kick(roomId, userId, reason);
 
 	const issueRedCard = (roomId: string, userId: string, reason: string) => pubhubsStore.client.ban(roomId, userId, reason);
 
 	const revokeRedCard = (roomId: string, userId: string) => pubhubsStore.client.unban(roomId, userId);
+
+	const hideMessage = (roomId: string, targetEventId: string, label: string) => pubhubsStore.addVisibilityMessage(roomId, targetEventId, true, label);
+
+	const unHideMessage = (roomId: string, targetEventId: string) => pubhubsStore.addVisibilityMessage(roomId, targetEventId, false);
 
 	const getCurrentRoom = () => room ?? roomStore.currentRoom;
 
@@ -271,6 +290,16 @@ function useModeration(room?: Room) {
 		}
 	};
 
+	const openHideMessageDialog = (roomId: string, eventId: string) => {
+		hideMessageDialog.roomId = roomId;
+		hideMessageDialog.eventId = eventId;
+		hideMessageDialog.visible = true;
+	};
+
+	const onHideMessageDialogSubmit = (label: string) => {
+		hideMessage(hideMessageDialog.roomId, hideMessageDialog.eventId, label);
+	};
+
 	const watchStewardInvites = () =>
 		watch(
 			() => roomStore.currentRoom,
@@ -280,25 +309,11 @@ function useModeration(room?: Room) {
 			{ immediate: true },
 		);
 
-	const watchEffectCardAction = () =>
-		watchEffect(async () => {
-			const hasReceivedCard = membershipEvents.value.some(
-				(event) =>
-					(event.content.membership === KnownMembership.Leave || event.content.membership === KnownMembership.Ban) &&
-					event.state_key === userStore.userId &&
-					event.sender !== event.state_key &&
-					event.content.reason,
-			);
-			const currentRoom = roomStore.currentRoom;
-
-			if (hasReceivedCard && currentRoom) {
-				pubhubsStore.joinRoom(currentRoom.roomId);
-			}
-		});
-
 	return {
 		cardDialog,
+		hideMessageDialog,
 		allMembers,
+		allOtherMembers,
 		stewardInvitations,
 		nonPowerMemberIds,
 		powerMembers,
@@ -318,12 +333,16 @@ function useModeration(room?: Room) {
 		removeStewardInvite,
 		stewardSourceRoomName,
 		watchStewardInvites,
-		watchEffectCardAction,
+		removeMember,
 		issueYellowCard,
 		issueRedCard,
 		revokeRedCard,
 		openCardDialog,
 		onCardDialogSubmit,
+		openHideMessageDialog,
+		onHideMessageDialogSubmit,
+		hideMessage,
+		unHideMessage,
 	};
 }
 export { TPowerUser, StewardInvitationStatus, TStewardInvitation, useModeration };

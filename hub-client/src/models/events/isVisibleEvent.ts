@@ -23,6 +23,7 @@ const invisibleRelatesToTypes: string[] = [RelationType.Thread];
  * - thread replies
  * - whispers to other users
  * - redacted thread events
+ * - hide-message moderation events (which mark another event as hidden)
  */
 export function isVisibleEvent(event: Partial<TBaseEvent>, currentUserId: string | null): boolean {
 	if (event.type && !visibleEventTypes.includes(event.type)) return false;
@@ -38,6 +39,9 @@ export function isVisibleEvent(event: Partial<TBaseEvent>, currentUserId: string
 		| undefined;
 
 	if (content?.msgtype && invisibleMessageTypes.includes(content.msgtype)) return false;
+
+	// Hide-message moderation events mark another event as hidden; they are never themselves rendered.
+	if (content?.msgtype === PubHubsMgType.HideMessage) return false;
 
 	const relatesToRelType = content?.[RelationType.RelatesTo]?.rel_type;
 	if (relatesToRelType && invisibleRelatesToTypes.includes(relatesToRelType)) return false;

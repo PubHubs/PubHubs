@@ -2,11 +2,11 @@
 	<iframe
 		v-if="hubs.currentHubExists"
 		:id="iframeHubId"
-		allow="clipboard-write"
+		allow="camera; microphone; display-capture; autoplay; speaker-selection; clipboard-write"
+		:src="hubUrl"
 		class="h-full w-full"
 		name="hub"
-		:src="hubUrl"
-	/>
+	></iframe>
 </template>
 
 <script lang="ts" setup>
@@ -15,10 +15,9 @@
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
-	// Logic
-	import { delay } from '@global-client/logic/utils/generalUtils';
-
 	import { createLogger } from '@hub-client/logic/logging/Logger';
+	// Logic
+	import { delay } from '@hub-client/logic/utils/common';
 
 	import { type EnterStartResp } from '@global-client/models/MSS/TGeneral';
 

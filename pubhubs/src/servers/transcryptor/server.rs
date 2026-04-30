@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::elgamal;
+use crate::common::elgamal;
 use crate::misc::crypto;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::phcrypto;

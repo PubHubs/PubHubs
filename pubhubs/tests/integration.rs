@@ -6,7 +6,9 @@ use indexmap::IndexMap;
 
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
-    attr, client, elgamal, handle, hub,
+    attr, client,
+    common::elgamal,
+    handle, hub,
     misc::{jwt, serde_ext::bytes_wrapper::B64UU},
     servers::{self, yivi},
 };
@@ -1217,6 +1219,7 @@ async fn request_attributes_chained(
             &api::auths::YiviReleaseNextSessionReq {
                 state: auth_state.clone(),
                 next_session: None,
+                stale_after: None,
             },
         )
         .await

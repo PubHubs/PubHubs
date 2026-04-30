@@ -28,8 +28,12 @@ enum PubHubsMsgType {
 	VotingWidgetAddVoteOption = 'pubhubs.voting_widget.add_vote_option',
 	VotingWidgetReply = 'pubhubs.voting_widget.reply',
 	VotingWidgetModify = 'pubhubs.voting_widget.modify',
+	VideoCall = 'pubhubs.videocall',
+	VideoCallEnded = 'pubhubs.videocall.ended',
+	VideoCallModify = 'pubhubs.videocall.modify',
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
+	HideMessage = 'pubhubs.hide_message',
 }
 
 enum PubHubsInvisibleMsgType {

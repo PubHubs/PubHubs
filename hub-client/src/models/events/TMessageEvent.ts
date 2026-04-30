@@ -34,6 +34,7 @@ export interface TBaseMessageEventContent {
 		| MsgType.Text
 		| MsgType.Image
 		| MsgType.File
+		| MsgType.Video
 		| PubHubsMgType.SignedMessage
 		| PubHubsMgType.AnnouncementMessage
 		| PubHubsMgType.WhisperMessage
@@ -43,7 +44,10 @@ export interface TBaseMessageEventContent {
 		| PubHubsMgType.VotingWidgetClose
 		| PubHubsMgType.VotingWidgetOpen
 		| PubHubsMgType.VotingWidgetPickOption
-		| PubHubsMgType.VotingWidgetAddVoteOption;
+		| PubHubsMgType.VotingWidgetAddVoteOption
+		| PubHubsMgType.HideMessage
+		| PubHubsMgType.VideoCall
+		| PubHubsMgType.VideoCallEnded;
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
@@ -100,6 +104,20 @@ export interface TWhisperMessageEventContent extends TPrivilegedMessageEventCont
 	whisper_to: string;
 }
 
+export interface TVideoCallMessageEventContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.VideoCall;
+	timestamp: number;
+}
+
+export interface TVideoCallEndedMessageEventContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.VideoCallEnded;
+	timestamp: number;
+}
+export interface THideMessageContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.HideMessage;
+	ph_hidden_label: string | undefined;
+}
+
 export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;
 
 export type TMessageEventContent =
@@ -108,4 +126,6 @@ export type TMessageEventContent =
 	| TFileMessageEventContent
 	| TSignedMessageEventContent
 	| TPrivilegedMessageEventContent
-	| TVotingWidgetMessageEventContent;
+	| TVotingWidgetMessageEventContent
+	| TVideoCallMessageEventContent
+	| TVideoCallEndedMessageEventContent;

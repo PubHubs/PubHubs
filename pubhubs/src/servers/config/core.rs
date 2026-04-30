@@ -10,7 +10,9 @@ use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
-    attr, elgamal, hub,
+    attr,
+    common::elgamal,
+    hub,
     misc::{jwt, serde_ext, time_ext},
     servers::yivi,
 };

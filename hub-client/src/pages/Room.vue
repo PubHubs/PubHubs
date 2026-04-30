@@ -102,6 +102,14 @@
 							@click="sidebar.toggleTab(SidebarTab.Library)"
 						/>
 
+						<!-- Video call button -->
+						<GlobalBarButton
+							v-if="showVideocallButton()"
+							type="video"
+							:is-start-button="!ongoingCall"
+							@click="startOrJoinVideoCall()"
+						/>
+
 						<!-- Members -->
 						<GlobalBarButton
 							v-if="hasRoomMembers"
@@ -182,7 +190,8 @@
 
 <script setup lang="ts">
 	// Packages
-	import { capitalize, computed, onMounted, ref, watch } from 'vue';
+	import { KnownMembership } from 'matrix-js-sdk';
+	import { capitalize, computed, onMounted, ref, watch, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
@@ -214,18 +223,20 @@
 
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
+	import { delay } from '@hub-client/logic/utils/common';
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 	import { UserAction } from '@hub-client/models/users/TUser';
 
-	import { DialogOk } from '@hub-client/stores/dialog';
+	import { DialogOk, useDialog } from '@hub-client/stores/dialog';
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
@@ -255,17 +266,21 @@
 	const route = useRoute();
 	const rooms = useRooms();
 	const user = useUser();
+	const dialogStore = useDialog();
 	const roles = useRoles();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
+	const videoCall = useVideoCall();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
 	const { openMenu } = useContextMenu();
 	const sidebar = useSidebar();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
-	const pubhubs = usePubhubsStore();
-	const { yellowCardMembers, watchEffectCardAction } = useModeration();
 
+	const pubhubs = usePubhubsStore();
+	const { yellowCardMembers, membershipEvents } = useModeration();
+
+	const ongoingCall = computed(() => room.value!.isOngoingCall());
 	const joinSecuredRoom = ref<string | null>(null);
 	const scrollToEventId = ref<string>();
 	const isLoading = ref(!rooms.roomExists(props.id));
@@ -457,5 +472,68 @@
 		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
 	}
 
-	watchEffectCardAction();
+	async function startOrJoinVideoCall() {
+		let connected = false;
+		if (room.value!.isOngoingCall()) {
+			connected = await videoCall.joinCall();
+			if (!connected) {
+				connected = await videoCall.startCall();
+			}
+		} else {
+			connected = await videoCall.startCall();
+		}
+		if (!connected) return;
+		await router.push({ name: 'videocall' });
+	}
+
+	function showVideocallButton(): boolean {
+		return settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.value!.isSecuredRoom() || room.value!.isPrivateRoom());
+	}
+
+	const handleKick = (roomId: string) => {
+		dialogStore.yesno(capitalize(t('moderation.removed_from_room')));
+
+		const handleOk = async () => {
+			cleanup();
+			await pubhubs.joinRoom(roomId);
+			const maxAttempts = 7;
+			for (let attempt = 0; attempt < maxAttempts; attempt++) {
+				const hasJoinEvent = membershipEvents.value.some(
+					(event) => event.content.membership === KnownMembership.Join && event.state_key === user.userId,
+				);
+				if (hasJoinEvent) {
+					router.push({ name: 'room', params: { id: roomId } });
+					break;
+				}
+				await delay(attempt);
+			}
+		};
+
+		const cleanup = () => {
+			dialogStore.removeCallback(DialogOk);
+		};
+
+		dialogStore.addCallback(DialogOk, handleOk);
+	};
+
+	watchEffect(async () => {
+		const hasLeaveOrBanEvent = membershipEvents.value.some(
+			(event) =>
+				(event.content.membership === KnownMembership.Leave || event.content.membership === KnownMembership.Ban) &&
+				event.state_key === user.userId &&
+				event.sender !== event.state_key,
+		);
+		const hasReason = membershipEvents.value.some((event) => event.content.reason && event.state_key === user.userId && event.sender !== event.state_key);
+		const currentRoom = rooms.currentRoom;
+		if (!currentRoom) return;
+
+		// This statement is for the yellow card warning and red card ban which both require a reason
+		if (hasLeaveOrBanEvent && hasReason) {
+			pubhubs.joinRoom(currentRoom.roomId);
+			// This is for temporary removal from a room which does not require a reason.
+		} else if (hasLeaveOrBanEvent) {
+			handleKick(currentRoom.roomId);
+			router.push({ name: 'home' });
+		}
+	});
 </script>

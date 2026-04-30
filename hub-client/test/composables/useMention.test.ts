@@ -1,5 +1,5 @@
 /**
- * Tests for the `useMentions` composable.
+ * Tests for the `useMentionsDisplay` composable.
  *
  * This test verifies:
  * - Correct parsing of mentions from a message (`parseMentions`)
@@ -24,7 +24,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { describe, expect, test } from 'vitest';
 
 // Composable
-import { useMentions } from '@hub-client/composables/useMentions';
+import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 
 // Model
 import { MentionMatch } from '@hub-client/models/components/TMessage';
@@ -115,7 +115,7 @@ describe('useMentions', () => {
 	setActivePinia(createPinia());
 	// Need a valid roomId to link to
 	useRooms().publicRooms = [{ room_id: '!ZXaxkYUwdQwHiPwvyA:testhub.matrix.host', name: 'test' }];
-	const mentionComposable = useMentions();
+	const mentionComposable = useMentionsDisplay();
 
 	// Test a mention within normal text
 	test('parseMentions&buildSegments1', () => {

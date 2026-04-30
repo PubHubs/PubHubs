@@ -59,6 +59,7 @@ const en = {
 		notid_attribute_already_taken:
 			'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
 		notid_taken_title: 'Phone number already in use',
+		YiviServerGone: 'You could likely not complete the login because battery-saver blocks javascript, try the last step one more time to log in.',
 	},
 	file: {
 		upload: 'Upload',
@@ -219,6 +220,8 @@ const en = {
 		leave_room: 'Leave room',
 		leave_conversation: 'Hide conversation',
 		download_file: 'Download',
+		hide_message: 'hide message',
+		show_message: 'show message',
 		copy_image: 'Copy image',
 		save_image: 'Save image',
 		home: 'Hub welcome',
@@ -237,8 +240,6 @@ const en = {
 		admin_tools_room: 'Manage room: {0}',
 		admin_tools_users: 'Manage users',
 		admin_tools_hub_settings: 'Hub settings',
-		moderation_tools: 'Moderation tools',
-		moderation_tools_disclosure: 'Request disclosure',
 		add_reaction: 'Add reaction',
 		copy_message: 'Copy message',
 		delete_message: 'Delete message',
@@ -517,6 +518,12 @@ const en = {
 		revoke_red_card: 'revoke red card',
 		card_reason_label: 'reason for issuing this card',
 		sanctioned_members: 'sanctioned members',
+		hidden_message: 'hidden',
+		hide_message: 'hide',
+		hide_message_info: 'the selected message will be hidden with your reason as warning',
+		hide_reason_label: 'reason for hiding this message',
+		remove_from_room: 'remove from room',
+		removed_from_room: 'you have been removed from the room, do you want to rejoin?',
 	},
 	themes: {
 		dark: 'Dark',
@@ -744,6 +751,10 @@ const en = {
 				},
 			},
 		},
+	},
+	videocall: {
+		start_button: 'Start video call',
+		join_button: 'Join video call',
 	},
 };
 

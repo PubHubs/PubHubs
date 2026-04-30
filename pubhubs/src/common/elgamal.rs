@@ -60,7 +60,7 @@ impl Triple {
     /// Changes the appearance of the ciphertext, but leaves the plaintext and the target
     /// public key unaltered.  If the public key was spoofed, the plaintext is garbled.
     /// ```
-    /// use pubhubs::elgamal::{PrivateKey, random_point, random_scalar};
+    /// use pubhubs::common::elgamal::{PrivateKey, random_point, random_scalar};
     /// use curve25519_dalek::{
     ///     ristretto::RistrettoPoint,
     ///     constants::RISTRETTO_BASEPOINT_TABLE as B,

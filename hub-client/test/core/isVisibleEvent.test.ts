@@ -87,6 +87,21 @@ describe('isVisibleEvent', () => {
 		).toBe(false);
 	});
 
+	test('hide-message moderation event is not visible', () => {
+		expect(
+			isVisibleEvent(
+				baseEvent({
+					content: {
+						msgtype: PubHubsMgType.HideMessage,
+						body: '',
+						'm.relates_to': { rel_type: RelationType.Hide, event_id: '$target' },
+					},
+				}),
+				userId,
+			),
+		).toBe(false);
+	});
+
 	test('redacted thread event is not visible', () => {
 		expect(
 			isVisibleEvent(

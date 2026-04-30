@@ -1,8 +1,8 @@
 import tailwindcss from '@tailwindcss/vite';
 import Vue from '@vitejs/plugin-vue';
 import { URL, fileURLToPath } from 'node:url';
-import { defineConfig } from 'vitest/config';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	logLevel: 'warn',

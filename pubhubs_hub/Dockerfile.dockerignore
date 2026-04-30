@@ -6,3 +6,6 @@
 !assets
 !boot
 !boot/**/*.py
+!config
+!config/local
+!config/local/livekit.local.yaml
