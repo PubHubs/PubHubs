@@ -14,7 +14,7 @@
 					<H1 class="text-accent-primary capitalize">{{ $t('moderation.red_card') }}</H1>
 					<H3 class="">{{ $t(errorKey) }}</H3>
 					<p class="text-on-surface-variant text-sm">{{ redCardMembers.find((card) => card.userId === userStore.userId)?.reason }}</p>
-					<router-link :to="fromRoute || { name: 'home' }">
+					<router-link :to="redCardBackRoute">
 						<Button class="mx-auto block max-w-md rounded-lg py-2">
 							{{ $t('dialog.go_back') }}
 						</Button>
@@ -41,19 +41,33 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
+	import { computed } from 'vue';
+
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	// Composables
 	import { useModeration } from '@hub-client/composables/moderation.composable';
 
+	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
-	defineProps({
+	const props = defineProps({
 		errorKey: { type: String, required: true },
 		errorValues: { type: Array, required: true },
 		fromRoute: { type: String, default: null },
 	});
+
 	const { redCardMembers } = useModeration();
 	const userStore = useUser();
+
+	// For red card, don't go back to a room (user is banned), go home instead
+	const redCardBackRoute = computed(() => {
+		if (props.fromRoute && !props.fromRoute.startsWith('/room/')) {
+			return props.fromRoute;
+		}
+		return { name: 'home' };
+	});
 </script>
