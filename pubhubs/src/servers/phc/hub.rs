@@ -6,7 +6,6 @@ use actix_web::web;
 use crate::api::ApiResultExt as _;
 use crate::api::OpenError;
 use crate::api::{self, NoPayload};
-use crate::phcrypto;
 
 use super::server::*;
 use api::phc::hub::*;
@@ -74,47 +73,11 @@ impl App {
         )?))
     }
 
-    /// Implements [`api::phct::hub::KeyEP`].
-    pub(super) async fn handle_hub_key(
+    /// Implements [`api::server::HubPingEP`].
+    pub(super) async fn handle_hub_ping(
         app: Rc<Self>,
-        signed_req: web::Json<TicketSigned<api::phct::hub::KeyReq>>,
-    ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.running_state_or_please_retry()?;
-
-        let ts_req = signed_req.into_inner();
-
-        let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
-
-        if let Err(toe) = ts_req.open(&app.jwt_key.verifying_key()) {
-            match toe {
-                TicketOpenError::Ticket(OpenError::InvalidSignature)
-                | TicketOpenError::Ticket(OpenError::Expired) => {
-                    return Ok(api::phct::hub::KeyResp::RetryWithNewTicket);
-                }
-                TicketOpenError::Ticket(OpenError::InternalError)
-                | TicketOpenError::Ticket(OpenError::OtherConstellation(..))
-                | TicketOpenError::Signed(OpenError::OtherConstellation(..))
-                | TicketOpenError::Signed(OpenError::InternalError) => {
-                    return Err(api::ErrorCode::InternalError);
-                }
-                TicketOpenError::Ticket(OpenError::OtherwiseInvalid)
-                | TicketOpenError::Signed(OpenError::OtherwiseInvalid)
-                | TicketOpenError::Signed(OpenError::InvalidSignature)
-                | TicketOpenError::Signed(OpenError::Expired) => {
-                    return Err(api::ErrorCode::BadRequest);
-                }
-            }
-        }
-
-        // At this point we can be confident that the ticket is authentic, so we can give the hub
-        // its decryption key based on the provided ticket
-
-        let key_part: curve25519_dalek::Scalar = phcrypto::phc_hub_key_part(
-            ticket_digest,
-            &running_state.t_ss, // shared secret with transcryptor
-            &app.master_enc_key_part,
-        );
-
-        Ok(api::phct::hub::KeyResp::Success { key_part })
+        signed_req: web::Json<TicketSigned<api::server::PingReq>>,
+    ) -> api::Result<api::server::PingResp> {
+        crate::servers::AppBase::<Server>::handle_hub_ping(app, signed_req).await
     }
 }

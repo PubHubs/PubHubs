@@ -231,7 +231,9 @@ pub enum MessageCode {
     // message once assigned, as this breaks existing signatures.
     PhcHubTicketReq = 1,
     PhcHubTicket = 2,
+    #[deprecated = "legacy; was used by phct::hub::KeyEP"]
     PhcTHubKeyReq = 3,
+    #[deprecated = "legacy; was used by phct::hub::KeyEP"]
     PhcTHubKeyResp = 4,
     AdminUpdateConfigReq = 5,
     AdminInfoReq = 6,
@@ -242,6 +244,7 @@ pub enum MessageCode {
     Hhpp = 11,
     // new >v3.0.0
     CardPseudPackage = 12,
+    HubPing = 13,
 
     /// Only used as an example in a doctest
     Example = 65535,

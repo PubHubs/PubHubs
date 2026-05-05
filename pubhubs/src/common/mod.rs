@@ -1,6 +1,4 @@
-//! What's common between the ABI and binary.
-//!
-//! Please keep this as small as possible.
+//! What was common between the binary and the ABI (which is longer used).
 
 pub mod elgamal;
 pub mod secret;
