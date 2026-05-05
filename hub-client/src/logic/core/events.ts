@@ -5,6 +5,7 @@ import { EventTimeLineHandler } from '@hub-client/logic/core/eventTimeLineHandle
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
+import { MatrixEventType } from '@hub-client/models/constants';
 // Models
 import { type TEvent } from '@hub-client/models/events/TEvent';
 
@@ -33,6 +34,7 @@ enum PubHubsMsgType {
 	VideoCallModify = 'pubhubs.videocall.modify',
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
+	ForumTopic = MatrixEventType.RoomMessage, // 'm.room.message',
 	HideMessage = 'pubhubs.hide_message',
 }
 

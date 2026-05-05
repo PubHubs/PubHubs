@@ -4,7 +4,10 @@
 		class="flex h-full w-full flex-col pt-4"
 		data-testid="thread-sidekick"
 	>
-		<SidebarHeader :title="t('rooms.thread')" />
+		<SidebarHeader
+			v-if="!isForum"
+			:title="t('rooms.thread')"
+		/>
 		<!-- Thread message list -->
 		<div class="flex-1 overflow-y-scroll pb-4">
 			<!-- Root event -->
@@ -24,18 +27,26 @@
 					@reaction-panel-close="closeReactionPanel"
 					@clicked-emoticon="sendEmoji"
 				>
+					<template #bottom>
+						<ForumEventBody
+							v-if="isForum"
+							:event="props.room.currentThread?.rootEvent?.event ?? {}"
+						>
+						</ForumEventBody>
+					</template>
 				</RoomMessageBubble>
 			</div>
 
 			<!-- Thread replies -->
 			<div
-				v-for="item in filteredEvents"
+				v-for="(item, index) in filteredEvents"
 				:key="item.matrixEvent.event.event_id"
 			>
 				<div
 					:id="item.matrixEvent.event.event_id"
 					:ref="setEventRef"
 					class="mx-3 rounded-md"
+					:class="{ 'pl-800': isForum && index > 0, 'mb-400': isForum && index === 0 }"
 				>
 					<RoomMessageBubble
 						:room="room"
@@ -48,7 +59,16 @@
 						@delete-message="confirmDeleteMessage"
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
-					></RoomMessageBubble>
+					>
+						<template #bottom>
+							<ForumEventBody
+								v-if="isForum"
+								:is-first="index === 0"
+								:event="item.matrixEvent.event"
+							>
+							</ForumEventBody>
+						</template>
+					</RoomMessageBubble>
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
@@ -60,6 +80,11 @@
 					</div>
 				</div>
 			</div>
+
+			<InlineSpinner
+				v-if="loadingEvents"
+				class="mx-auto my-100"
+			></InlineSpinner>
 		</div>
 
 		<!-- Thread input -->
@@ -88,10 +113,11 @@
 	import { type Reactive, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, shallowReactive, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Components
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
+	// Components
+	import ForumEventBody from '@hub-client/components/rooms/forum/ForumEventBody.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
@@ -116,7 +142,14 @@
 			type: Room,
 			required: true,
 		},
-		scrollToEventId: { type: String, default: undefined },
+		isForum: {
+			type: Boolean,
+			default: false,
+		},
+		scrollToEventId: {
+			type: String,
+			default: undefined,
+		},
 	});
 
 	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
@@ -150,6 +183,7 @@
 
 	const activeReactionPanel = ref<string | null>(null);
 	const { READ_DELAY_MS } = TimelineScrollConstants;
+	const loadingEvents = ref(false);
 
 	watch(
 		() => props.room.threadUpdated,
@@ -236,6 +270,7 @@
 	}
 
 	async function getThreadEvents() {
+		loadingEvents.value = true;
 		const events = await props.room.getCurrentThreadEvents();
 		threadEvents.splice(0, threadEvents.length, ...events);
 
@@ -245,6 +280,7 @@
 				nextTick(() => scrollToEvent(lastEventId));
 			}
 		}
+		loadingEvents.value = false;
 	}
 
 	function onInReplyToClick(inReplyToId: string) {

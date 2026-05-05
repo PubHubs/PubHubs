@@ -62,6 +62,7 @@ class TimelineManager {
 	private redactedEvents: TimelineEvent[] = [];
 	/** Contains all roomlibrary events */
 	private libraryEvents: TimelineEvent[] = [];
+
 	/** Contains all related events: reactions, annotations etc. */
 	private relatedEvents: TRelatedEvents[] = [];
 	// Contains related hide events

@@ -2,7 +2,7 @@
 import { HttpResponse, http } from 'msw';
 
 // Stores
-import { TSecuredRoom } from '@hub-client/stores/rooms';
+import { type TSecuredRoom } from '@hub-client/stores/rooms';
 
 export const handlers = [
 	http.get('http://testing/_synapse/client/secured_rooms', () => {

@@ -7,6 +7,7 @@ type TEditRoom = {
 	accepted?: SecuredRoomAttributes;
 	topic: string;
 	type: string;
+	room_type?: string;
 	user_txt: string;
 };
 

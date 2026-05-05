@@ -179,7 +179,10 @@
 						</Suspense>
 					</div>
 
-					<div class="relative">
+					<div
+						v-if="showActions"
+						class="relative"
+					>
 						<!-- Message Action Buttons -->
 						<div
 							class="bg-surface-elevated absolute right-0 flex rounded-md"
@@ -407,6 +410,16 @@
 							:deleted="redactedMessage"
 						/>
 					</template>
+
+					<div
+						v-if="$slots.bottom || $slots.extras"
+						class="flex items-end justify-between gap-4"
+					>
+						<!-- Extra slot bottom: forum stuff -->
+						<slot name="bottom"></slot>
+						<!-- Extra slot right: forum stuff -->
+						<slot name="extras"></slot>
+					</div>
 				</div>
 			</div>
 
@@ -519,6 +532,10 @@
 		deleteMessageDialog: {
 			type: Boolean,
 			default: false,
+		},
+		showActions: {
+			type: Boolean,
+			default: true,
 		},
 		activeReactionPanel: {
 			type: String as PropType<string | null>,

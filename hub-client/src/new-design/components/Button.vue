@@ -76,6 +76,7 @@
 		error: 'bg-button-red text-on-button-red ring-button-red hover:opacity-75',
 		primaryIcon: 'text-button-blue ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
 		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
+		errorIcon: 'text-accent-error ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
 	} as const;
 	export type TVariant = keyof typeof buttonVariants;
 </script>
