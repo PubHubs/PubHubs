@@ -94,20 +94,17 @@ export async function loadUnreadInfoCache(): Promise<void> {
 /**
  * Combine two StoredUnreadInfo records by advancing each monotonic field.
  *
- * The operation is a join over a semilattice: it is associative AND
- * commutative — `(a * b) * c == a * (b * c)` and `a * b == b * a`. Both
- * properties hold trivially because each field uses `max` (with optional
- * handling on lastReadAllTs treating `undefined` as a bottom element).
+ * This operation is "associative", meaning `(x * y) * z == x * (y * z)`,
+ * which matters because loadUnreadInfoCache merges disk state into a cache
+ * that may already contain live updates from before the load completed:
+ * `disk * (y_1 * y_2) == (disk * y_1) * y_2` lets us merge once per disk
+ * entry instead of replaying the live updates.
  *
- * Associativity matters because loadUnreadInfoCache merges disk state into a
- * cache that may already contain live updates from before the load
- * completed: if `y_current = y_1 * y_2 * ... * y_n` is the fold of those live
- * updates, then `disk * y_current == disk * (y_1 * ... * y_n) == ((disk *
- * y_1) * y_2) ... * y_n`, so a single merge per disk entry produces the same
- * result as if disk had been the very first update processed. Commutativity
- * is a free bonus and means the order of live updates doesn't matter either.
+ * The operation also happens to be commutative, `x * y == y * x`, but this
+ * is not important for loadUnreadInfoCache's logic.
  *
- * unreadInfoCache.test.ts exhaustively checks both properties.
+ * unreadInfoCache.test.ts checks this exhaustively — a previous incarnation
+ * of this function was more complicated.
  */
 export function mergeStoredUnreadInfo(a: StoredUnreadInfo, b: StoredUnreadInfo): StoredUnreadInfo {
 	return {
