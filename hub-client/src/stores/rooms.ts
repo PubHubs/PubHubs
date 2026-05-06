@@ -78,7 +78,7 @@ const useRooms = defineStore('rooms', {
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: Record<string, string> } },
 			securedRoom: undefined as TSecuredRoom | undefined,
-			initialRoomsLoaded: false,
+			initialRoomsLoaded: false, // Set true after sliding sync's first Complete response. The first request uses InitialRoomList with a very large range, so every joined room is in client.getRooms() by this point; timeline data fills in afterwards via MainRoomList's widening.
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
 			unreadCountVersion: 0, // Increment to trigger reactive updates for badge

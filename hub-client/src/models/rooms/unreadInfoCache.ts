@@ -16,6 +16,7 @@ import { getLocalStoreItem, setLocalStoreItem } from '@hub-client/logic/utils/lo
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { useRooms } from '@hub-client/stores/rooms';
 
 const logger = createLogger('UnreadInfoCache');
 
@@ -132,24 +133,27 @@ function scheduleSave(): void {
 }
 
 async function saveCache(): Promise<void> {
-	// Drop entries for rooms the user has left/been banned from. This is the
-	// cleanup point for stale rooms — they get evicted from both the persisted
-	// blob and the in-memory cache here. Matches the leave/ban skip in
-	// MatrixService.handleLifecycleEvent that excludes those rooms from the
-	// sidebar room list, so we end up with cache entries exactly for the rooms
-	// that could potentially show a dot. client.getRooms() is a cheap
-	// synchronous Object.values over the matrix-js-sdk's MemoryStore; see
-	// node_modules/matrix-js-sdk/lib/store/memory.js.
-	const joinedRoomIds = new Set(
-		usePubhubsStore()
-			.client.getRooms()
-			.filter((r) => r.getMyMembership() === 'join')
-			.map((r) => r.roomId),
-	);
+	// Drop entries for rooms the user is no longer in. Gated on initialRoomsLoaded
+	// so we don't run the cleanup before sliding sync has populated client.getRooms()
+	// — otherwise disk-loaded entries would be wrongly evicted on the first save.
+	// After initialRoomsLoaded, anything in the cache that isn't in client.getRooms()
+	// is genuinely a no-longer-joined room (left during this session, or left while
+	// offline and absent from this session's sync entirely). With
+	// includeArchivedRooms=false, leave/ban rooms aren't kept in the store at all,
+	// so a positive `getRooms()` membership is the right signal.
+	// client.getRooms() is a cheap synchronous Object.values over the
+	// matrix-js-sdk's MemoryStore; see node_modules/matrix-js-sdk/lib/store/memory.js.
+	const pubhubs = usePubhubsStore();
+	const rooms = useRooms();
 	const filtered: Record<string, StoredUnreadInfo> = {};
-	for (const [roomId, info] of cache) {
-		if (joinedRoomIds.has(roomId)) filtered[roomId] = info;
-		else cache.delete(roomId);
+	if (rooms.initialRoomsLoaded) {
+		const knownRoomIds = new Set(pubhubs.client.getRooms().map((r) => r.roomId));
+		for (const [roomId, info] of cache) {
+			if (knownRoomIds.has(roomId)) filtered[roomId] = info;
+			else cache.delete(roomId);
+		}
+	} else {
+		for (const [roomId, info] of cache) filtered[roomId] = info;
 	}
 	await setLocalStoreItem(STORE_KEY, JSON.stringify(filtered));
 }
