@@ -1,14 +1,12 @@
 // Packages
-import { RoomEvent } from 'matrix-js-sdk';
 import { storeToRefs } from 'pinia';
-import { type Ref, onUnmounted, ref, watch } from 'vue';
+import { type Ref, ref, watch } from 'vue';
 
 // Models
 import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { loadUnreadInfoCache } from '@hub-client/models/rooms/unreadInfoCache';
 
 // Stores
-import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
 
 /**
@@ -19,11 +17,10 @@ import { useRooms } from '@hub-client/stores/rooms';
  *     global-client-backed LocalStore),
  *   - recomputing per-room unread state once the cache has loaded,
  *   - keeping a reactive `unreadState` in sync with the store's
- *     `unreadCountVersion` bumps (triggered from the sliding sync by
- *     `notifyUnreadCountChanged`),
- *   - refreshing on `RoomEvent.Receipt` so we react to other users' read
- *     receipts, and
- *   - cleaning up the receipt listener on unmount.
+ *     `unreadCountVersion` bumps. The store bumps that counter on every
+ *     `RoomEvent.Receipt` (via `MatrixService.roomUnreadNotifications` →
+ *     `notifyUnreadCountChanged`), so receipts feed into this composable
+ *     through the watch — no separate receipt subscription needed here.
  *
  * The composable does NOT log in — the caller is responsible for ensuring
  * the matrix client is ready AND the messagebox handshake with the global
@@ -42,7 +39,6 @@ import { useRooms } from '@hub-client/stores/rooms';
  */
 export function useUnreadAggregate(): { unreadState: Ref<UnreadState>; setupUnreadAggregateTracking: () => Promise<void> } {
 	const rooms = useRooms();
-	const pubhubs = usePubhubsStore();
 	const { unreadCountVersion } = storeToRefs(rooms);
 	const unreadState = ref<UnreadState>('unknown');
 
@@ -60,21 +56,9 @@ export function useUnreadAggregate(): { unreadState: Ref<UnreadState>; setupUnre
 		// refires the watch above, updating `unreadState`).
 		void loadUnreadInfoCache().then(() => rooms.refreshAllUnreadStates());
 
-		// Initial fetch so `unreadState` has a meaningful value immediately
-		// without waiting for the cache or for the first receipt.
+		// Initial fetch so `unreadState` has a meaningful value immediately.
 		await refresh();
-
-		// Subscribe to read receipts from other users; refresh() recomputes
-		// the aggregate on each one.
-		pubhubs.client.on(RoomEvent.Receipt, refresh);
 	}
-
-	onUnmounted(() => {
-		// pubhubs.client may be an empty object if login never completed.
-		if (pubhubs.client && typeof pubhubs.client.off === 'function') {
-			pubhubs.client.off(RoomEvent.Receipt, refresh);
-		}
-	});
 
 	return { unreadState, setupUnreadAggregateTracking };
 }

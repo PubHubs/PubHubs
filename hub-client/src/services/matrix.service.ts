@@ -311,11 +311,34 @@ class MatrixService {
 	 * Triggers Vue reactivity for unread badge updates.
 	 * Called on RoomEvent.Timeline (new messages) and RoomEvent.Receipt (read receipts).
 	 * The arrow function preserves `this` when called from the client event emitter.
+	 *
+	 * Receipts are filtered to only those involving the current user: Room.unreadState()
+	 * consults only our own receipt, so other users' receipts cannot change our state and
+	 * recomputing on them is wasted work.
 	 */
 	private roomUnreadNotifications = (event: MatrixEvent, room?: MatrixRoom) => {
 		const roomId = room?.roomId ?? event.getRoomId();
-		if (roomId) this.roomsStore?.notifyUnreadCountChanged(roomId);
+		if (!roomId) return;
+		if (event.getType() === EventType.Receipt && !this.receiptIncludesCurrentUser(event)) return;
+		this.roomsStore?.notifyUnreadCountChanged(roomId);
 	};
+
+	private receiptIncludesCurrentUser(event: MatrixEvent): boolean {
+		const me = this.client.getUserId();
+		if (!me) return false;
+		// m.receipt content shape: { [eventId]: { [receiptType]: { [userId]: { ts, ... } } } }
+		// See https://spec.matrix.org/v1.18/client-server-api/#receipts
+		const content = event.getContent() as Record<string, Record<string, Record<string, unknown>> | undefined> | undefined;
+		if (!content) return false;
+		for (const eventId in content) {
+			const eventReceipts = content[eventId];
+			if (!eventReceipts) continue;
+			for (const receiptType in eventReceipts) {
+				if (me in (eventReceipts[receiptType] ?? {})) return true;
+			}
+		}
+		return false;
+	}
 
 	// #endregion
 }
