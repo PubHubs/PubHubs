@@ -11,8 +11,12 @@ YIVI_URL = 'yivi_url'
 CLIENT_YIVI_URL = 'client_yivi_url'
 PUBLIC_YIVI_URL = 'public_yivi_url'
 
-# Secured Room
-MODERATOR_POWER_LEVEL = 50
+# Power Levels
+GUEST = -1  # No power level check needed
+USER = 0
+STEWARD = 50
+ROOM_ADMIN = 100
+HUB_ADMIN = 999  # Above 100, admin check is performed
 
 ## Secured Room Expiry related constants.
 DEFAULT_EXPIRATION_TIME_DAYS = 90     # X: After 'X' days, user needs to login with QR code.
