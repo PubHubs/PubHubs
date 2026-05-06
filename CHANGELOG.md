@@ -13,6 +13,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 - [NEW] RoomAdmins and Stewards can hide and delete any messages and normal users can hide their own messages.
 - [NEW] Different way of fetching library-files, added constant with maximum numbers of files to upload
+- [NEW] Eliminated the legacy `/v3/sync` loop; the hub client now uses `SlidingSyncSdk` exclusively.
 
 ## 28 April 2026 - v3.3.0
 
