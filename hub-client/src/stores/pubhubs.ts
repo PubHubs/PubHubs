@@ -1236,35 +1236,24 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async fetchAuthorizedMediaUrl(url: string): Promise<string | null> {
+		async fetchAuthorizedMediaUrl(url: string): Promise<string> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
-				logger.error('Access token is missing');
-				return null;
+				throw new Error('Access token is missing');
 			}
 
-			const options = {
-				headers: {
-					Authorization: 'Bearer ' + accessToken,
-				},
+			const response = await fetch(url, {
+				headers: { Authorization: 'Bearer ' + accessToken },
 				method: 'GET',
-			};
+			});
 
-			try {
-				const response = await fetch(url, options);
-
-				const blob = await response.blob();
-
-				if (blob) {
-					const fileURL = window.URL.createObjectURL(blob);
-					return fileURL;
-				}
-				return null;
-			} catch (error) {
-				logger.error('Error downloading the file: ', error);
-				return null;
+			if (!response.ok) {
+				throw new Error(`Authorized media fetch failed: ${response.status} ${response.statusText} for ${url}`);
 			}
+
+			const blob = await response.blob();
+			return window.URL.createObjectURL(blob);
 		},
 
 		/**

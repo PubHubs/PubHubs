@@ -12,7 +12,7 @@ class BlobManager {
 		this.revoke();
 
 		//set new values
-		if (input instanceof Blob || input instanceof MediaSource) {
+		if (input instanceof Blob || (typeof MediaSource !== 'undefined' && input instanceof MediaSource)) {
 			this._url = URL.createObjectURL(input);
 			this._ownURL = true;
 			this._isRevoked = false;

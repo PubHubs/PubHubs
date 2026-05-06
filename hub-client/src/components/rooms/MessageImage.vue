@@ -67,6 +67,7 @@
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -78,6 +79,9 @@
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	const props = defineProps<{ message: TImageMessageEventContent; deleted?: boolean }>();
+
+	const logger = createLogger('MessageImage');
+
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const matrixFiles = useMatrixFiles();
@@ -98,9 +102,12 @@
 	});
 
 	onMounted(async () => {
-		const url = await matrixFiles.getAuthorizedMediaUrl(props.message.url);
-		authMediaUrl.value?.revoke();
-		authMediaUrl.value = new BlobManager(url);
+		try {
+			const url = await matrixFiles.getAuthorizedMediaUrl(props.message.url);
+			authMediaUrl.value = new BlobManager(url);
+		} catch (error) {
+			logger.error('Failed to load authorized media', { url: props.message.url, error });
+		}
 	});
 
 	onBeforeUnmount(() => {
