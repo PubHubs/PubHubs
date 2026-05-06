@@ -1,5 +1,5 @@
 // Packages
-import { EventType, type IStateEvent, type MatrixClient, RoomEvent } from 'matrix-js-sdk';
+import { EventType, type IStateEvent, type MatrixClient, type MatrixEvent, type Room as MatrixRoom, RoomEvent } from 'matrix-js-sdk';
 import {
 	type MSC3575List,
 	type MSC3575RoomData,
@@ -72,32 +72,21 @@ class MatrixService {
 		if (!initialRoomList) throw new Error('Initial room list configuration not found');
 		const initialRoomListFilter = new Map<string, MSC3575List>([[SlidingSyncOptions.roomList, initialRoomList]]);
 
-		// TODO sliding sync update: the current version of the Matrix JS SDK does not support new SlidingSync({ client, lists, extensions, });
-		// As soon as this is updated we need to pass the notifications in extensions: { unread_notifications: { enabled: true, }, },
-		// and then the options from this.client.startClient can be removed, see further
 		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 }, this.client, SystemDefaults.syncIntervalMS);
 
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
 		this.slidingSync.on(SlidingSyncEvent.RoomData, this.handleRoomDataEvent);
 
-		// TODO Remove when unread notifications are better handled by sliding sync
-		// Attach event handler for the unread notifications
+		// Trigger Vue reactivity for unread badges when timeline events arrive or receipts change.
 		this.client.on(RoomEvent.Timeline, this.roomUnreadNotifications);
-		// @ts-expect-error -- RoomEvent.UnreadNotifications not in EmittedEvents type but works at runtime
-		this.client.on(RoomEvent.UnreadNotifications, this.roomUnreadNotifications);
+		this.client.on(RoomEvent.Receipt, this.roomUnreadNotifications);
 
 		try {
-			// debug only
-			// (window as any).SYNC_TRACE = 1;
-
-			// TODO sliding sync update: as soon as the sliding sync API is updated to new SlidingSync({ client, lists, extensions, }); we can remove lazyLoadMembers and initialSyncLimit again
-			// The parameters to startClient used to be threadSupport and includeArchivedRooms
-			// But since we need to get the full list of rooms to the client before syncing them to get the correct number of notifications
-			// also lazyLoadMembers and initialSyncLimit are passed
-			await this.client.startClient({ lazyLoadMembers: true, initialSyncLimit: 0, threadSupport: true, includeArchivedRooms: false });
-
-			await this.slidingSync.start();
+			// Pass our SlidingSync instance to startClient so the SDK creates a SlidingSyncSdk
+			// wrapper that registers extensions (to-device, account data, typing, receipts) natively,
+			// eliminating the old /v3/sync loop entirely. SlidingSyncSdk calls slidingSync.start() internally.
+			await this.client.startClient({ slidingSync: this.slidingSync!, lazyLoadMembers: true, threadSupport: true, includeArchivedRooms: false });
 
 			logger.info('Sliding Sync started');
 		} catch (err) {
@@ -226,7 +215,8 @@ class MatrixService {
 			name: roomName,
 			stateEvents: required_state,
 			isHidden: false,
-		}); // Update the roomlist with the current room
+			unreadState: 'unknown',
+		});
 	}
 
 	/**
@@ -243,12 +233,7 @@ class MatrixService {
 			if (state !== SlidingSyncState.Complete) return;
 
 			this.roomsCount = response?.lists.roomList.count ?? 0;
-			const roomList = response?.rooms;
-			if (this.roomsCount <= 0 || !roomList || Object.keys(roomList).length <= 0) {
-				this.roomsStore.setRoomsLoaded(true);
-				return;
-			}
-			// console.error('handleLifecycleEvent roomList', roomList);
+			const roomList = response?.rooms ?? {};
 
 			const joinPromises: Promise<void>[] = [];
 
@@ -299,9 +284,9 @@ class MatrixService {
 			await Promise.all(joinPromises);
 			if (this.initialRoomLoading) {
 				this.initialRoomLoading = false;
+				this.roomsStore.setRoomsLoaded(true);
 			}
 			this.SetRoomSlidingSync(); // Sets the correct sliding sync for the room
-			this.roomsStore.setRoomsLoaded(true);
 		} catch (err) {
 			logger.error('Lifecycle handler failed', { err });
 			throw err;
@@ -316,22 +301,44 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
-			// console.error('handleroomdataevent subscriptions ', this.slidingSync?.getRoomSubscriptions());
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
 			logger.error('RoomData handler failed', { roomId, err });
 		}
 	};
 
-	// TODO Remove when unread notifications are better handled by sliding sync
 	/**
-	 * When all events are written a RoomEvent.TimelineEvent is send. This is the time to fetch the unread notifications
-	 * the arrow function is needed to keep the this-binding when it is called from the client-event
+	 * Triggers Vue reactivity for unread badge updates.
+	 * Called on RoomEvent.Timeline (new messages) and RoomEvent.Receipt (read receipts).
+	 * The arrow function preserves `this` when called from the client event emitter.
 	 *
+	 * Receipts are filtered to only those involving the current user: Room.unreadState()
+	 * consults only our own receipt, so other users' receipts cannot change our state and
+	 * recomputing on them is wasted work.
 	 */
-	private roomUnreadNotifications = () => {
-		this.roomsStore?.notifyUnreadCountChanged();
+	private roomUnreadNotifications = (event: MatrixEvent, room?: MatrixRoom) => {
+		const roomId = room?.roomId ?? event.getRoomId();
+		if (!roomId) return;
+		if (event.getType() === EventType.Receipt && !this.receiptIncludesCurrentUser(event)) return;
+		this.roomsStore?.notifyUnreadCountChanged(roomId);
 	};
+
+	private receiptIncludesCurrentUser(event: MatrixEvent): boolean {
+		const me = this.client.getUserId();
+		if (!me) return false;
+		// m.receipt content shape: { [eventId]: { [receiptType]: { [userId]: { ts, ... } } } }
+		// See https://spec.matrix.org/v1.18/client-server-api/#receipts
+		const content = event.getContent() as Record<string, Record<string, Record<string, unknown>> | undefined> | undefined;
+		if (!content) return false;
+		for (const eventId in content) {
+			const eventReceipts = content[eventId];
+			if (!eventReceipts) continue;
+			for (const receiptType in eventReceipts) {
+				if (me in (eventReceipts[receiptType] ?? {})) return true;
+			}
+		}
+		return false;
+	}
 
 	// #endregion
 }
@@ -341,14 +348,22 @@ class MatrixService {
 let matrixService: MatrixService | null = null;
 
 /**
- * Initializes the MatrixService singleton with a Matrix client.
- * If already initialized, returns the existing instance.
+ * (Re)initializes the MatrixService singleton with a Matrix client. If there
+ * is already an instance (e.g. the miniclient previously ran a sync that has
+ * since been stopped), the previous instance is discarded and replaced with a
+ * fresh one wrapping the new client. Callers must have called stopSync on the
+ * previous instance first — this is enforced by throwing if the existing
+ * instance is still actively syncing.
  *
  * @param client - The Matrix client instance
  * @returns The initialized MatrixService singleton
+ * @throws {Error} If a previous MatrixService is still actively syncing
  */
 const initMatrixService = (client: MatrixClient) => {
-	if (!matrixService) matrixService = new MatrixService(client);
+	if (matrixService && matrixService.hasActiveSync()) {
+		throw new Error('initMatrixService called while the previous instance is still syncing; call stopSync first');
+	}
+	matrixService = new MatrixService(client);
 	return matrixService;
 };
 

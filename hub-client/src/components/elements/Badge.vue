@@ -22,7 +22,7 @@
 	const colorClass: { [key: string]: string } = {
 		ph: 'bg-accent-primary text-on-accent-primary',
 		hub: 'bg-accent-primary text-on-accent-primary',
-		notification: 'bg-on-surface-variant text-on-accent-primary dark:text-surface-high',
+		unknown: 'bg-on-surface-disabled',
 	};
 
 	const sizeClass: { [key: string]: string } = {

@@ -36,14 +36,15 @@
 						class="flex items-center gap-1 transition-all duration-200 ease-in-out"
 					>
 						<Badge
-							v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0"
+							v-if="room.unreadState === 'unread'"
 							data-testid="unread-badge"
 							color="hub"
-							:size="roomBadgeSize(getUnreadCount(room.roomId, NotificationCountType.Total))"
+							size="sm"
 						/>
 						<Badge
-							v-if="getUnreadCount(room.roomId, NotificationCountType.Highlight) > 0"
-							color="hub"
+							v-if="room.unreadState === 'unknown'"
+							data-testid="unknown-badge"
+							color="unknown"
 							size="sm"
 						/>
 					</span>
@@ -113,7 +114,6 @@
 
 <script setup lang="ts">
 	// Packages
-	import { NotificationCountType } from 'matrix-js-sdk';
 	import { type PropType, computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
@@ -132,7 +132,6 @@
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Logic
-	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Models
 	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
@@ -186,20 +185,6 @@
 	const roomsLoaded = computed(() => {
 		return rooms.roomsLoaded;
 	});
-
-	// Reactive dependency on unreadCountVersion for badge updates
-	function getUnreadCount(roomId: string, countType: NotificationCountType): number {
-		void rooms.unreadCountVersion;
-		const room = pubhubs.client.getRoom(roomId);
-		if (room) {
-			// TODO: use getUnreadNotificationCount once old thread
-			// notifications are globally marked as unread
-			return room.getRoomUnreadNotificationCount(countType);
-		}
-		return 0;
-	}
-
-	const roomBadgeSize = badgeSize;
 
 	async function leaveRoom(roomId: string) {
 		const room = currentJoinedRooms.value.find((room) => room.roomId === roomId);

@@ -1,94 +1,96 @@
 <template>
-	<!-- data-initialized is used by e2e tests to detect when the initial sync is done -->
-	<div
-		class="flex justify-end"
-		:data-initialized="initialized || undefined"
-	>
-		<Badge
-			v-if="unreadMessages > 0"
-			color="ph"
-			:size="badgeSize(unreadMessages)"
-			data-testid="miniclient-badge"
-		/>
-	</div>
+	<MiniclientLinked v-if="hubActive === true" />
+	<MiniclientIndependent v-else-if="hubActive === false" />
 </template>
 
 <script setup lang="ts">
+	/**
+	 * Outer shell of the miniclient iframe. Decides whether to render
+	 * MiniclientIndependent (runs its own MatrixClient, used when the hub is
+	 * NOT the currently active one and in solo mode) or MiniclientLinked
+	 * (pure display, mirrors the active hub client's aggregate unread state
+	 * pushed via messagebox).
+	 *
+	 * Rendering uses `hubActive` as a tri-state:
+	 *   undefined → don't render anything yet (handshake with the global
+	 *               client hasn't completed, so we don't know which mode
+	 *               this miniclient should be in)
+	 *   true      → render MiniclientLinked
+	 *   false     → render MiniclientIndependent
+	 *
+	 * This matters because MiniclientIndependent's setup calls
+	 * setupUnreadAggregateTracking → loadUnreadInfoCache, which round-trips
+	 * to the global client via the LocalStore protocol and would be a no-op
+	 * if fired before the handshake. Child onMounted runs before parent
+	 * onMounted, so we cannot rely on Independent to await the handshake
+	 * itself — the outer must gate rendering by leaving hubActive undefined
+	 * until the handshake resolves.
+	 *
+	 * The HubActive callback is registered at setup time, BEFORE the
+	 * handshake completes, so the first HubActive the parent sends after
+	 * handshake is not missed. In the most common "first load of an
+	 * already-active hub" case, HubActive(true) arrives and the callback
+	 * sets hubActive before the handshake-driven fallback runs — Independent
+	 * is never mounted and no wasted sync fires.
+	 *
+	 * Solo iframe mode, which the 26-miniclient-badge e2e test relies on,
+	 * never receives HubActive and is bootstrapped with hubActive=false so
+	 * it goes straight to MiniclientIndependent.
+	 */
 	// Packages
-	import { RoomEvent } from 'matrix-js-sdk';
-	import { storeToRefs } from 'pinia';
-	import { onMounted, onUnmounted, ref, watch } from 'vue';
+	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Components
-	import Badge from '@hub-client/components/elements/Badge.vue';
-
-	import { createLogger } from '@hub-client/logic/logging/Logger';
 	// Logic
-	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
+
+	// Components
+	import MiniclientIndependent from '@hub-client/pages/MiniclientIndependent.vue';
+	import MiniclientLinked from '@hub-client/pages/MiniclientLinked.vue';
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
-	import { MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
+	import { type Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const logger = createLogger('Miniclient');
 	const hubSettings = useHubSettings();
 	const messagebox = useMessageBox();
-	const rooms = useRooms();
-	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const { locale, availableLocales } = useI18n();
 
-	let unreadMessages = ref<number>(0);
-	// Used by e2e tests (via data-initialized attribute) to detect when the initial sync is done.
-	let initialized = ref(false);
-
-	const { unreadCountVersion } = storeToRefs(rooms);
-
-	/**
-	 * Watch to detect changes in unread count that come from the sliding sync.
-	 * When another user posts a new message into a room.
-	 */
-	watch(unreadCountVersion, async () => {
-		unreadMessages.value = await rooms.fetchTotalUnreadCounts();
-	});
+	const hubActive = ref<boolean | undefined>(hubSettings.isSolo ? false : undefined);
 
 	onMounted(async () => {
 		logger.debug('Miniclient.vue onMounted');
-
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
-
-		// Startup, login, fetch the initial unread count, set watch for read receipt event
-		startMessageBox()
-			.then(() => pubhubs.login())
-			.then(() => rooms.fetchTotalUnreadCounts())
-			.then((numberUnread) => {
-				logger.debug('Miniclient.vue onMounted done');
-				unreadMessages.value = numberUnread;
-				initialized.value = true;
-
-				// Watch to detect if another user has send an read receipt
-				pubhubs.client.on(RoomEvent.Receipt, receiptHandler);
-			});
-	});
-
-	onUnmounted(() => {
-		pubhubs.client.off(RoomEvent.Receipt, receiptHandler);
-	});
-
-	async function startMessageBox() {
 		if (!hubSettings.isSolo) {
 			messagebox.init(MessageBoxType.Child);
+			// Register AFTER init (which calls reset and clears callbacks).
+			messagebox.addCallback('parentFrame', MessageType.HubActive, (message: Message) => {
+				const content = message.content as { active?: boolean };
+				hubActive.value = content.active === true;
+				logger.debug(`HubActive → ${hubActive.value}`);
+			});
 			await messagebox.startCommunication(hubSettings.parentUrl);
+			// Wait for HubActive (sent by the global client right after the
+			// handshake). Fall back to Independent after a timeout (e.g. old
+			// global client without this protocol).
+			await new Promise<void>((resolve) => {
+				if (hubActive.value !== undefined) {
+					resolve();
+					return;
+				}
+				const timeout = setTimeout(resolve, 2000);
+				const unwatch = watch(hubActive, () => {
+					clearTimeout(timeout);
+					unwatch();
+					resolve();
+				});
+			});
+			if (hubActive.value === undefined) hubActive.value = false;
 		}
-	}
-
-	async function receiptHandler() {
-		unreadMessages.value = await rooms.fetchTotalUnreadCounts();
-	}
+	});
 </script>
 
 <style>

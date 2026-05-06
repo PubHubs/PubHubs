@@ -16,10 +16,16 @@
 			/>
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
 			<Badge
-				v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && newMessage > 0"
+				v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unread'"
 				class="ml-auto shrink-0"
 				color="hub"
-				:size="badgeSize(newMessage)"
+				size="sm"
+			/>
+			<Badge
+				v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unknown'"
+				class="ml-auto shrink-0"
+				color="unknown"
+				size="sm"
 			/>
 		</router-link>
 	</li>
@@ -38,11 +44,8 @@
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
-	// Logic
-	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
-
 	// Models
-	import { type RoomListRoom } from '@hub-client/models/rooms/TBaseRoom';
+	import { type RoomListRoom, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useMenu } from '@hub-client/stores/menu';
@@ -87,9 +90,8 @@
 		return false;
 	});
 
-	const newMessage = computed(() => {
-		void rooms.unreadCountVersion;
-		return rooms.getTotalPrivateRoomUnreadMsgCount();
+	const dmUnreadState = computed(() => {
+		return worstUnreadState(rooms.loadedPrivateRooms.map((r) => r.unreadState));
 	});
 
 	const roomIsActive = computed(() => {

@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventTimeline, EventType, Filter, type IRoomEvent, type MatrixClient, type MatrixEvent, MsgType } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventType, Filter, type IRoomEvent, type MatrixClient, type MatrixEvent } from 'matrix-js-sdk';
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -10,7 +10,9 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
+import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
 
 // Stores
@@ -76,11 +78,6 @@ class TimelineManager {
 	/** roomTimelineKey of the sliding sync subscription of this timelinemanager */
 	private roomTimelineKey: string | undefined;
 
-	// Added Room Member to get the avatar value when change happen
-	private visibleEventTypes: string[] = [EventType.RoomMessage];
-	private invisibleMessageTypes: string[] = [MsgType.Notice];
-	private invisibleRelatesToTypes: string[] = [RelationType.Thread];
-
 	// Filter on timeline for messages
 	private readonly timelineFilter: TimelineFilter = {
 		room: {
@@ -130,37 +127,8 @@ class TimelineManager {
 	 * @param event event to check
 	 * @returns true if the event should be visible, false otherwise
 	 */
-	public isVisibleEvent(event: MatrixEvent): boolean {
-		if (event.getType() && !this.visibleEventTypes.includes(event.getType())) {
-			return false;
-		}
-		if (event.getContent().msgtype) {
-			if (this.invisibleMessageTypes.includes(event.getContent().msgtype as string)) {
-				return false;
-			}
-		}
-		if (this.invisibleRelatesToTypes.includes(event.getContent()?.[RelationType.RelatesTo]?.rel_type as string)) {
-			return false;
-		}
-		if (event.getContent().msgtype === PubHubsMgType.WhisperMessage) {
-			const currentUserId = this.user.userId;
-			const whisperToUserId = event.getContent().whisper_to;
-			const senderId = event.getSender();
-			// Whisper is private to sender and target user only.
-			if (!currentUserId || (senderId !== currentUserId && whisperToUserId !== currentUserId)) {
-				return false;
-			}
-		}
-		if (this.isHideMessageEvent(event)) {
-			return false;
-		}
-		// Deleted events from threads may not be visible; they have lost the direct connection to their thread
-		if (event.getUnsigned().redacted_because?.redacts) {
-			if (event.getUnsigned().redacted_because?.content.reason === Redaction.DeletedFromThread) {
-				return false;
-			}
-		}
-		return true;
+	public isVisibleEvent(event: Partial<TBaseEvent>): boolean {
+		return isVisibleEvent(event, this.user.userId);
 	}
 
 	/**
@@ -249,7 +217,7 @@ class TimelineManager {
 	 */
 	private prepareEvents(eventList: MatrixEvent[]): MatrixEvent[] {
 		eventList.forEach((e) => this.updateHideMessageEvent(e));
-		return eventList.filter((event) => this.isVisibleEvent(event)).sort((a, b) => a.getTs() - b.getTs());
+		return eventList.filter((event) => this.isVisibleEvent(event.event)).sort((a, b) => a.getTs() - b.getTs());
 	}
 
 	// Add events to the relatedEvents

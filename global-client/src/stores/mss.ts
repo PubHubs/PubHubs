@@ -28,6 +28,7 @@ import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
+import { useLocalStores } from '@global-client/stores/localStores';
 
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
@@ -258,6 +259,7 @@ const useMSS = defineStore('mss', {
 
 		logout(): void {
 			this.phcServer.reset();
+			useLocalStores().clear();
 			localStorage.removeItem('PHauthToken');
 			localStorage.removeItem('UserSecret');
 			localStorage.removeItem('UserSecretVersion');

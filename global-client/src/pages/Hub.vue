@@ -79,7 +79,7 @@
 
 		switch (state.kind) {
 			case Status.GlobalNotLoggedIn:
-				hubUrl.value = hub.url + '#/hub/';
+				hubUrl.value = `${hub.url}?${new URLSearchParams({ hubId })}#/hub/`;
 				break;
 			case Status.MSSHubNotLoggedIn: {
 				try {
@@ -102,7 +102,7 @@
 							userId: enterCompleteResp.mxid,
 						});
 						// TODO make sure that accessToken is no longer passed in query parameter
-						hubUrl.value = hub.url + '?newToken=true&accessToken=' + authInfo;
+						hubUrl.value = `${hub.url}?${new URLSearchParams({ newToken: 'true', accessToken: authInfo, hubId })}`;
 						break;
 					}
 				} catch (error) {
@@ -117,7 +117,7 @@
 					userId: state.userId,
 				});
 				// TODO: make sure that accessToken is no longer passed in query parameter
-				hubUrl.value = hub.url + '?accessToken=' + authInfo;
+				hubUrl.value = `${hub.url}?${new URLSearchParams({ accessToken: authInfo, hubId })}`;
 				break;
 			}
 		}

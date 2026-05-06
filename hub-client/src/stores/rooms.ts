@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventType, type IStateEvent, type Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { Direction, EventType, type IStateEvent, type Room as MatrixRoom } from 'matrix-js-sdk';
 import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
@@ -15,7 +15,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
 import Room from '@hub-client/models/rooms/Room';
-import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms, type UnreadState, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -73,12 +73,12 @@ const useRooms = defineStore('rooms', {
 		return {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
-			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu
+			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu. TODO: split into a Map<roomId, RoomListRoom> for O(1) lookup + a sorted [name, roomId][] array for display order
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: Record<string, string> } },
 			securedRoom: undefined as TSecuredRoom | undefined,
-			initialRoomsLoaded: false,
+			initialRoomsLoaded: false, // Set true after sliding sync's first Complete response. The first request uses InitialRoomList with a very large range, so every joined room is in client.getRooms() by this point; timeline data fills in afterwards via MainRoomList's widening.
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
 			unreadCountVersion: 0, // Increment to trigger reactive updates for badge
@@ -249,20 +249,11 @@ const useRooms = defineStore('rooms', {
 	//#endregion getters
 
 	actions: {
-		// Fetch the total of unread notifications of all rooms in the hub
-		async fetchTotalUnreadCounts(): Promise<number> {
+		// Returns the worst unread state across all visible rooms (those
+		// displayed in the sidebar: public, secured, and private).
+		async fetchAggregateUnreadState(): Promise<UnreadState> {
 			await this.waitForInitialRoomsLoaded();
-
-			const pubhubs = usePubhubsStore();
-			const rooms = pubhubs.client.getRooms();
-			let unread = 0;
-			for (const roomListRoom of this.roomList) {
-				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
-				if (room) {
-					unread += room.getRoomUnreadNotificationCount(NotificationCountType.Total);
-				}
-			}
-			return unread;
+			return worstUnreadState([...this.loadedPublicRooms, ...this.loadedSecuredRooms, ...this.loadedPrivateRooms].map((r) => r.unreadState));
 		},
 
 		async waitForInitialRoomsLoaded(): Promise<void> {
@@ -271,14 +262,39 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
-		setRoomsLoaded(value: boolean) {
-			this.initialRoomsLoaded = value;
+		setRoomsLoaded(loaded: boolean) {
+			if (this.initialRoomsLoaded === loaded) return;
+			this.initialRoomsLoaded = loaded;
+			if (!loaded) return;
+			// Rooms are added to roomList with unreadState 'unknown'. Compute the
+			// real state now that all rooms and the SDK are ready.
+			this.refreshAllUnreadStates();
+		},
+
+		/**
+		 * Recompute the unread state for every room in roomList. Useful after
+		 * any source of truth changes — e.g. after the persisted unread cache
+		 * is loaded from the global client, the previously-computed dots may
+		 * be stale and need to be re-derived.
+		 */
+		refreshAllUnreadStates() {
+			for (const entry of this.roomList) {
+				this.notifyUnreadCountChanged(entry.roomId);
+			}
 		},
 		setTimestamps(timestamps: Array<Array<number | string>>) {
 			this.timestamps = timestamps;
 		},
 
-		notifyUnreadCountChanged() {
+		notifyUnreadCountChanged(roomId: string) {
+			const entry = this.roomList.find((r) => r.roomId === roomId);
+			if (entry) {
+				const pubhubs = usePubhubsStore();
+				const matrixRoom = pubhubs.client.getRoom(roomId);
+				// If the SDK doesn't have the room yet, we can't determine the state.
+				entry.unreadState = matrixRoom ? Room.unreadState(matrixRoom) : 'unknown';
+			}
+			// TODO: inefficient global signal; thread consumers (RoomTimeline, RoomMessageBubble) should use per-room reactivity
 			this.unreadCountVersion++;
 		},
 
@@ -623,10 +639,8 @@ const useRooms = defineStore('rooms', {
 		getTPublicRoom(roomId: string): TPublicRoom | undefined {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
-		getTotalPrivateRoomUnreadMsgCount(): number {
-			return this.privateRooms
-				.filter((room) => room.hasMessages())
-				.reduce((total, room) => total + room.getUnreadNotificationCount(NotificationCountType.Total), 0);
+		getPrivateRoomUnreadState(): UnreadState {
+			return worstUnreadState(this.loadedPrivateRooms.map((r) => r.unreadState));
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {

@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { ConditionKind, type IPushRule, NotificationCountType, PushRuleKind } from 'matrix-js-sdk';
+	import { ConditionKind, type IPushRule, PushRuleKind } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { type NavigationFailure, type RouteParamValue, type RouteRecordNameGeneric, isNavigationFailure, useRouter } from 'vue-router';
@@ -159,6 +159,7 @@
 
 	// Composables
 	import { useRoles } from '@hub-client/composables/roles.composable';
+	import { useUnreadAggregate } from '@hub-client/composables/unreadAggregate.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
@@ -166,6 +167,7 @@
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
+	import { hubId } from '@hub-client/logic/utils/hubId';
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
@@ -212,21 +214,31 @@
 	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
 	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || notifications.notifications.length > 0 || !rooms.roomsLoaded);
 
-	function getUnreadCount(roomId: string): number {
-		void rooms.unreadCountVersion;
-		const room = pubhubs.client.getRoom(roomId);
-		if (room) {
-			return room.getUnreadNotificationCount(NotificationCountType.Total);
+	// Aggregate unread state for this hub. The composable hydrates the
+	// persisted cache and keeps `unreadState` in sync with unreadCountVersion
+	// bumps from the rooms store.
+	const { unreadState, setupUnreadAggregateTracking } = useUnreadAggregate();
+
+	/**
+	 * When this hub client is running inside the global client it is, by
+	 * definition, the currently active hub — its miniclient sibling is in
+	 * "linked" mode and does not run its own sync, and just mirrors what we
+	 * push to the parent. Fire AggregateUnreadState on every state change;
+	 * and on the read → unread transition also fire UnreadMessages so the
+	 * parent shows a desktop notification for this hub (that trigger used
+	 * to live in the miniclient, and moved here because a linked miniclient
+	 * no longer sees the transition itself).
+	 *
+	 * Solo mode is skipped: the messagebox is a no-op there and there's no
+	 * parent to forward to. See the "Solo-mode desktop notifications for
+	 * hub client" follow-up task.
+	 */
+	watch(unreadState, (state, previous) => {
+		if (hubSettings.isSolo || !hubId) return;
+		messagebox.sendMessage(new Message(MessageType.AggregateUnreadState, { hubId, state }));
+		if (state === 'unread' && previous !== 'unread') {
+			messagebox.sendMessage(new Message(MessageType.UnreadMessages));
 		}
-		return 0;
-	}
-
-	const _publicRoomsUnreadCount = computed(() => {
-		return rooms.loadedPublicRooms.reduce((total, room) => total + getUnreadCount(room.roomId), 0);
-	});
-
-	const _securedRoomsUnreadCount = computed(() => {
-		return rooms.loadedSecuredRooms.reduce((total, room) => total + getUnreadCount(room.roomId), 0);
 	});
 
 	onMounted(async () => {
@@ -265,6 +277,7 @@
 		if (!window.location.hash.startsWith('#/hub/')) {
 			// With sliding-sync, loading is faster.
 			await pubhubs.login();
+			await setupUnreadAggregateTracking();
 			setupReady.value = true;
 			addPushRules();
 		}

@@ -47,15 +47,25 @@ const PublicRooms: RoomType[] = getRoomsByCategory(RoomCategory.PUBLIC);
 const SecuredRooms: RoomType[] = getRoomsByCategory(RoomCategory.SECURED);
 const DirectRooms: RoomType[] = getRoomsByCategory(RoomCategory.DIRECT);
 
-/**
- * Type for display of Rooms in the Roomlist-menu
- */
+type UnreadState = 'read' | 'unread' | 'unknown';
+
+/** Returns the most urgent state: 'unread' > 'unknown' > 'read'. */
+function worstUnreadState(states: UnreadState[]): UnreadState {
+	let worst: UnreadState = 'read';
+	for (const state of states) {
+		if (state === 'unread') return 'unread';
+		if (state === 'unknown') worst = 'unknown';
+	}
+	return worst;
+}
+
 type RoomListRoom = {
 	roomId: string;
 	roomType: string;
 	name: string;
 	stateEvents: IStateEvent[];
 	isHidden: boolean; // keep track of rooms that are removed from the list but are not synced yet
+	unreadState: UnreadState;
 };
 
 /**
@@ -69,4 +79,4 @@ type TBaseRoom = {
 	room_type?: string;
 };
 
-export { TBaseRoom, RoomListRoom, RoomType, PublicRoomType, PublicRooms, SecuredRooms, DirectRooms };
+export { TBaseRoom, UnreadState, worstUnreadState, RoomListRoom, RoomType, PublicRoomType, PublicRooms, SecuredRooms, DirectRooms };
