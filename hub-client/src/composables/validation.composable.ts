@@ -15,6 +15,7 @@ const validateFunctions: { [key: string]: (...args: unknown[]) => unknown } = {
 	},
 
 	minValue: (value: unknown, min: unknown): boolean => {
+		if (typeof min === 'undefined') min = 0;
 		return (value as number) >= (min as number);
 	},
 
@@ -60,6 +61,7 @@ const validateMessageFunctions: { [key: string]: (...args: unknown[]) => unknown
 	},
 
 	minValue: (value: unknown, min: unknown, keyTranslation: unknown): ValidationMessage => {
+		if (typeof min === 'undefined') min = 0;
 		return { translationKey: 'validation.min_value', parameters: [keyTranslation as string, min as number, value as number] };
 	},
 
