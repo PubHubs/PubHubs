@@ -119,7 +119,7 @@ const defaultSettings: Settings = {
 			videocalls: true,
 			roomLibrary: true,
 			votingWidget: true,
-			forumRooms: false,
+			forumRooms: true,
 			consent: true,
 			phCard: true,
 			whisper: false,
