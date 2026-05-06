@@ -10,8 +10,10 @@ import os
 
 from .HubClientApiConfig import HubClientApiConfig
 from ._store import HubStore
-from ._validation import assert_is_admin, user_validator
+from ._validation import assert_is_admin, user_validator, assert_has_power_level
+from ._errors import InsufficientPowerLevelError
 from ._cors import set_allow_origin_header
+from ._constants import USER, STEWARD
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
@@ -48,7 +50,7 @@ class HubDataResource(DirectServeJsonResource):
 		self._timestamp_cache = None
 		self._timestamp_cache_time = 0.0
 
-	@user_validator() 
+	@user_validator(USER)
 	async def _async_render_GET(self, request: SynapseRequest, user_id: str) -> bytes:
 		
 
@@ -144,7 +146,7 @@ class HubDataResource(DirectServeJsonResource):
 		respond_with_json(request, 200, response)
 
 
-	@user_validator() 
+	@user_validator(USER)
 	async def _async_render_POST(self, request: SynapseRequest, user_id: str) -> bytes:
 		
 			
@@ -187,9 +189,12 @@ class HubDataResource(DirectServeJsonResource):
 					respond_with_json(request, 500, {"error": "Failed to record consent"})
 					return
 			case 'removed_from_secured_room':
-				if not await assert_is_admin(user_id, request, self._module_api):
-					return
 				room_id = body.get('room_id')
+				try:
+					await assert_has_power_level(request, user_id, self._module_api, STEWARD, room_id)
+				except InsufficientPowerLevelError:
+					# If not a steward, check if hub admin
+					await assert_is_admin(user_id, request, self._module_api)
 				await self._hub_store.remove_users_from_secured_room(room_id)
 				response = {
 						"success": True, }
