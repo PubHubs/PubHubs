@@ -1,0 +1,5 @@
+# `cargo doc-math` builds rustdoc for this crate with the KaTeX header
+# injected (so math in doc-comments renders) and private items included.
+[alias]
+doc-math = [ "rustdoc", "--open", "--", "--html-in-header", "docs/assets/rustdoc-include-katex-header.html", "--document-private-items" ]
+doc-math-no-open = [ "rustdoc", "--", "--html-in-header", "docs/assets/rustdoc-include-katex-header.html", "--document-private-items" ]

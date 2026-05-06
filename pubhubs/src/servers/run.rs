@@ -637,7 +637,7 @@ impl<S: Server> Handle<S> {
     /// command could be executed.
     ///
     /// When `Ok(())` is returned, this means the command is guaranteed to be executed momentarily.
-    pub async fn issue_command(&self, command: Command<S>) -> Result<(), ()> {
+    pub(crate) async fn issue_command(&self, command: Command<S>) -> Result<(), ()> {
         let (feedback_sender, feedback_receiver) = tokio::sync::oneshot::channel();
 
         let result = self

@@ -38,7 +38,7 @@ import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
 import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
-import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
+import { RoomType, type UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type StoredUnreadInfo, getStoredUnreadInfo, updateStoredUnreadInfo } from '@hub-client/models/rooms/unreadInfoCache';
 import TRoomThread from '@hub-client/models/thread/RoomThread';
@@ -46,17 +46,9 @@ import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('Room');
-
-// Types
-enum RoomType {
-	SECURED = 'ph.messages.restricted',
-	PH_MESSAGES_DM = 'ph.messages.dm',
-	PH_MESSAGES_GROUP = 'ph.messages.group',
-	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
-	PH_MESSAGE_STEWARD_CONTACT = 'ph.messages.steward.contact',
-}
 
 type RoomThread = {
 	threadId: string;
@@ -160,7 +152,13 @@ export default class Room {
 	}
 
 	public isSecuredRoom(): boolean {
-		return this.getType() === RoomType.SECURED;
+		return this.getType() === RoomType.PH_MESSAGES_RESTRICTED;
+	}
+
+	public isForumRoom(): boolean {
+		const settings = useSettings();
+		if (!settings.isFeatureEnabled(FeatureFlag.forumRooms)) return false;
+		return this.getType() === RoomType.PH_FORUM_ROOM;
 	}
 
 	public isDirectMessageRoom(): boolean {
@@ -869,6 +867,17 @@ export default class Room {
 
 	public getMatrixThread(eventId: string): Thread | undefined {
 		return this.matrixRoom.getThread(eventId) ?? undefined;
+	}
+
+	public getMatrixThreadLastEvent(eventId: string): MatrixEvent | undefined | null {
+		const thread = this.getMatrixThread(eventId);
+		if (!thread) return undefined;
+		return thread.replyToEvent;
+	}
+
+	public getMatrixThreadLastEventTimestamp(eventId: string): number | undefined {
+		const lastEvent = this.getMatrixThreadLastEvent(eventId);
+		return lastEvent?.getTs();
 	}
 
 	public createMatrixThread(eventId: string): Thread {

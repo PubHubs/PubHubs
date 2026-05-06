@@ -428,7 +428,7 @@ const nl = {
 		secured_rooms: 'Beveiligde kamers',
 		secured_rooms_tooltip: 'Om toegang te krijgen tot beveiligde kamers, moeten gebruikers bepaalde gegevens delen via de Yivi app.',
 		room_type: 'Type kamer',
-		room_type_placeholder: 'bijvoorbeeld: ph.plugin.xxx',
+		room_type_placeholder: 'Bijvoorbeeld: ph.forum-room',
 		edit_name: 'Pas naam van kamer aan',
 		edit_secured_room: 'Pas beveiligde kamer aan',
 		added_room: 'kamer toegevoegd',
@@ -644,6 +644,18 @@ const nl = {
 		},
 		threads: {
 			view_thread: 'bekijk thread',
+		},
+		forum: {
+			add_new_thread: 'Maak nieuwe vraag',
+			no_threads: 'Nog geen vragen',
+			sortby: 'Sorteer op',
+			sortby_created: 'Aangemaakt',
+			sortby_activity: 'Recente activiteit',
+			sortby_replies: 'Aantal antwoorden',
+			title: 'Vraag',
+			description: 'Omschrijving',
+			help_title: 'Wees specifiek en bondig, stel je voor dat je een vraag stelt aan een ander persoon',
+			help_description: 'Geef meer informatie over de achtergrond van je vraag',
 		},
 	},
 	time: {

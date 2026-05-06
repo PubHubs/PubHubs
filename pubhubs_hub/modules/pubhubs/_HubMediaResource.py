@@ -5,6 +5,7 @@ from synapse.http.server import DirectServeJsonResource, respond_with_json
 from .HubClientApiConfig import HubClientApiConfig
 from ._validation import user_validator
 from ._cors import set_allow_origin_header
+from ._constants import HUB_ADMIN, GUEST
 
 import logging
 import os
@@ -32,6 +33,7 @@ class HubMediaResource(DirectServeJsonResource):
 		if not self._darkmode:
 			self.putChild(b'dark', HubMediaResource(self._module_api, self._config, media_type, self._is_default, darkmode=True))
 
+	@user_validator(GUEST)
 	async def _async_render_GET(self, request: SynapseRequest) -> bytes:
 		path = self._get_media_path()
 
@@ -54,7 +56,7 @@ class HubMediaResource(DirectServeJsonResource):
 			request.write(fd.read())
 		request.finish()
 
-	@user_validator(require_admin=True)
+	@user_validator(HUB_ADMIN)
 	async def _async_render_POST(self, request: SynapseRequest, _) -> bytes:
 	
 		set_allow_origin_header(request, self._config.allowed_origins)
@@ -73,7 +75,7 @@ class HubMediaResource(DirectServeJsonResource):
 
 		respond_with_json(request, 200, {"message": f"Hub {self._media_type} uploaded."})
 
-	@user_validator(require_admin=True)
+	@user_validator(HUB_ADMIN)
 	async def _async_render_DELETE(self, request: SynapseRequest, _) -> bytes:
 
 		set_allow_origin_header(request, self._config.allowed_origins)

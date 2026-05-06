@@ -1,7 +1,7 @@
 // Packages
 import { type IStateEvent } from 'matrix-js-sdk';
 
-// Types
+// Types (all: internal and freely added)
 enum RoomType {
 	PH_MESSAGES_DEFAULT = 'ph.messages.default',
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
@@ -9,6 +9,11 @@ enum RoomType {
 	PH_MESSAGES_GROUP = 'ph.messages.group',
 	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
 	PH_MESSAGE_STEWARD_CONTACT = 'ph.messages.steward.contact',
+	PH_FORUM_ROOM = 'ph.forum-room',
+}
+// RoomTypes that admin's can freely create
+enum PublicRoomType {
+	PH_NORMAL_ROOM = '',
 	PH_FORUM_ROOM = 'ph.forum-room',
 }
 
@@ -74,4 +79,4 @@ type TBaseRoom = {
 	room_type?: string;
 };
 
-export { TBaseRoom, UnreadState, worstUnreadState, RoomListRoom, RoomType, PublicRooms, SecuredRooms, DirectRooms };
+export { TBaseRoom, UnreadState, worstUnreadState, RoomListRoom, RoomType, PublicRoomType, PublicRooms, SecuredRooms, DirectRooms };

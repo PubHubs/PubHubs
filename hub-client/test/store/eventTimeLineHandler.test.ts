@@ -7,10 +7,10 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { EventTimeLineHandler } from '@hub-client/logic/core/eventTimeLineHandler';
 
 // Models
-import { TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 // Stores
-import { TEvent } from '@hub-client/stores/rooms';
+import { type TEvent } from '@hub-client/stores/rooms';
 
 const TestEvent = {
 	type: EventType.RoomMessage,

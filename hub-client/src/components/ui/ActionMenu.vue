@@ -8,19 +8,18 @@
 		<div
 			class="menu-icon flex cursor-pointer justify-items-stretch"
 			data-testid="actionmenu"
-			@click="toggle"
+			@click.stop="toggle"
 		>
 			<Icon
 				class="bg-surface hover:bg-accent-primary rounded-md"
-				size="lg"
-				type="dots-three-vertical"
+				:type="icon"
 			/>
 		</div>
 		<div
 			v-show="open"
 			class="menu-menu bg-surface absolute -mt-6 ml-6 rounded-md"
 			:style="style"
-			@click="close"
+			@click.stop="close"
 		>
 			<slot />
 		</div>
@@ -32,8 +31,14 @@
 	import { nextTick, ref } from 'vue';
 
 	// Components
-	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Icon from '@hub-client/new-design/components/Icon.vue';
 
+	defineProps({
+		icon: {
+			type: String,
+			default: 'dots-three-vertical',
+		},
+	});
 	const open = ref(false);
 	const style = ref('');
 	const menu = ref<HTMLElement | null>(null);
@@ -41,7 +46,7 @@
 	const toggle = () => {
 		open.value = !open.value;
 		nextTick(() => {
-			const split = Math.floor((window.screen.width / 3) * 2);
+			const split = Math.floor(window.innerWidth / 2);
 			const menuX = menu.value?.offsetLeft ?? 0;
 			const buttonWidth = menu.value?.getElementsByClassName('menu-icon')[0]?.clientWidth ?? 0;
 			const menuWidth = menu.value?.getElementsByClassName('menu-menu')[0]?.clientWidth ?? 0;

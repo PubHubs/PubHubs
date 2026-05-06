@@ -119,7 +119,9 @@ fn wire_compat() {
         "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
     )
     .unwrap();
-    let id: id::Id = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".parse().unwrap();
+    let id: id::Id = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        .parse()
+        .unwrap();
     let ts = NumericDate::new(1_700_000_000);
     let phc_url: url::Url = "https://phc.example.test/".parse().unwrap();
     let tr_url: url::Url = "https://tr.example.test/".parse().unwrap();

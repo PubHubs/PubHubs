@@ -46,6 +46,13 @@
 						@click="router.push({ name: 'direct-msg' })"
 					/>
 					<Icon
+						v-if="rooms.currentRoom.isForumRoom() && props.topicId"
+						type="caret-left"
+						data-testid="back"
+						class="cursor-pointer"
+						@click="router.push({ name: 'room', params: { id: rooms.currentRoomId } })"
+					/>
+					<Icon
 						v-else-if="notPrivateRoom()"
 						:type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'"
 					/>
@@ -140,11 +147,16 @@
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
 					<RoomTimeline
-						v-if="room"
+						v-if="room && !room.isForumRoom()"
 						:key="props.id"
 						:room="room"
 						:event-id-to-scroll="scrollToEventId"
 						:last-read-event-id="lastReadEventId"
+					/>
+					<ForumRoomTimeline
+						v-if="room && room.isForumRoom()"
+						:room="room"
+						:topic-id="topicId"
 					/>
 				</div>
 
@@ -210,6 +222,7 @@
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
+	import ForumRoomTimeline from '@hub-client/components/rooms/forum/ForumRoomTimeline.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
@@ -243,6 +256,7 @@
 	// Passed by the router
 	const props = defineProps({
 		id: { type: String, required: true },
+		topicId: { type: String, default: undefined },
 	});
 
 	const logger = createLogger('Room');
@@ -329,11 +343,6 @@
 		if (completed) isLoading.value = false;
 	});
 
-	// Close sidebar instantly before leaving this page
-	onBeforeRouteLeave(() => {
-		sidebar.closeInstantly();
-	});
-
 	// Clear thread when sidebar is closed
 	watch(
 		() => sidebar.isOpen.value,
@@ -371,6 +380,11 @@
 		}
 		const completed = await update();
 		if (completed) isLoading.value = false;
+	});
+
+	// Close sidebar instantly before leaving this page
+	onBeforeRouteLeave(() => {
+		sidebar.closeInstantly();
 	});
 
 	function currentThreadLengthChanged(newLength: number) {

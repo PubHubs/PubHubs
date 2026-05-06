@@ -428,7 +428,7 @@ const en = {
 		secured_rooms: 'Secured rooms',
 		secured_rooms_tooltip: 'To access secured rooms, users must share certain information via the Yivi app.',
 		room_type: 'Room type',
-		room_type_placeholder: 'example: ph.plugin.xxx',
+		room_type_placeholder: 'Example: ph.forum-room',
 		edit_name: 'Change room name',
 		edit_secured_room: 'Change secured room',
 		added_room: 'Room added',
@@ -644,6 +644,18 @@ const en = {
 		},
 		threads: {
 			view_thread: 'view thread',
+		},
+		forum: {
+			add_new_thread: 'Create new question',
+			no_threads: 'No questions yet',
+			sortby: 'Sort by',
+			sortby_created: 'Created',
+			sortby_activity: 'Recent activity',
+			sortby_replies: 'Number of replies',
+			title: 'Question',
+			description: 'Description',
+			help_title: "Be specific and imagine you're asking a question to another person",
+			help_description: 'Introduce the problem and expand on your question',
 		},
 	},
 	time: {

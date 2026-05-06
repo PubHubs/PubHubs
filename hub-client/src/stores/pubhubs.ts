@@ -31,7 +31,7 @@ import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { router } from '@hub-client/logic/core/router';
-import { hasHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+import { hasHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
@@ -863,6 +863,21 @@ const usePubhubsStore = defineStore('pubhubs', {
 			logger.debug('addSignedFile <==', result);
 		},
 
+		async addForumThread(roomId: string, title: string, description: string) {
+			const content = {
+				msgtype: PubHubsMgType.ForumTopic,
+				body: removeHtml(title),
+				description: removeHtml(description),
+				'm.mentions': {
+					room: false,
+					user_ids: [],
+				},
+			};
+			// @ts-expect-error -- custom event type not in SDK types
+			const result = await this.client.sendEvent(roomId, PubHubsMgType.ForumTopic as unknown as keyof TimelineEvents, content);
+			logger.debug('addForumThread', result);
+		},
+
 		/**
 		 * @param roomId
 		 * @param eventId
@@ -1221,35 +1236,24 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async fetchAuthorizedMediaUrl(url: string): Promise<string | null> {
+		async fetchAuthorizedMediaUrl(url: string): Promise<string> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
-				logger.error('Access token is missing');
-				return null;
+				throw new Error('Access token is missing');
 			}
 
-			const options = {
-				headers: {
-					Authorization: 'Bearer ' + accessToken,
-				},
+			const response = await fetch(url, {
+				headers: { Authorization: 'Bearer ' + accessToken },
 				method: 'GET',
-			};
+			});
 
-			try {
-				const response = await fetch(url, options);
-
-				const blob = await response.blob();
-
-				if (blob) {
-					const fileURL = window.URL.createObjectURL(blob);
-					return fileURL;
-				}
-				return null;
-			} catch (error) {
-				logger.error('Error downloading the file: ', error);
-				return null;
+			if (!response.ok) {
+				throw new Error(`Authorized media fetch failed: ${response.status} ${response.statusText} for ${url}`);
 			}
+
+			const blob = await response.blob();
+			return window.URL.createObjectURL(blob);
 		},
 
 		/**

@@ -12,6 +12,12 @@
 			>
 				<Icon type="shield"></Icon>
 			</div>
+			<div
+				v-else-if="isForumRoom()"
+				class="bg-button-blue text-on-button-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
+			>
+				<Icon type="chat-circle-text"></Icon>
+			</div>
 		</div>
 
 		<div class="h-16">
@@ -91,10 +97,13 @@
 	import P from '@hub-client/components/elements/P.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	// Setup
@@ -104,6 +113,10 @@
 			required: true,
 		},
 		isSecured: {
+			type: Boolean,
+			default: false,
+		},
+		isForum: {
 			type: Boolean,
 			default: false,
 		},
@@ -194,5 +207,12 @@
 	const joinSecureRoom = () => {
 		dialogOpen.value = props.room.room_id;
 		panelOpen.value = true;
+	};
+
+	const isForumRoom = () => {
+		const settings = useSettings();
+		if (!settings.isFeatureEnabled(FeatureFlag.forumRooms)) return false;
+		const isForum = roomsStore.getPublicRoom(props.room.room_id)?.room_type === RoomType.PH_FORUM_ROOM;
+		return isForum;
 	};
 </script>

@@ -8,7 +8,7 @@ use crate::misc::crypto;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::phcrypto;
 use crate::{
-    api::{self, EndpointDetails as _, OpenError, phc::hub::TicketOpenError},
+    api::{self, EndpointDetails as _},
     servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation},
 };
 
@@ -48,6 +48,7 @@ pub struct ExtraSharedState {}
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
     /// Secret shared with pubhubs central
+    #[expect(dead_code)]
     phc_ss: elgamal::SharedSecret,
 
     /// Key used to (un)seal messages to and from PHC
@@ -71,9 +72,8 @@ impl Deref for App {
 
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
-        api::phct::hub::KeyEP::add_to(self, sc, App::handle_hub_key);
-
         EhppEP::add_to(self, sc, App::handle_ehpp);
+        api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
     }
 
     fn check_constellation(&self, constellation: &Constellation) -> bool {
@@ -114,48 +114,12 @@ impl crate::servers::App<Server> for App {
 }
 
 impl App {
-    async fn handle_hub_key(
+    /// Implements [`api::server::HubPingEP`].
+    async fn handle_hub_ping(
         app: Rc<Self>,
-        signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
-    ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.running_state_or_please_retry()?;
-
-        let ts_req = signed_req.into_inner();
-
-        let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
-
-        if let Err(toe) = ts_req.open(&running_state.constellation.phc_jwt_key) {
-            match toe {
-                TicketOpenError::Ticket(OpenError::InvalidSignature)
-                | TicketOpenError::Ticket(OpenError::Expired) => {
-                    return Ok(api::phct::hub::KeyResp::RetryWithNewTicket);
-                }
-                TicketOpenError::Ticket(OpenError::InternalError)
-                | TicketOpenError::Ticket(OpenError::OtherConstellation(..))
-                | TicketOpenError::Signed(OpenError::OtherConstellation(..))
-                | TicketOpenError::Signed(OpenError::InternalError) => {
-                    return Err(api::ErrorCode::InternalError);
-                }
-                TicketOpenError::Ticket(OpenError::OtherwiseInvalid)
-                | TicketOpenError::Signed(OpenError::OtherwiseInvalid)
-                | TicketOpenError::Signed(OpenError::InvalidSignature)
-                | TicketOpenError::Signed(OpenError::Expired) => {
-                    return Err(api::ErrorCode::BadRequest);
-                }
-            }
-        }
-
-        // At this point we can be confident that the ticket is authentic, so we can give the hub
-        // its decryption key based on the provided ticket
-
-        let key_part: curve25519_dalek::Scalar = phcrypto::t_hub_key_part(
-            ticket_digest,
-            &running_state.phc_ss, // shared secret with pubhubs central
-            &app.enc_key,
-            &app.master_enc_key_part,
-        );
-
-        Ok(api::phct::hub::KeyResp::Success { key_part })
+        signed_req: web::Json<api::phc::hub::TicketSigned<api::server::PingReq>>,
+    ) -> api::Result<api::server::PingResp> {
+        crate::servers::AppBase::<Server>::handle_hub_ping(app, signed_req).await
     }
 
     /// Implements [`EhppEP`]
