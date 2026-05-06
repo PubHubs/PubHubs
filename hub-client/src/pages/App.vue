@@ -215,9 +215,8 @@
 	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || notifications.notifications.length > 0 || !rooms.roomsLoaded);
 
 	// Aggregate unread state for this hub. The composable hydrates the
-	// persisted cache, keeps `unreadState` in sync with unreadCountVersion
-	// bumps, and subscribes to RoomEvent.Receipt once we've logged in and
-	// called setupUnreadAggregateTracking().
+	// persisted cache and keeps `unreadState` in sync with unreadCountVersion
+	// bumps from the rooms store.
 	const { unreadState, setupUnreadAggregateTracking } = useUnreadAggregate();
 
 	/**

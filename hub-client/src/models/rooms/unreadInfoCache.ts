@@ -134,11 +134,12 @@ function scheduleSave(): void {
 async function saveCache(): Promise<void> {
 	// Drop entries for rooms the user has left/been banned from. This is the
 	// cleanup point for stale rooms — they get evicted from both the persisted
-	// blob and the in-memory cache here. The filter matches the same set that
-	// matrix.service.ts:255-258 skips when populating the sidebar room list,
-	// so we end up with cache entries exactly for the rooms shown with a dot.
-	// client.getRooms() is a cheap synchronous Object.values over the
-	// matrix-js-sdk's MemoryStore; see node_modules/matrix-js-sdk/lib/store/memory.js.
+	// blob and the in-memory cache here. Matches the leave/ban skip in
+	// MatrixService.handleLifecycleEvent that excludes those rooms from the
+	// sidebar room list, so we end up with cache entries exactly for the rooms
+	// that could potentially show a dot. client.getRooms() is a cheap
+	// synchronous Object.values over the matrix-js-sdk's MemoryStore; see
+	// node_modules/matrix-js-sdk/lib/store/memory.js.
 	const joinedRoomIds = new Set(
 		usePubhubsStore()
 			.client.getRooms()

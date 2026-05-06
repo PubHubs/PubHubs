@@ -72,7 +72,7 @@ enum MessageType {
 	DialogHideModal = modalPrefix + '-hide', // Hide modal over bar
 
 	Sync = 'sync', // CHILD asks for syncing settings etc.
-	UnreadMessages = 'unreadmessages', // Sync total of unread messages for a hub
+	UnreadMessages = 'unreadmessages', // Fired (without payload) on read→unread transition so the parent can show a desktop notification
 	SendHubInformation = 'sendhubinformation', // Let child ask to send the hubinformation
 	HubInformation = 'hubinformation', // Sync hub information (name) with hub client.
 	Settings = 'settings', // Sync settings
