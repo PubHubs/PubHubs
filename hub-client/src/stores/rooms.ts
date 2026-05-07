@@ -292,7 +292,7 @@ const useRooms = defineStore('rooms', {
 				const pubhubs = usePubhubsStore();
 				const matrixRoom = pubhubs.client.getRoom(roomId);
 				// If the SDK doesn't have the room yet, we can't determine the state.
-				entry.unreadState = matrixRoom ? Room.unreadState(matrixRoom) : 'unknown';
+				entry.unreadState = matrixRoom ? Room.unreadState(matrixRoom, this.rooms[roomId]) : 'unknown';
 			}
 			// TODO: inefficient global signal; thread consumers (RoomTimeline, RoomMessageBubble) should use per-room reactivity
 			this.unreadCountVersion++;

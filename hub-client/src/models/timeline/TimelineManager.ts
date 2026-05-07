@@ -56,8 +56,22 @@ class TimelineManager {
 	private user = useUser();
 	private client: MatrixClient;
 
-	/** Contains the current filtered timelineevents */
-	private timelineEvents: TimelineEvent[] = [];
+	/**
+	 * Visible events only (filtered through isVisibleEvent), kept ascending by
+	 * ts (oldest first). Readers may rely on the invariant: events[length - 1]
+	 * is the newest known visible event.
+	 */
+	private _timelineEvents: TimelineEvent[] = [];
+
+	private get timelineEvents(): TimelineEvent[] {
+		return this._timelineEvents;
+	}
+
+	/** WARNING: the array you pass is used as-is; make sure it is not modified later. */
+	private set timelineEvents(events: TimelineEvent[]) {
+		events.sort((a, b) => a.matrixEvent.getTs() - b.matrixEvent.getTs());
+		this._timelineEvents = events;
+	}
 	/** Increasing version counter, bumped on every timeline mutation */
 	private _timelineVersion: number = 0;
 	/** Contains all redacted events, deletions and edits */
@@ -497,10 +511,13 @@ class TimelineManager {
 	}
 
 	/**
-	 * Returns a copy of the timeline events sorted chronologically (oldest first)
+	 * @deprecated `timelineEvents` is now sorted ascending by ts as an invariant
+	 * (see the setter), so this method is a redundant alias for getEvents().
+	 * Kept temporarily; call sites should be migrated to getEvents() and this
+	 * method removed.
 	 */
 	public getChronologicalTimeline(): TimelineEvent[] {
-		return [...this.timelineEvents].sort((a, b) => a.matrixEvent.getTs() - b.matrixEvent.getTs());
+		return this.timelineEvents;
 	}
 
 	/**

@@ -546,14 +546,17 @@ export default class Room {
 	}
 
 	public unreadState(): UnreadState {
-		return Room.unreadState(this.matrixRoom);
+		return Room.unreadState(this.matrixRoom, this);
 	}
 
 	/**
 	 * Determines the unread state of a room by extracting four parameters
-	 * from the timeline and delegating to computeUnreadState.
+	 * from the timeline and delegating to computeUnreadState. When a project
+	 * Room is provided, its TimelineManager is consulted for visible events
+	 * that may pre-date the sliding sync window (e.g. when invisible events
+	 * have saturated the live timeline).
 	 */
-	static unreadState(matrixRoom: MatrixRoom): UnreadState {
+	static unreadState(matrixRoom: MatrixRoom, projectRoom?: Room): UnreadState {
 		const userId = matrixRoom.client.getUserId();
 		if (!userId) return 'read';
 
@@ -571,7 +574,30 @@ export default class Room {
 			return computeUnreadState(receiptTs, undefined, undefined, stored);
 		}
 
-		const { effectiveReceiptTs, lastVisibleTs, timelineStartTs } = extractTimelineParams(events, userId, receiptTs);
+		const params = extractTimelineParams(events, userId, receiptTs);
+		const { effectiveReceiptTs, timelineStartTs } = params;
+		let { lastVisibleTs } = params;
+
+		// Merge with TimelineManager: it holds visible events sorted ascending
+		// by ts (invariant; see TimelineManager._timelineEvents) and may include
+		// older messages paginated via /messages that aren't in the sliding
+		// sync window. Live's visible events should be a subset of TM's, so
+		// TM's last visible should never be older than live's — warn if it is.
+		if (projectRoom) {
+			const tmEvents = projectRoom.getLiveTimelineEvents();
+			if (tmEvents.length > 0) {
+				const tmLastVisibleTs = tmEvents[tmEvents.length - 1].getTs();
+				if (lastVisibleTs !== undefined && tmLastVisibleTs < lastVisibleTs) {
+					logger.warn('TimelineManager missing visible event present in live timeline', {
+						roomId,
+						liveLastVisibleTs: lastVisibleTs,
+						tmLastVisibleTs,
+					});
+				}
+				lastVisibleTs = lastVisibleTs === undefined ? tmLastVisibleTs : Math.max(lastVisibleTs, tmLastVisibleTs);
+			}
+		}
+
 		const state = computeUnreadState(effectiveReceiptTs, lastVisibleTs, timelineStartTs, stored);
 		updateStoredUnreadInfo(roomId, {
 			lastVisibleTs: lastVisibleTs ?? 0,
