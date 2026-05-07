@@ -285,11 +285,12 @@
 	});
 
 	const sortedPrivateRooms = computed(() => {
-		const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
-		const targetRoomId = selectedRoomId ?? sidebar.lastDMRoomId.value;
-		return [...privateRooms.value]
-			.filter((r) => r.hasMessages() || r.roomId === targetRoomId)
-			.sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
+		// const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
+		// const targetRoomId = selectedRoomId ?? sidebar.lastDMRoomId.value;
+		// return [...privateRooms.value]
+		// 	.filter((r) => r.hasMessages() || r.roomId === targetRoomId)
+		// 	.sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
+		return [...privateRooms.value].sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
 	});
 
 	const mobileConversationTitle = computed(() => {
