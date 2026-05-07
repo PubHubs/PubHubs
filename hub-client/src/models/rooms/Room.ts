@@ -558,7 +558,12 @@ export default class Room {
 		if (!userId) return 'read';
 
 		const roomId = matrixRoom.roomId;
-		const events = matrixRoom.getLiveTimeline().getEvents();
+		// matrix-js-sdk appends to the live timeline in arrival order, not by ts.
+		// When a room is first sent via a list (timeline_limit=1) and later
+		// expanded via a subscription (timeline_limit=50), the latest event sits
+		// at index 0 with older events appended after it. Sort a copy so the
+		// rest of this function can rely on chronological order.
+		const events = [...matrixRoom.getLiveTimeline().getEvents()].sort((a, b) => a.getTs() - b.getTs());
 		const stored = getStoredUnreadInfo(roomId);
 		const receiptTs = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate)?.data.ts ?? 0;
 
