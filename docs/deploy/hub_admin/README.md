@@ -10,15 +10,13 @@ Administrators can also create rooms like public rooms and secured rooms. For mo
 
 To create the first admin user, you need to update the homeserver database directly:
 
-1. Login to the homeserver database (`homeserver.db`) which is in the `/data` directory (or `/pubhubs_hub/matrix_test_config` for local development).
+1. Navigate to the homeserver database (`homeserver.db`) which is in your `hub_dir` .
 
 2. Make the user admin:
 
     ```sql
     UPDATE users SET admin = 1 WHERE name = '@abc-123:testhub.matrix.host';
     ```
-
-3. For local development, restart the python script. This is not needed for real deployment of PubHubs.
 
 ### Using the Synapse Admin API
 
