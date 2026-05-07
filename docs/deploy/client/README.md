@@ -1,6 +1,6 @@
 # Client settings
 
-These are instructions to setup and run the Hub client. We assume that you already have the Hub server up and running. And, as such, that you have received some confidential information from PubHubs Central which you need here. See [Hub server instructions](../hub/README.md).
+These are instructions to setup and run the Hub client. We assume that you already have the Hub server up and running.
 
 ## Setup
 
