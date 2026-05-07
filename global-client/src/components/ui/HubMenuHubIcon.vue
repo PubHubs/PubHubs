@@ -37,6 +37,9 @@
 	// Components
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
+	// Logic
+	import { cacheBust } from '@global-client/logic/utils/cacheBust';
+
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
 	import { useHubs } from '@global-client/stores/hubs';
@@ -71,7 +74,9 @@
 	hubs.setupMiniclient(props.hubId);
 
 	const accessToken = ref<string>(JSON.stringify(global.getAuthInfo(props.hubId)));
-	const miniclientSrc = computed(() => `${hub.value?.url}/miniclient.html?${new URLSearchParams({ accessToken: accessToken.value, hubId: props.hubId })}`);
+	const miniclientSrc = computed(
+		() => `${hub.value?.url}/miniclient.html?${new URLSearchParams({ accessToken: accessToken.value, hubId: props.hubId, cb: cacheBust })}`,
+	);
 
 	// When a user opens the hub for the first time on a device or in a browser, the accessToken
 	// and userId are only stored after the receivedMessage action with a message of type addAuthInfo
