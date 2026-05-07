@@ -65,12 +65,19 @@
 						{{ t('rooms.no_messages_yet') }}
 					</p>
 					<Badge
-						v-if="newMessage > 0"
+						v-if="unreadState === 'unread'"
 						data-testid="unread-badge"
 						class="shrink-0"
-					>
-						{{ newMessage }}
-					</Badge>
+						color="hub"
+						size="sm"
+					/>
+					<Badge
+						v-if="unreadState === 'unknown'"
+						data-testid="unread-badge"
+						class="shrink-0"
+						color="unknown"
+						size="sm"
+					/>
 				</div>
 			</div>
 		</div>
@@ -79,8 +86,8 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { EventType, MsgType, NotificationCountType } from 'matrix-js-sdk';
-	import { computed, ref, watch } from 'vue';
+	import { EventType, MsgType } from 'matrix-js-sdk';
+	import { type PropType, computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -99,7 +106,7 @@
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { RoomType, type UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
@@ -109,6 +116,10 @@
 		room: {
 			type: Room,
 			required: true,
+		},
+		unreadState: {
+			type: String as PropType<UnreadState>,
+			default: 'unknown',
 		},
 		isMobile: {
 			type: Boolean,
@@ -152,8 +163,6 @@
 		},
 		{ immediate: true },
 	);
-
-	const newMessage = computed(() => props.room.getUnreadNotificationCount(NotificationCountType.Total));
 
 	const latestMessageEvent = computed(() => {
 		const events = props.room.getLiveTimelineEvents();

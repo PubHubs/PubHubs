@@ -109,8 +109,8 @@
 					data-testid="conversations"
 				>
 					<MessagePreview
-						v-for="room in sortedPrivateRooms"
-						:key="room.roomId"
+						v-for="entry in sortedPrivateRooms"
+						:key="entry.room.roomId"
 						v-context-menu="
 							(evt: any) =>
 								openMenu(
@@ -120,19 +120,20 @@
 											label: t('menu.leave_conversation'),
 											icon: 'eye-slash',
 											variant: ContextVariant.delicate,
-											onClick: () => leaveConversation(room),
+											onClick: () => leaveConversation(entry.room),
 										},
 									],
-									room.roomId,
+									entry.room.roomId,
 								)
 						"
-						:room="room"
+						:room="entry.room"
+						:unread-state="entry.unreadState"
 						:is-mobile="isMobile"
-						:active="selectedRoom?.roomId === room.roomId"
+						:active="selectedRoom?.roomId === entry.room.roomId"
 						class="hover:cursor-pointer"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === room.roomId && 'bg-surface-low!'"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-low!'"
 						role="listitem"
-						@click="openDMRoom(room)"
+						@click="openDMRoom(entry.room)"
 					/>
 				</div>
 			</div>
@@ -245,7 +246,7 @@
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Models
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { RoomType, type UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Store
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -277,20 +278,19 @@
 	const selectedRoom = shallowRef<Room | null>(null);
 	const scrollToEventId = ref<string | undefined>(undefined);
 
-	const privateRooms = computed(() => rooms.privateRooms);
 	const dmLoading = ref(true);
 
 	const isGroupDM = computed(() => {
 		return selectedRoom.value?.getType() === RoomType.PH_MESSAGES_GROUP;
 	});
 
-	const sortedPrivateRooms = computed(() => {
-		// const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
-		// const targetRoomId = selectedRoomId ?? sidebar.lastDMRoomId.value;
-		// return [...privateRooms.value]
-		// 	.filter((r) => r.hasMessages() || r.roomId === targetRoomId)
-		// 	.sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
-		return [...privateRooms.value].sort((r1, r2) => lastEventTimeStamp(r2) - lastEventTimeStamp(r1));
+	type PrivateRoomEntry = { room: Room; unreadState: UnreadState };
+
+	const sortedPrivateRooms = computed<PrivateRoomEntry[]>(() => {
+		return rooms.loadedPrivateRooms
+			.filter((r) => rooms.rooms[r.roomId])
+			.map((r) => ({ room: rooms.rooms[r.roomId] as Room, unreadState: r.unreadState }))
+			.sort((a, b) => lastEventTimeStamp(b.room) - lastEventTimeStamp(a.room));
 	});
 
 	const mobileConversationTitle = computed(() => {
@@ -318,9 +318,9 @@
 	});
 
 	// Uses sidebar state, falling back to lastDMRoomId (which survives closeInstantly)
-	function findTargetRoom(roomList: Room[]): Room | undefined {
+	function findTargetRoom(entries: PrivateRoomEntry[]): Room | undefined {
 		if (sidebar.selectedDMRoom.value) return sidebar.selectedDMRoom.value;
-		if (sidebar.lastDMRoomId.value) return roomList.find((r) => r.roomId === sidebar.lastDMRoomId.value);
+		if (sidebar.lastDMRoomId.value) return entries.find((e) => e.room.roomId === sidebar.lastDMRoomId.value)?.room;
 		return undefined;
 	}
 
@@ -340,7 +340,7 @@
 			return;
 		}
 		if (sortedPrivateRooms.value.length > 0) {
-			openDMRoom(sortedPrivateRooms.value[0]);
+			openDMRoom(sortedPrivateRooms.value[0].room);
 		}
 	});
 
