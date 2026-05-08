@@ -12,44 +12,53 @@ stages: # List of stages for jobs, and their order of execution
   - publish-images
   - deploy-own
 
-rust-clippy:
+.rust-cache: &rust-cache
+  cache:
+    key: rust-$CI_COMMIT_REF_SLUG
+    # New branches and MRs warm-start from main's cache instead of building cold.
+    fallback_keys:
+      - rust-main
+    paths:
+      - pubhubs/target/
+      - .cargo/
+  variables:
+    CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+
+rust:
   stage: tests
   tags:
     - docker
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  <<: *rust-cache
   script:
     - cd pubhubs
+    - echo "=== cargo clippy ==="
     - cargo clippy -- --deny "warnings"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "stable"
-
-rust-unit-test:
-  stage: tests
-  tags:
-    - docker
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "stable"
-  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
-  script:
-    - cd pubhubs
+    - echo "=== cargo test ==="
     - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug cargo test
+    - echo "=== cargo deny check ==="
+    - cargo deny check
 
-rust-cargo-deny:
-  stage: tests
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "stable"
+rust-doc:
+  stage: deploy-own
   tags:
     - docker
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - rust
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  <<: *rust-cache
   script:
     - cd pubhubs
-    - cargo deny check
+    - cargo run --quiet doc --document-private-items
+    - cd target/doc
+    - chmod 600 $UPDATE_RUST_DOC_MAIN_KEY
+    - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_RUST_DOC_MAIN_KEY
 
 build-pubhubs-image:
   stage: publish-images
@@ -61,11 +70,7 @@ build-pubhubs-image:
       variables:
         CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:stable
   needs:
-    - job: rust-unit-test
-      optional: true
-    - job: rust-cargo-deny
-      optional: true
-    - job: rust-clippy
+    - job: rust
       optional: true
   tags:
     - docker
