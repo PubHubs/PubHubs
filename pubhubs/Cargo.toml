@@ -32,7 +32,7 @@ postcard = { version = "1.1", features = [ "use-std" ] }
 # better hashmap/hashset, supported by serde_json & toml
 indexmap = { version = "2.11", features = [ "serde" ] }
 
-rand = { version = "0" } 
+rand = { version = "0.10", features = ["sys_rng"] }
 # note: object_store is used by crates.io
 object_store = { version = "0.13", features = ["aws"] } 
 
