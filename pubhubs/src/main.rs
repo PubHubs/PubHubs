@@ -36,6 +36,7 @@ impl Cli {
                 Commands::Tools(args) => run_args!(args, "tools"),
                 Commands::Admin(args) => run_args!(args, "admin"),
                 Commands::Enter(args) => run_args!(args, "enter"),
+                Commands::Doc(args) => run_args!(args, "doc"),
             },
         }
     }
@@ -54,6 +55,9 @@ enum Commands {
 
     /// Enter pubhubs (and a hub) returning pubhubs (and Synapse) access token(s)
     Enter(pubhubs::cli::EnterArgs),
+
+    /// Like `cargo doc`, but with KaTeX header injected to render math
+    Doc(pubhubs::cli::DocArgs),
 }
 
 fn main() {
