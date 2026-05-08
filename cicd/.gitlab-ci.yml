@@ -77,7 +77,7 @@ build-pubhubs-image:
   image: docker:latest
   script:
     - unset DOCKER_HOST
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
     # a bit more history until we hit our tag's commit.
@@ -147,7 +147,7 @@ build-image-hub:
     - docker
   image: docker:latest # docker:stable does not work, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/228
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
     # a bit more history until we hit our tag's commit.
@@ -266,7 +266,7 @@ build-hubclient:
     - docker
   image: docker:latest
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} -f hub-client/Dockerfile .
     - docker push ${CONTAINER_IMAGE}
 
