@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { ConditionKind, type IPushRule, PushRuleKind } from 'matrix-js-sdk';
+	import { ConditionKind, type IPushRule, PushRuleActionName, PushRuleKind } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { type NavigationFailure, type RouteParamValue, type RouteRecordNameGeneric, isNavigationFailure, useRouter } from 'vue-router';
@@ -165,7 +165,7 @@
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
-	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
+	import { PubHubsInvisibleMsgType, PubHubsMgType } from '@hub-client/logic/core/events';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 	import { hubId } from '@hub-client/logic/utils/hubId';
 
@@ -182,7 +182,7 @@
 	import { useNotifications } from '@hub-client/stores/notifications';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { useSettings } from '@hub-client/stores/settings';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
@@ -279,7 +279,7 @@
 			await pubhubs.login();
 			await setupUnreadAggregateTracking();
 			setupReady.value = true;
-			addPushRules();
+			void addPushRules();
 		}
 
 		if (!user.isLoggedIn) {
@@ -387,16 +387,55 @@
 		}
 	}
 
-	function addPushRules() {
+	async function addPushRules() {
 		// Add a pushrule to make sure that events that modify a voting widget (poll or date picker) do not trigger unread messages and mentions.
-		const pushrule: IPushRule = {
+		const votingWidgetPushrule: IPushRule = {
 			actions: [],
 			conditions: [{ kind: ConditionKind.EventMatch, key: 'type', pattern: PubHubsInvisibleMsgType.VotingWidgetModify }],
 			default: false,
 			enabled: true,
 			rule_id: 'votingwidgetmodify',
 		};
-		pubhubs.client.addPushRule('global', PushRuleKind.Override, 'votingwidgetmodify', pushrule);
+		const upsertPushRule = async (kind: PushRuleKind, ruleId: string, pushrule: IPushRule) => {
+			try {
+				await pubhubs.client.deletePushRule('global', kind, ruleId);
+			} catch {
+				logger.warn('Failed to delete push rule', { kind, ruleId });
+			}
+
+			try {
+				await pubhubs.client.addPushRule('global', kind, ruleId, pushrule);
+			} catch (error) {
+				logger.warn('Failed to upsert push rule', { kind, ruleId, error });
+			}
+		};
+
+		await upsertPushRule(PushRuleKind.Override, 'votingwidgetmodify', votingWidgetPushrule);
+
+		if (settings.isFeatureEnabled(FeatureFlag.whisper)) {
+			const whisperNotifyForMePushrule: IPushRule = {
+				actions: [PushRuleActionName.Notify],
+				conditions: [
+					{ kind: ConditionKind.EventMatch, key: 'content.msgtype', pattern: PubHubsMgType.WhisperMessage },
+					{ kind: ConditionKind.EventMatch, key: 'content.whisper_to', pattern: user.userId ?? '' },
+				],
+				default: false,
+				enabled: true,
+				rule_id: 'whisper_notify_for_me',
+			};
+			const whisperSuppressPushrule: IPushRule = {
+				actions: [],
+				conditions: [{ kind: ConditionKind.EventMatch, key: 'content.msgtype', pattern: PubHubsMgType.WhisperMessage }],
+				default: false,
+				enabled: true,
+				rule_id: 'whisper_message',
+			};
+
+			// Override rules are evaluated before underride rules. i.e., notification / unread has priority.
+			// If there is a unread notification it is show and when there is a whisper only it will only run whisper rule.
+			await upsertPushRule(PushRuleKind.Override, 'whisper_notify_for_me', whisperNotifyForMePushrule);
+			await upsertPushRule(PushRuleKind.Underride, 'whisper_message', whisperSuppressPushrule);
+		}
 	}
 
 	function setTheme(theme: string) {
