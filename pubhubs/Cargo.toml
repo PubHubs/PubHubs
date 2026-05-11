@@ -37,14 +37,16 @@ rand = { version = "0.10", features = ["sys_rng"] }
 object_store = { version = "0.13", features = ["aws"] } 
 
 # Yivi interaction
-qrcode = { version = "0.14" }
+qrcode = { version = "0.14", default-features = false } # we only use unicode rendering
 regex = { version = "1.11" }
 
 # Web dependencies
-actix-web = { version = "4.11" }
+# default features disabled: we don't use macros, cookies, ws, or response compression
+actix-web = { version = "4.11", default-features = false, features = ["http2", "unicode", "compat"] }
 actix-cors = { version = "0.7" }
 bytes = { version = "1", features = ["serde"] }
-env_logger = { version = "0.11.8" }
+# humantime disabled: avoids jiff dependency; use `journalctl` or `docker logs -t` for timestamps
+env_logger = { version = "0.11.8", default-features = false, features = ["auto-color"] }
 mime = { version = "0.3" }
 log = { version = "0.4", features = ["serde"] }
 tokio = { version = "1.47", features = ["rt", "macros", "rt-multi-thread", "sync", "time", "io-std"] }
@@ -52,7 +54,8 @@ tokio-stream = { version = "0.1" } # <- dev dependency of tokio itself
 url = { version="2.5", features=["serde"] }
 
 # Proxying requests to Yivi and connection check
-awc = { version = "3.8", features = ["rustls-0_23-webpki-roots"] }
+# default features disabled: we don't need cookies or response decompression
+awc = { version = "3.8", default-features = false, features = ["rustls-0_23-webpki-roots"] }
 
 # RustCrypto packages
 aead = { version = "0.5", features=["getrandom"] }
