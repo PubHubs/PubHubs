@@ -237,7 +237,8 @@
 					class="text-center"
 				/>
 				<div class="text-center">
-					{{ $t('roomlibrary.sign_file_hash') }} `{{ item.matrixEvent.event.content?.filename }}` : <span class="font-bold">{{ showFileHash }}</span>
+					{{ $t('roomlibrary.sign_file_hash') }} `<span class="italic">{{ item.matrixEvent.event.content?.filename }}`</span> :
+					<div class="bg-accent-secondary mt-3 rounded-md border p-2 font-bold wrap-anywhere text-black">{{ showFileHash }}</div>
 					<br />
 					{{ $t('roomlibrary.check_file_hash') }}
 				</div>
