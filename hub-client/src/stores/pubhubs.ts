@@ -595,7 +595,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			content['m.mentions'] = this._createEmptyMentions();
 
 			if (content.body?.includes('@')) {
-				const users = await this.getUsers();
+				const users = this.getHubUsers();
 				const mentionedUsers = content.body.split('@');
 				const mentionedUsersName = users
 					.filter((user) => {
@@ -1188,11 +1188,28 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return response.results;
 		},
 
-		async getUsers(): Promise<Array<MatrixUser>> {
-			if (!this.client.getUsers) {
-				return [];
-			}
-			return this.client.getUsers();
+		/**
+		 * Gets all users in the hub, by walking over the rooms and getting their users.
+		 * This makes sure all users are there. The standard getUsers() method on the client reads on the store which is not always up-to-date
+		 * @returns all users of the hub
+		 */
+		getHubUsers(): Array<MatrixUser> {
+			const rooms = this.client.getRooms();
+			if (!rooms) return [];
+
+			const seen = new Set<string>(); // used for deduplication, faster than checking inside the array itself
+			const matrixUsers = new Array<MatrixUser>();
+
+			rooms.forEach((room) => {
+				for (const member of room.getJoinedMembers()) {
+					if (!seen.has(member.userId)) {
+						seen.add(member.userId);
+						const user = member.user ?? this.client.getUser(member.userId);
+						if (user) matrixUsers.push(user);
+					}
+				}
+			});
+			return matrixUsers;
 		},
 
 		/**
