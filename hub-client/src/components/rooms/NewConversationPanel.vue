@@ -183,9 +183,9 @@
 					</div>
 				</div>
 
-				<template v-if="Object.keys(categorizedUsers).length">
+				<template v-if="categorizedUsers.length">
 					<div
-						v-for="(usersInLetter, letter) in categorizedUsers"
+						v-for="[letter, usersInLetter] in categorizedUsers"
 						:key="letter"
 						class="mb-4"
 					>
@@ -209,8 +209,8 @@
 									:user-id="user.userId"
 								/>
 								<div class="flex flex-col">
-									<span>{{ user.displayName || user.userId }}</span>
-									<span> {{ filters.extractPseudonym(user.userId) }}</span>
+									<span v-if="isUserDisplayNameInList(user.displayName)">{{ user.displayName }}</span>
+									<span>{{ filters.extractPseudonym(user.userId) }}</span>
 								</div>
 							</li>
 						</ul>
@@ -248,9 +248,6 @@
 	import filters from '@hub-client/logic/core/filters';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
-	// Models
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
-
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -286,15 +283,13 @@
 	const selectedUsers = ref<string[]>([]);
 	const MAX_USER_GROUP = 5;
 
-	const _adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
-
 	onBeforeUnmount(() => {
 		avatarPreviewUrl.value?.revoke();
 	});
 
 	const usersSelected = computed(() =>
-		pubhubs.client
-			.getUsers()
+		pubhubs
+			.getHubUsers()
 			.filter((user) => selectedUsers.value.includes(user.userId))
 			.map((user) => user.userId),
 	);
@@ -314,8 +309,8 @@
 
 		// Get the base users and filter them
 		const baseUsers =
-			pubhubs.client
-				.getUsers()
+			pubhubs
+				.getHubUsers()
 				.filter((otherUser) => otherUser.userId !== userStore.userId && !otherUser.userId.includes('notices_user'))
 				.filter((u) => {
 					const displayName = u.displayName?.toLowerCase() || u.userId.toLowerCase();
@@ -323,16 +318,7 @@
 					return displayName.includes(filterText);
 				}) ?? [];
 
-		// Sort users alphabetically by display name
-		const sortedUsers = [...baseUsers].sort((a, b) => {
-			const nameA = a.displayName?.toUpperCase() || '';
-			const nameB = b.displayName?.toUpperCase() || '';
-			if (nameA < nameB) return -1;
-			if (nameA > nameB) return 1;
-			return 0;
-		});
-
-		sortedUsers.forEach((user) => {
+		baseUsers.forEach((user) => {
 			const firstLetter = user.displayName ? user.displayName.charAt(0).toUpperCase() : '#';
 			if (!categories[firstLetter]) {
 				categories[firstLetter] = [];
@@ -340,7 +326,15 @@
 			categories[firstLetter].push(user as User);
 		});
 
-		return categories;
+		// Sort on first letter of username: A-Z, 0-9, @
+		const categoryOrder = (k: string) => {
+			if (k.toLowerCase() !== k.toUpperCase()) return 0; // so a-z, A-Z, but also Ä, é, ç etc.
+			if (k >= '0' && k <= '9') return 1;
+			return 2;
+		};
+		return Object.keys(categories)
+			.sort((a, b) => categoryOrder(a) - categoryOrder(b) || a.localeCompare(b))
+			.map((key) => [key, categories[key]!] as [string, User[]]);
 	});
 
 	async function handleAdminContact() {
@@ -375,6 +369,11 @@
 
 		groupProfile.value = true;
 		hideAvatarPreview.value = true;
+	}
+
+	function isUserDisplayNameInList(displayName: string | undefined): boolean {
+		if (!displayName) return false;
+		return displayName[0].toLowerCase() !== displayName[0].toUpperCase(); // // so a-z, A-Z, but also Ä, é, ç etc.
 	}
 
 	function toggleUserSelection(user: User) {
