@@ -98,7 +98,6 @@ const useFormInputEvents = (emit: (event: string, ...args: unknown[]) => void, s
 		if (value.value !== undefined && value.value !== '') {
 			emit('submit', value.value);
 		}
-		reset();
 	};
 
 	const cancel = () => {
