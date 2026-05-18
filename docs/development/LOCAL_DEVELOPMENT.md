@@ -183,10 +183,6 @@ npm run test:run --workspace=hub-client
 - Static assets for the PubHubs Central server, so far just css, are built through build.rs, before launching the server. The build script expects npm (with sass) to be installed.
 - Assets needed for the client are built with the several build options for the client.
 
-## Rebranding a hub client
-
-A Hub's client can have its own branding. Documentation can be found in `docs/hub_branding`.
-
 # Troubleshooting
 
 ## Outdated `rustc`
