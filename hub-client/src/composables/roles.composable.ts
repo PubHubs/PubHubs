@@ -62,9 +62,20 @@ function useRoles() {
 		return role === userRole(roomId);
 	};
 
+	// For hub-wide moderation checks prefer userIsHubStewardOrHigher over this Synapse-admin-only flag.
 	const userIsHubAdmin = (): boolean => {
 		return userStore.isAdmin;
 	};
+
+	/** Effective hub-wide power level: Synapse admins are treated as Admin, everyone else uses their highest matrix power level. */
+	const userHubPowerLevel = (): number => {
+		if (userStore.isAdmin) return UserPowerLevel.Admin;
+		return roomsStore.userMaxRoomPowerLevel;
+	};
+
+	const userHasHubRoleOrHigher = (role: UserRole): boolean => userHubPowerLevel() >= UserPowerLevel[role];
+
+	const userIsHubStewardOrHigher = (): boolean => userHasHubRoleOrHigher(UserRole.Steward);
 
 	const userIsAdmin = (roomId: string | undefined = undefined): boolean => {
 		return userHasRole(UserRole.Admin, roomId);
@@ -106,6 +117,9 @@ function useRoles() {
 		userIsExpertOrHigher,
 		userIsSuperStewardOrHigher,
 		userIsAdminOrHigher,
+		userHubPowerLevel,
+		userHasHubRoleOrHigher,
+		userIsHubStewardOrHigher,
 	};
 }
 export { useRoles };

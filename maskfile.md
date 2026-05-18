@@ -7,6 +7,8 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 > For Windows users, make sure you run these commands in bash (such as [Git Bash](https://git-scm.com/install/windows), which should be installed with Git by default).
 
+> Shell snippets in this file should stick to POSIX syntax so they keep working in Git Bash, MSYS, and WSL alongside Linux/macOS shells.
+
 ## run
 
 > Commands for running the development environment
@@ -54,11 +56,19 @@ mask run hub init
 
 > Runs the Yivi server for the PubHubs servers
 
+**OPTIONS**
+
+- host
+  - flags: --host
+  - type: string
+  - desc: Override the host IP yivi advertises in its session URL (e.g. a Tailscale IP)
+
 ```sh
 echo "Running Yivi server..."
 
 cd pubhubs
-python3 run_yivi.py
+yivi_host="${host:-${YIVI_HOST:-}}"
+python3 run_yivi.py ${yivi_host:+--host "$yivi_host"}
 ```
 
 ### s3
@@ -212,11 +222,19 @@ Every command below is structured as `mask run hub <subcommand>`
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
+**OPTIONS**
+
+- host
+  - flags: --host
+  - type: string
+  - desc: Override the networkhost the hub advertises to yivi (e.g. a Tailscale IP). Falls back to YIVI_HOST.
+
 ```sh
 echo "Running testhub${n}"
 
 cd pubhubs_hub
-python3 start_testhub.py "${n}"
+hub_host="${host:-${YIVI_HOST:-}}"
+python3 start_testhub.py "${n}" ${hub_host:+--networkhost "$hub_host"}
 ```
 
 #### client (n)

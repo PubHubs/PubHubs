@@ -9,6 +9,7 @@ import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';
+import { useUser } from '@hub-client/stores/user';
 
 /**
  * The Room class uses Matrix's Room class internally.
@@ -58,6 +59,26 @@ class MockedMatrixRoom {
 	public createThreadsTimelineSets() {
 		// returns nothing
 	}
+}
+
+function powerLevelRoom(roomId: string, users: Record<string, number>, users_default = 0): any {
+	return {
+		roomId,
+		roomType: '',
+		name: roomId,
+		isHidden: false,
+		stateEvents: [
+			{
+				type: 'm.room.power_levels',
+				sender: 'A1',
+				content: { users, users_default },
+				state_key: '',
+				origin_server_ts: 0,
+				unsigned: { age: 0 },
+				event_id: `$pl-${roomId}`,
+			},
+		],
+	};
 }
 
 const MockedStateEvents = [
@@ -239,6 +260,38 @@ describe('rooms Store', () => {
 		test('SecuredRooms', () => {
 			const rooms = useRooms();
 			expect(rooms.hasSecuredRooms).toEqual(false);
+		});
+
+		describe('userMaxRoomPowerLevel', () => {
+			test('returns 0 when user has no userId', () => {
+				const rooms = useRooms();
+				rooms.roomList = [powerLevelRoom('!a', { A1: 100 })];
+				expect(rooms.userMaxRoomPowerLevel).toEqual(0);
+			});
+
+			test('returns highest power level across rooms', () => {
+				const user = useUser();
+				user.userId = 'A1';
+				const rooms = useRooms();
+				rooms.roomList = [powerLevelRoom('!a', { A1: 0 }), powerLevelRoom('!b', { A1: 50 }), powerLevelRoom('!c', { A1: 25 })];
+				expect(rooms.userMaxRoomPowerLevel).toEqual(50);
+			});
+
+			test('falls back to users_default when user not in users map', () => {
+				const user = useUser();
+				user.userId = 'A1';
+				const rooms = useRooms();
+				rooms.roomList = [powerLevelRoom('!a', { B2: 100 }, 50)];
+				expect(rooms.userMaxRoomPowerLevel).toEqual(50);
+			});
+
+			test('returns 0 when no power-level events are present', () => {
+				const user = useUser();
+				user.userId = 'A1';
+				const rooms = useRooms();
+				rooms.roomList = [{ roomId: '!a', roomType: '', name: '', stateEvents: [], isHidden: false }];
+				expect(rooms.userMaxRoomPowerLevel).toEqual(0);
+			});
 		});
 
 		// Temporary removed because of TypeError: matrixRoom.getOrCreateFilteredTimelineSet is not a function

@@ -19,6 +19,7 @@ import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms, ty
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
+import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
@@ -130,6 +131,29 @@ const useRooms = defineStore('rooms', {
 
 		loadedSecuredRooms(): RoomListRoom[] {
 			return this.roomList.filter((room) => room.isHidden === false && room.roomType && SecuredRooms.includes(room.roomType as RoomType));
+		},
+
+		/**
+		 * Highest matrix power level the current user holds across loaded rooms.
+		 * Synapse-admin status is intentionally excluded — that policy lives in roles.composable.
+		 * Returns UserPowerLevel.User (0) when the user has no override anywhere.
+		 */
+		userMaxRoomPowerLevel(): number {
+			const userStore = useUser();
+			const userId = userStore.userId;
+			if (!userId) return UserPowerLevel.User;
+			let highest = UserPowerLevel.User;
+			for (const listRoom of this.roomList) {
+				const event = listRoom.stateEvents.find((e) => e.type === EventType.RoomPowerLevels && e.content.users);
+				if (!event) continue;
+				const users = event.content.users as Record<string, number>;
+				const level = users[userId] ?? (event.content.users_default as number | undefined) ?? UserPowerLevel.User;
+				if (level > highest) {
+					highest = level;
+					if (highest === UserPowerLevel.Admin) return highest;
+				}
+			}
+			return highest;
 		},
 
 		// TODO never used. Can be deleted?
