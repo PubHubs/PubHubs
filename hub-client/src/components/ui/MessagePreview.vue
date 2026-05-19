@@ -103,6 +103,7 @@
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import filters from '@hub-client/logic/core/filters';
+	import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
@@ -246,9 +247,9 @@
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return event.value?.getSender();
 		if (roomType.value !== RoomType.PH_MESSAGES_DM) return;
 
-		const { allOtherMembers } = useModeration(props.room);
-		if (allOtherMembers.value.length > 0) {
-			return allOtherMembers.value[0];
+		const otherMembers = getOtherRoomMembers(props.room, userStore.userId);
+		if (otherMembers.length > 0) {
+			return otherMembers[0];
 		} else {
 			const notInvitedMembersIds = props.room.notInvitedMembersIdsOfPrivateRoom();
 			return props.room.getMember(notInvitedMembersIds[0])?.userId;
@@ -263,8 +264,8 @@
 
 	function getOtherUserDisplayName(): string | undefined {
 		// Admin contact has a private one-to-one room
-		const { allOtherMembers } = useModeration(props.room);
-		if (allOtherMembers.value.length > 1) return undefined;
-		return allOtherMembers.value.map((userId) => userStore.userDisplayName(userId)).pop();
+		const otherMembers = getOtherRoomMembers(props.room, userStore.userId);
+		if (otherMembers.length > 1) return undefined;
+		return otherMembers.map((userId) => userStore.userDisplayName(userId)).pop();
 	}
 </script>

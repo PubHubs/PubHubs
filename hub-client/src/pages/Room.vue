@@ -1,23 +1,5 @@
 <template>
 	<div class="flex h-full flex-col">
-		<Dialog
-			v-if="room?.roomId && user.getYellowCards && user.yellowCards.includes(room.roomId)"
-			:title="capitalize(t('moderation.yellow_card'))"
-			:buttons="yellowCardButtons"
-			@close="onYellowCardClose"
-		>
-			<div class="flex flex-row gap-3">
-				<Icon
-					type="exclamation-mark"
-					size="3xl"
-					class="text-accent-yellow"
-				></Icon>
-				<div class="flex flex-col gap-2">
-					<p>{{ t('moderation.yellow_card_info') }}</p>
-					<p class="text-on-surface-variant text-sm">{{ yellowCardMembers.find((card) => card.userId === user.userId)?.reason }}</p>
-				</div>
-			</div>
-		</Dialog>
 		<template v-if="rooms.currentRoomExists">
 			<div
 				v-if="isLoading"
@@ -223,7 +205,6 @@
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
 	import ForumRoomTimeline from '@hub-client/components/rooms/forum/ForumRoomTimeline.vue';
-	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
@@ -261,21 +242,6 @@
 
 	const logger = createLogger('Room');
 
-	const yellowCardButtons = computed(() => [
-		{
-			label: 'ok',
-			action: DialogOk,
-			color: 'primary',
-			enabled: true,
-		},
-	]);
-
-	function onYellowCardClose() {
-		if (room.value) {
-			user.removeYellowCard(room.value.roomId);
-		}
-	}
-
 	const { t } = useI18n();
 	const route = useRoute();
 	const rooms = useRooms();
@@ -292,7 +258,7 @@
 	const isMobile = computed(() => settings.isMobileState);
 
 	const pubhubs = usePubhubsStore();
-	const { yellowCardMembers, membershipEvents } = useModeration();
+	const { membershipEvents } = useModeration();
 
 	const ongoingCall = computed(() => room.value!.isOngoingCall());
 	const joinSecuredRoom = ref<string | null>(null);
@@ -504,8 +470,11 @@
 		return settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.value!.isSecuredRoom() || room.value!.isPrivateRoom());
 	}
 
-	const handleKick = (roomId: string) => {
-		dialogStore.yesno(capitalize(t('moderation.removed_from_room')));
+	const handleKick = (roomId: string, reason?: string) => {
+		const message = reason
+			? `${capitalize(t('moderation.removed_from_room'))}\n\n${capitalize(t('moderation.kick_reason'))}: ${reason}`
+			: capitalize(t('moderation.removed_from_room'));
+		dialogStore.yesno(message);
 
 		const handleOk = async () => {
 			cleanup();
@@ -531,22 +500,25 @@
 	};
 
 	watchEffect(async () => {
-		const hasLeaveOrBanEvent = membershipEvents.value.some(
-			(event) =>
-				(event.content.membership === KnownMembership.Leave || event.content.membership === KnownMembership.Ban) &&
-				event.state_key === user.userId &&
-				event.sender !== event.state_key,
-		);
-		const hasReason = membershipEvents.value.some((event) => event.content.reason && event.state_key === user.userId && event.sender !== event.state_key);
 		const currentRoom = rooms.currentRoom;
 		if (!currentRoom) return;
 
-		// This statement is for the yellow card warning and red card ban which both require a reason
-		if (hasLeaveOrBanEvent && hasReason) {
-			pubhubs.joinRoom(currentRoom.roomId);
-			// This is for temporary removal from a room which does not require a reason.
-		} else if (hasLeaveOrBanEvent) {
-			handleKick(currentRoom.roomId);
+		// Check if user was banned (red card)
+		const hasBanEvent = membershipEvents.value.some(
+			(event) => event.content.membership === KnownMembership.Ban && event.state_key === user.userId && event.sender !== event.state_key,
+		);
+
+		// Check if user was kicked (removed from room without ban)
+		const kickEvent = membershipEvents.value.find(
+			(event) => event.content.membership === KnownMembership.Leave && event.state_key === user.userId && event.sender !== event.state_key,
+		);
+
+		if (hasBanEvent) {
+			// Red card - user is banned, redirect to error page
+			router.push({ name: 'error-page', query: { errorKey: 'moderation.red_card_info' } });
+		} else if (kickEvent) {
+			// Regular kick (remove from room) - show dialog to rejoin with reason
+			handleKick(currentRoom.roomId, kickEvent.content.reason);
 			router.push({ name: 'home' });
 		}
 	});

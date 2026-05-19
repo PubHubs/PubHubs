@@ -3,6 +3,21 @@
 		class="w-full px-3 pb-3 md:px-6"
 		v-bind="$attrs"
 	>
+		<!-- Timeout notification bar -->
+		<TimeoutNotificationBar
+			v-if="isCurrentUserTimedOut && currentUserTimeoutInfo"
+			:timeout-until="currentUserTimeoutInfo.timeout_until"
+			:reason="currentUserTimeoutInfo.reason"
+			@timeout-expired="onTimeoutExpired"
+		/>
+
+		<!-- Yellow card notification bar -->
+		<YellowCardNotificationBar
+			v-if="isCurrentUserWarned && currentUserYellowCardInfo"
+			:reason="currentUserYellowCardInfo.reason"
+			@dismiss="onDismissYellowCard"
+		/>
+
 		<!-- Floating -->
 		<div class="relative">
 			<Popover
@@ -144,8 +159,16 @@
 				<div
 					v-if="messageInput.state.textArea"
 					class="rounded-base flex items-center gap-x-4 px-4 py-2"
+					:class="isInputDisabled ? 'cursor-not-allowed opacity-50' : ''"
 				>
+					<Icon
+						v-if="isInputDisabled"
+						type="plus-circle"
+						size="lg"
+						class="text-on-surface-dim cursor-not-allowed"
+					/>
 					<IconButton
+						v-else
 						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
 						data-testid="paperclip"
 						size="lg"
@@ -154,24 +177,31 @@
 						@click.stop="messageInput.togglePopover()"
 					/>
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
-					<TextArea
-						ref="elTextInput"
-						v-model="valueAsString"
-						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
-						:placeholder="isAnnouncementMode ? $t('message.announcement_placeholder') : $t('rooms.new_message')"
-						:title="$t('rooms.new_message')"
-						textarea
-						@changed="changed()"
-						@submit="submitMessage()"
-						@cancel="cancel()"
-						@caret-pos="setCaretPos"
-						@focus="messageInput.state.showMention = true"
-						@blur="
-							setTimeout(() => {
-								messageInput.state.showMention = false;
-							}, 150)
-						"
-					/>
+					<!-- Wrapper div captures Enter key to prevent submission when timed out -->
+					<div
+						class="grow"
+						@keydown.enter.exact.capture="preventSubmitWhenTimedOut"
+					>
+						<MessageInputTextArea
+							ref="elTextInput"
+							v-model="valueAsString"
+							class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
+							:class="isInputDisabled ? 'cursor-not-allowed' : ''"
+							:placeholder="inputPlaceholder"
+							:title="$t('rooms.new_message')"
+							:disabled="isInputDisabled"
+							@changed="changed()"
+							@submit="submitMessage()"
+							@cancel="cancel()"
+							@caret-pos="setCaretPos"
+							@focus="messageInput.state.showMention = true"
+							@blur="
+								setTimeout(() => {
+									messageInput.state.showMention = false;
+								}, 150)
+							"
+						/>
+					</div>
 
 					<!--Steward and above can broadcast only in main time line-->
 					<button
@@ -188,11 +218,11 @@
 					</button>
 
 					<!-- Emoji picker -->
-					<button class="hover:cursor-pointer">
+					<button :class="isInputDisabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'">
 						<Icon
 							type="smiley"
 							size="lg"
-							@click.stop="messageInput.toggleEmojiPicker()"
+							@click.stop="toggleEmojiPicker()"
 						/>
 					</button>
 
@@ -231,6 +261,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import MessageInputTextArea from './MessageInputTextArea.vue';
 	import { setTimeout } from 'node:timers';
 	import { type PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -238,7 +269,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import TextArea from '@hub-client/components/forms/TextArea.vue';
+	import type TextArea from '@hub-client/components/forms/TextArea.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
@@ -248,10 +279,13 @@
 	import MentionAutoComplete from '@hub-client/components/ui/MentionAutoComplete.vue';
 	import Popover from '@hub-client/components/ui/Popover.vue';
 	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
+	import TimeoutNotificationBar from '@hub-client/components/ui/TimeoutNotificationBar.vue';
+	import YellowCardNotificationBar from '@hub-client/components/ui/YellowCardNotificationBar.vue';
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
 	import { type UserDetails } from '@hub-client/composables/mention-autocomplete.composable';
+	import { useModeration } from '@hub-client/composables/moderation.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
@@ -311,6 +345,8 @@
 	const settings = useSettings();
 	const messageActions = useMessageActions();
 	const messageInput = useMessageInput();
+	const { isCurrentUserTimedOut, currentUserTimeoutInfo, isCurrentUserWarned, currentUserYellowCardInfo, dismissYellowCard, refreshTimeoutStatus } =
+		useModeration();
 
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const valueAsString = computed({
@@ -338,6 +374,21 @@
 	const announcementVariant = computed<'admin' | 'steward'>(() => {
 		const powerLevel = props.room.getPowerLevel(user.userId ?? '');
 		return powerLevel === 100 ? 'admin' : 'steward';
+	});
+
+	const isInputDisabled = computed(() => isCurrentUserTimedOut.value || isCurrentUserWarned.value);
+
+	const inputPlaceholder = computed(() => {
+		if (isCurrentUserTimedOut.value) {
+			return t('moderation.placeholder_timed_out');
+		}
+		if (isCurrentUserWarned.value) {
+			return t('moderation.placeholder_warning');
+		}
+		if (isAnnouncementMode.value) {
+			return t('message.announcement_placeholder');
+		}
+		return t('rooms.new_message');
 	});
 
 	let threadRoot: TMessageEvent | undefined = undefined;
@@ -462,13 +513,40 @@
 		}
 	}
 
+	function isUserCurrentlyTimedOut(): boolean {
+		const timeoutInfo = currentUserTimeoutInfo.value;
+		return !!timeoutInfo && timeoutInfo.timeout_until > Date.now();
+	}
+
 	function isValidMessage(): boolean {
+		// Cannot send if timed out - check actual timestamp, not cached computed
+		if (isUserCurrentlyTimedOut()) return false;
+
 		let valid = false;
 		// TextAreas always return strings, so the message is valid to send if it is a string with a length > 0
 		if (typeof value.value === 'string' && value.value.trim().length > 0) valid = true;
 		if ((messageInput.state.poll || messageInput.state.scheduler) && messageInput.state.sendButtonEnabled) valid = true;
 		if (messageInput.state.fileAdded) valid = true;
 		return valid;
+	}
+
+	function onTimeoutExpired() {
+		// Force re-computation of timeout-related computed properties
+		refreshTimeoutStatus();
+		// Re-check send button state when timeout expires
+		messageInput.state.sendButtonEnabled = isValidMessage();
+	}
+
+	async function onDismissYellowCard() {
+		await dismissYellowCard(props.room.roomId);
+	}
+
+	function preventSubmitWhenTimedOut(event: KeyboardEvent) {
+		// Prevent Enter key from triggering submit when user is timed out
+		// This stops the event before it reaches the TextArea's internal handler
+		if (isUserCurrentlyTimedOut()) {
+			event.stopPropagation();
+		}
 	}
 
 	function clickedAttachment() {
@@ -506,6 +584,9 @@
 	}
 
 	async function submitMessage() {
+		// Don't process submission if user is timed out - keep their message intact
+		if (isUserCurrentlyTimedOut()) return;
+
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 
@@ -594,6 +675,11 @@
 
 	function signMessage(message: string, attributes: string[], threadRoot: TMessageEvent | undefined) {
 		yiviFlow(EYiviFlow.Sign, finishedSigningMessage, rooms.currentRoomId, '#' + EYiviFlow.Sign, attributes, message, threadRoot);
+	}
+
+	function toggleEmojiPicker() {
+		if (isInputDisabled.value) return;
+		messageInput.toggleEmojiPicker();
 	}
 
 	function finishedSigningMessage(result: YiviSigningSessionResult | SecuredRoomAttributeResult, threadRoot: TMessageEvent | undefined) {

@@ -18,12 +18,11 @@ import {
 import { Preset, Visibility } from 'matrix-js-sdk/lib/@types/partials';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { type RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
-import { KnownMembership, type RoomMessageEventContent, type TimelineEvents } from 'matrix-js-sdk/lib/types';
+import { type RoomMessageEventContent, type TimelineEvents } from 'matrix-js-sdk/lib/types';
 import { defineStore } from 'pinia';
 
 // Composables
 import { useMatrix } from '@hub-client/composables/matrix.composable';
-import { useModeration } from '@hub-client/composables/moderation.composable';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
@@ -34,6 +33,7 @@ import { router } from '@hub-client/logic/core/router';
 import { hasHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
+import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
@@ -60,6 +60,7 @@ import { type Poll, type Scheduler } from '@hub-client/models/events/voting/Voti
 import type Room from '@hub-client/models/rooms/Room';
 import { type RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TSearchParameters } from '@hub-client/models/search/TSearch';
+import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { useConnection } from '@hub-client/stores/connection';
@@ -411,20 +412,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<number> {
 			const roomStore = useRooms();
-			const userStore = useUser();
-			const room = roomStore.room(room_id);
 			try {
-				const { membershipEvents } = useModeration(room);
-				const hasYellowCard = membershipEvents.value.some(
-					(event) =>
-						event.content.membership === KnownMembership.Leave &&
-						event.state_key === userStore.userId &&
-						event.sender !== event.state_key &&
-						event.content.reason,
-				);
-				if (hasYellowCard) {
-					userStore.addYellowCard(room_id);
-				}
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: TPublicRoom) => r.room_id === room_id);
@@ -1396,9 +1384,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (!room) {
 				return [];
 			}
-			const { allOtherMembers } = useModeration(room);
+			const user = useUser();
+			const otherMembers = getOtherRoomMembers(room, user.userId);
 			const inviteMembers = room.getOtherInviteMembers().map((member) => member.userId);
-			return [...allOtherMembers.value, ...inviteMembers];
+			return [...otherMembers, ...inviteMembers];
 		},
 		/**
 		 * Finds any new admin ID that needs to be invited to the room
@@ -1455,9 +1444,29 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async initialiseVideoCallPowerLevels(roomId: string) {
 			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
 			powerLevels.events = powerLevels.events || {};
-			powerLevels.events['org.matrix.msc3401.call.member'] = 0;
-			powerLevels.events['org.matrix.msc3401.call'] = 0;
+			powerLevels.events['org.matrix.msc3401.call.member'] = UserPowerLevel.User;
+			powerLevels.events['org.matrix.msc3401.call'] = UserPowerLevel.User;
 			await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
+		},
+
+		async initialiseTimeoutPowerLevels(roomId: string) {
+			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
+			powerLevels.events = powerLevels.events || {};
+			// Steward power level (50) required to issue timeouts
+			if (powerLevels.events['pubhubs.timeout'] === undefined) {
+				powerLevels.events['pubhubs.timeout'] = UserPowerLevel.Steward;
+				await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
+			}
+		},
+
+		async initialiseYellowCardPowerLevels(roomId: string) {
+			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
+			powerLevels.events = powerLevels.events || {};
+			// Power level 0 allows any user to send (users can dismiss their own warnings)
+			if (powerLevels.events['pubhubs.yellow_card'] === undefined) {
+				powerLevels.events['pubhubs.yellow_card'] = 0;
+				await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
+			}
 		},
 
 		addEndCallListener() {

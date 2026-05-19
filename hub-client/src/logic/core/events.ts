@@ -13,6 +13,11 @@ import { type TEvent } from '@hub-client/models/events/TEvent';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
 
+enum PubHubsStateEventType {
+	Timeout = 'pubhubs.timeout',
+	YellowCard = 'pubhubs.yellow_card',
+}
+
 enum PubHubsMsgType {
 	Default = '',
 	SignedMessage = 'pubhubs.signed_message',
@@ -124,4 +129,4 @@ class Events {
 	}
 }
 
-export { Events, PubHubsMsgType as PubHubsMgType, PubHubsInvisibleMsgType };
+export { Events, PubHubsMsgType as PubHubsMgType, PubHubsInvisibleMsgType, PubHubsStateEventType };

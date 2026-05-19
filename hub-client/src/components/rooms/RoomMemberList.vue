@@ -22,7 +22,7 @@
 			</div>
 
 			<div
-				v-if="roles.userIsStewardOrHigher() && admins && admins.length > 0"
+				v-if="admins && admins.length > 0"
 				class="pb-4"
 			>
 				<CollapsibleHeader :label="$t('moderation.admins')">
@@ -95,10 +95,7 @@
 				</CollapsibleHeader>
 			</div>
 
-			<div
-				v-if="nonPowerMemberIds && nonPowerMemberIds.length > 0"
-				class=""
-			>
+			<div v-if="nonPowerMemberIds && nonPowerMemberIds.length > 0">
 				<CollapsibleHeader :label="$t('rooms.members')">
 					<template #right>
 						<div class="flex items-center gap-1">
@@ -127,19 +124,16 @@
 					</div>
 				</CollapsibleHeader>
 			</div>
-			<div
-				v-if="roles.userIsStewardOrHigher() && hasSanctionedMembers"
-				class="grow"
-			>
+			<div v-if="roles.userIsStewardOrHigher() && numberOfSanctionedMembers > 0">
 				<CollapsibleHeader :label="t('moderation.sanctioned_members')">
 					<template #right>
 						<div class="flex items-center gap-1">
-							<div>{{ redCardMembers.length + yellowCardMembers.length + revokedRedCardMembers.length }}</div>
+							<div>{{ numberOfSanctionedMembers }}</div>
 							<Icon type="user"></Icon>
 						</div>
 					</template>
 					<div
-						v-for="yellowCard in yellowCardMembers"
+						v-for="yellowCard in activeYellowCards"
 						:key="yellowCard.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getYellowCardContextMenuItems(yellowCard.userId), yellowCard.userId)"
 						class="flex w-full items-center gap-2 rounded-md p-2"
@@ -207,6 +201,32 @@
 							class=""
 						></Icon>
 					</div>
+					<div
+						v-for="timeout in activeTimeouts"
+						:key="timeout.userId"
+						v-context-menu="(evt: any) => openMenu(evt, getTimeoutContextMenuItems(timeout.userId), timeout.userId)"
+						class="flex w-full items-center gap-2 rounded-md p-2"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === timeout.userId && 'bg-surface-low'"
+					>
+						<Avatar
+							:avatar-url="user.userAvatar(timeout.userId)"
+							:user-id="timeout.userId"
+							:enable-d-m="false"
+							class="h-8 w-8 shrink-0"
+						></Avatar>
+						<UserDisplayName
+							:user-id="timeout.userId"
+							:user-display-name="user.userDisplayName(timeout.userId)"
+							:enable-d-m="false"
+						></UserDisplayName>
+						<div class="text-button-red flex items-center gap-1">
+							<Icon
+								type="clock"
+								size="sm"
+							></Icon>
+							<span class="text-label-small">{{ formatTimeoutCountdown(timeout.timeout_until) }}</span>
+						</div>
+					</div>
 				</CollapsibleHeader>
 			</div>
 		</div>
@@ -218,16 +238,34 @@
 			@close="cardDialog.visible = false"
 			@submit="onCardDialogSubmit"
 		/>
+
+		<!-- Timeout dialog -->
+		<IssueTimeoutDialog
+			v-if="timeoutDialog.visible"
+			:member-id="timeoutDialog.memberId"
+			@close="timeoutDialog.visible = false"
+			@submit="onTimeoutDialogSubmit"
+		/>
+
+		<!-- Kick dialog -->
+		<KickDialog
+			v-if="kickDialog.visible"
+			:member-id="kickDialog.memberId"
+			@close="kickDialog.visible = false"
+			@submit="onKickDialogSubmit"
+		/>
 	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { capitalize } from 'vue';
+	import { capitalize, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import IssueTimeoutDialog from '@hub-client/components/forms/IssueTimeoutDialog.vue';
+	import KickDialog from '@hub-client/components/forms/KickDialog.vue';
 	import IssueCardDialog from '@hub-client/components/forms/issueCardDialog.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
@@ -276,19 +314,78 @@
 		stewards,
 		admins,
 		nonPowerMemberIds,
-		yellowCardMembers,
+		activeYellowCards,
 		redCardMembers,
 		revokedRedCardMembers,
-		hasSanctionedMembers,
+		numberOfSanctionedMembers,
 		canWhisperFromContextMenu,
 		cardDialog,
-		removeMember,
+		timeoutDialog,
+		kickDialog,
+		activeTimeouts,
+		isUserTimedOut,
+		canTimeoutUser,
+		refreshTimeoutStatus,
+		openKickDialog,
 		openCardDialog,
 		onCardDialogSubmit,
+		onKickDialogSubmit,
 		revokeRedCard,
+		revokeTimeout,
+		openTimeoutDialog,
+		onTimeoutDialogSubmit,
 		contactSteward,
 		startWhisperToMember,
 	} = useModeration();
+
+	// Refs
+	const now = ref(Date.now());
+	let timeoutIntervalId: ReturnType<typeof setInterval> | undefined;
+
+	// Lifecycle
+	onMounted(() => {
+		// Update every minute for the timeout countdown display
+		timeoutIntervalId = setInterval(() => {
+			now.value = Date.now();
+			// Check if any timeouts have expired and refresh the status
+			if (activeTimeouts.value.some((t) => t.timeout_until <= now.value)) {
+				refreshTimeoutStatus();
+			}
+		}, 60000);
+	});
+
+	onUnmounted(() => {
+		if (timeoutIntervalId) {
+			clearInterval(timeoutIntervalId);
+		}
+	});
+
+	// Functions
+	/**
+	 * Formats the remaining timeout duration rounded down to minutes.
+	 * @param timeoutUntil - Unix timestamp in milliseconds when timeout expires
+	 * @returns Formatted string like "2h 30m", "45m", or "< 1m"
+	 */
+	const formatTimeoutCountdown = (timeoutUntil: number): string => {
+		// Reference now.value to make this reactive
+		const remainingMs = Math.max(0, timeoutUntil - now.value);
+		const totalSeconds = Math.floor(remainingMs / 1000);
+		const totalMinutes = Math.floor(totalSeconds / 60);
+
+		if (totalMinutes === 0) return '< 1m';
+		if (totalMinutes < 60) return `${totalMinutes}m`;
+
+		const hours = Math.floor(totalMinutes / 60);
+		const mins = totalMinutes % 60;
+
+		if (hours >= 24) {
+			const days = Math.floor(hours / 24);
+			const remainingHours = hours % 24;
+			return `${days}d ${remainingHours}h`;
+		}
+
+		return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+	};
 
 	const startDM = async (userId: string) => {
 		if (sidebar.isMobile.value) sidebar.close();
@@ -312,11 +409,28 @@
 			stewardActions.push({
 				label: capitalize(t('moderation.remove_from_room')),
 				icon: 'boot',
-				onClick: () => removeMember(props.room.roomId, memberId),
+				onClick: () => openKickDialog(props.room.roomId, memberId),
 				variant: ContextVariant.steward,
 			});
 		}
-
+		if (roles.userHasPermissionForAction(UserAction.Timeout) && canTimeoutUser(memberId)) {
+			if (isUserTimedOut(memberId)) {
+				stewardActions.push({
+					label: capitalize(t('moderation.revoke_timeout')),
+					icon: 'clock-counter-clockwise',
+					onClick: () => revokeTimeout(props.room.roomId, memberId),
+					variant: ContextVariant.steward,
+				});
+			} else {
+				stewardActions.push({
+					label: capitalize(t('moderation.issue_timeout')),
+					icon: 'clock',
+					onClick: () => openTimeoutDialog(props.room.roomId, memberId),
+					variant: ContextVariant.steward,
+					title: capitalize(t('moderation.issue_timeout_info', { name: user.userDisplayName(memberId) ?? memberId })),
+				});
+			}
+		}
 		if (roles.userHasPermissionForAction(UserAction.Kick)) {
 			stewardActions.push({
 				label: capitalize(t('moderation.issue_yellow_card')),
@@ -368,7 +482,7 @@
 		if (roles.userHasPermissionForAction(UserAction.Ban)) {
 			stewardActions.push({
 				label: capitalize(t('moderation.revoke_red_card')),
-				icon: 'arrow-bend-up-left',
+				icon: 'arrows-counter-clockwise',
 				onClick: () => revokeRedCard(props.room.roomId, memberId),
 				variant: ContextVariant.steward,
 			});
@@ -394,4 +508,22 @@
 		const divider: MenuItem = { divider: true, label: '' };
 		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	}
+
+	const getTimeoutContextMenuItems = (memberId: string): MenuItem[] => {
+		if (memberId === user.user?.userId || props.disableDM) return [];
+		const stewardActions: MenuItem[] = [];
+		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
+
+		if (roles.userHasPermissionForAction(UserAction.Timeout)) {
+			stewardActions.push({
+				label: capitalize(t('moderation.revoke_timeout')),
+				icon: 'clock-counter-clockwise',
+				onClick: () => revokeTimeout(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
+			});
+		}
+
+		const divider: MenuItem = { divider: true, label: '' };
+		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+	};
 </script>
