@@ -39,16 +39,15 @@
 	// Packages
 	import { capitalize, computed, ref } from 'vue';
 
+	import Button from '@hub-client/components/elements/Button.vue';
+	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
+	import TextArea from '@hub-client/components/forms/elements/TextArea.vue';
+	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
 	// Components
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
-	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
-	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	const emit = defineEmits<{
 		close: [];

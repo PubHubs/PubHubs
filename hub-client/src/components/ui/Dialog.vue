@@ -39,15 +39,11 @@
 						<Icon
 							v-if="dialog.properties.close"
 							class="float-right -mt-1 cursor-pointer hover:opacity-75"
-							size="md"
 							type="x"
 							@click="doAction(DialogCancel)"
 						/>
 					</div>
-					<Line
-						v-if="hasContent"
-						class="z-0"
-					/>
+					<Divider v-if="hasContent" />
 					<div
 						v-if="hasContent"
 						class="h-full py-1 pr-4 text-left"
@@ -61,18 +57,18 @@
 						/>
 						<!-- eslint-enable vue/no-v-html -->
 					</div>
+					<Divider v-if="dialog.properties.buttons.length > 0" />
 					<div
 						v-if="dialog.properties.buttons.length > 0"
 						class="flex w-full flex-row-reverse justify-start gap-2"
 					>
-						<Line class="z-0" />
 						<div
 							v-for="(button, index) in dialog.properties.buttons"
 							:key="index"
 							class="w-fit"
 						>
 							<Button
-								:color="button.color"
+								:variant="button.color"
 								:disabled="!button.enabled"
 								@click="doAction(button.action)"
 							>
@@ -91,9 +87,9 @@
 	import { type PropType, computed, onMounted, onUnmounted, useSlots, watch } from 'vue';
 
 	import Button from '@hub-client/components/elements/Button.vue';
+	import Divider from '@hub-client/components/elements/Divider.vue';
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Line from '@hub-client/components/elements/Line.vue';
 
 	// Logic
 	import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';

@@ -11,7 +11,6 @@
 				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
 					<Icon
 						type="lifebuoy"
-						size="md"
 						class="text-accent-steward"
 					/>
 				</div>
@@ -272,24 +271,23 @@
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useModeration } from '@hub-client/composables/moderation.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
+	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 	import { UserAction } from '@hub-client/models/users/TUser';
 
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Store
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { ContextVariant, type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
-	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const props = defineProps({
 		room: {

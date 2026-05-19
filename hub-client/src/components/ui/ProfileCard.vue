@@ -16,10 +16,7 @@
 						class="bg-on-surface-variant cursor-pointer"
 						@click.once="userStore.goToUserRoom(userId ? userId : event.sender)"
 					>
-						<Icon
-							size="md"
-							type="envelope"
-						/>
+						<Icon type="envelope" />
 					</Button>
 				</div>
 			</div>
@@ -47,6 +44,7 @@
 
 <script lang="ts" setup>
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';

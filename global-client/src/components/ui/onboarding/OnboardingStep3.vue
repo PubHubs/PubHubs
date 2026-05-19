@@ -16,18 +16,13 @@
 			</p>
 			<H3 class="mt-4 mb-0 lg:hidden"> Download Yivi </H3>
 			<DownloadLinks class="mt-2 lg:hidden" />
-			<label
-				class="mt-4 flex font-bold"
-				for="yiviDownloaded"
+			<Checkbox
+				id="yiviDownloaded"
+				v-model="checked"
+				class="mt-1 mr-2 h-[16px] w-[16px] md:mt-1"
 			>
-				<Checkbox
-					id="yiviDownloaded"
-					v-model="checked"
-					class="mt-1 mr-2 h-[16px] w-[16px] md:mt-1"
-					:color="'accent-primary'"
-				/>
 				{{ $t('register.yivi_installed') }}
-			</label>
+			</Checkbox>
 			<Button
 				class="mt-6 mb-4 w-fit"
 				:disabled="!checked"
@@ -102,6 +97,10 @@
 <script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
 
 	defineEmits(['next', 'back']);
 

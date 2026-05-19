@@ -42,17 +42,17 @@
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 
+	import DropDownOption from '@hub-client/components/forms/elements/DropDownOption.vue';
+	// New design
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
+
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 	// Composables
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
 	// Models
 	import { type FieldOption, type FieldOptions, type InputType, type LabeledFieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
-
-	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
-	// New design
-	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
-	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
 	const props = withDefaults(

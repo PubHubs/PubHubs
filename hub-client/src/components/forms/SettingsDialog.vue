@@ -26,28 +26,24 @@
 							<Icon
 								class="hover:text-on-surface-variant cursor-pointer group-hover:block"
 								data-testid="change-avatar"
-								size="lg"
 								type="pencil-simple"
 							/>
 						</label>
 						<Icon
 							class="hover:text-on-surface-variant cursor-pointer group-hover:block"
 							data-testid="remove-avatar"
-							size="lg"
 							type="trash"
 							@click="removeAvatar"
 						/>
 					</div>
 				</div>
 			</div>
-			<div class="mb-4 flex flex-col md:flex-row">
+			<div class="mb-4 flex flex-col items-center md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.displayname') }}</label>
-				<TextInput
+				<TextField
 					v-model.trim="formState.data.displayName.value as string"
-					class="text-body rounded-xs border p-1 focus:border-blue-500 focus:outline-none md:w-4/6"
 					name="displayname"
 					:placeholder="$t('settings.displayname')"
-					@changed="formState.updateData('displayName', $event)"
 				/>
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
@@ -74,13 +70,13 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { onBeforeUnmount, onMounted, ref } from 'vue';
+	import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import TextInput from '@hub-client/components/forms/TextInput.vue';
-	import ValidationErrors from '@hub-client/components/forms/ValidationErrors.vue';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
+	import ValidationErrors from '@hub-client/components/forms/elements/ValidationErrors.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
@@ -125,6 +121,13 @@
 			show_validation: { required: false, max_length: true },
 		},
 	});
+
+	watch(
+		() => formState.data.displayName.value,
+		(newValue) => {
+			formState.updateData('displayName', newValue);
+		},
+	);
 
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());

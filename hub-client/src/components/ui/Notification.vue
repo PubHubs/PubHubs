@@ -8,10 +8,7 @@
 			class="bg-surface-low hover:bg-surface absolute rounded-2xl p-2 shadow-sm"
 			@click.stop="showNotifications = !showNotifications"
 		>
-			<Icon
-				size="md"
-				type="bell"
-			/>
+			<Icon type="bell" />
 			<span
 				v-if="notifications.length > 0"
 				class="bg-accent-red text-on-accent-red absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs"

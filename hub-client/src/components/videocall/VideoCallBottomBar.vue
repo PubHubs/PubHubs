@@ -40,11 +40,11 @@
 	import { ref } from 'vue';
 	import { useRouter } from 'vue-router';
 
+	import Button from '@hub-client/components/elements/Button.vue';
+
 	import type Room from '@hub-client/models/rooms/Room';
 
 	import useVideoCall from '@hub-client/stores/videoCall';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
 
 	const props = defineProps<{
 		currentRoom: Room;

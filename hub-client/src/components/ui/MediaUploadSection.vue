@@ -21,13 +21,11 @@
 			<div>
 				<Icon
 					:as-button="true"
-					size="md"
 					type="pencil-simple"
 					@click="fileInput?.click()"
 				/>
 				<Icon
 					:as-button="true"
-					size="md"
 					type="trash"
 					@click="$emit('remove')"
 				/>
@@ -48,9 +46,8 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-
 	// New design
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
+	import Label from '@hub-client/components/forms/elements/Label.vue';
 
 	defineProps({
 		title: {

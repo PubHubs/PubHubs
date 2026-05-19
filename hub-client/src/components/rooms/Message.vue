@@ -85,6 +85,8 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 
@@ -98,9 +100,6 @@
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	const props = defineProps<{
 		event: TMessageEvent;

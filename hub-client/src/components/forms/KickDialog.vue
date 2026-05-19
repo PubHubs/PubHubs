@@ -40,19 +40,18 @@
 	// Packages
 	import { capitalize, computed, ref } from 'vue';
 
+	// New design
+	import Button from '@hub-client/components/elements/Button.vue';
+	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
+	import TextArea from '@hub-client/components/forms/elements/TextArea.vue';
+	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	// New design
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
-	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
-	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	const props = defineProps<{
 		memberId: string;

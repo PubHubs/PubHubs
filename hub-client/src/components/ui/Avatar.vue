@@ -14,7 +14,6 @@
 		<Icon
 			v-if="!avatarUrl || !loaded"
 			:class="iconColor"
-			size="lg"
 			testid="avatar"
 			:type="icon ? icon : 'user'"
 		/>

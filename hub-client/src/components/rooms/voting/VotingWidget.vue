@@ -20,7 +20,6 @@
 					<Icon
 						v-if="hasUserVoted"
 						class="bg-surface hover:bg-accent-primary rounded-md"
-						size="lg"
 						:title="$t(showVotes ? 'message.voting.hide_votes' : 'message.voting.show_votes')"
 						type="user"
 						@click.stop="toggleShowVotes()"

@@ -97,6 +97,7 @@
 	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	// Components
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';

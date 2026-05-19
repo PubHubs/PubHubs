@@ -25,17 +25,17 @@
 	// Packages
 	import { computed, inject, onMounted, provide, ref, watch } from 'vue';
 
+	// New design
+	import FieldHelperText from '@hub-client/components/forms/elements/FieldHelperText.vue';
+	import FieldInfoBox from '@hub-client/components/forms/elements/FieldInfoBox.vue';
+	import FieldValidationError from '@hub-client/components/forms/elements/FieldValidationError.vue';
+
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 	// Composables
 	import { useFieldValidation } from '@hub-client/composables/validation.composable';
 
 	// Models
 	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
-
-	// New design
-	import FieldHelperText from '@hub-client/new-design/components/forms/FieldHelperText.vue';
-	import FieldInfoBox from '@hub-client/new-design/components/forms/FieldInfoBox.vue';
-	import FieldValidationError from '@hub-client/new-design/components/forms/FieldValidationError.vue';
-	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
 	const props = withDefaults(

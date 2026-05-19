@@ -645,7 +645,14 @@ describe('Back end functions', () => {
 		usePubhubsStore().client.sendMessage = sendEventMock;
 
 		const roomId = 'roomId';
-		const scheduler = new Scheduler('Scheduler Test Title', 'Scheduler Test Description', 'Scheduler Test Location', ['1', '2', '3'], false, VotingWidgetType.SCHEDULER);
+		const scheduler = new Scheduler(
+			'Scheduler Test Title',
+			'Scheduler Test Description',
+			'Scheduler Test Location',
+			['1', '2', '3'],
+			false,
+			VotingWidgetType.SCHEDULER,
+		);
 
 		usePubhubsStore().addScheduler(roomId, scheduler);
 

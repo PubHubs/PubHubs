@@ -30,6 +30,8 @@
 	import { onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
@@ -37,9 +39,6 @@
 
 	// Models
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	const props = defineProps<{ message: TFileMessageEventContent; deleted?: boolean }>();
 	const { openMenu } = useContextMenu();

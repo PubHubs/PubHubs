@@ -5,12 +5,12 @@ import { ref } from 'vue';
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
+// Models
+import type { MenuItem } from '@hub-client/models/components/contextMenu.models';
+
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { useSettings } from '@hub-client/stores/settings';
-
-// Models
-import type { MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 
 let wheelHandler: ((e: Event) => void) | undefined;
 

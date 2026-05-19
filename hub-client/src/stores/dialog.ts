@@ -1,6 +1,8 @@
 // Packages
 import { defineStore } from 'pinia';
 
+import { type TVariant } from '@hub-client/components/elements/Button.vue';
+
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 
@@ -28,11 +30,11 @@ const DialogSubmit = 1;
  */
 class DialogButton {
 	label: string;
-	color: string;
+	color: TVariant;
 	enabled: boolean;
 	action: DialogButtonAction;
 
-	constructor(label = '', color = '', action = DialogCancel) {
+	constructor(label = '', color = '' as TVariant, action = DialogCancel) {
 		this.label = label;
 		this.color = color;
 		this.action = action;
@@ -42,13 +44,13 @@ class DialogButton {
 
 const buttonsOk: Array<DialogButton> = [new DialogButton('ok', 'primary', DialogOk)];
 
-const buttonsCancel: Array<DialogButton> = [new DialogButton('cancel', 'red', DialogCancel)];
+const buttonsCancel: Array<DialogButton> = [new DialogButton('cancel', 'error', DialogCancel)];
 
-const buttonsOkCancel: Array<DialogButton> = [new DialogButton('ok', 'primary', DialogOk), new DialogButton('cancel', 'red', DialogCancel)];
+const buttonsOkCancel: Array<DialogButton> = [new DialogButton('ok', 'primary', DialogOk), new DialogButton('cancel', 'error', DialogCancel)];
 
-const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'primary', DialogSubmit), new DialogButton('cancel', 'text', DialogCancel)];
+const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'primary', DialogSubmit), new DialogButton('cancel', 'secondary', DialogCancel)];
 
-const buttonsYesNo: Array<DialogButton> = [new DialogButton('yes', 'primary', DialogYes), new DialogButton('no', 'red', DialogNo)];
+const buttonsYesNo: Array<DialogButton> = [new DialogButton('yes', 'primary', DialogYes), new DialogButton('no', 'error', DialogNo)];
 
 /**
  * DailogProperties class with all the properties a dialog needs

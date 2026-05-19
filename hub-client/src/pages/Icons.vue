@@ -43,6 +43,7 @@
 	import { icons } from '@hub-client/assets/icons';
 	import { iconSizes } from '@hub-client/assets/sizes';
 
+	import Button from '@hub-client/components/elements/Button.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 
 	const size = ref('lg');

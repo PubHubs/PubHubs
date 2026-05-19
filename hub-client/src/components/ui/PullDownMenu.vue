@@ -58,10 +58,12 @@
 						<Icon
 							v-if="selectedOrder === SortOrder.asc"
 							type="arrow-up"
+							size="sm"
 						/>
 						<Icon
 							v-else
 							type="arrow-down"
+							size="sm"
 						/>
 					</template>
 					<span class="text-label-small grow">{{ $t(options[selectedIndex] as string) }}</span>
@@ -73,7 +75,7 @@
 			@click="toggle"
 		>
 			<Icon
-				size="md"
+				size="sm"
 				type="caret-down"
 			/>
 		</div>
@@ -81,8 +83,9 @@
 </template>
 
 <script lang="ts" setup>
-	import Icon from '../elements/Icon.vue';
 	import { computed, ref } from 'vue';
+
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	import { type SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
 

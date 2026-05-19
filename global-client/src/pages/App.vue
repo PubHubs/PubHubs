@@ -43,6 +43,7 @@
 	import GlobalBar from '@global-client/components/ui/GlobalBar.vue';
 	import MobileMenu from '@global-client/components/ui/MobileMenu.vue';
 
+	import ContextMenu from '@hub-client/components/elements/ContextMenu.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Composables
@@ -60,9 +61,6 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { NotificationsPermission, useSettings } from '@hub-client/stores/settings';
-
-	// New design
-	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 
 	const isMobile = computed(() => settings.isMobileState);
 	const isIOS = device.getMobileOS() === 'iOS';

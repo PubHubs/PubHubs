@@ -7,7 +7,6 @@
 			>
 				<Icon
 					type="exclamation-mark"
-					size="3xl"
 					class="text-button-red"
 				></Icon>
 				<div class="flex flex-col items-center justify-center gap-y-4">

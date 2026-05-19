@@ -42,7 +42,7 @@
 
 <script lang="ts" setup>
 	// New design
-	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 
 	// Props
 	const props = withDefaults(

@@ -66,8 +66,15 @@
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	import Button from '@hub-client/components/elements/Button.vue';
+	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
+	import DropDown from '@hub-client/components/forms/elements/DropDown.vue';
+	import TextArea from '@hub-client/components/forms/elements/TextArea.vue';
+	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
 	// Components
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+	import { useDropDownData } from '@hub-client/composables/DropDownData.composable';
 
 	// Models
 	import { type AskDisclosure, type AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
@@ -78,13 +85,6 @@
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { type TPublicRoom } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
-	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
-	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
-	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
-	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 
 	const props = defineProps<{
 		user: TUserAccount;

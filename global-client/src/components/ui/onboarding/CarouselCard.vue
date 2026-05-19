@@ -44,7 +44,7 @@
 				<Button
 					v-if="index > 0"
 					class="w-fit"
-					color="text"
+					variant="tertiary"
 					@click.stop="handlePrev"
 				>
 					{{ $t('dialog.back') }}

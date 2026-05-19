@@ -197,14 +197,12 @@
 								>
 									<Icon
 										type="arrow-counter-clockwise"
-										size="md"
 										class="text-red"
 									/>
 								</button>
 								<Icon
 									v-if="msgIsNotSend && !connection.isOn"
 									type="wifi-slash"
-									size="md"
 									class="text-red mb-1 ml-2"
 								/>
 							</template>
@@ -214,8 +212,8 @@
 									@click="copy(`${source}?eventid=${props.event.event_id}`)"
 									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 								>
-									<Icon type="link" v-if="!copied" size="md"></Icon>
-									<Icon type="check" v-else size="md">Copied!</Icon>
+									<Icon type="link" v-if="!copied"></Icon>
+									<Icon type="check" v-else>Copied!</Icon>
 								</button>
 							</div> -->
 
@@ -226,10 +224,7 @@
 								:title="t('message.reply_emoji')"
 								@click.stop="emit('reactionPanelToggle', props.event.event_id)"
 							>
-								<Icon
-									type="smiley"
-									size="md"
-								/>
+								<Icon type="smiley" />
 							</button>
 
 							<!-- Reply Button -->
@@ -239,10 +234,7 @@
 								:title="t('message.reply')"
 								@click="reply"
 							>
-								<Icon
-									type="arrow-bend-up-left"
-									size="md"
-								/>
+								<Icon type="arrow-bend-up-left" />
 							</button>
 
 							<!-- Thread Reply Button -->
@@ -270,10 +262,7 @@
 										class="text-label-tiny h-min px-1"
 										>{{ eventThreadLength }}</span
 									>
-									<Icon
-										type="chat-circle"
-										size="md"
-									/>
+									<Icon type="chat-circle" />
 								</button>
 
 								<span
@@ -463,6 +452,8 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import ReactionMiniPopUp from '@hub-client/components/ui/ReactionMiniPopUp.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useModeration } from '@hub-client/composables/moderation.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	// Composables
@@ -473,6 +464,7 @@
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
+	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	// Models
 	import { RelationType } from '@hub-client/models/constants';
 	import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
@@ -485,17 +477,13 @@
 
 	// Stores
 	import { useConnection } from '@hub-client/stores/connection';
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { ContextVariant, type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
-	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const props = defineProps({
 		event: {

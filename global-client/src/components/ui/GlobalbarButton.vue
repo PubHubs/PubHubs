@@ -21,7 +21,7 @@
 		},
 		size: {
 			type: String,
-			default: 'lg',
+			default: 'base',
 		},
 	});
 

@@ -52,16 +52,17 @@
 	// Packages
 	import { computed, onMounted, ref, useAttrs, watch } from 'vue';
 
+	// New design
+	import Label from '@hub-client/components/forms/elements/Label.vue';
+	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
+
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
+
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
-
-	// New design
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
-	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
-	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
 	const props = withDefaults(

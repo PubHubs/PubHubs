@@ -72,6 +72,7 @@
 	// Packages
 	import { computed, ref } from 'vue';
 
+	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
 	import ForumCreateThread from '@hub-client/components/rooms/forum/ForumCreateThread.vue';
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
@@ -80,8 +81,6 @@
 	// Models
 	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
 
 	const props = defineProps({
 		room: {

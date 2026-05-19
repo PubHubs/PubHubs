@@ -11,16 +11,16 @@ import '@hub-client/assets/tailwind.css';
 // Components
 import Badge from '@hub-client/components/elements/Badge.vue';
 import Button from '@hub-client/components/elements/Button.vue';
+import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
+import Divider from '@hub-client/components/elements/Divider.vue';
 import H1 from '@hub-client/components/elements/H1.vue';
 import H2 from '@hub-client/components/elements/H2.vue';
 import H3 from '@hub-client/components/elements/H3.vue';
 import Icon from '@hub-client/components/elements/Icon.vue';
-import Line from '@hub-client/components/elements/Line.vue';
 import P from '@hub-client/components/elements/P.vue';
 import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
-import ButtonGroup from '@hub-client/components/forms/ButtonGroup.vue';
-import Checkbox from '@hub-client/components/forms/Checkbox.vue';
-import Label from '@hub-client/components/forms/Label.vue';
+import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+import Label from '@hub-client/components/forms/elements/Label.vue';
 import Dialog from '@hub-client/components/ui/Dialog.vue';
 import Logo from '@hub-client/components/ui/Logo.vue';
 
@@ -95,7 +95,7 @@ const components = {
 	H2,
 	H3,
 	Icon,
-	Line,
+	Divider,
 	Label,
 	Badge,
 	Button,

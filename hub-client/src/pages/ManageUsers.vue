@@ -103,6 +103,7 @@
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import UserInRoomsForm from '@hub-client/components/forms/UserInRoomsForm.vue';
 	import DisclosureRequestForm from '@hub-client/components/rooms/DisclosureRequestForm.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';

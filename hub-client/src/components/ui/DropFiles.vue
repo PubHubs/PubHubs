@@ -78,9 +78,8 @@
 		<div class="grow"></div>
 		<div>
 			<IconButton
-				type="trash"
+				icon="trash"
 				class="bg-accent-red! cursor-pointer"
-				size="lg"
 				@click="cancelFiles()"
 			></IconButton>
 		</div>
@@ -122,13 +121,14 @@
 </template>
 
 <script setup lang="ts">
-	import Button from '../elements/Button.vue';
-	import Icon from '../elements/Icon.vue';
-	import IconButton from '../elements/IconButton.vue';
 	import BarList from './BarList.vue';
 	import BarListItem from './BarListItem.vue';
 	import ProgressBar from './ProgressBar.vue';
 	import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
+
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
 
 	import { type ExtendedFile, asyncFileUpload, generateUniqueName } from '@hub-client/composables/fileUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';

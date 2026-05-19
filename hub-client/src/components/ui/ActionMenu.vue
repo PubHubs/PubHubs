@@ -31,7 +31,7 @@
 	import { nextTick, ref } from 'vue';
 
 	// Components
-	import Icon from '@hub-client/new-design/components/Icon.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	defineProps({
 		icon: {

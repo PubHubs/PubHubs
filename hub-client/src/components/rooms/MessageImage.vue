@@ -37,10 +37,7 @@
 				:title="t('dialog.close')"
 				@click="showFullImage = false"
 			>
-				<Icon
-					type="x"
-					size="lg"
-				/>
+				<Icon type="x" />
 			</button>
 		</div>
 	</Teleport>
@@ -62,6 +59,8 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useImageActions } from '@hub-client/composables/useImageActions';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
@@ -74,9 +73,6 @@
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	const props = defineProps<{ message: TImageMessageEventContent; deleted?: boolean }>();
 
