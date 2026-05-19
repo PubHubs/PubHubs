@@ -106,7 +106,6 @@
 						>
 							<Icon
 								class="h-200 w-200"
-								size="md"
 								type="x"
 							/>
 						</div>
@@ -116,7 +115,6 @@
 						>
 							<Icon
 								class="ml-050 -mr-050"
-								size="md"
 								type="caret-down"
 								weight="fill"
 							/>
@@ -150,19 +148,20 @@
 	import { OnClickOutside } from '@vueuse/components';
 	import { computed, nextTick, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	// New design
+	import DropDownOption from '@hub-client/components/forms/elements/DropDownOption.vue';
+	import DropDownValue from '@hub-client/components/forms/elements/DropDownValue.vue';
+	import Label from '@hub-client/components/forms/elements/Label.vue';
+	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
+
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 	// Composables
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
 	// Models
 	import { type FieldOption, type FieldOptions, type FieldSelection } from '@hub-client/models/validation/TFormOption';
 	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
-
-	// New design
-	import DropDownOption from '@hub-client/new-design/components/forms/DropDownOption.vue';
-	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
-	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
-	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	// Props
 	const props = withDefaults(

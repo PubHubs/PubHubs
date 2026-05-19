@@ -87,8 +87,8 @@
 					</div>
 				</div>
 
-				<h2 class="my-200">ButtonGroup</h2>
-				<ButtonGroup>
+				<h2 class="my-200">ButtonGroup (combined)</h2>
+				<ButtonGroup :combined="true">
 					<Button
 						type="reset"
 						variant="secondary"
@@ -257,7 +257,7 @@
 				>
 				<TextField
 					placeholder="Geef getal"
-					:validation="{ isNumber: true, minValue: 2 }"
+					:validation="{ isNumber: true, minValue: 0 }"
 					help="Hoe oud ben je?"
 					>Leeftijd</TextField
 				>
@@ -423,6 +423,26 @@
 	// Packages
 	import { onMounted, reactive, ref } from 'vue';
 
+	// New design
+	import Button from '@hub-client/components/elements/Button.vue';
+	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+	import DropDown from '@hub-client/components/forms/elements/DropDown.vue';
+	import Label from '@hub-client/components/forms/elements/Label.vue';
+	import Radio from '@hub-client/components/forms/elements/Radio.vue';
+	import RadioGroup from '@hub-client/components/forms/elements/RadioGroup.vue';
+	import TextArea from '@hub-client/components/forms/elements/TextArea.vue';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
+	import TextFieldAutoComplete from '@hub-client/components/forms/elements/TextFieldAutoComplete.vue';
+	import Toggle from '@hub-client/components/forms/elements/Toggle.vue';
+	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
+
+	// Composables
+	import { useDropDownData } from '@hub-client/composables/DropDownData.composable';
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+
+	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	// Models
 	import { type TUserAccount } from '@hub-client/models/users/TUser';
 	import { type InputType, type MultipleInputType } from '@hub-client/models/validation/TFormOption';
@@ -430,25 +450,6 @@
 	import { type ValidationRule } from '@hub-client/models/validation/TValidate';
 
 	import { type TPublicRoom } from '@hub-client/stores/rooms';
-
-	// New design
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
-	import IconButton from '@hub-client/new-design/components/IconButton.vue';
-	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
-	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
-	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
-	import RadioGroup from '@hub-client/new-design/components/forms/RadioGroup.vue';
-	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
-	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
-	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
-	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
-	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
-	// Composables
-	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { ContextVariant, type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
 
 	/**
 	 *

@@ -76,6 +76,7 @@
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import OptionButton from '@hub-client/components/rooms/voting/scheduler/OptionButton.vue';

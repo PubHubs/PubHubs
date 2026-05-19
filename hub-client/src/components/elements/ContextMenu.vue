@@ -106,12 +106,12 @@
 	// Packages
 	import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 
+	// New design
+	import ContextMenuItem from '@hub-client/components/elements/ContextMenuItem.vue';
+
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
-
-	// New design
-	import ContextMenuItem from '@hub-client/new-design/components/ContextMenuItem.vue';
-	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	// Constants
 	const POINTER_OFFSET = 8;

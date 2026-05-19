@@ -40,16 +40,16 @@
 	import { ref } from 'vue';
 	import { useRouter } from 'vue-router';
 
+	import Button from '@hub-client/components/elements/Button.vue';
+	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
+	import TextArea from '@hub-client/components/forms/elements/TextArea.vue';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
+	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
+
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
-	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
-	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
-	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	defineProps({
 		id: {

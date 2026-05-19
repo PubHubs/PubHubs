@@ -23,13 +23,12 @@
 	// Packages
 	import { computed } from 'vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	// Components
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-
-	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	const props = defineProps({
 		event: {

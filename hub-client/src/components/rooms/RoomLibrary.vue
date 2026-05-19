@@ -52,18 +52,24 @@
 						<div class="flex items-center gap-1">
 							<IconButton
 								v-if="!selectedAll"
-								type="square"
+								icon="square"
+								size="sm"
+								variant="secondary"
 								@click.stop="selectAll(roomTimeLineFiles)"
 							/>
 							<IconButton
 								v-else
-								type="check-square"
+								icon="check-square"
+								size="sm"
+								variant="secondary"
 								@click.stop="unselectAll()"
 							/>
 							<IconButton
 								v-if="hasSelection()"
 								class="hover:text-accent-red"
-								type="trash"
+								icon="trash"
+								size="sm"
+								variant="secondary"
 								@click.stop="deleteSelected()"
 							/>
 						</div>
@@ -73,9 +79,7 @@
 							v-for="item in roomTimeLineFiles"
 							:key="item.matrixEvent.getId()"
 						>
-							<BarListItem
-								:class="{ 'bg-on-surface-dim!': isSelected(item) && !deletingAll, 'bg-accent-error!': isSelected(item) && deletingAll }"
-							>
+							<BarListItem :class="{ 'bg-accent-error!': isSelected(item) && deletingAll }">
 								<div>
 									<InlineCollapse>
 										<template #visible="{ collapsed }">
@@ -86,12 +90,16 @@
 												>
 													<IconButton
 														v-if="isSelected(item)"
-														type="check-square"
+														icon="check-square"
+														size="sm"
+														variant="secondary"
 														@click.stop="removeFromSelection(item)"
 													/>
 													<IconButton
 														v-else
-														type="square"
+														icon="square"
+														variant="secondary"
+														size="sm"
 														@click.stop="addToSelection(item)"
 													/>
 												</div>
@@ -103,11 +111,13 @@
 														v-if="isSigned(item.matrixEvent.getId())"
 														class="text-accent-blue"
 														type="seal-check"
+														size="sm"
 													/>
 													<Icon
 														v-else
 														class="text-on-surface-disabled cursor-pointer"
 														type="question"
+														size="sm"
 														@click.stop="handleSigning(item.matrixEvent.getContent().url, item.matrixEvent.getId())"
 													/>
 												</div>
@@ -134,6 +144,7 @@
 														<Icon
 															:class="{ 'text-accent-blue': !collapsed }"
 															type="info"
+															size="sm"
 														/>
 													</InlineCollapseToggle>
 												</div>
@@ -160,7 +171,7 @@
 														:filename="item.matrixEvent.getContent().filename"
 														:url="item.matrixEvent.getContent().url"
 													>
-														<IconButton type="download-simple" />
+														<IconButton icon="download-simple" />
 													</FileDownload>
 												</div> -->
 												<div
@@ -169,7 +180,9 @@
 												>
 													<IconButton
 														class="hover:text-accent-red"
-														type="trash"
+														icon="trash"
+														size="sm"
+														variant="secondary"
 														@click.stop="confirmDeletion(item.matrixEvent.getContent(), item.matrixEvent.getId())"
 													/>
 												</div>
@@ -185,6 +198,7 @@
 														<Icon
 															class="text-accent-primary"
 															type="seal-check"
+															size="sm"
 														/>
 														<span class="text-nowrap">{{ $t('roomlibrary.signed') }}</span>
 														<DisplayNameCompact
@@ -260,6 +274,9 @@
 	// Composables
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
 
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';

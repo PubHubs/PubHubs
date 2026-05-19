@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-	import Button from '@hub-client/new-design/components/Button.vue';
+	import Button from '@hub-client/components/elements/Button.vue';
 
 	defineProps({
 		isStartButton: {

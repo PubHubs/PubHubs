@@ -13,6 +13,9 @@
 	// Packages
 	import { computed } from 'vue';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// Logic
 	import filters from '@hub-client/logic/core/filters';
 

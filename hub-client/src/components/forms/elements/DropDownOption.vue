@@ -10,10 +10,10 @@
 
 <script lang="ts" setup>
 	// Models
-	import { type FieldOption } from '@hub-client/models/validation/TFormOption';
-
 	// New design
-	import DropDownValue from '@hub-client/new-design/components/forms/DropDownValue.vue';
+	import DropDownValue from '@hub-client/components/forms/elements/DropDownValue.vue';
+
+	import { type FieldOption } from '@hub-client/models/validation/TFormOption';
 
 	// Props
 	withDefaults(

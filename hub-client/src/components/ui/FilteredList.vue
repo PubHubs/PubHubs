@@ -5,13 +5,11 @@
 				class="text-surface-high dark:text-on-surface-dim"
 				type="compass"
 			/>
-			<TextInput
+			<TextField
 				v-if="!listTop"
 				v-model="filter"
-				class="bg-surface-low text-label h-8 w-full border-none"
 				:class="inputClass"
 				:placeholder="placeholder"
-				@input="changed()"
 			/>
 		</div>
 		<ul
@@ -36,10 +34,11 @@
 <script lang="ts" setup>
 	// Packages
 	import { type User as MatrixUser } from 'matrix-js-sdk';
-	import { computed, ref } from 'vue';
+	import { computed, ref, watch } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 
 	// Models
 	import { type FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
@@ -75,6 +74,10 @@
 		(e: 'filter', event: FilteredListEvent): void;
 	}>();
 	const filter = ref('');
+
+	watch(filter, () => {
+		changed();
+	});
 
 	const filteredItems = computed(() => {
 		let itemsToFilter = props.items;

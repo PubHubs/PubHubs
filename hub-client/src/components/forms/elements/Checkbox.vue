@@ -9,7 +9,7 @@
 		<div class="inline-flex h-300 w-300 flex-col items-center justify-center gap-100">
 			<div
 				v-if="!model"
-				class="bg-surface-base border-on-surface-dim border-thin h-200 w-200 rounded"
+				class="bg-surface-base outline-offset-thin outline-on-surface-dim h-200 w-200 rounded outline"
 				:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
 			/>
 			<div
@@ -61,7 +61,7 @@
 
 <script lang="ts" setup>
 	// New design
-	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 
 	// Props
 	const props = withDefaults(

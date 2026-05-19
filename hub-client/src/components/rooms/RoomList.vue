@@ -127,16 +127,20 @@
 	import MenuItemSkeleton from '@hub-client/components/ui/MenuItemSkeleton.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Logic
 
+	import { ContextVariant } from '@hub-client/models/components/contextMenu.models';
 	// Models
 	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -144,11 +148,6 @@
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { ContextVariant } from '@hub-client/new-design/models/contextMenu.models';
-	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const props = defineProps({
 		roomTypes: {

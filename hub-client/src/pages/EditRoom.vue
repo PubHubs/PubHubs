@@ -208,10 +208,17 @@
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+	import DropDown from '@hub-client/components/forms/elements/DropDown.vue';
+	import Label from '@hub-client/components/forms/elements/Label.vue';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
+	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
+	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import TabContainer from '@hub-client/components/ui/TabContainer.vue';
 	import TabHeader from '@hub-client/components/ui/TabHeader.vue';
@@ -236,14 +243,6 @@
 	import { type SecuredRoomAttributes, type TSecuredRoom } from '@hub-client/stores/rooms';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useYivi } from '@hub-client/stores/yivi';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
-	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
-	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
-	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
-	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 
 	// Passed by the router
 	const props = defineProps({

@@ -241,15 +241,19 @@
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import MessagePreview from '@hub-client/components/ui/MessagePreview.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composable
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
+	import { ContextVariant } from '@hub-client/models/components/contextMenu.models';
 	// Models
 	import { RoomType, type UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Store
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -257,11 +261,6 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { ContextVariant } from '@hub-client/new-design/models/contextMenu.models';
-	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();

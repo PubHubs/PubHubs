@@ -58,7 +58,7 @@
 					v-else-if="isSecured"
 					class="w-full whitespace-nowrap @sm:w-fit"
 					:title="t('rooms.view_access_requirements')"
-					color="primary"
+					variant="primary"
 					@click="joinSecureRoom"
 				>
 					{{ t('rooms.join_secured_room') }}

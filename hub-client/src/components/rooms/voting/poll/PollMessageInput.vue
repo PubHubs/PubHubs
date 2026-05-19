@@ -1,20 +1,17 @@
 <template>
 	<div class="rounded-md">
-		<div class="mb-2 flex border-b p-2">
+		<div class="mb-2 flex items-center gap-2 border-b p-2">
 			<Icon
-				class="mx-2 mt-1 flex-none"
 				size="base"
 				type="chart-bar"
 			/>
 			<H2 class="grow">
 				{{ $t('message.poll') }}
 			</H2>
-			<div class="mt-1 flex flex-none">
+			<div class="flex flex-none">
 				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
 				<IconButton
-					class="ml-2"
-					size="sm"
-					type="x"
+					icon="x"
 					@click="emit('closePoll')"
 				/>
 			</div>
@@ -66,9 +63,9 @@
 						/>
 						<Checkbox
 							v-model="poll.showVotesBeforeVoting"
-							:label="$t('message.voting.show_votes_before_voting')"
 							@input="updatePoll"
-						/>
+							>{{ $t('message.voting.show_votes_before_voting') }}</Checkbox
+						>
 					</div>
 					<div
 						v-if="settingsMenu"
@@ -78,9 +75,9 @@
 							<div>
 								<Checkbox
 									v-model="poll.showVotesBeforeVoting"
-									:label="$t('message.voting.show_votes_before_voting')"
 									@input="updatePoll"
-								/>
+									>{{ $t('message.voting.show_votes_before_voting') }}</Checkbox
+								>
 							</div>
 						</div>
 					</div>
@@ -110,7 +107,8 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
 
 	/// Models
 	import { Poll, type PollOption } from '@hub-client/models/events/voting/VotingTypes';

@@ -35,6 +35,7 @@
 	import { useI18n } from 'vue-i18n';
 	import { type NavigationFailure, type RouteParamValue, type RouteRecordNameGeneric, isNavigationFailure, useRouter } from 'vue-router';
 
+	import ContextMenu from '@hub-client/components/elements/ContextMenu.vue';
 	// Components
 	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
@@ -53,6 +54,8 @@
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 
+	// New design
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { type HubInformation } from '@hub-client/stores/hub-settings';
@@ -62,10 +65,6 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	// New design
-	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
-	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const logger = createLogger('App');
 

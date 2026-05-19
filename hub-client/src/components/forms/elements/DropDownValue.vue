@@ -26,13 +26,12 @@
 <script lang="ts" setup>
 	import { computed } from 'vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	// Components
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
 	// Models
 	import { type FieldOption } from '@hub-client/models/validation/TFormOption';
-
-	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	// Props
 	const props = withDefaults(

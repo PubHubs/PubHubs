@@ -169,9 +169,10 @@
 					/>
 					<IconButton
 						v-else
-						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
+						:icon="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
 						data-testid="paperclip"
-						size="lg"
+						size="base"
+						variant="secondary"
 						class="transition-transform duration-200 hover:cursor-pointer"
 						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
 						@click.stop="messageInput.togglePopover()"
@@ -211,17 +212,13 @@
 						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
 						@click="isAnnouncementMode = !isAnnouncementMode"
 					>
-						<Icon
-							type="megaphone-simple"
-							size="lg"
-						></Icon>
+						<Icon type="megaphone-simple"></Icon>
 					</button>
 
 					<!-- Emoji picker -->
 					<button :class="isInputDisabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'">
 						<Icon
 							type="smiley"
-							size="lg"
 							@click.stop="toggleEmojiPicker()"
 						/>
 					</button>
@@ -233,10 +230,7 @@
 						:disabled="!messageInput.state.sendButtonEnabled"
 						@click="submitMessage"
 					>
-						<Icon
-							type="paper-plane-right"
-							size="lg"
-						/>
+						<Icon type="paper-plane-right" />
 					</button>
 				</div>
 			</div>
@@ -269,7 +263,8 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import type TextArea from '@hub-client/components/forms/TextArea.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import type TextAreaOld from '@hub-client/components/forms/elements/TextAreaOld.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
@@ -367,7 +362,7 @@
 	const selectedAttributesSigningMessage = ref<string[]>(['pbdf.sidn-pbdf.email.email']);
 
 	const filePickerEl = ref();
-	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
+	const elTextInput = ref<InstanceType<typeof TextAreaOld> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 	const isAnnouncementMode = ref(false);
 

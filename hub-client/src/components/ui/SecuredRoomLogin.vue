@@ -7,7 +7,7 @@
 				v-if="showClose"
 				class="absolute top-2 right-2 z-10 p-2 text-black"
 				size="base"
-				type="x"
+				icon="x"
 				@click="closePopOver"
 			/>
 			<QRCode
@@ -45,6 +45,8 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import P from '@hub-client/components/elements/P.vue';
 	import QRCode from '@hub-client/components/ui/SecuredRoomQR.vue';
 

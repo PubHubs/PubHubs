@@ -22,7 +22,7 @@
 	import { nextTick, onMounted, ref } from 'vue';
 
 	// Components
-	import IconButton from '@hub-client/new-design/components/IconButton.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
 
 	withDefaults(defineProps<Props>(), {
 		showClosingCross: false,

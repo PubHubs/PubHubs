@@ -183,6 +183,7 @@
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
 	import Notification from '@hub-client/components/ui/Notification.vue';
 
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
@@ -198,8 +199,6 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	const emit = defineEmits<{
 		openSettings: [];

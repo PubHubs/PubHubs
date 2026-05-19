@@ -70,10 +70,7 @@
 								:title="itemRoomId(item)"
 							>
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon
-										class="fill-accent-lime shrink-0"
-										type="chats-circle"
-									/>
+									<Icon type="chats-circle" />
 									<p class="min-w-20 truncate">
 										{{ item.name }}
 									</p>
@@ -154,7 +151,7 @@
 							>
 								<div class="flex w-full items-center gap-4 overflow-hidden">
 									<Icon
-										class="text-green shrink-0 group-hover:text-black"
+										class="group-hover:text-black"
 										type="shield"
 									/>
 									<p class="min-w-20 truncate">

@@ -11,6 +11,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 // Models
 import { Hub, type HubList } from '@global-client/models/Hubs';
 
+import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
 import { QueryParameterKey } from '@hub-client/models/constants';
 import type { UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
@@ -19,13 +20,12 @@ import { useGlobal } from '@global-client/stores/global';
 import { useLocalStores } from '@global-client/stores/localStores';
 import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
+import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 import { Message, MessageType, iframeHubId, miniClientId, useMessageBox } from '@hub-client/stores/messagebox';
 import { useSettings } from '@hub-client/stores/settings';
 
 // Other
 import { setLanguage, setUpi18n } from '@hub-client/i18n';
-import { type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
-import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 const logger = createLogger('hubs');
 

@@ -33,7 +33,7 @@
 				class="bg-surface absolute right-4 z-10 rounded-md shadow-lg"
 			>
 				<Button
-					:color="'gray-100'"
+					variant="secondary"
 					@click="toggleMute"
 				>
 					{{ isLocallyMuted ? 'Unmute for me' : 'Mute for me' }}

@@ -45,6 +45,7 @@
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	// Components
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';

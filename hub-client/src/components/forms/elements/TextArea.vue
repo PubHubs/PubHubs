@@ -15,11 +15,12 @@
 
 <script lang="ts" setup>
 	// Models
-	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
-
 	// New design
-	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
-	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
+
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
+
+	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// Props
 	const props = withDefaults(

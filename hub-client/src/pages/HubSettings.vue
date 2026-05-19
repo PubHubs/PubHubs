@@ -138,10 +138,13 @@
 	import { computed, onBeforeMount, onBeforeUnmount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import Label from '@hub-client/components/forms/elements/Label.vue';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
@@ -155,10 +158,6 @@
 	// Stores
 	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, toolbarSettings, useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useSettings } from '@hub-client/stores/settings';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
-	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 
 	const hubSettings = useHubSettings();
 	const settings = useSettings();

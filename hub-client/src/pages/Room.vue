@@ -209,6 +209,7 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useModeration } from '@hub-client/composables/moderation.composable';
 	// Composables
 	import { useRoles } from '@hub-client/composables/roles.composable';
@@ -231,8 +232,6 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';
-
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	// Passed by the router
 	const props = defineProps({

@@ -27,12 +27,12 @@
 	// Packages
 	import { computed } from 'vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	import { type ContextMenuItemProps, type ContextVariant } from '@hub-client/models/components/contextMenu.models';
+
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
-
-	// New design
-	import Icon from '@hub-client/new-design/components/Icon.vue';
-	import { type ContextMenuItemProps, type ContextVariant } from '@hub-client/new-design/models/contextMenu.models';
 
 	// Props
 	const props = withDefaults(defineProps<ContextMenuItemProps>(), {

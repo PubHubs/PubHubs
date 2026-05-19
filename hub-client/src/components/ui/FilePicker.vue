@@ -53,6 +53,8 @@
 <script setup lang="ts">
 	import { type PropType, onBeforeUnmount, ref, watch } from 'vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';

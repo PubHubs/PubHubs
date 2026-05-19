@@ -149,7 +149,6 @@
 					v-if="groupProfileButton"
 					class="bg-on-surface-variant text-surface-high text-label-small hover:bg-surface-subtle mt-12 flex justify-between"
 					:disabled="cannotCreateGroupRoom"
-					size="xs"
 					@click="groupCreationDone(usersSelected)"
 				>
 					{{ t('others.next') }}<Icon type="arrow-right" />
@@ -172,7 +171,6 @@
 						<div class="bg-accent-admin/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
 							<Icon
 								class="text-accent-admin"
-								size="md"
 								type="lifebuoy"
 							/>
 						</div>

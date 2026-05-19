@@ -11,10 +11,10 @@
 
 <script lang="ts" setup>
 	// Models
-	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
-
 	// Components
-	import ValidateField from '@hub-client/new-design/components/forms/ValidateField.vue';
+	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
+
+	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// Props
 	withDefaults(
