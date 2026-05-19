@@ -32,8 +32,10 @@ import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
-import { Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
+import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
 import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { type TTimeoutStateEvent } from '@hub-client/models/events/TTimeoutEvent';
+import { type TYellowCardStateEvent } from '@hub-client/models/events/TYellowCardEvent';
 import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
@@ -361,6 +363,14 @@ export default class Room {
 		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
 		if (!event) return null;
 		return event;
+	}
+
+	public getStateTimeout(): TTimeoutStateEvent | undefined {
+		return this.stateEvents.find((e) => e.type === MatrixEventType.Timeout && e.state_key === '') as TTimeoutStateEvent | undefined;
+	}
+
+	public getStateYellowCard(): TYellowCardStateEvent | undefined {
+		return this.stateEvents.find((e) => e.type === MatrixEventType.YellowCard && e.state_key === '') as TYellowCardStateEvent | undefined;
 	}
 
 	// End of sliding sync state methods //

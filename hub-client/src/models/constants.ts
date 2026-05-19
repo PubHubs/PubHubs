@@ -46,6 +46,8 @@ enum MatrixEventType {
 	RoomRedaction = 'm.room.redaction',
 	RoomReceipt = 'm.room.receipt',
 	RoomReadMarker = 'm.room.read_markers',
+	YellowCard = 'pubhubs.yellow_card',
+	Timeout = 'pubhubs.timeout',
 }
 
 // Relation strings that are not included in Matrix enums (yet)

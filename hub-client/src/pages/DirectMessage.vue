@@ -241,9 +241,11 @@
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import MessagePreview from '@hub-client/components/ui/MessagePreview.vue';
 
-	import { useModeration } from '@hub-client/composables/moderation.composable';
 	// Composable
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
+
+	// Logic
+	import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 	// Models
 	import { RoomType, type UnreadState } from '@hub-client/models/rooms/TBaseRoom';
@@ -302,9 +304,9 @@
 		if (roomType === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('admin.support');
 		if (roomType === RoomType.PH_MESSAGE_STEWARD_CONTACT) return t('rooms.steward_support');
 
-		const { allOtherMembers } = useModeration(room);
-		if (allOtherMembers.value.length > 0) {
-			return userStore.userDisplayName(allOtherMembers.value[0]) ?? t('menu.directmsg');
+		const otherMembers = getOtherRoomMembers(room, userStore.userId);
+		if (otherMembers.length > 0) {
+			return userStore.userDisplayName(otherMembers[0]) ?? t('menu.directmsg');
 		}
 
 		// Fallback for members not fully joined yet
