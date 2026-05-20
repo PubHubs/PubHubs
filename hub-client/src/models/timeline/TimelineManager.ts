@@ -96,7 +96,7 @@ class TimelineManager {
 	private readonly timelineFilter: TimelineFilter = {
 		room: {
 			timeline: {
-				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.HideMessage],
+				types: [EventType.RoomMessage, EventType.RoomRedaction],
 			},
 		},
 	};
@@ -547,33 +547,61 @@ class TimelineManager {
 	}
 
 	/**
-	 * Paginate from event in given direction for a {limit} number of events
-	 * @param direction
-	 * @param limit
-	 * @param timeline
-	 * @returns
+	 * Paginate from event in given direction for a {limit} number of VISIBLE events.
+	 * Continues fetching until enough visible events are collected or the timeline end is reached.
+	 * @param direction - Direction to paginate
+	 * @param limit - Number of visible events to fetch
+	 * @param timeline - The timeline to paginate from
+	 * @returns Array of visible MatrixEvents
 	 */
 	private async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {
-		const paginationToken =
+		let iterations = 0;
+		let allVisibleEvents: MatrixEvent[] = [];
+		let currentToken: string | null =
 			direction === Direction.Backward ? timeline.getPaginationToken(EventTimeline.BACKWARDS) : timeline.getPaginationToken(EventTimeline.FORWARDS);
-		const messagesResponse = await this.client.createMessagesRequest(this.roomId, paginationToken, limit, direction, this.MessageFilter);
+		let reachedEnd = false;
 
-		const eventMapper = this.client.getEventMapper();
-		const newEvents = messagesResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+		while (allVisibleEvents.length < limit && iterations < SystemDefaults.maxPaginationIterations && !reachedEnd) {
+			iterations++;
+			const messagesResponse = await this.client.createMessagesRequest(this.roomId, currentToken, limit, direction, this.MessageFilter);
 
-		if (messagesResponse.chunk.length < limit) {
-			const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
-			const lastMessageId =
-				newEvents.length > 0
-					? newEvents[newEvents.length - 1]?.event?.event_id
-					: this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
+			const eventMapper = this.client.getEventMapper();
+			const newEvents = messagesResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+
+			// Check if we've reached the end of the timeline
+			if (messagesResponse.chunk.length < limit) {
+				reachedEnd = true;
+				const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
+				const lastMessageId =
+					newEvents.length > 0
+						? newEvents[newEvents.length - 1]?.event?.event_id
+						: this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
+				if (direction === Direction.Backward) {
+					this.paginationState.firstMessageId = firstMessageId;
+				} else {
+					this.paginationState.lastMessageId = lastMessageId;
+				}
+			}
+
+			// Filter to visible events and add to collection
+			const visibleEvents = this.prepareEvents(newEvents);
 			if (direction === Direction.Backward) {
-				this.paginationState.firstMessageId = firstMessageId;
+				allVisibleEvents = [...visibleEvents, ...allVisibleEvents];
 			} else {
-				this.paginationState.lastMessageId = lastMessageId;
+				allVisibleEvents = [...allVisibleEvents, ...visibleEvents];
+			}
+
+			// Update token for next iteration
+			currentToken = messagesResponse.end ?? null;
+
+			// If no token returned, we've reached the end
+			if (!messagesResponse.end) {
+				reachedEnd = true;
 			}
 		}
-		return this.prepareEvents(newEvents);
+
+		logger.info(`performPaginate: fetched ${allVisibleEvents.length} visible events in ${iterations} iteration(s)`);
+		return allVisibleEvents;
 	}
 
 	/**

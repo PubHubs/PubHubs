@@ -589,7 +589,25 @@
 		await rooms.waitForInitialRoomsLoaded();
 
 		if (!rooms.currentRoom) return;
-		if (!newestEventIsLoaded.value) return;
+
+		// Fresh room load - handle initial scroll and pagination
+		if (oldTimelineLength === 0 && newTimelineLength > 0) {
+			await nextTick();
+			setupEventIntersectionObserver();
+
+			if (!isInitialScrollComplete.value) {
+				await performInitialScroll({
+					explicitEventId: props.eventIdToScroll,
+					lastReadEventId: displayedReadMarker.value ?? props.lastReadEventId,
+				});
+			}
+
+			return;
+		}
+
+		if (!newestEventIsLoaded.value) {
+			return;
+		}
 
 		// Notify scroll composable about new messages (for indicator)
 		// Skip during pagination - these are old messages being loaded, not new ones
@@ -623,17 +641,6 @@
 			await nextTick();
 			setupEventIntersectionObserver();
 		}
-
-		// If initial scroll hasn't happened yet and events just loaded, perform it now
-		if (!isInitialScrollComplete.value && oldTimelineLength === 0 && newTimelineLength > 0) {
-			await performInitialScroll({
-				explicitEventId: props.eventIdToScroll,
-				lastReadEventId: displayedReadMarker.value ?? props.lastReadEventId,
-			});
-			return;
-		}
-
-		logger.info(`onTimelineChange ended`);
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
