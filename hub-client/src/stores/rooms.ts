@@ -15,7 +15,16 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
 import Room from '@hub-client/models/rooms/Room';
-import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms, type UnreadState, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
+import {
+	DirectRooms,
+	PublicRooms,
+	type RoomListRoom,
+	RoomType,
+	SecuredRooms,
+	type UnreadState,
+	showsUnreadState,
+	worstUnreadState,
+} from '@hub-client/models/rooms/TBaseRoom';
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -277,7 +286,11 @@ const useRooms = defineStore('rooms', {
 		// displayed in the sidebar: public, secured, and private).
 		async fetchAggregateUnreadState(): Promise<UnreadState> {
 			await this.waitForInitialRoomsLoaded();
-			return worstUnreadState([...this.loadedPublicRooms, ...this.loadedSecuredRooms, ...this.loadedPrivateRooms].map((r) => r.unreadState));
+			return worstUnreadState(
+				[...this.loadedPublicRooms, ...this.loadedSecuredRooms, ...this.loadedPrivateRooms]
+					.filter((r) => showsUnreadState(r.roomType))
+					.map((r) => r.unreadState),
+			);
 		},
 
 		async waitForInitialRoomsLoaded(): Promise<void> {

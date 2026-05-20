@@ -32,7 +32,7 @@
 					</TruncatedText>
 
 					<span
-						v-if="settings.isFeatureEnabled(FeatureFlag.notifications)"
+						v-if="settings.isFeatureEnabled(FeatureFlag.notifications) && showsUnreadState(room.roomType)"
 						class="flex items-center gap-1 transition-all duration-200 ease-in-out"
 					>
 						<Badge
@@ -137,7 +137,7 @@
 
 	import { ContextVariant } from '@hub-client/models/components/contextMenu.models';
 	// Models
-	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms, showsUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
 	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';

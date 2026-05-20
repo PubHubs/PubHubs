@@ -59,6 +59,17 @@ function worstUnreadState(states: UnreadState[]): UnreadState {
 	return worst;
 }
 
+/**
+ * Whether a room's unread state should be surfaced in the UI — both in the
+ * aggregate (miniclient) badge and the per-room sidebar badge.
+ *
+ * Forum rooms are excluded for now. (The 'main' thread-list view sends no
+ * read receipts, so a 'unread' badge can never clear.)
+ */
+function showsUnreadState(roomType: string | undefined): boolean {
+	return roomType !== RoomType.PH_FORUM_ROOM;
+}
+
 type RoomListRoom = {
 	roomId: string;
 	roomType: string;
@@ -79,4 +90,4 @@ type TBaseRoom = {
 	room_type?: string;
 };
 
-export { TBaseRoom, UnreadState, worstUnreadState, RoomListRoom, RoomType, PublicRoomType, PublicRooms, SecuredRooms, DirectRooms };
+export { TBaseRoom, UnreadState, worstUnreadState, showsUnreadState, RoomListRoom, RoomType, PublicRoomType, PublicRooms, SecuredRooms, DirectRooms };
