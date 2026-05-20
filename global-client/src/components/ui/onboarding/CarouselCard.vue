@@ -64,6 +64,7 @@
 <script lang="ts" setup>
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	const props = defineProps({
 		index: {

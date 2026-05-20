@@ -58,6 +58,7 @@
 	import SettingsDialog from '@global-client/components/forms/SettingsDialog.vue';
 	import GlobalbarButton from '@global-client/components/ui/GlobalbarButton.vue';
 	import HubMenu from '@global-client/components/ui/HubMenu.vue';
+	import Modal from '@global-client/components/ui/Modal.vue';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';

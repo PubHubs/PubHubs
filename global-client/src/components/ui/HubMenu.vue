@@ -72,6 +72,7 @@
 	// Components
 	import HubMenuHubIcon from '@global-client/components/ui/HubMenuHubIcon.vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	// Hub imports
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 

@@ -39,6 +39,7 @@
 </template>
 
 <script lang="ts" setup>
+	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 
 	const emit = defineEmits(['next', 'skip']);

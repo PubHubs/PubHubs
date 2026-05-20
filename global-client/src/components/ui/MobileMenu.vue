@@ -15,6 +15,9 @@
 	// Packages
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
 

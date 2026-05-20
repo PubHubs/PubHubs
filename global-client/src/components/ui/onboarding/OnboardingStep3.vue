@@ -100,7 +100,8 @@
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
-	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
 
 	defineEmits(['next', 'back']);
 

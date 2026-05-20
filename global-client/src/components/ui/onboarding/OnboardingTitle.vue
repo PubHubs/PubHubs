@@ -12,4 +12,6 @@
 <script lang="ts" setup>
 	// Components
 	import Logo from '@global-client/components/ui/Logo.vue';
+
+	import H1 from '@hub-client/components/elements/H1.vue';
 </script>
