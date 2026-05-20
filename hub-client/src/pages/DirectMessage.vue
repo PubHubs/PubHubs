@@ -144,6 +144,7 @@
 				class="border-on-surface-disabled flex min-w-0 flex-1 border-l"
 			>
 				<DirectMessageRoom
+					:key="selectedRoom.roomId"
 					:room="selectedRoom"
 					:event-id-to-scroll="scrollToEventId"
 					class="min-w-0 flex-1"
@@ -210,6 +211,7 @@
 			>
 				<DirectMessageRoom
 					v-if="sidebar.activeTab.value === SidebarTab.DirectMessage && sidebar.selectedDMRoom.value"
+					:key="sidebar.selectedDMRoom.value.roomId"
 					:room="sidebar.selectedDMRoom.value"
 				/>
 				<NewConversationPanel

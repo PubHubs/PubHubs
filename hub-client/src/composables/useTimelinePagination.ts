@@ -78,7 +78,6 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 	const newestEventIsLoaded = computed(() => {
 		return room.isNewestMessageLoaded();
 	});
-
 	// Loads older messages
 	async function loadPrevious(): Promise<void> {
 		if (isLoadingPrevious.value || oldestEventIsLoaded.value) return;
