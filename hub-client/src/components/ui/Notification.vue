@@ -4,18 +4,16 @@
 		v-if="notifications.length > 0"
 		class="flex h-full flex-col items-end justify-center"
 	>
-		<button
-			class="bg-surface-low hover:bg-surface absolute rounded-2xl p-2 shadow-sm"
-			@click.stop="showNotifications = !showNotifications"
-		>
-			<Icon type="bell" />
-			<span
-				v-if="notifications.length > 0"
-				class="bg-accent-red text-on-accent-red absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs"
-			>
+		<div class="relative">
+			<GlobalbarButton
+				type="bell"
+				:aria-label="t('notifications.heading')"
+				@click.stop="showNotifications = !showNotifications"
+			/>
+			<span class="bg-accent-red text-on-accent-red absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs">
 				{{ notifications.length }}
 			</span>
-		</button>
+		</div>
 	</div>
 	<!-- Notification Panel (directly under the bell) -->
 	<div
