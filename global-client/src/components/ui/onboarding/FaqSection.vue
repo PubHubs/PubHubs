@@ -36,6 +36,9 @@
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Components
+	import H2 from '@hub-client/components/elements/H2.vue';
+
 	const { t } = useI18n();
 	const openIndex = ref<number | null>(null);
 
