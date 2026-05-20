@@ -4,14 +4,15 @@
 		:class="isMobile && !hubSettings.isSolo ? 'w-[calc(50%-40px)]!' : 'flex max-w-[280px]'"
 	>
 		<template #header>
-			<div class="flex h-full w-full items-center justify-between">
+			<div class="flex h-full w-full items-center justify-between gap-4">
 				<div
 					v-context-menu="(evt: Event) => openMenu(evt as MouseEvent, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])"
-					class="group relative flex items-center gap-2"
+					class="group relative flex min-w-0 items-center gap-2"
 				>
-					<H2 class="font-headings text-h2 text-on-surface font-semibold">{{ hubSettings.hubName }}</H2>
+					<H2 class="font-headings text-h2 text-on-surface truncate font-semibold">{{ hubSettings.hubName }}</H2>
 				</div>
-				<div class="flex items-center gap-2">
+				<div class="flex shrink-0 items-center justify-end gap-2">
+					<Notification />
 					<!-- TODO: change the v-if to 'isModerator' once steward screens are implemented -->
 					<GlobalbarButton
 						v-if="isHubAdmin"
@@ -20,7 +21,6 @@
 						:aria-label="t(showModerationMenu ? 'menu.close_admin_menu' : 'menu.admin_tools')"
 						@click="toggleModerationMenu"
 					/>
-					<Notification />
 				</div>
 			</div>
 		</template>
