@@ -168,7 +168,18 @@ pub mod user {
         pub hubs: HashMap<handle::Handle, crate::hub::BasicInfo>,
     }
 
-    /// Provides the global client with cached details about the hubs
+    /// Provides the global client with cached details about the hubs.
+    ///
+    /// Hub information is retrieved by default every minute, but this can be configured,
+    /// see [`crate::servers::config::phc::ExtraConfig::hub_cache`].
+    ///
+    /// If a hub becomes unreachable, the last seen hub info will remain in the cache.
+    ///
+    /// To see whether a hub is offline, you can compare the
+    /// [`crate::api::hub::DynamicHubInfo::last_reload`] value of the [`crate::api::hub::InfoResp::dynamic`] field
+    /// against the current time.  If the difference is more than, say, three minutes, the hub is
+    /// likely offline.  (The hub currently updates every minute, PHC fetches these updates every
+    /// minute, and pushes this after at most 5 seconds to the `App`s.)
     #[derive(Debug)]
     pub struct CachedHubInfoEP {}
     impl EndpointDetails for CachedHubInfoEP {

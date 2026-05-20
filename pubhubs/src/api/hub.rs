@@ -43,7 +43,8 @@ pub struct InfoResp {
 #[serde(deny_unknown_fields)]
 #[must_use]
 pub struct DynamicHubInfo {
-    /// The last time these settings were reloaded by the hub
+    /// The last time these settings were reloaded by the hub, which a hub generally does every
+    /// minute.
     pub last_reload: NumericDate,
 
     /// Hub settings set by admin
