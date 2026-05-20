@@ -36,8 +36,7 @@
 	// Packages
 	import { ref, watchEffect } from 'vue';
 
-	// Logic
-	import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
+	import { useModeration } from '@hub-client/composables/moderation.composable';
 
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
@@ -78,19 +77,24 @@
 
 	// Get read receipt timestamp of all other users.
 	function getReadTimeStampForRoomUsers(): number[] {
-		if (!rooms.currentRoom) return [];
+		if (!rooms.currentRoom) return []; // Return an empty array if there's no current room
 
 		const room = rooms.currentRoom;
-		const otherMembers = getOtherRoomMembers(room, currentUser.userId);
+		const currentUserID = currentUser.userId;
+
+		// We need to get private room members list each time because new members can be added.
+		const { allOtherMembers } = useModeration(room);
 
 		const readTimestamps: number[] = [];
 
-		for (const userId of otherMembers) {
-			const readReceipt = room.getReadReceiptForUserId(userId);
-			if (readReceipt) {
-				readTimestamps.push(readReceipt.data.ts);
+		allOtherMembers.value.forEach((userId) => {
+			if (userId && userId !== currentUserID) {
+				const readReceipt = room.getReadReceiptForUserId(userId);
+				if (readReceipt) {
+					readTimestamps.push(readReceipt.data.ts);
+				}
 			}
-		}
+		});
 
 		return readTimestamps;
 	}
