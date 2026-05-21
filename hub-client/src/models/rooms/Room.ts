@@ -1,7 +1,7 @@
 // Packages
 import { VotingWidgetType } from '../events/voting/VotingTypes';
 import {
-	type Direction,
+	Direction,
 	EventTimeline,
 	type EventTimelineSet,
 	EventType,
@@ -723,11 +723,16 @@ export default class Room {
 	// #region TimelineManager
 
 	/**
-	 * Initialization room timeline
+	 * Initialization room timeline: subscribes to sliding sync and loads initial messages
 	 */
-	public initTimeline() {
+	public async initTimeline() {
 		this.syncDataReceived = false;
 		this.timelineManager.initRoomTimeline(this.matrixRoom.roomId);
+
+		// Load initial timeline if empty
+		if (this.timelineManager.getEvents().length === 0) {
+			await this.loadInitialTimeline();
+		}
 	}
 
 	/**
@@ -858,6 +863,29 @@ export default class Room {
 
 	public async paginate(direction: Direction, limit: number, fromEventId: string) {
 		await this.timelineManager.paginate(direction, limit, fromEventId);
+	}
+
+	/**
+	 * Loads initial timeline messages when the timeline is empty.
+	 * Fetches the most recent message and loads the timeline around it.
+	 */
+	public async loadInitialTimeline(): Promise<void> {
+		if (this.timelineManager.getEvents().length > 0) {
+			return; // Timeline already has events
+		}
+
+		const messagesResponse = await this.matrixRoom.client.createMessagesRequest(
+			this.roomId,
+			null,
+			1,
+			Direction.Backward,
+			this.timelineManager.getMessagesFilter(),
+		);
+
+		const lastEventId = messagesResponse.chunk[0]?.event_id;
+		if (lastEventId) {
+			await this.loadToEvent({ eventId: lastEventId });
+		}
 	}
 
 	public isOldestMessageLoaded(): boolean {
