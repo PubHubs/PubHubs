@@ -498,8 +498,9 @@ export default class Room {
 	 * @param event — The event to delete
 	 * @param isThreadRoot — If given, the event has to be a rootevent of a thread which will also be deleted
 	 * @param threadId — If given, the event is inside a thread
+	 * @param reason — Optional reason for deletion (shown to original poster when deleted by moderator)
 	 */
-	public deleteMessage(event: TMessageEvent<TMessageEventContent>, isThreadRoot?: boolean, threadId?: string) {
+	public deleteMessage(event: TMessageEvent<TMessageEventContent>, isThreadRoot?: boolean, threadId?: string, reason?: string) {
 		const messageType = event.content.msgtype;
 		// If the message that will be deleted contains a file or image, delete this media from the server as well
 		if ((messageType === MsgType.File || messageType === MsgType.Image) && event.content.url && event.content.url.length > 0) {
@@ -520,7 +521,7 @@ export default class Room {
 
 		// FIXME: Typing error
 		const threadIdToDelete = isThreadRoot ? event.event_id : threadId;
-		this.pubhubsStore.deleteMessage(this.matrixRoom.roomId, event.event_id, threadIdToDelete, reactEventId);
+		this.pubhubsStore.deleteMessage(this.matrixRoom.roomId, event.event_id, threadIdToDelete, reactEventId, reason);
 	}
 
 	// #endregion
@@ -996,8 +997,8 @@ export default class Room {
 		return false;
 	}
 
-	public deleteThreadMessage(event: TMessageEvent<TMessageEventContent>, threadRootId: string | undefined) {
-		this.deleteMessage(event, undefined, threadRootId);
+	public deleteThreadMessage(event: TMessageEvent<TMessageEventContent>, threadRootId: string | undefined, reason?: string) {
+		this.deleteMessage(event, undefined, threadRootId, reason);
 	}
 
 	// get the authorized url of the room-avatar

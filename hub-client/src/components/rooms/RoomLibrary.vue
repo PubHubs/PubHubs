@@ -388,15 +388,12 @@
 	});
 
 	const roomTimeLine = computed(() => {
-		let timeline = props.room.getLibraryTimeline().filter(
-			(e) =>
-				e.matrixEvent.event !== null &&
-				e.matrixEvent.event.content &&
-				Object.keys(e.matrixEvent.event.content).length > 0 &&
-				// e.matrixEvent.event.type !== Redaction.DeletedFromLibrary &&
-				// e.matrixEvent.event.type !== Redaction.Redacts &&
-				e.isDeleted === false,
-		);
+		let timeline = props.room
+			.getLibraryTimeline()
+			.filter(
+				(e) =>
+					e.matrixEvent.event !== null && e.matrixEvent.event.content && Object.keys(e.matrixEvent.event.content).length > 0 && e.isDeleted === false,
+			);
 		// filter
 		if (filter.value !== '') {
 			timeline = timeline.filter((e) => {

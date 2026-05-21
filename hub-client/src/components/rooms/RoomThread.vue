@@ -103,7 +103,7 @@
 		:room="room"
 		:view-from-thread="true"
 		@close="showConfirmDelMsgDialog = false"
-		@yes="deleteMessage(eventToBeDeleted)"
+		@yes="(reason?: string) => deleteMessage(eventToBeDeleted, reason)"
 	></DeleteMessageDialog>
 </template>
 
@@ -322,10 +322,10 @@
 		showConfirmDelMsgDialog.value = true;
 	}
 
-	function deleteMessage(event: TMessageEvent<TMessageEventContent> | undefined) {
+	function deleteMessage(event: TMessageEvent<TMessageEventContent> | undefined, reason?: string) {
 		if (event) {
 			let deletedEvent = threadEvents.find((e) => e.matrixEvent.event.event_id === event.event_id);
-			props.room.deleteThreadMessage(event, deletedEvent?.matrixEvent.threadRootId);
+			props.room.deleteThreadMessage(event, deletedEvent?.matrixEvent.threadRootId, reason);
 			if (deletedEvent) {
 				deletedEvents.push(deletedEvent.matrixEvent as MatrixEvent);
 			}

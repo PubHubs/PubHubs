@@ -670,9 +670,9 @@
 		eventToBeDeletedIsThreadRoot = isThreadRoot;
 	}
 
-	async function deleteMessage() {
+	async function deleteMessage(reason?: string) {
 		if (eventToBeDeleted.value) {
-			rooms.currentRoom?.deleteMessage(eventToBeDeleted.value, eventToBeDeletedIsThreadRoot);
+			rooms.currentRoom?.deleteMessage(eventToBeDeleted.value, eventToBeDeletedIsThreadRoot, undefined, reason);
 			logger.info(`Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
 		}
 	}

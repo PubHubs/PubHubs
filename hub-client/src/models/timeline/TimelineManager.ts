@@ -484,25 +484,46 @@ class TimelineManager {
 	 * @returns True if it is deleted
 	 */
 	public IsDeletedEvent(eventId: string): boolean {
-		if (this.redactedEvents.length <= 0) return false;
-		const redactedEvent = this.redactedEvents.find(
-			(x) =>
-				x.matrixEvent.getContent()?.[Redaction.Redacts] === eventId &&
-				x.matrixEvent.getType() === MatrixEventType.RoomRedaction &&
-				(x.matrixEvent.getContent()?.[Redaction.Reason] === Redaction.Deleted ||
-					x.matrixEvent.getContent()?.[Redaction.Reason] === Redaction.DeletedFromThread ||
-					x.matrixEvent.getContent()?.[Redaction.Reason] === Redaction.DeletedFromLibrary),
-		);
-		return !!redactedEvent;
+		return !!this.getRedactionEvent(eventId);
 	}
 
 	/**
-	 * Set isDeleted true for all deleted events in this.timelineEvents
+	 * Gets the redaction event for a given event ID
+	 * @param eventId
+	 * @returns The redaction TimelineEvent or undefined
+	 */
+	private getRedactionEvent(eventId: string): TimelineEvent | undefined {
+		if (this.redactedEvents.length <= 0) return undefined;
+		return this.redactedEvents.find(
+			(event) =>
+				event.matrixEvent.getContent()?.[Redaction.Redacts] === eventId &&
+				event.matrixEvent.getType() === MatrixEventType.RoomRedaction &&
+				event.matrixEvent.getContent()?.[Redaction.Reason],
+		);
+	}
+
+	/**
+	 * Set isDeleted true for all deleted events and apply redaction via SDK
+	 * so Message.vue can determine if deletion was by steward
 	 */
 	private applyIsDeleted(events: TimelineEvent[]) {
-		events.forEach((x) => {
-			const eventId = x.matrixEvent.getId();
-			x.isDeleted = eventId ? this.IsDeletedEvent(eventId) : false;
+		const room = this.client.getRoom(this.roomId);
+
+		events.forEach((event) => {
+			const eventId = event.matrixEvent.getId();
+			if (!eventId) {
+				event.isDeleted = false;
+				return;
+			}
+
+			const redactionEvent = this.getRedactionEvent(eventId);
+			event.isDeleted = !!redactionEvent;
+
+			// Use SDK's makeRedacted to properly set unsigned.redacted_because
+			// This allows Message.vue to determine if the event is deleted by a steward
+			if (redactionEvent && room && !event.matrixEvent.isRedacted()) {
+				event.matrixEvent.makeRedacted(redactionEvent.matrixEvent, room);
+			}
 		});
 	}
 
