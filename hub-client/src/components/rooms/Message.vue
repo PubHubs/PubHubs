@@ -1,18 +1,25 @@
 <template>
-	<div class="flex flex-row items-center gap-1 wrap-break-word">
+	<div class="flex flex-col gap-1 wrap-break-word">
 		<!-- Deleted Message -->
-		<Icon
-			v-if="deleted"
-			class="text-on-surface-dim"
-			size="sm"
-			type="trash"
-		/>
-		<p
-			v-if="deleted"
-			class="text-on-surface-dim overflow-hidden text-ellipsis"
-		>
-			{{ t('message.delete.message_deleted') }}
-		</p>
+		<template v-if="deleted">
+			<div class="flex flex-row items-center gap-1">
+				<Icon
+					class="text-on-surface-dim"
+					size="sm"
+					type="trash"
+				/>
+				<p class="text-on-surface-dim overflow-hidden text-ellipsis">
+					{{ deletedBySteward ? t('message.delete.message_removed_by_steward') : t('message.delete.message_deleted') }}
+				</p>
+			</div>
+			<!-- Reason shown only to original poster -->
+			<p
+				v-if="deletedBySteward && redactionReason && (isOriginalPoster || roles.userIsStewardOrHigher(props.event.room_id))"
+				class="text-on-surface-dim ml-5 overflow-hidden text-sm text-ellipsis italic"
+			>
+				{{ t('message.delete.reason') }}: {{ redactionReason }}
+			</p>
+		</template>
 
 		<!-- Message with Mentions -->
 		<div
@@ -89,11 +96,13 @@
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
+	import { useRoles } from '@hub-client/composables/roles.composable';
 
 	//Logic
 	import { router } from '@hub-client/logic/core/router';
 
 	// Models
+	import { Redaction } from '@hub-client/models/constants';
 	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
 	// Stores
@@ -105,14 +114,31 @@
 		event: TMessageEvent;
 		deleted: boolean;
 	}>();
+
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const roomsStore = useRooms();
 	const userStore = useUser();
+	const roles = useRoles();
 	const pubhubs = usePubhubsStore();
 	const activeMentionCard = ref<string | null>(null);
 	const isSecured = ref<boolean>(false);
 	const mentionComposable = useMentionsDisplay();
+
+	const redactedBecause = computed(() => props.event.unsigned?.redacted_because);
+	const deletedBySteward = computed(() => {
+		if (!redactedBecause.value) return false;
+		return redactedBecause.value.sender !== props.event.sender;
+	});
+	const isOriginalPoster = computed(() => props.event.sender === userStore.userId);
+	const redactionReason = computed(() => {
+		if (!redactedBecause.value) return undefined;
+		const reason = redactedBecause.value.content?.reason as string | undefined;
+		if (!reason || reason === Redaction.Deleted || reason === Redaction.DeletedFromThread || reason === Redaction.DeletedFromLibrary) {
+			return undefined;
+		}
+		return reason;
+	});
 
 	// Regular message content (for non-deleted, non-mention messages)
 	const messageContent = computed(() => {

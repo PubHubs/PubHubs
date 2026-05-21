@@ -655,6 +655,9 @@ const nl = {
 				'Je bericht is na het verwijderen niet meer zichtbaar voor anderen, maar het bestand kan nog steeds gedownload worden door gebruikers die de link hebben opgeslagen.',
 			original_message_deleted: 'Oorspronkelijk bericht verwijderd',
 			message_deleted: 'Verwijderd bericht',
+			message_removed_by_steward: 'Bericht verwijderd door steward',
+			reason: 'Reden',
+			reason_label: 'Reden voor het verwijderen van dit bericht (zichtbaar voor de auteur)',
 		},
 		voting: {
 			add_option: 'Voeg keuze toe',

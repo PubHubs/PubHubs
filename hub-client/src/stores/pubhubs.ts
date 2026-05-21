@@ -869,9 +869,13 @@ const usePubhubsStore = defineStore('pubhubs', {
 		/**
 		 * @param roomId
 		 * @param eventId
+		 * @param threadId
+		 * @param reactEventId
+		 * @param customReason — Optional custom reason for deletion (e.g., when a steward deletes someone else's message)
 		 */
-		async deleteMessage(roomId: string, eventId: string, threadId?: string, reactEventId?: string) {
-			const reason = threadId ? { reason: Redaction.DeletedFromThread } : { reason: Redaction.Deleted };
+		async deleteMessage(roomId: string, eventId: string, threadId?: string, reactEventId?: string, customReason?: string) {
+			const defaultReason = threadId ? Redaction.DeletedFromThread : Redaction.Deleted;
+			const reason = { reason: customReason || defaultReason };
 			await this.client.redactEvent(roomId, eventId, undefined, reason);
 
 			if (reactEventId) {

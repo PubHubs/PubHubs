@@ -655,6 +655,9 @@ const en = {
 			file_not_deleted: 'Your message is no longer visible to others after deletion, but the file can still be downloaded by users who saved the link.',
 			original_message_deleted: 'Original message deleted',
 			message_deleted: 'Deleted message',
+			message_removed_by_steward: 'Message deleted by steward',
+			reason: 'Reason',
+			reason_label: 'Reason for deleting this message (visible to the author)',
 		},
 		voting: {
 			add_option: 'Add option',
