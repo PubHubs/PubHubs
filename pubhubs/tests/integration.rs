@@ -53,6 +53,10 @@ async fn main_100() {
 ///  - Does not use any Yivi server.  Instead the result of the Yivi server is simulated.
 ///
 async fn main_integration_test() {
+    // must run before any TLS client is built: both rustls providers are compiled in,
+    // so `ClientConfig::builder` panics without a default installed
+    pubhubs::misc::rustls_ext::ensure_pq_default_crypto_provider();
+
     // Load configuration
     let mut config = servers::Config::load_from_path(std::path::Path::new(CONFIG_FILE_PATH))
         .unwrap()

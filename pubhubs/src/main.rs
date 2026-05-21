@@ -61,6 +61,9 @@ enum Commands {
 }
 
 fn main() {
+    // make sure all http clients use pq crypto
+    pubhubs::misc::rustls_ext::ensure_pq_default_crypto_provider();
+
     if let Err(err) = Cli::parse().run(Cli::command()) {
         err.exit()
     }

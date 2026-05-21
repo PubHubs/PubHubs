@@ -57,6 +57,10 @@ url = { version="2.5", features=["serde"] }
 # default features disabled: we don't need cookies or response decompression
 awc = { version = "3.8", default-features = false, features = ["rustls-0_23-webpki-roots"] }
 
+# awc, object_store and reqwest all use rustls.  Adding the following features makes
+# sure we can enable the post-quantum key-exchange X25519MLKEM768 for them.
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "prefer-post-quantum"] }
+
 # RustCrypto packages
 aead = { version = "0.5", features=["getrandom"] }
 base16ct = { version = "1.0", features = ["alloc"] } # hex
