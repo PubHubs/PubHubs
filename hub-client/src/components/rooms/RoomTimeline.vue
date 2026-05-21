@@ -593,6 +593,7 @@
 		// Fresh room load - handle initial scroll and pagination
 		if (oldTimelineLength === 0 && newTimelineLength > 0) {
 			await nextTick();
+			setupPaginationObserver(topSentinel, bottomSentinel);
 			setupEventIntersectionObserver();
 
 			if (!isInitialScrollComplete.value) {
