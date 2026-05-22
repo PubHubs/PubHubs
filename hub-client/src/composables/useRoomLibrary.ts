@@ -2,9 +2,11 @@ import { MatrixEvent, type Room as MatrixRoom } from 'matrix-js-sdk';
 import { ref } from 'vue';
 
 import { api_synapse } from '@hub-client/logic/core/api';
+import { ApiError } from '@hub-client/logic/core/apiCore';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { useRooms } from '@hub-client/stores/rooms';
 
 export class LibraryMatrixEvent extends MatrixEvent {
 	public signed: boolean | undefined;
@@ -17,6 +19,7 @@ const useRoomLibrary = () => {
 	const fileObject = ref<File>({} as File);
 	const uri = ref('');
 	const pubhubsStore = usePubhubsStore();
+	const roomsStore = useRooms();
 
 	async function makeHash(accessToken: string | null, url: string, room: MatrixRoom): Promise<string> {
 		const roomName = room.name || 'unknown'; //default to unknwon if roomname not specified
@@ -56,14 +59,32 @@ const useRoomLibrary = () => {
 		}
 	}
 
-	async function deleteMedia(url: string, eventId: string, roomId: string) {
+	async function deleteMedia(url: string, eventId: string, roomId: string, retryCount = 0): Promise<void> {
+		const maxRetries = 3;
 		try {
 			await api_synapse.apiDELETE(url);
-			await pubhubsStore.deleteMessage(roomId, eventId);
 		} catch (error) {
-			logger.error('Unable to delete the media file ' + error);
-			return null;
+			// Check for rate limiting (429)
+			if (error instanceof ApiError && (error.status === 429 || error.errcode === 'M_LIMIT_EXCEEDED')) {
+				if (retryCount < maxRetries) {
+					const waitTime = error.retry_after_ms ?? 5000;
+					logger.warn(`Rate limited, waiting ${waitTime}ms before retry ${retryCount + 1}/${maxRetries}`);
+					await new Promise((resolve) => setTimeout(resolve, waitTime));
+					return deleteMedia(url, eventId, roomId, retryCount + 1);
+				}
+				logger.error('Max retries exceeded for rate limiting');
+				return;
+			}
+
+			// Check for 404/not found errors
+			if (error instanceof ApiError && (error.status === 404 || error.errcode === 'M_NOT_FOUND')) {
+				logger.warn('Media file already deleted, proceeding to redact event: ' + eventId);
+			} else {
+				logger.error('Unable to delete the media file ' + error);
+				return;
+			}
 		}
+		await pubhubsStore.deleteMessage(roomId, eventId);
 	}
 
 	async function removeFromTimeline(eventId: string, roomId: string, signedEvents: Array<MatrixEvent>) {
@@ -77,6 +98,16 @@ const useRoomLibrary = () => {
 			}
 		} catch (error) {
 			logger.error('Unable to update the roomlibrary timeline ' + error);
+		}
+		// Remove from local library events immediately for reactivity
+		const room = roomsStore.rooms[roomId];
+		if (room) {
+			room.removeLibraryEvent(eventId);
+			for (const relatedEvent of signedEvents) {
+				if (relatedEvent.event.event_id) {
+					room.removeLibraryEvent(relatedEvent.event.event_id);
+				}
+			}
 		}
 	}
 

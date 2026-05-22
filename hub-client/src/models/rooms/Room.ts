@@ -835,6 +835,10 @@ export default class Room {
 		return this.timelineManager.getLibraryEvents();
 	}
 
+	public removeLibraryEvent(eventId: string): void {
+		this.timelineManager.removeLibraryEvent(eventId);
+	}
+
 	/**
 	 *
 	 * @returns The newest message event id in the default timeline

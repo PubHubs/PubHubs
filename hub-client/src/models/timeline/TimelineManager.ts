@@ -553,6 +553,18 @@ class TimelineManager {
 	}
 
 	/**
+	 * Removes a library event by eventId and bumps the timeline version
+	 * @param eventId The event ID to remove
+	 */
+	public removeLibraryEvent(eventId: string): void {
+		const index = this.libraryEvents.findIndex((e) => e.matrixEvent.getId() === eventId);
+		if (index !== -1) {
+			this.libraryEvents.splice(index, 1);
+			this._timelineVersion++;
+		}
+	}
+
+	/**
 	 * Gets the eventtimeline of a certain event
 	 * @param eventId
 	 * @returns

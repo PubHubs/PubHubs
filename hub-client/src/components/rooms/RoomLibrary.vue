@@ -322,6 +322,7 @@
 	const selection = ref([] as Array<TimelineEvent>);
 	const selectedAll = ref(false);
 	const deletingAll = ref(false);
+	const libraryVersion = ref(0);
 
 	onMounted(() => {
 		window.addEventListener('keydown', handleEsc);
@@ -388,6 +389,8 @@
 	});
 
 	const roomTimeLine = computed(() => {
+		// Access libraryVersion to trigger re-computation when files are deleted
+		void libraryVersion.value;
 		let timeline = props.room
 			.getLibraryTimeline()
 			.filter(
@@ -484,6 +487,8 @@
 				props.room.roomId,
 				allSignedEvents.map((e) => e.matrixEvent),
 			);
+			// Trigger re-computation of the file list
+			libraryVersion.value++;
 		}
 	}
 
@@ -523,14 +528,13 @@
 		if (confirm) {
 			filter.value = '';
 			deletingAll.value = true;
-			await Promise.all(
-				selection.value.map(async (item) => {
-					await handleDeletion(
-						item.matrixEvent.event.content as TFileMessageEventContent | TImageMessageEventContent | undefined,
-						item.matrixEvent.event.event_id ?? '',
-					);
-				}),
-			);
+			// Delete files sequentially to avoid rate limiting
+			for (const item of selection.value) {
+				await handleDeletion(
+					item.matrixEvent.event.content as TFileMessageEventContent | TImageMessageEventContent | undefined,
+					item.matrixEvent.event.event_id ?? '',
+				);
+			}
 			deletingAll.value = false;
 			unselectAll();
 		}
