@@ -483,8 +483,8 @@
 			const allSignedEvents = getAllSignedEventsForFile(eventId);
 			await deleteMedia(url, eventId, props.room.roomId);
 			await removeFromTimeline(
+				props.room,
 				eventId,
-				props.room.roomId,
 				allSignedEvents.map((e) => e.matrixEvent),
 			);
 			// Trigger re-computation of the file list

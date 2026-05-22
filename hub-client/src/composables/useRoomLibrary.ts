@@ -5,8 +5,9 @@ import { api_synapse } from '@hub-client/logic/core/api';
 import { ApiError } from '@hub-client/logic/core/apiCore';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
+import type Room from '@hub-client/models/rooms/Room';
+
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { useRooms } from '@hub-client/stores/rooms';
 
 export class LibraryMatrixEvent extends MatrixEvent {
 	public signed: boolean | undefined;
@@ -19,7 +20,6 @@ const useRoomLibrary = () => {
 	const fileObject = ref<File>({} as File);
 	const uri = ref('');
 	const pubhubsStore = usePubhubsStore();
-	const roomsStore = useRooms();
 
 	async function makeHash(accessToken: string | null, url: string, room: MatrixRoom): Promise<string> {
 		const roomName = room.name || 'unknown'; //default to unknwon if roomname not specified
@@ -87,26 +87,23 @@ const useRoomLibrary = () => {
 		await pubhubsStore.deleteMessage(roomId, eventId);
 	}
 
-	async function removeFromTimeline(eventId: string, roomId: string, signedEvents: Array<MatrixEvent>) {
+	async function removeFromTimeline(room: Room, eventId: string, signedEvents: Array<MatrixEvent>) {
 		try {
-			await pubhubsStore.deleteLibraryMessage(roomId, eventId);
+			await pubhubsStore.deleteLibraryMessage(room.roomId, eventId);
 			// Remove all the related child events (signed banners) from the timeline
 			for (const relatedEvent of signedEvents) {
 				if (relatedEvent.event.event_id) {
-					await pubhubsStore.deleteLibraryMessage(roomId, relatedEvent.event.event_id);
+					await pubhubsStore.deleteLibraryMessage(room.roomId, relatedEvent.event.event_id);
 				}
 			}
 		} catch (error) {
 			logger.error('Unable to update the roomlibrary timeline ' + error);
 		}
 		// Remove from local library events immediately for reactivity
-		const room = roomsStore.rooms[roomId];
-		if (room) {
-			room.removeLibraryEvent(eventId);
-			for (const relatedEvent of signedEvents) {
-				if (relatedEvent.event.event_id) {
-					room.removeLibraryEvent(relatedEvent.event.event_id);
-				}
+		room.removeLibraryEvent(eventId);
+		for (const relatedEvent of signedEvents) {
+			if (relatedEvent.event.event_id) {
+				room.removeLibraryEvent(relatedEvent.event.event_id);
 			}
 		}
 	}
