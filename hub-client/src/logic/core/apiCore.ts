@@ -1,16 +1,36 @@
 // Types
-interface ApiUrls {
+type ApiUrls = {
 	[index: string]: string;
-}
+};
 
-interface ApiOptions {
+type ApiOptions = {
 	method: string;
 	body?: string | Uint8Array;
 	headers?: Record<string, string>;
-}
+};
 
-interface AllApiOptions {
+type AllApiOptions = {
 	[index: string]: ApiOptions;
+};
+
+type ApiErrorResponse = {
+	errcode?: string;
+	error?: string;
+	retry_after_ms?: number;
+};
+
+class ApiError extends Error {
+	public errcode?: string;
+	public retry_after_ms?: number;
+	public status: number;
+
+	constructor(message: string, status: number, response?: ApiErrorResponse) {
+		super(message);
+		this.name = 'ApiError';
+		this.status = status;
+		this.errcode = response?.errcode;
+		this.retry_after_ms = response?.retry_after_ms;
+	}
 }
 
 class Api {
@@ -64,15 +84,14 @@ class Api {
 		if (!response.ok) {
 			try {
 				const result = await response.text();
-				const json = JSON.parse(result);
-				if (typeof json.error !== 'undefined') {
-					throw new Error(json.error);
-				} else if (typeof json.errors !== 'undefined') {
-					throw new Error(json.errors);
-				}
-				throw new Error(result);
+				const json = JSON.parse(result) as ApiErrorResponse;
+				const message = json.error ?? json.errcode ?? result;
+				throw new ApiError(message, response.status, json);
 			} catch (error: unknown) {
-				throw new Error(error instanceof Error ? error.message : String(error));
+				if (error instanceof ApiError) {
+					throw error;
+				}
+				throw new ApiError(error instanceof Error ? error.message : String(error), response.status);
 			}
 		}
 		this.fetchEtagFromHeaders(response.headers);
@@ -159,4 +178,4 @@ class Api {
 	}
 }
 
-export { Api };
+export { Api, ApiError };
