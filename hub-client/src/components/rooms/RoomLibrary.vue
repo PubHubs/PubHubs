@@ -481,14 +481,24 @@
 			const mxc = eventContent.url;
 			const url = deleteMediaUrlfromMxc(mxc);
 			const allSignedEvents = getAllSignedEventsForFile(eventId);
+
+			// Hide file from UI immediately (before API calls that may have rate limiting delays)
+			props.room.removeLibraryEvent(eventId);
+			for (const signedEvent of allSignedEvents) {
+				const signedEventId = signedEvent.matrixEvent.getId();
+				if (signedEventId) {
+					props.room.removeLibraryEvent(signedEventId);
+				}
+			}
+			libraryVersion.value++;
+
+			// Process deletion in background (may take time due to rate limiting)
 			await deleteMedia(url, eventId, props.room.roomId);
 			await removeFromTimeline(
 				props.room,
 				eventId,
 				allSignedEvents.map((e) => e.matrixEvent),
 			);
-			// Trigger re-computation of the file list
-			libraryVersion.value++;
 		}
 	}
 
