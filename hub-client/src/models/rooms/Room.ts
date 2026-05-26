@@ -26,9 +26,9 @@ import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/s
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+// Logic
 import { api_synapse } from '@hub-client/logic/core/api';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
-// Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
@@ -355,8 +355,16 @@ export default class Room {
 		if (!userId) return 0;
 		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
 
-		if (!event) return 0;
-		return event.content.users[userId] ?? event.content.users_default;
+		if (event) {
+			return event.content.users[userId] ?? event.content.users_default ?? 0;
+		}
+		// Fall back to Matrix SDK room state (for rooms loaded without stateEvents)
+		const powerLevelEvent = this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomPowerLevels, '');
+		if (powerLevelEvent) {
+			const content = powerLevelEvent.getContent() as { users?: Record<string, number>; users_default?: number };
+			return content?.users?.[userId] ?? content?.users_default ?? 0;
+		}
+		return 0;
 	}
 
 	public getStatePowerLevel() {

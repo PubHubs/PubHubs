@@ -302,6 +302,7 @@
 	const props = defineProps<{
 		room: Room;
 	}>();
+
 	const dialog = useDialog();
 	const { t } = useI18n();
 	const rooms = useRooms();

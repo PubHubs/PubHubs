@@ -100,7 +100,7 @@
 					</div>
 					<div class="mt-025 absolute top-300 right-0 flex h-400 items-center pr-175">
 						<div
-							v-if="model"
+							v-if="showClear"
 							class="dropdown-remove-all pr-075 ml-100 cursor-pointer bg-transparent"
 							@click.stop="resetAll()"
 						>
@@ -148,15 +148,15 @@
 	import { OnClickOutside } from '@vueuse/components';
 	import { computed, nextTick, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
 
+	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	// New design
 	import DropDownOption from '@hub-client/components/forms/elements/DropDownOption.vue';
 	import DropDownValue from '@hub-client/components/forms/elements/DropDownValue.vue';
 	import Label from '@hub-client/components/forms/elements/Label.vue';
 	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
 
-	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 	// Composables
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
 
 	// Models
@@ -320,6 +320,12 @@
 
 	const showFilter = computed(() => {
 		return props.filtered && filter.value !== '';
+	});
+
+	const showClear = computed(() => {
+		if (!model.value) return false;
+		if (props.validation && 'required' in props.validation) return false;
+		return true;
 	});
 
 	const resetFilter = () => {

@@ -70,13 +70,13 @@
 <script lang="ts">
 	// Variants
 	const buttonVariants = {
-		primary: 'bg-button-blue text-on-button-blue ring-button-blue hover:opacity-75',
-		secondary: 'bg-surface-base text-on-surface ring-button-blue hover:opacity-75',
-		tertiary: 'outline outline-1 -outline-offset-1 outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
-		error: 'bg-button-red text-on-button-red ring-button-red hover:opacity-75',
-		primaryIcon: 'text-button-blue ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
-		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
-		errorIcon: 'text-accent-error ring-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
+		primary: 'bg-button-blue text-on-button-blue outline-button-blue hover:opacity-75',
+		secondary: 'bg-surface-base text-on-surface outline-button-blue hover:opacity-75',
+		tertiary: 'border border-1 -border-offset-1 border-surface-on-surface-dim outline-button-blue hover:opacity-75',
+		error: 'bg-button-red text-on-button-red outline-button-red hover:opacity-75',
+		primaryIcon: 'text-button-blue outline-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
+		secondaryIcon: 'text-on-surface-dim outline-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
+		errorIcon: 'text-accent-error outline-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
 	} as const;
 	export type TVariant = keyof typeof buttonVariants;
 </script>
@@ -154,7 +154,7 @@
 
 	const computedClasses = computed(() => {
 		const variantClass = buttonVariants[props.variant ?? 'primary'];
-		const focusClass = props.nofocus ? '' : 'focus:ring-3 focus:outline-none';
+		const focusClass = props.nofocus ? '' : 'focus:outline-3';
 		const iconClass = isIconOnly.value ? 'min-w-550 w-550 px-100' : 'min-w-1000 px-150'; // Required to make the icon-only button look square
 		const combinedClass = buttonGroupCombined ? 'rounded-none first:rounded-l-md last:rounded-r-md' : '';
 		return [variantClass, iconClass, focusClass, combinedClass];

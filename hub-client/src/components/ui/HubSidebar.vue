@@ -11,16 +11,15 @@
 				>
 					<H2 class="font-headings text-h2 text-on-surface truncate font-semibold">{{ hubSettings.hubName }}</H2>
 				</div>
-				<div class="flex shrink-0 items-center justify-end gap-2">
-					<Notification />
-					<!-- TODO: change the v-if to 'isModerator' once steward screens are implemented -->
+				<div class="flex items-center gap-2">
 					<GlobalbarButton
-						v-if="isHubAdmin"
-						:type="showModerationMenu ? 'x' : 'circles-three-plus'"
+						v-if="isModerator && !showModerationMenu"
 						:selected="showModerationMenu"
 						:aria-label="t(showModerationMenu ? 'menu.close_admin_menu' : 'menu.admin_tools')"
+						type="circles-three-plus"
 						@click="toggleModerationMenu"
 					/>
+					<Notification />
 				</div>
 			</div>
 		</template>
@@ -89,16 +88,23 @@
 			<template v-else>
 				<!-- Back button -->
 				<button
-					type="button"
 					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled -m-3 flex items-center gap-2 border-b p-3 transition-colors hover:cursor-pointer md:-m-4 md:p-4"
+					type="button"
 					@click="showModerationMenu = false"
 				>
-					<Icon type="caret-left" />
+					<Icon
+						size="sm"
+						type="caret-left"
+					/>
 					<span class="text-body-small">{{ t('menu.back_to_rooms') }}</span>
 				</button>
 
 				<!-- Overview -->
-				<CollapsibleHeader :label="t('menu.overview')">
+				<!-- TODO: remove v-if once steward dash is implemented -->
+				<CollapsibleHeader
+					v-if="isHubAdmin"
+					:label="t('menu.overview')"
+				>
 					<Menu>
 						<MenuItem
 							v-if="isHubAdmin"
@@ -143,12 +149,12 @@
 
 				<!-- Manage -->
 				<CollapsibleHeader
-					v-if="isHubAdmin"
+					v-if="isModerator"
 					:label="t('menu.manage')"
 				>
 					<Menu>
 						<MenuItem
-							:to="{ name: 'admin' }"
+							:to="{ name: 'manage-rooms' }"
 							icon="chats-circle"
 							@click="hubSettings.hideBar()"
 							>{{ t('menu.admin_tools_rooms') }}</MenuItem
@@ -170,6 +176,7 @@
 	// Packages
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRoute } from 'vue-router';
 
 	// Components
 	import H2 from '@hub-client/components/elements/H2.vue';
@@ -183,8 +190,8 @@
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
 	import Notification from '@hub-client/components/ui/Notification.vue';
 
-	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
@@ -216,7 +223,17 @@
 	const { openMenu } = useContextMenu();
 	const { scrollToEnd } = useGlobalScroll();
 
-	const showModerationMenu = ref(false);
+	const route = useRoute();
+	// INFO: when adding a page to the moderation sidebar, update the routes
+	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'editroom']);
+	const showModerationMenu = ref(moderationRoutes.has(route.name as string));
+
+	watch(
+		() => route.name,
+		(name) => {
+			showModerationMenu.value = moderationRoutes.has(name as string);
+		},
+	);
 
 	const isMobile = computed(() => settings.isMobileState);
 	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);

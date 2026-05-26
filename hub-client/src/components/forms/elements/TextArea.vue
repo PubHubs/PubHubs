@@ -14,12 +14,13 @@
 </template>
 
 <script lang="ts" setup>
-	// Models
-	// New design
+	// Components
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 
+	// Composables
 	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 
+	// Models
 	import { type FieldValidations } from '@hub-client/models/validation/TValidate';
 
 	// Props

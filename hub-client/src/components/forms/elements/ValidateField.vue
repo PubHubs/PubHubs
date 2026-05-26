@@ -23,7 +23,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, inject, onMounted, provide, ref, watch } from 'vue';
+	import { computed, inject, onMounted, onUnmounted, provide, ref, watch } from 'vue';
 
 	// New design
 	import FieldHelperText from '@hub-client/components/forms/elements/FieldHelperText.vue';
@@ -65,17 +65,23 @@
 	const { id, fieldName, changed } = useFormInput(props, model);
 	const { validateField, validated, required } = useFieldValidation(props.name, model, props.validation);
 
+	const addField = inject('addField', () => {}) as (...args: unknown[]) => unknown;
+	const removeField = inject('removeField', () => {}) as (...args: unknown[]) => unknown;
+
 	// Lifecycle
 	onMounted(() => {
 		fixedWidth.value = fieldRef.value?.clientWidth ?? 0;
 
 		originalValue.value = Object.assign({}, model);
 
-		if (props.validation) {
-			const addField = inject('addField', () => {}) as (...args: unknown[]) => unknown;
-			if (typeof addField === 'function') {
-				addField(fieldName.value, model, changed, validated);
-			}
+		if (props.validation && typeof addField === 'function') {
+			addField(id.value, fieldName.value, model, changed, validated);
+		}
+	});
+
+	onUnmounted(() => {
+		if (props.validation && typeof removeField === 'function') {
+			removeField(id.value);
 		}
 	});
 

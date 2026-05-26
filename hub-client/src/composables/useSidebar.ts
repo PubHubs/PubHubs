@@ -8,6 +8,8 @@ import { useSettings } from '@hub-client/stores/settings';
 export enum SidebarTab {
 	DirectMessage = 'dm',
 	Library = 'library',
+	ManageRoom = 'manage-room',
+	ManageUser = 'manage-user',
 	Members = 'members',
 	NewDM = 'newdm',
 	None = 'none',

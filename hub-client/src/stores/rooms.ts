@@ -153,6 +153,7 @@ const useRooms = defineStore('rooms', {
 			if (!userId) return UserPowerLevel.User;
 			let highest = UserPowerLevel.User;
 			for (const listRoom of this.roomList) {
+				if (DirectRooms.includes(listRoom.roomType as RoomType)) continue;
 				const event = listRoom.stateEvents.find((e) => e.type === EventType.RoomPowerLevels && e.content.users);
 				if (!event) continue;
 				const users = event.content.users as Record<string, number>;

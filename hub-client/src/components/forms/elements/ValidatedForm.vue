@@ -10,6 +10,7 @@
 <script lang="ts">
 	// Types
 	type FieldType = {
+		fieldId: string;
 		changed: boolean;
 		model: unknown;
 		name: string;
@@ -48,10 +49,15 @@
 		return result;
 	});
 
-	const addField = (name: string, model: unknown, changed: boolean, validated: boolean) => {
-		fields.value = [...fields.value, { name, model, changed, validated }];
+	const addField = (fieldId: string, name: string, model: unknown, changed: boolean, validated: boolean) => {
+		fields.value = [...fields.value, { fieldId, name, model, changed, validated }];
+	};
+
+	const removeField = (fieldId: string) => {
+		fields.value = fields.value.filter((field) => field.fieldId !== fieldId);
 	};
 
 	provide('addField', addField);
+	provide('removeField', removeField);
 	provide('formDisabled', props.disabled);
 </script>
