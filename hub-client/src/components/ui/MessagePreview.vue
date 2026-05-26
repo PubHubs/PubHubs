@@ -98,7 +98,8 @@
 
 	// Composables
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useModerationMembership } from '@hub-client/composables/moderation/membership.composable';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
@@ -134,7 +135,7 @@
 
 	const userStore = useUser();
 	const { t } = useI18n();
-	const { stewardSourceRoomName } = useModeration();
+	const { stewardSourceRoomName } = useModerationMembership(useModerationBase());
 	const { formatMentions } = useMentionsDisplay();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
 

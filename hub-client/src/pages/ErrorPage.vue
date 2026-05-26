@@ -48,7 +48,8 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Composables
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useModerationRedCard } from '@hub-client/composables/moderation/red-card.composable';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
@@ -59,7 +60,7 @@
 		fromRoute: { type: String, default: null },
 	});
 
-	const { redCardMembers } = useModeration();
+	const { redCardMembers } = useModerationRedCard(useModerationBase());
 	const userStore = useUser();
 
 	// For red card, don't go back to a room (user is banned), go home instead

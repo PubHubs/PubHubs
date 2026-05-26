@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue';
 
-import { useModeration } from '@hub-client/composables/moderation.composable';
+import { getRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 import type Room from '@hub-client/models/rooms/Room';
 
@@ -20,7 +20,6 @@ type UserDetails = { userId: string; displayName?: string };
 function useMentionAutocomplete(msg: () => string | undefined, room: () => Room) {
 	const userStore = useUser();
 	const roomsStore = useRooms();
-	const { allMembers } = useModeration();
 	const mentionDismissed = ref(false);
 
 	const marker = computed<'@' | '#' | null>(() => {
@@ -45,7 +44,7 @@ function useMentionAutocomplete(msg: () => string | undefined, room: () => Room)
 	const items = computed<(UserDetails | TPublicRoom)[]>(() => {
 		switch (marker.value) {
 			case '@':
-				return allMembers.value.map(
+				return getRoomMembers(room()).map(
 					(userId) =>
 						({
 							userId,

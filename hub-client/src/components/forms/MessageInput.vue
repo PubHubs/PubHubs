@@ -280,7 +280,9 @@
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
 	import { type UserDetails } from '@hub-client/composables/mention-autocomplete.composable';
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useModerationTimeout } from '@hub-client/composables/moderation/timeout.composable';
+	import { useModerationYellowCard } from '@hub-client/composables/moderation/yellow-card.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
@@ -340,8 +342,9 @@
 	const settings = useSettings();
 	const messageActions = useMessageActions();
 	const messageInput = useMessageInput();
-	const { isCurrentUserTimedOut, currentUserTimeoutInfo, isCurrentUserWarned, currentUserYellowCardInfo, dismissYellowCard, refreshTimeoutStatus } =
-		useModeration();
+	const base = useModerationBase();
+	const { isCurrentUserTimedOut, currentUserTimeoutInfo, refreshTimeoutStatus } = useModerationTimeout(base);
+	const { isCurrentUserWarned, currentUserYellowCardInfo, dismissYellowCard } = useModerationYellowCard(base);
 
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const valueAsString = computed({
