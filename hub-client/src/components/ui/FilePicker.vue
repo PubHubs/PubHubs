@@ -97,6 +97,19 @@
 		},
 	);
 
+	watch(
+		() => props.messageInput.state.fileAdded,
+		(file) => {
+			if (file && !uri.value?.url) {
+				if (ownsBlobMemory.value) {
+					uri.value?.revoke();
+				}
+				uri.value = new BlobManager(file);
+				ownsBlobMemory.value = true;
+			}
+		},
+	);
+
 	onBeforeUnmount(() => {
 		if (ownsBlobMemory.value) {
 			uri.value?.revoke();
