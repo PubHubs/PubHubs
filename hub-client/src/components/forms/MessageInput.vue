@@ -502,6 +502,7 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
+		if (messageInput.state.signMessage || messageInput.state.showYiviQR) return;
 		if (!messageInput.hasActivePopup.value || event.key === 'Escape') {
 			messageInput.resetAll();
 			messageInput.state.sendButtonEnabled = isValidMessage();
