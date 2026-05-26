@@ -210,7 +210,7 @@
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
 	// Composables
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
@@ -257,7 +257,7 @@
 	const isMobile = computed(() => settings.isMobileState);
 
 	const pubhubs = usePubhubsStore();
-	const { membershipEvents } = useModeration();
+	const { membershipEvents } = useModerationBase();
 
 	const ongoingCall = computed(() => room.value!.isOngoingCall());
 	const joinSecuredRoom = ref<string | null>(null);

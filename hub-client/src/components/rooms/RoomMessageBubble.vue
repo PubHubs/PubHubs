@@ -454,7 +454,7 @@
 
 	// New design
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useModerationHideMessage } from '@hub-client/composables/moderation/hide-message.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	// Composables
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
@@ -607,7 +607,7 @@
 			emit('profileCardClose');
 		}
 	});
-	const { unHideMessage, hideMessageDialog, onHideMessageDialogSubmit, openHideMessageDialog } = useModeration();
+	const { unHideMessage, hideMessageDialog, onHideMessageDialogSubmit, openHideMessageDialog } = useModerationHideMessage();
 
 	const inReplyToId = props.event.content?.[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
 

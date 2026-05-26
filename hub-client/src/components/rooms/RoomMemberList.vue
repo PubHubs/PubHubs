@@ -230,12 +230,20 @@
 			</div>
 		</div>
 
-		<!-- Card reason dialogs -->
+		<!-- Yellow card dialog -->
 		<IssueCardDialog
-			v-if="cardDialog.visible"
-			:card-type="cardDialog.type"
-			@close="cardDialog.visible = false"
-			@submit="onCardDialogSubmit"
+			v-if="yellowCardDialog.visible"
+			card-type="yellow"
+			@close="yellowCardDialog.visible = false"
+			@submit="onYellowCardDialogSubmit"
+		/>
+
+		<!-- Red card dialog -->
+		<IssueCardDialog
+			v-if="redCardDialog.visible"
+			card-type="red"
+			@close="redCardDialog.visible = false"
+			@submit="onRedCardDialogSubmit"
 		/>
 
 		<!-- Timeout dialog -->
@@ -258,7 +266,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { capitalize, onMounted, onUnmounted, ref } from 'vue';
+	import { capitalize, computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -274,7 +282,13 @@
 	// New design
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useModerationKick } from '@hub-client/composables/moderation/kick.composable';
+	import { useModerationMembership } from '@hub-client/composables/moderation/membership.composable';
+	import { useModerationRedCard } from '@hub-client/composables/moderation/red-card.composable';
+	import { useModerationTimeout } from '@hub-client/composables/moderation/timeout.composable';
+	import { useModerationWhisper } from '@hub-client/composables/moderation/whisper.composable';
+	import { useModerationYellowCard } from '@hub-client/composables/moderation/yellow-card.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
@@ -308,33 +322,18 @@
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
 
-	const {
-		stewards,
-		admins,
-		nonPowerMemberIds,
-		activeYellowCards,
-		redCardMembers,
-		revokedRedCardMembers,
-		numberOfSanctionedMembers,
-		canWhisperFromContextMenu,
-		cardDialog,
-		timeoutDialog,
-		kickDialog,
-		activeTimeouts,
-		isUserTimedOut,
-		canTimeoutUser,
-		refreshTimeoutStatus,
-		openKickDialog,
-		openCardDialog,
-		onCardDialogSubmit,
-		onKickDialogSubmit,
-		revokeRedCard,
-		revokeTimeout,
-		openTimeoutDialog,
-		onTimeoutDialogSubmit,
-		contactSteward,
-		startWhisperToMember,
-	} = useModeration();
+	const base = useModerationBase();
+	const { stewards, admins, nonPowerMemberIds } = base;
+	const { activeYellowCards, yellowCardDialog, openYellowCardDialog, onYellowCardDialogSubmit } = useModerationYellowCard(base);
+	const { redCardMembers, revokedRedCardMembers, redCardDialog, openRedCardDialog, onRedCardDialogSubmit, revokeRedCard } = useModerationRedCard(base);
+	const { kickDialog, openKickDialog, onKickDialogSubmit } = useModerationKick();
+	const { timeoutDialog, activeTimeouts, isUserTimedOut, canTimeoutUser, refreshTimeoutStatus, revokeTimeout, openTimeoutDialog, onTimeoutDialogSubmit } =
+		useModerationTimeout(base);
+	const { contactSteward } = useModerationMembership(base);
+	const { canWhisperFromContextMenu, startWhisperToMember } = useModerationWhisper();
+	const numberOfSanctionedMembers = computed(
+		() => redCardMembers.value.length + activeYellowCards.value.length + revokedRedCardMembers.value.length + activeTimeouts.value.length,
+	);
 
 	// Refs
 	const now = ref(Date.now());
@@ -433,7 +432,7 @@
 			stewardActions.push({
 				label: capitalize(t('moderation.issue_yellow_card')),
 				icon: 'exclamation-mark',
-				onClick: () => openCardDialog('yellow', props.room.roomId, memberId),
+				onClick: () => openYellowCardDialog(props.room.roomId, memberId),
 				variant: ContextVariant.yellow,
 				title: capitalize(t('moderation.issue_yellow_card_info')),
 			});
@@ -443,7 +442,7 @@
 			stewardActions.push({
 				label: capitalize(t('moderation.issue_red_card')),
 				icon: 'exclamation-mark',
-				onClick: () => openCardDialog('red', props.room.roomId, memberId),
+				onClick: () => openRedCardDialog(props.room.roomId, memberId),
 				variant: ContextVariant.delicate,
 				title: capitalize(t('moderation.issue_red_card_info')),
 			});
@@ -462,7 +461,7 @@
 			stewardActions.push({
 				label: capitalize(t('moderation.issue_red_card')),
 				icon: 'exclamation-mark',
-				onClick: () => openCardDialog('red', props.room.roomId, memberId),
+				onClick: () => openRedCardDialog(props.room.roomId, memberId),
 				variant: ContextVariant.delicate,
 				title: capitalize(t('moderation.issue_red_card_info')),
 			});
