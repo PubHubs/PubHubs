@@ -153,7 +153,7 @@
 					:label="$t('message.sign.signed_message_email')"
 					:tooltip="$t('message.sign.signed_message_tooltip')"
 					variant="sign"
-					@close="messageInput.resetAll(true)"
+					@close="messageInput.closeSignMessage()"
 				/>
 
 				<div
@@ -201,6 +201,7 @@
 									messageInput.state.showMention = false;
 								}, 150)
 							"
+							@paste="handlePaste"
 						/>
 					</div>
 
@@ -288,8 +289,8 @@
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useYiviIosWorkaround } from '@hub-client/composables/yiviIosWorkaround.composable';
 
-	import { type BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { useMessageInput } from '@hub-client/logic/messageInput';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
@@ -554,12 +555,35 @@
 		}
 	}
 
+	function handlePaste(event: ClipboardEvent) {
+		const items = event.clipboardData?.items;
+		if (!items) return;
+		for (const item of items) {
+			if (!item.type.startsWith('image/')) continue;
+			event.preventDefault();
+			const file = item.getAsFile();
+			if (!file) continue;
+			if (fileBlobOwnedByParent.value && uriForFileUpload.value) {
+				uriForFileUpload.value.revoke();
+			}
+			messageInput.setFileAdded(file);
+			const blobManager = new BlobManager(file);
+			uriForFileUpload.value = blobManager;
+			fileBlobOwnedByParent.value = true;
+			messageInput.activateSendButton();
+			return;
+		}
+	}
+
 	function handleFileUpload(uriBlob: BlobManager | undefined) {
 		if (fileBlobOwnedByParent.value && uriForFileUpload.value && uriForFileUpload.value !== uriBlob) {
 			uriForFileUpload.value.revoke();
 		}
 		uriForFileUpload.value = uriBlob;
 		fileBlobOwnedByParent.value = !!uriBlob;
+		if (!uriBlob) {
+			messageInput.state.sendButtonEnabled = isValidMessage();
+		}
 	}
 
 	function insertMention(item: UserDetails | TPublicRoom, marker: '@' | '#') {

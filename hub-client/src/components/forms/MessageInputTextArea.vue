@@ -10,9 +10,10 @@
 		:title="placeholder"
 		:value="modelValue"
 		@input="update(($event.target as HTMLTextAreaElement).value)"
-		@keydown.enter.exact.prevent="submit()"
+		@keydown.enter.exact.prevent="emit('submit')"
 		@keydown.esc="cancel()"
 		@keyup="onKeyUp"
+		@paste="$emit('paste', $event)"
 	/>
 </template>
 
@@ -29,7 +30,8 @@
 		maxLength: 1500,
 		disabled: false,
 	});
-	const emit = defineEmits([...usedEvents, 'caretPos']);
+
+	const emit = defineEmits([...usedEvents, 'caretPos', 'paste']);
 	const { getCaretPos } = useGetCaretPos();
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
@@ -39,7 +41,7 @@
 		maxLength?: number;
 		disabled?: boolean;
 	};
-	const { update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);
+	const { update, changed, cancel } = useFormInputEvents(emit, props.modelValue);
 
 	watch(
 		() => props.modelValue,
