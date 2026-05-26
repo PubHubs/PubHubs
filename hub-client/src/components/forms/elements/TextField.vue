@@ -13,17 +13,26 @@
 		<!-- Input element -->
 		<div class="flex w-full items-center">
 			<div
-				class="grow"
+				class="relative grow"
 				:class="{ 'w-full': !showLength }"
 			>
+				<Icon
+					v-if="icon"
+					class="text-on-surface-dim absolute top-1/2 left-2 -translate-y-1/2"
+					size="sm"
+					:type="icon"
+				/>
 				<textarea
 					v-if="type === 'textarea'"
 					:id="fieldId"
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
-					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline focus:ring-3"
-					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-button-blue'"
+					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline focus:outline-3"
+					:class="[
+						!validated ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
+						icon ? 'pl-12!' : '',
+					]"
 					:disabled="disabled"
 					:name="fieldName"
 					:placeholder="placeholder"
@@ -35,8 +44,11 @@
 					v-model="model"
 					:aria-invalid="!validated ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
-					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline focus:ring-3"
-					:class="!validated ? 'outline-accent-error focus:ring-on-accent-error' : 'outline-on-surface-dim focus:ring-button-blue'"
+					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline focus:outline-3"
+					:class="[
+						!validated ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
+						icon ? 'pl-12!' : '',
+					]"
 					:disabled="disabled"
 					:name="fieldName"
 					:placeholder="placeholder"
@@ -52,7 +64,8 @@
 	// Packages
 	import { computed, onMounted, ref, useAttrs, watch } from 'vue';
 
-	// New design
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Label from '@hub-client/components/forms/elements/Label.vue';
 	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
 
@@ -69,6 +82,7 @@
 		defineProps<{
 			disabled?: boolean;
 			help?: string;
+			icon?: string;
 			id?: string;
 			name?: string;
 			placeholder?: string;
@@ -79,6 +93,7 @@
 		{
 			disabled: false,
 			help: '',
+			icon: undefined,
 			id: undefined,
 			name: undefined,
 			placeholder: '',

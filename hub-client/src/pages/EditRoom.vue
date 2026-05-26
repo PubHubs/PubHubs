@@ -4,7 +4,10 @@
 		bg-bar-medium="bg-surface-low"
 	>
 		<template #header>
-			<div class="flex h-full items-center gap-3">
+			<div
+				class="flex h-full items-center gap-3"
+				:class="isMobile && 'pl-4'"
+			>
 				<Icon :type="isSecured ? 'shield' : 'chats-circle'" />
 				<H3 class="text-on-surface flex">
 					<TruncatedText class="font-headings font-semibold">{{ title }}</TruncatedText>
@@ -35,6 +38,13 @@
 			>
 				{{ t('admin.topic') }}
 			</TextField>
+			<DropDown
+				v-if="isNewRoom"
+				v-model="roomCategory"
+				:options="roomCategoryOptions"
+				:validation="{ required: true }"
+				>{{ t('admin.room_category') }}</DropDown
+			>
 			<DropDown
 				v-if="!isSecured"
 				v-model="editRoom.type"
@@ -208,8 +218,8 @@
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
@@ -232,8 +242,8 @@
 	import { trimSplit } from '@hub-client/logic/core/extensions';
 	import { router } from '@hub-client/logic/core/router';
 
-	import { PublicRoomType } from '@hub-client/models/rooms/TBaseRoom';
 	// Models
+	import { PublicRoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import type { TEditRoom } from '@hub-client/models/rooms/TEditRoom';
 	import { type TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
 	import { type FieldOptions } from '@hub-client/models/validation/TFormOption';
@@ -242,12 +252,14 @@
 	// Stores
 	import { type SecuredRoomAttributes, type TSecuredRoom } from '@hub-client/stores/rooms';
 	import { useRooms } from '@hub-client/stores/rooms';
+	import { useSettings } from '@hub-client/stores/settings';
 	import { useYivi } from '@hub-client/stores/yivi';
 
-	// Passed by the router
+	// Props
 	const props = defineProps({
 		id: { type: String, required: true },
 	});
+
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const editRoomComposable = useEditRoom();
@@ -267,7 +279,10 @@
 	const errorMessage = ref<string | undefined>(undefined);
 	const roomLoaded = ref(false);
 	const waitForServer = ref(false);
+	const settings = useSettings();
 	let _OriginalAttributes: Array<TEditRoomFormAttributes> = [{ label: '', attribute: '', accepted: [], profile: false }];
+
+	const isMobile = computed(() => settings.isMobileState);
 
 	// editRoom typed as union; we'll narrow when submitting
 	const editRoom = ref<TEditRoom | TSecuredRoom>({
@@ -279,6 +294,11 @@
 	});
 
 	const roomTypeOptions = Object.values(PublicRoomType) as FieldOptions;
+	const roomCategoryOptions: FieldOptions = [
+		{ label: t('admin.public_room'), value: 'public' },
+		{ label: t('admin.secured_room'), value: 'secured' },
+	];
+	const roomCategory = ref(props.id === 'new_secured_room' ? roomCategoryOptions[1] : roomCategoryOptions[0]);
 
 	const roomValidations = {
 		maxNameLength: 100,
@@ -295,7 +315,7 @@
 				: t('admin.add_room')
 			: isSecured.value
 				? t('admin.edit_secured_room')
-				: t('admin.edit_name'),
+				: t('admin.edit_room'),
 	);
 
 	const isNewRoom = computed(() => {
@@ -303,7 +323,8 @@
 	});
 
 	const isSecured = computed(() => {
-		return rooms.publicRoomIsSecure(props.id) || props.id === 'new_secured_room';
+		if (isNewRoom.value) return (roomCategory.value as { value: string }).value === 'secured';
+		return rooms.publicRoomIsSecure(props.id);
 	});
 
 	onBeforeMount(async () => {
