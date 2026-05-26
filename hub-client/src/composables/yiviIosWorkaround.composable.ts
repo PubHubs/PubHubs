@@ -39,6 +39,7 @@ function useYiviIosWorkaround(yiviLoginRef: ReturnType<typeof useTemplateRef<Ele
 	}
 
 	watch(yiviLoginRef, (yiviLoginEl) => {
+		if (!yiviLoginEl) return;
 		logger.debug('The Yivi div itself changed');
 		const mutationObserver = new MutationObserver(onYiviNodeChange);
 		logger.debug('Connecting MutationObserver to Yivi div for observing changes to its subtree');
