@@ -16,6 +16,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] RoomAdmins and Stewards can hide and delete any messages and normal users can hide their own messages.
 - [NEW] Different way of fetching library-files, added constant with maximum numbers of files to upload
 - [NEW] Eliminated the legacy `/v3/sync` loop; the hub client now uses `SlidingSyncSdk` exclusively.
+- _internal_ Test the registration flow and login flow for the pubhubs card including normal settings and with battery saver on. If no issues arise set phCard in settings.ts to true for stable.
 
 ## 28 April 2026 - v3.3.0
 
