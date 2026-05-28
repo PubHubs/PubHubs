@@ -1,40 +1,39 @@
 <template>
-	<div id="filePickerContainer">
-		<div
-			v-if="messageInput.state.fileAdded"
-			class="border-on-surface-disabled relative flex w-full justify-center border-b-2"
-		>
-			<div class="m-2 mb-2 rounded-lg">
-				<div
-					v-if="imageTypes.includes(messageInput.state.fileAdded?.type)"
-					class="flex justify-center"
-				>
-					<img
-						:src="uri?.url ?? ''"
-						class="max-h-64 max-w-full rounded-lg"
-					/>
-				</div>
-				<div class="mt-1 flex justify-center">
-					<div class="text-on-surface-dim text-label">
-						{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})
-					</div>
-				</div>
-			</div>
+	<div
+		v-if="messageInput.state.fileAdded"
+		id="filePickerContainer"
+		class="border-on-surface-disabled relative flex w-full justify-center border-b-2"
+	>
+		<div class="m-2 mb-2 rounded-lg">
 			<div
-				class="flex gap-2 pt-3"
-				:class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }"
+				v-if="imageTypes.includes(messageInput.state.fileAdded?.type)"
+				class="flex justify-center"
 			>
-				<Icon
-					type="arrows-clockwise"
-					class="hover:text-accent-secondary cursor-pointer"
-					@click.stop="openFile"
-				></Icon>
-				<Icon
-					type="trash"
-					class="hover:text-accent-error cursor-pointer"
-					@click="removeFile()"
-				></Icon>
+				<img
+					:src="uri?.url ?? ''"
+					class="max-h-64 max-w-full rounded-lg"
+				/>
 			</div>
+			<div class="mt-1 flex justify-center">
+				<div class="text-on-surface-dim text-label">
+					{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})
+				</div>
+			</div>
+		</div>
+		<div
+			class="flex gap-2 pt-3"
+			:class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }"
+		>
+			<Icon
+				type="arrows-clockwise"
+				class="hover:text-accent-secondary cursor-pointer"
+				@click.stop="openFile"
+			></Icon>
+			<Icon
+				type="trash"
+				class="hover:text-accent-error cursor-pointer"
+				@click="removeFile()"
+			></Icon>
 		</div>
 	</div>
 

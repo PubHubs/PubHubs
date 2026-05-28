@@ -72,6 +72,7 @@ function useMessageInput() {
 
 	function cancelFileUpload() {
 		state.fileDialog = false;
+		state.fileAdded = null;
 	}
 
 	function closeFileUpload() {
