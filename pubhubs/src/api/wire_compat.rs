@@ -26,7 +26,7 @@
 #![cfg(test)]
 
 use crate::api::{DiscoveryInfoResp, DiscoveryRunResp, ErrorCode, Result, VerifyingKey};
-use crate::common::elgamal;
+use crate::common::{elgamal, kem};
 use crate::id;
 use crate::misc::jwt::NumericDate;
 use crate::servers::Name;
@@ -45,12 +45,18 @@ struct Snapshots {
     result_err_bad_request: &'static str,
 }
 
-const SNAPSHOTS: &[(&str, Snapshots)] = &[(
-    // Edit this entry only if no pubhubs release has shipped it yet;
-    // once shipped, it is historical — add a new entry instead.
-    ">v3.2.2",
-    Snapshots {
-        discovery_info_resp_phc: r#"{
+const SNAPSHOTS: &[(&str, Snapshots)] = &[
+    (
+        // Edit this entry only if no pubhubs release has shipped it yet;
+        // once shipped, it is historical — add a new entry instead.
+        //
+        // KEEP THIS COMMENT ON THE TOP (most-recent) ENTRY when adding a new one:
+        // move it from the entry being demoted to the new entry above it.
+        //
+        // New: encap_key.
+        ">v3.3.0",
+        Snapshots {
+            discovery_info_resp_phc: r#"{
   "name": "phc",
   "self_check_code": "selfcheck-phc",
   "version": "test-version",
@@ -76,7 +82,66 @@ const SNAPSHOTS: &[(&str, Snapshots)] = &[(
     "ph_version": "test-version"
   }
 }"#,
-        discovery_info_resp_transcryptor: r#"{
+            discovery_info_resp_transcryptor: r#"{
+  "name": "transcryptor",
+  "self_check_code": "selfcheck-tr",
+  "version": "test-version",
+  "phc_url": "https://phc.example.test/",
+  "jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
+  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+  "master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+  "encap_key": {"ml":"AA==","ec":"AQ=="},
+  "constellation": { "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+}"#,
+            discovery_info_resp_auths_blank: r#"{
+  "name": "auths",
+  "self_check_code": "selfcheck-auths",
+  "version": "test-version",
+  "phc_url": "https://phc.example.test/",
+  "jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
+  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+  "master_enc_key_part": null,
+  "encap_key": {"ml":"AA==","ec":"AQ=="},
+  "constellation": null
+}"#,
+            discovery_run_resp_up_to_date: r#""UpToDate""#,
+            discovery_run_resp_restarting: r#""Restarting""#,
+            result_ok_up_to_date: r#"{"Ok":"UpToDate"}"#,
+            result_err_please_retry: r#"{"Err":"PleaseRetry"}"#,
+            result_err_internal_error: r#"{"Err":"InternalError"}"#,
+            result_err_bad_request: r#"{"Err":"BadRequest"}"#,
+        },
+    ),
+    (
+        ">v3.2.2",
+        Snapshots {
+            discovery_info_resp_phc: r#"{
+  "name": "phc",
+  "self_check_code": "selfcheck-phc",
+  "version": "test-version",
+  "phc_url": "https://phc.example.test/",
+  "jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
+  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+  "master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+  "constellation": {
+    "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "created_at": 1700000000,
+    "transcryptor_url": "https://tr.example.test/",
+    "transcryptor_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
+    "transcryptor_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+    "transcryptor_master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+    "phc_url": "https://phc.example.test/",
+    "phc_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
+    "phc_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+    "auths_url": "https://auths.example.test/",
+    "auths_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
+    "auths_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+    "master_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+    "global_client_url": "https://gc.example.test/",
+    "ph_version": "test-version"
+  }
+}"#,
+            discovery_info_resp_transcryptor: r#"{
   "name": "transcryptor",
   "self_check_code": "selfcheck-tr",
   "version": "test-version",
@@ -86,7 +151,7 @@ const SNAPSHOTS: &[(&str, Snapshots)] = &[(
   "master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
   "constellation": { "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
 }"#,
-        discovery_info_resp_auths_blank: r#"{
+            discovery_info_resp_auths_blank: r#"{
   "name": "auths",
   "self_check_code": "selfcheck-auths",
   "version": "test-version",
@@ -96,14 +161,15 @@ const SNAPSHOTS: &[(&str, Snapshots)] = &[(
   "master_enc_key_part": null,
   "constellation": null
 }"#,
-        discovery_run_resp_up_to_date: r#""UpToDate""#,
-        discovery_run_resp_restarting: r#""Restarting""#,
-        result_ok_up_to_date: r#"{"Ok":"UpToDate"}"#,
-        result_err_please_retry: r#"{"Err":"PleaseRetry"}"#,
-        result_err_internal_error: r#"{"Err":"InternalError"}"#,
-        result_err_bad_request: r#"{"Err":"BadRequest"}"#,
-    },
-)];
+            discovery_run_resp_up_to_date: r#""UpToDate""#,
+            discovery_run_resp_restarting: r#""Restarting""#,
+            result_ok_up_to_date: r#"{"Ok":"UpToDate"}"#,
+            result_err_please_retry: r#"{"Err":"PleaseRetry"}"#,
+            result_err_internal_error: r#"{"Err":"InternalError"}"#,
+            result_err_bad_request: r#"{"Err":"BadRequest"}"#,
+        },
+    ),
+];
 
 #[test]
 fn wire_compat() {
@@ -128,6 +194,10 @@ fn wire_compat() {
     let auths_url: url::Url = "https://auths.example.test/".parse().unwrap();
     let gc_url: url::Url = "https://gc.example.test/".parse().unwrap();
     let v = "test-version".to_owned();
+
+    // Bogus KEM bytes — the serde shape is what wire_compat checks, not crypto validity.
+    let encap_key: kem::EncapKeyBytes =
+        serde_json::from_str(r#"{"ml":"AA==","ec":"AQ=="}"#).unwrap();
 
     let constellation = Constellation {
         id,
@@ -157,6 +227,7 @@ fn wire_compat() {
         jwt_key: vk.clone(),
         enc_key: pk.clone(),
         master_enc_key_part: Some(pk.clone()),
+        encap_key: None,
         constellation_or_id: Some(ConstellationOrId::Constellation(Box::new(constellation))),
     };
 
@@ -168,6 +239,7 @@ fn wire_compat() {
         jwt_key: vk.clone(),
         enc_key: pk.clone(),
         master_enc_key_part: Some(pk.clone()),
+        encap_key: Some(encap_key.clone()),
         constellation_or_id: Some(ConstellationOrId::Id { id }),
     };
 
@@ -179,6 +251,7 @@ fn wire_compat() {
         jwt_key: vk,
         enc_key: pk,
         master_enc_key_part: None,
+        encap_key: Some(encap_key),
         constellation_or_id: None,
     };
 

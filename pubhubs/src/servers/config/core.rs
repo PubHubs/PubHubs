@@ -11,7 +11,7 @@ use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
     attr,
-    common::elgamal,
+    common::{elgamal, kem},
     hub,
     misc::{jwt, serde_ext, time_ext},
     servers::yivi,
@@ -425,6 +425,10 @@ pub mod transcryptor {
         ///
         /// Randomly generated when not set.t
         pub pseud_factor_secret: Option<B64UU>,
+
+        /// Hybrid post-quantum [`kem`] decapsulation key, used to establish a shared secret
+        /// with pubhubs central.  Randomly generated when not set.
+        pub decap_key: Option<kem::DecapKeyBytes>,
     }
 }
 
@@ -451,6 +455,10 @@ pub mod auths {
         /// Randomly generated when not set.  When changed, users loose access to all data
         /// stored at PHC.
         pub attr_key_secret: Option<B64UU>,
+
+        /// Hybrid post-quantum [`kem`] decapsulation key, used to establish a shared secret
+        /// with pubhubs central.  Randomly generated when not set.
+        pub decap_key: Option<kem::DecapKeyBytes>,
     }
 
     fn default_auth_window() -> core::time::Duration {
@@ -597,6 +605,18 @@ impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerCon
     }
 }
 
+/// Populates `slot` with a freshly generated [`kem::DecapKeyBytes`] if it is `None`.
+fn ensure_decap_key(slot: &mut Option<kem::DecapKeyBytes>) -> anyhow::Result<()> {
+    if slot.is_none() {
+        *slot = Some(
+            kem::DecapKey::generate()
+                .and_then(|dk| dk.encode())
+                .map_err(|_| anyhow::anyhow!("generating kem decapsulation key"))?,
+        );
+    }
+    Ok(())
+}
+
 impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
     async fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
@@ -605,6 +625,8 @@ impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
         self.pseud_factor_secret.get_or_insert_with(|| {
             serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
         });
+
+        ensure_decap_key(&mut self.decap_key)?;
 
         Ok(())
     }
@@ -658,6 +680,8 @@ impl PrepareConfig<Pcc> for auths::ExtraConfig {
         self.attr_key_secret.get_or_insert_with(|| {
             serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
         });
+
+        ensure_decap_key(&mut self.decap_key)?;
 
         Ok(())
     }

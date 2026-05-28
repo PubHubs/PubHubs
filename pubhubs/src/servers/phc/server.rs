@@ -34,6 +34,7 @@ impl servers::Details for Details {
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
     type ExtraSharedState = ExtraSharedState;
+    type ExtraServerState = ();
     type ObjectStoreT = servers::object_store::DefaultObjectStore;
 
     fn create_running_state(
@@ -55,6 +56,10 @@ impl servers::Details for Details {
 
     fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
         Ok(ExtraSharedState {})
+    }
+
+    fn create_extra_server_state(_config: &servers::Config) -> anyhow::Result<()> {
+        Ok(())
     }
 }
 

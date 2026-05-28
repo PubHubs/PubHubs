@@ -10,7 +10,7 @@ use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, const
 use crate::{
     api::{self, EndpointDetails as _},
     attr,
-    common::{elgamal, secret::DigestibleSecret as _},
+    common::{elgamal, kem, secret::DigestibleSecret as _},
     handle, id, map,
     misc::{crypto, jwt},
     phcrypto,
@@ -30,6 +30,7 @@ impl servers::Details for Details {
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
     type ExtraSharedState = ExtraSharedState;
+    type ExtraServerState = ExtraServerState;
     type ObjectStoreT = servers::object_store::UseNone;
 
     fn create_running_state(
@@ -48,9 +49,25 @@ impl servers::Details for Details {
     fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
         Ok(ExtraSharedState {})
     }
+
+    fn create_extra_server_state(config: &servers::Config) -> anyhow::Result<ExtraServerState> {
+        let xconf = config.auths.as_ref().unwrap();
+        let decap_key = xconf
+            .decap_key
+            .as_ref()
+            .expect("decap_key was not set nor generated")
+            .decode()
+            .map_err(|_| anyhow::anyhow!("decoding kem decapsulation key"))?;
+        Ok(ExtraServerState { decap_key })
+    }
 }
 
 pub struct ExtraSharedState {}
+
+pub struct ExtraServerState {
+    #[expect(dead_code)]
+    pub(super) decap_key: kem::DecapKey,
+}
 
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
@@ -77,6 +94,7 @@ pub struct App {
     pub auth_window: core::time::Duration,
     pub attr_key_secret: Vec<u8>,
     pub chained_sessions_ctl: Option<ChainedSessionsCtl>,
+    pub encap_key: kem::EncapKeyBytes,
 }
 
 impl Deref for App {
@@ -255,6 +273,10 @@ impl crate::servers::App<Server> for App {
 
         enc_key == self.enc_key.public_key() && **jwt_key == self.jwt_key.verifying_key()
     }
+
+    fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
+        Some(&self.encap_key)
+    }
 }
 
 /// Moves accross threads to create [`App`]s.
@@ -267,6 +289,7 @@ pub struct AppCreator {
     auth_window: core::time::Duration,
     attr_key_secret: Vec<u8>,
     chained_sessions_ctl: Option<ChainedSessionsCtl>,
+    encap_key: kem::EncapKeyBytes,
 }
 
 impl Deref for AppCreator {
@@ -325,6 +348,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .as_ref()
             .map(|yivi_ctx| ChainedSessionsCtl::new(yivi_ctx.clone()));
 
+        let encap_key = xconf
+            .decap_key
+            .as_ref()
+            .expect("decap_key was not set nor generated")
+            .decode()
+            .and_then(|dk| dk.encap_key().encode())
+            .map_err(|_| anyhow::anyhow!("deriving kem encapsulation key"))?;
+
         Ok(Self {
             base,
             attribute_types,
@@ -333,6 +364,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auth_window,
             attr_key_secret,
             chained_sessions_ctl,
+            encap_key,
         })
     }
 
@@ -350,6 +382,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auth_window: self.auth_window,
             attr_key_secret: self.attr_key_secret,
             chained_sessions_ctl: self.chained_sessions_ctl,
+            encap_key: self.encap_key,
         }
     }
 }

@@ -202,7 +202,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::api::*;
-use crate::common::elgamal;
+use crate::common::{elgamal, kem};
 use actix_web::http;
 
 /// Public details about this server, including its current [`Constellation`].
@@ -268,6 +268,11 @@ pub struct DiscoveryInfoResp {
     /// Master encryption key part, that is, `x_PHC B` or `x_T B` in the notation of the
     /// whitepaper.  Only set for PHC or the transcryptor.
     pub master_enc_key_part: Option<elgamal::PublicKey>,
+
+    /// Hybrid post-quantum [`kem`] encapsulation key, used by pubhubs central to establish
+    /// a shared secret with this server.  Only set for the transcryptor and authentication server.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub encap_key: Option<kem::EncapKeyBytes>,
 
     /// Details of the other PubHubs servers, according to this server
     /// `None` when discovery has not been completed.

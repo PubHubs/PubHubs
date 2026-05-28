@@ -24,7 +24,7 @@ use curve25519_dalek::ristretto::CompressedRistretto;
 
 use crate::common::elgamal::{self, Encoding as _};
 use crate::common::secret;
-use crate::misc::error::{Opaque, OPAQUE};
+use crate::misc::error::{OPAQUE, Opaque};
 use crate::misc::serde_ext::bytes_wrapper::B64;
 use crate::phcrypto;
 

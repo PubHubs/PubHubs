@@ -7,7 +7,7 @@ use core::convert::Infallible;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
-use crate::common::elgamal;
+use crate::common::{elgamal, kem};
 
 use crate::client;
 
@@ -84,6 +84,9 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     /// Additional shared state
     type ExtraSharedState;
 
+    /// Additional process-local server state.
+    type ExtraServerState;
+
     /// Type of this server's object store, usually an [`object_store::ObjectStore`], or `()`.
     type ObjectStoreT: Sync;
 
@@ -105,6 +108,10 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     ) -> Result<Self::ExtraRunningState>;
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
+
+    fn create_extra_server_state(config: &servers::Config) -> Result<Self::ExtraServerState>;
+
+    fn extra(&self) -> &Self::ExtraServerState;
 
     /// This function is called when the server is started to run discovery.
     ///
@@ -145,6 +152,7 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
 pub struct ServerImpl<D: Details> {
     config: servers::Config,
     app_creator: D::AppCreatorT,
+    extra: D::ExtraServerState,
 }
 
 impl<D: Details> Deref for ServerImpl<D> {
@@ -170,6 +178,7 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     type AppT;
     type ExtraRunningState: Clone + core::fmt::Debug;
     type ExtraSharedState;
+    type ExtraServerState;
     type ObjectStoreT;
 
     fn create_running_state(
@@ -178,6 +187,8 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     ) -> Result<Self::ExtraRunningState>;
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
+
+    fn create_extra_server_state(config: &servers::Config) -> Result<Self::ExtraServerState>;
 }
 
 impl<D: Details> Server for ServerImpl<D>
@@ -194,12 +205,14 @@ where
     type ExtraConfig = D::Extra;
     type ExtraRunningState = D::ExtraRunningState;
     type ExtraSharedState = D::ExtraSharedState;
+    type ExtraServerState = D::ExtraServerState;
 
     type ObjectStoreT = D::ObjectStoreT;
 
     fn new(config: &servers::Config) -> Result<Self> {
         Ok(Self {
             app_creator: Self::AppCreatorT::new(config)?,
+            extra: D::create_extra_server_state(config)?,
             config: config.clone(),
         })
     }
@@ -223,6 +236,14 @@ where
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState> {
         D::create_extra_shared_state(config)
+    }
+
+    fn create_extra_server_state(config: &servers::Config) -> Result<Self::ExtraServerState> {
+        D::create_extra_server_state(config)
+    }
+
+    fn extra(&self) -> &Self::ExtraServerState {
+        &self.extra
     }
 
     async fn run_until_modifier(
@@ -584,6 +605,11 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         if matches!(S::NAME, Name::PubhubsCentral | Name::Transcryptor) {
             panic!("this default impl should have been  overriden for PHC and T")
         }
+        None
+    }
+
+    /// This server's published [`kem::EncapKeyBytes`], if any.  Overridden by T/AS.
+    fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
         None
     }
 
@@ -964,6 +990,7 @@ impl<S: Server> AppBase<S> {
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
+            encap_key: app.encap_key().cloned(),
             constellation_or_id,
         })
     }

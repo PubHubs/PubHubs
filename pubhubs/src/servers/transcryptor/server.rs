@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::common::elgamal;
+use crate::common::{elgamal, kem};
 use crate::misc::crypto;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::phcrypto;
@@ -24,6 +24,7 @@ impl servers::Details for Details {
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
     type ExtraSharedState = ExtraSharedState;
+    type ExtraServerState = ExtraServerState;
     type ObjectStoreT = servers::object_store::UseNone;
 
     fn create_running_state(
@@ -41,9 +42,25 @@ impl servers::Details for Details {
     fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
         Ok(ExtraSharedState {})
     }
+
+    fn create_extra_server_state(config: &servers::Config) -> anyhow::Result<ExtraServerState> {
+        let xconf = config.transcryptor.as_ref().unwrap();
+        let decap_key = xconf
+            .decap_key
+            .as_ref()
+            .expect("decap_key was not set nor generated")
+            .decode()
+            .map_err(|_| anyhow::anyhow!("decoding kem decapsulation key"))?;
+        Ok(ExtraServerState { decap_key })
+    }
 }
 
 pub struct ExtraSharedState {}
+
+pub struct ExtraServerState {
+    #[expect(dead_code)]
+    pub(super) decap_key: kem::DecapKey,
+}
 
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
@@ -60,6 +77,7 @@ pub struct App {
     master_enc_key_part: elgamal::PrivateKey,
     master_enc_key_part_inv: curve25519_dalek::Scalar,
     pseud_factor_secret: B64UU,
+    encap_key: kem::EncapKeyBytes,
 }
 
 impl Deref for App {
@@ -110,6 +128,10 @@ impl crate::servers::App<Server> for App {
 
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
         Some(&self.master_enc_key_part)
+    }
+
+    fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
+        Some(&self.encap_key)
     }
 }
 
@@ -164,6 +186,7 @@ pub struct AppCreator {
     master_enc_key_part: elgamal::PrivateKey,
     master_enc_key_part_inv: curve25519_dalek::Scalar,
     pseud_factor_secret: B64UU,
+    encap_key: kem::EncapKeyBytes,
 }
 
 impl Deref for AppCreator {
@@ -196,11 +219,20 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .clone()
             .expect("pseud_factor_secret was not generated");
 
+        let encap_key = xconf
+            .decap_key
+            .as_ref()
+            .expect("decap_key was not set nor generated")
+            .decode()
+            .and_then(|dk| dk.encap_key().encode())
+            .map_err(|_| anyhow::anyhow!("deriving kem encapsulation key"))?;
+
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config)?,
             master_enc_key_part_inv: master_enc_key_part.as_scalar().invert(),
             master_enc_key_part,
             pseud_factor_secret,
+            encap_key,
         })
     }
 
@@ -215,6 +247,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             master_enc_key_part: self.master_enc_key_part,
             master_enc_key_part_inv: self.master_enc_key_part_inv,
             pseud_factor_secret: self.pseud_factor_secret,
+            encap_key: self.encap_key,
         }
     }
 }
