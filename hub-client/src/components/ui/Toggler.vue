@@ -29,6 +29,9 @@
 	// Assets
 	import { icons } from '@hub-client/assets/icons';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	const props = defineProps({
 		icon: {
 			type: String,

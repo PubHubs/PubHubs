@@ -82,6 +82,7 @@
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	// Components
+	import Mask from '@hub-client/components/ui/Mask.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 
 	// Models

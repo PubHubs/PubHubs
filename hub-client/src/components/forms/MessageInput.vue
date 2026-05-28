@@ -256,7 +256,6 @@
 
 <script setup lang="ts">
 	// Packages
-	import MessageInputTextArea from './MessageInputTextArea.vue';
 	import { setTimeout } from 'node:timers';
 	import { type PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -265,12 +264,14 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import MessageInputTextArea from '@hub-client/components/forms/MessageInputTextArea.vue';
 	import type TextAreaOld from '@hub-client/components/forms/elements/TextAreaOld.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
+	import FilePicker from '@hub-client/components/ui/FilePicker.vue';
 	import InputModeBar from '@hub-client/components/ui/InputModeBar.vue';
 	import MentionAutoComplete from '@hub-client/components/ui/MentionAutoComplete.vue';
 	import Popover from '@hub-client/components/ui/Popover.vue';

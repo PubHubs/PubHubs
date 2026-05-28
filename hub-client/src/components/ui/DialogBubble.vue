@@ -26,6 +26,9 @@
 	// Packages
 	import { computed, ref } from 'vue';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	const props = defineProps({
 		showBubble: Boolean,
 	});

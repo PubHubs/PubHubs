@@ -12,6 +12,9 @@
 </template>
 
 <script lang="ts" setup>
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	const emit = defineEmits(['click']);
 
 	function click() {

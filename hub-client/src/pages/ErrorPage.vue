@@ -45,6 +45,8 @@
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Composables

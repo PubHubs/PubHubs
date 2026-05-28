@@ -46,6 +46,7 @@
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import P from '@hub-client/components/elements/P.vue';
 	import QRCode from '@hub-client/components/ui/SecuredRoomQR.vue';

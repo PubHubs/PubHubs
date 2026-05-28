@@ -46,6 +46,10 @@
 	import { computed, nextTick, ref, toRaw } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import P from '@hub-client/components/elements/P.vue';
+
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';

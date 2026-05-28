@@ -121,14 +121,16 @@
 </template>
 
 <script setup lang="ts">
-	import BarList from './BarList.vue';
-	import BarListItem from './BarListItem.vue';
-	import ProgressBar from './ProgressBar.vue';
 	import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 
+	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import BarList from '@hub-client/components/ui/BarList.vue';
+	import BarListItem from '@hub-client/components/ui/BarListItem.vue';
+	import FileIcon from '@hub-client/components/ui/FileIcon.vue';
+	import ProgressBar from '@hub-client/components/ui/ProgressBar.vue';
 
 	import { type ExtendedFile, asyncFileUpload, generateUniqueName } from '@hub-client/composables/fileUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';

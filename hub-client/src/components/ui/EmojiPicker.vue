@@ -46,6 +46,9 @@
 	import { type Emoji } from 'emojibase';
 	import { computed, onMounted, ref } from 'vue';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// Locales
 	import emojiData from '@hub-client/locales/emojidata';
 

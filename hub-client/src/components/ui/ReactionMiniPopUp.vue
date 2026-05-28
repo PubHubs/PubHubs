@@ -37,10 +37,11 @@
 </template>
 
 <script lang="ts" setup>
-	import EmojiPicker from './EmojiPicker.vue';
 	import { ref } from 'vue';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	// Components
+	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
 
 	import type Room from '@hub-client/models/rooms/Room';
 

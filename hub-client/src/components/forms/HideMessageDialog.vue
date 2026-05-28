@@ -41,9 +41,10 @@
 
 	import Button from '@hub-client/components/elements/Button.vue';
 	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
+	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
 	import TextArea from '@hub-client/components/forms/elements/TextArea.vue';
 	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
-	// Components
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Stores

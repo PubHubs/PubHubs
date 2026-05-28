@@ -433,6 +433,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import HideMessageDialog from '@hub-client/components/forms/HideMessageDialog.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';

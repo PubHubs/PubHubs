@@ -12,8 +12,10 @@
 
 <script setup lang="ts">
 	// Packages
-	import RoomThread from '../RoomThread.vue';
 	import { onMounted } from 'vue';
+
+	// Components
+	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 
 	import Room from '@hub-client/models/rooms/Room';
 

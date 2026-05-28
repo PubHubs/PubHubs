@@ -36,6 +36,7 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 

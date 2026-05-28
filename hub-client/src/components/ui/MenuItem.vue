@@ -39,6 +39,7 @@
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 
 	// Composables
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';

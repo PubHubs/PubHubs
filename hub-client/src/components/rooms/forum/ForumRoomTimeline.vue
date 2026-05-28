@@ -72,10 +72,11 @@
 	// Packages
 	import { computed, ref } from 'vue';
 
-	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 	import ForumCreateThread from '@hub-client/components/rooms/forum/ForumCreateThread.vue';
 	import ForumThread from '@hub-client/components/rooms/forum/ForumThread.vue';
+	import ForumThreadItem from '@hub-client/components/rooms/forum/ForumThreadItem.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Models

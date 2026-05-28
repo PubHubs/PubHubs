@@ -23,7 +23,7 @@
 				</div>
 				<div class="flex items-center gap-1">
 					<span>{{ option.title }}</span>
-					<span v-if="showVotes">({{ userIds.length }}&nbsp;{{ $t('message.voting.plural_votes', userIds.length) }})</span>
+					<span v-if="showVotes">({{ userVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', userVotes.length) }})</span>
 				</div>
 			</div>
 			<div
@@ -31,11 +31,11 @@
 				class="flex flex-wrap items-center gap-2"
 			>
 				<AvatarDisplayName
-					v-for="userId in userIds.slice(0).slice(-3)"
-					:key="userId"
+					v-for="userVote in userVotes.slice(0).slice(-3)"
+					:key="userVote.userId"
 					class="max-sm:hidden"
 					:show-displayname="showVotes"
-					:user-id="userId"
+					:user-id="userVote.userId"
 				/>
 			</div>
 		</div>
@@ -53,11 +53,11 @@
 	import ProgressBar from '@hub-client/components/ui/ProgressBar.vue';
 
 	// Models
-	import { type PollOption } from '@hub-client/models/events/voting/VotingTypes';
+	import { type PollOption, type UserVote } from '@hub-client/models/events/voting/VotingTypes';
 
 	defineProps<{
 		option: PollOption;
-		userIds: string[];
+		userVotes: UserVote[];
 		hasUserVotedOnThisOption: boolean;
 		hasUserVotedOnOtherOption: boolean;
 		percentage: number;

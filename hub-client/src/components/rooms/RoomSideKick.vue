@@ -14,6 +14,10 @@
 	</div>
 </template>
 <script lang="ts" setup>
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import SideKickHeader from '@hub-client/components/rooms/SideKickHeader.vue';
+
 	defineProps({
 		title: {
 			type: String,

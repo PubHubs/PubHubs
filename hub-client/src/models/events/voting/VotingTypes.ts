@@ -9,10 +9,9 @@ interface UserVote {
 }
 
 interface vote {
-	choice?: string;
-	//TODO: remove userIds and use userVotes everywhere
-	userIds: Array<string>;
-	userVotes?: Array<UserVote>;
+	choice: string;
+	userVotes: Array<UserVote>;
+	time?: string;
 }
 
 interface votesForOption {
@@ -27,7 +26,6 @@ class VotingOptions {
 		for (const option of this.options) {
 			for (const userChoices of option.votes) {
 				if (userChoices.choice === 'redacted') {
-					userChoices.userIds = [];
 					userChoices.userVotes = [];
 				}
 			}
@@ -42,18 +40,13 @@ class VotingOptions {
 				votes: [],
 			};
 			for (const vote of vfo.votes) {
-				const newUserIds = [];
-				const newUserTime = [];
-				for (const user of vote.userIds) {
-					newUserIds.push(user);
-				}
-				for (const time of vote.userVotes ?? []) {
-					newUserTime.push(time);
+				const newUserVotes: UserVote[] = [];
+				for (const uv of vote.userVotes) {
+					newUserVotes.push(uv);
 				}
 				newvFo.votes.push({
 					choice: vote.choice,
-					userIds: newUserIds,
-					userVotes: newUserTime,
+					userVotes: newUserVotes,
 				});
 			}
 			newVotes.push(newvFo);
@@ -219,4 +212,4 @@ class Scheduler extends VotingWidget {
 	}
 }
 
-export { vote, votesForOption, VotingOptions, VotingWidgetType, VotingWidget, Poll, PollOption, Scheduler, SchedulerOption, SchedulerOptionStatus };
+export { UserVote, vote, votesForOption, VotingOptions, VotingWidgetType, VotingWidget, Poll, PollOption, Scheduler, SchedulerOption, SchedulerOptionStatus };

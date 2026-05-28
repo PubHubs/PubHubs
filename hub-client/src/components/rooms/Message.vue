@@ -27,8 +27,8 @@
 			class="relative max-w-[90ch] text-ellipsis"
 		>
 			<P
-				v-for="segment in messageSegments"
-				:key="segment"
+				v-for="(segment, index) in messageSegments"
+				:key="index"
 				class="inline"
 			>
 				<!-- Normal text segment -->
@@ -90,6 +90,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import P from '@hub-client/components/elements/P.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// New design

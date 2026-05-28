@@ -15,7 +15,7 @@ import { nl } from '@hub-client/locales/nl';
 
 // Models
 import { type TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
-import { Poll, type PollOption, Scheduler, type SchedulerOption, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
+import { Poll, type PollOption, Scheduler, type SchedulerOption, type UserVote, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -100,19 +100,19 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: [], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'maybe', userVotes: [] },
+					{ choice: 'no', userVotes: [] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: [], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'maybe', userVotes: [] },
+					{ choice: 'no', userVotes: [] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 		];
@@ -150,15 +150,15 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 		];
@@ -174,30 +174,27 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] as UserVote[] },
 					{
 						choice: 'maybe',
-						userIds: ['2', '3'],
-						userVotes: ['12:20', '12:21'],
+						userVotes: [{ userId: '2', time: '12:20' }, { userId: '3', time: '12:21' }],
 					},
-					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
+					{ choice: 'no', userVotes: [{ userId: '1', time: '12:34' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
+					{ choice: 'yes', userVotes: [] as UserVote[] },
+					{ choice: 'maybe', userVotes: [] as UserVote[] },
+					{ choice: 'no', userVotes: [{ userId: '2', time: '' }, { userId: '3', time: '' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
@@ -232,23 +229,22 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
 					{
 						choice: 'maybe',
-						userIds: ['2', '3'],
-						userVotes: ['12:20', '12:21'],
+						userVotes: [{ userId: '2', time: '12:20' }, { userId: '3', time: '12:21' }],
 					},
-					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'no', userVotes: [{ userId: '1', time: '12:34' }] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'maybe', userVotes: [] },
+					{ choice: 'no', userVotes: [{ userId: '2', time: '' }, { userId: '3', time: '' }] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 		];
@@ -264,22 +260,20 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: ['12'], userVotes: ['12:30'] },
+					{ choice: 'yes', userVotes: [{ userId: '12', time: '12:30' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: ['1'], userVotes: ['00:12'] },
+					{ choice: 'yes', userVotes: [{ userId: '1', time: '00:12' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
@@ -316,15 +310,15 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: ['12'], userVotes: ['12:30'] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [{ userId: '12', time: '12:30' }] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: ['1'], userVotes: ['00:12'] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [{ userId: '1', time: '00:12' }] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 		];
@@ -362,30 +356,27 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] as UserVote[] },
 					{
 						choice: 'maybe',
-						userIds: ['2', '3'],
-						userVotes: ['12:20', '12:21'],
+						userVotes: [{ userId: '2', time: '12:20' }, { userId: '3', time: '12:21' }],
 					},
-					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
+					{ choice: 'no', userVotes: [{ userId: '1', time: '12:34' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: ['1'], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
+					{ choice: 'yes', userVotes: [{ userId: '1', time: '' }] },
+					{ choice: 'maybe', userVotes: [] as UserVote[] },
+					{ choice: 'no', userVotes: [{ userId: '2', time: '' }, { userId: '3', time: '' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
@@ -409,17 +400,15 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: ['4'], userVotes: ['15:09'] },
+					{ choice: 'yes', userVotes: [{ userId: '4', time: '15:09' }] },
 					{
 						choice: 'maybe',
-						userIds: ['2', '3'],
-						userVotes: ['12:20', '12:21'],
+						userVotes: [{ userId: '2', time: '12:20' }, { userId: '3', time: '12:21' }],
 					},
-					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
+					{ choice: 'no', userVotes: [{ userId: '1', time: '12:34' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
@@ -428,15 +417,13 @@ describe('VotingWidget functions', () => {
 				votes: [
 					{
 						choice: 'yes',
-						userIds: ['1', '4', '5'],
-						userVotes: ['12:20', '12:21', '15:00'],
+						userVotes: [{ userId: '1', time: '12:20' }, { userId: '4', time: '12:21' }, { userId: '5', time: '15:00' }],
 					},
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: ['2', '3'], userVotes: ['12:20', '12:21'] },
+					{ choice: 'maybe', userVotes: [] as UserVote[] },
+					{ choice: 'no', userVotes: [{ userId: '2', time: '12:20' }, { userId: '3', time: '12:21' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
@@ -529,12 +516,12 @@ describe('VotingWidget functions', () => {
 		};
 		// Send the first event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventRadioHasNotVoted);
-		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds[0]).toBe('TEST');
+		expect(wrapper.vm.votesByOption.options[0].votes[0].userVotes[0].userId).toBe('TEST');
 
 		// Send the second event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventRadioHasVoted);
-		expect(wrapper.vm.votesByOption.options[1].votes[0].userIds[0]).toBe('TEST');
-		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds).toStrictEqual([]);
+		expect(wrapper.vm.votesByOption.options[1].votes[0].userVotes[0].userId).toBe('TEST');
+		expect(wrapper.vm.votesByOption.options[0].votes[0].userVotes).toStrictEqual([]);
 	});
 
 	test('updateVotingWidgetWithEvent correctly updates the votingWidget for poll CHECKBOX type', () => {
@@ -591,11 +578,11 @@ describe('VotingWidget functions', () => {
 		};
 		// Send the first event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventCheckboxHasNotVoted);
-		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds[0]).toBe('TEST');
+		expect(wrapper.vm.votesByOption.options[0].votes[0].userVotes[0].userId).toBe('TEST');
 
 		// Send the second event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventCheckboxHasVoted);
-		expect(wrapper.vm.votesByOption.options[1].votes[0].userIds[0]).toBe('TEST');
+		expect(wrapper.vm.votesByOption.options[1].votes[0].userVotes[0].userId).toBe('TEST');
 	});
 });
 

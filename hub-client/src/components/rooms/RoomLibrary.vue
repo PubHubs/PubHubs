@@ -163,7 +163,7 @@
 														v-else-if="order.index === 3"
 														class="text-label-small text-nowrap"
 														:user-display-name="user.userDisplayName(item.matrixEvent.getSender() ?? '')"
-														:user-id="item.matrixEvent.getSender()"
+														:user-id="item.matrixEvent.getSender()!"
 													/>
 												</div>
 												<!-- <div>
@@ -205,7 +205,7 @@
 															v-for="signedEvent in getAllSignedEventsForFile(item.matrixEvent.getId())"
 															:key="signedEvent.matrixEvent.getId()"
 															:user-display-name="user.userDisplayName(signedEvent.matrixEvent.getSender() ?? '')"
-															:user-id="signedEvent.matrixEvent.getSender()"
+															:user-id="signedEvent.matrixEvent.getSender()!"
 														/>
 													</div>
 												</div>
@@ -213,7 +213,7 @@
 													<AvatarDisplayNameCompact
 														v-if="item.matrixEvent.getSender()"
 														:user-display-name="user.userDisplayName(item.matrixEvent.getSender() ?? '')"
-														:user-id="item.matrixEvent.getSender()"
+														:user-id="item.matrixEvent.getSender()!"
 													/>
 													<EventTimeCompact :timestamp="item.matrixEvent.getTs()" />
 												</div>
@@ -262,14 +262,7 @@
 </template>
 
 <script lang="ts" setup>
-	//Components
-	import BarList from '../ui/BarList.vue';
-	import BarListItem from '../ui/BarListItem.vue';
-	import Dialog from '../ui/Dialog.vue';
-	import DropFiles from '../ui/DropFiles.vue';
-	import FileDownload from '../ui/FileDownload.vue';
-	import InlineCollapse from '../ui/InlineCollapse.vue';
-	import SidebarHeader from '../ui/SidebarHeader.vue';
+	// Components
 	import { type Room as MatrixRoom } from 'matrix-js-sdk';
 	// Composables
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
@@ -277,6 +270,20 @@
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import AvatarDisplayNameCompact from '@hub-client/components/rooms/AvatarDisplayNameCompact.vue';
+	import DisplayNameCompact from '@hub-client/components/rooms/DisplayNameCompact.vue';
+	import EventTimeCompact from '@hub-client/components/rooms/EventTimeCompact.vue';
+	import BarList from '@hub-client/components/ui/BarList.vue';
+	import BarListItem from '@hub-client/components/ui/BarListItem.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+	import DropFiles from '@hub-client/components/ui/DropFiles.vue';
+	import FileDownload from '@hub-client/components/ui/FileDownload.vue';
+	import FileIcon from '@hub-client/components/ui/FileIcon.vue';
+	import InlineCollapse from '@hub-client/components/ui/InlineCollapse.vue';
+	import InlineCollapseToggle from '@hub-client/components/ui/InlineCollapseToggle.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+	import PullDownMenu from '@hub-client/components/ui/PullDownMenu.vue';
+	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
