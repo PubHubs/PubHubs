@@ -5,7 +5,7 @@ use std::ops::Deref;
 use sha2::digest::Digest;
 
 use crate::api;
-use crate::common::elgamal;
+use crate::common::{elgamal, kem};
 use crate::id;
 use crate::phcrypto;
 use crate::servers;
@@ -57,6 +57,14 @@ pub struct Inner {
     pub transcryptor_enc_key: elgamal::PublicKey,
     /// `x_T B` - so the transcryptor can check that the correct keypart was used
     pub transcryptor_master_enc_key_part: elgamal::PublicKey,
+    /// [`kem::EncapKeyBytes::id`] of the transcryptor's encapsulation key.
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcryptor_encap_key_id: Option<id::Id>,
+    /// Shared secret PHC encapsulated against the transcryptor's encap key.
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcryptor_ss_encap: Option<kem::CiphertextBytes>,
 
     pub phc_url: url::Url,
     pub phc_jwt_key: api::VerifyingKey,
@@ -65,6 +73,14 @@ pub struct Inner {
     pub auths_url: url::Url,
     pub auths_jwt_key: api::VerifyingKey,
     pub auths_enc_key: elgamal::PublicKey,
+    /// [`kem::EncapKeyBytes::id`] of the authentication server's encapsulation key.
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auths_encap_key_id: Option<id::Id>,
+    /// Shared secret PHC encapsulated against the authentication server's encap key.
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auths_ss_encap: Option<kem::CiphertextBytes>,
 
     /// `x_T x_PHC B`
     pub master_enc_key: elgamal::PublicKey,
@@ -92,6 +108,8 @@ impl Inner {
             transcryptor_jwt_key,
             transcryptor_enc_key,
             transcryptor_master_enc_key_part,
+            transcryptor_encap_key_id,
+            transcryptor_ss_encap,
 
             phc_url,
             phc_jwt_key,
@@ -100,6 +118,8 @@ impl Inner {
             auths_url,
             auths_jwt_key,
             auths_enc_key,
+            auths_encap_key_id,
+            auths_ss_encap,
 
             global_client_url,
 
@@ -116,12 +136,29 @@ impl Inner {
             .chain_update(**transcryptor_jwt_key)
             .chain_update(transcryptor_enc_key)
             .chain_update(transcryptor_master_enc_key_part)
+            // The encap-key id (32 B) and the ciphertext halves (`ml`: ML-KEM-768, `ec`: Ristretto)
+            // all have fixed lengths, so concatenating them needs no length separators; an absent
+            // (`None`) field contributes nothing, matching the pre-KEM hash.
+            .chain_update(
+                transcryptor_encap_key_id
+                    .as_ref()
+                    .map_or(&[][..], id::Id::as_slice),
+            )
+            .chain_update(transcryptor_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ml))
+            .chain_update(transcryptor_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ec))
             .chain_update(phc_url.as_str())
             .chain_update(**phc_jwt_key)
             .chain_update(phc_enc_key)
             .chain_update(auths_url.as_str())
             .chain_update(**auths_jwt_key)
             .chain_update(auths_enc_key)
+            .chain_update(
+                auths_encap_key_id
+                    .as_ref()
+                    .map_or(&[][..], id::Id::as_slice),
+            )
+            .chain_update(auths_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ml))
+            .chain_update(auths_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ec))
             .chain_update(master_enc_key)
             .chain_update(global_client_url.as_str())
             .chain_update(ph_version.as_ref().map(String::as_str).unwrap_or("n/a"))

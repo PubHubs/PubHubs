@@ -6,11 +6,13 @@ use std::rc::Rc;
 use actix_web::web;
 use sha2::digest::Digest as _;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
+use crate::servers::{
+    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
+};
 use crate::{
     api::{self, EndpointDetails as _},
     attr,
-    common::{elgamal, kem, secret::DigestibleSecret as _},
+    common::{kem, secret::DigestibleSecret as _},
     handle, id, map,
     misc::{crypto, jwt},
     phcrypto,
@@ -36,8 +38,19 @@ impl servers::Details for Details {
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
+        _phc_shared_secrets: &servers::PhcSharedSecrets,
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let phc_ss = server.enc_key.shared_secret(&constellation.phc_enc_key);
+        let ss_encap = constellation.auths_ss_encap.as_ref().ok_or_else(|| {
+            anyhow::anyhow!(
+                "constellation contains no shared secret encapsulated for us; \
+                 check_constellation should have rejected it"
+            )
+        })?;
+        let phc_ss = server
+            .extra()
+            .decap_key
+            .decap(ss_encap)
+            .map_err(|_| anyhow::anyhow!("decapsulating shared secret from PHC failed"))?;
 
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&phc_ss),
@@ -65,15 +78,14 @@ impl servers::Details for Details {
 pub struct ExtraSharedState {}
 
 pub struct ExtraServerState {
-    #[expect(dead_code)]
     pub(super) decap_key: kem::DecapKey,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
-    /// Shared secret with pubhubs central
+    /// Hybrid post-quantum shared secret with pubhubs central
     #[expect(dead_code)]
-    pub phc_ss: elgamal::SharedSecret,
+    pub phc_ss: kem::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with pubhubs central.
     ///
@@ -251,15 +263,19 @@ impl crate::servers::App<Server> for App {
             inner:
                 constellation::Inner {
                     // These fields we must check:
-                    auths_enc_key: enc_key,
                     auths_jwt_key: jwt_key,
+                    auths_encap_key_id,
 
                     // These fields we don't care about:
                     auths_url: _,
+                    auths_enc_key: _,
+                    auths_ss_encap: _,
                     transcryptor_jwt_key: _,
                     transcryptor_enc_key: _,
                     transcryptor_url: _,
                     transcryptor_master_enc_key_part: _,
+                    transcryptor_encap_key_id: _,
+                    transcryptor_ss_encap: _,
                     phc_jwt_key: _,
                     phc_enc_key: _,
                     phc_url: _,
@@ -271,7 +287,13 @@ impl crate::servers::App<Server> for App {
             created_at: _,
         } = constellation;
 
-        enc_key == self.enc_key.public_key() && **jwt_key == self.jwt_key.verifying_key()
+        // PHC must have encapsulated against our current encapsulation key; otherwise reject so that
+        // discovery re-runs and PHC (re)publishes a matching ciphertext.
+        if *auths_encap_key_id != Some(self.encap_key.id()) {
+            return false;
+        }
+
+        **jwt_key == self.jwt_key.verifying_key()
     }
 
     fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
@@ -332,9 +354,9 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             card_config: cfg.card.clone(),
         });
 
-        let auth_state_secret: crypto::SealingKey = base
-            .enc_key
-            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-auths-auth-state");
+        let enc_key: &[u8] = &base.enc_key;
+        let auth_state_secret: crypto::SealingKey =
+            enc_key.derive_sealing_key(sha2::Sha256::new(), "pubhubs-auths-auth-state");
 
         let auth_window = xconf.auth_window;
 

@@ -281,6 +281,12 @@ impl PublicKey {
         CompressedRistretto::from_hex(hexstr)?.try_into().ok()
     }
 
+    /// The identity element, which encodes as 32 zero bytes.
+    pub fn zero() -> Self {
+        use curve25519_dalek::traits::Identity as _;
+        RistrettoPoint::identity().into()
+    }
+
     /// Encrypts the given `plaintext` for this public key.
     /// If the plaintext is a random point, consider using [Self::encrypt_random].
     pub fn encrypt(&self, plaintext: RistrettoPoint) -> Triple {

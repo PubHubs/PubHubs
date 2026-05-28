@@ -66,12 +66,12 @@ pub fn kem_shared_secret(
 /// authentication server and pubhubs central.
 ///
 /// [`Attr`]: crate::attr::Attr
-pub fn attr_signing_key(shared_secret: &elgamal::SharedSecret) -> jwt::HS256 {
+pub fn attr_signing_key(shared_secret: &kem::SharedSecret) -> jwt::HS256 {
     shared_secret.derive_hs256(sha2::Sha256::new(), "pubhubs-attr-signing")
 }
 
 /// Computes the [`crypto::SealingKey`] used to seal messages between servers shared a secret.
-pub fn sealing_secret(shared_secret: &elgamal::SharedSecret) -> crypto::SealingKey {
+pub fn sealing_secret(shared_secret: &kem::SharedSecret) -> crypto::SealingKey {
     shared_secret.derive_sealing_key(sha2::Sha256::new(), "pubhubs-sealing-secret")
 }
 
@@ -93,6 +93,17 @@ pub fn attr_id(attr: &attr::Attr, secret: impl secret::DigestibleSecret) -> crat
 pub fn constellation_id(c: &constellation::Inner) -> id::Id {
     b"".as_slice()
         .derive_id(c.sha256(), "pubhubs-constellation-id")
+}
+
+/// Derives an [`id::Id`] for a [`kem::EncapKeyBytes`].
+pub fn encap_key_id(ek: &kem::EncapKeyBytes) -> id::Id {
+    // `ml` (ML-KEM-768) and `ec` (Ristretto) are fixed-length, so concatenating them is unambiguous.
+    b"".as_slice().derive_id(
+        sha2::Sha256::new()
+            .chain_update(&ek.ml[..])
+            .chain_update(&ek.ec[..]),
+        "pubhubs-encap-key-id",
+    )
 }
 
 /// Derives an [`id::Id`] for a [`jwt::JWT`].

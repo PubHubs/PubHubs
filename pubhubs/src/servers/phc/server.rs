@@ -12,17 +12,21 @@ use crate::api::{self, ApiResultExt as _, EndpointDetails as _, NoPayload};
 use crate::client;
 use crate::common::secret::DigestibleSecret as _;
 use crate::handle;
+use crate::id;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::misc::serde_ext;
 use crate::misc::time_ext;
 use crate::phcrypto;
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
-    constellation,
+    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, PhcSharedSecrets,
+    Server as _, constellation,
 };
 
-use crate::{common::elgamal, hub};
+use crate::{
+    common::{elgamal, kem},
+    hub,
+};
 
 /// PubHubs Central server
 pub type Server = servers::ServerImpl<Details>;
@@ -38,19 +42,19 @@ impl servers::Details for Details {
     type ObjectStoreT = servers::object_store::DefaultObjectStore;
 
     fn create_running_state(
-        server: &Server,
-        constellation: &Constellation,
+        _server: &Server,
+        _constellation: &Constellation,
+        phc_shared_secrets: &PhcSharedSecrets,
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let auths_ss = server.enc_key.shared_secret(&constellation.auths_enc_key);
-        let t_ss = server
-            .enc_key
-            .shared_secret(&constellation.transcryptor_enc_key);
+        // The hybrid post-quantum shared secrets PHC encapsulated for its peers during `discover`.
+        let t_ss = phc_shared_secrets.transcryptor.clone();
+        let auths_ss = phc_shared_secrets.auths.clone();
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
             t_sealing_secret: phcrypto::sealing_secret(&t_ss),
             auths_sealing_secret: phcrypto::sealing_secret(&auths_ss),
-            auths_ss,
             t_ss,
+            auths_ss,
         })
     }
 
@@ -98,13 +102,11 @@ impl Deref for App {
 
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
-    /// Shared secret with transcryptor
-    #[expect(dead_code)]
-    pub(super) t_ss: elgamal::SharedSecret,
+    /// Hybrid post-quantum shared secret with the transcryptor.
+    pub(super) t_ss: kem::SharedSecret,
 
-    /// Shared secret with authentication server
-    #[expect(dead_code)]
-    pub(super) auths_ss: elgamal::SharedSecret,
+    /// Hybrid post-quantum shared secret with the authentication server.
+    pub(super) auths_ss: kem::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with the authentication server
     ///
@@ -204,6 +206,25 @@ impl crate::servers::App<Server> for App {
         let transcryptor_master_enc_key_part = tdi
             .master_enc_key_part
             .expect("should already have been checked to be some by discovery_info_of");
+
+        let current_rs = self.running_state.as_ref();
+
+        let t_prior = current_rs.and_then(|rs| {
+            let id = rs.constellation.transcryptor_encap_key_id.as_ref()?;
+            let ct = rs.constellation.transcryptor_ss_encap.as_ref()?;
+            Some((id, ct, &rs.t_ss))
+        });
+        let (transcryptor_encap_key_id, transcryptor_ss_encap, t_ss) =
+            Self::encap_or_reuse(tdi.encap_key.as_ref(), t_prior)?;
+
+        let auths_prior = current_rs.and_then(|rs| {
+            let id = rs.constellation.auths_encap_key_id.as_ref()?;
+            let ct = rs.constellation.auths_ss_encap.as_ref()?;
+            Some((id, ct, &rs.auths_ss))
+        });
+        let (auths_encap_key_id, auths_ss_encap, auths_ss) =
+            Self::encap_or_reuse(asdi.encap_key.as_ref(), auths_prior)?;
+
         let new_constellation_inner = constellation::Inner {
             // The public master encryption key is `x_PHC * ( x_T * B )`
             master_enc_key: phcrypto::combine_master_enc_key_parts(
@@ -214,13 +235,20 @@ impl crate::servers::App<Server> for App {
             global_client_url: self.global_client_url.clone(),
             phc_url: self.phc_url.clone(),
             phc_jwt_key: self.jwt_key.verifying_key().into(),
-            phc_enc_key: self.enc_key.public_key().clone(),
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            phc_enc_key: elgamal::PublicKey::zero(),
             transcryptor_url: self.transcryptor_url.clone(),
             transcryptor_jwt_key: tdi.jwt_key,
-            transcryptor_enc_key: tdi.enc_key,
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            transcryptor_enc_key: elgamal::PublicKey::zero(),
+            transcryptor_encap_key_id,
+            transcryptor_ss_encap,
             auths_url: self.auths_url.clone(),
             auths_jwt_key: asdi.jwt_key,
-            auths_enc_key: asdi.enc_key,
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            auths_enc_key: elgamal::PublicKey::zero(),
+            auths_encap_key_id,
+            auths_ss_encap,
             ph_version: self.version.clone(),
         };
 
@@ -245,6 +273,10 @@ impl crate::servers::App<Server> for App {
                     created_at: api::NumericDate::now(),
                     inner: new_constellation_inner,
                 }),
+                phc_shared_secrets: PhcSharedSecrets {
+                    transcryptor: t_ss,
+                    auths: auths_ss,
+                },
             });
         }
 
@@ -564,6 +596,37 @@ impl App {
         }
         .check(tdi, url)
     }
+
+    fn encap_or_reuse(
+        peer_encap_key: Option<&kem::EncapKeyBytes>,
+        prior: Option<(&id::Id, &kem::CiphertextBytes, &kem::SharedSecret)>,
+    ) -> api::Result<(
+        Option<id::Id>,
+        Option<kem::CiphertextBytes>,
+        kem::SharedSecret,
+    )> {
+        let Some(ek_bytes) = peer_encap_key else {
+            return Ok((None, None, kem::SharedSecret::random()));
+        };
+
+        let new_id = ek_bytes.id();
+
+        if let Some((prev_id, prev_ct, prev_ss)) = prior
+            && *prev_id == new_id
+        {
+            return Ok((Some(*prev_id), Some(prev_ct.clone()), prev_ss.clone()));
+        }
+
+        let ek = ek_bytes.decode().map_err(|_| {
+            log::error!("failed to decode peer encap_key");
+            api::ErrorCode::InternalError
+        })?;
+        let (ct, ss) = ek.encap().map_err(|_| {
+            log::error!("failed to encapsulate for peer");
+            api::ErrorCode::InternalError
+        })?;
+        Ok((Some(new_id), Some(ct), ss))
+    }
 }
 
 #[derive(Clone)]
@@ -658,13 +721,12 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         let base = AppCreatorBase::<Server>::new(config)?;
 
-        let auth_token_secret: crypto::SealingKey = base
-            .enc_key
-            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-phc-auth-token-secret");
+        let enc_key: &[u8] = &base.enc_key;
+        let auth_token_secret: crypto::SealingKey =
+            enc_key.derive_sealing_key(sha2::Sha256::new(), "pubhubs-phc-auth-token-secret");
 
-        let pp_nonce_secret: crypto::SealingKey = base
-            .enc_key
-            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-pp-nonce-secret");
+        let pp_nonce_secret: crypto::SealingKey =
+            enc_key.derive_sealing_key(sha2::Sha256::new(), "pubhubs-pp-nonce-secret");
 
         Ok(Self {
             base,

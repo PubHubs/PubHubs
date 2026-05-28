@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
     attr, client,
-    common::elgamal,
+    common::kem,
     handle, hub,
     misc::{jwt, serde_ext::bytes_wrapper::B64UU},
     servers::{self, yivi},
@@ -157,9 +157,10 @@ async fn main_integration_test_local(
         .into_constellation()
         .unwrap();
 
-    // To test discovery, change transcryptor's and phc's encryption key
-    let t_enc_key_sk = elgamal::PrivateKey::random();
-    let phc_enc_key_sk = elgamal::PrivateKey::random();
+    // To test discovery, change the transcryptor's decapsulation key and PHC's JWT key, and check
+    // that the constellation picks up the changes.
+    let t_decap_key = kem::DecapKey::generate().unwrap();
+    let t_encap_key_id = t_decap_key.encap_key().encode().unwrap().id();
 
     let resp = client
         .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
@@ -167,8 +168,8 @@ async fn main_integration_test_local(
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
                 &api::admin::UpdateConfigReq {
-                    pointer: "/transcryptor/enc_key".to_owned(),
-                    new_value: serde_json::to_value(&t_enc_key_sk).unwrap(),
+                    pointer: "/transcryptor/decap_key".to_owned(),
+                    new_value: serde_json::to_value(t_decap_key.encode().unwrap()).unwrap(),
                 },
                 Duration::from_secs(10),
             )
@@ -179,7 +180,7 @@ async fn main_integration_test_local(
 
     assert!(matches!(resp, api::admin::UpdateConfigResp::Success));
 
-    // wait for transcryptor's enc_key to be updated
+    // wait for the transcryptor's decapsulation key to be updated
     pubhubs::misc::task::retry(|| async {
         client
             .try_get_stable_constellation(&constellation.phc_url)
@@ -188,9 +189,9 @@ async fn main_integration_test_local(
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
                 if let Some(ref constellation) = constellation_maybe {
-                    if &constellation.transcryptor_enc_key != t_enc_key_sk.public_key() {
+                    if constellation.transcryptor_encap_key_id.as_ref() != Some(&t_encap_key_id) {
                         log::debug!(
-                            "stable constellation has old transcryptor encryption key still"
+                            "stable constellation has old transcryptor encapsulation key still"
                         );
                         return None;
                     }
@@ -203,15 +204,18 @@ async fn main_integration_test_local(
     .unwrap()
     .unwrap();
 
-    // update PHC's key
+    // update PHC's JWT key
+    let phc_jwt_sk = api::SigningKey::generate();
+    let phc_jwt_vk: api::VerifyingKey = phc_jwt_sk.verifying_key().into();
+
     let resp = client
         .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
             &constellation.phc_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
                 &api::admin::UpdateConfigReq {
-                    pointer: "/phc/enc_key".to_owned(),
-                    new_value: serde_json::to_value(&phc_enc_key_sk).unwrap(),
+                    pointer: "/phc/jwt_key".to_owned(),
+                    new_value: serde_json::to_value(&phc_jwt_sk).unwrap(),
                 },
                 Duration::from_secs(10),
             )
@@ -222,7 +226,7 @@ async fn main_integration_test_local(
 
     assert!(matches!(resp, api::admin::UpdateConfigResp::Success));
 
-    // wait for phc's enc_key to be updated
+    // wait for phc's JWT key to be updated
     pubhubs::misc::task::retry(|| async {
         client
             .try_get_stable_constellation(&constellation.phc_url)
@@ -231,8 +235,8 @@ async fn main_integration_test_local(
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
                 if let Some(ref constellation) = constellation_maybe {
-                    if &constellation.phc_enc_key != phc_enc_key_sk.public_key() {
-                        log::debug!("stable constellation has old phc encryption key still");
+                    if constellation.phc_jwt_key != phc_jwt_vk {
+                        log::debug!("stable constellation has old phc jwt key still");
                         return None;
                     }
                 }

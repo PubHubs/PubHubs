@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result};
 use url::Url;
 
-use crate::misc::serde_ext::bytes_wrapper::B64UU;
+use crate::misc::serde_ext::bytes_wrapper::{B64, B64UU};
 use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
@@ -99,14 +99,14 @@ pub struct ServerConfig<ServerSpecific> {
     /// Generate using `cargo run tools generate signing-key`.
     pub jwt_key: Option<api::SigningKey>,
 
-    /// Each server advertises an [`elgamal::PublicKey`] so that shared secrets may be established
-    /// with this server, and also encrypted messages may be sent to it.
+    /// Secret seed used only to derive this server's own non-permanent local secrets.
     ///
-    /// This key is also used to derive non-permanent secrets, like the the transcryptor's
-    /// encryption factor f_H for a hub H.
+    /// Formerly an ElGamal private key that was also published (as `enc_key`) and used to establish
+    /// inter-server shared secrets; both of those roles now belong to the post-quantum KEM, so a
+    /// zero placeholder is published in its stead and only the local-seed role remains.
     ///
-    /// Generate using `cargo run tools generate scalar`.
-    pub enc_key: Option<elgamal::PrivateKey>,
+    /// If `None`, one is generated automatically (which is not suitable for production).
+    pub enc_key: Option<B64>,
 
     /// Key used by admin to sign requests for the admin endpoints.
     /// If `None`, one is generated automatically and the private key is  printed to the log.
@@ -578,7 +578,9 @@ impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerCon
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
         self.jwt_key.get_or_insert_with(api::SigningKey::generate);
-        self.enc_key.get_or_insert_with(elgamal::PrivateKey::random);
+        self.enc_key.get_or_insert_with(|| {
+            serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
+        });
 
         self.admin_key.get_or_insert_with(|| {
             let sk = api::SigningKey::generate();

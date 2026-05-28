@@ -105,6 +105,7 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     fn create_running_state(
         &self,
         constellation: &Constellation,
+        phc_shared_secrets: &PhcSharedSecrets,
     ) -> Result<Self::ExtraRunningState>;
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
@@ -184,6 +185,7 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     fn create_running_state(
         server: &ServerImpl<Self>,
         constellation: &Constellation,
+        phc_shared_secrets: &PhcSharedSecrets,
     ) -> Result<Self::ExtraRunningState>;
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
@@ -230,8 +232,9 @@ where
     fn create_running_state(
         &self,
         constellation: &Constellation,
+        phc_shared_secrets: &PhcSharedSecrets,
     ) -> Result<Self::ExtraRunningState> {
-        D::create_running_state(self, constellation)
+        D::create_running_state(self, constellation, phc_shared_secrets)
     }
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState> {
@@ -428,10 +431,31 @@ pub enum DiscoverVerdict {
     /// My constellation is out-of-date and must be replaced with this constellation
     ConstellationOutdated {
         new_constellation: Box<Constellation>,
+
+        /// Populated by PHC.  T/AS verdicts pass [`PhcSharedSecrets::random()`].
+        phc_shared_secrets: PhcSharedSecrets,
     },
 
     /// My binary is out-of-date.  Exit this binary, and hope the binary is updated.
     BinaryOutdated,
+}
+
+/// PHC's per-peer KEM shared secrets.  Filled by PHC from a real encapsulation when the peer
+/// has published its encapsulation key, and with a random placeholder otherwise.
+pub struct PhcSharedSecrets {
+    pub transcryptor: kem::SharedSecret,
+    pub auths: kem::SharedSecret,
+}
+
+impl PhcSharedSecrets {
+    /// Both secrets random.  Used by T/AS verdicts (the field is unused there) and by PHC when
+    /// a peer has not yet published an encapsulation key.
+    pub fn random() -> Self {
+        Self {
+            transcryptor: kem::SharedSecret::random(),
+            auths: kem::SharedSecret::random(),
+        }
+    }
 }
 
 /// What's common between the [`actix_web::App`]s used by the different PubHubs servers.
@@ -597,6 +621,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
 
         Ok(DiscoverVerdict::ConstellationOutdated {
             new_constellation: Box::new(phc_inf_constellation),
+            phc_shared_secrets: PhcSharedSecrets::random(),
         })
     }
 
@@ -628,7 +653,7 @@ pub struct AppCreatorBase<S: Server> {
     pub phc_url: url::Url,
     pub self_check_code: String,
     pub jwt_key: api::SigningKey,
-    pub enc_key: elgamal::PrivateKey,
+    pub enc_key: Box<[u8]>,
     pub admin_key: api::VerifyingKey,
     pub shared: SharedState<S>,
     pub version: Option<String>,
@@ -673,10 +698,14 @@ where
                 .jwt_key
                 .clone()
                 .expect("jwt_key was not set nor generated"),
-            enc_key: server_config
-                .enc_key
-                .clone()
-                .expect("enc_key was not set nor generated"),
+            enc_key: <serde_bytes::ByteBuf as Clone>::clone(
+                server_config
+                    .enc_key
+                    .as_ref()
+                    .expect("enc_key was not set nor generated"),
+            )
+            .into_vec()
+            .into_boxed_slice(),
             phc_url: config.phc_url.as_ref().clone(),
             admin_key: server_config
                 .admin_key
@@ -701,7 +730,6 @@ pub struct AppBase<S: Server> {
     pub self_check_code: String,
     pub phc_url: url::Url,
     pub jwt_key: api::SigningKey,
-    pub enc_key: elgamal::PrivateKey,
     pub admin_key: api::VerifyingKey,
     pub shared: SharedState<S>,
     pub client: client::Client,
@@ -738,7 +766,6 @@ impl<S: Server> AppBase<S> {
             phc_url: creator_base.phc_url,
             self_check_code: creator_base.self_check_code,
             jwt_key: creator_base.jwt_key,
-            enc_key: creator_base.enc_key,
             admin_key: creator_base.admin_key,
             shared: creator_base.shared,
             client: client::Client::builder()
@@ -986,7 +1013,8 @@ impl<S: Server> AppBase<S> {
             // form.  So no expensive cryptographic operations like finite field inversion
             // or scalar multiplication are performed here.
             jwt_key: app.jwt_key.verifying_key().into(),
-            enc_key: app.enc_key.public_key().clone(),
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            enc_key: elgamal::PublicKey::zero(),
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),

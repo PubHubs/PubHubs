@@ -11,8 +11,8 @@ use tokio::sync::mpsc;
 use crate::api;
 use crate::misc::defer;
 use crate::servers::{
-    App, AppBase, AppCreator, Command, DiscoverVerdict, Name, Server, for_all_servers,
-    server::RunningState,
+    App, AppBase, AppCreator, Command, DiscoverVerdict, Name, PhcSharedSecrets, Server,
+    for_all_servers, server::RunningState,
 };
 
 /// A set of running PubHubs servers.
@@ -491,11 +491,15 @@ impl DiscoveryLimiter {
             return Err(api::ErrorCode::PleaseRetry);
         }
 
-        let new_constellation_maybe = match app.discover(phc_discovery_info).await? {
-            DiscoverVerdict::ConstellationOutdated { new_constellation } => Some(new_constellation),
-            DiscoverVerdict::BinaryOutdated => None,
-            DiscoverVerdict::Alright => return Ok(api::DiscoveryRunResp::UpToDate),
-        };
+        let (new_constellation_maybe, phc_shared_secrets) =
+            match app.discover(phc_discovery_info).await? {
+                DiscoverVerdict::ConstellationOutdated {
+                    new_constellation,
+                    phc_shared_secrets,
+                } => (Some(new_constellation), phc_shared_secrets),
+                DiscoverVerdict::BinaryOutdated => (None, PhcSharedSecrets::random()),
+                DiscoverVerdict::Alright => return Ok(api::DiscoveryRunResp::UpToDate),
+            };
 
         // modify server, and restart (to modify all Apps)
 
@@ -507,14 +511,16 @@ impl DiscoveryLimiter {
                 } else {
                     "restarting binary hoping to update version"
                 },
-                |server: &mut S| -> bool {
+                move |server: &mut S| -> bool {
                     let Some(new_constellation) = new_constellation_maybe else {
                         return false; // no, don't restart the server, but exit the binary so that
                         // - hopefully - a new version of the binary will be started
                         // by e.g. systemd
                     };
 
-                    let extra = match server.create_running_state(&new_constellation) {
+                    let extra = match server
+                        .create_running_state(&new_constellation, &phc_shared_secrets)
+                    {
                         Ok(extra) => extra,
                         Err(err) => {
                             log::error!(

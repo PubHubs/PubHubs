@@ -1871,6 +1871,7 @@ dependencies = [
  "tokio-stream",
  "tokio-test",
  "toml",
+ "toml_writer",
  "typenum",
  "url",
  "zeroize",
