@@ -211,12 +211,13 @@ pub fn random_scalar() -> Scalar {
 ///
 /// Caches the associated [`PublicKey`], which means that loading a [`PrivateKey`] involves a base
 /// point multiplication.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, zeroize::ZeroizeOnDrop)]
 pub struct PrivateKey {
     /// underlying scalar
     scalar: Scalar,
 
     /// associated public key, stored for efficiency
+    #[zeroize(skip)]
     public_key: PublicKey,
 }
 

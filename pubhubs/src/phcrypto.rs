@@ -3,7 +3,7 @@
 use crate::{
     api, attr,
     common::{
-        elgamal,
+        elgamal, kem,
         secret::{self, DigestibleSecret},
     },
     id,
@@ -42,6 +42,24 @@ pub fn t_encrypted_hub_pseudonym(
 ) -> elgamal::Triple {
     let g_h = pseud_factor_for_hub(pseud_factor_secret, hub_id);
     pp.rsk_with_s(&g_h).and_k(master_enc_key_part_inv)
+}
+
+/// Combines a post-quantum ML-KEM and classical Ristretto-DH shared secret.
+pub fn kem_shared_secret(
+    ss_ml: &aws_lc_rs::kem::SharedSecret,
+    ss_ec: &elgamal::SharedSecret,
+) -> kem::SharedSecret {
+    let inner: [u8; 32] = ss_ml
+        .as_ref()
+        .update_digest(
+            sha2::Sha256::new()
+                .chain_update(secret::encode_usize(ss_ec.as_bytes().len()))
+                .chain_update(ss_ec.as_bytes()),
+            "pubhubs-kem-combinator",
+        )
+        .finalize()
+        .into();
+    inner.into()
 }
 
 /// Computes the [`jwt::HS256`] key used to sign [`Attr`] from the secret shared between the
