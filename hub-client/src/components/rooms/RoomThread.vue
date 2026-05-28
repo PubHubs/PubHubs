@@ -113,11 +113,12 @@
 	import { type Reactive, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, shallowReactive, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Components
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
-	// Components
 	import ForumEventBody from '@hub-client/components/rooms/forum/ForumEventBody.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 

@@ -10,7 +10,7 @@
 			role="listitem"
 			:show-votes="showVotes"
 			:show-votes-before-voting="showVotesBeforeVoting"
-			:user-ids="votesOfOption(option.id)"
+			:user-votes="votesOfOption(option.id)"
 			@vote="vote"
 		/>
 	</div>
@@ -20,7 +20,7 @@
 	import PollOptionItem from '@hub-client/components/rooms/voting/poll/PollOptionItem.vue';
 
 	// Models
-	import { type PollOption, type votesForOption } from '@hub-client/models/events/voting/VotingTypes';
+	import { type PollOption, type UserVote, type votesForOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -40,15 +40,15 @@
 
 	const user = useUser();
 
-	const votesOfOption = (optionId: number) => {
-		return props.votesByOption.find((vote) => vote.optionId === optionId)?.votes[0].userIds ?? [];
+	const votesOfOption = (optionId: number): UserVote[] => {
+		return props.votesByOption.find((vote) => vote.optionId === optionId)?.votes[0].userVotes ?? [];
 	};
 	const hasUserVotedOnOption = (optionId: number) => {
-		return votesOfOption(optionId).includes(user.userId ?? '');
+		return votesOfOption(optionId).some((uv) => uv.userId === (user.userId ?? ''));
 	};
 	const hasUserVotedOnOtherOption = (optionId: number) => {
 		for (const option of props.votesByOption) {
-			if (votesOfOption(option.optionId).includes(user.userId ?? '') && option.optionId !== optionId) {
+			if (votesOfOption(option.optionId).some((uv) => uv.userId === (user.userId ?? '')) && option.optionId !== optionId) {
 				return true;
 			}
 		}
@@ -56,11 +56,11 @@
 	};
 
 	const percentageOfOption = (optionId: number) => {
-		const hasUserVoted = props.votesByOption.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId ?? '')));
+		const hasUserVoted = props.votesByOption.some((vote) => vote.votes.some((v) => v.userVotes.some((uv) => uv.userId === (user.userId ?? ''))));
 		const showVotesBeforeVoting = props.showVotesBeforeVoting;
 		if (!showVotesBeforeVoting && !hasUserVoted) return 0;
 		const votes = votesOfOption(optionId).length;
-		const totalVotes = props.votesByOption.reduce((acc, vote) => acc + vote.votes.flatMap((v) => v.userIds).length, 0);
+		const totalVotes = props.votesByOption.reduce((acc, vote) => acc + vote.votes.flatMap((v) => v.userVotes).length, 0);
 		if (totalVotes === 0) return 0;
 		return (votes / totalVotes) * 100;
 	};

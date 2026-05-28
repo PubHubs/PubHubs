@@ -15,7 +15,8 @@
 </template>
 
 <script setup lang="ts">
-	import ParticipantCard from './ParticipantCard.vue';
+	// Components
+	import ParticipantCard from '@hub-client/components/videocall/ParticipantCard.vue';
 
 	defineProps<{
 		remoteParticipants: string[];

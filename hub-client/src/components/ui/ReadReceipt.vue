@@ -36,6 +36,9 @@
 	// Packages
 	import { ref, watchEffect } from 'vue';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// Logic
 	import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 

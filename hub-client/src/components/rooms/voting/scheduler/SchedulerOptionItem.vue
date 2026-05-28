@@ -76,10 +76,12 @@
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import OptionButton from '@hub-client/components/rooms/voting/scheduler/OptionButton.vue';
+	import ViewVotesSchedulerOption from '@hub-client/components/rooms/voting/view-votes/ViewVotesSchedulerOption.vue';
+	import ProgressBarMulti from '@hub-client/components/ui/ProgressBarMulti.vue';
 
 	// Logic
 	import filters from '@hub-client/logic/core/filters';
@@ -131,7 +133,7 @@
 		const voteObject = getVoteObject(choice);
 		let p = 0;
 		if (voteObject) {
-			p = (voteObject.userIds.length / props.votes.reduce((acc, vote) => acc + vote.userIds.length, 0)) * 100;
+			p = (voteObject.userVotes.length / props.votes.reduce((acc, vote) => acc + vote.userVotes.length, 0)) * 100;
 			if (isNaN(p)) p = 0;
 		}
 		return p;
@@ -140,7 +142,7 @@
 	const vote = (choice: string) => {
 		const voteObject = getVoteObject(choice);
 		if (voteObject) {
-			if (voteObject.userIds.includes(user.user.userId)) {
+			if (voteObject.userVotes.some((uv) => uv.userId === user.user.userId)) {
 				//user has already voted on this specific choice
 				pubhubs.addVote(rooms.currentRoomId, props.eventId, props.option.id, 'redacted');
 			} else {

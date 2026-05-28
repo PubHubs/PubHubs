@@ -188,7 +188,9 @@
 	watch(
 		() => votesByOption.value.options,
 		() => {
-			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId ?? '')));
+			hasUserVoted.value = votesByOption.value.options.some((vote) =>
+				vote.votes.some((v) => v.userVotes.some((uv) => uv.userId === (user.userId ?? ''))),
+			);
 		},
 	);
 
@@ -218,15 +220,15 @@
 		const votesForOption: votesForOption = { optionId: option.id, votes: [] };
 		if (type === VotingWidgetType.SCHEDULER) {
 			votesForOption.votes = [
-				{ choice: 'yes', userIds: [], userVotes: [] },
-				{ choice: 'maybe', userIds: [], userVotes: [] },
-				{ choice: 'no', userIds: [], userVotes: [] },
-				{ choice: 'redacted', userIds: [], userVotes: [] },
+				{ choice: 'yes', userVotes: [] },
+				{ choice: 'maybe', userVotes: [] },
+				{ choice: 'no', userVotes: [] },
+				{ choice: 'redacted', userVotes: [] },
 			];
 		} else {
 			votesForOption.votes = [
-				{ choice: 'yes', userIds: [], userVotes: [] },
-				{ choice: 'redacted', userIds: [], userVotes: [] },
+				{ choice: 'yes', userVotes: [] },
+				{ choice: 'redacted', userVotes: [] },
 			];
 		}
 		return votesForOption;
@@ -250,10 +252,10 @@
 				continue;
 			}
 			if (userChoices.choice === 'yes') {
-				score += 1.0 * userChoices.userIds.length;
+				score += 1.0 * userChoices.userVotes.length;
 			}
 			if (userChoices.choice === 'maybe') {
-				score += 0.5 * userChoices.userIds.length;
+				score += 0.5 * userChoices.userVotes.length;
 			}
 		}
 		return score;
@@ -435,7 +437,7 @@
 				//need to check each option here, since the user can only vote one option on a radio poll
 				for (const option of votesByOption.value.options) {
 					for (const userChoices of option.votes) {
-						alreadyRegisteredUserIndex = userChoices.userIds.indexOf(reply_user);
+						alreadyRegisteredUserIndex = userChoices.userVotes.findIndex((uv) => uv.userId === reply_user);
 						if (alreadyRegisteredUserIndex >= 0) {
 							userVoteAlreadyRegistered = true;
 							alreadyRegisteredUserChoices = userChoices;
@@ -448,7 +450,7 @@
 				}
 			} else {
 				for (const userChoices of correspondingOption.votes) {
-					alreadyRegisteredUserIndex = userChoices.userIds.indexOf(reply_user);
+					alreadyRegisteredUserIndex = userChoices.userVotes.findIndex((uv) => uv.userId === reply_user);
 					if (alreadyRegisteredUserIndex >= 0) {
 						userVoteAlreadyRegistered = true;
 						alreadyRegisteredUserChoices = userChoices;
@@ -459,12 +461,10 @@
 
 			if (userVoteAlreadyRegistered) {
 				//remove the old vote
-				alreadyRegisteredUserChoices?.userIds.splice(alreadyRegisteredUserIndex, 1);
-				alreadyRegisteredUserChoices?.userVotes?.splice(alreadyRegisteredUserIndex, 1);
+				alreadyRegisteredUserChoices?.userVotes.splice(alreadyRegisteredUserIndex, 1);
 			}
 			//add the vote
-			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userIds.push(reply_user);
-			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userVotes?.push({ userId: reply_user, time: reply_time });
+			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userVotes.push({ userId: reply_user, time: reply_time });
 
 			if (replyEvent.origin_server_ts > lastEventTimestamp) {
 				lastEventTimestamp = replyEvent.origin_server_ts;
@@ -472,7 +472,7 @@
 
 			//check if the user has voted but don't count redacted votes
 			hasUserVoted.value = votesByOption.value.options.some((vote) =>
-				vote.votes.some((v) => v.userIds.includes(user.userId ?? '') && v.choice !== 'redacted'),
+				vote.votes.some((v) => v.userVotes.some((uv) => uv.userId === (user.userId ?? '')) && v.choice !== 'redacted'),
 			);
 		}
 	}
@@ -506,7 +506,7 @@
 				if (userChoices.choice === 'redacted') {
 					continue;
 				}
-				user_ids = [...new Set([...user_ids, ...userChoices.userIds])];
+				user_ids = [...new Set([...user_ids, ...userChoices.userVotes.map((uv) => uv.userId)])];
 			}
 		}
 		return user_ids;

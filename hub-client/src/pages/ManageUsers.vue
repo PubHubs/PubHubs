@@ -108,6 +108,7 @@
 	import { onBeforeRouteLeave } from 'vue-router';
 
 	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import UserInRoomsForm from '@hub-client/components/forms/UserInRoomsForm.vue';
 	import DisclosureRequestForm from '@hub-client/components/rooms/DisclosureRequestForm.vue';

@@ -15,7 +15,7 @@
 	// Packages
 	import { computed } from 'vue';
 
-	// New design
+	// Components
 	import Button, { type TVariant } from '@hub-client/components/elements/Button.vue';
 
 	// Props

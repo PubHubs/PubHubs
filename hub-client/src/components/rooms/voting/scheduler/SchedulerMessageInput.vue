@@ -103,9 +103,11 @@
 	import { computed, nextTick, ref, watch } from 'vue';
 
 	// Components
+	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+	import VotingWidgetSubmitButton from '@hub-client/components/rooms/voting/VotingWidgetSubmitButton.vue';
 	import SchedulerOptionInput from '@hub-client/components/rooms/voting/scheduler/SchedulerOptionInput.vue';
 
 	// Models

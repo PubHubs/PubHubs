@@ -48,6 +48,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 
 	// Composables
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';

@@ -33,6 +33,10 @@
 <script lang="ts" setup>
 	import { ref } from 'vue';
 
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	// Components
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+
 	import { type MentionAutoCompleteProps, type UserDetails, useMentionAutocomplete } from '@hub-client/composables/mention-autocomplete.composable';
 
 	import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';

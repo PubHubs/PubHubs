@@ -50,8 +50,8 @@
 			</OptionButton>
 			<div>{{ noVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', noVotes.length) }}</div>
 			<div
-				v-for="vote in noVotes"
-				:key="vote.userId"
+				v-for="(vote, index) in noVotes"
+				:key="index"
 				class="mr-2 flex gap-2"
 			>
 				<UserDisplayName
@@ -65,14 +65,19 @@
 
 <script setup lang="ts">
 	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+	import OptionButton from '@hub-client/components/rooms/voting/scheduler/OptionButton.vue';
+
+	// Models
+	import { type UserVote } from '@hub-client/models/events/voting/VotingTypes';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
 	const props = defineProps<{
 		votes: {
-			userVotes: { userId: string; time: string }[];
+			userVotes: UserVote[];
 			choice: string;
 		}[];
 	}>();

@@ -20,7 +20,6 @@ import { getLogLevel } from '@hub-client/logic/logging/Logger';
 import App from '@hub-client/pages/App.vue';
 
 import { setUpi18n } from '@hub-client/i18n';
-import { registerComponents } from '@hub-client/registerComponents';
 
 // Silence matrix-js-sdk's verbose HTTP logs; match our app log level
 const matrixLevel = getLogLevel() === 'debug' ? 'DEBUG' : getLogLevel() === 'info' ? 'INFO' : getLogLevel() === 'error' ? 'ERROR' : 'WARN';
@@ -28,8 +27,6 @@ loglevel.getLogger('matrix').setLevel(matrixLevel);
 
 const pinia = createPinia();
 const app = createApp(App);
-
-registerComponents(app);
 
 const i18n = setUpi18n(app);
 app.use(i18n);

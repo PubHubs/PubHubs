@@ -41,6 +41,7 @@
 	import { computed, ref, watch } from 'vue';
 
 	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
 	// Models

@@ -69,6 +69,6 @@
 
 	const voteOfUserOnOption = (optionId: number) => {
 		const user = useUser();
-		return votesOfOption(optionId).find((vote) => vote.userIds.includes(user.userId ?? ''))?.choice ?? '';
+		return votesOfOption(optionId).find((vote) => vote.userVotes.some((uv) => uv.userId === (user.userId ?? '')))?.choice ?? '';
 	};
 </script>

@@ -74,6 +74,7 @@
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import GlobalbarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Models

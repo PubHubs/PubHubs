@@ -74,10 +74,11 @@
 </template>
 
 <script setup lang="ts">
-	import VideoCallScreenShare from './VideoCallScreenShare.vue';
 	import { type Participant } from 'livekit-client';
 	import { computed, ref, watch } from 'vue';
 
+	// Components
+	import VideoCallScreenShare from '@hub-client/components/videocall/VideoCallScreenShare.vue';
 	import VideoCallVideo from '@hub-client/components/videocall/VideoCallVideo.vue';
 
 	import useVideoCall from '@hub-client/stores/videoCall';

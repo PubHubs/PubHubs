@@ -30,6 +30,9 @@
 	import { onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// New design
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
