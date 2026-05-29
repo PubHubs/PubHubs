@@ -218,37 +218,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		/**
-		 * Initializes the room list with all joined rooms of the current user.
-		 * Also fetches all public rooms from the server.
-		 */
-		async initRoomList() {
-			const rooms = useRooms();
-
-			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
-			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
-
-			rooms.setRoomsLoaded(false);
-
-			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
-			// Since the SDK not always has knowledge of the rooms in time we rejoin every room in joinedRooms
-			// this actually does nothing when already joined, but it will return the room to be stored
-			const roomsToJoin = joinedRooms.filter((joinedRoomId) =>
-				allPublicRooms.some((publicRoom) => publicRoom.room_id === joinedRoomId && publicRoom.name),
-			);
-
-			for (const room_id of roomsToJoin) {
-				const roomName = allPublicRooms.find((r: TPublicRoom) => r.room_id === room_id)?.name;
-				this.client.joinRoom(room_id).then((room) => {
-					this.client.store.storeRoom(room);
-					rooms.updateRoomsWithMatrixRoom(room, roomName);
-				});
-			}
-
-			rooms.fetchPublicRooms();
-			rooms.setRoomsLoaded(true);
-		},
-
-		/**
 		 * Updates the store with this one room
 		 * Fetches the public rooms from the server as update
 		 */
@@ -342,15 +311,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 			// If there is only one admin who has joined the room and if he leaves then room will be without administration.
 			if (onlyOneAdminInRoom && Object.keys(joinedMembers.joined).length > 1) return true;
 			return false;
-		},
-
-		async getPublicRooms(search: string) {
-			return await this.client.publicRooms({
-				limit: 10,
-				filter: {
-					generic_search_term: search,
-				},
-			});
 		},
 
 		async getAllPublicRooms(force: boolean = false) {
