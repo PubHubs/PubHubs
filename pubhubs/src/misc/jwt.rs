@@ -1199,7 +1199,7 @@ mod tests {
             "cGxlLmNvbS9pc19yb290Ijp0cnVlfQ",
         );
 
-        let signature = sk.sign(&to_sign.as_bytes()).unwrap();
+        let signature = sk.sign(to_sign.as_bytes()).unwrap();
 
         assert_eq!(
             signature.as_ref(),

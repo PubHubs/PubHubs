@@ -1,7 +1,6 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
-use awc;
 use indexmap::IndexMap;
 
 use pubhubs::{
@@ -16,7 +15,7 @@ use pubhubs::{
 use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
 
-const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
+const CONFIG_FILE_PATH: &str = "pubhubs.default.toml";
 
 static SETUP_ONCE: std::sync::Once = std::sync::Once::new();
 
@@ -151,7 +150,7 @@ async fn main_integration_test_local(
         .finish();
 
     let constellation: servers::Constellation = client
-        .get_constellation(&config.phc_url.as_ref())
+        .get_constellation(config.phc_url.as_ref())
         .await
         .unwrap()
         .into_constellation()
@@ -188,13 +187,13 @@ async fn main_integration_test_local(
             .retryable()
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
-                if let Some(ref constellation) = constellation_maybe {
-                    if constellation.transcryptor_encap_key_id.as_ref() != Some(&t_encap_key_id) {
-                        log::debug!(
-                            "stable constellation has old transcryptor encapsulation key still"
-                        );
-                        return None;
-                    }
+                if let Some(ref constellation) = constellation_maybe
+                    && constellation.transcryptor_encap_key_id.as_ref() != Some(&t_encap_key_id)
+                {
+                    log::debug!(
+                        "stable constellation has old transcryptor encapsulation key still"
+                    );
+                    return None;
                 }
 
                 constellation_maybe
@@ -234,11 +233,11 @@ async fn main_integration_test_local(
             .retryable()
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
-                if let Some(ref constellation) = constellation_maybe {
-                    if constellation.phc_jwt_key != phc_jwt_vk {
-                        log::debug!("stable constellation has old phc jwt key still");
-                        return None;
-                    }
+                if let Some(ref constellation) = constellation_maybe
+                    && constellation.phc_jwt_key != phc_jwt_vk
+                {
+                    log::debug!("stable constellation has old phc jwt key still");
+                    return None;
                 }
 
                 constellation_maybe
@@ -249,7 +248,7 @@ async fn main_integration_test_local(
     .unwrap();
 
     let constellation: servers::Constellation = client
-        .get_constellation(&config.phc_url.as_ref())
+        .get_constellation(config.phc_url.as_ref())
         .await
         .unwrap()
         .into_constellation()
@@ -263,7 +262,7 @@ async fn main_integration_test_local(
     // Run mock test hub
     let testhub = welcome_resp.hubs[&"testhub0".parse().unwrap()].clone();
 
-    let mock_hub = MockHub::new(testhub.clone().into(), constellation.clone());
+    let mock_hub = MockHub::new(testhub.clone(), constellation.clone());
 
     let mut js = tokio::task::JoinSet::new();
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
@@ -568,36 +567,38 @@ async fn main_integration_test_local(
     ));
 
     // Registering a third time with the same phone number, but a different email address fails
-    // when `register_with_unique_attrs` is set
+    // when `register_with_unique_attrs` is set.
+    // `..Default::default()` is strictly speaking not necessary (clippy::needless_update), but kept
+    // for future fields.
+    #[allow(clippy::needless_update)]
+    let req = api::phc::user::EnterReq {
+        identifying_attr: Some(email3.clone()),
+        mode: api::phc::user::EnterMode::Register,
+        add_attrs: vec![phone.clone()],
+        register_only_with_unique_attrs: true,
+        ..Default::default()
+    };
     assert!(matches!(
         client
-            .query_with_retry::<api::phc::user::EnterEP, _, _>(
-                &constellation.phc_url,
-                &api::phc::user::EnterReq {
-                    identifying_attr: Some(email3.clone()),
-                    mode: api::phc::user::EnterMode::Register,
-                    add_attrs: vec![phone.clone()],
-                    register_only_with_unique_attrs: true,
-                    ..Default::default()
-                },
-            )
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(&constellation.phc_url, &req)
             .await,
         Ok(api::phc::user::EnterResp::AttributeAlreadyTaken { .. })
     ));
 
-    // Registering with fresh email and phone number works when `register_with_unique_attrs` is set
+    // Registering with fresh email and phone number works when `register_with_unique_attrs` is set.
+    // `..Default::default()` is strictly speaking not necessary (clippy::needless_update), but kept
+    // for future fields.
+    #[allow(clippy::needless_update)]
+    let req = api::phc::user::EnterReq {
+        identifying_attr: Some(email4.clone()),
+        mode: api::phc::user::EnterMode::Register,
+        add_attrs: vec![phone4.clone()],
+        register_only_with_unique_attrs: true,
+        ..Default::default()
+    };
     assert!(matches!(
         client
-            .query_with_retry::<api::phc::user::EnterEP, _, _>(
-                &constellation.phc_url,
-                &api::phc::user::EnterReq {
-                    identifying_attr: Some(email4.clone()),
-                    mode: api::phc::user::EnterMode::Register,
-                    add_attrs: vec![phone4.clone()],
-                    register_only_with_unique_attrs: true,
-                    ..Default::default()
-                },
-            )
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(&constellation.phc_url, &req)
             .await,
         Ok(api::phc::user::EnterResp::Entered {
             new_account: true,

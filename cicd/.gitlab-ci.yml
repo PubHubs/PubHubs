@@ -37,7 +37,7 @@ rust:
   script:
     - cd pubhubs
     - echo "=== cargo clippy ==="
-    - cargo clippy -- --deny "warnings"
+    - cargo clippy --all-targets -- --deny "warnings"
     - echo "=== cargo test ==="
     - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug cargo test
     - echo "=== cargo deny check ==="

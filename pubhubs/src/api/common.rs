@@ -666,7 +666,7 @@ mod tests {
         assert_eq!(
             Scalar::deserialize(
                 serde::de::value::StrDeserializer::<serde::de::value::Error>::new(
-                    &"ff00000000000000000000000000000000000000000000000000000000000000",
+                    "ff00000000000000000000000000000000000000000000000000000000000000",
                 ),
             )
             .unwrap(),
