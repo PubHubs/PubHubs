@@ -236,17 +236,17 @@ impl crate::servers::App<Server> for App {
             phc_url: self.phc_url.clone(),
             phc_jwt_key: self.jwt_key.verifying_key().into(),
             // placeholder value - enc_key is not used to create shared secrets anymore
-            phc_enc_key: elgamal::PublicKey::zero(),
+            phc_enc_key: Some(elgamal::PublicKey::zero()),
             transcryptor_url: self.transcryptor_url.clone(),
             transcryptor_jwt_key: tdi.jwt_key,
             // placeholder value - enc_key is not used to create shared secrets anymore
-            transcryptor_enc_key: elgamal::PublicKey::zero(),
+            transcryptor_enc_key: Some(elgamal::PublicKey::zero()),
             transcryptor_encap_key_id,
             transcryptor_ss_encap,
             auths_url: self.auths_url.clone(),
             auths_jwt_key: asdi.jwt_key,
             // placeholder value - enc_key is not used to create shared secrets anymore
-            auths_enc_key: elgamal::PublicKey::zero(),
+            auths_enc_key: Some(elgamal::PublicKey::zero()),
             auths_encap_key_id,
             auths_ss_encap,
             ph_version: self.version.clone(),

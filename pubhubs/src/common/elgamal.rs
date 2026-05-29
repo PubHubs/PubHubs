@@ -16,8 +16,10 @@ use curve25519_dalek::{
 pub struct Triple {
     /// Ephemeral key
     ek: RistrettoPoint,
+
     /// Ciphertext,
     ct: RistrettoPoint,
+
     /// Public key
     pk: RistrettoPoint,
 }

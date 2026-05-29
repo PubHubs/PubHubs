@@ -1014,7 +1014,7 @@ impl<S: Server> AppBase<S> {
             // or scalar multiplication are performed here.
             jwt_key: app.jwt_key.verifying_key().into(),
             // placeholder value - enc_key is not used to create shared secrets anymore
-            enc_key: elgamal::PublicKey::zero(),
+            enc_key: Some(elgamal::PublicKey::zero()),
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),

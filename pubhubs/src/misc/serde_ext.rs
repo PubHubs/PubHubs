@@ -189,10 +189,13 @@ pub mod bytes_wrapper {
     pub enum VisitorType {
         /// [serde::de::Visitor::visit_byte_buf], default
         OwnedByteArray = VT_OWNED_BYTE_ARRAY,
+
         /// [serde::de::Visitor::visit_borrowed_bytes]
         BorrowedByteArray = VT_BORROWED_BYTE_ARRAY,
+
         /// [serde::de::Visitor::visit_bytes]
         TransientByteArray = VT_TRANSIENT_BYTE_ARRAY,
+
         /// [serde::de::Visitor::visit_seq]
         ByteSequence = VT_BYTE_SEQUENCE,
     }

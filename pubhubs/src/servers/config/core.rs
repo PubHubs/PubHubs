@@ -428,6 +428,8 @@ pub mod transcryptor {
 
         /// Hybrid post-quantum [`kem`] decapsulation key, used to establish a shared secret
         /// with pubhubs central.  Randomly generated when not set.
+        ///
+        /// Generate using `cargo run tools generate decap-key`
         pub decap_key: Option<kem::DecapKeyBytes>,
     }
 }
@@ -458,6 +460,8 @@ pub mod auths {
 
         /// Hybrid post-quantum [`kem`] decapsulation key, used to establish a shared secret
         /// with pubhubs central.  Randomly generated when not set.
+        ///
+        /// Generate using `cargo run tools generate decap-key`
         pub decap_key: Option<kem::DecapKeyBytes>,
     }
 

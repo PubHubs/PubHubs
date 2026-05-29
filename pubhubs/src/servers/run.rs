@@ -608,6 +608,7 @@ pub struct Handle<S: Server> {
 struct CommandRequest<S: Server> {
     /// The actual command
     command: Command<S>,
+
     /// A way for the [`Server`] to inform the [`App`] that the command is about to be executed.
     feedback_sender: tokio::sync::oneshot::Sender<()>,
 }

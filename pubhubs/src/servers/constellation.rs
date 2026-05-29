@@ -54,13 +54,26 @@ impl Deref for Constellation {
 pub struct Inner {
     pub transcryptor_url: url::Url,
     pub transcryptor_jwt_key: api::VerifyingKey,
-    pub transcryptor_enc_key: elgamal::PublicKey,
+
+    /// Formerly the transcryptor's ElGamal encryption key, now superseded by the post-quantum KEM
+    /// (see [`transcryptor_ss_encap`]).  A placeholder zero pubkey for now; the `Option` lets a
+    /// future version omit it.
+    ///
+    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
+    /// rotation.
+    ///
+    /// [`transcryptor_ss_encap`]: Self::transcryptor_ss_encap
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcryptor_enc_key: Option<elgamal::PublicKey>,
+
     /// `x_T B` - so the transcryptor can check that the correct keypart was used
     pub transcryptor_master_enc_key_part: elgamal::PublicKey,
+
     /// [`kem::EncapKeyBytes::id`] of the transcryptor's encapsulation key.
     /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub transcryptor_encap_key_id: Option<id::Id>,
+
     /// Shared secret PHC encapsulated against the transcryptor's encap key.
     /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -68,15 +81,34 @@ pub struct Inner {
 
     pub phc_url: url::Url,
     pub phc_jwt_key: api::VerifyingKey,
-    pub phc_enc_key: elgamal::PublicKey,
+
+    /// Formerly PHC's ElGamal encryption key; placeholder zero pubkey, see [`transcryptor_enc_key`].
+    ///
+    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
+    /// rotation.
+    ///
+    /// [`transcryptor_enc_key`]: Self::transcryptor_enc_key
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phc_enc_key: Option<elgamal::PublicKey>,
 
     pub auths_url: url::Url,
     pub auths_jwt_key: api::VerifyingKey,
-    pub auths_enc_key: elgamal::PublicKey,
+
+    /// Formerly the authentication server's ElGamal encryption key; placeholder zero pubkey, see
+    /// [`transcryptor_enc_key`].
+    ///
+    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
+    /// rotation.
+    ///
+    /// [`transcryptor_enc_key`]: Self::transcryptor_enc_key
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auths_enc_key: Option<elgamal::PublicKey>,
+
     /// [`kem::EncapKeyBytes::id`] of the authentication server's encapsulation key.
     /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auths_encap_key_id: Option<id::Id>,
+
     /// Shared secret PHC encapsulated against the authentication server's encap key.
     /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -106,18 +138,15 @@ impl Inner {
         let Inner {
             transcryptor_url,
             transcryptor_jwt_key,
-            transcryptor_enc_key,
             transcryptor_master_enc_key_part,
             transcryptor_encap_key_id,
             transcryptor_ss_encap,
 
             phc_url,
             phc_jwt_key,
-            phc_enc_key,
 
             auths_url,
             auths_jwt_key,
-            auths_enc_key,
             auths_encap_key_id,
             auths_ss_encap,
 
@@ -125,6 +154,11 @@ impl Inner {
 
             master_enc_key,
             ph_version,
+
+            // deprecated - will soon be removed
+            transcryptor_enc_key: _,
+            phc_enc_key: _,
+            auths_enc_key: _,
         } = self;
 
         // NOTE: it would be easier to serialize self using, say, serde_json, and then hash that,
@@ -134,7 +168,6 @@ impl Inner {
         sha2::Sha256::new()
             .chain_update(transcryptor_url.as_str())
             .chain_update(**transcryptor_jwt_key)
-            .chain_update(transcryptor_enc_key)
             .chain_update(transcryptor_master_enc_key_part)
             // The encap-key id (32 B) and the ciphertext halves (`ml`: ML-KEM-768, `ec`: Ristretto)
             // all have fixed lengths, so concatenating them needs no length separators; an absent
@@ -148,10 +181,8 @@ impl Inner {
             .chain_update(transcryptor_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ec))
             .chain_update(phc_url.as_str())
             .chain_update(**phc_jwt_key)
-            .chain_update(phc_enc_key)
             .chain_update(auths_url.as_str())
             .chain_update(**auths_jwt_key)
-            .chain_update(auths_enc_key)
             .chain_update(
                 auths_encap_key_id
                     .as_ref()

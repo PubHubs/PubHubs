@@ -56,8 +56,10 @@ pub struct EncapKey {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, zeroize::ZeroizeOnDrop)]
 pub struct DecapKeyBytes {
     ml: B64,
+
     /// ML-KEM encapsulation-key bytes; see [`DecapKey::ml_ek`].
     ml_ek: B64,
+
     /// Scalar bytes.
     ec: B64,
 }
@@ -66,6 +68,7 @@ pub struct DecapKeyBytes {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct EncapKeyBytes {
     pub ml: B64,
+
     /// [`CompressedRistretto`] bytes.
     pub ec: B64,
 }
@@ -75,6 +78,7 @@ pub struct EncapKeyBytes {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CiphertextBytes {
     pub ml: B64,
+
     /// [`CompressedRistretto`] bytes.
     pub ec: B64,
 }

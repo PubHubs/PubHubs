@@ -261,9 +261,16 @@ pub struct DiscoveryInfoResp {
     /// Used to sign JWTs from this server.
     pub jwt_key: VerifyingKey,
 
-    /// Used to encrypt messages to this server, and to create shared secrets with this server
-    /// using Diffie-Hellman
-    pub enc_key: elgamal::PublicKey,
+    /// Formerly the ElGamal key for encrypting to / establishing shared secrets with this server;
+    /// superseded by the post-quantum [`encap_key`].  Currently a placeholder zero pubkey; the
+    /// `Option` lets a future version omit it.
+    ///
+    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
+    /// rotation.
+    ///
+    /// [`encap_key`]: Self::encap_key
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enc_key: Option<elgamal::PublicKey>,
 
     /// Master encryption key part, that is, `x_PHC B` or `x_T B` in the notation of the
     /// whitepaper.  Only set for PHC or the transcryptor.
@@ -287,6 +294,7 @@ pub struct DiscoveryInfoResp {
 pub enum DiscoveryRunResp {
     /// Everything checks out at our side
     UpToDate,
+
     /// Changes were made and we're restarting now. It'd probably be good to check our discovery
     /// info again in a moment.
     Restarting,

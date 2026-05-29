@@ -736,6 +736,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
     pub struct CardPseudPackage {
         pub card_pseud: CardPseud,
+
         /// Registration date for this user.  Can be `None` for users that registered under v3.0.0.
         pub registration_date: Option<NumericDate>,
     }
