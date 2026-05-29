@@ -25,7 +25,9 @@
 
 #![cfg(test)]
 
-use crate::api::{DiscoveryInfoResp, DiscoveryRunResp, ErrorCode, Result, VerifyingKey};
+use crate::api::{
+    DiscoveryInfoResp, DiscoveryRunResp, ErrorCode, MasterEncKeyPart, Result, Sealed, VerifyingKey,
+};
 use crate::common::{elgamal, kem};
 use crate::id;
 use crate::misc::jwt::NumericDate;
@@ -53,7 +55,10 @@ const SNAPSHOTS: &[(&str, Snapshots)] = &[
         // KEEP THIS COMMENT ON THE TOP (most-recent) ENTRY when adding a new one:
         // move it from the entry being demoted to the new entry above it.
         //
-        // New: encap_key.
+        // New: encap_key (KEM); the master-key parts are no longer published in the clear —
+        // constellation carries {transcryptor,phc}_master_enc_key_part_hash, master_enc_key and
+        // transcryptor_master_enc_key_part are placeholders, and the transcryptor's discovery info
+        // carries master_enc_key_part_hash + master_enc_key_part_sealed.
         ">v3.3.0",
         Snapshots {
             discovery_info_resp_phc: r#"{
@@ -71,9 +76,11 @@ const SNAPSHOTS: &[(&str, Snapshots)] = &[
     "transcryptor_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
     "transcryptor_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
     "transcryptor_master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+    "transcryptor_master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     "phc_url": "https://phc.example.test/",
     "phc_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
     "phc_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+    "phc_master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     "auths_url": "https://auths.example.test/",
     "auths_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
     "auths_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
@@ -90,6 +97,8 @@ const SNAPSHOTS: &[(&str, Snapshots)] = &[
   "jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
   "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
   "master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+  "master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "master_enc_key_part_sealed": "AAAA",
   "encap_key": {"ml":"AA==","ec":"AQ=="},
   "constellation": { "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
 }"#,
@@ -198,6 +207,7 @@ fn wire_compat() {
     // Bogus KEM bytes — the serde shape is what wire_compat checks, not crypto validity.
     let encap_key: kem::EncapKeyBytes =
         serde_json::from_str(r#"{"ml":"AA==","ec":"AQ=="}"#).unwrap();
+    let sealed_part: Sealed<MasterEncKeyPart> = serde_json::from_str(r#""AAAA""#).unwrap();
 
     let constellation = Constellation {
         id,
@@ -206,18 +216,20 @@ fn wire_compat() {
             transcryptor_url: tr_url.clone(),
             transcryptor_jwt_key: vk.clone(),
             transcryptor_enc_key: Some(pk.clone()),
-            transcryptor_master_enc_key_part: pk.clone(),
+            transcryptor_master_enc_key_part: Some(pk.clone()),
+            transcryptor_master_enc_key_part_hash: Some(id),
             transcryptor_encap_key_id: None,
             transcryptor_ss_encap: None,
             phc_url: phc_url.clone(),
             phc_jwt_key: vk.clone(),
             phc_enc_key: Some(pk.clone()),
+            phc_master_enc_key_part_hash: Some(id),
             auths_url: auths_url.clone(),
             auths_jwt_key: vk.clone(),
             auths_enc_key: Some(pk.clone()),
             auths_encap_key_id: None,
             auths_ss_encap: None,
-            master_enc_key: pk.clone(),
+            master_enc_key: Some(pk.clone()),
             global_client_url: gc_url,
             ph_version: Some(v.clone()),
         },
@@ -231,6 +243,8 @@ fn wire_compat() {
         jwt_key: vk.clone(),
         enc_key: Some(pk.clone()),
         master_enc_key_part: Some(pk.clone()),
+        master_enc_key_part_hash: None,
+        master_enc_key_part_sealed: None,
         encap_key: None,
         constellation_or_id: Some(ConstellationOrId::Constellation(Box::new(constellation))),
     };
@@ -243,6 +257,8 @@ fn wire_compat() {
         jwt_key: vk.clone(),
         enc_key: Some(pk.clone()),
         master_enc_key_part: Some(pk.clone()),
+        master_enc_key_part_hash: Some(id),
+        master_enc_key_part_sealed: Some(sealed_part),
         encap_key: Some(encap_key.clone()),
         constellation_or_id: Some(ConstellationOrId::Id { id }),
     };
@@ -255,6 +271,8 @@ fn wire_compat() {
         jwt_key: vk,
         enc_key: Some(pk),
         master_enc_key_part: None,
+        master_enc_key_part_hash: None,
+        master_enc_key_part_sealed: None,
         encap_key: Some(encap_key),
         constellation_or_id: None,
     };

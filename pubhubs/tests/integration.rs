@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
     attr, client,
-    common::kem,
+    common::{elgamal, kem},
     handle, hub,
     misc::{jwt, serde_ext::bytes_wrapper::B64UU},
     servers::{self, yivi},
@@ -237,6 +237,57 @@ async fn main_integration_test_local(
                     && constellation.phc_jwt_key != phc_jwt_vk
                 {
                     log::debug!("stable constellation has old phc jwt key still");
+                    return None;
+                }
+
+                constellation_maybe
+            })
+    })
+    .await
+    .unwrap()
+    .unwrap();
+
+    // Change the transcryptor's master encryption key part and check that the constellation picks
+    // up the new hash (and PHC re-derives the master encryption key).  In a real deployment this
+    // must never happen — it invalidates every polymorphic pseudonym — but an ephemeral test
+    // database may regenerate the key parts.  Every account below is registered afterwards, so it
+    // is created under the new master encryption key.
+    let old_t_master_enc_key_part_hash = constellation.transcryptor_master_enc_key_part_hash;
+    let t_master_enc_key_part = elgamal::PrivateKey::random();
+
+    let resp = client
+        .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
+            &constellation.transcryptor_url,
+            &api::Signed::<api::admin::UpdateConfigReq>::new(
+                &*admin_sk,
+                &api::admin::UpdateConfigReq {
+                    pointer: "/transcryptor/master_enc_key_part".to_owned(),
+                    new_value: serde_json::to_value(&t_master_enc_key_part).unwrap(),
+                },
+                Duration::from_secs(10),
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert!(matches!(resp, api::admin::UpdateConfigResp::Success));
+
+    // wait for the transcryptor's master encryption key part hash to be updated
+    pubhubs::misc::task::retry(|| async {
+        client
+            .try_get_stable_constellation(&constellation.phc_url)
+            .await
+            .retryable()
+            .map(Option::flatten) // Now Result<Option<Constellation>>
+            .map(|constellation_maybe| {
+                if let Some(ref constellation) = constellation_maybe
+                    && constellation.transcryptor_master_enc_key_part_hash
+                        == old_t_master_enc_key_part_hash
+                {
+                    log::debug!(
+                        "stable constellation has old transcryptor master encryption key part hash still"
+                    );
                     return None;
                 }
 

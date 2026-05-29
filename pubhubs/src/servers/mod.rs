@@ -20,8 +20,7 @@ pub(super) use run::Handle;
 pub use run::Set;
 pub use server::Name;
 pub(super) use server::{
-    App, AppBase, AppCreator, AppCreatorBase, Command, Details, DiscoverVerdict, PhcSharedSecrets,
-    Server, ServerImpl,
+    App, AppBase, AppCreator, AppCreatorBase, Command, Details, DiscoverVerdict, Server, ServerImpl,
 };
 
 pub(crate) mod version;

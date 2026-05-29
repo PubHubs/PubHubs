@@ -5,7 +5,7 @@ use std::ops::Deref;
 use sha2::digest::Digest;
 
 use crate::api;
-use crate::common::{elgamal, kem};
+use crate::common::{elgamal, kem, secret};
 use crate::id;
 use crate::phcrypto;
 use crate::servers;
@@ -66,8 +66,22 @@ pub struct Inner {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub transcryptor_enc_key: Option<elgamal::PublicKey>,
 
-    /// `x_T B` - so the transcryptor can check that the correct keypart was used
-    pub transcryptor_master_enc_key_part: elgamal::PublicKey,
+    /// Formerly `x_T B` (the transcryptor's master encryption key part), so the transcryptor could
+    /// check that the correct keypart was used; now a placeholder zero pubkey, superseded by
+    /// [`transcryptor_master_enc_key_part_hash`].  The `Option` lets a future version omit it.
+    ///
+    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
+    /// rotation.
+    ///
+    /// [`transcryptor_master_enc_key_part_hash`]: Self::transcryptor_master_enc_key_part_hash
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcryptor_master_enc_key_part: Option<elgamal::PublicKey>,
+
+    /// Hash of the transcryptor's master encryption key part `x_T B`, so the transcryptor can check
+    /// that the correct keypart was used without `x_T B` being exposed in the clear.
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcryptor_master_enc_key_part_hash: Option<id::Id>,
 
     /// [`kem::EncapKeyBytes::id`] of the transcryptor's encapsulation key.
     /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
@@ -90,6 +104,12 @@ pub struct Inner {
     /// [`transcryptor_enc_key`]: Self::transcryptor_enc_key
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub phc_enc_key: Option<elgamal::PublicKey>,
+
+    /// Hash of PHC's master encryption key part `x_PHC B`.  Published so that a change of PHC's
+    /// part churns the constellation id (the real master key is held off-wire by PHC).
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phc_master_enc_key_part_hash: Option<id::Id>,
 
     pub auths_url: url::Url,
     pub auths_jwt_key: api::VerifyingKey,
@@ -114,13 +134,56 @@ pub struct Inner {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auths_ss_encap: Option<kem::CiphertextBytes>,
 
-    /// `x_T x_PHC B`
-    pub master_enc_key: elgamal::PublicKey,
+    /// Formerly the public master encryption key `x_T x_PHC B`; now a placeholder zero pubkey kept
+    /// off the public wire (PHC holds the real value in its running state, derived from the
+    /// transcryptor's sealed master key part).  The `Option` lets a future version omit it.
+    ///
+    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
+    /// rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub master_enc_key: Option<elgamal::PublicKey>,
 
     pub global_client_url: url::Url,
 
     /// pubhubs version
     pub ph_version: Option<String>,
+}
+
+/// Extension methods on [`sha2::Sha256`] used by [`Inner::sha256`] to give the constellation an
+/// unambiguous byte encoding before hashing.
+trait DigestExt: Sized {
+    /// Length-prefix (8-byte big-endian, platform-independent) a variable-length field.
+    fn chain_varlen(self, bytes: &[u8]) -> Self;
+
+    /// A 1/0 presence byte, followed by the length-prefixed bytes when present.
+    fn chain_opt(self, bytes: Option<&[u8]>) -> Self;
+
+    /// A 1/0 presence byte, followed by both length-prefixed ciphertext halves when present.
+    fn chain_opt_ct(self, ct: Option<&kem::CiphertextBytes>) -> Self;
+}
+
+impl DigestExt for sha2::Sha256 {
+    fn chain_varlen(self, bytes: &[u8]) -> Self {
+        self.chain_update(secret::encode_usize(bytes.len()))
+            .chain_update(bytes)
+    }
+
+    fn chain_opt(self, bytes: Option<&[u8]>) -> Self {
+        match bytes {
+            Some(bytes) => self.chain_update([1u8]).chain_varlen(bytes),
+            None => self.chain_update([0u8]),
+        }
+    }
+
+    fn chain_opt_ct(self, ct: Option<&kem::CiphertextBytes>) -> Self {
+        match ct {
+            Some(ct) => self
+                .chain_update([1u8])
+                .chain_varlen(ct.ml.as_ref())
+                .chain_varlen(ct.ec.as_ref()),
+            None => self.chain_update([0u8]),
+        }
+    }
 }
 
 impl Inner {
@@ -138,12 +201,13 @@ impl Inner {
         let Inner {
             transcryptor_url,
             transcryptor_jwt_key,
-            transcryptor_master_enc_key_part,
+            transcryptor_master_enc_key_part_hash,
             transcryptor_encap_key_id,
             transcryptor_ss_encap,
 
             phc_url,
             phc_jwt_key,
+            phc_master_enc_key_part_hash,
 
             auths_url,
             auths_jwt_key,
@@ -152,47 +216,47 @@ impl Inner {
 
             global_client_url,
 
-            master_enc_key,
             ph_version,
 
             // deprecated - will soon be removed
             transcryptor_enc_key: _,
+            transcryptor_master_enc_key_part: _,
             phc_enc_key: _,
             auths_enc_key: _,
+            master_enc_key: _,
         } = self;
 
         // NOTE: it would be easier to serialize self using, say, serde_json, and then hash that,
         // but it's not evident whether serializing the same constellation twice will give the same
         // string.
+        //
+        // Framing (see `DigestExt`): fixed-length fields (ed25519 keys, 32-byte id hashes) are
+        // hashed directly; variable-length fields are length-prefixed (`chain_varlen`); optional
+        // fields get a 1/0 presence byte (`chain_opt`/`chain_opt_ct`).  So a variable field's bytes
+        // can't be borrowed by an adjacent field, and an absent field is not read as an empty one.
 
         sha2::Sha256::new()
-            .chain_update(transcryptor_url.as_str())
+            // Hash-format version - BUMP THIS on any change to the framing or fields below, so the
+            // change always alters the constellation id.  (Only PHC computes the id; peers compare.)
+            .chain_update(1u16.to_be_bytes())
+            .chain_varlen(transcryptor_url.as_str().as_bytes())
             .chain_update(**transcryptor_jwt_key)
-            .chain_update(transcryptor_master_enc_key_part)
-            // The encap-key id (32 B) and the ciphertext halves (`ml`: ML-KEM-768, `ec`: Ristretto)
-            // all have fixed lengths, so concatenating them needs no length separators; an absent
-            // (`None`) field contributes nothing, matching the pre-KEM hash.
-            .chain_update(
-                transcryptor_encap_key_id
+            .chain_opt(
+                transcryptor_master_enc_key_part_hash
                     .as_ref()
-                    .map_or(&[][..], id::Id::as_slice),
+                    .map(id::Id::as_slice),
             )
-            .chain_update(transcryptor_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ml))
-            .chain_update(transcryptor_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ec))
-            .chain_update(phc_url.as_str())
+            .chain_opt(transcryptor_encap_key_id.as_ref().map(id::Id::as_slice))
+            .chain_opt_ct(transcryptor_ss_encap.as_ref())
+            .chain_varlen(phc_url.as_str().as_bytes())
             .chain_update(**phc_jwt_key)
-            .chain_update(auths_url.as_str())
+            .chain_opt(phc_master_enc_key_part_hash.as_ref().map(id::Id::as_slice))
+            .chain_varlen(auths_url.as_str().as_bytes())
             .chain_update(**auths_jwt_key)
-            .chain_update(
-                auths_encap_key_id
-                    .as_ref()
-                    .map_or(&[][..], id::Id::as_slice),
-            )
-            .chain_update(auths_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ml))
-            .chain_update(auths_ss_encap.as_ref().map_or(&[][..], |ct| &ct.ec))
-            .chain_update(master_enc_key)
-            .chain_update(global_client_url.as_str())
-            .chain_update(ph_version.as_ref().map(String::as_str).unwrap_or("n/a"))
+            .chain_opt(auths_encap_key_id.as_ref().map(id::Id::as_slice))
+            .chain_opt_ct(auths_ss_encap.as_ref())
+            .chain_varlen(global_client_url.as_str().as_bytes())
+            .chain_opt(ph_version.as_ref().map(|v| v.as_bytes()))
     }
 
     pub fn derive_id(&self) -> id::Id {

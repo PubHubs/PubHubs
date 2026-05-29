@@ -81,6 +81,11 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     /// Additional state when the server is running
     type ExtraRunningState: Clone + core::fmt::Debug;
 
+    /// Data threaded out of [`App::discover`] into
+    /// [`create_running_state`](Self::create_running_state) that the latter needs but cannot
+    /// recompute.  `()` for servers other than PHC.
+    type RunningStateSeed: Send + 'static;
+
     /// Additional shared state
     type ExtraSharedState;
 
@@ -105,7 +110,7 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     fn create_running_state(
         &self,
         constellation: &Constellation,
-        phc_shared_secrets: &PhcSharedSecrets,
+        seed: &Self::RunningStateSeed,
     ) -> Result<Self::ExtraRunningState>;
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
@@ -178,6 +183,7 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     type AppCreatorT;
     type AppT;
     type ExtraRunningState: Clone + core::fmt::Debug;
+    type RunningStateSeed: Send + 'static;
     type ExtraSharedState;
     type ExtraServerState;
     type ObjectStoreT;
@@ -185,7 +191,7 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     fn create_running_state(
         server: &ServerImpl<Self>,
         constellation: &Constellation,
-        phc_shared_secrets: &PhcSharedSecrets,
+        seed: &Self::RunningStateSeed,
     ) -> Result<Self::ExtraRunningState>;
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
@@ -206,6 +212,7 @@ where
 
     type ExtraConfig = D::Extra;
     type ExtraRunningState = D::ExtraRunningState;
+    type RunningStateSeed = D::RunningStateSeed;
     type ExtraSharedState = D::ExtraSharedState;
     type ExtraServerState = D::ExtraServerState;
 
@@ -232,9 +239,9 @@ where
     fn create_running_state(
         &self,
         constellation: &Constellation,
-        phc_shared_secrets: &PhcSharedSecrets,
+        seed: &Self::RunningStateSeed,
     ) -> Result<Self::ExtraRunningState> {
-        D::create_running_state(self, constellation, phc_shared_secrets)
+        D::create_running_state(self, constellation, seed)
     }
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState> {
@@ -423,39 +430,28 @@ impl<S: Server> std::fmt::Display for Command<S> {
     }
 }
 
-/// Result of [`App::discover`].
-pub enum DiscoverVerdict {
+/// Result of [`App::discover`], generic over the server's
+/// [`RunningStateSeed`](Details::RunningStateSeed).
+pub enum DiscoverVerdict<RunningStateSeed> {
     /// My and PHC's constellation seem up-to-date
     Alright,
 
-    /// My constellation is out-of-date and must be replaced with this constellation
+    /// My constellation is out-of-date and must be replaced with this constellation.  `seed`
+    /// carries the data [`create_running_state`](Details::create_running_state) needs but cannot
+    /// recompute.
     ConstellationOutdated {
         new_constellation: Box<Constellation>,
-
-        /// Populated by PHC.  T/AS verdicts pass [`PhcSharedSecrets::random()`].
-        phc_shared_secrets: PhcSharedSecrets,
+        seed: RunningStateSeed,
     },
+
+    /// My constellation is unchanged, but my running state must be rebuilt from `seed`.  Used by
+    /// PHC once it has unsealed the transcryptor's master key part and can derive the master
+    /// encryption key (which lives in the running state, not the constellation): no new
+    /// constellation is published, so T and AS are not restarted.
+    RunningStateOutdated { seed: RunningStateSeed },
 
     /// My binary is out-of-date.  Exit this binary, and hope the binary is updated.
     BinaryOutdated,
-}
-
-/// PHC's per-peer KEM shared secrets.  Filled by PHC from a real encapsulation when the peer
-/// has published its encapsulation key, and with a random placeholder otherwise.
-pub struct PhcSharedSecrets {
-    pub transcryptor: kem::SharedSecret,
-    pub auths: kem::SharedSecret,
-}
-
-impl PhcSharedSecrets {
-    /// Both secrets random.  Used by T/AS verdicts (the field is unused there) and by PHC when
-    /// a peer has not yet published an encapsulation key.
-    pub fn random() -> Self {
-        Self {
-            transcryptor: kem::SharedSecret::random(),
-            auths: kem::SharedSecret::random(),
-        }
-    }
 }
 
 /// What's common between the [`actix_web::App`]s used by the different PubHubs servers.
@@ -474,13 +470,22 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// obtained from Pubhubs Central.  If the server is not PHC itself, the [`Constellation`]
     /// in this [`api::DiscoveryInfoResp`] must be set.
     ///
-    /// If one of the other servers is not up-to-date
-    /// according to this server, discovery of that server is invoked and
-    /// [`api::ErrorCode::PleaseRetry`] is returned.
+    /// If one of the other servers is not up-to-date according to this server, discovery of that
+    /// server is invoked and [`api::ErrorCode::PleaseRetry`] is returned.
+    ///
+    /// PHC implements this directly; the transcryptor and authentication server delegate to
+    /// [`discover_as_non_phc`](Self::discover_as_non_phc).
     async fn discover(
         self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
-    ) -> api::Result<DiscoverVerdict> {
+    ) -> api::Result<DiscoverVerdict<S::RunningStateSeed>>;
+
+    /// Shared discovery routine for the non-PHC servers (transcryptor, authentication server),
+    /// whose running state needs no seed (`RunningStateSeed = ()`).
+    async fn discover_as_non_phc(
+        self: &Rc<Self>,
+        phc_inf: api::DiscoveryInfoResp,
+    ) -> api::Result<DiscoverVerdict<()>> {
         log::debug!("{server_name}: running discovery", server_name = S::NAME);
 
         if S::NAME == Name::PubhubsCentral {
@@ -621,7 +626,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
 
         Ok(DiscoverVerdict::ConstellationOutdated {
             new_constellation: Box::new(phc_inf_constellation),
-            phc_shared_secrets: PhcSharedSecrets::random(),
+            seed: (),
         })
     }
 
@@ -636,6 +641,15 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// This server's published [`kem::EncapKeyBytes`], if any.  Overridden by T/AS.
     fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
         None
+    }
+
+    /// The sealing key (shared with PHC) under which this server seals its master encryption key
+    /// part in its discovery info, when available (it requires a running state, so it is `None`
+    /// before discovery completes).  Only invoked on, and overridden by, the transcryptor.
+    fn master_enc_key_part_sealing_key(&self) -> Option<&api::SealingKey> {
+        panic!(
+            "master_enc_key_part_sealing_key is only invoked on (and overridden by) the transcryptor"
+        )
     }
 
     /// Will be invoked for each instance of [`App`] that is created.
@@ -1003,6 +1017,31 @@ impl<S: Server> AppBase<S> {
             },
         });
 
+        // The transcryptor publishes a hash of its master encryption key part (so PHC can commit it
+        // to the constellation before it is able to unseal the part) and, once it shares a secret
+        // with PHC, the part itself sealed under that secret.  PHC and AS publish neither: PHC
+        // commits its own part's hash to the constellation directly and must not add discovery-info
+        // fields that v3.3.0 and earlier peers reject; AS has no master key part.  (The
+        // `Transcryptor` guard must come first: `master_enc_key_part_sealing_key` panics elsewhere.)
+        let master_enc_key_part_hash = if matches!(S::NAME, Name::Transcryptor)
+            && let Some(sk) = app.master_enc_key_part()
+        {
+            Some(crate::phcrypto::master_enc_key_part_hash(sk.public_key()))
+        } else {
+            None
+        };
+        let master_enc_key_part_sealed = if matches!(S::NAME, Name::Transcryptor)
+            && let Some(sk) = app.master_enc_key_part()
+            && let Some(key) = app.master_enc_key_part_sealing_key()
+        {
+            Some(api::Sealed::new(
+                &api::MasterEncKeyPart(sk.public_key().clone()),
+                key,
+            )?)
+        } else {
+            None
+        };
+
         Ok(api::DiscoveryInfoResp {
             name: S::NAME,
             version: app.version.clone(),
@@ -1015,9 +1054,13 @@ impl<S: Server> AppBase<S> {
             jwt_key: app.jwt_key.verifying_key().into(),
             // placeholder value - enc_key is not used to create shared secrets anymore
             enc_key: Some(elgamal::PublicKey::zero()),
+            // placeholder - the real part moved to `master_enc_key_part_hash`/`_sealed`; kept
+            // `Some(zero)` for PHC and T but `None` for AS, preserving the old topology check.
             master_enc_key_part: app
                 .master_enc_key_part()
-                .map(|privk| privk.public_key().clone()),
+                .map(|_| elgamal::PublicKey::zero()),
+            master_enc_key_part_hash,
+            master_enc_key_part_sealed,
             encap_key: app.encap_key().cloned(),
             constellation_or_id,
         })

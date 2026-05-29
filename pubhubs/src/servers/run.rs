@@ -11,7 +11,7 @@ use tokio::sync::mpsc;
 use crate::api;
 use crate::misc::defer;
 use crate::servers::{
-    App, AppBase, AppCreator, Command, DiscoverVerdict, Name, PhcSharedSecrets, Server,
+    App, AppBase, AppCreator, Command, Constellation, DiscoverVerdict, Name, Server,
     for_all_servers, server::RunningState,
 };
 
@@ -491,62 +491,82 @@ impl DiscoveryLimiter {
             return Err(api::ErrorCode::PleaseRetry);
         }
 
-        let (new_constellation_maybe, phc_shared_secrets) =
-            match app.discover(phc_discovery_info).await? {
-                DiscoverVerdict::ConstellationOutdated {
-                    new_constellation,
-                    phc_shared_secrets,
-                } => (Some(new_constellation), phc_shared_secrets),
-                DiscoverVerdict::BinaryOutdated => (None, PhcSharedSecrets::random()),
-                DiscoverVerdict::Alright => return Ok(api::DiscoveryRunResp::UpToDate),
-            };
+        // What discovery determined should happen; threaded into the `modify` closure below.
+        enum PostDiscovery<Seed> {
+            /// Replace the published constellation and rebuild the running state.
+            Republish(Box<Constellation>, Seed),
+            /// Keep the published constellation; only rebuild the running state from this seed.
+            RebuildRunningState(Seed),
+            /// Exit the binary so an updated one is (hopefully) started in its place.
+            ExitBinary,
+        }
+
+        let post_discovery = match app.discover(phc_discovery_info).await? {
+            DiscoverVerdict::ConstellationOutdated {
+                new_constellation,
+                seed,
+            } => PostDiscovery::Republish(new_constellation, seed),
+            DiscoverVerdict::RunningStateOutdated { seed } => {
+                PostDiscovery::RebuildRunningState(seed)
+            }
+            DiscoverVerdict::BinaryOutdated => PostDiscovery::ExitBinary,
+            DiscoverVerdict::Alright => return Ok(api::DiscoveryRunResp::UpToDate),
+        };
 
         // modify server, and restart (to modify all Apps)
 
+        let display = match &post_discovery {
+            PostDiscovery::Republish(..) => "updated constellation after discovery",
+            PostDiscovery::RebuildRunningState(_) => "updated running state after discovery",
+            PostDiscovery::ExitBinary => "restarting binary hoping to update version",
+        };
+
         let result = app
             .handle
-            .modify(
-                if new_constellation_maybe.is_some() {
-                    "updated constellation after discovery"
-                } else {
-                    "restarting binary hoping to update version"
-                },
-                move |server: &mut S| -> bool {
-                    let Some(new_constellation) = new_constellation_maybe else {
-                        return false; // no, don't restart the server, but exit the binary so that
-                        // - hopefully - a new version of the binary will be started
-                        // by e.g. systemd
-                    };
-
-                    let extra = match server
-                        .create_running_state(&new_constellation, &phc_shared_secrets)
-                    {
-                        Ok(extra) => extra,
-                        Err(err) => {
-                            log::error!(
-                                "Error while restarting {} after discovery: {}",
-                                S::NAME,
-                                err
-                            );
-                            return false; // do not restart
-                        }
-                    };
-
-                    let new_url = new_constellation.url(S::NAME).clone();
-
-                    let old_running_state = server
-                        .running_state
-                        .replace(RunningState::new(*new_constellation, extra));
-
-                    // See if our url has changed
-                    if old_running_state.is_none_or(|rs| rs.constellation.url(S::NAME) != &new_url)
-                    {
-                        log::info!("{}: at {}", S::NAME, new_url);
+            .modify(display, move |server: &mut S| -> bool {
+                let (constellation, seed) = match post_discovery {
+                    PostDiscovery::Republish(new_constellation, seed) => (*new_constellation, seed),
+                    PostDiscovery::RebuildRunningState(seed) => {
+                        let Some(running_state) = server.running_state.as_ref() else {
+                            log::error!("{}: running state to rebuild is absent", S::NAME);
+                            return false;
+                        };
+                        (
+                            AsRef::<Constellation>::as_ref(&running_state.constellation).clone(),
+                            seed,
+                        )
                     }
+                    PostDiscovery::ExitBinary => {
+                        return false; // no, don't restart the server, but exit the binary so that
+                        // - hopefully - a new version of the binary will be started by e.g. systemd
+                    }
+                };
 
-                    true // yes, restart this server
-                },
-            )
+                let extra = match server.create_running_state(&constellation, &seed) {
+                    Ok(extra) => extra,
+                    Err(err) => {
+                        log::error!(
+                            "Error while restarting {} after discovery: {}",
+                            S::NAME,
+                            err
+                        );
+                        return false; // do not restart
+                    }
+                };
+
+                let new_url = constellation.url(S::NAME).clone();
+
+                let old_running_state = server
+                    .running_state
+                    .replace(RunningState::new(constellation, extra));
+
+                // See if our url has changed
+                if old_running_state.is_none_or(|rs| rs.constellation.url(S::NAME) != &new_url) {
+                    log::info!("{}: at {}", S::NAME, new_url);
+                }
+
+                true // yes, restart this server
+            })
             .await;
 
         if let Err(()) = result {

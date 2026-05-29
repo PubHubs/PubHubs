@@ -9,7 +9,10 @@ use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::phcrypto;
 use crate::{
     api::{self, EndpointDetails as _},
-    servers::{self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation},
+    servers::{
+        self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
+        constellation,
+    },
 };
 
 use api::tr::*;
@@ -23,6 +26,7 @@ impl servers::Details for Details {
     type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
+    type RunningStateSeed = ();
     type ExtraSharedState = ExtraSharedState;
     type ExtraServerState = ExtraServerState;
     type ObjectStoreT = servers::object_store::UseNone;
@@ -30,7 +34,7 @@ impl servers::Details for Details {
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
-        _phc_shared_secrets: &servers::PhcSharedSecrets,
+        _seed: &(),
     ) -> anyhow::Result<Self::ExtraRunningState> {
         let ss_encap = constellation
             .transcryptor_ss_encap
@@ -89,6 +93,7 @@ pub struct App {
     base: AppBase<Server>,
     master_enc_key_part: elgamal::PrivateKey,
     master_enc_key_part_inv: curve25519_dalek::Scalar,
+    master_enc_key_part_hash: crate::id::Id,
     pseud_factor_secret: B64UU,
     encap_key: kem::EncapKeyBytes,
 }
@@ -115,12 +120,13 @@ impl crate::servers::App<Server> for App {
                 constellation::Inner {
                     // These fields we must check:
                     transcryptor_jwt_key: jwt_key,
-                    transcryptor_master_enc_key_part: master_enc_key_part,
+                    transcryptor_master_enc_key_part_hash,
                     transcryptor_encap_key_id,
 
                     // These fields we don't care about:
                     transcryptor_url: _,
                     transcryptor_enc_key: _,
+                    transcryptor_master_enc_key_part: _, // deprecated
                     transcryptor_ss_encap: _,
                     auths_enc_key: _,
                     auths_jwt_key: _,
@@ -129,6 +135,7 @@ impl crate::servers::App<Server> for App {
                     auths_ss_encap: _,
                     phc_jwt_key: _,
                     phc_enc_key: _,
+                    phc_master_enc_key_part_hash: _,
                     phc_url: _,
                     master_enc_key: _,
                     global_client_url: _,
@@ -145,7 +152,7 @@ impl crate::servers::App<Server> for App {
         }
 
         **jwt_key == self.jwt_key.verifying_key()
-            && master_enc_key_part == self.master_enc_key_part.public_key()
+            && *transcryptor_master_enc_key_part_hash == Some(self.master_enc_key_part_hash)
     }
 
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
@@ -154,6 +161,17 @@ impl crate::servers::App<Server> for App {
 
     fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
         Some(&self.encap_key)
+    }
+
+    fn master_enc_key_part_sealing_key(&self) -> Option<&api::SealingKey> {
+        self.running_state.as_ref().map(|rs| &rs.phc_sealing_secret)
+    }
+
+    async fn discover(
+        self: &Rc<Self>,
+        phc_inf: api::DiscoveryInfoResp,
+    ) -> api::Result<DiscoverVerdict<()>> {
+        self.discover_as_non_phc(phc_inf).await
     }
 }
 
@@ -266,6 +284,9 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     ) -> App {
         App {
             base: AppBase::new(self.base, handle, generation),
+            master_enc_key_part_hash: phcrypto::master_enc_key_part_hash(
+                self.master_enc_key_part.public_key(),
+            ),
             master_enc_key_part: self.master_enc_key_part,
             master_enc_key_part_inv: self.master_enc_key_part_inv,
             pseud_factor_secret: self.pseud_factor_secret,

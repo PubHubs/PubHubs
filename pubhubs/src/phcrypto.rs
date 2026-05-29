@@ -22,6 +22,15 @@ pub fn combine_master_enc_key_parts(
     private_part.scale(public_part)
 }
 
+/// Hash of a master encryption key part (`x_T B` or `x_PHC B`), published in the constellation and
+/// discovery info in place of the part itself, so the part is not exposed in the clear.
+pub fn master_enc_key_part_hash(part: &elgamal::PublicKey) -> id::Id {
+    b"".as_slice().derive_id(
+        sha2::Sha256::new().chain_update(part),
+        "pubhubs-master-enc-key-part-hash",
+    )
+}
+
 /// Computes the **pseudonymisation factor** $g_H$ for the hub identified by `hub_id`,
 /// from the transcryptor's `pseud_factor_secret`.  See [`crate::api::sso`] for the
 /// exact formula.

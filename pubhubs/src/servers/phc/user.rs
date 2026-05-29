@@ -306,11 +306,19 @@ impl App {
             //
             //  Here, we're only doing steps 1 and 2. Steps 3 and 4 are shared with regular login.
 
+            // The master encryption key is held off-wire in PHC's running state and is only set
+            // once PHC has unsealed the transcryptor's master key part; until then we cannot mint
+            // a polymorphic pseudonym, so the client should retry.
+            let Some(master_enc_key) = running_state.master_enc_key.as_ref() else {
+                log::info!("cannot register a new user yet: master encryption key not available");
+                return Err(api::ErrorCode::PleaseRetry);
+            };
+
             let user_state = UserState {
                 id: Id::random(),
                 card_id: Some(CardPseud(Id::random())),
                 registration_date: Some(api::NumericDate::now()),
-                polymorphic_pseudonym: running_state.constellation.master_enc_key.encrypt_random(),
+                polymorphic_pseudonym: master_enc_key.encrypt_random(),
                 banned: false,
                 allow_login_by: attrs
                     .values()

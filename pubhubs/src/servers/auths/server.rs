@@ -7,7 +7,8 @@ use actix_web::web;
 use sha2::digest::Digest as _;
 
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
+    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
+    constellation, yivi,
 };
 use crate::{
     api::{self, EndpointDetails as _},
@@ -31,6 +32,7 @@ impl servers::Details for Details {
     type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
+    type RunningStateSeed = ();
     type ExtraSharedState = ExtraSharedState;
     type ExtraServerState = ExtraServerState;
     type ObjectStoreT = servers::object_store::UseNone;
@@ -38,7 +40,7 @@ impl servers::Details for Details {
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
-        _phc_shared_secrets: &servers::PhcSharedSecrets,
+        _seed: &(),
     ) -> anyhow::Result<Self::ExtraRunningState> {
         let ss_encap = constellation.auths_ss_encap.as_ref().ok_or_else(|| {
             anyhow::anyhow!(
@@ -274,10 +276,12 @@ impl crate::servers::App<Server> for App {
                     transcryptor_enc_key: _,
                     transcryptor_url: _,
                     transcryptor_master_enc_key_part: _,
+                    transcryptor_master_enc_key_part_hash: _,
                     transcryptor_encap_key_id: _,
                     transcryptor_ss_encap: _,
                     phc_jwt_key: _,
                     phc_enc_key: _,
+                    phc_master_enc_key_part_hash: _,
                     phc_url: _,
                     master_enc_key: _,
                     global_client_url: _,
@@ -298,6 +302,13 @@ impl crate::servers::App<Server> for App {
 
     fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
         Some(&self.encap_key)
+    }
+
+    async fn discover(
+        self: &Rc<Self>,
+        phc_inf: api::DiscoveryInfoResp,
+    ) -> api::Result<DiscoverVerdict<()>> {
+        self.discover_as_non_phc(phc_inf).await
     }
 }
 

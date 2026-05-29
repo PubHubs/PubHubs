@@ -245,6 +245,9 @@ pub enum MessageCode {
     // new >v3.0.0
     CardPseudPackage = 12,
     HubPing = 13,
+    // new >v3.3.0
+    /// Seals the transcryptor's master encryption key part in its discovery info.
+    MasterEncKeyPart = 14,
 
     /// Only used as an example in a doctest
     Example = 65535,

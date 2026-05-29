@@ -242,7 +242,9 @@ impl EndpointDetails for DiscoveryRun {
 ///
 /// </div>
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
+// NOTE: `deny_unknown_fields` was deliberately dropped here so that future versions can add fields
+// without breaking deserialization at this version.  Be aware that v3.3.0 and earlier DID set it,
+// so a field that PHC emits still breaks those peers until they are out of rotation.
 #[must_use]
 pub struct DiscoveryInfoResp {
     pub name: crate::servers::Name,
@@ -272,9 +274,34 @@ pub struct DiscoveryInfoResp {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enc_key: Option<elgamal::PublicKey>,
 
-    /// Master encryption key part, that is, `x_PHC B` or `x_T B` in the notation of the
-    /// whitepaper.  Only set for PHC or the transcryptor.
+    /// Formerly the master encryption key part, `x_PHC B` or `x_T B` in the notation of the
+    /// whitepaper; now a placeholder zero pubkey (still set, as `Some(zero)`, by PHC and the
+    /// transcryptor).  Superseded by [`master_enc_key_part_hash`] and, for the transcryptor,
+    /// [`master_enc_key_part_sealed`], so the part is not exposed in the clear.
+    ///
+    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
+    /// rotation.
+    ///
+    /// [`master_enc_key_part_hash`]: Self::master_enc_key_part_hash
+    /// [`master_enc_key_part_sealed`]: Self::master_enc_key_part_sealed
     pub master_enc_key_part: Option<elgamal::PublicKey>,
+
+    /// Hash of the transcryptor's master encryption key part `x_T B`, published so PHC can commit
+    /// it to the constellation id before it is able to unseal the part itself.  Set by the
+    /// transcryptor only: PHC commits its own part's hash to the constellation directly, and must
+    /// not add discovery-info fields that pre-v3.3.0 peers (which `deny_unknown_fields`) reject.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub master_enc_key_part_hash: Option<crate::id::Id>,
+
+    /// The transcryptor's master encryption key part `x_T B`, sealed under the secret it shares
+    /// with PHC, so PHC can recover it without `x_T B` being exposed in the clear.  Set by the
+    /// transcryptor once that shared secret has been established.
+    ///
+    /// Unlike [`master_enc_key_part_hash`](Self::master_enc_key_part_hash), this does not influence
+    /// the constellation (id): PHC recovering the part updates only PHC's own running state, not
+    /// the published constellation, so it does not trigger a constellation change at T or AS.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub master_enc_key_part_sealed: Option<Sealed<MasterEncKeyPart>>,
 
     /// Hybrid post-quantum [`kem`] encapsulation key, used by pubhubs central to establish
     /// a shared secret with this server.  Only set for the transcryptor and authentication server.
@@ -286,6 +313,13 @@ pub struct DiscoveryInfoResp {
     #[serde(rename = "constellation")]
     pub constellation_or_id: Option<crate::servers::constellation::ConstellationOrId>,
 }
+
+/// A master encryption key part, wrapped so it can be sealed as
+/// [`DiscoveryInfoResp::master_enc_key_part_sealed`].
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MasterEncKeyPart(pub elgamal::PublicKey);
+
+having_message_code!(MasterEncKeyPart, MasterEncKeyPart);
 
 /// What's returned by the [`DiscoveryRun`].
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
