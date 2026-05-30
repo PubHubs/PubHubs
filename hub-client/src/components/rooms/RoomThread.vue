@@ -251,6 +251,7 @@
 
 	async function changeThreadId() {
 		await getThreadEvents();
+		await nextTick();
 
 		setupEventIntersectionObserver();
 
@@ -274,13 +275,6 @@
 		loadingEvents.value = true;
 		const events = await props.room.getCurrentThreadEvents();
 		threadEvents.splice(0, threadEvents.length, ...events);
-
-		if (threadEvents.length > 0) {
-			const lastEventId = threadEvents[threadEvents.length - 1].matrixEvent.event.event_id;
-			if (lastEventId) {
-				nextTick(() => scrollToEvent(lastEventId));
-			}
-		}
 		loadingEvents.value = false;
 	}
 

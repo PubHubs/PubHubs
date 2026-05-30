@@ -308,13 +308,24 @@
 		if (completed) isLoading.value = false;
 	});
 
-	// Clear thread when sidebar is closed
+	// Clear thread and search when sidebar is closed
 	watch(
 		() => sidebar.isOpen.value,
 		(isOpen) => {
 			// Only clear thread when transitioning from open to closed
 			if (isOpen === false && room.value) {
 				room.value.setCurrentThreadId(undefined);
+				sidebar.clearSearchState();
+			}
+		},
+	);
+
+	// Clear search when switching away from Search or Thread tabs
+	watch(
+		() => sidebar.activeTab.value,
+		(tab) => {
+			if (tab !== SidebarTab.Search && tab !== SidebarTab.Thread) {
+				sidebar.clearSearchState();
 			}
 		},
 	);
@@ -423,6 +434,7 @@
 				}
 			}
 			room.value.setCurrentThreadId(ev.threadId);
+			sidebar.openTab(SidebarTab.Thread);
 		} else {
 			room.value.setCurrentThreadId(undefined);
 		}
