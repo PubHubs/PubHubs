@@ -179,6 +179,13 @@ pub mod bytes_wrapper {
         }
     }
 
+    impl<O> BytesWrapper<serde_bytes::ByteBuf, O> {
+        /// Wraps a copy of the given bytes (e.g. for the [`B64`] byte-blob type).
+        pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
+            serde_bytes::ByteBuf::from(bytes.as_ref().to_vec()).into()
+        }
+    }
+
     const VT_OWNED_BYTE_ARRAY: isize = 0;
     const VT_BORROWED_BYTE_ARRAY: isize = 1;
     const VT_TRANSIENT_BYTE_ARRAY: isize = 2;

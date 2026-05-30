@@ -135,9 +135,9 @@ impl DecapKey {
     /// Encodes for storage.
     pub fn encode(&self) -> Result<DecapKeyBytes, Opaque> {
         Ok(DecapKeyBytes {
-            ml: to_b64(self.ml.key_bytes()?.as_ref()),
-            ml_ek: to_b64(self.ml_ek.key_bytes()?.as_ref()),
-            ec: to_b64(self.ec.as_scalar().to_bytes()),
+            ml: B64::from_bytes(self.ml.key_bytes()?.as_ref()),
+            ml_ek: B64::from_bytes(self.ml_ek.key_bytes()?.as_ref()),
+            ec: B64::from_bytes(self.ec.as_scalar().to_bytes()),
         })
     }
 }
@@ -162,8 +162,8 @@ impl EncapKey {
         let ss_ec = ephemeral_sk.shared_secret(&self.ec);
 
         let ct = CiphertextBytes {
-            ml: to_b64(ct_ml),
-            ec: to_b64(ephemeral_sk.public_key().to_bytes()),
+            ml: B64::from_bytes(ct_ml),
+            ec: B64::from_bytes(ephemeral_sk.public_key().to_bytes()),
         };
         Ok((ct, phcrypto::kem_shared_secret(&ss_ml, &ss_ec)))
     }
@@ -171,8 +171,8 @@ impl EncapKey {
     /// Encodes this key.  Cheap.
     pub fn encode(&self) -> Result<EncapKeyBytes, Opaque> {
         Ok(EncapKeyBytes {
-            ml: to_b64(self.ml.key_bytes()?.as_ref()),
-            ec: to_b64(self.ec.to_bytes()),
+            ml: B64::from_bytes(self.ml.key_bytes()?.as_ref()),
+            ec: B64::from_bytes(self.ec.to_bytes()),
         })
     }
 }
@@ -210,11 +210,6 @@ impl secret::DigestibleSecret for SharedSecret {
     fn as_bytes(&self) -> &[u8] {
         &self.inner
     }
-}
-
-/// Wraps a byte slice as a base64-serializing blob.
-fn to_b64(bytes: impl AsRef<[u8]>) -> B64 {
-    serde_bytes::ByteBuf::from(bytes.as_ref().to_vec()).into()
 }
 
 #[cfg(test)]

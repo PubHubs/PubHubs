@@ -62,8 +62,8 @@ awc = { version = "3.8", default-features = false, features = ["rustls-0_23-webp
 # sure we can enable the post-quantum key-exchange X25519MLKEM768 for them.
 rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "prefer-post-quantum"] }
 
-# Needed for ML-KEM. Already pulled in via rustls' aws_lc_rs feature.
-aws-lc-rs = { version = "1.17" }
+# Needed for ML-KEM and (behind `unstable`) ML-DSA. Already pulled in via rustls' aws_lc_rs feature.
+aws-lc-rs = { version = "1.17", features = ["unstable"] }
 
 # RustCrypto packages
 aead = { version = "0.5", features=["getrandom"] }
