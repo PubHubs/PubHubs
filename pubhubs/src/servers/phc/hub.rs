@@ -45,8 +45,13 @@ impl App {
             return Ok(TicketResp::NoVerifyingKey);
         };
 
+        let Ok(hub_verifying_key) = verifying_key.decode() else {
+            log::warn!("hub {} returned a malformed verifying key", req.handle);
+            return Err(api::ErrorCode::BadRequest);
+        };
+
         // check that the request indeed came from the hub
-        signed_req.open(&*verifying_key, None).map_err(|oe| {
+        signed_req.open(&hub_verifying_key, None).map_err(|oe| {
             log::warn!(
                 "could not verify authenticity of hub ticket request for hub {}: {oe}",
                 req.handle,
@@ -64,7 +69,7 @@ impl App {
 
         // if so, hand out ticket
         Ok(TicketResp::Success(api::Signed::new(
-            &*app.jwt_key,
+            &app.signing_key,
             &TicketContent {
                 handle: req.handle,
                 verifying_key,

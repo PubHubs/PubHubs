@@ -252,18 +252,25 @@ impl crate::servers::App<Server> for App {
             )),
             global_client_url: self.global_client_url.clone(),
             phc_url: self.phc_url.clone(),
-            phc_jwt_key: self.jwt_key.verifying_key().into(),
+            // PHC's ed25519 public key (the `ed` half), so pre-hybrid hubs can verify the EdDSA HHPP.
+            phc_jwt_key: crate::misc::serde_ext::ByteArray::from(
+                self.signing_key.verifying_key().ed25519_bytes(),
+            )
+            .into(),
+            phc_verifying_key: Some(self.verifying_key_bytes.clone()),
             // placeholder value - enc_key is not used to create shared secrets anymore
             phc_enc_key: Some(elgamal::PublicKey::zero()),
             transcryptor_url: self.transcryptor_url.clone(),
+            transcryptor_jwt_key: api::DeprecatedJwtKey::default(),
             // cloned (not moved) so `tdi` stays whole for `master_enc_key_from_sealed_part` below
-            transcryptor_jwt_key: tdi.jwt_key.clone(),
+            transcryptor_verifying_key: tdi.verifying_key.clone(),
             // placeholder value - enc_key is not used to create shared secrets anymore
             transcryptor_enc_key: Some(elgamal::PublicKey::zero()),
             transcryptor_encap_key_id,
             transcryptor_ss_encap,
             auths_url: self.auths_url.clone(),
-            auths_jwt_key: asdi.jwt_key.clone(),
+            auths_jwt_key: api::DeprecatedJwtKey::default(),
+            auths_verifying_key: asdi.verifying_key.clone(),
             // placeholder value - enc_key is not used to create shared secrets anymore
             auths_enc_key: Some(elgamal::PublicKey::zero()),
             auths_encap_key_id,

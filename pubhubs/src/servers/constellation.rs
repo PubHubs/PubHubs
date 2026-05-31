@@ -53,7 +53,16 @@ impl Deref for Constellation {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Inner {
     pub transcryptor_url: url::Url,
-    pub transcryptor_jwt_key: api::VerifyingKey,
+
+    /// Deprecated ed25519 jwt key, kept for wire compatibility; see [`api::DeprecatedJwtKey`].
+    /// Superseded by [`transcryptor_verifying_key`](Self::transcryptor_verifying_key).
+    #[serde(default)]
+    pub transcryptor_jwt_key: api::DeprecatedJwtKey,
+
+    /// The transcryptor's hybrid post-quantum verifying key, used to verify its JWTs and signatures.
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcryptor_verifying_key: Option<api::VerifyingKeyBytes>,
 
     /// Formerly the transcryptor's ElGamal encryption key, now superseded by the post-quantum KEM
     /// (see [`transcryptor_ss_encap`]).  A placeholder zero pubkey for now; the `Option` lets a
@@ -94,7 +103,18 @@ pub struct Inner {
     pub transcryptor_ss_encap: Option<kem::CiphertextBytes>,
 
     pub phc_url: url::Url,
-    pub phc_jwt_key: api::VerifyingKey,
+
+    /// PHC's ed25519 public key, hex-encoded.  Unlike the other (now placeholder) `*_jwt_key`
+    /// fields, this still carries a *real* key — the `ed` half of
+    /// [`phc_verifying_key`](Self::phc_verifying_key) — so hubs predating the hybrid migration can
+    /// verify the classical EdDSA HHPP.
+    #[serde(default)]
+    pub phc_jwt_key: api::Ed25519VerifyingKeyHex,
+
+    /// PHC's hybrid post-quantum verifying key, used to verify its JWTs and signatures.
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phc_verifying_key: Option<api::VerifyingKeyBytes>,
 
     /// Formerly PHC's ElGamal encryption key; placeholder zero pubkey, see [`transcryptor_enc_key`].
     ///
@@ -112,7 +132,17 @@ pub struct Inner {
     pub phc_master_enc_key_part_hash: Option<id::Id>,
 
     pub auths_url: url::Url,
-    pub auths_jwt_key: api::VerifyingKey,
+
+    /// Deprecated ed25519 jwt key, kept for wire compatibility; see [`api::DeprecatedJwtKey`].
+    /// Superseded by [`auths_verifying_key`](Self::auths_verifying_key).
+    #[serde(default)]
+    pub auths_jwt_key: api::DeprecatedJwtKey,
+
+    /// The authentication server's hybrid post-quantum verifying key, used to verify its JWTs and
+    /// signatures.  Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out
+    /// of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auths_verifying_key: Option<api::VerifyingKeyBytes>,
 
     /// Formerly the authentication server's ElGamal encryption key; placeholder zero pubkey, see
     /// [`transcryptor_enc_key`].
@@ -160,6 +190,10 @@ trait DigestExt: Sized {
 
     /// A 1/0 presence byte, followed by both length-prefixed ciphertext halves when present.
     fn chain_opt_ct(self, ct: Option<&kem::CiphertextBytes>) -> Self;
+
+    /// A 1/0 presence byte, followed by both length-prefixed halves (ed25519 ‖ ML-DSA) of a hybrid
+    /// verifying key when present.
+    fn chain_opt_vk(self, vk: Option<&api::VerifyingKeyBytes>) -> Self;
 }
 
 impl DigestExt for sha2::Sha256 {
@@ -184,6 +218,16 @@ impl DigestExt for sha2::Sha256 {
             None => self.chain_update([0u8]),
         }
     }
+
+    fn chain_opt_vk(self, vk: Option<&api::VerifyingKeyBytes>) -> Self {
+        match vk {
+            Some(vk) => self
+                .chain_update([1u8])
+                .chain_varlen(vk.ed.as_ref())
+                .chain_varlen(vk.ml.as_ref()),
+            None => self.chain_update([0u8]),
+        }
+    }
 }
 
 impl Inner {
@@ -200,17 +244,17 @@ impl Inner {
     pub(crate) fn sha256(&self) -> sha2::Sha256 {
         let Inner {
             transcryptor_url,
-            transcryptor_jwt_key,
+            transcryptor_verifying_key,
             transcryptor_master_enc_key_part_hash,
             transcryptor_encap_key_id,
             transcryptor_ss_encap,
 
             phc_url,
-            phc_jwt_key,
+            phc_verifying_key,
             phc_master_enc_key_part_hash,
 
             auths_url,
-            auths_jwt_key,
+            auths_verifying_key,
             auths_encap_key_id,
             auths_ss_encap,
 
@@ -219,6 +263,9 @@ impl Inner {
             ph_version,
 
             // deprecated - will soon be removed
+            transcryptor_jwt_key: _,
+            phc_jwt_key: _,
+            auths_jwt_key: _,
             transcryptor_enc_key: _,
             transcryptor_master_enc_key_part: _,
             phc_enc_key: _,
@@ -230,17 +277,20 @@ impl Inner {
         // but it's not evident whether serializing the same constellation twice will give the same
         // string.
         //
-        // Framing (see `DigestExt`): fixed-length fields (ed25519 keys, 32-byte id hashes) are
-        // hashed directly; variable-length fields are length-prefixed (`chain_varlen`); optional
-        // fields get a 1/0 presence byte (`chain_opt`/`chain_opt_ct`).  So a variable field's bytes
-        // can't be borrowed by an adjacent field, and an absent field is not read as an empty one.
+        // Framing (see `DigestExt`): fixed-length fields (32-byte id hashes) are hashed directly;
+        // variable-length fields are length-prefixed (`chain_varlen`); optional fields — including
+        // the hybrid verifying keys (`chain_opt_vk`) — get a 1/0 presence byte
+        // (`chain_opt`/`chain_opt_ct`/`chain_opt_vk`).  So a variable field's bytes can't be borrowed
+        // by an adjacent field, and an absent field is not read as an empty one.
 
         sha2::Sha256::new()
             // Hash-format version - BUMP THIS on any change to the framing or fields below, so the
             // change always alters the constellation id.  (Only PHC computes the id; peers compare.)
-            .chain_update(1u16.to_be_bytes())
+            // v2: jwt keys became hybrid post-quantum (ed25519 ‖ ML-DSA); the ed25519 `*_jwt_key`
+            // fields are deprecated placeholders, no longer hashed.
+            .chain_update(2u16.to_be_bytes())
             .chain_varlen(transcryptor_url.as_str().as_bytes())
-            .chain_update(**transcryptor_jwt_key)
+            .chain_opt_vk(transcryptor_verifying_key.as_ref())
             .chain_opt(
                 transcryptor_master_enc_key_part_hash
                     .as_ref()
@@ -249,10 +299,10 @@ impl Inner {
             .chain_opt(transcryptor_encap_key_id.as_ref().map(id::Id::as_slice))
             .chain_opt_ct(transcryptor_ss_encap.as_ref())
             .chain_varlen(phc_url.as_str().as_bytes())
-            .chain_update(**phc_jwt_key)
+            .chain_opt_vk(phc_verifying_key.as_ref())
             .chain_opt(phc_master_enc_key_part_hash.as_ref().map(id::Id::as_slice))
             .chain_varlen(auths_url.as_str().as_bytes())
-            .chain_update(**auths_jwt_key)
+            .chain_opt_vk(auths_verifying_key.as_ref())
             .chain_opt(auths_encap_key_id.as_ref().map(id::Id::as_slice))
             .chain_opt_ct(auths_ss_encap.as_ref())
             .chain_varlen(global_client_url.as_str().as_bytes())

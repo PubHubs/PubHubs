@@ -119,21 +119,24 @@ impl crate::servers::App<Server> for App {
             inner:
                 constellation::Inner {
                     // These fields we must check:
-                    transcryptor_jwt_key: jwt_key,
+                    transcryptor_verifying_key,
                     transcryptor_master_enc_key_part_hash,
                     transcryptor_encap_key_id,
 
                     // These fields we don't care about:
                     transcryptor_url: _,
+                    transcryptor_jwt_key: _, // deprecated placeholder
                     transcryptor_enc_key: _,
                     transcryptor_master_enc_key_part: _, // deprecated
                     transcryptor_ss_encap: _,
                     auths_enc_key: _,
                     auths_jwt_key: _,
+                    auths_verifying_key: _,
                     auths_url: _,
                     auths_encap_key_id: _,
                     auths_ss_encap: _,
                     phc_jwt_key: _,
+                    phc_verifying_key: _,
                     phc_enc_key: _,
                     phc_master_enc_key_part_hash: _,
                     phc_url: _,
@@ -151,7 +154,7 @@ impl crate::servers::App<Server> for App {
             return false;
         }
 
-        **jwt_key == self.jwt_key.verifying_key()
+        transcryptor_verifying_key.as_ref() == Some(&self.verifying_key_bytes)
             && *transcryptor_master_enc_key_part_hash == Some(self.master_enc_key_part_hash)
     }
 

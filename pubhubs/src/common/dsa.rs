@@ -149,6 +149,15 @@ impl SigningKey {
         }
     }
 
+    /// The ed25519 component, for producing a *classical* EdDSA signature (`alg: "EdDSA"`).
+    ///
+    /// Used only for the backwards-compatible HHPP that pre-hybrid hubs verify with the
+    /// constellation's `phc_jwt_key` (= [`VerifyingKey::ed25519_bytes`]).  This signs the raw JWS
+    /// input.
+    pub fn ed25519_signing_key(&self) -> &ed25519_dalek::SigningKey {
+        &self.ed
+    }
+
     /// Assembles a [`SigningKey`] from the two 32-byte seeds — the ed25519 secret key and the ML-DSA
     /// seed — deriving both component keys (so neither call site repeats that) and precomputing the
     /// [`VerifyingKey`] (parsing the ML-DSA public key once here, not on every
@@ -185,6 +194,12 @@ impl VerifyingKey {
             ed: B64::from_bytes(self.ed.to_bytes()),
             ml: B64::from_bytes(self.ml.as_ref()),
         }
+    }
+
+    /// The ed25519 component's 32 public-key bytes — published as the constellation's `phc_jwt_key`
+    /// so pre-hybrid hubs can verify the classical EdDSA HHPP.
+    pub fn ed25519_bytes(&self) -> [u8; 32] {
+        self.ed.to_bytes()
     }
 }
 
@@ -463,5 +478,36 @@ mod tests {
         assert_eq!(vkb, vk.encode());
         let vk2 = vkb.decode().unwrap();
         assert_eq!(&vk2, vk);
+    }
+
+    /// Emits a bespoke (`ph-ML-DSA-65-Ed25519`, empty ML-DSA context) test vector — a real compact
+    /// JWS plus the verifying key — for the Python hub's cross-implementation verification test
+    /// (`pubhubs_hub/modules/pubhubs/tests/test_composite_hhpp.py`).  No official vector exists for
+    /// our interim empty-context variant, so we generate one here.  ML-DSA signing is randomised, so
+    /// the signature is not reproducible, but the fixed seeds make the verifying key deterministic
+    /// and any valid signature verifies.  Ignored by default; regenerate with:
+    ///   cargo test --lib dsa::tests::emit_bespoke_test_vector -- --ignored --nocapture
+    #[test]
+    #[ignore = "regenerates the Python hub fixture; see the doc comment"]
+    fn emit_bespoke_test_vector() {
+        let sk = SigningKey::from_parts([0x11u8; 32], [0x22u8; 32]).unwrap();
+        let vk = sk.verifying_key();
+
+        let jws: String = Claims::new()
+            .claim("msg", "bespoke composite test vector")
+            .unwrap()
+            .sign(&sk)
+            .unwrap()
+            .into();
+
+        let vector = serde_json::json!({
+            "alg": ALG,
+            "verifying_key": serde_json::to_value(vk.encode()).unwrap(),
+            "jws": jws,
+        });
+        println!(
+            "BESPOKE_VECTOR_BEGIN\n{}\nBESPOKE_VECTOR_END",
+            serde_json::to_string_pretty(&vector).unwrap()
+        );
     }
 }

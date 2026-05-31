@@ -1,6 +1,8 @@
 # Taken from synapse/python_dependencies.py in the original synapse
 attrs>=19.2.0,!=21.1.0
 authlib>=0.14.0
+# ML-DSA (post-quantum) HHPP verification; >=48 ships ML-DSA via bundled OpenSSL 3.5 wheels
+cryptography>=48.0.0
 Jinja2<3.1.2
 typing-extensions>=3.7.4
 twisted>=24.11.0

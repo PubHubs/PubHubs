@@ -60,7 +60,7 @@ pub mod hub {
     #[serde(deny_unknown_fields)]
     pub struct TicketContent {
         pub handle: crate::handle::Handle,
-        pub verifying_key: VerifyingKey,
+        pub verifying_key: VerifyingKeyBytes,
     }
 
     having_message_code!(TicketContent, PhcHubTicket);
@@ -78,7 +78,7 @@ pub mod hub {
         /// the provided `ticket`, and checking the `ticket` using `key`.
         pub fn open(
             self,
-            key: &ed25519_dalek::VerifyingKey,
+            key: &VerifyingKey,
         ) -> std::result::Result<(T, crate::handle::Handle), TicketOpenError>
         where
             T: Signable,
@@ -88,9 +88,16 @@ pub mod hub {
                 .open(key, None)
                 .map_err(TicketOpenError::Ticket)?;
 
+            // PHC validates the hub's verifying key when it mints the ticket, so a malformed key in a
+            // valid ticket is PHC's fault — report it as a Ticket error, not a Signed one.
+            let hub_verifying_key = ticket_content
+                .verifying_key
+                .decode()
+                .map_err(|_| TicketOpenError::Ticket(OpenError::OtherwiseInvalid))?;
+
             let msg: T = self
                 .signed
-                .open(&*ticket_content.verifying_key, None)
+                .open(&hub_verifying_key, None)
                 .map_err(TicketOpenError::Signed)?;
 
             Ok((msg, ticket_content.handle))
@@ -702,6 +709,12 @@ pub mod user {
     pub struct HhppReq {
         /// The encrypted pseudonym to hash. Can be obtained from [`tr::EhppEP`].
         pub ehpp: Sealed<sso::EncryptedHubPseudonymPackage>,
+
+        /// The scheme to sign the resulting HHPP with, relayed by the global client from
+        /// [`EnterStartResp::hhpp_signature_scheme`](crate::api::hub::EnterStartResp::hhpp_signature_scheme).
+        /// Absent ⇒ [`Ed25519`](sso::HhppSignatureScheme::Ed25519).
+        #[serde(default, skip_serializing_if = "sso::HhppSignatureScheme::is_default")]
+        pub hhpp_signature_scheme: sso::HhppSignatureScheme,
     }
 
     /// Returned by [`HhppEP`].

@@ -125,11 +125,14 @@ mod generate {
 
     impl SigningKeyArgs {
         fn run(self) -> Result<()> {
-            let sk = crate::api::SigningKey::generate();
-            let vk: crate::api::VerifyingKey = sk.verifying_key().into();
+            let sk = crate::api::SigningKey::generate()
+                .map_err(|_| anyhow::anyhow!("failed to generate signing key"))?;
 
-            println!("  signing key: {sk}");
-            println!("verifying key: {vk}");
+            println!("  signing key: {}", serde_json::to_string(&sk.encode())?);
+            println!(
+                "verifying key: {}",
+                serde_json::to_string(&sk.verifying_key().encode())?
+            );
 
             Ok(())
         }

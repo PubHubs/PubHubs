@@ -76,9 +76,9 @@ async fn main_integration_test() {
         "memory://".parse().unwrap(),
     );
 
-    // Change randomly generated admin key to something we know
-    let admin_sk = api::SigningKey::generate();
-    let admin_pk = Some(admin_sk.verifying_key().into());
+    // Change randomly generated admin key to a symmetric one we know.
+    let admin_key = pubhubs::misc::serde_ext::bytes_wrapper::B16::from_bytes([7u8; 32]);
+    let admin_key_cfg = Some(admin_key.clone());
 
     macro_rules! set_admin_key {
         ($server:ident) => {
@@ -87,7 +87,7 @@ async fn main_integration_test() {
                 .as_mut()
                 .unwrap()
                 .admin_key
-                .clone_from(&admin_pk);
+                .clone_from(&admin_key_cfg);
         };
     }
 
@@ -127,7 +127,7 @@ async fn main_integration_test() {
             tokio::task::LocalSet::new()
                 .run_until(main_integration_test_local(
                     config,
-                    admin_sk,
+                    jwt::HS256(admin_key.into_inner().into_vec()),
                     yivi_server_sk,
                 ))
                 .await;
@@ -142,7 +142,7 @@ async fn main_integration_test() {
 /// The part of [`main_integration_test`] that's run on one thread.
 async fn main_integration_test_local(
     config: servers::Config,
-    admin_sk: api::SigningKey,
+    admin_key: jwt::HS256,
     yivi_server_sk: yivi::SigningKey,
 ) {
     let client = client::Client::builder()
@@ -165,7 +165,7 @@ async fn main_integration_test_local(
         .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
             &constellation.transcryptor_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
-                &*admin_sk,
+                &admin_key,
                 &api::admin::UpdateConfigReq {
                     pointer: "/transcryptor/decap_key".to_owned(),
                     new_value: serde_json::to_value(t_decap_key.encode().unwrap()).unwrap(),
@@ -203,18 +203,18 @@ async fn main_integration_test_local(
     .unwrap()
     .unwrap();
 
-    // update PHC's JWT key
-    let phc_jwt_sk = api::SigningKey::generate();
-    let phc_jwt_vk: api::VerifyingKey = phc_jwt_sk.verifying_key().into();
+    // update PHC's signing key
+    let phc_sk = api::SigningKey::generate().unwrap();
+    let phc_vk = phc_sk.verifying_key().encode();
 
     let resp = client
         .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
             &constellation.phc_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
-                &*admin_sk,
+                &admin_key,
                 &api::admin::UpdateConfigReq {
-                    pointer: "/phc/jwt_key".to_owned(),
-                    new_value: serde_json::to_value(&phc_jwt_sk).unwrap(),
+                    pointer: "/phc/signing_key".to_owned(),
+                    new_value: serde_json::to_value(phc_sk.encode()).unwrap(),
                 },
                 Duration::from_secs(10),
             )
@@ -225,7 +225,7 @@ async fn main_integration_test_local(
 
     assert!(matches!(resp, api::admin::UpdateConfigResp::Success));
 
-    // wait for phc's JWT key to be updated
+    // wait for phc's signing key to be updated
     pubhubs::misc::task::retry(|| async {
         client
             .try_get_stable_constellation(&constellation.phc_url)
@@ -234,9 +234,9 @@ async fn main_integration_test_local(
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
                 if let Some(ref constellation) = constellation_maybe
-                    && constellation.phc_jwt_key != phc_jwt_vk
+                    && constellation.phc_verifying_key.as_ref() != Some(&phc_vk)
                 {
-                    log::debug!("stable constellation has old phc jwt key still");
+                    log::debug!("stable constellation has old phc signing key still");
                     return None;
                 }
 
@@ -259,7 +259,7 @@ async fn main_integration_test_local(
         .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
             &constellation.transcryptor_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
-                &*admin_sk,
+                &admin_key,
                 &api::admin::UpdateConfigReq {
                     pointer: "/transcryptor/master_enc_key_part".to_owned(),
                     new_value: serde_json::to_value(&t_master_enc_key_part).unwrap(),
@@ -323,7 +323,7 @@ async fn main_integration_test_local(
         .query_with_retry::<api::phc::hub::TicketEP, _, _>(
             config.phc_url.as_ref(),
             &api::Signed::<api::phc::hub::TicketReq>::new(
-                &*mock_hub.context.sk,
+                &mock_hub.context.sk,
                 &api::phc::hub::TicketReq {
                     handle: "testhub".parse().unwrap(),
                 },
@@ -340,7 +340,15 @@ async fn main_integration_test_local(
     // check that the ticket is valid
     ticket
         .clone()
-        .open(&*constellation.phc_jwt_key, None)
+        .open(
+            &constellation
+                .phc_verifying_key
+                .as_ref()
+                .unwrap()
+                .decode()
+                .unwrap(),
+            None,
+        )
         .unwrap();
 
     // Exercise the HubPingEP demo endpoint against every server.
@@ -353,7 +361,7 @@ async fn main_integration_test_local(
         let ts_req = api::phc::hub::TicketSigned::new(
             ticket.clone(),
             api::Signed::new(
-                &*mock_hub.context.sk,
+                &mock_hub.context.sk,
                 &api::server::PingReq {
                     nonce: ping_nonce.clone(),
                 },
@@ -894,6 +902,7 @@ async fn main_integration_test_local(
     let api::hub::EnterStartResp {
         state: hub_state,
         nonce: hub_nonce,
+        hhpp_signature_scheme,
     } = client
         .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
         .with_retry()
@@ -919,7 +928,13 @@ async fn main_integration_test_local(
 
     // Step 3: obtain Hhpp from PHC
     let api::phc::user::HhppResp::Success(hhpp) = client
-        .query::<api::phc::user::HhppEP>(&constellation.phc_url, &api::phc::user::HhppReq { ehpp })
+        .query::<api::phc::user::HhppEP>(
+            &constellation.phc_url,
+            &api::phc::user::HhppReq {
+                ehpp,
+                hhpp_signature_scheme,
+            },
+        )
         .auth_header(auth_token.clone())
         .with_retry()
         .await
@@ -963,6 +978,7 @@ async fn main_integration_test_local(
     let api::hub::EnterStartResp {
         state: hub_state,
         nonce: hub_nonce,
+        hhpp_signature_scheme,
     } = client
         .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
         .with_retry()
@@ -988,7 +1004,13 @@ async fn main_integration_test_local(
 
     // Step 3: obtain Hhpp from PHC
     let api::phc::user::HhppResp::Success(hhpp) = client
-        .query::<api::phc::user::HhppEP>(&constellation.phc_url, &api::phc::user::HhppReq { ehpp })
+        .query::<api::phc::user::HhppEP>(
+            &constellation.phc_url,
+            &api::phc::user::HhppReq {
+                ehpp,
+                hhpp_signature_scheme,
+            },
+        )
         .auth_header(auth_token.clone())
         .with_retry()
         .await
@@ -1047,7 +1069,7 @@ impl MockHub {
     fn new(info: hub::BasicInfo, constellation: servers::Constellation) -> Self {
         let context = Arc::new(MockHubContext {
             info,
-            sk: api::SigningKey::generate(),
+            sk: api::SigningKey::generate().unwrap(),
             constellation,
         });
 
@@ -1509,9 +1531,8 @@ async fn test_chained_session_expiry(
 }
 
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
-    let vk: api::VerifyingKey = context.sk.verifying_key().into();
     web::Json(api::Result::Ok(api::hub::InfoResp {
-        verifying_key: Some(vk),
+        verifying_key: Some(context.sk.verifying_key().encode()),
         hub_version: "n/a".to_owned(),
         hub_client_url: "http://example.com".parse().unwrap(),
         dynamic: None,
@@ -1522,6 +1543,8 @@ async fn handle_enter_start(_context: web::Data<Arc<MockHubContext>>) -> impl ac
     web::Json(api::Result::Ok(api::hub::EnterStartResp {
         state: api::hub::EnterState::from(B64UU::from(serde_bytes::ByteBuf::from(b"state"))),
         nonce: api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce"))),
+        // the mock hub verifies the hybrid composite (see `handle_enter_complete`)
+        hhpp_signature_scheme: api::sso::HhppSignatureScheme::HybridInterim,
     }))
 }
 
@@ -1542,7 +1565,13 @@ async fn handle_enter_complete(
         hub_nonce,
     } = hhpp
         .open(
-            &*context.constellation.phc_jwt_key,
+            &context
+                .constellation
+                .phc_verifying_key
+                .as_ref()
+                .unwrap()
+                .decode()
+                .unwrap(),
             Some(&context.constellation),
         )
         .unwrap();

@@ -260,8 +260,15 @@ pub struct DiscoveryInfoResp {
     /// URL of the PubHubs Central server this server tries to connect to.
     pub phc_url: url::Url,
 
-    /// Used to sign JWTs from this server.
-    pub jwt_key: VerifyingKey,
+    /// Deprecated ed25519 jwt key, kept for wire compatibility; see [`DeprecatedJwtKey`].
+    /// Superseded by [`verifying_key`](Self::verifying_key).
+    #[serde(default)]
+    pub jwt_key: DeprecatedJwtKey,
+
+    /// This server's hybrid post-quantum verifying key, used to verify its JWTs and signatures.
+    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verifying_key: Option<VerifyingKeyBytes>,
 
     /// Formerly the ElGamal key for encrypting to / establishing shared secrets with this server;
     /// superseded by the post-quantum [`encap_key`].  Currently a placeholder zero pubkey; the

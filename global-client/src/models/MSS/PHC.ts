@@ -863,8 +863,8 @@ export default class PHCServer {
 		}
 	}
 
-	async hhppEP(sealedEhpp: string) {
-		const hhppReq: TPHC.HhppReq = { ehpp: sealedEhpp };
+	async hhppEP(sealedEhpp: string, hhppSignatureScheme?: string) {
+		const hhppReq: TPHC.HhppReq = { ehpp: sealedEhpp, hhpp_signature_scheme: hhppSignatureScheme };
 		const options = {
 			body: JSON.stringify(hhppReq),
 			headers: {

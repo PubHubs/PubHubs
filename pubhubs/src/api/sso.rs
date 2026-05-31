@@ -207,3 +207,42 @@ impl Signable for HashedHubPseudonymPackage {
     const CODE: MessageCode = MessageCode::Hhpp;
     const CONSTELLATION_BOUND: bool = true;
 }
+
+/// Which signature scheme the hub expects on its [`HashedHubPseudonymPackage`] (HHPP), and thus
+/// which key PHC signs it with.
+///
+/// Hubs predating the hybrid post-quantum migration verify a classical ed25519 (EdDSA) signature
+/// against the constellation's `phc_jwt_key`; newer hubs verify the hybrid composite signature
+/// against `phc_verifying_key`.  The hub advertises its choice via [`hub::EnterStartResp`], the
+/// global client relays it to [`phc::user::HhppEP`], and PHC signs accordingly.
+///
+/// Absent on the wire ⇒ [`Ed25519`](Self::Ed25519), so hubs and global clients predating this field
+/// keep getting a signature they can verify.  Each variant's wire value is the JWS `alg` the HHPP
+/// will carry.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HhppSignatureScheme {
+    /// Classical ed25519 (EdDSA), verifiable by pre-hybrid hubs.  The default.
+    #[default]
+    #[serde(rename = "EdDSA")]
+    Ed25519,
+
+    /// PubHubs' interim, non-conformant hybrid composite (empty ML-DSA context) — the only hybrid
+    /// PHC currently signs with.  Its wire value matches [`crate::common::dsa::ALG`].
+    #[serde(rename = "ph-ML-DSA-65-Ed25519")]
+    HybridInterim,
+
+    /// The conformant LAMPS-standard composite.  **Not yet implemented**: PHC rejects requests for
+    /// it until [`aws_lc_rs`] exposes an ML-DSA context (see [`crate::common::dsa`]).  Reserved here
+    /// so the wire protocol already carries its identifier.
+    #[serde(rename = "ML-DSA-65-Ed25519")]
+    HybridStandard,
+}
+
+impl HhppSignatureScheme {
+    /// `true` for the default ([`Ed25519`](Self::Ed25519)).  Used with `skip_serializing_if` to omit
+    /// the field from the wire when it is the default, so peers predating it — which
+    /// `deny_unknown_fields` — still accept the message (e.g. a PHC that hasn't learned the field).
+    pub fn is_default(&self) -> bool {
+        matches!(self, Self::Ed25519)
+    }
+}

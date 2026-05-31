@@ -85,9 +85,11 @@ pub struct ServerConfig<ServerSpecific> {
     #[serde(default = "default_ips")]
     pub ips: Box<[std::net::IpAddr]>,
 
-    // Note: #[serde(skip)] does not consume the 'bind_to' key
-    /// Deprecated.
-    pub bind_to: serde_ext::Skip,
+    /// Deprecated; consumed and ignored on read, omitted on write.
+    // `skip_serializing` rather than `skip`: an old config may still carry the `bind_to` key, and
+    // `skip` would not consume it — which `deny_unknown_fields` then rejects as an unknown field.
+    #[serde(default, skip_serializing)]
+    pub bind_to: serde::de::IgnoredAny,
 
     /// Random string used by this server to identify itself.  Randomly generated if not set.
     /// May be set manually when multiple instances of the same server are used.
@@ -97,7 +99,13 @@ pub struct ServerConfig<ServerSpecific> {
     /// If `None`, one is generated automatically (which is not suitable for production.)
     ///
     /// Generate using `cargo run tools generate signing-key`.
-    pub jwt_key: Option<api::SigningKey>,
+    pub signing_key: Option<api::SigningKeyBytes>,
+
+    /// Deprecated, superseded by [`signing_key`](Self::signing_key); accepted (and ignored) so that
+    /// existing config files still carrying the old ed25519 `jwt_key` continue to load.  Omitted on
+    /// write.
+    #[serde(default, skip_serializing)]
+    pub jwt_key: serde::de::IgnoredAny,
 
     /// Secret seed used only to derive this server's own non-permanent local secrets.
     ///
@@ -108,9 +116,10 @@ pub struct ServerConfig<ServerSpecific> {
     /// If `None`, one is generated automatically (which is not suitable for production).
     pub enc_key: Option<B64>,
 
-    /// Key used by admin to sign requests for the admin endpoints.
-    /// If `None`, one is generated automatically and the private key is  printed to the log.
-    pub admin_key: Option<api::VerifyingKey>,
+    /// Symmetric (HMAC) key, hex-encoded, that authenticates requests to the admin endpoints; the
+    /// same secret signs (admin cli) and verifies (server).
+    /// If `None`, one is generated automatically and printed to the log.
+    pub admin_key: Option<serde_ext::bytes_wrapper::B16>,
 
     /// If the server needs an object store, use this one.
     pub object_store: Option<ObjectStoreConfig>,
@@ -385,8 +394,9 @@ pub mod phc {
         #[serde(default)]
         pub user_quota: api::phc::user::Quota,
 
-        /// Deprecated.
-        pub card: serde_ext::Skip,
+        /// Deprecated; consumed and ignored on read, omitted on write.
+        #[serde(default, skip_serializing)]
+        pub card: serde::de::IgnoredAny,
 
         #[serde(default)]
         pub hub_cache: crate::servers::phc::HubCacheConfig,
@@ -581,23 +591,25 @@ impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerCon
         self.self_check_code
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
-        self.jwt_key.get_or_insert_with(api::SigningKey::generate);
+        if self.signing_key.is_none() {
+            self.signing_key = Some(
+                api::SigningKey::generate()
+                    .map_err(|_| anyhow::anyhow!("failed to generate signing key"))?
+                    .encode(),
+            );
+        }
         self.enc_key.get_or_insert_with(|| {
             serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
         });
 
-        self.admin_key.get_or_insert_with(|| {
-            let sk = api::SigningKey::generate();
+        if self.admin_key.is_none() {
+            let admin_key =
+                serde_ext::bytes_wrapper::B16::from_bytes(crate::misc::crypto::random_32_bytes());
 
-            log::info!(
-                "{} admin key: {}",
-                Extra::ServerT::NAME,
-                serde_json::to_string(&sk)
-                    .expect("unexpected error during serialization of admin key")
-            );
+            log::info!("{} admin key: {admin_key}", Extra::ServerT::NAME);
 
-            sk.verifying_key().into()
-        });
+            self.admin_key = Some(admin_key);
+        }
 
         if let &mut Some(&mut ref mut osc) = &mut self.object_store.as_mut() {
             c.get::<HostAliases>()

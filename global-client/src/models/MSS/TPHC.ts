@@ -170,6 +170,7 @@ export type PHCPppResp = Result<PppResp, ErrorCode>;
 
 export type HhppReq = {
 	ehpp: string;
+	hhpp_signature_scheme?: string;
 };
 
 export type HhppResp = 'RetryWithNewPpp' | 'RetryWithNewAuthToken' | { Success: string };

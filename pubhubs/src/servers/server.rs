@@ -666,9 +666,15 @@ pub struct AppCreatorBase<S: Server> {
     pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub phc_url: url::Url,
     pub self_check_code: String,
-    pub jwt_key: api::SigningKey,
+    /// Signing key in encoded form: cheap to clone (this struct is cloned per worker thread), and
+    /// decoding a `PqdsaKeyPair` is never cheap.  Decoded into the live [`api::SigningKey`] once in
+    /// [`AppBase::new`], mirroring how the KEM decap key is carried as bytes and decoded per worker.
+    pub signing_key_bytes: api::SigningKeyBytes,
+    /// Cached verifying-key encoding (cheap to clone), so we don't re-encode it on every discovery
+    /// poll / `check_constellation`.
+    pub verifying_key_bytes: api::VerifyingKeyBytes,
     pub enc_key: Box<[u8]>,
-    pub admin_key: api::VerifyingKey,
+    pub admin_key: crate::misc::jwt::HS256,
     pub shared: SharedState<S>,
     pub version: Option<String>,
 }
@@ -680,7 +686,8 @@ impl<S: Server> Clone for AppCreatorBase<S> {
             running_state: self.running_state.clone(),
             phc_url: self.phc_url.clone(),
             self_check_code: self.self_check_code.clone(),
-            jwt_key: self.jwt_key.clone(),
+            signing_key_bytes: self.signing_key_bytes.clone(),
+            verifying_key_bytes: self.verifying_key_bytes.clone(),
             enc_key: self.enc_key.clone(),
             admin_key: self.admin_key.clone(),
             shared: self.shared.clone(),
@@ -702,16 +709,37 @@ where
 
         let server_config = S::server_config_from(config);
 
+        let signing_key_bytes = server_config
+            .signing_key
+            .as_ref()
+            .expect("signing_key was not set nor generated")
+            .clone();
+        // Decode once here only to derive and cache the verifying-key encoding; the live signing key
+        // is decoded per worker thread in `AppBase::new`.
+        let verifying_key_bytes = signing_key_bytes
+            .decode()
+            .map_err(|_| anyhow::anyhow!("invalid signing_key in config"))?
+            .verifying_key()
+            .encode();
+
+        let admin_key = crate::misc::jwt::HS256(
+            server_config
+                .admin_key
+                .as_ref()
+                .expect("admin_key was not set nor generated")
+                .clone()
+                .into_inner()
+                .into_vec(),
+        );
+
         Ok(Self {
             running_state: None,
             self_check_code: server_config
                 .self_check_code
                 .clone()
                 .expect("self_check_code was not set nor generated"),
-            jwt_key: server_config
-                .jwt_key
-                .clone()
-                .expect("jwt_key was not set nor generated"),
+            signing_key_bytes,
+            verifying_key_bytes,
             enc_key: <serde_bytes::ByteBuf as Clone>::clone(
                 server_config
                     .enc_key
@@ -721,10 +749,7 @@ where
             .into_vec()
             .into_boxed_slice(),
             phc_url: config.phc_url.as_ref().clone(),
-            admin_key: server_config
-                .admin_key
-                .clone()
-                .expect("admin_key was not set nor generated"),
+            admin_key,
             shared: SharedState::new(SharedStateInner {
                 object_store: TryFrom::try_from(&server_config.object_store)
                     .with_context(|| format!("Creating object store for {}", S::NAME))?,
@@ -743,8 +768,10 @@ pub struct AppBase<S: Server> {
     pub handle: Handle<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
-    pub jwt_key: api::SigningKey,
-    pub admin_key: api::VerifyingKey,
+    pub signing_key: api::SigningKey,
+    /// Cached verifying-key encoding; see [`AppCreatorBase::verifying_key_bytes`].
+    pub verifying_key_bytes: api::VerifyingKeyBytes,
+    pub admin_key: crate::misc::jwt::HS256,
     pub shared: SharedState<S>,
     pub client: client::Client,
     pub version: Option<String>,
@@ -779,7 +806,19 @@ impl<S: Server> AppBase<S> {
             handle: handle.clone(),
             phc_url: creator_base.phc_url,
             self_check_code: creator_base.self_check_code,
-            jwt_key: creator_base.jwt_key,
+            // Decode the config-validated signing-key bytes into the live key once per worker thread,
+            // mirroring how each worker decodes its own KEM decap key.
+            //
+            // TODO: an ML-DSA `PqdsaKeyPair` is neither `Clone` nor cheaply reconstructible (both
+            // `from_seed` and `from_raw_private_key` cost tens of µs — measured), so each worker
+            // re-derives the key from bytes here.  Once aws-lc-rs offers a cheap clone (e.g. an
+            // `EVP_PKEY_up_ref`-backed `Clone`), carry a live `api::SigningKey` in `AppCreatorBase`
+            // and clone it per worker instead.
+            signing_key: creator_base
+                .signing_key_bytes
+                .decode()
+                .expect("signing_key bytes were validated during config preparation"),
+            verifying_key_bytes: creator_base.verifying_key_bytes,
             admin_key: creator_base.admin_key,
             shared: creator_base.shared,
             client: client::Client::builder()
@@ -834,7 +873,19 @@ impl<S: Server> AppBase<S> {
 
         let ts_req = signed_req.into_inner();
 
-        let (req, hub_handle) = match ts_req.open(&running_state.constellation.phc_jwt_key) {
+        let Some(phc_verifying_key) = running_state
+            .constellation
+            .phc_verifying_key
+            .as_ref()
+            .and_then(|vk| vk.decode().ok())
+        else {
+            log::warn!(
+                "cannot verify hub ping: constellation has no (valid) phc_verifying_key yet"
+            );
+            return Err(api::ErrorCode::InternalError);
+        };
+
+        let (req, hub_handle) = match ts_req.open(&phc_verifying_key) {
             Ok(opened) => opened,
             Err(toe) => return toe.default_verdict(api::server::PingResp::RetryWithNewTicket),
         };
@@ -853,7 +904,7 @@ impl<S: Server> AppBase<S> {
     ) -> api::Result<api::admin::UpdateConfigResp> {
         let signed_req = signed_req.into_inner();
 
-        let req = match signed_req.open(&*app.admin_key, None) {
+        let req = match signed_req.open(&app.admin_key, None) {
             Ok(req) => req,
             Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                 return Err(api::ErrorCode::InternalError);
@@ -946,7 +997,7 @@ impl<S: Server> AppBase<S> {
     ) -> api::Result<api::admin::InfoResp> {
         let signed_req = signed_req.into_inner();
 
-        let _req = match signed_req.open(&*app.admin_key, None) {
+        let _req = match signed_req.open(&app.admin_key, None) {
             Ok(req) => req,
             Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                 return Err(api::ErrorCode::InternalError);
@@ -1047,11 +1098,17 @@ impl<S: Server> AppBase<S> {
             version: app.version.clone(),
             self_check_code: app.self_check_code.clone(),
             phc_url: app.phc_url.clone(),
-            // NOTE on efficiency:  the ed25519_dalek::SigningKey contains a precomputed
-            // ed25519_dalek::VerifyingKey, which contains a precomputed compressed (=serialized)
-            // form.  So no expensive cryptographic operations like finite field inversion
-            // or scalar multiplication are performed here.
-            jwt_key: app.jwt_key.verifying_key().into(),
+            // deprecated ed25519 placeholder; the real key is the hybrid `verifying_key` below.
+            jwt_key: api::DeprecatedJwtKey::default(),
+            // PHC withholds its verifying_key here: DiscoveryInfoResp had `deny_unknown_fields` in
+            // <=v3.3.0, so emitting it would crash those peers.  PHC's key still reaches the
+            // transcryptor and authentication server via the constellation (which has no
+            // `deny_unknown_fields`); those two servers do publish theirs here so PHC can build it.
+            verifying_key: if S::NAME == crate::servers::Name::PubhubsCentral {
+                None
+            } else {
+                Some(app.verifying_key_bytes.clone())
+            },
             // placeholder value - enc_key is not used to create shared secrets anymore
             enc_key: Some(elgamal::PublicKey::zero()),
             // placeholder - the real part moved to `master_enc_key_part_hash`/`_sealed`; kept
