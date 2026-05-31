@@ -102,6 +102,7 @@ When the Yivi app suggests you should check your phone's internet access, this m
     If you have control over the firewall, you might choose to disable it. (Making an exception for PubHubs might prove tedious, since the binary changes with every recompilation.)
 
 - **If you're using an iPhone on the same network as your host**, that your iPhone's traffic is routed through one of Apple's servers via **[private relay](https://support.apple.com/en-us/HT212614)**. You can disable Private Relay globally, or just "Limit IP Address Tracking" per Wi-Fi network.
+Also make sure you have given Yivi access to the Local Network.
 
 If nothing else helps, and you have access to a server with a public IP address, say 1.3.3.7, you can solve the problem by forwarding your local port to this server, via
 
