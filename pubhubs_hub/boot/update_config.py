@@ -155,38 +155,43 @@ class UpdateConfig:
             self._sqlite3_path = db.get('args', {}).get('database')
 
         if self._replace_sqlite3_by_postgres:
-            if 'database' not in homeserver:
-                raise ConfigError("❌  no 'database' configured in homeserver.yaml")
-            db = homeserver['database']
-            dbname = db.get('name')
-            if dbname != 'sqlite3':
-                raise ConfigError("❌  for --replace-sqlite3-by-postgres, "
-                                  f"the database must be 'sqlite3', but is {dbname}")
-            if 'args' not in db:
-                raise ConfigError("❌  no 'database.args' configured in homeserver.yaml")
-            dbargs = db['args']
-
-            if self._sqlite3_path == None:
-                raise ConfigError("❌  for --replace-sqlite3-by-postgres, "
-                                  f"database.args.database must be configured, but it isn't")
-
-            db['name'] = 'psycopg2'
-            to_remove = set()
-            for key in dbargs:
-                if not key.startswith('cp_'):
-                    to_remove.add(key)
-            for key in to_remove:
-                del dbargs[key]
-            dbargs['user'] = 'synapse'
-            dbargs['dbname'] = 'hub'
-            dbargs['host'] = '/var/run/postgresql'
-            logger.info(f" - ✅ replaced sqlite3 with postgres configuration")
+            self._maybe_replace_sqlite3_by_postgres(homeserver)
 
         homeserver_live = self._update_and_check_dont_change_config(homeserver)
 
         homeserver_live = self._check_did_change_config(homeserver_live)
 
         return homeserver_live
+
+    def _maybe_replace_sqlite3_by_postgres(self, homeserver: dict) -> None:
+        """
+        Rewrite a sqlite3 `database` section so Synapse uses the postgres that
+        start_hub.py runs locally inside the container.
+
+        If postgres (or any non-sqlite3 engine) is already configured, there is
+        nothing to replace: the configuration is left untouched and
+        `self._sqlite3_path` stays None, which signals start_hub.py to skip
+        running postgres and the migration.
+        """
+        db = homeserver.get('database', {})
+        dbname = db.get('name')
+        if dbname != 'sqlite3':
+            logger.info(f" - ℹ️  database is '{dbname}', not sqlite3; "
+                        "leaving it unchanged (nothing to migrate to postgres)")
+            return
+
+        if self._sqlite3_path is None:
+            raise ConfigError("❌  for --replace-sqlite3-by-postgres, "
+                              "database.args.database must be configured, but it isn't")
+
+        dbargs = db['args']
+        db['name'] = 'psycopg2'
+        for key in [k for k in dbargs if not k.startswith('cp_')]:
+            del dbargs[key]
+        dbargs['user'] = 'synapse'
+        dbargs['dbname'] = 'hub'
+        dbargs['host'] = '/var/run/postgresql'
+        logger.info(" - ✅ replaced sqlite3 with postgres configuration")
 
     def _update_and_check_dont_change_config(self, homeserver: dict) -> dict:
         """

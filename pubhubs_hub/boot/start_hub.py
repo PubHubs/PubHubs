@@ -105,135 +105,12 @@ class Program:
         if self._args.environment == "development":
             os.putenv("AUTHLIB_INSECURE_TRANSPORT", "for_development_only_of_course")
 
-        if self._args.replace_sqlite3_by_postgres:
-            # NOTE: postgres command have a bad habit of changing TTY options, such as 'onlcr', so
-            # that the terminal output looks
-            #                               like this, because \n is no longer
-            #                                                                 translated to \r\n.
-            # Setting stdin=subprocess.DEVNULL seems to prevent this.
-
-            # find postres executable path
-            pg_data_dir = "/data/postgres"
-            pg_bindir = subprocess.run(('sudo', '-u', 'postgres',
-                                     'pg_config', '--bindir'),
-                                    stdin=subprocess.DEVNULL,
-                                    check=True, capture_output=True).stdout.strip().decode('utf-8')
-
-            fresh_db = False
-            if not os.path.exists(pg_data_dir):
-                fresh_db = True
-
-                print(f"Creating {pg_data_dir} ...")
-                os.mkdir(pg_data_dir)
-                
-                print(f"Changing owner and group of {pg_data_dir} to postgres")
-                shutil.chown(pg_data_dir, user="postgres", group="postgres") 
-                # If we don't do this, the next command might fail.
-
-                print(f"Initializing postgres data directory at {pg_data_dir} ...")
-                subprocess.run(("sudo", "-u", "postgres", 
-                                os.path.join(pg_bindir, "initdb"), pg_data_dir),
-                               stdin=subprocess.DEVNULL, check=True)
-
-            sqlite3_path = uc._sqlite3_path
-            sqlite3_backup_path = sqlite3_path + '.bak'
-            if not fresh_db and not os.path.exists(sqlite3_backup_path):
-                time.sleep(1)
-                print()
-                print(f"WARNING: found postgres data directory at {pg_data_dir} (inside the container),")
-                print(f"         but did not find {sqlite3_backup_path} (inside the container) indicating")
-                print( "         a successful migration to the postgres directory.")
-                print()
-                print(f"         If you removed the {sqlite3_backup_path} file to safe space,")
-                print( "         just put a placeholder there.")
-                print()
-                print( "         If the migration did not succeed yet, remove the postgres data directory,")
-                print( "         and restart this container to try again.")
-                print()
-                print( "         If you want to opt out, pass --no-replace-sqlite3-by-postgres to the hub.")
-                print()
-                time.sleep(5)
-                sys.exit(1)
-
-            # run postgres, so we can issue commands to it
-            print("Starting postgres ...")
-            self._waiter.add("postgres",
-                             subprocess.Popen(('sudo', '-u', 'postgres',
-                                               os.path.join(pg_bindir, "postgres"),
-                                               '-D', pg_data_dir,
-                                               # Tuning: don't have postgres wait for data to be written to disk.
-                                               # Risks loss of the last transaction, but there's no risk
-                                               # of corruption.
-                                               # <https://www.postgresql.org/docs/current/wal-async-commit.html>
-                                               '-c', 'synchronous_commit=off',
-                                               # When more tuning is needed:
-                                               #  - <https://element-hq.github.io/synapse/latest/postgres.html#tuning-postgres>
-                                               #  - <https://pgtune.leopard.in.ua/>
-                                               ),
-                                              stdin=subprocess.DEVNULL))
-            countdown = 300
-            while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"), 
-                                 stdin=subprocess.DEVNULL).returncode != 0:
-                print(f"Waiting {countdown} seconds for the postgres server to come up ...")
-                time.sleep(1)
-                countdown -= 1
-                if countdown == 0:
-                    raise RuntimeError("postgres server did not start properly; the reason might be in the logs above")
-
-            if fresh_db:
-                print("Creating `synapse` postgres user ...")
-                subprocess.run(("sudo", "-u", "postgres", "createuser", "synapse"), 
-                               stdin=subprocess.DEVNULL, check=True)
-                print("Creating `hub` database ...")
-                subprocess.run(("sudo", "-u", "postgres", 
-                                "createdb", "hub",
-                                "--encoding=UTF8",
-                                "--locale=C",
-                                "--template=template0",
-                                "--owner=synapse"), 
-                               stdin=subprocess.DEVNULL, check=True)
-
-                # only run migration if there is a sqlite3 database
-                if os.path.exists(sqlite3_path):
-                    # Run vanilla synapse migration; we want to run this on a homeserver without any of our modules,
-                    # because our code is definitely not written with the possibility of a migration running
-                    migration_config_path = live_config_path + "-for_migration"
-
-                    print(f"Creating {migration_config_path} ...")
-                    with open(live_config_path, "r") as f:
-                        config = yaml.safe_load(f)
-                    config['modules'] = []
-                    with open(migration_config_path, "w") as f:
-                        yaml.dump(config, f)
-
-                    print(f"Running vanilla Synapse migration {sqlite3_path} -> postgres (this might take a while!) ...")
-                    subprocess.run(("synapse_port_db", 
-                                    "--sqlite-database", sqlite3_path,
-                                    "--postgres-config", migration_config_path),
-                                   check=True)
-
-                    print(f"Removing {migration_config_path} ...")
-                    os.unlink(migration_config_path)
-                    
-                    print("Migrating pubhubs-specific tables ...")
-                    with contextlib.ExitStack() as exit_stack:
-                        sqlite_conn = exit_stack.enter_context(sqlite3.connect(sqlite3_path))
-                        pg_conn = exit_stack.enter_context(psycopg2.connect(host='/var/run/postgresql', user='synapse', dbname='hub'))
-                        self.migrate_ph_tables(sqlite_conn=sqlite_conn, pg_conn=pg_conn)
-
-                    print(f"Renaming {sqlite3_path} -> {sqlite3_backup_path} ...")
-                    os.rename(sqlite3_path, sqlite3_backup_path)
-                    print("Migration to postgres completed!", flush=True)
-                    # flushing here to make sure Synapse's output comes after
-
-            # Force a checkpoint so that PostgreSQL does not run it in the
-            # background while Synapse is already serving clients, which would
-            # saturate I/O and block database connections for minutes.
-            print("Running CHECKPOINT before starting Synapse ...")
-            subprocess.run(("sudo", "-u", "postgres", "psql", "--dbname=hub",
-                            "-c", "CHECKPOINT"),
-                           stdin=subprocess.DEVNULL, check=True)
-            print("CHECKPOINT complete.", flush=True)
+        # When a sqlite3 database is configured, update_config rewrote it to a
+        # postgres config and left _sqlite3_path set; run a local postgres and
+        # migrate into it.  When postgres is already configured (_sqlite3_path is
+        # None), there is nothing to replace, so leave it to Synapse.
+        if self._args.replace_sqlite3_by_postgres and uc._sqlite3_path is not None:
+            self._run_postgres(uc._sqlite3_path, live_config_path)
 
         if uc._sqlite3_path is not None and not self._args.replace_sqlite3_by_postgres:
             print("Running PRAGMA optimize on SQLite database ...")
@@ -248,6 +125,143 @@ class Program:
         self._waiter.wait()
         print("waiting for 10 seconds to kill all remaining processes")
         time.sleep(10)
+
+    def _run_postgres(self, sqlite3_path, live_config_path):
+        """Run a postgres server inside this container, migrating the configured
+        sqlite3 database into it on first run.
+
+        `sqlite3_path` is the original sqlite3 database path (update_config has
+        already rewritten the live config to point at postgres instead).  On a
+        successful migration it is renamed to `<path>.bak`, which doubles as the
+        "migration succeeded" marker.
+        """
+        # NOTE: postgres command have a bad habit of changing TTY options, such as 'onlcr', so
+        # that the terminal output looks
+        #                               like this, because \n is no longer
+        #                                                                 translated to \r\n.
+        # Setting stdin=subprocess.DEVNULL seems to prevent this.
+
+        # find postres executable path
+        pg_data_dir = "/data/postgres"
+        pg_bindir = subprocess.run(('sudo', '-u', 'postgres',
+                                 'pg_config', '--bindir'),
+                                stdin=subprocess.DEVNULL,
+                                check=True, capture_output=True).stdout.strip().decode('utf-8')
+
+        fresh_db = False
+        if not os.path.exists(pg_data_dir):
+            fresh_db = True
+
+            print(f"Creating {pg_data_dir} ...")
+            os.mkdir(pg_data_dir)
+
+            print(f"Changing owner and group of {pg_data_dir} to postgres")
+            shutil.chown(pg_data_dir, user="postgres", group="postgres")
+            # If we don't do this, the next command might fail.
+
+            print(f"Initializing postgres data directory at {pg_data_dir} ...")
+            subprocess.run(("sudo", "-u", "postgres",
+                            os.path.join(pg_bindir, "initdb"), pg_data_dir),
+                           stdin=subprocess.DEVNULL, check=True)
+
+        sqlite3_backup_path = sqlite3_path + '.bak'
+        if not fresh_db and not os.path.exists(sqlite3_backup_path):
+            time.sleep(1)
+            print()
+            print(f"WARNING: found postgres data directory at {pg_data_dir} (inside the container),")
+            print(f"         but did not find {sqlite3_backup_path} (inside the container) indicating")
+            print( "         a successful migration to the postgres directory.")
+            print()
+            print(f"         If you removed the {sqlite3_backup_path} file to safe space,")
+            print( "         just put a placeholder there.")
+            print()
+            print( "         If the migration did not succeed yet, remove the postgres data directory,")
+            print( "         and restart this container to try again.")
+            print()
+            print( "         If you want to opt out, pass --no-replace-sqlite3-by-postgres to the hub.")
+            print()
+            time.sleep(5)
+            sys.exit(1)
+
+        # run postgres, so we can issue commands to it
+        print("Starting postgres ...")
+        self._waiter.add("postgres",
+                         subprocess.Popen(('sudo', '-u', 'postgres',
+                                           os.path.join(pg_bindir, "postgres"),
+                                           '-D', pg_data_dir,
+                                           # Tuning: don't have postgres wait for data to be written to disk.
+                                           # Risks loss of the last transaction, but there's no risk
+                                           # of corruption.
+                                           # <https://www.postgresql.org/docs/current/wal-async-commit.html>
+                                           '-c', 'synchronous_commit=off',
+                                           # When more tuning is needed:
+                                           #  - <https://element-hq.github.io/synapse/latest/postgres.html#tuning-postgres>
+                                           #  - <https://pgtune.leopard.in.ua/>
+                                           ),
+                                          stdin=subprocess.DEVNULL))
+        countdown = 300
+        while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"),
+                             stdin=subprocess.DEVNULL).returncode != 0:
+            print(f"Waiting {countdown} seconds for the postgres server to come up ...")
+            time.sleep(1)
+            countdown -= 1
+            if countdown == 0:
+                raise RuntimeError("postgres server did not start properly; the reason might be in the logs above")
+
+        if fresh_db:
+            print("Creating `synapse` postgres user ...")
+            subprocess.run(("sudo", "-u", "postgres", "createuser", "synapse"),
+                           stdin=subprocess.DEVNULL, check=True)
+            print("Creating `hub` database ...")
+            subprocess.run(("sudo", "-u", "postgres",
+                            "createdb", "hub",
+                            "--encoding=UTF8",
+                            "--locale=C",
+                            "--template=template0",
+                            "--owner=synapse"),
+                           stdin=subprocess.DEVNULL, check=True)
+
+            # only run migration if there is a sqlite3 database
+            if os.path.exists(sqlite3_path):
+                # Run vanilla synapse migration; we want to run this on a homeserver without any of our modules,
+                # because our code is definitely not written with the possibility of a migration running
+                migration_config_path = live_config_path + "-for_migration"
+
+                print(f"Creating {migration_config_path} ...")
+                with open(live_config_path, "r") as f:
+                    config = yaml.safe_load(f)
+                config['modules'] = []
+                with open(migration_config_path, "w") as f:
+                    yaml.dump(config, f)
+
+                print(f"Running vanilla Synapse migration {sqlite3_path} -> postgres (this might take a while!) ...")
+                subprocess.run(("synapse_port_db",
+                                "--sqlite-database", sqlite3_path,
+                                "--postgres-config", migration_config_path),
+                               check=True)
+
+                print(f"Removing {migration_config_path} ...")
+                os.unlink(migration_config_path)
+
+                print("Migrating pubhubs-specific tables ...")
+                with contextlib.ExitStack() as exit_stack:
+                    sqlite_conn = exit_stack.enter_context(sqlite3.connect(sqlite3_path))
+                    pg_conn = exit_stack.enter_context(psycopg2.connect(host='/var/run/postgresql', user='synapse', dbname='hub'))
+                    self.migrate_ph_tables(sqlite_conn=sqlite_conn, pg_conn=pg_conn)
+
+                print(f"Renaming {sqlite3_path} -> {sqlite3_backup_path} ...")
+                os.rename(sqlite3_path, sqlite3_backup_path)
+                print("Migration to postgres completed!", flush=True)
+                # flushing here to make sure Synapse's output comes after
+
+        # Force a checkpoint so that PostgreSQL does not run it in the
+        # background while Synapse is already serving clients, which would
+        # saturate I/O and block database connections for minutes.
+        print("Running CHECKPOINT before starting Synapse ...")
+        subprocess.run(("sudo", "-u", "postgres", "psql", "--dbname=hub",
+                        "-c", "CHECKPOINT"),
+                       stdin=subprocess.DEVNULL, check=True)
+        print("CHECKPOINT complete.", flush=True)
 
     def migrate_ph_tables(self, sqlite_conn, pg_conn):
         sqlite_cur = sqlite_conn.cursor()
