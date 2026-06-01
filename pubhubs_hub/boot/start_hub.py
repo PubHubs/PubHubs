@@ -113,12 +113,25 @@ class Program:
             self._run_postgres(uc._sqlite3_path, live_config_path)
 
         if uc._sqlite3_path is not None and not self._args.replace_sqlite3_by_postgres:
-            print("Running PRAGMA optimize on SQLite database ...")
-            # This makes some Synapse queries significantly faster
-            with sqlite3.connect(uc._sqlite3_path) as conn:
-                conn.execute("PRAGMA optimize;")
-                os.chown(uc._sqlite3_path, 991, 991)
-            print("PRAGMA optimize complete.", flush=True)
+            # The migration renames homeserver.db to homeserver.db.bak on success.
+            # A missing db alongside a .bak means this hub already migrated to
+            # postgres; starting on sqlite would serve an empty hub, so refuse.
+            if not os.path.exists(uc._sqlite3_path) and os.path.exists(uc._sqlite3_path + '.bak'):
+                print(f"ERROR: {uc._sqlite3_path} is missing but {uc._sqlite3_path}.bak exists —")
+                print( "       this hub was already migrated to postgres. Starting now would")
+                print( "       create an EMPTY sqlite database. Refusing.")
+                print( "       To keep using the migrated postgres database, pass --replace-sqlite3-by-postgres.")
+                print(f"       To go back to the pre-migration database, restore {uc._sqlite3_path} from its .bak")
+                print( "       (any changes since the migration are in postgres, not in the backup).")
+                sys.exit(1)
+
+            # Only optimize an existing database; don't create one that isn't there.
+            if os.path.exists(uc._sqlite3_path):
+                print("Running PRAGMA optimize on SQLite database ...")
+                # This makes some Synapse queries significantly faster
+                with sqlite3.connect(uc._sqlite3_path) as conn:
+                    conn.execute("PRAGMA optimize;")
+                print("PRAGMA optimize complete.", flush=True)
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
