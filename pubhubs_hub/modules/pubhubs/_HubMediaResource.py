@@ -11,6 +11,9 @@ import logging
 import os
 
 ALLOWED_HUB_MEDIA_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"]
+# Maximum size for an uploaded hub media file (icon/banner), in bytes.
+# Mirrors MAX_HUB_ICON_SIZE in the hub-client (hub-settings.ts).
+MAX_HUB_MEDIA_SIZE = 5_000_000  # ~5 MB
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
@@ -42,18 +45,12 @@ class HubMediaResource(DirectServeJsonResource):
 			return
 
 		# File extension is not used because the idea is to always have one hub media image file.
-		# Not having file extension makes it easy to override the previous hub media file. 
+		# Not having file extension makes it easy to override the previous hub media file.
 		with open(path, 'rb') as fd:
-			content = fd.read(100)  # Read the first 100 bytes to check if content is svg.
-			fd.seek(0)  # Reset file pointer to the beginning for later reading
+			content = fd.read()
 
-			# Check if the content starts with XML declaration or a root element
-			if content.startswith(b'<?xml') or b'<svg' in content:  # Check for SVG
-				request.setHeader(b"Content-Type", b"image/svg+xml")
-	
-		# Read the file from the beginning and send it as a request
-		with open(path, 'rb') as fd:
-			request.write(fd.read())
+		request.setHeader(b"Content-Type", self._detect_content_type(content))
+		request.write(content)
 		request.finish()
 
 	@user_validator(HUB_ADMIN)
@@ -68,6 +65,18 @@ class HubMediaResource(DirectServeJsonResource):
 
 		# Read the raw binary data from the request body
 		media_data = request.content.read()
+
+		# Reject files that exceed the size limit (the client also checks this,
+		# but the limit must be enforced server-side too).
+		if len(media_data) > MAX_HUB_MEDIA_SIZE:
+			respond_with_json(request, 400, {"message": "File too large."})
+			return
+
+		# Validate the actual file contents, not just the client-supplied header.
+		detected_type = self._detect_content_type(media_data).decode()
+		if detected_type not in ALLOWED_HUB_MEDIA_TYPES:
+			respond_with_json(request, 400, {"message": "File type not allowed."})
+			return
 
 		# Save the media file
 		with open(self._get_media_path(), 'wb') as fd:
@@ -107,7 +116,21 @@ class HubMediaResource(DirectServeJsonResource):
 			default_path = self._config.default_hub_icon_dark_path if self._darkmode else self._config.default_hub_icon_path
 		else:  # banner
 			default_path = self._config.default_hub_banner_path
-			
+
 		with open(default_path, 'rb') as fd:
-			request.write(fd.read())
+			content = fd.read()
+
+		request.setHeader(b"Content-Type", self._detect_content_type(content))
+		request.write(content)
 		request.finish()
+
+	def _detect_content_type(self, content: bytes) -> bytes:
+		# SVG can be uploaded (see ALLOWED_HUB_MEDIA_TYPES).
+		if content.startswith(b'\x89PNG'):
+			return b"image/png"
+		elif content.startswith(b'\xff\xd8\xff'):
+			return b"image/jpeg"
+		stripped = content.lstrip()[:512]
+		if stripped.startswith(b'<?xml') or b'<svg' in stripped:
+			return b"image/svg+xml"
+		return b"application/octet-stream"

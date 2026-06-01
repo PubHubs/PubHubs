@@ -172,8 +172,16 @@ class Api {
 		});
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Failed to upload file: ${errorText}`);
+			// The backend returns a JSON body like {"message": "File type not allowed."}.
+			// Surface that message so callers can show the specific reason to the user.
+			let message = '';
+			try {
+				const body = await response.json();
+				message = body?.message ?? '';
+			} catch {
+				message = await response.text();
+			}
+			throw new Error(message || `Failed to upload file (status ${response.status})`);
 		}
 	}
 }
