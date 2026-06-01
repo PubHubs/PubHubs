@@ -316,40 +316,54 @@ class Program:
             print(f"Executing in postgres: {sql} ...")
             pg_cur.executemany(sql, rows)
 
-        # Without the following fix Synapse fails with an error such as:
+        # --- Fix Synapse's postgres sequences so it can start after the migration ---
         #
-        #    Postgres sequence 'device_inbox_sequence' is inconsistent with associated stream position
-        #    of 'to_device' in the 'stream_positions' table.
-        # 
-        # See also <https://github.com/element-hq/synapse/issues/18544>
+        # If this is missing or incomplete, Synapse refuses to start after a migration with:
         #
-        # This is probably because synapse_port_db computes device_inbox_sequence incorrectly.
+        #     Postgres sequence '..._sequence' is inconsistent with associated stream
+        #     position of '...' in the 'stream_positions' table.
         #
-        # The fix (hopefully) is to set device_inbox_sequence manually the same way it is checked:
-        #   <https://github.com/element-hq/synapse/blob/v1.146.0/synapse/storage/util/sequence.py#L153>
+        # Why it happens: the standard `synapse_port_db` tool sets each sequence from the
+        # highest id still present in its table.  But Synapse deletes rows as it runs
+        # (to-device messages once delivered, old receipts, data of deactivated users, ...),
+        # so the highest *remaining* id can be lower than the highest id Synapse ever handed
+        # out.  Synapse remembers the latter in the `stream_positions` table and refuses to
+        # start when a sequence is below it.  This is an open Synapse bug:
+        #   <https://github.com/element-hq/synapse/issues/18544>
         #
-        # This problem occurs not only for the device_inbox_sequence-to_device sequence-stream pair,
-        # but also for other sequence-streams pairs.
+        # The fix below raises each sequence up to at least its recorded stream position.
+        # It is safe: it never lowers a sequence and does nothing when one is already fine.
         #
-        # All potential sequence-stream pairs (according to claude, beware!) are listed below.
-        # Only the ones that actually cause a problem are uncommmented.
+        # The list is one entry per Synapse sequence, for the Synapse version this image is
+        # built on.  If a future Synapse version prints the error above for a sequence that
+        # is NOT in the list, just add it -- the error message gives you both halves:
+        #     "sequence 'X' ... position of 'Y'"   ->   add   "Y": "X"
+        # Do NOT add the "backfill" stream (events_backfill_stream_seq): it counts
+        # downwards, so this fix would make it worse.
         STREAM_TO_SEQUENCE = {
             "account_data":                   "account_data_sequence",
-            #"caches":                         "cache_invalidation_stream_seq",
-            #"device_lists_stream":            "device_lists_sequence",
-            #"e2e_cross_signing_keys":         "e2e_cross_signing_keys_sequence",
-            #"events":                         "events_stream_seq",
-            #"presence_stream":                "presence_stream_sequence",
-            #"push_rules_stream":              "push_rules_stream_sequence",
+            "caches":                         "cache_invalidation_stream_seq",
+            "device_lists_stream":            "device_lists_sequence",
+            "e2e_cross_signing_keys":         "e2e_cross_signing_keys_sequence",
+            "events":                         "events_stream_seq",
+            "presence_stream":                "presence_stream_sequence",
+            "push_rules_stream":              "push_rules_stream_sequence",
             "pushers":                        "pushers_sequence",
             "receipts":                       "receipts_sequence",
-            #"thread_subscriptions":           "thread_subscriptions_sequence",
+            "sticky_events":                  "sticky_events_sequence",
+            "thread_subscriptions":           "thread_subscriptions_sequence",
             "to_device":                      "device_inbox_sequence",
-            #"un_partial_stated_event_stream": "un_partial_stated_event_stream_sequence",
-            #"un_partial_stated_room_stream":  "un_partial_stated_room_stream_sequence",
+            "un_partial_stated_event_stream": "un_partial_stated_event_stream_sequence",
+            "un_partial_stated_room_stream":  "un_partial_stated_room_stream_sequence",
         }
 
         for stream_name, seq_name in STREAM_TO_SEQUENCE.items():
+            # Skip sequences that don't exist in this Synapse version.
+            pg_cur.execute("SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = %s", (seq_name,))
+            if pg_cur.fetchone() is None:
+                print(f"Sequence {seq_name} does not exist in this Synapse version; skipping.")
+                continue
+
             sql = ( f"SELECT setval('{seq_name}', "
                      "GREATEST( "
                       f"(SELECT last_value FROM {seq_name}), "
