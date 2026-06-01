@@ -37,7 +37,7 @@ _Please add a brief description of any changes and any migrations to be performe
       during which the hub is not reachable. Keep a close eye on the hub's output.
     - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
       in `homeserver.live.yaml`.
-    - If the migration was succesfull, `homeserver.db` is moved to `homeserver.db.bak`.
+    - If the migration was successful, `homeserver.db` is moved to `homeserver.db.bak`.
     - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container)
       must be removed before the migration can be re-attempted.
     - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`

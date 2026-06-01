@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--replace-sqlite3-by-postgres",
                         help="Replaces the configured sqlite3 database by a postgres database running inside this container."
                              "Performs a migration, if necessary, moving homeserver.db to homeserver.db.bak "
-                             "to indicate a succefull migration.  Will abort when a postgres data directory is present, "
+                             "to indicate a successful migration.  Will abort when a postgres data directory is present, "
                              "but homeserver.db.bak is not.",
                         action=argparse.BooleanOptionalAction,
                         default=False)
@@ -161,6 +161,24 @@ class Program:
                                 stdin=subprocess.DEVNULL,
                                 check=True, capture_output=True).stdout.strip().decode('utf-8')
 
+        sqlite3_backup_path = sqlite3_path + '.bak'
+
+        # A completed migration renamed homeserver.db to .bak.  If that marker is
+        # present but the postgres data directory is gone, the migrated data was
+        # removed: starting now would build a fresh empty cluster and silently serve
+        # an empty hub.  Refuse *before* initdb — otherwise the next boot would treat
+        # the freshly-created empty cluster as a valid, already-migrated postgres.
+        if not os.path.exists(pg_data_dir) and not os.path.exists(sqlite3_path) \
+                and os.path.exists(sqlite3_backup_path):
+            print(f"ERROR: {pg_data_dir} is missing but {sqlite3_backup_path} (a completed-migration")
+            print( "       marker) is present. The migrated postgres data was removed; starting now")
+            print( "       would create an EMPTY database. Refusing.")
+            print(f"       To recover all data, restore {pg_data_dir} from a backup.")
+            print( "       To re-migrate from the pre-migration snapshot (losing changes since the")
+            print(f"       migration), rename {sqlite3_backup_path} back to {sqlite3_path}.")
+            print(f"       To wipe the hub and start fresh, remove {sqlite3_backup_path} too.")
+            sys.exit(1)
+
         fresh_db = False
         if not os.path.exists(pg_data_dir):
             fresh_db = True
@@ -177,7 +195,6 @@ class Program:
                             os.path.join(pg_bindir, "initdb"), pg_data_dir),
                            stdin=subprocess.DEVNULL, check=True)
 
-        sqlite3_backup_path = sqlite3_path + '.bak'
         if not fresh_db and not os.path.exists(sqlite3_backup_path):
             time.sleep(1)
             print()
