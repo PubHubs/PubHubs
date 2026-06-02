@@ -150,7 +150,10 @@
 
 	const positionMenu = async () => {
 		await nextTick();
-		const { x, y } = clampPosition(store.x + POINTER_OFFSET, store.y + POINTER_OFFSET);
+		if (!menuRef.value) return;
+		const { width: menuWidth } = menuRef.value.getBoundingClientRect();
+		const rawX = store.alignRight ? store.x - menuWidth - POINTER_OFFSET : store.x + POINTER_OFFSET;
+		const { x, y } = clampPosition(rawX, store.y + POINTER_OFFSET);
 		pos.value = { x, y };
 		collectItemButtons();
 		itemButtons.value.find((b) => !b.disabled)?.focus();

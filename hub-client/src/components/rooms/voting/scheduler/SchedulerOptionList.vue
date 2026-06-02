@@ -1,18 +1,19 @@
 <template>
 	<div role="list">
 		<SchedulerOptionItem
-			v-for="option in sortedOptions"
+			v-for="option in visibleOptions"
 			:key="option.id"
 			:closed="closed"
 			:event-id="eventId"
 			:is-creator="isCreator"
 			:option="option"
 			:picked-option-id="pickedOptionId"
-			role="listitem"
 			:show-votes="showVotes"
 			:show-votes-before-voting="showVotesBeforeVoting"
 			:uservote="voteOfUserOnOption(option.id)"
 			:votes="votesOfOption(option.id)"
+			role="listitem"
+			@pick-date="$emit('pickDate', $event)"
 		/>
 	</div>
 </template>
@@ -27,9 +28,10 @@
 	// Models
 	import { type SchedulerOption, type votesForOption } from '@hub-client/models/events/voting/VotingTypes';
 
-	// Users
+	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
+	// Props
 	const props = defineProps<{
 		options: SchedulerOption[];
 		votesByOption: votesForOption[];
@@ -40,6 +42,10 @@
 		showVotesBeforeVoting: boolean | undefined;
 		showVotes: boolean;
 		sortBasedOnScore: boolean;
+	}>();
+
+	defineEmits<{
+		(e: 'pickDate', optionId: number): void;
 	}>();
 
 	const sortedOptions = computed(() => {
@@ -63,6 +69,13 @@
 		} else {
 			return props.options;
 		}
+	});
+
+	const visibleOptions = computed(() => {
+		if (props.closed && props.pickedOptionId !== -1 && !props.showVotes) {
+			return sortedOptions.value.filter((o) => o.id === props.pickedOptionId);
+		}
+		return sortedOptions.value;
 	});
 
 	const votesOfOption = (optionId: number) => props.votesByOption.find((vote) => vote.optionId === optionId)?.votes ?? [];

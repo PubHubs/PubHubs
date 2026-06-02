@@ -23,6 +23,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 	const items = ref<MenuItem[]>([]);
 	const x = ref(0);
 	const y = ref(0);
+	const alignRight = ref(false);
 
 	// Functions
 	function disableWheelScroll() {
@@ -37,13 +38,14 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		}
 	}
 
-	function open(newItems: MenuItem[], clientX = 0, clientY = 0, targetId: string | number | null = null) {
+	function open(newItems: MenuItem[], clientX = 0, clientY = 0, targetId: string | number | null = null, alignRightParam = false) {
 		if (!newItems || newItems.length === 0) return;
 
 		items.value = newItems;
 		x.value = clientX;
 		y.value = clientY;
 		currentTargetId.value = targetId;
+		alignRight.value = alignRightParam;
 
 		const messagebox = useMessageBox();
 		const settings = useSettings();
@@ -99,6 +101,7 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 	}
 
 	return {
+		alignRight,
 		close,
 		currentTargetId,
 		isOpen,

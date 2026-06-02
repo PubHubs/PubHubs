@@ -651,7 +651,7 @@
 		const baseClasses = {
 			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
-			'bg-surface-base!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === props.event.event_id,
+			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === props.event.event_id,
 		};
 
 		if (!isPrivilegedMessage.value || redactedMessage.value) {

@@ -1,17 +1,14 @@
 <template>
 	<div
-		class="relative z-0 rounded-lg"
-		:class="{
-			'outline-2 outline-black': datePicked && pickedOptionId == props.option.id,
-			'opacity-50': datePicked && pickedOptionId !== props.option.id,
-		}"
+		class="bg-surface-background rounded-base border-surface-elevated relative z-0 mb-100 flex flex-col overflow-clip border-3"
+		:class="[!showVotes && 'h-800', option.id === pickedOptionId && 'border-accent-green!']"
 	>
-		<div class="align-items-center bg-background flex flex-wrap rounded-t-lg px-5 py-2 lg:justify-items-start">
+		<div class="flex h-full min-h-600 items-center justify-between px-200 py-100">
 			<div class="flex items-end">
 				{{ filters.getDateStr(option.date, is24HourFormat, d) }}
 			</div>
 			<div
-				v-if="!closedAndPicking"
+				v-if="!closed"
 				class="ml-auto flex items-center justify-end gap-2"
 			>
 				<OptionButton
@@ -21,8 +18,9 @@
 					@click="vote('yes')"
 				>
 					<Icon
-						type="check"
 						class="m-auto"
+						size="sm"
+						type="check"
 					/>
 				</OptionButton>
 				<OptionButton
@@ -32,8 +30,9 @@
 					@click="vote('maybe')"
 				>
 					<Icon
-						type="tilde"
 						class="m-auto"
+						size="sm"
+						type="tilde"
 					/>
 				</OptionButton>
 				<OptionButton
@@ -43,8 +42,9 @@
 					@click="vote('no')"
 				>
 					<Icon
-						type="x"
 						class="m-auto"
+						size="sm"
+						type="x"
 					/>
 				</OptionButton>
 			</div>
@@ -61,12 +61,12 @@
 		</div>
 		<div
 			v-if="showVotes"
-			class="bg-surface-high relative flex px-5"
+			class="bg-surface-background"
 		>
 			<ViewVotesSchedulerOption :votes="votes"></ViewVotesSchedulerOption>
 		</div>
 		<ProgressBarMulti
-			class="relative -z-10 -mt-2 mb-2"
+			v-if="!closed || showVotes"
 			:percentages="[getPercentage('yes'), getPercentage('maybe'), getPercentage('no')]"
 		></ProgressBarMulti>
 	</div>
@@ -95,6 +95,7 @@
 	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// Props
 	const props = defineProps<{
 		option: SchedulerOption;
 		votes: voteType[];
@@ -106,19 +107,19 @@
 		showVotesBeforeVoting: boolean | undefined;
 		showVotes: boolean;
 	}>();
+
+	const emit = defineEmits<{
+		(e: 'pickDate', optionId: number): void;
+	}>();
+
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
 	const settings = useSettings();
 	const { d } = useI18n();
-
 	const user = useUser();
 
 	const closedAndPicking = computed(() => {
 		return props.isCreator && props.closed && props.pickedOptionId === -1;
-	});
-
-	const datePicked = computed(() => {
-		return props.pickedOptionId !== -1;
 	});
 
 	const is24HourFormat = computed(() => {
@@ -143,7 +144,7 @@
 		const voteObject = getVoteObject(choice);
 		if (voteObject) {
 			if (voteObject.userVotes.some((uv) => uv.userId === user.user.userId)) {
-				//user has already voted on this specific choice
+				//  User has already voted on this specific choice
 				pubhubs.addVote(rooms.currentRoomId, props.eventId, props.option.id, 'redacted');
 			} else {
 				pubhubs.addVote(rooms.currentRoomId, props.eventId, props.option.id, choice);
@@ -153,5 +154,6 @@
 
 	function pickDate() {
 		pubhubs.pickOptionVotingWidget(rooms.currentRoomId, props.eventId, props.option.id);
+		emit('pickDate', props.option.id);
 	}
 </script>

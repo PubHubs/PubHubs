@@ -7,10 +7,12 @@
 			:has-user-voted-on-this-option="hasUserVotedOnOption(option.id)"
 			:option="option"
 			:percentage="percentageOfOption(option.id)"
-			role="listitem"
 			:show-votes="showVotes"
 			:show-votes-before-voting="showVotesBeforeVoting"
-			:user-votes="votesOfOption(option.id)"
+			:user-ids="userIdsOfOption(option.id)"
+			:votes="fullVotesOfOption(option.id)"
+			:closed="closed"
+			role="listitem"
 			@vote="vote"
 		/>
 	</div>
@@ -27,6 +29,7 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
+	// Props
 	const props = defineProps<{
 		options: PollOption[];
 		votesByOption: votesForOption[];
@@ -34,18 +37,29 @@
 		eventId: string;
 		showVotesBeforeVoting: boolean | undefined;
 		showVotes: boolean;
+		closed: boolean;
 	}>();
+
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
-
 	const user = useUser();
 
 	const votesOfOption = (optionId: number): UserVote[] => {
 		return props.votesByOption.find((vote) => vote.optionId === optionId)?.votes[0].userVotes ?? [];
 	};
+
+	const userIdsOfOption = (optionId: number): string[] => {
+		return votesOfOption(optionId).map((v) => v.userId);
+	};
+
+	const fullVotesOfOption = (optionId: number) => {
+		return props.votesByOption.find((vote) => vote.optionId === optionId)?.votes[0].userVotes ?? [];
+	};
+
 	const hasUserVotedOnOption = (optionId: number) => {
 		return votesOfOption(optionId).some((uv) => uv.userId === (user.userId ?? ''));
 	};
+
 	const hasUserVotedOnOtherOption = (optionId: number) => {
 		for (const option of props.votesByOption) {
 			if (votesOfOption(option.optionId).some((uv) => uv.userId === (user.userId ?? '')) && option.optionId !== optionId) {

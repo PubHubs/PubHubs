@@ -685,6 +685,10 @@ const nl = {
 		voting: {
 			add_option: 'Voeg keuze toe',
 			creating_option: 'Bezig keuze aan te maken...',
+			title: 'Titel',
+			description: 'Omschrijving',
+			option: 'Keuze',
+			location: 'Locatie',
 			enter_title: 'Geef een titel...',
 			enter_option: 'Geef een keuze...',
 			enter_description: 'Geef omschrijving...',

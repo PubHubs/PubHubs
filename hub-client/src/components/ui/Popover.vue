@@ -2,7 +2,7 @@
 	<div
 		ref="popover"
 		v-click-outside="close"
-		class="z-40 rounded-md"
+		class="rounded-base z-40"
 		:style="style"
 		role="toolbar"
 	>

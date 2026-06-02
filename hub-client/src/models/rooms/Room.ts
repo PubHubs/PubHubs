@@ -663,36 +663,39 @@ export default class Room {
 
 		const relatedEvents = relatedTimeleineEvents.map((x) => x.matrixEvent);
 
+		// Split into votes and non-votes.
+		// Non-vote events (pick_option, close) are returned alongside votes
+		// so they can restore state (pickedOptionId, votingWidgetClosed), but
+		// they must never replace a vote event in the vote grouping.
+		const votes = relatedEvents.filter((e) => e.getContent()?.msgtype === PubHubsMgType.VotingWidgetVote);
+		const nonVotes = relatedEvents.filter((e) => e.getContent()?.msgtype !== PubHubsMgType.VotingWidgetVote);
+
 		if (votingWidgetType === VotingWidgetType.SCHEDULER) {
-			// Scheduler: return all latest events per user per option
-			const relatedEventsByOption = Object.values(
-				relatedEvents.reduce(
+			// Scheduler: keep the latest vote per user per option.
+			const dedupedVotes = Object.values(
+				votes.reduce(
 					(acc, event) => {
 						const optionId = event.getContent()?.optionId;
 						const userId = event.getSender();
-
 						if (!acc[optionId]) {
 							acc[optionId] = [];
 						}
-
-						const existingIndex = acc[optionId].findIndex((event: MatrixEvent) => event.getSender() === userId);
+						const existingIndex = acc[optionId].findIndex((e: MatrixEvent) => e.getSender() === userId);
 						if (existingIndex === -1) {
 							acc[optionId].push(event);
-						} else {
-							if ((acc[optionId][existingIndex].getTs() ?? 0) < (event.getTs() ?? 0)) {
-								acc[optionId][existingIndex] = event;
-							}
+						} else if ((acc[optionId][existingIndex].getTs() ?? 0) < (event.getTs() ?? 0)) {
+							acc[optionId][existingIndex] = event;
 						}
 						return acc;
 					},
 					{} as Record<string, MatrixEvent[]>,
 				),
 			).flat();
-			return relatedEventsByOption;
+			return [...dedupedVotes, ...nonVotes];
 		} else {
-			//Poll: return all latest events per user
-			const latestEventsPerUser = Object.values(
-				relatedEvents.reduce(
+			// Poll: keep the latest vote per user.
+			const dedupedVotes = Object.values(
+				votes.reduce(
 					(acc, event) => {
 						const userId = event.getSender();
 						if (userId && (!acc[userId] || (acc[userId].getTs() ?? 0) < (event.getTs() ?? 0))) {
@@ -703,7 +706,7 @@ export default class Room {
 					{} as Record<string, MatrixEvent>,
 				),
 			);
-			return latestEventsPerUser;
+			return [...dedupedVotes, ...nonVotes];
 		}
 	}
 
