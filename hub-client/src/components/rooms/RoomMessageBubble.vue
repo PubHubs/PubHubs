@@ -16,7 +16,7 @@
 				(isAnnouncementMessage || isWhisperMessage) &&
 					!redactedMessage &&
 					(props.room.getPowerLevel(props.event.sender) === 100
-						? 'border-accent-admin'
+						? 'border-accent-steward'
 						: props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward'),
 			]"
 			role="article"
@@ -42,13 +42,9 @@
 				<!-- Avatar -->
 				<Avatar
 					v-if="!props.isGrouped && hasBeenVisible"
-					:class="
-						props.room.getPowerLevel(props.event.sender) === 100
-							? 'ring-accent-admin/75 ring-2'
-							: props.room.getPowerLevel(props.event.sender) >= 50 && 'ring-accent-steward/75 ring-2'
-					"
 					:avatar-url="user.userAvatar(props.event.sender)"
 					:user-id="props.event.sender"
+					:room-id="props.event.room_id ?? room.roomId"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
 				/>
@@ -102,6 +98,7 @@
 							<UserDisplayName
 								:user-id="props.event.sender"
 								:user-display-name="user.userDisplayName(props.event.sender)"
+								:room-id="props.event.room_id ?? room.roomId"
 							/>
 
 							<RoomBadge
@@ -118,7 +115,7 @@
 								class="inline-flex items-center gap-1 leading-none"
 								:class="
 									props.room.getPowerLevel(props.event.sender) === 100
-										? 'text-accent-admin'
+										? 'text-accent-steward'
 										: props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'
 								"
 							>
@@ -131,7 +128,7 @@
 								class="inline-flex items-center gap-1 leading-none"
 								:class="
 									props.room.getPowerLevel(props.event.sender) === 100
-										? 'text-accent-admin'
+										? 'text-accent-steward'
 										: props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'
 								"
 							>
@@ -142,7 +139,7 @@
 								class="inline-flex items-center gap-1 leading-none"
 								:class="
 									props.room.getPowerLevel(props.event.sender) === 100
-										? 'text-accent-admin'
+										? 'text-accent-steward'
 										: props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'
 								"
 							>

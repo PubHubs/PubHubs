@@ -55,6 +55,24 @@
 					>
 				</div>
 			</Popover>
+			<Popover
+				v-if="moderationPopover"
+				class="absolute right-0 bottom-4"
+				@close="moderationPopover = false"
+			>
+				<div class="flex flex-wrap items-center justify-end gap-2">
+					<PopoverButton
+						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
+						icon="megaphone-simple"
+						:class="isAnnouncementMode ? 'text-accent-steward' : ''"
+						@click="
+							isAnnouncementMode = !isAnnouncementMode;
+							moderationPopover = false;
+						"
+						>{{ isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement') }}</PopoverButton
+					>
+				</div>
+			</Popover>
 			<MentionAutoComplete
 				v-if="messageInput.state.showMention"
 				:msg="value as string"
@@ -177,7 +195,10 @@
 						variant="secondary"
 						class="transition-transform duration-200 hover:cursor-pointer"
 						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
-						@click.stop="messageInput.togglePopover()"
+						@click.stop="
+							messageInput.togglePopover();
+							moderationPopover = false;
+						"
 					/>
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<!-- Wrapper div captures Enter key to prevent submission when timed out -->
@@ -207,15 +228,18 @@
 						/>
 					</div>
 
-					<!--Steward and above can broadcast only in main time line-->
+					<!--Moderation tools-->
 					<button
 						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
 						class="hover:cursor-pointer"
-						:class="isAnnouncementMode ? (announcementVariant === 'admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
-						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
-						@click="isAnnouncementMode = !isAnnouncementMode"
+						:class="moderationPopover ? 'text-accent-steward' : ''"
+						:title="$t('menu.moderation')"
+						@click.stop="
+							moderationPopover = !moderationPopover;
+							messageInput.state.popover = false;
+						"
 					>
-						<Icon type="megaphone-simple"></Icon>
+						<Icon type="circles-three-plus"></Icon>
 					</button>
 
 					<!-- Emoji picker -->
@@ -372,11 +396,9 @@
 	const elTextInput = ref<InstanceType<typeof TextAreaOld> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 	const isAnnouncementMode = ref(false);
+	const moderationPopover = ref(false);
 
-	const announcementVariant = computed<'admin' | 'steward'>(() => {
-		const powerLevel = props.room.getPowerLevel(user.userId ?? '');
-		return powerLevel === 100 ? 'admin' : 'steward';
-	});
+	const announcementVariant = computed(() => 'steward' as const);
 
 	const isInputDisabled = computed(() => isCurrentUserTimedOut.value || isCurrentUserWarned.value);
 

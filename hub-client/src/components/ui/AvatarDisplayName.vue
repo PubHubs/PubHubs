@@ -5,12 +5,14 @@
 			class="mr-2 ml-6"
 			:user-display-name="user.userDisplayName(userId)"
 			:user-id="userId"
+			:room-id="roomId"
 		/>
 		<Avatar
 			:avatar-url="user.userAvatar(userId)"
 			class="h-6 w-6 border"
 			:title="displayName"
 			:user-id="userId"
+			:room-id="roomId"
 		/>
 	</div>
 </template>
@@ -31,9 +33,10 @@
 	type Props = {
 		userId: string;
 		showDisplayname?: boolean;
+		roomId?: string;
 	};
 
-	const props = withDefaults(defineProps<Props>(), { showDisplayname: false });
+	const props = withDefaults(defineProps<Props>(), { showDisplayname: false, roomId: '' });
 	const rooms = useRooms();
 	const user = useUser();
 	const currentRoom = rooms.currentRoom;

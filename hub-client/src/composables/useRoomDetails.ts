@@ -87,6 +87,7 @@ export function useRoomDetails(roomId: Ref<string>) {
 	);
 
 	const allMemberIds = computed<string[]>(() => {
+		if (!roomId.value) return [];
 		if (matrixRoom.value) {
 			return getRoomMembers(matrixRoom.value);
 		}
@@ -94,11 +95,12 @@ export function useRoomDetails(roomId: Ref<string>) {
 		if (!entry?.stateEvents) return [];
 		return entry.stateEvents
 			.filter((e) => e.type === 'm.room.member' && e.content?.membership === 'join')
-			.map((e) => e.sender)
+			.map((e) => e.state_key)
 			.filter((id) => !id.startsWith('@notices_user:'));
 	});
 
 	const powerLevels = computed<Record<string, number> | null>(() => {
+		if (!roomId.value) return null;
 		if (matrixRoom.value) {
 			const state = matrixRoom.value.getStatePowerLevel();
 			if (state?.content?.users) return state.content.users as Record<string, number>;
@@ -113,6 +115,7 @@ export function useRoomDetails(roomId: Ref<string>) {
 	});
 
 	const powerUsers = computed<RoomSteward[]>(() => {
+		if (!roomId.value) return [];
 		const levels = powerLevels.value;
 		const members = allMemberIds.value;
 		if (!levels) return [];
@@ -129,9 +132,7 @@ export function useRoomDetails(roomId: Ref<string>) {
 			}));
 	});
 
-	const stewards = computed(() => powerUsers.value.filter((u) => u.powerLevel === UserPowerLevel.Steward));
-	const admins = computed(() => powerUsers.value.filter((u) => u.powerLevel === UserPowerLevel.Admin));
-	const combinedStewards = computed(() => [...admins.value, ...stewards.value]);
+	const combinedStewards = computed(() => [...powerUsers.value].sort((a, b) => b.powerLevel - a.powerLevel));
 	const nonPowerMemberIds = computed(() => allMemberIds.value.filter((id) => !powerUsers.value.some((u) => u.userId === id)));
 
 	return {
@@ -148,8 +149,6 @@ export function useRoomDetails(roomId: Ref<string>) {
 		allMemberIds,
 		powerLevels,
 		powerUsers,
-		stewards,
-		admins,
 		combinedStewards,
 		nonPowerMemberIds,
 	};

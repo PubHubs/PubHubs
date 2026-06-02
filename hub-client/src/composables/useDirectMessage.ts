@@ -4,8 +4,9 @@ import { computed } from 'vue';
 // Composables
 import { useSidebar } from '@hub-client/composables/useSidebar';
 
-// Logic
 import { router } from '@hub-client/logic/core/router';
+// Logic
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -19,6 +20,7 @@ export function useDirectMessage() {
 	const user = useUser();
 	const sidebar = useSidebar();
 	const settings = useSettings();
+	const logger = createLogger('useDirectMessage');
 
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -32,15 +34,21 @@ export function useDirectMessage() {
 
 	function goToRoom(room: Room) {
 		sidebar.openDMRoom(room);
-		router.push({ name: 'direct-msg' });
+		router.push({ name: 'direct-msg', query: { roomId: room.roomId } }).catch((err) => {
+			logger.warn('Navigation to DM page failed:', err);
+		});
 	}
 
 	// Opens or creates a 1:1 DM with the given user and navigates to it.
 	async function goToUserDM(userId: string): Promise<void> {
 		if (!userId || userId === user.userId) return;
 
-		const room = await ensureDMRoom([userId]);
-		if (room) goToRoom(room);
+		try {
+			const room = await ensureDMRoom([userId]);
+			if (room) goToRoom(room);
+		} catch (err) {
+			logger.error('Failed to open DM with user', userId, err as string);
+		}
 	}
 
 	// Creates a DM (1:1 or group) and selects it in the sidebar.
@@ -53,7 +61,10 @@ export function useDirectMessage() {
 	// Creates a DM and navigates to the DM page.
 	async function createAndGoToDM(users: string[]): Promise<void> {
 		const room = await createDMWithUsers(users);
-		if (room) router.push({ name: 'direct-msg' });
+		if (room)
+			router.push({ name: 'direct-msg' }).catch((err) => {
+				logger.warn('Navigation to DM page failed:', err);
+			});
 	}
 
 	// Creates a DM with the steward

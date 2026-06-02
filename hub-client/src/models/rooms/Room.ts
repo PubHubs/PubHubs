@@ -344,7 +344,7 @@ export default class Room {
 	}
 
 	public getStateJoinedMembersIds(): string[] {
-		return this.stateEvents.filter((item) => item.content.membership === 'join').map((item) => item.sender);
+		return this.stateEvents.filter((item) => item.content.membership === 'join').map((item) => item.state_key);
 	}
 
 	public getStateJoinedMembers(): RoomMemberStateEvent[] {

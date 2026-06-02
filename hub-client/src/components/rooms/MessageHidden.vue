@@ -1,8 +1,8 @@
 <template>
-	<div class="flex flex-col gap-2">
+	<div class="bg-surface-base border-surface-elevated rounded-base flex w-fit flex-col gap-2 border-3">
 		<!-- Spoiler header - always visible -->
 		<button
-			class="bg-surface-low flex items-center gap-2 rounded-md px-3 py-2"
+			class="flex items-center gap-2 px-3 py-2"
 			@click="isRevealed = !isRevealed"
 		>
 			<Icon
@@ -16,7 +16,7 @@
 
 		<div
 			v-if="isRevealed"
-			class="border-on-surface-disabled border-l-2 pl-3"
+			class="mb-200 pl-3"
 		>
 			<slot />
 		</div>

@@ -14,12 +14,15 @@ import { router } from '@hub-client/logic/core/router';
 // Models
 import { type Administrator } from '@hub-client/models/hubmanagement/models/admin';
 import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+import { DirectRooms, type RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TUserAccount, UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
-import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
+
+let cachedHubUsers: TUserAccount[] | null = null;
+let cachedRoomListLength = 0;
 
 export function useManageUsers() {
 	const { t } = useI18n();
@@ -79,39 +82,34 @@ export function useManageUsers() {
 	async function fetchStewardUsers(): Promise<TUserAccount[]> {
 		const roomsStore = useRooms();
 		await roomsStore.waitForInitialRoomsLoaded();
-		const ph = usePubhubsStore();
 		const userId = user.userId;
 		if (!userId) return [];
 
 		const userMap = new Map<string, TUserAccount>();
 
 		for (const entry of roomsStore.roomList) {
-			let powerLevels: { users?: Record<string, number>; users_default?: number };
-			try {
-				powerLevels = await ph.getPowerLevelEventContent(entry.roomId);
-			} catch {
-				continue;
-			}
-			const stewardPl = powerLevels.users?.[userId] ?? powerLevels.users_default ?? 0;
+			if (DirectRooms.includes(entry.roomType as RoomType)) continue;
+
+			const powerLevelEvent = entry.stateEvents.find((e) => e.type === EventType.RoomPowerLevels);
+			if (!powerLevelEvent) continue;
+			const stewardPl = powerLevelEvent.content?.users?.[userId] ?? powerLevelEvent.content?.users_default ?? 0;
 			if (stewardPl < UserPowerLevel.Steward) continue;
+
+			const myMembership = entry.stateEvents.find((e) => e.type === EventType.RoomMember && e.state_key === userId);
+			if (myMembership?.content?.membership !== 'join') continue;
 
 			const memberIds = entry.stateEvents
 				.filter((e) => e.type === EventType.RoomMember && e.content?.membership === 'join')
 				.map((e) => e.state_key)
 				.filter((id) => !id.startsWith('@notices_user:'));
+
 			for (const memberId of memberIds) {
-				const memberPl = powerLevels.users?.[memberId] ?? 0;
-				if (userMap.has(memberId)) {
-					if (!userMap.get(memberId)!.admin && memberPl === UserPowerLevel.Admin) {
-						userMap.get(memberId)!.admin = true;
-					}
-					continue;
-				}
+				if (userMap.has(memberId)) continue;
 				const displayname = user.userDisplayName(memberId) || memberId;
 				userMap.set(memberId, {
 					name: memberId,
 					displayname,
-					admin: memberPl === UserPowerLevel.Admin,
+					admin: false,
 					user_type: null,
 					is_guest: false,
 					deactivated: false,
@@ -130,16 +128,23 @@ export function useManageUsers() {
 	}
 
 	onMounted(async () => {
-		if (isAdmin.value) {
-			await rooms.fetchPublicRooms(true);
-			try {
-				await rooms.fetchSecuredRooms();
-			} catch {
-				// Stewards can't list secured rooms via this endpoint
-			}
-			hubUsers.value = await ManagementUtils.getUsersAccounts();
+		const roomListChanged = rooms.roomList.length !== cachedRoomListLength;
+		if (cachedHubUsers && !roomListChanged) {
+			hubUsers.value = cachedHubUsers;
 		} else {
-			hubUsers.value = await fetchStewardUsers();
+			if (isAdmin.value) {
+				await rooms.fetchPublicRooms(true);
+				try {
+					await rooms.fetchSecuredRooms();
+				} catch {
+					// Stewards can't list secured rooms via this endpoint
+				}
+				cachedHubUsers = await ManagementUtils.getUsersAccounts();
+			} else {
+				cachedHubUsers = await fetchStewardUsers();
+			}
+			cachedRoomListLength = rooms.roomList.length;
+			hubUsers.value = cachedHubUsers;
 		}
 		const targetUserId = route.query.userId as string | undefined;
 		if (targetUserId) {

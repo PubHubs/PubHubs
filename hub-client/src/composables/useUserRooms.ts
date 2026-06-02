@@ -6,7 +6,7 @@ import { type Ref, computed, ref, watch } from 'vue';
 import { APIService } from '@hub-client/logic/core/apiHubManagement';
 
 // Models
-import { DirectRooms, type RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { DirectRooms, type RoomListRoom, type RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TUserJoinedRooms, UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
@@ -36,34 +36,41 @@ export function useUserRooms(userId: Ref<string>, isAdmin: Ref<boolean>) {
 		{ immediate: true },
 	);
 
-	function isMember(roomId: string, uid: string): boolean {
-		const roomObj = rooms.room(roomId);
-		if (roomObj?.getMember(uid)) return true;
-		const entry = rooms.roomList.find((r) => r.roomId === roomId);
-		if (entry?.stateEvents.some((e) => e.type === 'm.room.member' && e.state_key === uid && e.content?.membership === 'join')) return true;
-		return false;
-	}
-
-	function getRoomName(roomId: string): string {
-		const roomObj = rooms.room(roomId);
-		if (roomObj?.name) return roomObj.name;
-		const listEntry = rooms.roomList.find((r) => r.roomId === roomId);
-		if (listEntry?.name) return listEntry.name;
-		const publicRoom = rooms.publicRooms.find((r) => r.room_id === roomId);
-		if (publicRoom?.name) return publicRoom.name;
-		const securedRoom = rooms.securedRooms.find((r) => r.room_id === roomId);
-		if (securedRoom) {
-			const anyRoom = securedRoom as Record<string, unknown>;
-			if (anyRoom.room_name) return String(anyRoom.room_name);
-			if (securedRoom.name) return securedRoom.name;
-		}
-		return roomId;
-	}
-
 	const visibleRooms = computed(() => {
 		const selectedUserId = userId.value;
 		const currentUserIdVal = currentUserId.value;
 		if (!selectedUserId || !currentUserIdVal) return [];
+
+		// Build O(1) lookup maps once per computation
+		const roomListById = new Map<string, RoomListRoom>();
+		for (const entry of rooms.roomList) {
+			roomListById.set(entry.roomId, entry);
+		}
+		const nameById = new Map<string, string>();
+		for (const r of rooms.publicRooms) {
+			if (r.name) nameById.set(r.room_id, r.name);
+		}
+		for (const r of rooms.securedRooms) {
+			const n = (r as Record<string, unknown>).room_name ?? r.name;
+			if (n) nameById.set(r.room_id, String(n));
+		}
+		for (const entry of rooms.roomList) {
+			if (entry.name) nameById.set(entry.roomId, entry.name);
+		}
+
+		function isMember(roomId: string, uid: string): boolean {
+			const roomObj = rooms.room(roomId);
+			if (roomObj?.getMember(uid)) return true;
+			const entry = roomListById.get(roomId);
+			if (!entry) return false;
+			return entry.stateEvents.some((e) => e.type === 'm.room.member' && e.state_key === uid && e.content?.membership === 'join');
+		}
+
+		function getRoomName(roomId: string): string {
+			const roomObj = rooms.room(roomId);
+			if (roomObj?.name) return roomObj.name;
+			return nameById.get(roomId) ?? roomId;
+		}
 
 		const result: Array<{ roomId: string; name: string }> = [];
 		const addedRoomIds = new Set<string>();

@@ -57,7 +57,7 @@ function useModerationBase(room?: Ref<Room | undefined> | Room) {
 	const nonPowerMemberIds = computed(() => {
 		const currentRoom = getCurrentRoom();
 		if (!currentRoom) return [];
-		if (currentRoom.isDirectMessageRoom()) return [...new Set(allMembers.value)];
+		if (currentRoom.isDirectMessageRoom() && !currentRoom.isGroupRoom()) return [...new Set(allMembers.value)];
 
 		const powerUserIds = powerMembers.value.map((user) => user.userId);
 

@@ -75,12 +75,14 @@
 						<Avatar
 							:avatar-url="user.userAvatar(steward.userId)"
 							:user-id="steward.userId"
+							:room-id="props.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						/>
 						<UserDisplayName
 							:user-id="steward.userId"
 							:user-display-name="user.userDisplayName(steward.userId)"
+							:room-id="props.roomId"
 							:enable-d-m="false"
 						/><span
 							v-if="steward.userId === user.userId"
@@ -109,12 +111,14 @@
 						<Avatar
 							:avatar-url="user.userAvatar(userId)"
 							:user-id="userId"
+							:room-id="props.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						/>
 						<UserDisplayName
 							:user-id="userId"
 							:user-display-name="user.userDisplayName(userId)"
+							:room-id="props.roomId"
 							:enable-d-m="false"
 						/><span
 							v-if="userId === user.userId"

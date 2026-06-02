@@ -7,7 +7,7 @@ const getRoomMembers = (room: Room): string[] => {
 	return room
 		.getStateJoinedMembers()
 		.filter((m) => !m.state_key.startsWith('@notices_user:'))
-		.map((m) => m.sender);
+		.map((m) => m.state_key);
 };
 
 /**

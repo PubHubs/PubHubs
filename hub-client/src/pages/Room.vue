@@ -114,13 +114,6 @@
 							:selected="sidebar.activeTab.value === SidebarTab.Thread"
 							@click="sidebar.toggleTab(SidebarTab.Thread)"
 						/>
-
-						<!-- Editing icon for steward (but not for administrator) -->
-						<GlobalBarButton
-							v-if="roles.userHasPermissionForAction(UserAction.StewardPanel, props.id)"
-							type="dots-three-vertical"
-							@click="stewardCanEdit()"
-						/>
 					</RoomHeaderButtons>
 				</div>
 			</div>
@@ -212,7 +205,6 @@
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
-	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
@@ -222,7 +214,6 @@
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
-	import { UserAction } from '@hub-client/models/users/TUser';
 
 	import { DialogOk, useDialog } from '@hub-client/stores/dialog';
 	// Stores
@@ -246,7 +237,6 @@
 	const rooms = useRooms();
 	const user = useUser();
 	const dialogStore = useDialog();
-	const roles = useRoles();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
 	const videoCall = useVideoCall();
@@ -440,23 +430,6 @@
 		}
 		room.value.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
 		scrollToEventId.value = ev.eventId;
-	}
-
-	async function stewardCanEdit() {
-		// We need to fetch latest public created rooms.
-		const currentPublicRooms = await pubhubs.getAllPublicRooms();
-
-		const roomToEdit = currentPublicRooms.find((room) => room.room_id === props.id);
-
-		// If room is not there then don't show dialog box. Throw an error.
-		if (roomToEdit) {
-			router.push({ name: 'editroom', params: { id: props.id } });
-		} else {
-			router.push({
-				name: 'error-page',
-				query: { errorKey: 'errors.cant_find_room' },
-			});
-		}
 	}
 	function notPrivateRoom() {
 		if (!room.value) return true;

@@ -229,7 +229,7 @@
 	import { EventTimeline, EventType } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { onBeforeRouteLeave, useRouter } from 'vue-router';
+	import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
@@ -276,6 +276,7 @@
 	const videoCall = useVideoCall();
 
 	const router = useRouter();
+	const route = useRoute();
 	const isMobile = computed(() => settings.isMobileState);
 
 	const selectedRoom = shallowRef<Room | null>(null);
@@ -298,10 +299,18 @@
 				if (room.hasMessages()) return true;
 				if (selectedRoom.value?.roomId === r.roomId) return true;
 				if (sidebar.selectedDMRoom.value?.roomId === r.roomId) return true;
+				if (sidebar.lastDMRoomId.value === r.roomId) return true;
 				return false;
 			})
 			.map((r) => ({ room: rooms.rooms[r.roomId] as Room, unreadState: r.unreadState }))
-			.sort((a, b) => lastEventTimeStamp(b.room) - lastEventTimeStamp(a.room));
+			.sort((a, b) => {
+				const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
+				const aIsNewSelected = a.room.roomId === selectedRoomId && !a.room.hasMessages();
+				const bIsNewSelected = b.room.roomId === selectedRoomId && !b.room.hasMessages();
+				if (aIsNewSelected && !bIsNewSelected) return -1;
+				if (!aIsNewSelected && bIsNewSelected) return 1;
+				return lastEventTimeStamp(b.room) - lastEventTimeStamp(a.room);
+			});
 	});
 
 	const mobileConversationTitle = computed(() => {
@@ -320,38 +329,39 @@
 
 		// Fallback for members not fully joined yet
 		const notInvitedMemberIds = room.notInvitedMembersIdsOfPrivateRoom();
-		if (notInvitedMemberIds.length > 0) {
-			const member = room.getMember(notInvitedMemberIds[0]);
+		const otherId = notInvitedMemberIds.find((id) => id !== userStore.userId);
+		if (otherId) {
+			const member = room.getMember(otherId);
 			return member?.rawDisplayName ?? t('menu.directmsg');
 		}
 
 		return t('menu.directmsg');
 	});
 
-	// Uses sidebar state, falling back to lastDMRoomId (which survives closeInstantly)
+	// Uses sidebar state, falling back to lastDMRoomId or route query (which survives closeInstantly)
 	function findTargetRoom(entries: PrivateRoomEntry[]): Room | undefined {
 		if (sidebar.selectedDMRoom.value) return sidebar.selectedDMRoom.value;
 		if (sidebar.lastDMRoomId.value) return entries.find((e) => e.room.roomId === sidebar.lastDMRoomId.value)?.room;
+		const roomIdFromQuery = route.query.roomId as string | undefined;
+		if (roomIdFromQuery) return rooms.rooms[roomIdFromQuery] as Room | undefined;
 		return undefined;
 	}
 
 	onMounted(async () => {
 		await loadPrivateRooms();
 
+		const target = findTargetRoom(sortedPrivateRooms.value);
+
 		if (isMobile.value) {
-			// Restore sidebar if navigating here with a target room (e.g. from member list DM action)
-			const target = findTargetRoom(sortedPrivateRooms.value);
 			if (target) sidebar.openDMRoom(target);
-			return;
+		} else if (target) {
+			openDMRoom(target);
+		} else if (sortedPrivateRooms.value.length > 0) {
+			openDMRoom(sortedPrivateRooms.value[0].room);
 		}
 
-		const target = findTargetRoom(sortedPrivateRooms.value);
-		if (target) {
-			openDMRoom(target);
-			return;
-		}
-		if (sortedPrivateRooms.value.length > 0) {
-			openDMRoom(sortedPrivateRooms.value[0].room);
+		if (route.query.roomId) {
+			router.replace({ query: {} });
 		}
 	});
 
@@ -376,6 +386,10 @@
 			const roomsList = rooms.loadedPrivateRooms;
 			for (const room of roomsList) {
 				await rooms.joinRoomListRoom(room.roomId);
+			}
+			const roomIdFromQuery = route.query.roomId as string | undefined;
+			if (roomIdFromQuery && !roomsList.find((r) => r.roomId === roomIdFromQuery)) {
+				await rooms.joinRoomListRoom(roomIdFromQuery);
 			}
 		} finally {
 			dmLoading.value = false;

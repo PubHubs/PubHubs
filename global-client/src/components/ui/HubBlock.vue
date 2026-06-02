@@ -1,7 +1,7 @@
 <template>
 	<div
 		v-if="hub"
-		class="bg-surface ring-accent-secondary relative flex w-full max-w-full flex-col overflow-hidden rounded-xl hover:cursor-pointer hover:ring-3"
+		class="bg-surface-base border-surface-elevated rounded-base relative flex w-full max-w-full flex-col overflow-hidden border-3 hover:cursor-pointer"
 		@click="enterHub(hub)"
 	>
 		<span

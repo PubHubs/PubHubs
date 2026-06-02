@@ -4,8 +4,8 @@
 		<div class="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
 			<!-- Contact steward card -->
 			<div
-				v-if="stewards && stewards.length > 0"
-				class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2"
+				v-if="stewards && stewards.length > 0 && !isCurrentUserSteward"
+				class="hover:bg-surface-high rounded-base flex cursor-pointer items-center gap-4 p-2"
 				@click="contactSteward"
 			>
 				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
@@ -18,45 +18,6 @@
 					<span class="font-bold">{{ t('rooms.contact_steward_title') }}</span>
 					<span class="text-on-surface-dim text-label-small">{{ t('rooms.contact_steward_subtitle') }}</span>
 				</div>
-			</div>
-
-			<div
-				v-if="admins && admins.length > 0"
-				class="pb-4"
-			>
-				<CollapsibleHeader :label="$t('moderation.admins')">
-					<template #right>
-						<Pill :value="admins.length" />
-					</template>
-					<div
-						v-for="admin in admins"
-						:key="admin.userId"
-						v-context-menu="
-							admin.userId !== user.user?.userId && !props.disableDM
-								? (evt: any) => openMenu(evt, getPowerUserMenuItems(admin.userId), admin.userId)
-								: undefined
-						"
-						class="flex w-full items-center gap-2 rounded-md p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === admin.userId && 'bg-surface-low'"
-					>
-						<Avatar
-							:avatar-url="user.userAvatar(admin.userId)"
-							:user-id="admin.userId"
-							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
-						></Avatar>
-						<UserDisplayName
-							:user-id="admin.userId"
-							:user-display-name="user.userDisplayName(admin.userId)"
-							:enable-d-m="false"
-						></UserDisplayName
-						><span
-							v-if="admin.userId === user.user?.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
-						>
-					</div>
-				</CollapsibleHeader>
 			</div>
 
 			<div
@@ -75,18 +36,20 @@
 								? (evt: any) => openMenu(evt, getPowerUserMenuItems(steward.userId), steward.userId)
 								: undefined
 						"
-						class="flex w-full items-center gap-2 rounded-md p-2"
+						class="rounded-base flex w-full items-center gap-2 p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-low'"
 					>
 						<Avatar
 							:avatar-url="user.userAvatar(steward.userId)"
 							:user-id="steward.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="steward.userId"
 							:user-display-name="user.userDisplayName(steward.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 						></UserDisplayName
 						><span
@@ -113,12 +76,14 @@
 						<Avatar
 							:avatar-url="user.userAvatar(userId)"
 							:user-id="userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="userId"
 							:user-display-name="user.userDisplayName(userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 						></UserDisplayName
 						><span
@@ -144,12 +109,14 @@
 						<Avatar
 							:avatar-url="user.userAvatar(yellowCard.userId)"
 							:user-id="yellowCard.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="yellowCard.userId"
 							:user-display-name="user.userDisplayName(yellowCard.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 						></UserDisplayName
 						><span
@@ -172,12 +139,14 @@
 						<Avatar
 							:avatar-url="user.userAvatar(redCard.userId)"
 							:user-id="redCard.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="redCard.userId"
 							:user-display-name="user.userDisplayName(redCard.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 						></UserDisplayName
 						><span
@@ -200,12 +169,14 @@
 						<Avatar
 							:avatar-url="user.userAvatar(revoked.userId)"
 							:user-id="revoked.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="revoked.userId"
 							:user-display-name="user.userDisplayName(revoked.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 						></UserDisplayName
 						><span
@@ -228,12 +199,14 @@
 						<Avatar
 							:avatar-url="user.userAvatar(timeout.userId)"
 							:user-id="timeout.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="timeout.userId"
 							:user-display-name="user.userDisplayName(timeout.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 						></UserDisplayName
 						><span
@@ -347,7 +320,9 @@
 	const contextMenuStore = useContextMenuStore();
 
 	const base = useModerationBase();
-	const { stewards, admins, nonPowerMemberIds } = base;
+	const { stewards: baseStewards, admins, nonPowerMemberIds } = base;
+	const stewards = computed(() => [...baseStewards.value, ...admins.value]);
+	const isCurrentUserSteward = computed(() => stewards.value.some((s) => s.userId === user.user?.userId));
 	const { activeYellowCards, yellowCardDialog, openYellowCardDialog, onYellowCardDialogSubmit } = useModerationYellowCard(base);
 	const { redCardMembers, revokedRedCardMembers, redCardDialog, openRedCardDialog, onRedCardDialogSubmit, revokeRedCard } = useModerationRedCard(base);
 	const { kickDialog, openKickDialog, onKickDialogSubmit } = useModerationKick();

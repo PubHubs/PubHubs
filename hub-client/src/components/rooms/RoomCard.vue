@@ -1,7 +1,7 @@
 <template>
 	<div
 		role="article"
-		class="bg-surface-low @container flex w-full flex-col justify-between gap-4 rounded-xl p-6 shadow-md"
+		class="bg-surface-base border-surface-elevated rounded-base @container flex w-full flex-col justify-between gap-4 border-3 p-6 shadow"
 	>
 		<div class="flex items-center justify-between gap-2">
 			<H2 class="line-clamp-2">{{ room.name }}</H2>

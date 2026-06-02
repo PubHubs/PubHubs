@@ -49,10 +49,12 @@ export function useManageRooms() {
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms(true);
-		try {
-			await rooms.fetchSecuredRooms();
-		} catch {
-			// Stewards can't list secured rooms via this endpoint; use roomList instead
+		if (isAdmin.value) {
+			try {
+				await rooms.fetchSecuredRooms();
+			} catch {
+				// Stewards can't list secured rooms via this endpoint; use roomList instead
+			}
 		}
 	});
 
@@ -84,17 +86,18 @@ export function useManageRooms() {
 		const allRooms = [...publicRooms, ...securedRooms];
 		if (isAdmin.value) return allRooms;
 
+		const existingIds = new Set(allRooms.map((r) => r.room_id));
 		// Also include rooms from the joined room list that aren't in the directory/API
 		for (const entry of rooms.roomList) {
 			if (DirectRooms.includes(entry.roomType as RoomType)) continue;
-			if (!allRooms.some((r) => r.room_id === entry.roomId)) {
-				allRooms.push({
-					room_id: entry.roomId,
-					name: entry.name,
-					room_type: entry.roomType,
-					_roomType: entry.roomType === 'ph.messages.restricted' ? 'secured' : 'public',
-				} as TBaseRoom & { _roomType: string });
-			}
+			if (existingIds.has(entry.roomId)) continue;
+			existingIds.add(entry.roomId);
+			allRooms.push({
+				room_id: entry.roomId,
+				name: entry.name,
+				room_type: entry.roomType,
+				_roomType: entry.roomType === 'ph.messages.restricted' ? 'secured' : 'public',
+			} as TBaseRoom & { _roomType: string });
 		}
 		// Filter to rooms where the user has steward+ level
 		return allRooms.filter((r) => userPowerLevel(r.room_id) >= UserPowerLevel.Steward);
