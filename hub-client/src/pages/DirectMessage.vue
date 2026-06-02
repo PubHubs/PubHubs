@@ -292,6 +292,14 @@
 	const sortedPrivateRooms = computed<PrivateRoomEntry[]>(() => {
 		return rooms.loadedPrivateRooms
 			.filter((r) => rooms.rooms[r.roomId])
+			.filter((r) => {
+				const room = rooms.rooms[r.roomId] as Room;
+				if (!room) return false;
+				if (room.hasMessages()) return true;
+				if (selectedRoom.value?.roomId === r.roomId) return true;
+				if (sidebar.selectedDMRoom.value?.roomId === r.roomId) return true;
+				return false;
+			})
 			.map((r) => ({ room: rooms.rooms[r.roomId] as Room, unreadState: r.unreadState }))
 			.sort((a, b) => lastEventTimeStamp(b.room) - lastEventTimeStamp(a.room));
 	});

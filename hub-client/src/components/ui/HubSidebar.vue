@@ -31,7 +31,7 @@
 			<template v-if="!showModerationMenu">
 				<section class="flex flex-col gap-2">
 					<div
-						class="bg-surface text-hub-text rounded-base flex h-16 items-center justify-between overflow-hidden py-2 pr-4 pl-2"
+						class="bg-surface text-hub-text rounded-base outline-surface-elevated flex items-center justify-between overflow-hidden p-4 outline-3"
 						role="complementary"
 					>
 						<div class="flex w-full items-center gap-2 truncate">
@@ -43,7 +43,7 @@
 								<p class="truncate leading-tight font-bold">
 									{{ user.userDisplayName(user.userId!) }}
 								</p>
-								<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
+								<p class="text-on-surface-dim leading-tight">{{ user.pseudonym ?? '' }}</p>
 							</div>
 						</div>
 						<Icon
