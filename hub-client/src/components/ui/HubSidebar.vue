@@ -29,7 +29,7 @@
 			role="menu"
 		>
 			<template v-if="!showModerationMenu">
-				<section class="flex flex-col gap-2">
+				<section class="flex flex-col gap-4">
 					<div
 						class="bg-surface text-hub-text rounded-base outline-surface-elevated flex items-center justify-between overflow-hidden p-4 outline-3"
 						role="complementary"

@@ -207,16 +207,6 @@
 								/>
 							</template>
 
-							<!-- <div v-if="isSupported">
-								<button
-									@click="copy(`${source}?eventid=${props.event.event_id}`)"
-									class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
-								>
-									<Icon type="link" v-if="!copied"></Icon>
-									<Icon type="check" v-else>Copied!</Icon>
-								</button>
-							</div> -->
-
 							<!-- Reaction Button -->
 							<button
 								v-if="!redactedMessage && !isThreadRoot"
@@ -427,7 +417,6 @@
 
 <script setup lang="ts">
 	// Packages
-	// import { useClipboard } from '@vueuse/core';
 	import { MsgType, NotificationCountType } from 'matrix-js-sdk';
 	import { type PropType, capitalize, computed, onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -453,11 +442,10 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import ReactionMiniPopUp from '@hub-client/components/ui/ReactionMiniPopUp.vue';
 
-	// New design
+	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useModerationHideMessage } from '@hub-client/composables/moderation/hide-message.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
-	// Composables
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
@@ -465,8 +453,8 @@
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
-	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	// Models
+	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	import { RelationType } from '@hub-client/models/constants';
 	import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
@@ -486,6 +474,7 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// Props
 	const props = defineProps({
 		event: {
 			type: Object,
@@ -535,6 +524,7 @@
 			default: null,
 		},
 	});
+
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
 		(e: 'deleteMessage', event: TMessageEvent): void;
@@ -545,6 +535,7 @@
 		(e: 'profileCardClose'): void;
 		(e: 'clickedEmoticon', emoji: string, eventId: string): void;
 	}>();
+
 	const contextMenuStore = useContextMenuStore();
 	const { openMenu } = useContextMenu();
 	const connection = useConnection();
@@ -558,11 +549,9 @@
 	const hubSettings = useHubSettings();
 	const { t } = useI18n();
 	const hover = ref(false);
-	// const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const source = ref('');
 
-	// const { copy, copied, isSupported } = useClipboard({ source });
 	const isMobile = computed(() => settings.isMobileState);
 
 	// Intersection observer

@@ -2,27 +2,27 @@
 	<div
 		v-if="authMediaUrl?.url"
 		v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadFile() }])"
-		class="bg-surface mt-2 flex items-center gap-2 overflow-x-hidden rounded-md p-2"
+		class="bg-surface-base rounded-base border-surface-elevated flex w-fit items-center gap-2 overflow-x-hidden border-3 px-3 py-2"
 	>
 		<Icon
+			class="text-on-surface"
 			type="file"
-			size="md"
+			size="sm"
 		/>
-		<a
-			class="text-blue truncate"
-			target="_blank"
-			:href="authMediaUrl.url"
-			>{{ message.filename }}</a
+		<span
+			class="hover:cursor-pointer"
+			@click="openFileUrl()"
 		>
+			{{ message.filename }}
+		</span>
 	</div>
 	<!-- eslint-disable vue/no-v-html -- sanitized message body -->
 	<p
 		v-if="message.body !== message.filename"
 		:class="{ 'text-on-surface-dim': deleted }"
-		class="overflow-hidden text-ellipsis"
+		class="truncate"
 		v-html="message.body"
 	></p>
-	<!-- eslint-enable vue/no-v-html -->
 </template>
 
 <script setup lang="ts">
@@ -33,17 +33,19 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	// New design
-	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 
 	// Models
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
+	// Props
 	const props = defineProps<{ message: TFileMessageEventContent; deleted?: boolean }>();
+
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const matrixFiles = useMatrixFiles();
@@ -65,5 +67,10 @@
 		a.href = authMediaUrl.value.url;
 		a.download = props.message.filename ?? props.message.body ?? 'file';
 		a.click();
+	}
+
+	function openFileUrl() {
+		if (!authMediaUrl.value?.url) return;
+		window.open(authMediaUrl.value.url, '_blank');
 	}
 </script>

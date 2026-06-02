@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="flex w-fit cursor-pointer items-center gap-3 truncate rounded-md px-2 text-nowrap"
-		:class="showInReplyTo ? 'bg-surface-elevated' : 'bg-surface-background'"
+		class="rounded-base flex w-fit cursor-pointer items-center gap-3 truncate px-2 text-nowrap"
+		:class="showInReplyTo ? 'bg-surface-base border-surface-elevated border-3' : 'bg-surface-background'"
 	>
 		<Icon
 			v-if="showInReplyTo"
