@@ -394,7 +394,11 @@ const nl = {
 		votes: 'stemmen',
 	},
 	settings: {
-		profile_title: 'Jouw profiel in deze hub',
+		profile_title: 'Jouw profiel',
+		change_avatar: 'Foto aanpassen',
+		remove_avatar: 'Foto verwijderen',
+		confirm_remove_avatar: 'Weet je zeker dat je je profielfoto wilt verwijderen?',
+		userId_description: 'Dit is je unieke ID voor deze hub. Je kunt dit niet wijzigen.',
 		userId: 'Unieke hub ID',
 		displayname: 'Gekozen naam',
 		avatar: 'Foto',
@@ -407,7 +411,6 @@ const nl = {
 		language_changed: 'Taal gewijzigd in `{0}`.',
 		title: 'Instellingen',
 		notifications: 'Meldingen',
-		change_avatar: 'Foto aanpassen',
 	},
 	hub_settings: {
 		heading: 'Hub instellingen',

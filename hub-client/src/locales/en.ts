@@ -394,7 +394,11 @@ const en = {
 		votes: 'votes',
 	},
 	settings: {
-		profile_title: 'Your profile in this hub',
+		profile_title: 'Your profile',
+		change_avatar: 'Change picture',
+		remove_avatar: 'Remove picture',
+		confirm_remove_avatar: 'Are you sure you want to remove your profile picture?',
+		userId_description: 'This is your unique ID for this hub. You cannot change this.',
 		userId: 'Unique hub ID',
 		displayname: 'Chosen name',
 		avatar: 'Picture',
@@ -407,7 +411,6 @@ const en = {
 		language_changed: 'Language changed to `{0}`.',
 		title: 'Settings',
 		notifications: 'Notifications',
-		change_avatar: 'Change picture',
 	},
 	hub_settings: {
 		heading: 'Hub settings',

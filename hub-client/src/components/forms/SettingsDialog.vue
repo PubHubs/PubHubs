@@ -2,69 +2,84 @@
 	<Dialog
 		:buttons="buttonsSubmitCancel"
 		:title="$t('settings.profile_title')"
+		width="w-full md:w-2/6"
 		@close="dialogAction($event)"
 	>
-		<form @submit.prevent>
-			<div class="mb-4 flex flex-col items-center md:flex-row md:items-start">
-				<label class="text-gray font-semibold md:w-2/6">{{ $t('settings.avatar') }}</label>
+		<form @submit.prevent="submit">
+			<div class="mb-4 flex flex-col md:flex-row md:items-start">
+				<label class="text-gray w-2/6 shrink-0 pt-1 font-semibold">{{ $t('settings.avatar') }}</label>
 				<input
-					id="avatar"
+					ref="fileInput"
 					accept="image/png, image/jpeg, image/svg"
 					class="hidden"
 					type="file"
 					@change="chooseAvatar($event)"
 				/>
-
-				<div class="flex flex-col justify-between md:w-4/6 md:flex-row">
+				<div class="flex items-center gap-4">
 					<Avatar
 						:avatar-url="blobUrl?.url"
-						class="h-32 w-32 rounded-full"
+						class="outline-surface-elevated h-800 w-800 rounded-full outline-3"
 					/>
-
-					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
-						<label for="avatar">
+					<div class="flex gap-3">
+						<button
+							type="button"
+							class="hover:text-on-surface-variant cursor-pointer"
+							:aria-label="$t('settings.change_avatar')"
+							@click="fileInput?.click()"
+						>
 							<Icon
-								class="hover:text-on-surface-variant cursor-pointer group-hover:block"
 								data-testid="change-avatar"
 								type="pencil-simple"
 							/>
-						</label>
-						<Icon
-							class="hover:text-on-surface-variant cursor-pointer group-hover:block"
-							data-testid="remove-avatar"
-							type="trash"
+						</button>
+						<button
+							type="button"
+							class="hover:text-accent-error cursor-pointer"
+							:aria-label="$t('settings.remove_avatar')"
 							@click="removeAvatar"
-						/>
+						>
+							<Icon
+								data-testid="remove-avatar"
+								type="trash"
+							/>
+						</button>
 					</div>
 				</div>
 			</div>
-			<div class="mb-4 flex flex-col items-center md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.displayname') }}</label>
+
+			<div class="mb-4 flex flex-col md:flex-row md:items-start">
+				<label
+					for="displayname"
+					class="text-gray w-2/6 shrink-0 pt-1 font-semibold"
+					>{{ $t('settings.displayname') }}</label
+				>
 				<TextField
+					id="displayname"
 					v-model.trim="formState.data.displayName.value as string"
 					name="displayname"
 					:placeholder="$t('settings.displayname')"
+					show-length
+					:validation="{ minLength: 3, maxLength: settings.getDisplayNameMaxLength }"
 				/>
 			</div>
-			<div class="mb-4 flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.userId') }}</label>
+
+			<div class="mb-4 flex flex-col md:flex-row md:items-start">
+				<label class="text-gray w-2/6 shrink-0 pt-1 font-semibold">{{ $t('settings.userId') }}</label>
 				<div
-					class="text-on-surface-dim text-body p-1 text-lg italic md:w-4/6"
-					title="Hub specific User ID"
+					class="text-on-surface-dim text-body p-1 text-lg italic"
+					:title="$t('settings.userId_description')"
 				>
 					{{ user.userId }}
 				</div>
 			</div>
+
+			<div
+				v-if="formState.message.value !== ''"
+				class="bg-green-dark mt-2 rounded-lg p-2 text-white"
+			>
+				{{ formState.message }}
+			</div>
 		</form>
-
-		<ValidationErrors :errors="formState.validationErrors.value" />
-
-		<div
-			v-if="formState.message.value !== ''"
-			class="bg-green-dark mt-2 rounded-lg p-2 text-white"
-		>
-			{{ formState.message }}
-		</div>
 	</Dialog>
 </template>
 
@@ -76,7 +91,6 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
-	import ValidationErrors from '@hub-client/components/forms/elements/ValidationErrors.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
@@ -103,22 +117,15 @@
 	const formState = useFormState();
 	const pubhubs = usePubhubsStore();
 	const { imageTypes, uploadUrl } = useMatrixFiles();
+	const fileInput = ref<HTMLInputElement>();
 	const fileInfo = ref<File>();
 
-	let avatarMxcUrl = ref<string | undefined>(undefined);
-	let blobUrl = ref<BlobManager>();
+	const avatarMxcUrl = ref<string | undefined>(undefined);
+	const blobUrl = ref<BlobManager>();
 
 	formState.setData({
 		displayName: {
 			value: user.userDisplayName(user.userId ?? '') as string,
-			validation: {
-				required: true,
-				max_length: settings.getDisplayNameMaxLength,
-				allow_empty_number: false,
-				allow_empty_object: false,
-				allow_empty_text: true,
-			},
-			show_validation: { required: false, max_length: true },
 		},
 	});
 
@@ -159,11 +166,9 @@
 		}
 		if (fileInfo.value) {
 			await uploadAvatar();
-		}
-		if (avatarMxcUrl.value !== undefined) {
+		} else if (avatarMxcUrl.value !== undefined) {
 			user.setAvatarUrl(avatarMxcUrl.value);
 		}
-		blobUrl.value?.revoke();
 	}
 
 	async function chooseAvatar(event: Event) {
@@ -172,7 +177,8 @@
 		const file = target.files && target.files[0];
 		if (file) {
 			fileInfo.value = file;
-			blobUrl.value?.create(file);
+			blobUrl.value?.revoke();
+			blobUrl.value = new BlobManager(file);
 		}
 	}
 
@@ -200,7 +206,7 @@
 	async function removeAvatar() {
 		avatarMxcUrl.value = '';
 		blobUrl.value?.revoke();
-		blobUrl.value = undefined;
+		blobUrl.value = new BlobManager(undefined);
 		fileInfo.value = undefined;
 		getSubmitButton().enabled = true;
 	}
