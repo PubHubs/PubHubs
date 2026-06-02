@@ -26,10 +26,7 @@
 			>
 				<CollapsibleHeader :label="$t('moderation.admins')">
 					<template #right>
-						<div class="flex items-center gap-1">
-							<div>{{ admins.length }}</div>
-							<Icon type="user"></Icon>
-						</div>
+						<Pill :value="admins.length" />
 					</template>
 					<div
 						v-for="admin in admins"
@@ -52,7 +49,12 @@
 							:user-id="admin.userId"
 							:user-display-name="user.userDisplayName(admin.userId)"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="admin.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 					</div>
 				</CollapsibleHeader>
 			</div>
@@ -63,10 +65,7 @@
 			>
 				<CollapsibleHeader :label="$t('rooms.stewards')">
 					<template #right>
-						<div class="flex items-center gap-1">
-							<div>{{ stewards.length }}</div>
-							<Icon type="user"></Icon>
-						</div>
+						<Pill :value="stewards.length" />
 					</template>
 					<div
 						v-for="steward in stewards"
@@ -89,7 +88,12 @@
 							:user-id="steward.userId"
 							:user-display-name="user.userDisplayName(steward.userId)"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="steward.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 					</div>
 				</CollapsibleHeader>
 			</div>
@@ -97,10 +101,7 @@
 			<div v-if="nonPowerMemberIds && nonPowerMemberIds.length > 0">
 				<CollapsibleHeader :label="$t('rooms.members')">
 					<template #right>
-						<div class="flex items-center gap-1">
-							<div>{{ nonPowerMemberIds.length }}</div>
-							<Icon type="user"></Icon>
-						</div>
+						<Pill :value="nonPowerMemberIds.length" />
 					</template>
 					<div
 						v-for="userId in nonPowerMemberIds"
@@ -119,17 +120,19 @@
 							:user-id="userId"
 							:user-display-name="user.userDisplayName(userId)"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 					</div>
 				</CollapsibleHeader>
 			</div>
 			<div v-if="roles.userIsStewardOrHigher() && numberOfSanctionedMembers > 0">
 				<CollapsibleHeader :label="t('moderation.sanctioned_members')">
 					<template #right>
-						<div class="flex items-center gap-1">
-							<div>{{ numberOfSanctionedMembers }}</div>
-							<Icon type="user"></Icon>
-						</div>
+						<Pill :value="numberOfSanctionedMembers" />
 					</template>
 					<div
 						v-for="yellowCard in activeYellowCards"
@@ -148,7 +151,12 @@
 							:user-id="yellowCard.userId"
 							:user-display-name="user.userDisplayName(yellowCard.userId)"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="yellowCard.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 						<Icon
 							type="exclamation-mark"
 							class="text-accent-yellow"
@@ -171,7 +179,12 @@
 							:user-id="redCard.userId"
 							:user-display-name="user.userDisplayName(redCard.userId)"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="redCard.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 						<Icon
 							type="exclamation-mark"
 							class="text-button-red"
@@ -194,7 +207,12 @@
 							:user-id="revoked.userId"
 							:user-display-name="user.userDisplayName(revoked.userId)"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="revoked.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 						<Icon
 							type="exclamation-mark"
 							class=""
@@ -217,7 +235,12 @@
 							:user-id="timeout.userId"
 							:user-display-name="user.userDisplayName(timeout.userId)"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="timeout.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 						<div class="text-button-red flex items-center gap-1">
 							<Icon
 								type="clock"
@@ -271,6 +294,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Pill from '@hub-client/components/elements/Pill.vue';
 	import IssueTimeoutDialog from '@hub-client/components/forms/IssueTimeoutDialog.vue';
 	import KickDialog from '@hub-client/components/forms/KickDialog.vue';
 	import IssueCardDialog from '@hub-client/components/forms/issueCardDialog.vue';
