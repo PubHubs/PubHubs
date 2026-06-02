@@ -62,7 +62,7 @@
 							>
 								<UserListCard
 									:user-id="asUserAccount(item).name"
-									:display-name="asUserAccount(item).displayname"
+									:display-name="displayNameWithSuffix(asUserAccount(item))"
 									:avatar-url="user.userAvatar(asUserAccount(item).name)"
 									:is-admin="asUserAccount(item).admin"
 								/>
@@ -87,6 +87,7 @@
 					:is-admin="isAdmin"
 					@edit="currentAdministrator ? (showUserInRoomForm = true) : undefined"
 					@disclose="openDisclosureForSelectedUser"
+					@navigate-to-room="navigateToRoom"
 				/>
 			</RoomSidebar>
 		</div>
@@ -103,9 +104,8 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { onBeforeRouteLeave } from 'vue-router';
 
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
@@ -119,17 +119,11 @@
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import ManageUserSidebar from '@hub-client/components/ui/ManageUserSidebar.vue';
 
+	import { useManageUsers } from '@hub-client/composables/useManageUsers';
 	// Composables
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
-	// Models
-	import { type Administrator } from '@hub-client/models/hubmanagement/models/admin';
-	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
-	import { type TUserAccount, UserPowerLevel } from '@hub-client/models/users/TUser';
-
 	// Stores
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -137,119 +131,22 @@
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 	const user = useUser();
-
-	const hubUsers = ref<TUserAccount[]>([]);
-	const selectedUserById = ref<string>();
-	const selectedUserDisplayName = ref<string>();
 	const sidebar = useSidebar();
-	const showUserInRoomForm = ref(false);
-	const showAskDisclosureAttrsForm = ref(false);
 
-	watch(
-		() => sidebar.activeTab.value,
-		(tab) => {
-			if (tab === SidebarTab.None) {
-				selectedUserById.value = undefined;
-			}
-		},
-	);
-	const selectedUser = ref<TUserAccount | null>(null);
-
-	const isAdmin = computed(() => user.isAdministrator);
-	const currentAdministrator = user.administrator as unknown as Administrator | null;
-
-	function asUserAccount(item: Record<string, unknown>): TUserAccount {
-		return item as unknown as TUserAccount;
-	}
-
-	function openAskDisclosureForm(item: TUserAccount) {
-		selectedUser.value = item;
-		showAskDisclosureAttrsForm.value = true;
-	}
-
-	function openDisclosureForSelectedUser() {
-		const userAccount = hubUsers.value.find((u) => u.name === selectedUserById.value);
-		if (userAccount) {
-			openAskDisclosureForm(userAccount);
-		}
-	}
-
-	function closeAskDisclosureForm() {
-		showAskDisclosureAttrsForm.value = false;
-		selectedUser.value = null;
-	}
-
-	async function fetchStewardUsers(): Promise<TUserAccount[]> {
-		const roomsStore = useRooms();
-		const ph = usePubhubsStore();
-		const userId = user.userId;
-		if (!userId) return [];
-
-		const userMap = new Map<string, TUserAccount>();
-
-		for (const entry of roomsStore.roomList) {
-			let powerLevels: { users?: Record<string, number>; users_default?: number };
-			try {
-				powerLevels = await ph.getPowerLevelEventContent(entry.roomId);
-			} catch {
-				continue;
-			}
-			const stewardPl = powerLevels.users?.[userId] ?? powerLevels.users_default ?? 0;
-			if (stewardPl < UserPowerLevel.Steward) continue;
-
-			const room = roomsStore.room(entry.roomId);
-			if (!room) continue;
-
-			const memberIds = room.getStateJoinedMembersIds();
-			for (const memberId of memberIds) {
-				const memberPl = powerLevels.users?.[memberId] ?? 0;
-				if (userMap.has(memberId)) {
-					if (!userMap.get(memberId)!.admin && memberPl === UserPowerLevel.Admin) {
-						userMap.get(memberId)!.admin = true;
-					}
-					continue;
-				}
-				const displayname = user.userDisplayName(memberId) || memberId;
-				userMap.set(memberId, {
-					name: memberId,
-					displayname,
-					admin: memberPl === UserPowerLevel.Admin,
-					user_type: null,
-					is_guest: false,
-					deactivated: false,
-					shadow_banned: false,
-					avatar_url: '',
-					creation_ts: 0,
-					approved: true,
-					erased: false,
-					last_seen_ts: null,
-					locked: false,
-				});
-			}
-		}
-
-		return Array.from(userMap.values());
-	}
-
-	onMounted(async () => {
-		if (isAdmin.value) {
-			hubUsers.value = await ManagementUtils.getUsersAccounts();
-		} else {
-			hubUsers.value = await fetchStewardUsers();
-		}
-	});
-
-	async function selectUser(userId: string, displayName: string) {
-		if (sidebar.activeTab.value === SidebarTab.ManageUser && selectedUserById.value === userId) {
-			sidebar.close();
-			return;
-		}
-		selectedUserById.value = userId;
-		selectedUserDisplayName.value = displayName;
-		sidebar.openTab(SidebarTab.ManageUser);
-	}
-
-	onBeforeRouteLeave(() => {
-		sidebar.closeInstantly();
-	});
+	const {
+		hubUsers,
+		selectedUserById,
+		selectedUserDisplayName,
+		showUserInRoomForm,
+		showAskDisclosureAttrsForm,
+		selectedUser,
+		isAdmin,
+		currentAdministrator,
+		displayNameWithSuffix,
+		asUserAccount,
+		openDisclosureForSelectedUser,
+		closeAskDisclosureForm,
+		navigateToRoom,
+		selectUser,
+	} = useManageUsers();
 </script>

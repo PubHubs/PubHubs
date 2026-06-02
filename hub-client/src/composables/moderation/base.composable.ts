@@ -1,4 +1,4 @@
-import { computed } from 'vue';
+import { type Ref, computed, unref } from 'vue';
 
 import { getRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
@@ -16,13 +16,13 @@ type TPowerUser = {
 	displayName: string;
 };
 
-function useModerationBase(room?: Room) {
+function useModerationBase(room?: Ref<Room | undefined> | Room) {
 	// Stores
 	const userStore = useUser();
 	const roomStore = useRooms();
 
 	// Helpers
-	const getCurrentRoom = () => room ?? roomStore.currentRoom;
+	const getCurrentRoom = () => unref(room) ?? roomStore.currentRoom;
 
 	// Computed
 	const allMembers = computed(() => {

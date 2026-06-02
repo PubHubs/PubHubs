@@ -5,7 +5,7 @@
 		:class="buttonClass"
 		:disabled="disabled"
 		:title="title ?? label"
-		class="rounded-base focus:outline-accent-primary fixed right-4 bottom-4 z-50 flex h-12 w-12 cursor-pointer items-center justify-center font-medium shadow-lg transition-all duration-150 ease-in-out hover:opacity-75 focus:outline-3 active:scale-95 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+		class="focus:outline-accent-primary rounded-base z-50 flex h-12 w-12 cursor-pointer items-center justify-center font-medium shadow-lg transition-all duration-150 ease-in-out hover:opacity-75 focus:outline-3 active:scale-95 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		type="button"
 		@click="handleClick"
 	>
@@ -17,13 +17,10 @@
 </template>
 
 <script setup lang="ts">
-	// Packages
 	import { computed } from 'vue';
 
-	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	// Props
 	const props = withDefaults(
 		defineProps<{
 			label: string;
@@ -46,9 +43,10 @@
 
 	const colorClass: Record<string, string> = {
 		primary: 'bg-accent-primary text-on-accent-primary',
+		error: 'text-on-accent-red bg-accent-red',
 	};
 
-	const buttonClass = computed(() => colorClass[props.color] ?? colorClass['blue']);
+	const buttonClass = computed(() => colorClass[props.color] ?? colorClass['primary']);
 
 	function handleClick(evt: MouseEvent) {
 		if (props.disabled) {

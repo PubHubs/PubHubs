@@ -209,9 +209,9 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
-	// Composables
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';

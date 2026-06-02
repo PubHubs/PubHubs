@@ -21,14 +21,27 @@ function useRoles() {
 	};
 
 	const userPowerLevel = (roomId: string | undefined = undefined): number => {
-		const user = userStore.user;
+		const currentUser = userStore.user;
 		let room = roomsStore.currentRoom;
 		if (roomId) {
 			room = roomsStore.room(roomId);
 		}
-		const powerLevel = room?.getStateMemberPowerLevel(user.userId) ?? 0;
-		assert(powerLevel in UserPowerLevel, 'Powerlevel not one of the predefined powerlevels');
-		return powerLevel;
+		if (room) {
+			const powerLevel = room.getStateMemberPowerLevel(currentUser.userId) ?? 0;
+			assert(powerLevel in UserPowerLevel, 'Powerlevel not one of the predefined powerlevels');
+			return powerLevel;
+		}
+		// Fallback to roomList state events (rooms from sliding sync not yet joined)
+		if (roomId && currentUser.userId) {
+			const listEntry = roomsStore.roomList.find((r) => r.roomId === roomId);
+			if (listEntry?.stateEvents) {
+				const event = listEntry.stateEvents.find((e) => e.type === 'm.room.power_levels' && e.content?.users);
+				if (event) {
+					return event.content.users[currentUser.userId] ?? event.content.users_default ?? 0;
+				}
+			}
+		}
+		return 0;
 	};
 
 	const getRoleByPowerLevel = (powerLevel: number): UserRole => {
@@ -106,6 +119,7 @@ function useRoles() {
 	return {
 		currentRoomId,
 		getRoleByPowerLevel,
+		userPowerLevel,
 		userIsHubAdmin,
 		userIsAdmin,
 		userIsSuperSteward,

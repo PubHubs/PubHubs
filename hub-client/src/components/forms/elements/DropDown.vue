@@ -3,7 +3,7 @@
 		<ValidateField
 			v-slot="{ id: fieldId }"
 			v-model="model"
-			class="form-dropdown gap-050 relative mb-2 flex w-full flex-col items-start justify-start"
+			:class="wrapperClasses"
 			:help="help"
 			:name="fieldName"
 			:title="textValue"
@@ -19,7 +19,11 @@
 			"
 			@keydown.space.prevent="toggle()"
 		>
-			<Label :for="fieldId"><slot /></Label>
+			<Label
+				v-if="$slots.default"
+				:for="fieldId"
+				><slot
+			/></Label>
 
 			<div
 				:id="fieldId"
@@ -44,13 +48,13 @@
 				</div>
 				<div
 					v-if="!showFilter"
-					class="max-h-500 w-full items-center overflow-hidden px-175 py-100"
+					class="flex max-h-500 w-full items-center gap-100 overflow-hidden px-175 py-100"
 				>
 					<div
-						class="dropdown-value inline-block max-h-300 min-h-6 grow cursor-pointer"
+						class="dropdown-value min-w-0 grow cursor-pointer"
 						@click.stop="toggle"
 					>
-						<div v-if="model">
+						<div v-if="model !== undefined && model !== null && model !== ''">
 							<div
 								v-if="multiple"
 								ref="values"
@@ -98,10 +102,10 @@
 							>{{ placeholder }}</span
 						>
 					</div>
-					<div class="mt-025 absolute top-300 right-0 flex h-400 items-center pr-175">
+					<div class="pr-050 flex shrink-0 items-center">
 						<div
 							v-if="showClear"
-							class="dropdown-remove-all pr-075 ml-100 cursor-pointer bg-transparent"
+							class="dropdown-remove-all mr-150 cursor-pointer bg-transparent"
 							@click.stop="resetAll()"
 						>
 							<Icon
@@ -110,13 +114,14 @@
 							/>
 						</div>
 						<div
-							class="dropdown-toggler cursor-pointer border-l bg-transparent"
+							class="dropdown-toggler pl-050 cursor-pointer border-l bg-transparent"
 							@click.stop="toggle"
 						>
 							<Icon
 								class="ml-050 -mr-050"
 								type="caret-down"
 								weight="fill"
+								size="sm"
 							/>
 						</div>
 					</div>
@@ -166,9 +171,11 @@
 	// Props
 	const props = withDefaults(
 		defineProps<{
+			clearable?: boolean;
 			disabled?: boolean;
 			help?: string;
 			id?: string;
+			inline?: boolean;
 			multiple?: boolean;
 			name?: string;
 			options: FieldOptions | unknown[];
@@ -179,9 +186,11 @@
 			transformer?: Function; // Give a transformer function to transform given data/options to FieldOption(s) for DropDown
 		}>(),
 		{
+			clearable: true,
 			disabled: false,
 			help: '',
 			id: undefined,
+			inline: false,
 			multiple: false,
 			name: undefined,
 			placeholder: '',
@@ -196,6 +205,10 @@
 	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 	const { fieldName, update } = useFormInput(props, model);
 
+	const wrapperClasses = computed(() =>
+		['form-dropdown relative flex w-full flex-col items-start justify-start', props.inline ? '' : 'mb-2 gap-050'].filter(Boolean).join(' '),
+	);
+
 	const open = ref(false);
 	const selection = ref<FieldSelection>([]); // Selection of chosen indexes
 	const filter = ref('');
@@ -207,25 +220,6 @@
 
 	onMounted(() => {
 		setItems(filteredOptions.value as Array<unknown>);
-		// Set selection
-		if (model.value) {
-			if (props.multiple) {
-				const modelArr = model.value as unknown[];
-				for (let i = 0; i < modelArr.length; i++) {
-					const idx = props.options.findIndex((item) => {
-						return item === toRaw(modelArr[i]);
-					});
-					if (idx >= 0) {
-						selection.value.push(idx);
-					}
-				}
-			} else {
-				const idx = props.options.findIndex((item) => item === toRaw(model.value));
-				if (idx >= 0) {
-					selection.value.push(idx);
-				}
-			}
-		}
 		// Set cursor off until it is used
 		cursor.value = -1;
 	});
@@ -233,6 +227,29 @@
 	onMounted(async () => {
 		await controlMaxWidth();
 	});
+
+	// Keep selection in sync with model (handles both initial value and external changes)
+	watch(
+		model,
+		(newValue) => {
+			if (props.multiple) {
+				if (newValue !== undefined && newValue !== null) {
+					const modelArr = newValue as unknown[];
+					selection.value = modelArr.map((item) => props.options.findIndex((opt) => opt === toRaw(item))).filter((idx) => idx >= 0);
+				} else {
+					selection.value = [];
+				}
+			} else {
+				if (newValue !== undefined && newValue !== null) {
+					const idx = props.options.findIndex((item) => item === toRaw(newValue));
+					selection.value = idx >= 0 ? [idx] : [];
+				} else {
+					selection.value = [];
+				}
+			}
+		},
+		{ immediate: true },
+	);
 
 	// Make sure dropdown is opened when cursorkey is used
 	watch(cursor, () => {
@@ -304,7 +321,7 @@
 	);
 
 	const textValue = computed(() => {
-		if (!model.value) return '';
+		if (model.value === undefined || model.value === null || model.value === '') return '';
 		if (props.multiple) {
 			const modelArr = model.value as unknown[];
 			const texts = modelArr.map((element) => {
@@ -323,7 +340,8 @@
 	});
 
 	const showClear = computed(() => {
-		if (!model.value) return false;
+		if (!props.clearable) return false;
+		if (model.value === undefined || model.value === null || model.value === '') return false;
 		if (props.validation && 'required' in props.validation) return false;
 		return true;
 	});
