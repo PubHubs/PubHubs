@@ -8,6 +8,7 @@
 		:size="size"
 		:title="computedTitle"
 		:variant="computedVariant"
+		class="outline-transparent"
 	/>
 </template>
 

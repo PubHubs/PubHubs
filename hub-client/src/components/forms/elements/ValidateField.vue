@@ -10,7 +10,10 @@
 			:validated="validated"
 		/>
 
-		<FieldInfoBox :info="info">
+		<FieldInfoBox
+			v-if="props.help || (!validated && changed)"
+			:info="info"
+		>
 			<FieldHelperText v-if="props.help && !(!validated && changed)">
 				{{ help }}
 			</FieldHelperText>
@@ -25,13 +28,13 @@
 	// Packages
 	import { computed, inject, onMounted, onUnmounted, provide, ref, watch } from 'vue';
 
-	// New design
+	// Components
 	import FieldHelperText from '@hub-client/components/forms/elements/FieldHelperText.vue';
 	import FieldInfoBox from '@hub-client/components/forms/elements/FieldInfoBox.vue';
 	import FieldValidationError from '@hub-client/components/forms/elements/FieldValidationError.vue';
 
-	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 	// Composables
+	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 	import { useFieldValidation } from '@hub-client/composables/validation.composable';
 
 	// Models
@@ -57,7 +60,6 @@
 
 	const fieldRef = ref<HTMLElement>();
 	const fixedWidth = ref(0);
-	// const fieldClass = ref('');
 
 	const model = defineModel<unknown>();
 	const originalValue = ref<unknown>(undefined);

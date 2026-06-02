@@ -1,6 +1,6 @@
 <template>
-	<div>
-		<div class="flex gap-2 py-2">
+	<div class="flex flex-col gap-200 p-200">
+		<div class="flex gap-200">
 			<!-- Yes Votes -->
 			<OptionButton color="bg-accent-green text-on-accent-green">
 				<Icon
@@ -20,7 +20,7 @@
 				></UserDisplayName>
 			</div>
 		</div>
-		<div class="flex gap-2 py-2">
+		<div class="flex gap-200">
 			<!-- Maybe Votes -->
 			<OptionButton color="bg-accent-orange text-on-accent-orange">
 				<Icon
@@ -40,7 +40,7 @@
 				></UserDisplayName>
 			</div>
 		</div>
-		<div class="flex gap-2 py-2">
+		<div class="flex gap-200">
 			<!-- No Votes -->
 			<OptionButton color="bg-accent-red text-on-accent-red">
 				<Icon
@@ -75,6 +75,7 @@
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
+	// Props
 	const props = defineProps<{
 		votes: {
 			userVotes: UserVote[];

@@ -164,6 +164,11 @@ class Scheduler extends VotingWidget {
 			status: SchedulerOptionStatus.EMPTY,
 			date: [],
 		},
+		{
+			id: this.optionId++,
+			status: SchedulerOptionStatus.EMPTY,
+			date: [],
+		},
 	];
 
 	constructor(title: string = '', description: string = '', location: string = '', showVotes: boolean = true, options?: SchedulerOption[]) {
@@ -175,8 +180,8 @@ class Scheduler extends VotingWidget {
 	}
 
 	canSend() {
-		// Check if the title is not empty and there is at least one option with status FILLED
-		return this.title !== '' && this.options.some((option) => option.status === SchedulerOptionStatus.FILLED);
+		// Check if the title is not empty and there are at least two options with status FILLED
+		return this.title !== '' && this.options.filter((option) => option.status === SchedulerOptionStatus.FILLED).length >= 2;
 	}
 
 	removeOption(id: number) {
@@ -202,7 +207,7 @@ class Scheduler extends VotingWidget {
 	}
 
 	addNewOptionsIfAllFilled() {
-		if (this.options.length < 1 || this.options.every((option) => option.status === SchedulerOptionStatus.FILLED)) {
+		if (this.options.length < 2 || this.options.every((option) => option.status === SchedulerOptionStatus.FILLED)) {
 			this.options.push({
 				id: this.optionId++,
 				status: SchedulerOptionStatus.EMPTY,

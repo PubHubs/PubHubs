@@ -15,6 +15,7 @@
 	// Models
 	import { type SchedulerOption, type UserVote } from '@hub-client/models/events/voting/VotingTypes';
 
+	// Props
 	const props = defineProps<{
 		options: SchedulerOption[];
 		votesByOption: {

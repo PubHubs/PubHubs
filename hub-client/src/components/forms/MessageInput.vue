@@ -75,7 +75,7 @@
 		</div>
 
 		<div class="flex max-h-[50vh] items-end justify-between gap-2">
-			<div class="bg-surface-high rounded-base w-full shadow-xs">
+			<div class="bg-surface-base rounded-base w-full shadow">
 				<!-- In reply to -->
 				<InputModeBar
 					v-if="inReplyTo"
@@ -94,6 +94,7 @@
 						</template>
 					</Suspense>
 				</InputModeBar>
+
 				<InputModeBar
 					v-if="messageActions.whisperingToUserId"
 					icon="whisper"
@@ -147,6 +148,7 @@
 					:variant="announcementVariant"
 					@close="isAnnouncementMode = false"
 				/>
+
 				<InputModeBar
 					v-if="messageInput.state.signMessage"
 					icon="seal-check"
@@ -158,7 +160,7 @@
 
 				<div
 					v-if="messageInput.state.textArea"
-					class="rounded-base flex items-center gap-x-4 px-4 py-2"
+					class="rounded-base border-surface-elevated flex items-center gap-x-4 border-3 px-4 py-2"
 					:class="isInputDisabled ? 'cursor-not-allowed opacity-50' : ''"
 				>
 					<Icon
@@ -444,8 +446,7 @@
 		() => props.editingPoll,
 		() => {
 			if (props.editingPoll) {
-				pubhubs.editPoll(props.room.roomId, props.editingPoll.eventId, props.editingPoll.poll);
-				pollObject.value = props.editingPoll.poll;
+				messageInput.editPoll(props.editingPoll.poll, props.editingPoll.eventId);
 			}
 		},
 	);
@@ -454,8 +455,7 @@
 		() => props.editingScheduler,
 		() => {
 			if (props.editingScheduler) {
-				pubhubs.editScheduler(props.room.roomId, props.editingScheduler.eventId, props.editingScheduler.scheduler);
-				schedulerObject.value = props.editingScheduler.scheduler;
+				messageInput.editScheduler(props.editingScheduler.scheduler, props.editingScheduler.eventId);
 			}
 		},
 	);
@@ -675,6 +675,7 @@
 				uriForFileUpload.value = undefined;
 				value.value = '';
 				messageInput.cancelFileUpload();
+				messageInput.state.sendButtonEnabled = isValidMessage();
 			});
 		} else if (messageActions.replyingTo && inReplyTo.value) {
 			pubhubs.addMessage(props.room.roomId, String(value.value), threadRoot, inReplyTo.value);
@@ -687,12 +688,12 @@
 	}
 
 	function editMessage() {
-		if (messageInput.state.poll && pollObject.value.canSend()) {
-			pollObject.value.removeEmptyOptions();
-			pubhubs.editPoll(props.room.roomId, messageInput.state.editEventId as string, pollObject.value as Poll);
+		if (messageInput.state.poll && messageInput.state.pollObject?.canSend()) {
+			messageInput.state.pollObject.removeEmptyOptions();
+			pubhubs.editPoll(props.room.roomId, messageInput.state.editEventId as string, messageInput.state.pollObject as Poll);
 			messageInput.openTextArea();
-		} else if (messageInput.state.scheduler && schedulerObject.value.canSend()) {
-			pubhubs.editScheduler(props.room.roomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
+		} else if (messageInput.state.scheduler && messageInput.state.schedulerObject?.canSend()) {
+			pubhubs.editScheduler(props.room.roomId, messageInput.state.editEventId as string, messageInput.state.schedulerObject as Scheduler);
 			messageInput.openTextArea();
 		}
 	}

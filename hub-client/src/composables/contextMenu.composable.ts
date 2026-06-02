@@ -15,8 +15,9 @@ export function useContextMenu() {
 	 * @param evt - The triggering event
 	 * @param items - The context menu item array
 	 * @param targetId - The unique id for the context menu
+	 * @param alignRight - Align the menu's right edge with the click position
 	 */
-	const openMenu = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null): void => {
+	const openMenu = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null, alignRight = false): void => {
 		const isTouch = 'touches' in evt;
 
 		evt.preventDefault();
@@ -27,7 +28,7 @@ export function useContextMenu() {
 			if (layoutRoot) layoutRoot.style.overflowX = 'hidden';
 
 			longPressTimer = setTimeout(() => {
-				openMenuAtEvent(evt, items, targetId);
+				openMenuAtEvent(evt, items, targetId, alignRight);
 				if (layoutRoot) layoutRoot.style.overflowX = '';
 			}, SystemDefaults.longPressDuration);
 
@@ -45,7 +46,7 @@ export function useContextMenu() {
 			return;
 		}
 
-		openMenuAtEvent(evt, items, targetId);
+		openMenuAtEvent(evt, items, targetId, alignRight);
 	};
 
 	/**
@@ -55,7 +56,12 @@ export function useContextMenu() {
 	 * @param items - The context menu item array
 	 * @param targetId - The unique id for the context menu
 	 */
-	const openMenuAtEvent = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null): void => {
+	const openMenuAtEvent = (
+		evt: MouseEvent | PointerEvent | TouchEvent,
+		items: MenuItem[],
+		targetId: string | number | null = null,
+		alignRight = false,
+	): void => {
 		const isTouch = 'touches' in evt;
 
 		let x = 0;
@@ -69,7 +75,7 @@ export function useContextMenu() {
 			y = evt.clientY;
 		}
 
-		store.open(items, Math.round(x), Math.round(y), targetId);
+		store.open(items, Math.round(x), Math.round(y), targetId, alignRight);
 	};
 
 	const close = () => {

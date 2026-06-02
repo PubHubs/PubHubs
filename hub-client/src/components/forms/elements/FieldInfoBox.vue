@@ -1,5 +1,5 @@
 <template>
-	<div class="pt-050 flex w-full items-baseline gap-100">
+	<div class="pt-050 gap-050 flex w-full items-baseline">
 		<div class="grow">
 			<slot />
 		</div>

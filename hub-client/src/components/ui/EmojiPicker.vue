@@ -1,11 +1,11 @@
 <template>
 	<div
 		v-click-outside="close"
-		class="bg-surface flex h-[30rem] w-full max-w-[30rem] flex-col rounded-2xl p-4"
+		class="bg-surface-base rounded-base border-surface-elevated flex h-[30rem] w-full max-w-[30rem] flex-col border-3 p-4 shadow"
 	>
 		<input
 			v-model="searchQuery"
-			class="bg-background text-on-surface text-label placeholder:text-on-surface-dim w-full rounded-md border-none py-2"
+			class="bg-background text-on-surface text-label placeholder:text-on-surface-dim rounded-base w-full border-none p-2"
 			:placeholder="$t('others.search')"
 			type="text"
 		/>

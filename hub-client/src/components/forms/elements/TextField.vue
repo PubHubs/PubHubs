@@ -1,6 +1,6 @@
 <template>
 	<ValidateField
-		v-slot="{ id: fieldId, validated, required }"
+		v-slot="{ id: fieldId, validated, required, changed }"
 		v-model="model"
 		class="form-textfield gap-075 flex w-full flex-col items-start justify-start"
 		:help="help"
@@ -22,16 +22,25 @@
 					size="sm"
 					:type="icon"
 				/>
+				<Icon
+					v-if="rightIcon"
+					class="text-on-surface-dim absolute top-1/2 right-2 -translate-y-1/2"
+					:class="rightIconClass"
+					size="sm"
+					:type="rightIcon"
+					@click="$emit('rightIconClick')"
+				/>
 				<textarea
 					v-if="type === 'textarea'"
 					:id="fieldId"
 					v-model="model"
-					:aria-invalid="!validated ? 'true' : undefined"
+					:aria-invalid="!validated && changed ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
-					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline focus:outline-3"
+					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline-2 focus:outline-3"
 					:class="[
-						!validated ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
+						!validated && changed ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
 						icon ? 'pl-12!' : '',
+						rightIcon ? 'pr-12!' : '',
 					]"
 					:disabled="disabled"
 					:name="fieldName"
@@ -42,12 +51,13 @@
 					v-else
 					:id="fieldId"
 					v-model="model"
-					:aria-invalid="!validated ? 'true' : undefined"
+					:aria-invalid="!validated && changed ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
-					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline focus:outline-3"
+					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline-2 focus:outline-3"
 					:class="[
-						!validated ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
+						!validated && changed ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
 						icon ? 'pl-12!' : '',
+						rightIcon ? 'pr-12!' : '',
 					]"
 					:disabled="disabled"
 					:name="fieldName"
@@ -69,6 +79,7 @@
 	import Label from '@hub-client/components/forms/elements/Label.vue';
 	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
 
+	// Composables
 	import { useFormInput } from '@hub-client/composables/FormInput.composable';
 
 	// Logic
@@ -86,6 +97,8 @@
 			id?: string;
 			name?: string;
 			placeholder?: string;
+			rightIcon?: string;
+			rightIconClass?: string;
 			showLength?: boolean;
 			type?: string;
 			validation?: FieldValidations;
@@ -97,11 +110,17 @@
 			id: undefined,
 			name: undefined,
 			placeholder: '',
+			rightIcon: undefined,
+			rightIconClass: '',
 			showLength: false,
 			type: 'text',
 			validation: undefined,
 		},
 	);
+
+	defineEmits<{
+		rightIconClick: [];
+	}>();
 
 	const attrs = useAttrs();
 	const model = defineModel<string | number>();

@@ -64,9 +64,9 @@ const en = {
 	file: {
 		upload: 'Upload',
 		file: 'File',
-		upload_file: 'Upload File',
-		upload_files: 'Upload Files',
-		add_files: 'Add more Files',
+		upload_file: 'Upload file',
+		upload_files: 'Upload files',
+		add_files: 'Add more files',
 		upload_message: 'Do you want to upload',
 		drop_files: 'Drop files or click',
 		max_upload_reached: 'Maximum number of batch uploading files reached',
@@ -685,6 +685,10 @@ const en = {
 		voting: {
 			add_option: 'Add option',
 			creating_option: 'Creating option...',
+			title: 'Title',
+			description: 'Description',
+			option: 'Option',
+			location: 'Location',
 			enter_title: 'Enter title...',
 			enter_option: 'Enter option...',
 			enter_description: 'Enter description...',
