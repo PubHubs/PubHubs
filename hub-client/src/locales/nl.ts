@@ -36,7 +36,7 @@ const nl = {
 	},
 	errors: {
 		oops: 'OEPS!',
-		error: 'Helaas, er is een fout opgetreden. Neem contact op met de ontwikkelaars.\n\n {0}',
+		error: 'Helaas, er is een fout opgetreden. <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">Neem contact op met de ontwikkelaars</a>.\n\n {0}',
 		server: 'Serverfout',
 		M_LIMIT_EXCEEDED: 'Te veel inlogpogingen achter elkaar. Probeer het over {0} seconden nog eens.',
 		not_send_offline: 'Geen internetverbinding. Dit bericht is niet verzonden.',
@@ -51,9 +51,11 @@ const nl = {
 		attribute_banned: 'Het volgende attribuut is verbannen en kan daarom niet worden gebruikt om een nieuw PubHubs account te registreren: {0}.',
 		banned: 'Dit account is verbannen en kan niet langer worden gebruikt om in te loggen bij PubHubs.',
 		attribute_already_taken: 'Het volgende attribuut is al gekoppeld aan een PubHubs account: {0}. Probeer in te loggen.',
-		general_error: 'Helaas is er een fout opgetreden. Probeer het opnieuw en neem contact op met de ontwikkelaars als het probleem blijft bestaan.',
+		general_error:
+			'Helaas is er een fout opgetreden. Probeer het opnieuw en <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">neem contact op met de ontwikkelaars</a> als het probleem blijft bestaan.',
 		retry_with_new_attr: 'Voeg uw attribuuten opnieuw toe in Yivi en probeer het nog een keer.',
-		no_hubs_found: 'Helaas konden we geen hubs tonen.  Probeer het later opnieuw en neem contact op met de ontwikkelaars als het probleem blijft bestaan.',
+		no_hubs_found:
+			'Helaas konden we geen hubs tonen. Probeer het later opnieuw en <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">neem contact op met de ontwikkelaars</a> als het probleem blijft bestaan.',
 		cant_find: 'Sorry, we konden de pagina of kamer die u zocht niet vinden.',
 		notid_attribute_already_taken:
 			'Je hebt het telefoonnummer al voor een ander account gebruikt, wil je toch een nieuw account aanmaken klik dan op ok en probeer het opnieuw',
@@ -98,7 +100,7 @@ const nl = {
 	mss: {
 		system_offline: 'Systeem offline',
 		system_offline_description:
-			'Ons systeem is nu offline, dus niet alles werkt zoals verwacht.\nProbeer het later opnieuw. Neem concact op met de ontwikkelaars als het probleem blijft bestaan.',
+			'Ons systeem is nu offline, dus niet alles werkt zoals verwacht.\nProbeer het later opnieuw. <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">Neem contact op met de ontwikkelaars</a> als het probleem blijft bestaan.',
 	},
 	register: {
 		have_account: 'Heb je al een {0} account?',
