@@ -23,9 +23,9 @@
 
 				<!-- Expands if the timeline height < the vieport, to top-align the content -->
 				<div class="flex h-full items-center justify-center px-4 md:px-16">
-					<InlineSpinner v-if="!initialLoadComplete && reversedTimeline.length === 0" />
+					<InlineSpinner v-if="!props.room.syncDataReceived && reversedTimeline.length === 0" />
 					<P
-						v-else-if="initialLoadComplete && reversedTimeline.length === 0"
+						v-else-if="props.room.syncDataReceived && reversedTimeline.length === 0"
 						class="text-on-surface-dim text-center"
 					>
 						{{ $t('rooms.no_messages_yet') }}
@@ -47,9 +47,7 @@
 								class="room-event"
 								:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
 								:data-event-id="item.matrixEvent.event.event_id"
-								:deleted-event="item.isDeleted"
-								:event="item.matrixEvent.event"
-								:event-thread-length="item.threadLength.value"
+								:event="item"
 								:is-followed-by-grouped="isFollowedByGrouped(index)"
 								:is-grouped="isGroupedMessage(index)"
 								:room="room"
@@ -495,6 +493,19 @@
 			if (settings.isFeatureEnabled(FeatureFlag.dateSplitter)) {
 				handleDateDisplayer(entries);
 			}
+
+			// From visible threads: fetch matrixthread and events for replycount in messagebubble
+			entries
+				.filter((e) => e.isIntersecting)
+				.forEach((entry) => {
+					const eventId = entry.target.id;
+					const timelineEvent = props.room.findTimelinEventById(eventId);
+					if (!timelineEvent) return;
+					if (!timelineEvent.thread.isMatrixThreadSet) {
+						timelineEvent.thread.setMatrixThread(props.room.getOrCreateMatrixThread(eventId));
+					}
+					timelineEvent.thread.fetchEvents().catch(() => {});
+				});
 		};
 
 		eventObserver?.setUpObserver(combinedHandler);

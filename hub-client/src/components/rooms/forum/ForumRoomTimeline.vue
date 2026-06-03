@@ -46,8 +46,8 @@
 			>
 				<li
 					v-for="tEvent in orderedEvents"
-					:key="tEvent.event.matrixEvent.event.event_id"
-					:data-thread-id="tEvent.event.matrixEvent.event.event_id"
+					:key="tEvent.matrixEvent.event.event_id"
+					:data-thread-id="tEvent.matrixEvent.event.event_id"
 				>
 					<div>
 						<ForumThreadItem
@@ -62,8 +62,8 @@
 		</div>
 	</div>
 	<ForumThread
-		v-if="currentTopic"
-		:event="currentTopic"
+		v-if="currentTopicEvent"
+		:event="currentTopicEvent"
 		:room="room"
 	></ForumThread>
 </template>
@@ -79,20 +79,19 @@
 	import ForumThreadItem from '@hub-client/components/rooms/forum/ForumThreadItem.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
-	// Models
 	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
-	import Room from '@hub-client/models/rooms/Room';
+	// Models
+	import type Room from '@hub-client/models/rooms/Room';
 
-	const props = defineProps({
-		room: {
-			type: Room,
-			required: true,
+	const props = withDefaults(
+		defineProps<{
+			room: Room;
+			topicId?: string | undefined;
+		}>(),
+		{
+			topicId: undefined,
 		},
-		topicId: {
-			type: String,
-			default: undefined,
-		},
-	});
+	);
 
 	enum ORDER {
 		Activity = 'activity',
@@ -104,26 +103,13 @@
 		asc = 1,
 	}
 
-	interface TimeLineEventWithLastTimestamp {
-		event: TimelineEvent;
-		timestamp: number;
-	}
-
 	const addNewThread = ref(false);
 	const orderType = ref(ORDER.Created);
 	const orderDir = ref(ORDER_DIR.asc);
 
 	const events = computed(() => {
 		void props.topicId; // react also on changing topicId -> possibly a new event added somewhere, so timestamp etc needs to be updated.
-		const rawTimeline = props.room.getTimeline();
-		let timelineWithTimeStamps = [] as TimeLineEventWithLastTimestamp[];
-		timelineWithTimeStamps = rawTimeline.map((event) => {
-			return {
-				event: event,
-				timestamp: props.room.getMatrixThreadLastEventTimestamp(event.matrixEvent.event.event_id!) ?? event.matrixEvent.getTs(),
-			} as TimeLineEventWithLastTimestamp;
-		});
-		return timelineWithTimeStamps;
+		return props.room.getTimeline();
 	});
 
 	const orderedEvents = computed(() => {
@@ -131,21 +117,21 @@
 		ordered.sort((a, b) => {
 			if (orderType.value === ORDER.Created) {
 				if (orderDir.value === ORDER_DIR.desc) {
-					return a.event.matrixEvent.getTs() - b.event.matrixEvent.getTs();
+					return a.matrixEvent.getTs() - b.matrixEvent.getTs();
 				} else {
-					return b.event.matrixEvent.getTs() - a.event.matrixEvent.getTs();
+					return b.matrixEvent.getTs() - a.matrixEvent.getTs();
 				}
 			}
 			if (orderType.value === ORDER.Activity) {
 				if (orderDir.value === ORDER_DIR.asc) {
-					return b.timestamp - a.timestamp;
+					return b.latestThreadEventTimestamp - a.latestThreadEventTimestamp;
 				} else {
-					return a.timestamp - b.timestamp;
+					return a.latestThreadEventTimestamp - b.latestThreadEventTimestamp;
 				}
 			}
 			if (orderType.value === ORDER.Replies) {
-				const ar = (a.event.threadLength ?? 0) as unknown as number;
-				const br = (b.event.threadLength ?? 0) as unknown as number;
+				const ar = (a.threadLength ?? 0) as unknown as number;
+				const br = (b.threadLength ?? 0) as unknown as number;
 				if (orderDir.value === ORDER_DIR.asc) {
 					return br - ar;
 				} else {
@@ -157,10 +143,9 @@
 		return ordered;
 	});
 
-	const currentTopic = computed(() => {
+	const currentTopicEvent = computed<TimelineEvent | undefined>(() => {
 		if (events.value.length > 0 && props.topicId) {
-			const topic = events.value.find((t) => t.event.matrixEvent.event.event_id === props.topicId);
-			return topic?.event.matrixEvent.event;
+			return events.value.find((t) => t.matrixEvent.getId() === props.topicId);
 		}
 		return undefined;
 	});

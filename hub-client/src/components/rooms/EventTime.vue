@@ -14,20 +14,16 @@
 	// Composables
 	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 
-	const props = defineProps({
-		timestamp: {
-			type: Number,
-			required: true,
+	const props = withDefaults(
+		defineProps<{
+			timestamp: number;
+			showDate: boolean;
+			timeForMsgPreview?: boolean;
+		}>(),
+		{
+			timeForMsgPreview: false,
 		},
-		showDate: {
-			type: Boolean,
-			required: true,
-		},
-		timeForMsgPreview: {
-			type: Boolean,
-			default: false,
-		},
-	});
+	);
 
 	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 

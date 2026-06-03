@@ -43,7 +43,7 @@ import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/
 import { RoomType, type UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type StoredUnreadInfo, getStoredUnreadInfo, updateStoredUnreadInfo } from '@hub-client/models/rooms/unreadInfoCache';
-import TRoomThread from '@hub-client/models/thread/RoomThread';
+import type TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
 // Stores
@@ -51,13 +51,6 @@ import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('Room');
-
-type RoomThread = {
-	threadId: string;
-	rootEvent: MatrixEvent | undefined;
-	thread: TRoomThread | undefined;
-	threadLength: number;
-};
 
 const BotName = {
 	NOTICE: 'notices',
@@ -75,9 +68,8 @@ export default class Room {
 	private hidden: boolean;
 
 	// Threads/Events, public for vue reactivity
-	public currentThread: RoomThread | undefined = undefined;
+	public currentThreadId: string | undefined = undefined;
 	public currentEvent: TCurrentEvent | undefined = undefined;
-	//public threadUpdated: Ref<boolean> = ref(false); // toggle to indicate changed thread to vue components
 	public threadUpdated: boolean = false; // toggle to indicate changed thread to vue components
 
 	/** Whether the first sliding sync response has been received for this room's subscription */
@@ -311,7 +303,7 @@ export default class Room {
 
 	// #endregion
 
-	// #reaction region  ///
+	// #reaction region
 
 	/**
 	 *  Gets reaction event based on relation event Id
@@ -326,7 +318,7 @@ export default class Room {
 
 	// #region members
 
-	// Sliding sync state methods //
+	// Sliding sync state methods
 
 	public getHideState(eventId: string) {
 		return this.timelineManager.getHideState(eventId);
@@ -520,8 +512,8 @@ export default class Room {
 		}
 
 		// if event to be deleted is the current thread, clear the current thread
-		if (this.currentThread?.threadId === event.event_id) {
-			this.currentThread = undefined;
+		if (this.currentThreadId === event.event_id) {
+			this.currentThreadId = undefined;
 		}
 
 		// If reactEvent exists, delete it with the message.
@@ -638,7 +630,6 @@ export default class Room {
 
 	public getLiveTimelineEvents(): MatrixEvent[] {
 		return this.timelineManager.getEvents().map((x) => x.matrixEvent);
-		//return this.matrixRoom.getLiveTimeline().getEvents();
 	}
 
 	public getLiveTimelineNewestEvent(): MatrixEvent | undefined {
@@ -646,7 +637,6 @@ export default class Room {
 			.getEvents()
 			.map((x) => x.matrixEvent)
 			.at(-1);
-		//return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
 	}
 
 	/**Select the latest voting event per user and voting option -> schedulers
@@ -718,10 +708,6 @@ export default class Room {
 		return this.timelineManager.getRelatedEventsByType(eventId, options);
 	}
 
-	public fetchRelatedEvents(eventIds: string[]) {
-		return this.timelineManager.fetchRelatedEvents(eventIds);
-	}
-
 	public getReactEventsFromTimeLine(): MatrixEvent[] {
 		return this.getLiveTimelineEvents().filter((event) => event.getType() === EventType.Reaction);
 	}
@@ -764,52 +750,66 @@ export default class Room {
 		const eventList = roomData.timeline.map((event) => {
 			return new MatrixEvent(event);
 		});
+
 		// BEGIN THREADS
 		// Threads are kept on room-level, so all events regarding the current thread need to be filtered and handled first.
 
-		// Handle thread redactions, for now only the DeletedFromThread events
+		// Handle thread-redactions, for now only the DeletedFromThread events
 		const redactions = eventList.filter(
 			(event) => event.getContent()?.[Redaction.Redacts] && event.getContent()?.[Redaction.Reason] === Redaction.DeletedFromThread,
 		);
 		if (redactions.length > 0) {
-			this.currentThread?.thread?.addRedactions(redactions);
+			// add redactions to the thread of the owner
+			redactions.forEach((redaction) => {
+				const redactedEventId = redaction.getContent()[Redaction.Redacts];
+				const owner = this.timelineManager.getEvents().find((e) => e.isEventInThread(redactedEventId));
+				owner?.thread.addRedactions([redaction]);
+			});
 		}
-		// Handle thread events, only when they are from the currentthread (otherwise they will be fetched on opening the thread)
+
+		// Handle thread-events, only from the currentthread: add them to the thread
+		// (thread-events from other threads are fetched on opening the thread)
 		const currentThreadEvents = eventList.filter(
 			(event) =>
 				event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread &&
-				this.currentThread?.threadId === event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
+				this.currentThreadId === event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
 		);
-		if (currentThreadEvents.length > 0 && this.currentThread?.thread) {
-			this.currentThread.thread.addEvents(currentThreadEvents);
+		if (currentThreadEvents.length > 0) {
+			this.getCurrentThread()?.addEvents(currentThreadEvents);
 		}
 
-		// set toggle to force vue component updates when something in the threads has changed, will also set current event for thread
-		if (currentThreadEvents.length > 0 || redactions.length > 0) {
-			this.threadUpdated = !this.threadUpdated;
-		}
-
-		// Events in threads that are NOT in the currentThread only need to update the specific counters
-		// This is done by notifying them the length has changed
+		// Handle thread-events in threads other than the currentThread: only for updating the specific counters, done by Vue's reactivity
 		const otherThreadEvents = eventList.filter(
 			(event) =>
 				event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread &&
-				this.currentThread?.threadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
+				this.currentThreadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
 		);
+
+		// Force vue reactivity for any thread change in this room, regardless of whether the affected thread is currently open
+		if (currentThreadEvents.length > 0 || otherThreadEvents.length > 0 || redactions.length > 0) {
+			this.threadUpdated = !this.threadUpdated;
+		}
+
+		// For all other visible threads: check whether they have a MatrixThread already
+		// if not: get the matrix thread, this will set their reactivity for the threadcounter
 		if (otherThreadEvents.length > 0) {
 			// make a set of all the rootIds of the otherThreadEvents
 			const otherThreadEventIds = new Set(otherThreadEvents.map((x) => x.getContent()[RelationType.RelatesTo]?.[RelationType.EventId]));
 
 			const currentEvents = this.timelineManager.getEvents();
 
-			// get the visible other threads by checking on the id
+			// get the visible other threads by checking on the id and add the events
 			const visibleOtherThreads = currentEvents.filter((x) => otherThreadEventIds.has(x.matrixEvent.getId()));
 			visibleOtherThreads.forEach((event) => {
 				const eventId = event.matrixEvent.getId();
 				if (eventId) {
 					event.thread.setMatrixThread(this.getOrCreateMatrixThread(eventId));
+
+					const eventsForThisThread = otherThreadEvents.filter((e) => e.getContent()[RelationType.RelatesTo]?.[RelationType.EventId] === eventId);
+					if (eventsForThisThread.length > 0) {
+						event.thread.addEvents(eventsForThisThread);
+					}
 				}
-				event.thread.getEvents(this.matrixRoom.client).then((_x) => event.thread.notifyLengthChange());
 			});
 		}
 
@@ -954,17 +954,6 @@ export default class Room {
 		return this.matrixRoom.getThread(eventId) ?? undefined;
 	}
 
-	public getMatrixThreadLastEvent(eventId: string): MatrixEvent | undefined | null {
-		const thread = this.getMatrixThread(eventId);
-		if (!thread) return undefined;
-		return thread.replyToEvent;
-	}
-
-	public getMatrixThreadLastEventTimestamp(eventId: string): number | undefined {
-		const lastEvent = this.getMatrixThreadLastEvent(eventId);
-		return lastEvent?.getTs();
-	}
-
 	public createMatrixThread(eventId: string): Thread {
 		return this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
 	}
@@ -974,42 +963,34 @@ export default class Room {
 	}
 
 	public async getCurrentThreadEvents(): Promise<TimelineEvent[]> {
-		return (await this.currentThread?.thread?.getEvents(this.pubhubsStore.client as MatrixClient)) ?? [];
-	}
-
-	public setCurrentThreadLength(newValue: number) {
-		if (this.currentThread) {
-			this.currentThread.threadLength = newValue;
-		}
+		return (await this.getCurrentThread()?.getEvents()) ?? [];
 	}
 
 	public getCurrentThreadLength() {
-		return this.currentThread?.threadLength ?? 0;
+		return this.getCurrentThread()?.length ?? 0;
 	}
 
 	public getCurrentThreadId(): string | undefined {
-		return this.currentThread?.threadId;
+		return this.currentThreadId;
+	}
+
+	public getCurrentThreadRoot(): TimelineEvent | undefined {
+		return this.timelineManager.findTimelineEventById(this.currentThreadId);
 	}
 
 	public getCurrentThread(): TRoomThread | undefined {
-		return this.currentThread?.thread;
+		return this.getCurrentThreadRoot()?.thread;
 	}
 
-	public setCurrentThreadId(threadId: string | undefined): boolean {
-		this.currentThread = undefined;
-		if (threadId) {
-			const matrixThread = this.getOrCreateMatrixThread(threadId);
-			const thread = new TRoomThread(matrixThread);
-			this.currentThread = {
-				threadId: threadId,
-				rootEvent: this.findEventById(threadId) ?? this.matrixRoom.findEventById(threadId),
-				thread: thread,
-				threadLength: thread.length || 1,
-			};
-			return true;
-		}
+	public setCurrentThreadId(threadId: string | undefined) {
+		this.currentThreadId = threadId;
 
-		return false;
+		if (threadId) {
+			const thread = this.getCurrentThread();
+			if (thread && !thread.isMatrixThreadSet) {
+				thread.setMatrixThread(this.getOrCreateMatrixThread(threadId));
+			}
+		}
 	}
 
 	public deleteThreadMessage(event: TMessageEvent<TMessageEventContent>, threadRootId: string | undefined, reason?: string) {

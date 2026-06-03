@@ -2,13 +2,13 @@
 	<div class="flex flex-col justify-between gap-2">
 		<div class="flex items-center justify-between gap-2">
 			<div class="flex items-center gap-1">
-				<template v-if="event.timestamp > 0">
+				<template v-if="event.latestThreadEventTimestamp > 0">
 					<EventTime
-						:timestamp="event.timestamp"
+						:timestamp="event.latestThreadEventTimestamp"
 						:show-date="true"
 					></EventTime>
 					<EventTime
-						:timestamp="event.timestamp"
+						:timestamp="event.latestThreadEventTimestamp"
 						:show-date="false"
 					></EventTime>
 				</template>
@@ -27,22 +27,23 @@
 	// Components
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 
+	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	// Models
-	import Room from '@hub-client/models/rooms/Room';
+	import type Room from '@hub-client/models/rooms/Room';
 
-	const props = defineProps({
-		event: {
-			type: Object,
-			required: true,
-		},
-		room: {
-			type: Room,
-			required: true,
-		},
-	});
+	// Store
+	import { useRooms } from '@hub-client/stores/rooms';
+
+	const props = withDefaults(
+		defineProps<{
+			event: TimelineEvent;
+			room: Room;
+		}>(),
+		{},
+	);
 
 	const nrOfReplies = computed(() => {
-		let nr = props.event.event.threadLength ?? 0;
-		return nr;
+		const rooms = useRooms();
+		return rooms.threadLengths[props.room.roomId]?.[props.event.matrixEvent.getId()!] ?? 0;
 	});
 </script>

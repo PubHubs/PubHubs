@@ -639,6 +639,7 @@ const nl = {
 		upload_file: 'Upload',
 		reply: 'Antwoord',
 		reply_in_thread: 'Antwoord in thread',
+		view_thread: 'Bekijk thread ({count} antwoord) | Bekijk thread ({count} antwoorden)',
 		whisper_to: 'Fluister naar',
 		whisper_visible_only_to: 'Fluister alleen zichtbaar voor',
 		only_visible_to_you: 'Alleen zichtbaar voor jou',

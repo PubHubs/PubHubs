@@ -640,6 +640,7 @@ const en = {
 		upload_file: 'Upload',
 		reply: 'Reply',
 		reply_in_thread: 'Reply in thread',
+		view_thread: 'View thread ({count} reply) | View thread ({count} replies)',
 		whisper_to: 'Whisper to',
 		whisper_visible_only_to: 'Whisper visible only to',
 		only_visible_to_you: 'Only visible to you',

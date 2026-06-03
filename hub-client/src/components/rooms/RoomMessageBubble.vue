@@ -1,7 +1,7 @@
 <template>
 	<div
 		ref="messageRoot"
-		v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), props.event.event_id)"
+		v-context-menu="(evt: any) => openMenu(evt, getContextMenuItems(), event.event_id)"
 	>
 		<div
 			ref="elReactionPopUp"
@@ -15,9 +15,9 @@
 				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y',
 				(isAnnouncementMessage || isWhisperMessage) &&
 					!redactedMessage &&
-					(props.room.getPowerLevel(props.event.sender) === 100
+					(props.room.getPowerLevel(event.sender!) === 100
 						? 'border-accent-steward'
-						: props.room.getPowerLevel(props.event.sender) >= 50 && 'border-accent-steward'),
+						: props.room.getPowerLevel(event.sender!) >= 50 && 'border-accent-steward'),
 			]"
 			role="article"
 		>
@@ -32,9 +32,9 @@
 					:class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']"
 				>
 					<ReactionMiniPopUp
-						:event-id="props.event.event_id"
+						:event-id="event.event_id!"
 						:room="room"
-						@emoji-selected="emit('clickedEmoticon', $event, props.event.event_id)"
+						@emoji-selected="emit('clickedEmoticon', $event, event.event_id!)"
 						@close-panel="emit('reactionPanelClose')"
 					/>
 				</div>
@@ -42,9 +42,9 @@
 				<!-- Avatar -->
 				<Avatar
 					v-if="!props.isGrouped && hasBeenVisible"
-					:avatar-url="user.userAvatar(props.event.sender)"
-					:user-id="props.event.sender"
-					:room-id="props.event.room_id ?? room.roomId"
+					:avatar-url="user.userAvatar(event.sender!)"
+					:user-id="event.sender"
+					:room-id="event.room_id ?? room.roomId"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
 				/>
@@ -61,7 +61,7 @@
 					class="flex w-12 shrink-0 items-center justify-center"
 				>
 					<EventTime
-						:timestamp="props.event.origin_server_ts"
+						:timestamp="event.origin_server_ts!"
 						:show-date="false"
 						class="text-on-surface-dim hidden text-[10px] group-hover:block"
 					/>
@@ -76,7 +76,7 @@
 						<!-- Message Snippet -->
 						<Suspense v-if="hasBeenVisible">
 							<MessageSnippet
-								v-if="inReplyToId && showReplySnippet(props.event.content.msgtype)"
+								v-if="inReplyToId && showReplySnippet(event.content!.msgtype!)"
 								:event-id="inReplyToId"
 								class="mb-2"
 								:show-in-reply-to="true"
@@ -96,16 +96,16 @@
 							class="mb-2 flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
 						>
 							<UserDisplayName
-								:user-id="props.event.sender"
-								:user-display-name="user.userDisplayName(props.event.sender)"
-								:room-id="props.event.room_id ?? room.roomId"
+								:user-id="event.sender!"
+								:user-display-name="user.userDisplayName(event.sender!)"
+								:room-id="event.room_id ?? room.roomId"
 							/>
 
 							<RoomBadge
 								v-if="hasBeenVisible && !room.isDirectMessageRoom()"
 								class="inline-block"
-								:user="props.event.sender"
-								:room-id="props.event.room_id ?? room.roomId"
+								:user="event.sender!"
+								:room-id="event.room_id ?? room.roomId"
 								:room="room"
 							/>
 
@@ -114,9 +114,9 @@
 								v-if="isAnnouncementMessage && !redactedMessage"
 								class="inline-flex items-center gap-1 leading-none"
 								:class="
-									props.room.getPowerLevel(props.event.sender) === 100
+									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny uppercase">{{ t('rooms.announcement') }}</span>
@@ -124,23 +124,23 @@
 
 							<!-- Whisper -->
 							<span
-								v-if="isWhisperMessage && !redactedMessage && props.event.sender !== user.userId"
+								v-if="isWhisperMessage && !redactedMessage && event.sender! !== user.userId"
 								class="inline-flex items-center gap-1 leading-none"
 								:class="
-									props.room.getPowerLevel(props.event.sender) === 100
+									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny uppercase">{{ t('message.only_visible_to_you') }}</span>
 							</span>
 							<span
-								v-if="isWhisperMessage && !redactedMessage && props.event.sender === user.userId && props.event.content.whisper_to"
+								v-if="isWhisperMessage && !redactedMessage && event.sender === user.userId && event.content!.whisper_to"
 								class="inline-flex items-center gap-1 leading-none"
 								:class="
-									props.room.getPowerLevel(props.event.sender) === 100
+									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(props.event.sender) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny puppercase">{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
@@ -149,11 +149,11 @@
 							<!-- Timestamp -->
 							<span class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1">
 								<EventTime
-									:timestamp="props.event.origin_server_ts"
+									:timestamp="event.origin_server_ts!"
 									:show-date="true"
 								/>
 								<EventTime
-									:timestamp="props.event.origin_server_ts"
+									:timestamp="event.origin_server_ts!"
 									:show-date="false"
 								/>
 							</span>
@@ -206,17 +206,17 @@
 
 							<!-- Reaction Button -->
 							<button
-								v-if="!redactedMessage && !isThreadRoot"
+								v-if="!redactedMessage"
 								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_emoji')"
-								@click.stop="emit('reactionPanelToggle', props.event.event_id)"
+								@click.stop="emit('reactionPanelToggle', event.event_id!)"
 							>
 								<Icon type="smiley" />
 							</button>
 
 							<!-- Reply Button -->
 							<button
-								v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
+								v-if="!msgIsNotSend && !redactedMessage"
 								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply')"
 								@click="reply"
@@ -225,56 +225,31 @@
 							</button>
 
 							<!-- Thread Reply Button -->
-							<div class="relative">
-								<button
-									v-if="
-										!deleteMessageDialog &&
-										!viewFromThread &&
-										canReplyInThread &&
-										!msgIsNotSend &&
-										!redactedMessage &&
-										!props.room.isDirectMessageRoom()
-									"
-									class="text-on-surface-variant items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit hover:cursor-pointer"
-									:class="
-										eventThreadLength > 0
-											? 'hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center'
-											: 'hover:bg-accent-primary hover:text-on-accent-primary hidden group-hover:flex'
-									"
-									:title="t('message.reply_in_thread')"
-									@click="replyInThread"
-								>
-									<span
-										v-if="eventThreadLength > 0"
-										class="text-label-tiny h-min px-1"
-										>{{ eventThreadLength }}</span
-									>
-									<Icon type="chat-circle" />
-								</button>
-
-								<span
-									v-if="settings.isFeatureEnabled(FeatureFlag.notifications) && !viewFromThread"
-									class="absolute -top-1 -right-1 flex gap-1"
-								>
-									<Badge
-										v-if="getUnreadCount(room.roomId, event.event_id, NotificationCountType.Total) > 0"
-										color="hub"
-										:size="threadBadgeSize(getUnreadCount(room.roomId, event.event_id, NotificationCountType.Total))"
-									/>
-									<Badge
-										v-if="getUnreadCount(room.roomId, event.event_id, NotificationCountType.Highlight) > 0"
-										color="hub"
-										size="md"
-									/>
-								</span>
-							</div>
+							<button
+								v-if="
+									!deleteMessageDialog &&
+									!viewFromThread &&
+									canReplyInThread &&
+									!msgIsNotSend &&
+									!redactedMessage &&
+									!props.room.isDirectMessageRoom()
+								"
+								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								:title="t('message.reply_in_thread')"
+								@click="replyInThread"
+							>
+								<Icon
+									type="chat-circle"
+									size="md"
+								/>
+							</button>
 
 							<!-- Context Menu Button -->
 							<button
 								v-if="!redactedMessage"
 								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.context_menu')"
-								@click.stop="openMenu($event, getContextMenuItems(), props.event.event_id)"
+								@click.stop="openMenu($event, getContextMenuItems(), event.event_id!)"
 							>
 								<Icon type="dots-three-vertical" />
 							</button>
@@ -283,52 +258,52 @@
 
 					<template v-if="hasBeenVisible">
 						<MessageHidden
-							v-if="(props.event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
+							v-if="(event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
 							:overridelabel="hideState.label"
 						>
 							<!-- The actual message content goes here as a slot -->
 							<PrivilegedMessageBody
 								v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
-								:event="props.event.content"
+								:event="privilegedEventContent"
 							/>
 							<MessageSigned
-								v-else-if="props.event.content.msgtype === PubHubsMgType.SignedMessage"
-								:message="props.event.content.signed_message"
+								v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
+								:message="event.content!.signed_message"
 								class="max-w-[90ch]"
 							/>
 							<MessageFile
-								v-else-if="props.event.content.msgtype === MsgType.File"
-								:message="props.event.content"
+								v-else-if="event.content!.msgtype === MsgType.File"
+								:message="event.content as TFileMessageEventContent"
 							/>
 							<MessageImage
-								v-else-if="props.event.content.msgtype === MsgType.Image"
-								:message="props.event.content"
+								v-else-if="event.content!.msgtype === MsgType.Image"
+								:message="event.content as TImageMessageEventContent"
 							/>
 							<MessageDisclosureRequest
-								v-else-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage"
-								:event="props.event as TMessageEvent"
+								v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
+								:event="event as TMessageEvent"
 								class="flex flex-col"
 							/>
 							<MessageDisclosed
-								v-else-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage"
-								:message="props.event.content.signed_message"
+								v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
+								:message="event.content!.signed_message"
 								class="max-w-[90ch]"
 							/>
 							<VotingWidget
-								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget"
+								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
 								:room="room"
-								:event="props.event as TVotingMessageEvent"
+								:event="event as TVotingMessageEvent"
 								@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
 								@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
 							/>
 							<MessageVideoCall
-								v-else-if="props.event.content.msgtype === PubHubsMgType.VideoCall"
+								v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
 								:event="props.event as any"
 								:room-id="room.roomId"
 							/>
 							<Message
 								v-else
-								:event="props.event as TMessageEvent"
+								:event="event as TMessageEvent"
 								:deleted="redactedMessage"
 							/>
 						</MessageHidden>
@@ -337,55 +312,70 @@
 						<template v-else-if="!redactedMessage">
 							<PrivilegedMessageBody
 								v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
-								:event="props.event.content"
+								:event="privilegedEventContent"
 							/>
 							<MessageSigned
-								v-else-if="props.event.content.msgtype === PubHubsMgType.SignedMessage"
-								:message="props.event.content.signed_message"
+								v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
+								:message="event.content!.signed_message"
 								class="max-w-[90ch]"
 							/>
 							<MessageFile
-								v-else-if="props.event.content.msgtype === MsgType.File"
-								:message="props.event.content"
+								v-else-if="event.content!.msgtype === MsgType.File"
+								:message="event.content as TFileMessageEventContent"
 							/>
 							<MessageImage
-								v-else-if="props.event.content.msgtype === MsgType.Image"
-								:message="props.event.content"
+								v-else-if="event.content!.msgtype === MsgType.Image"
+								:message="event.content as TImageMessageEventContent"
 							/>
 							<MessageDisclosureRequest
-								v-else-if="props.event.content.msgtype === PubHubsMgType.AskDisclosureMessage"
-								:event="props.event as TMessageEvent"
+								v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
+								:event="event as TMessageEvent"
 								class="flex flex-col"
 							/>
 							<MessageDisclosed
-								v-else-if="props.event.content.msgtype === PubHubsMgType.DisclosedMessage"
-								:message="props.event.content.signed_message"
+								v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
+								:message="event.content!.signed_message"
 								class="max-w-[90ch]"
 							/>
 							<VotingWidget
-								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && props.event.content.msgtype === PubHubsMgType.VotingWidget"
+								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
 								:room="room"
-								:event="props.event as TVotingMessageEvent"
+								:event="event as TVotingMessageEvent"
 								@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
 								@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
 							/>
 							<MessageVideoCall
-								v-else-if="props.event.content.msgtype === PubHubsMgType.VideoCall"
+								v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
 								:event="props.event as any"
 								:room-id="room.roomId"
 							/>
 							<Message
 								v-else
-								:event="props.event as TMessageEvent"
+								:event="event as TMessageEvent"
 								:deleted="redactedMessage"
 							/>
 						</template>
 						<Message
 							v-else
-							:event="props.event as TMessageEvent"
+							:event="event as TMessageEvent"
 							:deleted="redactedMessage"
 						/>
 					</template>
+
+					<!-- View-thread affordance: visible when this message has thread replies and we're not already inside the thread view. -->
+					<button
+						v-if="threadReplyCount > 0 && !viewFromThread && !redactedMessage && !room.isDirectMessageRoom() && !room.isForumRoom()"
+						type="button"
+						class="text-accent-primary hover:text-accent-primary/80 text-label-small mt-2 inline-flex items-center gap-1 hover:cursor-pointer hover:underline"
+						@click="replyInThread"
+					>
+						<Icon
+							type="chat-circle"
+							size="sm"
+							aria-hidden="true"
+						/>
+						<span>{{ t('message.view_thread', threadReplyCount, { named: { count: threadReplyCount } }) }}</span>
+					</button>
 
 					<div
 						v-if="$slots.bottom || $slots.extras"
@@ -414,12 +404,11 @@
 
 <script setup lang="ts">
 	// Packages
-	import { MsgType, NotificationCountType } from 'matrix-js-sdk';
-	import { type PropType, capitalize, computed, onBeforeUnmount, onMounted, ref } from 'vue';
+	import { MatrixEvent, MsgType } from 'matrix-js-sdk';
+	import { capitalize, computed, onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import HideMessageDialog from '@hub-client/components/forms/HideMessageDialog.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
@@ -448,16 +437,19 @@
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import { CONFIG } from '@hub-client/logic/logging/Config';
-	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
 	// Models
 	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	import { RelationType } from '@hub-client/models/constants';
 	import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { type TAnnouncementMessageEventContent, type TWhisperMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import { type TVotingMessageEvent } from '@hub-client/models/events/voting/TVotingMessageEvent';
 	import { type Poll, type Scheduler } from '@hub-client/models/events/voting/VotingTypes';
-	import Room from '@hub-client/models/rooms/Room';
+	import type Room from '@hub-client/models/rooms/Room';
 	import { DirectRooms, type RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
@@ -471,56 +463,30 @@
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	// Props
-	const props = defineProps({
-		event: {
-			type: Object,
-			required: true,
+	const props = withDefaults(
+		defineProps<{
+			activeProfileCard?: string | null;
+			activeReactionPanel?: string | null;
+			addWhisperSpacing?: boolean;
+			deleteMessageDialog?: boolean;
+			event: TimelineEvent | MatrixEvent | TMessageEvent<TMessageEventContent>; // different types can be passed, they are cast to usable types in the computed event
+			isFollowedByGrouped?: boolean;
+			isGrouped?: boolean;
+			room: Room;
+			showActions?: boolean;
+			viewFromThread?: boolean;
+		}>(),
+		{
+			activeProfileCard: null,
+			activeReactionPanel: null,
+			addWhisperSpacing: false,
+			deleteMessageDialog: false,
+			isFollowedByGrouped: false,
+			isGrouped: false,
+			showActions: true,
+			viewFromThread: false,
 		},
-		eventThreadLength: {
-			type: Number,
-			default: 0,
-		},
-		room: {
-			type: Room,
-			required: true,
-		},
-		viewFromThread: {
-			type: Boolean,
-			default: false,
-		},
-		deletedEvent: {
-			type: Boolean,
-		},
-		isGrouped: {
-			type: Boolean,
-			default: false,
-		},
-		isFollowedByGrouped: {
-			type: Boolean,
-			default: false,
-		},
-		addWhisperSpacing: {
-			type: Boolean,
-			default: false,
-		},
-		deleteMessageDialog: {
-			type: Boolean,
-			default: false,
-		},
-		showActions: {
-			type: Boolean,
-			default: true,
-		},
-		activeReactionPanel: {
-			type: String as PropType<string | null>,
-			default: null,
-		},
-		activeProfileCard: {
-			type: String as PropType<string | null>,
-			default: null,
-		},
-	});
+	);
 
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
@@ -538,12 +504,12 @@
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 	const pubhubs = usePubhubsStore();
-	const rooms = useRooms();
 	const sidebar = useSidebar();
 	const user = useUser();
 	const roles = useRoles();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
+	const rooms = useRooms();
 	const { t } = useI18n();
 	const hover = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
@@ -590,36 +556,58 @@
 		}
 
 		// If the profile card is open when this component is unmounted, close it.
-		if (props.activeProfileCard === props.event.event_id) {
+		if (props.activeProfileCard === event.value.event_id!) {
 			emit('profileCardClose');
 		}
 	});
 	const { unHideMessage, hideMessageDialog, onHideMessageDialogSubmit, openHideMessageDialog } = useModerationHideMessage();
 
-	const inReplyToId = props.event.content?.[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
+	/**
+	 * Different types can be passed in props.event, this selects the event property from each type
+	 */
+	const event = computed(() => {
+		if (props.event instanceof TimelineEvent) return props.event.matrixEvent.event;
+		if (props.event instanceof MatrixEvent) return props.event.event;
+		return props.event as TMessageEvent<TMessageEventContent>;
+	});
 
-	const showReactionPanel = computed(() => props.activeReactionPanel === props.event.event_id);
+	const deletedEvent = computed(() => {
+		if (props.event instanceof TimelineEvent) return props.event.isDeleted;
+		return false;
+	});
 
-	const msgIsNotSend = computed(() => props.event.event_id.substring(0, 1) === '~');
+	const threadReplyCount = computed(() => {
+		const eventId = event.value.event_id;
+		if (!eventId) return 0;
+		return rooms.threadLengths[props.room.roomId]?.[eventId] ?? 0;
+	});
 
-	const canReplyInThread = computed(() => !props.event.content[RelationType.RelatesTo]);
+	const inReplyToId = event.value.content?.[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id ?? '';
 
-	const isThreadRoot = computed(() => props.room.currentThread?.threadId === props.event.event_id);
+	const showReactionPanel = computed(() => props.activeReactionPanel === event.value.event_id);
 
-	const containsRedactedBecause = props.event.unsigned?.redacted_because !== undefined;
+	const msgIsNotSend = computed(() => event.value.event_id!.substring(0, 1) === '~');
 
-	const hideState = computed(() => props.room.getHideState(props.event.event_id));
+	const canReplyInThread = computed(() => !event.value.content![RelationType.RelatesTo]);
+
+	// True when this component is rendering the thread root inside the thread sidebar (vs a reply).
+	// Used by the context menu to suppress actions that would target the message you're already threading from.
+	const viewingOwnThread = computed(() => props.viewFromThread && props.room.currentThreadId === event.value.event_id);
+
+	const containsRedactedBecause = event.value.unsigned?.redacted_because !== undefined;
+
+	const hideState = computed(() => props.room.getHideState(event.value.event_id!));
 	const replyHideState = computed(() => props.room.getHideState(inReplyToId));
 
 	const redactedMessage = computed(() => {
-		return props.deletedEvent || containsRedactedBecause;
+		return deletedEvent.value || containsRedactedBecause;
 	});
 
-	const isAnnouncementMessage = computed(() => props.event.content.msgtype === PubHubsMgType.AnnouncementMessage);
-	const isWhisperMessage = computed(() => props.event.content.msgtype === PubHubsMgType.WhisperMessage);
+	const isAnnouncementMessage = computed(() => event.value.content!.msgtype === PubHubsMgType.AnnouncementMessage);
+	const isWhisperMessage = computed(() => event.value.content!.msgtype === PubHubsMgType.WhisperMessage);
 	const isPrivilegedMessage = computed(() => isAnnouncementMessage.value || isWhisperMessage.value);
 	const whisperTargetDisplayName = computed(() => {
-		const whisperToUserId = props.event.content.whisper_to;
+		const whisperToUserId = event.value.content!.whisper_to;
 		if (!whisperToUserId) return '';
 		return user.userDisplayName(whisperToUserId) ?? whisperToUserId;
 	});
@@ -637,7 +625,7 @@
 		const baseClasses = {
 			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
-			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === props.event.event_id,
+			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === event.value.event_id,
 		};
 
 		if (!isPrivilegedMessage.value || redactedMessage.value) {
@@ -649,6 +637,9 @@
 			'bg-surface': true,
 		};
 	});
+
+	// Placed inside the template eslint takes the | as a deprecate vue filter and throws an error
+	const privilegedEventContent = computed(() => event.value.content as TAnnouncementMessageEventContent | TWhisperMessageEventContent);
 
 	/**
 	 * Returns boolean whether the reply snippet can be shown
@@ -680,22 +671,22 @@
 		messageActions.whisperingToUserId = undefined;
 		messageActions.whisperingToDisplayName = undefined;
 		messageActions.whisperingToEventId = undefined;
-		messageActions.replyingTo = props.event.event_id;
+		messageActions.replyingTo = event.value.event_id;
 	}
 
 	function replyInThread() {
-		const isSameThread = props.room.currentThread?.threadId === props.event.event_id;
+		const isSameThread = props.room.currentThreadId === event.value.event_id;
 		if (isSameThread && sidebar.activeTab.value === SidebarTab.Thread) {
 			props.room.setCurrentThreadId(undefined);
 			sidebar.close();
 		} else {
-			props.room.setCurrentThreadId(props.event.event_id);
+			props.room.setCurrentThreadId(event.value.event_id);
 			sidebar.openTab(SidebarTab.Thread);
 		}
 	}
 
 	function resend() {
-		pubhubs.resendEvent(props.event as TBaseEvent);
+		pubhubs.resendEvent(event.value as TBaseEvent);
 	}
 
 	// Positions the panel based on whether the message event is near the bottom of the screen
@@ -727,18 +718,18 @@
 		const destructive: MenuItem[] = [];
 
 		// Direct message (only if sender is not current user and not already in a DM)
-		if (props.event.sender !== user.userId && !props.room.isDirectMessageRoom()) {
+		if (event.value.sender! !== user.userId && !props.room.isDirectMessageRoom()) {
 			social.push({
 				label: t('menu.direct_message'),
 				icon: 'chat-circle',
-				onClick: () => user.goToUserRoom(props.event.sender),
+				onClick: () => user.goToUserRoom(event.value.sender!),
 			});
 		}
 
 		// Whisper (steward/super-steward only, for other users)
 		if (
 			settings.isFeatureEnabled(FeatureFlag.whisper) &&
-			props.event.sender !== user.userId &&
+			event.value.sender! !== user.userId &&
 			!props.room.isDirectMessageRoom() &&
 			canWhisperFromContextMenu.value
 		) {
@@ -747,9 +738,9 @@
 				icon: 'whisper',
 				onClick: () => {
 					messageActions.replyingTo = undefined;
-					messageActions.whisperingToUserId = props.event.sender;
-					messageActions.whisperingToDisplayName = user.userDisplayName(props.event.sender);
-					messageActions.whisperingToEventId = props.event.event_id;
+					messageActions.whisperingToUserId = event.value.sender;
+					messageActions.whisperingToDisplayName = user.userDisplayName(event.value.sender!);
+					messageActions.whisperingToEventId = event.value.event_id;
 				},
 				variant: ContextVariant.steward,
 			});
@@ -761,13 +752,13 @@
 				label: t('menu.add_reaction'),
 				icon: 'smiley',
 				onClick: () => {
-					setTimeout(() => emit('reactionPanelToggle', props.event.event_id), 0);
+					setTimeout(() => emit('reactionPanelToggle', event.value.event_id!), 0);
 				},
 			});
 		}
 
 		// Reply
-		if (!props.event.msgIsNotSend && !redactedMessage.value && !props.event.isThreadRoot) {
+		if (!msgIsNotSend.value && !redactedMessage.value) {
 			actions.push({
 				label: t('menu.reply'),
 				icon: 'arrow-bend-up-left',
@@ -778,9 +769,9 @@
 		// Thread reply (not in DM rooms)
 		if (
 			!props.viewFromThread &&
-			props.eventThreadLength <= 0 &&
+			threadReplyCount.value <= 0 &&
 			canReplyInThread.value &&
-			!props.event.msgIsNotSend &&
+			!msgIsNotSend.value &&
 			!redactedMessage.value &&
 			!props.room.isDirectMessageRoom()
 		) {
@@ -792,74 +783,63 @@
 		}
 
 		// Copy message text
-		if (!redactedMessage.value && typeof props.event.content.body === 'string') {
+		if (!redactedMessage.value && typeof event.value.content!.body === 'string') {
 			utility.push({
 				label: t('menu.copy_message'),
 				icon: 'copy',
-				onClick: () => navigator.clipboard.writeText(props.event.content.body),
+				onClick: () => navigator.clipboard.writeText(event.value.content!.body),
 			});
 		}
 
 		// Hide a message
 		if (
 			!hideState.value.isHidden &&
-			!props.event.msgIsNotSend &&
-			(props.event.sender === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
+			!msgIsNotSend.value &&
+			(event.value.sender! === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
 			!redactedMessage.value &&
-			!(props.viewFromThread && props.event.isThreadRoot)
+			!viewingOwnThread.value
 		) {
 			stewardActions.push({
 				label: capitalize(t('menu.hide_message')),
 				icon: 'eye-slash',
 				variant: ContextVariant.steward,
-				onClick: () => openHideMessageDialog(props.room.roomId, props.event.event_id),
+				onClick: () => openHideMessageDialog(props.room.roomId, event.value.event_id!),
 			});
 		}
 
 		// UnHide a message
 		if (
 			hideState.value.isHidden &&
-			!props.event.msgIsNotSend &&
-			(props.event.sender === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
+			!msgIsNotSend.value &&
+			(event.value.sender! === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
 			!redactedMessage.value &&
-			!(props.viewFromThread && props.event.isThreadRoot)
+			!viewingOwnThread.value
 		) {
 			stewardActions.push({
 				label: capitalize(t('menu.show_message')),
 				icon: 'eye',
 				variant: ContextVariant.steward,
-				onClick: () => unHideMessage(props.room.roomId, props.event.event_id),
+				onClick: () => unHideMessage(props.room.roomId, event.value.event_id!),
 			});
 		}
 
 		// Delete (only your own messages or if you are steward or higher)
 		if (
 			settings.isFeatureEnabled(FeatureFlag.deleteMessages) &&
-			!props.event.msgIsNotSend &&
-			(props.event.sender === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
+			!msgIsNotSend.value &&
+			(event.value.sender! === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
 			!redactedMessage.value &&
-			!(props.viewFromThread && props.event.isThreadRoot)
+			!viewingOwnThread.value
 		) {
 			destructive.push({
 				label: t('menu.delete_message'),
 				icon: 'trash',
 				variant: ContextVariant.delicate,
-				onClick: () => onDeleteMessage(props.event as TMessageEvent),
+				onClick: () => onDeleteMessage(event.value as TMessageEvent),
 			});
 		}
 
 		const divider: MenuItem = { divider: true, label: '' };
 		return [social, actions, utility, stewardActions, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	}
-
-	function getUnreadCount(roomId: string, eventId: string, countType: NotificationCountType): number {
-		void rooms.unreadCountVersion;
-		const room = pubhubs.client.getRoom(roomId);
-		if (room) {
-			return room.getThreadUnreadNotificationCount(eventId, countType);
-		}
-		return 0;
-	}
-
-	const threadBadgeSize = badgeSize;
 </script>

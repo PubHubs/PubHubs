@@ -7,20 +7,21 @@
 <script setup lang="ts">
 	import { computed } from 'vue';
 
-	const props = defineProps({
-		event: {
-			type: Object,
-			required: true,
+	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+
+	const props = withDefaults(
+		defineProps<{
+			event: TimelineEvent;
+			isFirst?: boolean;
+		}>(),
+		{
+			isFirst: false,
 		},
-		isFirst: {
-			type: Boolean,
-			default: false,
-		},
-	});
+	);
 
 	const description = computed(() => {
-		if (props.event.content.ph_topic_body) return props.event.content.ph_topic_body;
-		if (props.event.content.description) return props.event.content.description;
+		if (props.event.matrixEvent.event.content?.ph_topic_body) return props.event.matrixEvent.event.content.ph_topic_body;
+		if (props.event.matrixEvent.event.content?.description) return props.event.matrixEvent.event.content.description;
 		return '';
 	});
 </script>

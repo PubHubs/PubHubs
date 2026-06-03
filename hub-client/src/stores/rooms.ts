@@ -92,6 +92,7 @@ const useRooms = defineStore('rooms', {
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
 			unreadCountVersion: 0, // Increment to trigger reactive updates for badge
+			threadLengths: {} as Record<string, Record<string, number>>, // Keeps (reactively) track of the thread length For each room a Record<eventId, length>
 		};
 	},
 
@@ -324,6 +325,17 @@ const useRooms = defineStore('rooms', {
 			this.timestamps = timestamps;
 		},
 
+		setThreadLength(roomId: string, eventId: string, length: number) {
+			if (!this.threadLengths[roomId]) {
+				this.threadLengths[roomId] = {};
+			}
+			this.threadLengths[roomId][eventId] = length;
+		},
+
+		clearThreadLengths(roomId: string) {
+			delete this.threadLengths[roomId];
+		},
+
 		notifyUnreadCountChanged(roomId: string) {
 			const entry = this.roomList.find((r) => r.roomId === roomId);
 			if (entry) {
@@ -348,6 +360,7 @@ const useRooms = defineStore('rooms', {
 
 		changeRoom(roomId: string, skipNavigation = false) {
 			if (this.currentRoomId !== roomId) {
+				// don't remove info about the events, their threads and relations here: keep switching between rooms fast
 				this.currentRoomId = roomId;
 				if (!skipNavigation) {
 					const messagebox = useMessageBox();
@@ -445,6 +458,7 @@ const useRooms = defineStore('rooms', {
 
 		deleteRoomsWithMatrixRoom(roomId: string) {
 			if (this.currentRoomId === roomId) {
+				this.clearThreadLengths(this.currentRoomId);
 				this.currentRoomId = '';
 			}
 			delete this.rooms[roomId];

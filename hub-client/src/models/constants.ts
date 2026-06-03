@@ -78,7 +78,6 @@ enum Redaction {
 enum RoomEmit {
 	ScrollToEventId = 'scrollToEventId',
 	ScrolledToEventId = 'scrolledToEventId',
-	ThreadLengthChanged = 'threadLengthChanged',
 }
 
 enum ScrollPosition {
