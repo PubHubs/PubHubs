@@ -56,6 +56,7 @@
 				<TextField
 					id="displayname"
 					v-model.trim="formState.data.displayName.value as string"
+					data-testid="change-displayname"
 					name="displayname"
 					:placeholder="$t('settings.displayname')"
 					show-length

@@ -142,6 +142,7 @@ export function useManageRooms() {
 		if (await dialog.okcancel(t('admin.remove_room_sure'))) {
 			try {
 				await rooms.removePublicRoom(room.room_id);
+				sidebar.close();
 			} catch (error) {
 				dialog.confirm('ERROR', error as string);
 			}
