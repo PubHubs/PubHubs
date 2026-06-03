@@ -18,6 +18,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] Eliminated the legacy `/v3/sync` loop; the hub client now uses `SlidingSyncSdk` exclusively.
 - [NEW] Added post-quantum key-exchange to protect against harvest now, decrypt later attacks.
 - [NEW] Added post-quantum signatures.
+- [BUG] Solved some problems with threads, making sure the shown number of replies is correct and reactive.
 - _internal_ Test the registration flow and login flow for the pubhubs card including normal settings and with battery saver on. If no issues arise set phCard in settings.ts to true for stable.
 
 ## 28 April 2026 - v3.3.0
