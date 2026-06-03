@@ -360,6 +360,13 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             }
         }
 
+        if let Some(cfg) = xconf.yivi.as_ref() {
+            anyhow::ensure!(
+                !matches!(cfg.requestor_creds.key, yivi::SigningKey::RS256(_)),
+                "rs256 yivi requestor credentials are not supported (due to RUSTSEC-2023-0071); use hs256 instead"
+            );
+        }
+
         let yivi: Option<YiviCtx> = xconf.yivi.as_ref().map(|cfg| YiviCtx {
             requestor_url: cfg.requestor_url.as_ref().clone(),
             requestor_creds: cfg.requestor_creds.clone(),
