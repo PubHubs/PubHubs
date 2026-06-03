@@ -320,8 +320,8 @@
 	const contextMenuStore = useContextMenuStore();
 
 	const base = useModerationBase();
-	const { stewards: baseStewards, admins, nonPowerMemberIds } = base;
-	const stewards = computed(() => [...baseStewards.value, ...admins.value]);
+	const { stewards: baseStewards, nonPowerMemberIds } = base;
+	const stewards = computed(() => [...baseStewards.value]);
 	const isCurrentUserSteward = computed(() => stewards.value.some((s) => s.userId === user.user?.userId));
 	const { activeYellowCards, yellowCardDialog, openYellowCardDialog, onYellowCardDialogSubmit } = useModerationYellowCard(base);
 	const { redCardMembers, revokedRedCardMembers, redCardDialog, openRedCardDialog, onRedCardDialogSubmit, revokeRedCard } = useModerationRedCard(base);
