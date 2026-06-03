@@ -376,6 +376,7 @@ async fn main_integration_test_local(
             served_by,
         } = client
             .query::<api::server::HubPingEP>(constellation.url(name), &ts_req)
+            .with_retry()
             .await
             .unwrap()
         else {
