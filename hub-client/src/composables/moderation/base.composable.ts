@@ -64,7 +64,7 @@ function useModerationBase(room?: Ref<Room | undefined> | Room) {
 		return allMembers.value.filter((id) => !powerUserIds.includes(id));
 	});
 
-	const stewards = computed(() => powerMembers.value.filter((user) => user.powerLevel === UserPowerLevel.Steward));
+	const stewards = computed(() => powerMembers.value.filter((user) => user.powerLevel >= UserPowerLevel.Steward));
 
 	const admins = computed(() => powerMembers.value.filter((user) => user.powerLevel === UserPowerLevel.Admin));
 
