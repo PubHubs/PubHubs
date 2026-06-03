@@ -244,6 +244,21 @@
 					help="Rooms"
 					>RoomList</DropDown
 				>
+				<DropDown
+					v-model="dropDownValues.simpleClearable"
+					:options="options"
+					placeholder="Kies hier iets"
+					help="Maak een keuze"
+					>Eenvoudig Clearable</DropDown
+				>
+				<DropDown
+					v-model="dropDownValues.multipleClearable"
+					:options="options"
+					placeholder="Kies hier iets"
+					:multiple="true"
+					help="Maak een keuze"
+					>Eenvoudig Multiple Clearable</DropDown
+				>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -507,6 +522,8 @@
 		multiple: [options[0], options[1], options[2]] as MultipleInputType,
 		simpleIcon: iconOptions[0] as InputType,
 		multipleIcons: [iconOptions[0], iconOptions[4]] as MultipleInputType,
+		simpleClearable: options[0] as InputType,
+		multipleClearable: [options[0], options[1], options[2]] as MultipleInputType,
 	});
 
 	onMounted(() => {

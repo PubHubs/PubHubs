@@ -10,14 +10,13 @@
 				props.isGrouped ? 'pt-1!' : 'pt-4!',
 				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
 				getMessageContainerClasses,
-				!redactedMessage && 'group-hover:border-l-accent-primary! hover:border-l-accent-primary! border-l-4',
 				!isPrivilegedMessage && !redactedMessage && 'border-l-transparent',
 				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y',
 				(isAnnouncementMessage || isWhisperMessage) &&
 					!redactedMessage &&
 					(props.room.getPowerLevel(event.sender!) === 100
-						? 'border-accent-steward'
-						: props.room.getPowerLevel(event.sender!) >= 50 && 'border-accent-steward'),
+						? 'border-accent-steward border-l-4'
+						: props.room.getPowerLevel(event.sender!) >= 50 && 'border-accent-steward border-l-4'),
 			]"
 			role="article"
 		>
@@ -182,7 +181,7 @@
 					>
 						<!-- Message Action Buttons -->
 						<div
-							class="bg-surface-elevated absolute right-0 flex rounded-md"
+							class="bg-surface-elevated rounded-base absolute right-0 flex"
 							:class="actionButtonPosition"
 						>
 							<template v-if="timerReady && !deleteMessageDialog">
@@ -626,6 +625,7 @@
 			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
 			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === event.value.event_id,
+			'group-hover:bg-surface-low! hover:bg-surface-low!': !isPrivilegedMessage.value || redactedMessage.value,
 		};
 
 		if (!isPrivilegedMessage.value || redactedMessage.value) {
@@ -634,7 +634,7 @@
 
 		return {
 			...baseClasses,
-			'bg-surface': true,
+			'bg-surface-base': true,
 		};
 	});
 
@@ -791,34 +791,29 @@
 			});
 		}
 
-		// Hide a message
-		if (
-			!hideState.value.isHidden &&
+		// Hide a message (own message: regular action; someone else's: steward action)
+		const canHideOrShow =
 			!msgIsNotSend.value &&
-			(event.value.sender! === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
 			!redactedMessage.value &&
-			!viewingOwnThread.value
-		) {
-			stewardActions.push({
+			!viewingOwnThread.value &&
+			(event.value.sender! === user.userId || roles.userIsStewardOrHigher(props.room.roomId));
+		if (canHideOrShow && !hideState.value.isHidden) {
+			const target = event.value.sender! === user.userId ? utility : stewardActions;
+			target.push({
 				label: capitalize(t('menu.hide_message')),
 				icon: 'eye-slash',
-				variant: ContextVariant.steward,
+				...(event.value.sender! === user.userId ? {} : { variant: ContextVariant.steward }),
 				onClick: () => openHideMessageDialog(props.room.roomId, event.value.event_id!),
 			});
 		}
 
 		// UnHide a message
-		if (
-			hideState.value.isHidden &&
-			!msgIsNotSend.value &&
-			(event.value.sender! === user.userId || roles.userIsStewardOrHigher(props.room.roomId)) &&
-			!redactedMessage.value &&
-			!viewingOwnThread.value
-		) {
-			stewardActions.push({
+		if (canHideOrShow && hideState.value.isHidden) {
+			const target = event.value.sender! === user.userId ? utility : stewardActions;
+			target.push({
 				label: capitalize(t('menu.show_message')),
 				icon: 'eye',
-				variant: ContextVariant.steward,
+				...(event.value.sender! === user.userId ? {} : { variant: ContextVariant.steward }),
 				onClick: () => unHideMessage(props.room.roomId, event.value.event_id!),
 			});
 		}

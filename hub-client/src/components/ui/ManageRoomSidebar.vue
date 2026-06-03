@@ -45,6 +45,12 @@
 					:label="t('rooms.yivi_attributes')"
 					:collapsible="false"
 				>
+					<p
+						v-if="securedRoom.user_txt"
+						class="pb-200 text-sm"
+					>
+						{{ securedRoom.user_txt }}
+					</p>
 					<div class="flex flex-wrap gap-150">
 						<Chip
 							v-for="name in yiviAttributeNames"

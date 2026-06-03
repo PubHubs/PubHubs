@@ -585,7 +585,13 @@ export default class Room {
 			return computeUnreadState(receiptTs, undefined, undefined, stored);
 		}
 
-		const params = extractTimelineParams(events, userId, receiptTs);
+		const unhiddenEvents = projectRoom
+			? events.filter((e) => {
+					const id = e.getId();
+					return !id || !projectRoom.getHideState(id).isHidden;
+				})
+			: events;
+		const params = extractTimelineParams(unhiddenEvents, userId, receiptTs);
 		const { effectiveReceiptTs, timelineStartTs } = params;
 		let { lastVisibleTs } = params;
 

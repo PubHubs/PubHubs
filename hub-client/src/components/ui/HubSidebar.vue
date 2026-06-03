@@ -31,7 +31,7 @@
 			<template v-if="!showModerationMenu">
 				<section class="flex flex-col gap-4">
 					<div
-						class="bg-surface text-hub-text rounded-base outline-surface-elevated flex items-center justify-between overflow-hidden p-4 outline-3"
+						class="bg-surface text-hub-text rounded-base border-surface-elevated flex h-1000 items-center justify-between overflow-hidden border-3 p-4"
 						role="complementary"
 					>
 						<div class="flex w-full items-center gap-2 truncate">

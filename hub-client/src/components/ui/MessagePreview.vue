@@ -1,9 +1,7 @@
 <template>
 	<div
-		class="rounded-base @container w-full p-4 outline-3"
-		:class="
-			active ? 'bg-surface-base outline-surface-elevated' : 'bg-surface-low outline-surface-base hover:bg-surface-base hover:outline-surface-elevated'
-		"
+		class="rounded-base @container w-full border-3 p-4"
+		:class="active ? 'bg-surface-base border-surface-elevated' : 'bg-surface-low border-surface-base hover:bg-surface-base hover:border-surface-elevated'"
 	>
 		<div class="flex gap-3">
 			<Avatar

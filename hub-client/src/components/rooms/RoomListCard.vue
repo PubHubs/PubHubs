@@ -16,10 +16,10 @@
 			</p>
 		</div>
 		<p
-			v-if="topic || userTxt"
+			v-if="topic"
 			class="text-on-surface-dim truncate text-sm italic first-letter:uppercase"
 		>
-			{{ topic || userTxt }}
+			{{ topic }}
 		</p>
 		<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
 			<span>
@@ -30,9 +30,9 @@
 				<span class="text-on-surface-dim">{{ t('rooms.yivi_attributes') }}: </span>
 				<span class="first-letter:uppercase">{{ yiviAttributeNames }}</span>
 			</span>
-			<span v-if="roomType === 'public'">
+			<span v-if="numJoinedMembers !== undefined">
 				<span class="text-on-surface-dim">{{ t('rooms.member_count') }}: </span>
-				<span>{{ numJoinedMembers ?? 0 }}</span>
+				<span>{{ numJoinedMembers }}</span>
 			</span>
 		</div>
 	</div>
@@ -53,10 +53,10 @@
 		</TableRowCell>
 		<TableRowCell
 			class="min-w-0"
-			:title="topic || userTxt || '-'"
+			:title="topic || '-'"
 		>
 			<p class="text-on-surface-dim truncate text-sm italic first-letter:uppercase">
-				{{ topic || userTxt || '-' }}
+				{{ topic || '-' }}
 			</p>
 		</TableRowCell>
 		<TableRowCell
@@ -83,10 +83,10 @@
 		</TableRowCell>
 		<TableRowCell
 			class="flex items-center gap-2"
-			:title="roomType === 'public' ? String(numJoinedMembers ?? 0) : '-'"
+			:title="numJoinedMembers !== undefined ? String(numJoinedMembers) : '-'"
 		>
 			<span class="flex shrink-0 items-center gap-1">
-				<p v-if="roomType === 'public'">{{ numJoinedMembers ?? 0 }}</p>
+				<p v-if="numJoinedMembers !== undefined">{{ numJoinedMembers }}</p>
 				<p v-else>-</p>
 			</span>
 		</TableRowCell>

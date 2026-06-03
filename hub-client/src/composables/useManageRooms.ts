@@ -10,6 +10,7 @@ import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 // Logic
 import { APIService } from '@hub-client/logic/core/apiHubManagement';
 import { router } from '@hub-client/logic/core/router';
+import { getRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 // Models
 import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
@@ -40,6 +41,7 @@ export function useManageRooms() {
 
 	const selectedRoomIsAdmin = computed(() => {
 		if (!selectedRoomId.value) return false;
+		if (isAdmin.value) return true;
 		return userPowerLevel(selectedRoomId.value) >= UserPowerLevel.Steward;
 	});
 
@@ -80,10 +82,29 @@ export function useManageRooms() {
 	const nonSecuredPublicRooms = computed(() => rooms.nonSecuredPublicRooms);
 	const sortedSecuredRooms = computed(() => rooms.sortedSecuredRooms);
 
+	function roomMemberCount(roomId: string): number | undefined {
+		const entry = rooms.roomList.find((r) => r.roomId === roomId);
+		if (entry?.stateEvents) {
+			const joinEvents = entry.stateEvents.filter(
+				(e) => e.type === 'm.room.member' && e.content?.membership === 'join' && !e.state_key.startsWith('@notices_user:'),
+			);
+			if (joinEvents.length > 0) return joinEvents.length;
+		}
+		const matrixRoom = rooms.room(roomId);
+		if (matrixRoom) return getRoomMembers(matrixRoom).length;
+		return undefined;
+	}
+
 	const allRoomsWithType = computed(() => {
-		const publicRooms = nonSecuredPublicRooms.value.map((r) => ({ ...r, _roomType: 'public' }));
-		const securedRooms = sortedSecuredRooms.value.map((r) => ({ ...r, _roomType: 'secured' }));
-		const allRooms = [...publicRooms, ...securedRooms];
+		const publicRooms = nonSecuredPublicRooms.value.map((r) => {
+			const count = (r as { num_joined_members?: number }).num_joined_members ?? roomMemberCount(r.room_id);
+			return { ...r, _roomType: 'public', num_joined_members: count };
+		});
+		const securedRooms = sortedSecuredRooms.value.map((r) => {
+			const count = roomMemberCount(r.room_id) ?? (r as { num_joined_members?: number }).num_joined_members;
+			return { ...r, _roomType: 'secured', num_joined_members: count };
+		});
+		const allRooms: (TBaseRoom & { _roomType: string; num_joined_members?: number })[] = [...publicRooms, ...securedRooms];
 		if (isAdmin.value) return allRooms;
 
 		const existingIds = new Set(allRooms.map((r) => r.room_id));
@@ -92,12 +113,16 @@ export function useManageRooms() {
 			if (DirectRooms.includes(entry.roomType as RoomType)) continue;
 			if (existingIds.has(entry.roomId)) continue;
 			existingIds.add(entry.roomId);
+			const joinEvents = entry.stateEvents
+				? entry.stateEvents.filter((e) => e.type === 'm.room.member' && e.content?.membership === 'join' && !e.state_key.startsWith('@notices_user:'))
+				: [];
 			allRooms.push({
 				room_id: entry.roomId,
 				name: entry.name,
 				room_type: entry.roomType,
 				_roomType: entry.roomType === 'ph.messages.restricted' ? 'secured' : 'public',
-			} as TBaseRoom & { _roomType: string });
+				num_joined_members: joinEvents.length,
+			});
 		}
 		// Filter to rooms where the user has steward+ level
 		return allRooms.filter((r) => userPowerLevel(r.room_id) >= UserPowerLevel.Steward);
@@ -226,6 +251,7 @@ export function useManageRooms() {
 		selectedRoomIsAdmin,
 		allRoomsWithType,
 		roomTypeFilters,
+		sidebar,
 		nonSecuredPublicRooms,
 		sortedSecuredRooms,
 		newPublicRoom,

@@ -4,22 +4,10 @@
 	<Dialog
 		v-if="listUserRooms.length > 0"
 		:buttons="buttonsSubmitCancel"
-		:title="$t('admin.user_perm_heading')"
+		:title="$t('admin.user_perm_heading') + ' - ' + displayName"
 		:width="isMobile ? 'px-8 w-full' : 'w-[700px] px-8'"
 		@close="emit('close')"
 	>
-		<div class="flex p-2 sm:p-4">
-			<Avatar
-				:avatar-url="user.userAvatar(userId)"
-				:user-id="userId"
-			/>
-			<div class="ml-2 flex flex-col">
-				<div>{{ displayName }}</div>
-				<div class="text-on-surface-dim mb-2 italic sm:mb-4">
-					{{ userId }}
-				</div>
-			</div>
-		</div>
 		<!-- Table header -->
 		<div class="text-label-small-min/label-small-max text-on-surface-dim mt-8 mb-2 flex w-full items-center gap-4 px-6">
 			<div class="flex-[2] font-medium">
@@ -72,9 +60,8 @@
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import DropDown from '@hub-client/components/forms/elements/DropDown.vue';
 	// Components
-	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import DropDown from '@hub-client/components/forms/elements/DropDown.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	import { useRoles } from '@hub-client/composables/roles.composable';

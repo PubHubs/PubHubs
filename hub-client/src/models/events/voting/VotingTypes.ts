@@ -41,8 +41,8 @@ class VotingOptions {
 			};
 			for (const vote of vfo.votes) {
 				const newUserVotes: UserVote[] = [];
-				for (const uv of vote.userVotes) {
-					newUserVotes.push(uv);
+				for (const userVote of vote.userVotes ?? []) {
+					newUserVotes.push(userVote);
 				}
 				newvFo.votes.push({
 					choice: vote.choice,

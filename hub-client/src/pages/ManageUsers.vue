@@ -10,14 +10,7 @@
 					{{ t('menu.admin_tools_users') }}
 				</H3>
 			</div>
-			<div class="flex items-center gap-2">
-				<GlobalBarButton
-					type="user"
-					:selected="sidebar.activeTab.value === SidebarTab.ManageUser"
-					:title="t('admin.user_details')"
-					@click="sidebar.toggleTab(SidebarTab.ManageUser)"
-				/>
-			</div>
+			<div class="flex items-center gap-2" />
 		</div>
 
 		<div class="flex flex-1 overflow-hidden">
@@ -116,12 +109,11 @@
 	import TableRow from '@hub-client/components/rooms/TableRow.vue';
 	import UserListCard from '@hub-client/components/rooms/UserListCard.vue';
 	import FilterableList from '@hub-client/components/ui/FilterableList.vue';
-	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import ManageUserSidebar from '@hub-client/components/ui/ManageUserSidebar.vue';
 
-	import { useManageUsers } from '@hub-client/composables/useManageUsers';
 	// Composables
-	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
+	import { useManageUsers } from '@hub-client/composables/useManageUsers';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';

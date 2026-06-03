@@ -38,17 +38,8 @@ export function useRoomDetails(roomId: Ref<string>) {
 	});
 
 	const memberCount = computed<number | undefined>(() => {
-		const publicData = publicRoom.value as { num_joined_members?: number } | undefined;
-		if (publicData?.num_joined_members !== undefined) return publicData.num_joined_members;
-		const securedData = securedRoom.value as { num_joined_members?: number } | undefined;
-		if (securedData?.num_joined_members !== undefined) return securedData.num_joined_members;
-		if (matrixRoom.value) return matrixRoom.value.getStateJoinedMembersIds().length;
-		const entry = roomListEntry.value;
-		if (entry?.stateEvents) {
-			const joinEvents = entry.stateEvents.filter((e) => e.type === 'm.room.member' && e.content?.membership === 'join');
-			if (joinEvents.length > 0) return joinEvents.length;
-		}
-		return undefined;
+		const ids = allMemberIds.value;
+		return ids.length > 0 ? ids.length : undefined;
 	});
 
 	const roomTypeDisplay = computed(() => {
@@ -66,8 +57,7 @@ export function useRoomDetails(roomId: Ref<string>) {
 		if (topic) return topic;
 		const apiTopic = publicRoom.value?.topic ?? securedRoom.value?.topic;
 		if (apiTopic) return apiTopic;
-		const userTxt = securedRoom.value?.user_txt ?? publicRoom.value?.user_txt;
-		return userTxt || '';
+		return '-';
 	});
 
 	const yiviAttributeNames = computed(() => {

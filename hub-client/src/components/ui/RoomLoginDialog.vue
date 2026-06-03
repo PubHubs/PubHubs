@@ -77,7 +77,7 @@
 	const roomDescription = computed(() => {
 		if (!props.dialogOpen) return '';
 		const room = rooms.securedRoomById(props.dialogOpen);
-		return room?.user_txt ?? '';
+		return room?.topic ?? '-';
 	});
 
 	const requiredAttributes = computed(() => {

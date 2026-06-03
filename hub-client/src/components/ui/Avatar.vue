@@ -52,6 +52,7 @@
 		if (!props.roomId || !props.userId) return '';
 		const room = rooms.room(props.roomId);
 		if (!room) return '';
+		if (room.isDirectMessageRoom()) return '';
 		return room.getPowerLevel(props.userId) >= 50 ? 'ring-2 ring-accent-steward/75' : '';
 	});
 	const iconColor = computed(() => (props.userId ? onAccentColor(color(props.userId)) : 'text-on-surface'));

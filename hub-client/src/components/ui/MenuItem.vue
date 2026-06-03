@@ -45,12 +45,16 @@
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
+	// Logic
+	import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
+
 	// Models
 	import { type RoomListRoom, worstUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useMenu } from '@hub-client/stores/menu';
 	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
 
 	const props = defineProps({
 		to: {
@@ -91,8 +95,12 @@
 		return false;
 	});
 
+	const currentUser = useUser();
+
 	const dmUnreadState = computed(() => {
-		return worstUnreadState(rooms.loadedPrivateRooms.map((r) => r.unreadState));
+		return worstUnreadState(
+			rooms.loadedPrivateRooms.filter((r) => !r.isHidden && isVisiblePrivateRoom(r.name, currentUser.user.userId)).map((r) => r.unreadState),
+		);
 	});
 
 	const roomIsActive = computed(() => {

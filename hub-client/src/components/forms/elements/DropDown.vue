@@ -57,16 +57,14 @@
 						<div v-if="model !== undefined && model !== null && model !== ''">
 							<div
 								v-if="multiple"
-								ref="values"
-								class="gap-050 flex max-h-300 items-center"
+								class="gap-050 no-scrollbar flex max-h-300 flex-nowrap items-center overflow-x-auto"
 							>
 								<template
 									v-for="(item, index) in modelAsArray"
 									:key="index"
 								>
 									<div
-										v-if="(index as number) <= modelAsArray.length - moreItems"
-										class="bg-surface-subtle inline-block rounded px-100"
+										class="bg-surface-subtle inline-block shrink-0 rounded px-100"
 										role="listbox"
 									>
 										<div class="flex items-center">
@@ -84,12 +82,6 @@
 										</div>
 									</div>
 								</template>
-								<div
-									v-if="moreItems > 0"
-									class="bg-surface-subtle inline-block rounded px-100"
-								>
-									+ {{ moreItems - 1 }}
-								</div>
 							</div>
 							<DropDownValue
 								v-else
@@ -151,7 +143,7 @@
 <script lang="ts" setup>
 	// Packages
 	import { OnClickOutside } from '@vueuse/components';
-	import { computed, nextTick, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
+	import { computed, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -215,17 +207,10 @@
 	const filterEl = useTemplateRef('filterInput');
 
 	const completeEl = useTemplateRef('element');
-	const valuesEl = useTemplateRef('values');
-	const moreItems = ref(0);
-
 	onMounted(() => {
 		setItems(filteredOptions.value as Array<unknown>);
 		// Set cursor off until it is used
 		cursor.value = -1;
-	});
-
-	onMounted(async () => {
-		await controlMaxWidth();
 	});
 
 	// Keep selection in sync with model (handles both initial value and external changes)
@@ -378,7 +363,6 @@
 	const removeItem = (index: number) => {
 		(model.value as unknown[]).splice(index, 1);
 		selection.value.splice(index, 1);
-		controlMaxWidth();
 	};
 
 	const removeLast = () => {
@@ -427,7 +411,6 @@
 		resetFilter();
 		update();
 		close();
-		controlMaxWidth();
 	};
 
 	const resetAll = () => {
@@ -436,7 +419,6 @@
 		resetFilter();
 		update();
 		close();
-		controlMaxWidth();
 	};
 
 	const toggle = () => {
@@ -445,17 +427,5 @@
 
 	const close = () => {
 		open.value = false;
-	};
-
-	const controlMaxWidth = async () => {
-		moreItems.value = 0;
-		await nextTick();
-		const maxElWidth = (completeEl.value?.offsetWidth ?? 0) - 110;
-		let valWidth = valuesEl.value?.offsetWidth ?? 0;
-		while (valWidth > maxElWidth) {
-			moreItems.value++;
-			await nextTick();
-			valWidth = valuesEl.value?.offsetWidth ?? 0;
-		}
 	};
 </script>

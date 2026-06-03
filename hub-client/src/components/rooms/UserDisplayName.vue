@@ -89,6 +89,7 @@
 		if (!props.roomId) return false;
 		const room = rooms.room(props.roomId);
 		if (!room) return false;
+		if (room.isDirectMessageRoom()) return false;
 		return room.getPowerLevel(props.userId) >= 50;
 	});
 

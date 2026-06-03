@@ -93,12 +93,15 @@
 				</div>
 				<button
 					v-else-if="sortedPrivateRooms.length === 0"
-					class="bg-surface-low hover:bg-surface w-full cursor-pointer rounded-xl p-4 text-left"
+					class="bg-surface-base hover:bg-surface-elevated border-surface-elevated rounded-base h-1000 w-full cursor-pointer border-3 p-4 text-left"
 					@click="sidebar.toggleTab(SidebarTab.NewDM)"
 				>
 					<div class="flex items-center gap-2">
 						<div class="flex h-10 w-10 shrink-0 items-center justify-center">
-							<Icon type="plus" />
+							<Icon
+								type="plus"
+								size="sm"
+							/>
 						</div>
 						<p class="font-bold">{{ t('others.new_message') }}</p>
 					</div>

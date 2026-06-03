@@ -82,9 +82,19 @@ export function useUserRooms(userId: Ref<string>, isAdmin: Ref<boolean>) {
 			}
 		}
 
+		function isDirectRoom(roomId: string): boolean {
+			const entry = roomListById.get(roomId);
+			if (entry && DirectRooms.includes(entry.roomType as RoomType)) return true;
+			const roomObj = rooms.room(roomId);
+			if (roomObj?.isDirectMessageRoom()) return true;
+			const publicRoom = rooms.publicRooms.find((r) => r.room_id === roomId);
+			if (publicRoom?.room_type && DirectRooms.includes(publicRoom.room_type as RoomType)) return true;
+			return false;
+		}
+
 		if (isAdmin.value) {
 			for (const roomId of targetUserJoinedRooms.value) {
-				addRoom(roomId);
+				if (!isDirectRoom(roomId)) addRoom(roomId);
 			}
 		} else {
 			for (const publicRoom of rooms.publicRooms) {

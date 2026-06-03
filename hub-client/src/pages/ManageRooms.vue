@@ -15,14 +15,7 @@
 					{{ t('menu.admin_tools_rooms') }}
 				</H3>
 			</div>
-			<div class="flex items-center gap-2">
-				<GlobalBarButton
-					type="pencil-simple"
-					:selected="sidebar.activeTab.value === SidebarTab.ManageRoom"
-					:title="t('admin.room_details')"
-					@click="sidebar.toggleTab(SidebarTab.ManageRoom)"
-				/>
-			</div>
+			<div class="flex items-center gap-2" />
 		</div>
 
 		<div class="flex flex-1 overflow-hidden">
@@ -78,7 +71,7 @@
 									:topic="rooms.getRoomTopic(itemRoomId(item)) || (item as any).topic || ''"
 									:room-type-value="(item as any).room_type"
 									:user-txt="(item as any).user_txt || ''"
-									:num-joined-members="(item as any)._roomType === 'public' ? (item as any).num_joined_members : undefined"
+									:num-joined-members="(item as any).num_joined_members ?? undefined"
 									:yivi-attributes="(item as any)._roomType === 'secured' ? (item as any).accepted : undefined"
 								/>
 							</TableRow>
@@ -128,12 +121,11 @@
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import TableRow from '@hub-client/components/rooms/TableRow.vue';
 	import FilterableList from '@hub-client/components/ui/FilterableList.vue';
-	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import ManageRoomSidebar from '@hub-client/components/ui/ManageRoomSidebar.vue';
 
-	import { useManageRooms } from '@hub-client/composables/useManageRooms';
 	// Composables
-	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
+	import { useManageRooms } from '@hub-client/composables/useManageRooms';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
