@@ -36,7 +36,7 @@ const en = {
 	},
 	errors: {
 		oops: 'OOPS!',
-		error: 'Unfortunately an error occured. Please contact the developers.\n\n {0}',
+		error: 'Unfortunately an error occured. Please <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a>.\n\n {0}',
 		server: 'Server error',
 		M_LIMIT_EXCEEDED: 'Too much login attempts. Try again in {0} seconds.',
 		not_send_offline: 'No internet connection. This message was not send.',
@@ -52,9 +52,11 @@ const en = {
 		attribute_banned: 'The following attribute is banned and therefore cannot be used to register a new PubHubs account: {0}.',
 		banned: 'This account is banned and can no longer be used to login to PubHubs.',
 		attribute_already_taken: 'The following attribute is already tied to a PubHubs account: {0}. Try logging in.',
-		general_error: 'Unfortunately an error occured. Try again and contact the developers if the problem persists.',
+		general_error:
+			'Unfortunately an error occured. Try again and <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a> if the problem persists.',
 		retry_with_new_attr: 'Please add your attributes again in Yivi and retry.',
-		no_hubs_found: 'Unfortunately we could not show any hubs. Try again later and contact the developers if the problem persists.',
+		no_hubs_found:
+			'Unfortunately we could not show any hubs. Try again later and <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a> if the problem persists.',
 		cant_find: 'Sorry, we could not find the page or room that you were looking for.',
 		notid_attribute_already_taken:
 			'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
@@ -100,7 +102,7 @@ const en = {
 	mss: {
 		system_offline: 'System offline',
 		system_offline_description:
-			'Our system is offline right now, so not everything works as expected.\nPlease try again later. Contact the developers if the problem persists.',
+			'Our system is offline right now, so not everything works as expected.\nPlease try again later. <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">Contact the developers</a> if the problem persists.',
 	},
 	register: {
 		have_account: 'Do you already have a {0} account?',

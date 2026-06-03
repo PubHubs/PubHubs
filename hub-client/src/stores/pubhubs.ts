@@ -64,6 +64,7 @@ import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { useConnection } from '@hub-client/stores/connection';
+import { useDialog } from '@hub-client/stores/dialog';
 import { useMessageActions } from '@hub-client/stores/message-actions';
 import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 import { type User, useUser } from '@hub-client/stores/user';
@@ -262,14 +263,16 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 
 		showDialog(message: string) {
-			alert(message);
+			const dialog = useDialog();
+			dialog.confirm(message);
 		},
 
 		showError(error: string | MatrixError) {
+			const dialog = useDialog();
 			if (typeof error === 'string') {
-				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
+				dialog.showError(error);
 			} else if (error.errcode !== 'M_FORBIDDEN' && error.data) {
-				this.showDialog(error.data.error as string);
+				dialog.confirm(error.data.error as string);
 			} else {
 				logger.debug('showing error dialog', { error });
 			}
