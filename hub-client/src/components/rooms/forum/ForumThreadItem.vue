@@ -1,10 +1,10 @@
 <template>
 	<RoomMessageBubble
-		:event="event.event.matrixEvent.event"
+		:event="event"
 		:room="room"
 		:show-actions="showActions"
 		class="cursor-pointer"
-		@click="$router.push({ name: 'room', params: { id: props.room.roomId, topicId: event.event.matrixEvent.event.event_id } })"
+		@click="$router.push({ name: 'room', params: { id: room.roomId, topicId: event.matrixEvent.event.event_id } })"
 	>
 		<template #extras>
 			<ForumEventActions
@@ -13,7 +13,7 @@
 			></ForumEventActions>
 		</template>
 		<template #bottom>
-			<ForumEventBody :event="event.event.matrixEvent.event"></ForumEventBody>
+			<ForumEventBody :event="props.event"></ForumEventBody>
 		</template>
 	</RoomMessageBubble>
 </template>
@@ -24,25 +24,18 @@
 	import ForumEventActions from '@hub-client/components/rooms/forum/ForumEventActions.vue';
 	import ForumEventBody from '@hub-client/components/rooms/forum/ForumEventBody.vue';
 
+	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	// Models
-	import Room from '@hub-client/models/rooms/Room';
+	import type Room from '@hub-client/models/rooms/Room';
 
-	const props = defineProps({
-		event: {
-			type: Object,
-			required: true,
+	const props = withDefaults(
+		defineProps<{
+			event: TimelineEvent;
+			room: Room;
+			showActions: boolean;
+		}>(),
+		{
+			showActions: true,
 		},
-		lastTimestamp: {
-			type: Number,
-			default: 0,
-		},
-		room: {
-			type: Room,
-			required: true,
-		},
-		showActions: {
-			type: Boolean,
-			default: true,
-		},
-	});
+	);
 </script>

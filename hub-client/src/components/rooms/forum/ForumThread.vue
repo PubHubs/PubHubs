@@ -17,20 +17,18 @@
 	// Components
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 
-	import Room from '@hub-client/models/rooms/Room';
+	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent.js';
+	import type Room from '@hub-client/models/rooms/Room';
 
-	const props = defineProps({
-		event: {
-			type: Object,
-			required: true,
-		},
-		room: {
-			type: Room,
-			required: true,
-		},
-	});
+	const props = withDefaults(
+		defineProps<{
+			event: TimelineEvent;
+			room: Room;
+		}>(),
+		{},
+	);
 
 	onMounted(async () => {
-		props.room.setCurrentThreadId(props.event.event_id);
+		props.room.setCurrentThreadId(props.event.matrixEvent.getId());
 	});
 </script>

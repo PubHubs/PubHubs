@@ -109,7 +109,7 @@
 
 						<!-- Thread tab (shown when a thread is selected) -->
 						<GlobalBarButton
-							v-if="room?.getCurrentThreadId()"
+							v-if="room?.getCurrentThreadId() && !room.isForumRoom()"
 							type="chat-circle"
 							:selected="sidebar.activeTab.value === SidebarTab.Thread"
 							@click="sidebar.toggleTab(SidebarTab.Thread)"
@@ -149,7 +149,6 @@
 						:room="room"
 						:scroll-to-event-id="room.getCurrentEvent()?.eventId"
 						@scrolled-to-event-id="room.setCurrentEvent(undefined)"
-						@thread-length-changed="currentThreadLengthChanged"
 					/>
 					<RoomMemberList
 						v-if="sidebar.activeTab.value === SidebarTab.Members && room"
@@ -352,10 +351,6 @@
 	onBeforeRouteLeave(() => {
 		sidebar.closeInstantly();
 	});
-
-	function currentThreadLengthChanged(newLength: number) {
-		room.value?.setCurrentThreadLength(newLength);
-	}
 
 	async function update(): Promise<boolean> {
 		const currentVersion = ++updateVersion;

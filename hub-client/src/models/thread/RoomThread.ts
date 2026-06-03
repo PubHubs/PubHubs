@@ -1,85 +1,95 @@
 // Packages
 import { TimelineEvent } from '../events/TimelineEvent';
-import { type MatrixClient, type MatrixEvent, type Thread } from 'matrix-js-sdk';
+import { Direction, type MatrixClient, type MatrixEvent, type Thread, ThreadEvent } from 'matrix-js-sdk';
+import { nextTick } from 'vue';
 
-import { Redaction } from '@hub-client/models/constants';
+import { Redaction, RelationType } from '@hub-client/models/constants';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { useRooms } from '@hub-client/stores/rooms';
 
 export default class TRoomThread {
+	private roomId: string;
+	private eventId: string;
 	private matrixThread: Thread | undefined;
-	private threadEvents: TimelineEvent[] | undefined = undefined;
 	private redactedEvents: MatrixEvent[] = [];
-	private listeners = new Set<() => void>();
-	private pubhubsStore = usePubhubsStore();
+	private eventsFetched = false;
+	private _length: number | undefined = undefined;
 
-	constructor(matrixThread: Thread | undefined) {
-		this.matrixThread = matrixThread;
+	constructor(roomId: string, eventId: string, thread: Thread | undefined) {
+		this.roomId = roomId;
+		this.eventId = eventId;
+		this.matrixThread = thread;
+	}
+
+	private ensureMatrixThread() {
+		if (this.matrixThread) return;
+		const room = useRooms().room(this.roomId);
+		if (room) this.setMatrixThread(room.getOrCreateMatrixThread(this.eventId));
 	}
 
 	/**
-	 * adds a listener with a callbackfunction
+	 * Initially not all thread-events need be loaded, so we take the value from the server
+	 * This value is not reactive so after loading all events we use _length
 	 */
-	onLengthChange(callback: () => void) {
-		this.listeners.add(callback);
-	}
-
-	public notifyLengthChange() {
-		this.listeners.forEach((cbf) => cbf());
-	}
-
 	get length(): number {
-		if (this.threadEvents) {
-			return Math.max(this.threadEvents.filter((x) => !x.isDeleted).length, 1); // length does not include rootEvent
-		}
-		return this.matrixThread?.events.length ?? 0;
+		if (this._length !== undefined) return this._length;
+
+		const bundled = this.matrixThread?.rootEvent?.getServerAggregatedRelation<{ count: number }>('m.thread');
+		return bundled?.count ?? 0;
 	}
 
 	get isMatrixThreadSet() {
 		return this.matrixThread !== undefined;
 	}
 
-	public setMatrixThread(thread: Thread) {
-		this.matrixThread = thread;
-		this.getEvents(this.pubhubsStore.client as MatrixClient); // to initialize with the correct number of events
+	get lastEventTimeStamp(): number | undefined {
+		return this.matrixThread?.replyToEvent?.getTs();
 	}
 
 	/**
-	 * Returns all events from the thread, taken from the livetimeline
-	 * Filters out the deleted events
-	 * @param matrixClient
-	 * @returns
+	 * Initial fetching of events through the relations from the server into the SDK's cache
 	 */
-	public async getEvents(matrixClient: MatrixClient): Promise<TimelineEvent[]> {
-		if (!this.matrixThread) {
-			this.notifyLengthChange();
-			return [];
-		}
+	public async fetchEvents(): Promise<void> {
+		if (this.eventsFetched) return;
 
-		// paginate to load all events, then read them once
-		while (await matrixClient.paginateEventTimeline(this.matrixThread.liveTimeline, { backwards: true, limit: 100 })) {
-			// pagination accumulates events in the live timeline
-		}
+		const client = usePubhubsStore().client as MatrixClient;
+		const matrixRoom = client.getRoom(this.roomId);
+		if (!matrixRoom) return;
+
+		let from: string | undefined = undefined;
+		do {
+			const result = await client.relations(this.roomId, this.eventId, RelationType.Thread, null, { dir: Direction.Backward, from });
+			await matrixRoom.addLiveEvents(result.events, { addToState: false });
+			from = result.nextBatch ?? undefined;
+		} while (from);
+		this.getEvents();
+		this.eventsFetched = true;
+	}
+
+	/**
+	 * associate matrixThread to RoomThread
+	 * @param thread
+	 */
+	public setMatrixThread(thread: Thread) {
+		this.matrixThread?.off(ThreadEvent.Update, this.getEvents);
+		this.matrixThread = thread;
+		thread.on(ThreadEvent.Update, this.getEvents);
+
+		this.fetchEvents().catch(() => {});
+	}
+
+	/**
+	 * Reads events from MatrixThread, maps to TimelineEvent
+	 * @returns Current ThreadEvents as TimelineEvent[]
+	 */
+	public getEvents(): TimelineEvent[] {
+		if (!this.matrixThread) return [];
+
 		const events = this.matrixThread.liveTimeline.getEvents();
 
-		// TODO better way of building thread-list
-		// using console.trace('events voor sorted: ', events); shows that this method is called to often
-		// which in the end can lead to multiple instances of the same event in the thread
-
-		// add events to current timelineEvents and filter unique events
-		const threadRoomId = this.matrixThread?.roomId ?? '';
-		let timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: threadRoomId, inThread: true }));
-		timelineEvents = [...(this.threadEvents ?? []), ...timelineEvents];
-
-		// filter unique events
-		const uniqueEvents = new Map<string, TimelineEvent>();
-		timelineEvents.forEach((event) => {
-			const eventId = event.matrixEvent.event.event_id;
-			if (eventId) {
-				uniqueEvents.set(eventId, event);
-			}
-		});
-		timelineEvents = Array.from(uniqueEvents.values());
+		const threadRoomId = this.matrixThread.roomId ?? '';
+		const timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: threadRoomId, inThread: true }));
 
 		// check for deletions
 		timelineEvents.forEach((event) => {
@@ -94,10 +104,13 @@ export default class TRoomThread {
 			}
 		});
 
+		// set the length and then update the thread-length in the roomsstore
+		const rooms = useRooms();
+		this._length = Math.max(0, timelineEvents.filter((e) => !e.isDeleted && e.matrixEvent.event.event_id !== this.eventId).length);
+		rooms.setThreadLength(this.matrixThread.roomId, this.eventId, this.length);
+
 		// sort events by localTimestamp
-		this.threadEvents = this.sortThreadEvents(timelineEvents);
-		this.notifyLengthChange();
-		return this.threadEvents;
+		return this.sortThreadEvents(timelineEvents);
 	}
 
 	/**
@@ -105,12 +118,16 @@ export default class TRoomThread {
 	 * @param events
 	 */
 	public addEvents(events: MatrixEvent[]) {
+		this.ensureMatrixThread();
 		this.matrixThread?.addEvents(events, false);
-		this.notifyLengthChange();
+		nextTick(() => {
+			this.getEvents();
+		});
 	}
 
 	public addRedactions(redactions: MatrixEvent[]) {
 		this.redactedEvents = [...this.redactedEvents, ...redactions];
+		this.getEvents(); // used as refresh
 	}
 
 	/**
@@ -119,10 +136,7 @@ export default class TRoomThread {
 	 * @returns event in current thread with eventId
 	 */
 	public findEventById(eventId: string | undefined): MatrixEvent | undefined {
-		return this.matrixThread?.timelineSet
-			.getLiveTimeline()
-			.getEvents()
-			?.find((x) => x.getId() === eventId);
+		return this.matrixThread?.liveTimeline.getEvents()?.find((x) => x.getId() === eventId);
 	}
 
 	/**

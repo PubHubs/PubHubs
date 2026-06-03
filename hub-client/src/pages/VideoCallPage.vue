@@ -85,7 +85,6 @@
 					:room="currentRoom!"
 					:scroll-to-event-id="currentRoom!.getCurrentEvent()?.eventId"
 					@scrolled-to-event-id="currentRoom!.setCurrentEvent(undefined)"
-					@thread-length-changed="currentThreadLengthChanged"
 				>
 				</RoomThread>
 
@@ -258,8 +257,8 @@
 		showParticipants.value = false;
 	}
 
-	function currentThreadLengthChanged(newLength: number) {
-		if (!currentRoom.value) return;
-		currentRoom.value.setCurrentThreadLength(newLength);
-	}
+	// function currentThreadLengthChanged(newLength: number) {
+	// 	if (!currentRoom.value) return;
+	// 	currentRoom.value.setCurrentThreadLength(newLength);
+	// }
 </script>

@@ -275,49 +275,6 @@ class TimelineManager {
 		}
 	}
 
-	// Fetches the relations of an event. First check if it has not been done yet.
-	// If it has not been done: perform the API call and add or replace all relations in the relatedEvents
-	public fetchRelatedEvents(eventIds: string[]) {
-		eventIds.forEach((eventId) => {
-			// find current relations
-			const currentrelatedEvents = this.relatedEvents.find((x) => x.eventId === eventId);
-
-			// if found and already fetched from server: do nothing
-			if (currentrelatedEvents && currentrelatedEvents.isFetched) {
-				return;
-			}
-
-			// check if eventId is a valid event, to remove API errors from client.relations
-			const room = this.client?.getRoom(this.roomId ?? undefined);
-			if (!room?.findEventById(eventId)) {
-				return;
-			}
-
-			this.client
-				.relations(this.roomId, eventId, null, null)
-				.then((relations) => {
-					// add or replace relations and set isFetched to true, so the API call will be once per event
-					if (currentrelatedEvents) {
-						currentrelatedEvents.isFetched = true;
-						for (const relation of relations.events) {
-							const i = currentrelatedEvents.relatedEvents.findIndex((x) => x.getId() === relation.getId());
-							if (i >= 0) {
-								currentrelatedEvents.relatedEvents[i] = relation;
-							} else {
-								currentrelatedEvents.relatedEvents.push(relation);
-							}
-						}
-					} else {
-						this.relatedEvents.push({ eventId: eventId, isFetched: true, relatedEvents: relations.events });
-					}
-					relations.events.forEach((e) => this.updateHideMessageEvent(e));
-				})
-				.catch(() => {
-					// Intentionally empty: errors from fetching related events are suppressed
-				});
-		});
-	}
-
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
 		return (
 			this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })) ?? []
@@ -359,9 +316,11 @@ class TimelineManager {
 			scrollToEventId = eventList[0]?.matrixEvent.getId() ?? undefined;
 		}
 
-		// Then add the events to the timeline
-		this.timelineEvents = this.timelineEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.getId() === x.matrixEvent.getId()));
-		this.timelineEvents = [...this.timelineEvents, ...eventList];
+		// only add what isn't there yet
+		const existingIds = new Set(this.timelineEvents.map((x) => x.matrixEvent.getId()));
+		const newOnly = eventList.filter((x) => !existingIds.has(x.matrixEvent.getId()));
+		this.timelineEvents = [...this.timelineEvents, ...newOnly];
+
 		this._timelineVersion++;
 
 		return scrollToEventId;
@@ -465,15 +424,17 @@ class TimelineManager {
 			eventList.some((x) => x.matrixEvent.getSender() === this.user.userId)
 		) {
 			this.paginationState.lastMessageId = eventList[eventList.length - 1]?.matrixEvent.getId();
+			let scrollToEventId: string | undefined;
 			if (this.timelineEvents.length === 0) {
 				const lastEventId = eventList[eventList.length - 1].matrixEvent.getId();
 				if (lastEventId) {
 					await this.loadToEvent({ eventId: lastEventId });
 				}
-				return eventList[eventList.length - 1]?.matrixEvent.getId();
+				scrollToEventId = eventList[eventList.length - 1]?.matrixEvent.getId();
 			} else {
-				return this.addEventList(eventList);
+				scrollToEventId = await this.addEventList(eventList);
 			}
+			return scrollToEventId;
 		}
 		return undefined;
 	}
@@ -788,7 +749,6 @@ class TimelineManager {
 	 * @returns TimelineEvent | undefined
 	 */
 	public findTimelineEventById(eventId: string | undefined): TimelineEvent | undefined {
-		logger.info(`find timelineEvent by eventId ${eventId}...`, { eventId });
 		return this.timelineEvents?.find((x) => x.matrixEvent.getId() === eventId);
 	}
 
