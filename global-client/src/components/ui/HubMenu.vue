@@ -15,7 +15,10 @@
 			@start="onDragStart"
 		>
 			<template #item="{ element }">
-				<div class="flex h-auto justify-center gap-4">
+				<div
+					v-if="hubs.hub(element.hubId)"
+					class="flex h-auto justify-center gap-4"
+				>
 					<router-link
 						v-slot="{ isActive }"
 						class="w-full"
