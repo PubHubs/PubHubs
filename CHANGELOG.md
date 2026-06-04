@@ -19,6 +19,16 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] Added post-quantum key-exchange to protect against harvest now, decrypt later attacks.
 - [NEW] Added post-quantum signatures.
 - [BUG] Solved some problems with threads, making sure the shown number of replies is correct and reactive.
+- [NEW] Hubs now use postgres as database instead of sqlite.
+    - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,
+      during which the hub is not reachable. Keep a close eye on the hub's output.
+    - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
+      in `homeserver.live.yaml`.
+    - If the migration was successful, `homeserver.db` is moved to `homeserver.db.bak`.
+    - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container)
+      must be removed before the migration can be re-attempted.
+    - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
+      to the hub container's entrypoint.
 - _internal_ Test the registration flow and login flow for the pubhubs card including normal phone settings, and with battery saver on. Also test the registration flow via the obtain/reobtain button in yivi. If no issues arise set phCard in settings.ts to true for stable.
 
 ## 28 April 2026 - v3.3.0
@@ -33,16 +43,6 @@ _Please add a brief description of any changes and any migrations to be performe
 
 - [NEW, behind a feature flag for now] Stewards (and users with higher privileges) can send whisper messages to other users in a room.
 - [NEW] Messages can be shared.
-- [NEW, behind a feature flag for now] Hubs now use postgres as database instead of sqlite.
-    - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,
-      during which the hub is not reachable. Keep a close eye on the hub's output.
-    - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
-      in `homeserver.live.yaml`.
-    - If the migration was successful, `homeserver.db` is moved to `homeserver.db.bak`.
-    - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container)
-      must be removed before the migration can be re-attempted.
-    - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
-      to the hub container's entrypoint.
 - [NEW] Startup optimization. Instead of fetching timelines for all joined rooms,
   only a timeline of 1 entry is fetched at selecting a room.
 - [NEW] Changed pagination from the standard pagination that filters client-side
