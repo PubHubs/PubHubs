@@ -7,7 +7,7 @@ use core::convert::Infallible;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
-use crate::elgamal;
+use crate::common::{elgamal, kem};
 
 use crate::client;
 
@@ -81,8 +81,16 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     /// Additional state when the server is running
     type ExtraRunningState: Clone + core::fmt::Debug;
 
+    /// Data threaded out of [`App::discover`] into
+    /// [`create_running_state`](Self::create_running_state) that the latter needs but cannot
+    /// recompute.  `()` for servers other than PHC.
+    type RunningStateSeed: Send + 'static;
+
     /// Additional shared state
     type ExtraSharedState;
+
+    /// Additional process-local server state.
+    type ExtraServerState;
 
     /// Type of this server's object store, usually an [`object_store::ObjectStore`], or `()`.
     type ObjectStoreT: Sync;
@@ -102,9 +110,14 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     fn create_running_state(
         &self,
         constellation: &Constellation,
+        seed: &Self::RunningStateSeed,
     ) -> Result<Self::ExtraRunningState>;
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
+
+    fn create_extra_server_state(config: &servers::Config) -> Result<Self::ExtraServerState>;
+
+    fn extra(&self) -> &Self::ExtraServerState;
 
     /// This function is called when the server is started to run discovery.
     ///
@@ -145,6 +158,7 @@ pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
 pub struct ServerImpl<D: Details> {
     config: servers::Config,
     app_creator: D::AppCreatorT,
+    extra: D::ExtraServerState,
 }
 
 impl<D: Details> Deref for ServerImpl<D> {
@@ -169,15 +183,20 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     type AppCreatorT;
     type AppT;
     type ExtraRunningState: Clone + core::fmt::Debug;
+    type RunningStateSeed: Send + 'static;
     type ExtraSharedState;
+    type ExtraServerState;
     type ObjectStoreT;
 
     fn create_running_state(
         server: &ServerImpl<Self>,
         constellation: &Constellation,
+        seed: &Self::RunningStateSeed,
     ) -> Result<Self::ExtraRunningState>;
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
+
+    fn create_extra_server_state(config: &servers::Config) -> Result<Self::ExtraServerState>;
 }
 
 impl<D: Details> Server for ServerImpl<D>
@@ -193,13 +212,16 @@ where
 
     type ExtraConfig = D::Extra;
     type ExtraRunningState = D::ExtraRunningState;
+    type RunningStateSeed = D::RunningStateSeed;
     type ExtraSharedState = D::ExtraSharedState;
+    type ExtraServerState = D::ExtraServerState;
 
     type ObjectStoreT = D::ObjectStoreT;
 
     fn new(config: &servers::Config) -> Result<Self> {
         Ok(Self {
             app_creator: Self::AppCreatorT::new(config)?,
+            extra: D::create_extra_server_state(config)?,
             config: config.clone(),
         })
     }
@@ -217,12 +239,21 @@ where
     fn create_running_state(
         &self,
         constellation: &Constellation,
+        seed: &Self::RunningStateSeed,
     ) -> Result<Self::ExtraRunningState> {
-        D::create_running_state(self, constellation)
+        D::create_running_state(self, constellation, seed)
     }
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState> {
         D::create_extra_shared_state(config)
+    }
+
+    fn create_extra_server_state(config: &servers::Config) -> Result<Self::ExtraServerState> {
+        D::create_extra_server_state(config)
+    }
+
+    fn extra(&self) -> &Self::ExtraServerState {
+        &self.extra
     }
 
     async fn run_until_modifier(
@@ -304,7 +335,7 @@ pub trait AppCreator<ServerT: Server>:
 ///
 /// We do not use a trait like `(FnOnce(&mut ServerT)) + Send + 'static`,
 /// because it can not (yet) be implemented by users.
-pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
+pub trait Modifier<ServerT: Server>: Send + 'static {
     /// Stops server, perform modification, and restarts server if true was returned.
     fn modify(self: Box<Self>, server: &mut ServerT) -> bool;
 
@@ -337,7 +368,7 @@ impl<S: Server> Modifier<S> for Exiter {
 }
 
 /// Owned dynamically typed [Modifier].
-pub(crate) type BoxModifier<S> = Box<dyn Modifier<S>>;
+pub type BoxModifier<S> = Box<dyn Modifier<S>>;
 
 impl<S: Server> std::fmt::Display for BoxModifier<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -399,15 +430,25 @@ impl<S: Server> std::fmt::Display for Command<S> {
     }
 }
 
-/// Result of [`App::discover`].
-pub enum DiscoverVerdict {
+/// Result of [`App::discover`], generic over the server's
+/// [`RunningStateSeed`](Details::RunningStateSeed).
+pub enum DiscoverVerdict<RunningStateSeed> {
     /// My and PHC's constellation seem up-to-date
     Alright,
 
-    /// My constellation is out-of-date and must be replaced with this constellation
+    /// My constellation is out-of-date and must be replaced with this constellation.  `seed`
+    /// carries the data [`create_running_state`](Details::create_running_state) needs but cannot
+    /// recompute.
     ConstellationOutdated {
         new_constellation: Box<Constellation>,
+        seed: RunningStateSeed,
     },
+
+    /// My constellation is unchanged, but my running state must be rebuilt from `seed`.  Used by
+    /// PHC once it has unsealed the transcryptor's master key part and can derive the master
+    /// encryption key (which lives in the running state, not the constellation): no new
+    /// constellation is published, so T and AS are not restarted.
+    RunningStateOutdated { seed: RunningStateSeed },
 
     /// My binary is out-of-date.  Exit this binary, and hope the binary is updated.
     BinaryOutdated,
@@ -416,6 +457,7 @@ pub enum DiscoverVerdict {
 /// What's common between the [`actix_web::App`]s used by the different PubHubs servers.
 ///
 /// Each [`actix_web::App`] gets access to an instance of the appropriate implementation of [`App`]..
+#[allow(async_fn_in_trait)]
 pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// Allows [`App`] to add server-specific endpoints.  Non-server specific endpoints are added by
     /// [`AppBase::configure_actix_app`].
@@ -428,13 +470,22 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// obtained from Pubhubs Central.  If the server is not PHC itself, the [`Constellation`]
     /// in this [`api::DiscoveryInfoResp`] must be set.
     ///
-    /// If one of the other servers is not up-to-date
-    /// according to this server, discovery of that server is invoked and
-    /// [`api::ErrorCode::PleaseRetry`] is returned.
+    /// If one of the other servers is not up-to-date according to this server, discovery of that
+    /// server is invoked and [`api::ErrorCode::PleaseRetry`] is returned.
+    ///
+    /// PHC implements this directly; the transcryptor and authentication server delegate to
+    /// [`discover_as_non_phc`](Self::discover_as_non_phc).
     async fn discover(
         self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
-    ) -> api::Result<DiscoverVerdict> {
+    ) -> api::Result<DiscoverVerdict<S::RunningStateSeed>>;
+
+    /// Shared discovery routine for the non-PHC servers (transcryptor, authentication server),
+    /// whose running state needs no seed (`RunningStateSeed = ()`).
+    async fn discover_as_non_phc(
+        self: &Rc<Self>,
+        phc_inf: api::DiscoveryInfoResp,
+    ) -> api::Result<DiscoverVerdict<()>> {
         log::debug!("{server_name}: running discovery", server_name = S::NAME);
 
         if S::NAME == Name::PubhubsCentral {
@@ -506,41 +557,41 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             return Err(api::ErrorCode::InternalError);
         };
 
-        if let Some(rs) = self.running_state.as_ref() {
-            if !self.check_constellation(&phc_inf_constellation) {
-                log::warn!(
-                    "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
-                    server_name = S::NAME,
-                    phc = Name::PubhubsCentral
-                );
-
-                // PHC's discovery is out of date; invoke discovery and return
-                let _drr = self
-                    .client
-                    .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
-                    .await
-                    .into_server_result()?;
-
-                // We don't do anything with _drr: whether or not PHC has been updated in the
-                // meantime, we want to start discovery again from the start.
-
-                return Err(api::ErrorCode::PleaseRetry);
-            }
-
-            log::trace!(
-                "{server_name}: {phc}'s constellation looks alright! ",
+        if !self.check_constellation(&phc_inf_constellation) {
+            log::warn!(
+                "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
                 server_name = S::NAME,
                 phc = Name::PubhubsCentral
             );
 
-            if phc_inf_constellation.id == rs.constellation.id {
-                log::info!(
-                    "{server_name}: my constellation is up-to-date!",
-                    server_name = S::NAME,
-                );
+            // PHC's discovery is out of date; invoke discovery and return
+            let _drr = self
+                .client
+                .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
+                .await
+                .into_server_result()?;
 
-                return Ok(DiscoverVerdict::Alright);
-            }
+            // We don't do anything with _drr: whether or not PHC has been updated in the
+            // meantime, we want to start discovery again from the start.
+
+            return Err(api::ErrorCode::PleaseRetry);
+        }
+
+        log::trace!(
+            "{server_name}: {phc}'s constellation looks alright! ",
+            server_name = S::NAME,
+            phc = Name::PubhubsCentral
+        );
+
+        if let Some(rs) = self.running_state.as_ref()
+            && phc_inf_constellation.id == rs.constellation.id
+        {
+            log::info!(
+                "{server_name}: my constellation is up-to-date!",
+                server_name = S::NAME,
+            );
+
+            return Ok(DiscoverVerdict::Alright);
         }
 
         log::info!(
@@ -575,6 +626,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
 
         Ok(DiscoverVerdict::ConstellationOutdated {
             new_constellation: Box::new(phc_inf_constellation),
+            seed: (),
         })
     }
 
@@ -584,6 +636,20 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             panic!("this default impl should have been  overriden for PHC and T")
         }
         None
+    }
+
+    /// This server's published [`kem::EncapKeyBytes`], if any.  Overridden by T/AS.
+    fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
+        None
+    }
+
+    /// The sealing key (shared with PHC) under which this server seals its master encryption key
+    /// part in its discovery info, when available (it requires a running state, so it is `None`
+    /// before discovery completes).  Only invoked on, and overridden by, the transcryptor.
+    fn master_enc_key_part_sealing_key(&self) -> Option<&api::SealingKey> {
+        panic!(
+            "master_enc_key_part_sealing_key is only invoked on (and overridden by) the transcryptor"
+        )
     }
 
     /// Will be invoked for each instance of [`App`] that is created.
@@ -600,9 +666,15 @@ pub struct AppCreatorBase<S: Server> {
     pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub phc_url: url::Url,
     pub self_check_code: String,
-    pub jwt_key: api::SigningKey,
-    pub enc_key: elgamal::PrivateKey,
-    pub admin_key: api::VerifyingKey,
+    /// Signing key in encoded form: cheap to clone (this struct is cloned per worker thread), and
+    /// decoding a `PqdsaKeyPair` is never cheap.  Decoded into the live [`api::SigningKey`] once in
+    /// [`AppBase::new`], mirroring how the KEM decap key is carried as bytes and decoded per worker.
+    pub signing_key_bytes: api::SigningKeyBytes,
+    /// Cached verifying-key encoding (cheap to clone), so we don't re-encode it on every discovery
+    /// poll / `check_constellation`.
+    pub verifying_key_bytes: api::VerifyingKeyBytes,
+    pub enc_key: Box<[u8]>,
+    pub admin_key: crate::misc::jwt::HS256,
     pub shared: SharedState<S>,
     pub version: Option<String>,
 }
@@ -614,7 +686,8 @@ impl<S: Server> Clone for AppCreatorBase<S> {
             running_state: self.running_state.clone(),
             phc_url: self.phc_url.clone(),
             self_check_code: self.self_check_code.clone(),
-            jwt_key: self.jwt_key.clone(),
+            signing_key_bytes: self.signing_key_bytes.clone(),
+            verifying_key_bytes: self.verifying_key_bytes.clone(),
             enc_key: self.enc_key.clone(),
             admin_key: self.admin_key.clone(),
             shared: self.shared.clone(),
@@ -636,25 +709,47 @@ where
 
         let server_config = S::server_config_from(config);
 
+        let signing_key_bytes = server_config
+            .signing_key
+            .as_ref()
+            .expect("signing_key was not set nor generated")
+            .clone();
+        // Decode once here only to derive and cache the verifying-key encoding; the live signing key
+        // is decoded per worker thread in `AppBase::new`.
+        let verifying_key_bytes = signing_key_bytes
+            .decode()
+            .map_err(|_| anyhow::anyhow!("invalid signing_key in config"))?
+            .verifying_key()
+            .encode();
+
+        let admin_key = crate::misc::jwt::HS256(
+            server_config
+                .admin_key
+                .as_ref()
+                .expect("admin_key was not set nor generated")
+                .clone()
+                .into_inner()
+                .into_vec(),
+        );
+
         Ok(Self {
             running_state: None,
             self_check_code: server_config
                 .self_check_code
                 .clone()
                 .expect("self_check_code was not set nor generated"),
-            jwt_key: server_config
-                .jwt_key
-                .clone()
-                .expect("jwt_key was not set nor generated"),
-            enc_key: server_config
-                .enc_key
-                .clone()
-                .expect("enc_key was not set nor generated"),
+            signing_key_bytes,
+            verifying_key_bytes,
+            enc_key: <serde_bytes::ByteBuf as Clone>::clone(
+                server_config
+                    .enc_key
+                    .as_ref()
+                    .expect("enc_key was not set nor generated"),
+            )
+            .into_vec()
+            .into_boxed_slice(),
             phc_url: config.phc_url.as_ref().clone(),
-            admin_key: server_config
-                .admin_key
-                .clone()
-                .expect("admin_key was not set nor generated"),
+            admin_key,
             shared: SharedState::new(SharedStateInner {
                 object_store: TryFrom::try_from(&server_config.object_store)
                     .with_context(|| format!("Creating object store for {}", S::NAME))?,
@@ -673,9 +768,10 @@ pub struct AppBase<S: Server> {
     pub handle: Handle<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
-    pub jwt_key: api::SigningKey,
-    pub enc_key: elgamal::PrivateKey,
-    pub admin_key: api::VerifyingKey,
+    pub signing_key: api::SigningKey,
+    /// Cached verifying-key encoding; see [`AppCreatorBase::verifying_key_bytes`].
+    pub verifying_key_bytes: api::VerifyingKeyBytes,
+    pub admin_key: crate::misc::jwt::HS256,
     pub shared: SharedState<S>,
     pub client: client::Client,
     pub version: Option<String>,
@@ -710,8 +806,19 @@ impl<S: Server> AppBase<S> {
             handle: handle.clone(),
             phc_url: creator_base.phc_url,
             self_check_code: creator_base.self_check_code,
-            jwt_key: creator_base.jwt_key,
-            enc_key: creator_base.enc_key,
+            // Decode the config-validated signing-key bytes into the live key once per worker thread,
+            // mirroring how each worker decodes its own KEM decap key.
+            //
+            // TODO: an ML-DSA `PqdsaKeyPair` is neither `Clone` nor cheaply reconstructible (both
+            // `from_seed` and `from_raw_private_key` cost tens of µs — measured), so each worker
+            // re-derives the key from bytes here.  Once aws-lc-rs offers a cheap clone (e.g. an
+            // `EVP_PKEY_up_ref`-backed `Clone`), carry a live `api::SigningKey` in `AppCreatorBase`
+            // and clone it per worker instead.
+            signing_key: creator_base
+                .signing_key_bytes
+                .decode()
+                .expect("signing_key bytes were validated during config preparation"),
+            verifying_key_bytes: creator_base.verifying_key_bytes,
             admin_key: creator_base.admin_key,
             shared: creator_base.shared,
             client: client::Client::builder()
@@ -756,6 +863,40 @@ impl<S: Server> AppBase<S> {
         api::admin::InfoEP::add_to(app, sc, Self::handle_admin_info);
     }
 
+    /// Shared body of [`api::server::HubPingEP`].  Each server has its own `handle_hub_ping`
+    /// method that delegates here.
+    pub async fn handle_hub_ping(
+        app: Rc<S::AppT>,
+        signed_req: web::Json<api::phc::hub::TicketSigned<api::server::PingReq>>,
+    ) -> api::Result<api::server::PingResp> {
+        let running_state = app.running_state_or_please_retry()?;
+
+        let ts_req = signed_req.into_inner();
+
+        let Some(phc_verifying_key) = running_state
+            .constellation
+            .phc_verifying_key
+            .as_ref()
+            .and_then(|vk| vk.decode().ok())
+        else {
+            log::warn!(
+                "cannot verify hub ping: constellation has no (valid) phc_verifying_key yet"
+            );
+            return Err(api::ErrorCode::InternalError);
+        };
+
+        let (req, hub_handle) = match ts_req.open(&phc_verifying_key) {
+            Ok(opened) => opened,
+            Err(toe) => return toe.default_verdict(api::server::PingResp::RetryWithNewTicket),
+        };
+
+        Ok(api::server::PingResp::Success {
+            hub_handle,
+            nonce: req.nonce,
+            served_by: S::NAME,
+        })
+    }
+
     /// Changes server config, and restarts server
     async fn handle_admin_post_config(
         app: Rc<S::AppT>,
@@ -763,7 +904,7 @@ impl<S: Server> AppBase<S> {
     ) -> api::Result<api::admin::UpdateConfigResp> {
         let signed_req = signed_req.into_inner();
 
-        let req = match signed_req.open(&*app.admin_key, None) {
+        let req = match signed_req.open(&app.admin_key, None) {
             Ok(req) => req,
             Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                 return Err(api::ErrorCode::InternalError);
@@ -856,7 +997,7 @@ impl<S: Server> AppBase<S> {
     ) -> api::Result<api::admin::InfoResp> {
         let signed_req = signed_req.into_inner();
 
-        let _req = match signed_req.open(&*app.admin_key, None) {
+        let _req = match signed_req.open(&app.admin_key, None) {
             Ok(req) => req,
             Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                 return Err(api::ErrorCode::InternalError);
@@ -927,20 +1068,57 @@ impl<S: Server> AppBase<S> {
             },
         });
 
+        // The transcryptor publishes a hash of its master encryption key part (so PHC can commit it
+        // to the constellation before it is able to unseal the part) and, once it shares a secret
+        // with PHC, the part itself sealed under that secret.  PHC and AS publish neither: PHC
+        // commits its own part's hash to the constellation directly and must not add discovery-info
+        // fields that v3.3.0 and earlier peers reject; AS has no master key part.  (The
+        // `Transcryptor` guard must come first: `master_enc_key_part_sealing_key` panics elsewhere.)
+        let master_enc_key_part_hash = if matches!(S::NAME, Name::Transcryptor)
+            && let Some(sk) = app.master_enc_key_part()
+        {
+            Some(crate::phcrypto::master_enc_key_part_hash(sk.public_key()))
+        } else {
+            None
+        };
+        let master_enc_key_part_sealed = if matches!(S::NAME, Name::Transcryptor)
+            && let Some(sk) = app.master_enc_key_part()
+            && let Some(key) = app.master_enc_key_part_sealing_key()
+        {
+            Some(api::Sealed::new(
+                &api::MasterEncKeyPart(sk.public_key().clone()),
+                key,
+            )?)
+        } else {
+            None
+        };
+
         Ok(api::DiscoveryInfoResp {
             name: S::NAME,
             version: app.version.clone(),
             self_check_code: app.self_check_code.clone(),
             phc_url: app.phc_url.clone(),
-            // NOTE on efficiency:  the ed25519_dalek::SigningKey contains a precomputed
-            // ed25519_dalek::VerifyingKey, which contains a precomputed compressed (=serialized)
-            // form.  So no expensive cryptographic operations like finite field inversion
-            // or scalar multiplication are performed here.
-            jwt_key: app.jwt_key.verifying_key().into(),
-            enc_key: app.enc_key.public_key().clone(),
+            // deprecated ed25519 placeholder; the real key is the hybrid `verifying_key` below.
+            jwt_key: api::DeprecatedJwtKey::default(),
+            // PHC withholds its verifying_key here: DiscoveryInfoResp had `deny_unknown_fields` in
+            // <=v3.3.0, so emitting it would crash those peers.  PHC's key still reaches the
+            // transcryptor and authentication server via the constellation (which has no
+            // `deny_unknown_fields`); those two servers do publish theirs here so PHC can build it.
+            verifying_key: if S::NAME == crate::servers::Name::PubhubsCentral {
+                None
+            } else {
+                Some(app.verifying_key_bytes.clone())
+            },
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            enc_key: Some(elgamal::PublicKey::zero()),
+            // placeholder - the real part moved to `master_enc_key_part_hash`/`_sealed`; kept
+            // `Some(zero)` for PHC and T but `None` for AS, preserving the old topology check.
             master_enc_key_part: app
                 .master_enc_key_part()
-                .map(|privk| privk.public_key().clone()),
+                .map(|_| elgamal::PublicKey::zero()),
+            master_enc_key_part_hash,
+            master_enc_key_part_sealed,
+            encap_key: app.encap_key().cloned(),
             constellation_or_id,
         })
     }

@@ -290,6 +290,7 @@ enum CscCommand {
     },
     WaitForNextSession {
         chained_session_id: id::Id,
+
         /// `request_id` should be random and is passed in `Self::AbortWaitForNextSession` to abort
         request_id: id::Id,
         disclosure: jwt::JWT,
@@ -450,6 +451,7 @@ enum ChainedSessionState {
     },
     YiviServerWaiting {
         disclosure: jwt::JWT,
+
         /// Yivi servers waiting to be released.  The `Id` refers to the yivi server.
         waiters: HashMap<id::Id, WaitForNextSessionCrs>,
         first_arrived_at: std::time::Instant,

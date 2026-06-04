@@ -98,6 +98,7 @@
 	import HubBlock from '@global-client/components/ui/HubBlock.vue';
 	import InstallPrompt from '@global-client/components/ui/InstallPrompt.vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
 
 	// Logic

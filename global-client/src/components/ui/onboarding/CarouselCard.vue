@@ -44,7 +44,7 @@
 				<Button
 					v-if="index > 0"
 					class="w-fit"
-					color="text"
+					variant="tertiary"
 					@click.stop="handlePrev"
 				>
 					{{ $t('dialog.back') }}
@@ -64,6 +64,7 @@
 <script lang="ts" setup>
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	const props = defineProps({
 		index: {

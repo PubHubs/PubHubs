@@ -24,7 +24,7 @@
 	// Props
 	const props = defineProps<{
 		activeTab: SidebarTab;
-		isMobile: boolean;
+		isMobile: boolean | undefined;
 	}>();
 
 	const sidebar = useSidebar();

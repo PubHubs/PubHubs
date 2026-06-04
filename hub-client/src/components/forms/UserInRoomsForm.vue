@@ -4,38 +4,19 @@
 	<Dialog
 		v-if="listUserRooms.length > 0"
 		:buttons="buttonsSubmitCancel"
-		:title="$t('admin.user_perm_heading')"
+		:title="$t('admin.user_perm_heading') + ' - ' + displayName"
+		:width="isMobile ? 'px-8 w-full' : 'w-[700px] px-8'"
 		@close="emit('close')"
 	>
-		<div class="flex p-2 sm:p-4">
-			<Avatar
-				:avatar-url="user.userAvatar(userId)"
-				:user-id="userId"
-			/>
-			<div class="ml-2 flex flex-col">
-				<div>{{ displayName }}</div>
-				<div class="text-on-surface-dim mb-2 italic sm:mb-4">
-					{{ userId }}
-				</div>
-			</div>
-		</div>
-		<div class="bg-accent-primary text-on-accent-primary flex gap-2 rounded-md p-2">
-			<Icon
-				class=""
-				type="warning-circle"
-			/>
-			<span class="font-medium">{{ t('admin.important_perm_msg') }}</span>
-		</div>
-
 		<!-- Table header -->
-		<div class="text-label-small-min/label-small-max text-on-surface-dim mt-8 mb-2 grid w-full grid-cols-3 text-left rtl:text-right">
-			<div class="font-medium sm:px-6">
+		<div class="text-label-small-min/label-small-max text-on-surface-dim mt-8 mb-2 flex w-full items-center gap-4 px-6">
+			<div class="flex-[2] font-medium">
 				{{ t('admin.title_room') }}
 			</div>
-			<div class="font-medium">
+			<div class="flex-[1] font-medium">
 				{{ t('admin.title_permission') }}
 			</div>
-			<div class="font-medium sm:px-8">
+			<div class="flex-[2] font-medium">
 				{{ t('admin.title_update') }}
 			</div>
 		</div>
@@ -45,47 +26,29 @@
 			<div
 				v-for="room in listUserRooms"
 				:key="room.room_id"
-				class="border-on-surface-dim grid w-full grid-cols-3 border-t"
+				class="border-on-surface-dim flex w-full items-center gap-4 border-t px-6 py-3"
 			>
-				<div class="truncate px-2 py-2 sm:px-6 sm:py-4">
+				<div class="flex-[2] truncate">
 					{{ room.room_name }}
 				</div>
-				<div class="px-1 py-2 sm:py-4">
-					<span :class="'inline-block rounded-md px-1 sm:px-2 ' + getTagClassBasedOnRole(room.room_pl)">{{
+				<div class="flex-[1]">
+					<span :class="'inline-block rounded-md px-2 py-0.5 ' + getTagClassBasedOnRole(room.room_pl)">{{
 						roles.getRoleByPowerLevel(room.room_pl)
 					}}</span>
 				</div>
-				<div class="px-4 py-2 sm:px-6 sm:py-4">
-					<div
-						v-if="adminIsMember(room.room_id)"
-						class="ml-0 sm:ml-2"
-					>
-						<select
-							v-model="room.room_pl"
-							class="w-full truncate px-2 py-2 ring-1 focus:outline-none sm:px-8 sm:py-2"
-							:class="isRoomAdmin(room.room_id) ? 'bg-transparent bg-none' : ''"
-							:disabled="isRoomAdmin(room.room_id)"
-							@change="updateData('permission', { roomId: room.room_id, pl: room.room_pl })"
-						>
-							<option
-								class="active:bg-accent-primary"
-								:value="0"
-							>
-								{{ t('admin.title_user') }}
-							</option>
-							<option :value="50">
-								{{ t('admin.title_steward') }}
-							</option>
-						</select>
-					</div>
-					<div v-else>
-						<button
-							class="bg-accent-primary ml-0 rounded-xs px-2 py-1 transition sm:ml-2 sm:px-3"
-							@click="adminJoinRoom(room.room_id)"
-						>
-							{{ $t('admin.join') }}
-						</button>
-					</div>
+				<div class="flex-[2]">
+					<template v-if="isRoomAdmin(room.room_id)">
+						<span class="bg-accent-red inline-block rounded-md px-2 py-0.5">{{ roles.getRoleByPowerLevel(room.room_pl) }}</span>
+					</template>
+					<DropDown
+						v-else
+						v-model="room.room_pl"
+						:clearable="false"
+						:inline="true"
+						:options="powerLevelOptions"
+						:transformer="roleTransformer"
+						@update:model-value="updateData('permission', { roomId: room.room_id, pl: room.room_pl })"
+					/>
 				</div>
 			</div>
 		</div>
@@ -94,11 +57,11 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import DropDown from '@hub-client/components/forms/elements/DropDown.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	import { useRoles } from '@hub-client/composables/roles.composable';
@@ -110,11 +73,13 @@
 	// Models
 	import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
 	import { type UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
-	import { type TUserJoinedRooms, UserPowerLevel, UserRole } from '@hub-client/models/users/TUser';
+	import { UserPowerLevel, UserRole } from '@hub-client/models/users/TUser';
+	import { type FieldOption } from '@hub-client/models/validation/TFormOption';
 
 	// Stores
 	import { DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	const props = defineProps({
@@ -128,9 +93,20 @@
 	const roles = useRoles();
 	const dialog = useDialog();
 	const user = useUser();
+	const settings = useSettings();
+
+	const isMobile = computed(() => settings.isMobileState);
 
 	let listUserRooms = ref<UserRoomPermission[]>([]);
-	let joinedMembers = ref<TUserJoinedRooms>();
+	let originalJoinedRooms = ref<string[]>([]);
+
+	const powerLevelOptions = [0, 50];
+
+	function roleTransformer(value: number): FieldOption {
+		if (value === 0) return { label: t('admin.title_user'), value: '0' };
+		if (value === 50) return { label: t('admin.title_steward'), value: '50' };
+		return { label: String(value), value: String(value) };
+	}
 
 	const { data, setData, dataIsChanged, changed, updateData, setSubmitButton } = useFormState();
 
@@ -142,7 +118,8 @@
 	onMounted(async () => {
 		listUserRooms.value = await fetchRoomUserPermissions();
 
-		joinedMembers.value = await APIService.adminListJoinedRoomId(user.userId ?? '');
+		const joinedRooms = await APIService.adminListJoinedRoomId(user.userId ?? '');
+		originalJoinedRooms.value = joinedRooms.joined_rooms;
 
 		dialog.addCallback(DialogOk, async () => {
 			if (changed) {
@@ -151,8 +128,16 @@
 					const roomId = permValue.roomId;
 					const powerlevel = permValue.pl;
 
+					const wasMember = originalJoinedRooms.value.includes(roomId);
+
 					try {
+						if (!wasMember) {
+							await pubhubs.joinRoom(roomId);
+						}
 						await props.administrator.changePermission(props.userId, roomId, powerlevel);
+						if (!wasMember) {
+							await pubhubs.leaveRoom(roomId);
+						}
 					} catch {
 						await dialog.confirm(t('admin.not_admin_perm_msg'));
 						emit('close');
@@ -168,7 +153,8 @@
 		async () => {
 			listUserRooms.value = await fetchRoomUserPermissions();
 
-			joinedMembers.value = await APIService.adminListJoinedRoomId(user.userId ?? '');
+			const joinedRooms = await APIService.adminListJoinedRoomId(user.userId ?? '');
+			originalJoinedRooms.value = joinedRooms.joined_rooms;
 		},
 	);
 
@@ -187,22 +173,6 @@
 
 	// Admin Room Status Methods //
 
-	function adminIsMember(roomId: string) {
-		if (!joinedMembers.value) return;
-
-		return joinedMembers.value?.joined_rooms.find((joinedRoomId) => roomId === joinedRoomId) !== undefined;
-	}
-
-	async function adminJoinRoom(roomId: string) {
-		// Join the room
-		await pubhubs.joinRoom(roomId);
-		// Update the joinedMembers state
-
-		if (joinedMembers.value) {
-			joinedMembers.value.joined_rooms.push(roomId); // Add the roomId to the joined_rooms array
-		}
-	}
-
 	function isRoomAdmin(roomId: string) {
 		return listUserRooms.value.find((room) => room.room_id === roomId)?.room_pl === UserPowerLevel.Admin;
 	}
@@ -211,8 +181,8 @@
 
 	function getTagClassBasedOnRole(powerLevel: number) {
 		const currentRole = roles.getRoleByPowerLevel(powerLevel);
-		if (currentRole === UserRole.Admin) return 'bg-accent-red';
-		if (currentRole === UserRole.Steward) return 'bg-accent-lime';
-		return 'bg-accent-yellow';
+		if (currentRole === UserRole.Admin) return 'bg-accent-red text-on-accent-red';
+		if (currentRole === UserRole.Steward) return 'bg-accent-steward text-on-accent-steward';
+		return 'bg-accent-primary text-on-accent-primary';
 	}
 </script>

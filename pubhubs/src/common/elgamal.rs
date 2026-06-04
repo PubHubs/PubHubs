@@ -16,8 +16,10 @@ use curve25519_dalek::{
 pub struct Triple {
     /// Ephemeral key
     ek: RistrettoPoint,
+
     /// Ciphertext,
     ct: RistrettoPoint,
+
     /// Public key
     pk: RistrettoPoint,
 }
@@ -60,7 +62,7 @@ impl Triple {
     /// Changes the appearance of the ciphertext, but leaves the plaintext and the target
     /// public key unaltered.  If the public key was spoofed, the plaintext is garbled.
     /// ```
-    /// use pubhubs::elgamal::{PrivateKey, random_point, random_scalar};
+    /// use pubhubs::common::elgamal::{PrivateKey, random_point, random_scalar};
     /// use curve25519_dalek::{
     ///     ristretto::RistrettoPoint,
     ///     constants::RISTRETTO_BASEPOINT_TABLE as B,
@@ -211,12 +213,13 @@ pub fn random_scalar() -> Scalar {
 ///
 /// Caches the associated [`PublicKey`], which means that loading a [`PrivateKey`] involves a base
 /// point multiplication.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, zeroize::ZeroizeOnDrop)]
 pub struct PrivateKey {
     /// underlying scalar
     scalar: Scalar,
 
     /// associated public key, stored for efficiency
+    #[zeroize(skip)]
     public_key: PublicKey,
 }
 
@@ -278,6 +281,12 @@ impl PublicKey {
     /// valid Ristretto point.
     pub fn from_hex(hexstr: &str) -> Option<Self> {
         CompressedRistretto::from_hex(hexstr)?.try_into().ok()
+    }
+
+    /// The identity element, which encodes as 32 zero bytes.
+    pub fn zero() -> Self {
+        use curve25519_dalek::traits::Identity as _;
+        RistrettoPoint::identity().into()
     }
 
     /// Encrypts the given `plaintext` for this public key.

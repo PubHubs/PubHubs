@@ -7,44 +7,62 @@
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.theme') }}</Label>
-				<ButtonGroup
-					v-model="data.theme.value"
-					:options="settings.getThemeOptions(t)"
-					size="sm"
-					:value="data.theme.value as string"
-					@changed="updateData('theme', $event)"
-				/>
+				<ButtonGroup :combined="true">
+					<Button
+						v-for="option in settings.getThemeOptions(t)"
+						:key="option.value"
+						:variant="option.value === data.theme.value ? 'primary' : 'secondary'"
+						size="sm"
+						@click="updateData('theme', option.value)"
+					>
+						{{ option.label }}
+					</Button>
+				</ButtonGroup>
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.language') }}</Label>
-				<ButtonGroup
-					v-model="data.language.value"
-					:options="settings.getLanguageOptions ?? []"
-					size="sm"
-					:value="data.language.value as string"
-					@changed="updateData('language', $event)"
-				/>
+				<ButtonGroup :combined="true">
+					<Button
+						v-for="option in settings.getLanguageOptions ?? []"
+						:key="option.value"
+						:variant="option.value === data.language.value ? 'primary' : 'secondary'"
+						size="sm"
+						@click="updateData('language', option.value)"
+					>
+						{{ option.label }}
+					</Button>
+				</ButtonGroup>
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.timeformat') }}</Label>
-				<ButtonGroup
-					v-model="data.timeformat.value"
-					:options="settings.getTimeFormatOptions(t)"
-					size="sm"
-					:value="data.timeformat.value as string"
-					@changed="updateData('timeformat', $event)"
-				/>
+				<ButtonGroup :combined="true">
+					<Button
+						v-for="option in settings.getTimeFormatOptions(t)"
+						:key="option.value"
+						:variant="option.value === data.timeformat.value ? 'primary' : 'secondary'"
+						size="sm"
+						@click="updateData('timeformat', option.value)"
+					>
+						{{ option.label }}
+					</Button>
+				</ButtonGroup>
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.notifications') }}</Label>
 				<ButtonGroup
 					v-if="notificationSupported"
-					v-model="data.notifications.value"
-					:options="settings.getNotificationOptions(t)"
-					size="sm"
-					:value="data.notifications.value as string"
-					@changed="updateNotificationsPermission($event)"
-				/>
+					:combined="true"
+				>
+					<Button
+						v-for="option in settings.getNotificationOptions(t)"
+						:key="option.value"
+						:variant="option.value === data.notifications.value ? 'primary' : 'secondary'"
+						size="sm"
+						@click="updateNotificationsPermission(option.value)"
+					>
+						{{ option.label }}
+					</Button>
+				</ButtonGroup>
 				<p v-if="!notificationSupported">
 					{{ $t('notifications.notSupported') }}
 				</p>
@@ -106,11 +124,11 @@
 	import { nextTick, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
+	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
+	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import ButtonGroup from '@hub-client/components/forms/ButtonGroup.vue';
-	import Label from '@hub-client/components/forms/Label.vue';
+	import Label from '@hub-client/components/forms/elements/Label.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Composables

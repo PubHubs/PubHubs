@@ -18,12 +18,11 @@ import {
 import { Preset, Visibility } from 'matrix-js-sdk/lib/@types/partials';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { type RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
-import { KnownMembership, type RoomMessageEventContent, type TimelineEvents } from 'matrix-js-sdk/lib/types';
+import { type RoomMessageEventContent, type TimelineEvents } from 'matrix-js-sdk/lib/types';
 import { defineStore } from 'pinia';
 
 // Composables
 import { useMatrix } from '@hub-client/composables/matrix.composable';
-import { useModeration } from '@hub-client/composables/moderation.composable';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
@@ -31,15 +30,17 @@ import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { router } from '@hub-client/logic/core/router';
-import { hasHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+import { hasHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
+import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import {
+	type THideMessageContent,
 	type TMentions,
 	type TMessageEvent,
 	type TTextMessageEventContent,
@@ -59,9 +60,11 @@ import { type Poll, type Scheduler } from '@hub-client/models/events/voting/Voti
 import type Room from '@hub-client/models/rooms/Room';
 import { type RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TSearchParameters } from '@hub-client/models/search/TSearch';
+import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { useConnection } from '@hub-client/stores/connection';
+import { useDialog } from '@hub-client/stores/dialog';
 import { useMessageActions } from '@hub-client/stores/message-actions';
 import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 import { type User, useUser } from '@hub-client/stores/user';
@@ -216,37 +219,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		/**
-		 * Initializes the room list with all joined rooms of the current user.
-		 * Also fetches all public rooms from the server.
-		 */
-		async initRoomList() {
-			const rooms = useRooms();
-
-			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
-			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
-
-			rooms.setRoomsLoaded(false);
-
-			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
-			// Since the SDK not always has knowledge of the rooms in time we rejoin every room in joinedRooms
-			// this actually does nothing when already joined, but it will return the room to be stored
-			const roomsToJoin = joinedRooms.filter((joinedRoomId) =>
-				allPublicRooms.some((publicRoom) => publicRoom.room_id === joinedRoomId && publicRoom.name),
-			);
-
-			for (const room_id of roomsToJoin) {
-				const roomName = allPublicRooms.find((r: TPublicRoom) => r.room_id === room_id)?.name;
-				this.client.joinRoom(room_id).then((room) => {
-					this.client.store.storeRoom(room);
-					rooms.updateRoomsWithMatrixRoom(room, roomName);
-				});
-			}
-
-			rooms.fetchPublicRooms();
-			rooms.setRoomsLoaded(true);
-		},
-
-		/**
 		 * Updates the store with this one room
 		 * Fetches the public rooms from the server as update
 		 */
@@ -291,14 +263,16 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 
 		showDialog(message: string) {
-			alert(message);
+			const dialog = useDialog();
+			dialog.confirm(message);
 		},
 
 		showError(error: string | MatrixError) {
+			const dialog = useDialog();
 			if (typeof error === 'string') {
-				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
+				dialog.showError(error);
 			} else if (error.errcode !== 'M_FORBIDDEN' && error.data) {
-				this.showDialog(error.data.error as string);
+				dialog.confirm(error.data.error as string);
 			} else {
 				logger.debug('showing error dialog', { error });
 			}
@@ -340,15 +314,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 			// If there is only one admin who has joined the room and if he leaves then room will be without administration.
 			if (onlyOneAdminInRoom && Object.keys(joinedMembers.joined).length > 1) return true;
 			return false;
-		},
-
-		async getPublicRooms(search: string) {
-			return await this.client.publicRooms({
-				limit: 10,
-				filter: {
-					generic_search_term: search,
-				},
-			});
 		},
 
 		async getAllPublicRooms(force: boolean = false) {
@@ -410,27 +375,14 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		async joinRoom(room_id: string, knownRoomType?: string, knownRoomName?: string): Promise<number> {
 			const roomStore = useRooms();
-			const userStore = useUser();
-			const room = roomStore.room(room_id);
 			try {
-				const { membershipEvents } = useModeration(room);
-				const hasYellowCard = membershipEvents.value.some(
-					(event) =>
-						event.content.membership === KnownMembership.Leave &&
-						event.state_key === userStore.userId &&
-						event.sender !== event.state_key &&
-						event.content.reason,
-				);
-				if (hasYellowCard) {
-					userStore.addYellowCard(room_id);
-				}
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
 				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: TPublicRoom) => r.room_id === room_id);
 				const roomType: string = knownRoomType ?? publicRoomEntry?.room_type ?? getRoomType(matrixRoom);
 				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				roomStore.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
-				roomStore.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false });
+				roomStore.updateRoomList({ roomId: room_id, roomType: roomType, name: roomName, stateEvents: [], isHidden: false, unreadState: 'unknown' });
 			} catch (err) {
 				if (err instanceof MatrixError) {
 					const isBanned = err.errcode === 'M_BAD_STATE' && err.httpStatus === 403;
@@ -594,7 +546,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			content['m.mentions'] = this._createEmptyMentions();
 
 			if (content.body?.includes('@')) {
-				const users = await this.getUsers();
+				const users = this.getHubUsers();
 				const mentionedUsers = content.body.split('@');
 				const mentionedUsersName = users
 					.filter((user) => {
@@ -782,6 +734,18 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 		},
 
+		async addVisibilityMessage(roomId: string, targetEventId: string, hide: boolean, label?: string) {
+			const content: THideMessageContent = {
+				msgtype: PubHubsMgType.HideMessage,
+				body: '',
+				[RelationType.RelatesTo]: {
+					rel_type: hide ? RelationType.Hide : RelationType.UnHide,
+					event_id: targetEventId,
+				},
+				ph_hidden_label: label,
+			};
+			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+		},
 		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {
 			const content = {
 				msgtype: PubHubsMgType.AnnouncementMessage,
@@ -850,12 +814,31 @@ const usePubhubsStore = defineStore('pubhubs', {
 			logger.debug('addSignedFile <==', result);
 		},
 
+		async addForumThread(roomId: string, title: string, description: string) {
+			const content = {
+				msgtype: PubHubsMgType.ForumTopic,
+				body: removeHtml(title),
+				description: removeHtml(description),
+				'm.mentions': {
+					room: false,
+					user_ids: [],
+				},
+			};
+			// @ts-expect-error -- custom event type not in SDK types
+			const result = await this.client.sendEvent(roomId, PubHubsMgType.ForumTopic as unknown as keyof TimelineEvents, content);
+			logger.debug('addForumThread', result);
+		},
+
 		/**
 		 * @param roomId
 		 * @param eventId
+		 * @param threadId
+		 * @param reactEventId
+		 * @param customReason — Optional custom reason for deletion (e.g., when a steward deletes someone else's message)
 		 */
-		async deleteMessage(roomId: string, eventId: string, threadId?: string, reactEventId?: string) {
-			const reason = threadId ? { reason: Redaction.DeletedFromThread } : { reason: Redaction.Deleted };
+		async deleteMessage(roomId: string, eventId: string, threadId?: string, reactEventId?: string, customReason?: string) {
+			const defaultReason = threadId ? Redaction.DeletedFromThread : Redaction.Deleted;
+			const reason = { reason: customReason || defaultReason };
 			await this.client.redactEvent(roomId, eventId, undefined, reason);
 
 			if (reactEventId) {
@@ -1024,10 +1007,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 				const rooms = useRooms();
 				setTimeout(() => {
-					rooms.notifyUnreadCountChanged();
+					rooms.notifyUnreadCountChanged(roomId);
 				}, 100);
-			} catch {
-				// Silently fail - receipt sending is not critical
+			} catch (error) {
+				logger.warn(`sendPrivateReceipt failed for ${roomId}/${eventId}`, { error });
 			}
 		},
 
@@ -1045,9 +1028,31 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content as RoomMessageEventContent);
 		},
 
+		async tryAddFile(eventType: PubHubsMgType, roomId: string, thread: string | null, content: RoomMessageEventContent) {
+			// FileLibrary
+			if (eventType === PubHubsMgType.LibraryFileMessage) {
+				return await this.client.sendEvent(roomId, eventType as unknown as keyof TimelineEvents, content);
+			} else {
+				return await this.client.sendMessage(roomId, thread, content);
+			}
+		},
+
+		/**
+		 * Adds a file as a message
+		 * @param roomId
+		 * @param threadId
+		 * @param filename The filename if different from the original filename
+		 * @param file
+		 * @param uri
+		 * @param message Message to go with the file
+		 * @param eventType
+		 * @param inReplyTo
+		 * @returns
+		 */
 		async addFile(
 			roomId: string,
 			threadId: string | undefined,
+			filename: string | undefined,
 			file: File,
 			uri: string,
 			message: string = '',
@@ -1056,8 +1061,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 		): Promise<boolean> {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
 			let fileType = MsgType.File;
+			const fileName: string = filename ?? file.name;
+
 			let body = message;
-			if (body === '') body = file.name;
+			if (body === '') body = fileName;
 			if (imageTypes.includes(file?.type)) fileType = MsgType.Image;
 
 			let relatesTo: { event_id?: string; rel_type?: string; 'm.in_reply_to'?: { event_id: string } } | undefined = undefined;
@@ -1072,9 +1079,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 				}
 			}
 
-			const content = {
+			const content: RoomMessageEventContent = {
 				body: body,
-				filename: file.name,
+				filename: fileName,
 				info: {
 					mimetype: file.type,
 					size: file.size,
@@ -1086,18 +1093,29 @@ const usePubhubsStore = defineStore('pubhubs', {
 				'm.new_content': undefined,
 				'm.relates_to': relatesTo,
 			};
-			try {
-				// FileLibrary
-				if (eventType === PubHubsMgType.LibraryFileMessage) {
-					await this.client.sendEvent(roomId, eventType as unknown as keyof TimelineEvents, content);
-				} else {
-					await this.client.sendMessage(roomId, thread, content);
+			const maxAttempts = 3;
+			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+				try {
+					await this.tryAddFile(eventType, roomId, thread, content);
+					return true;
+				} catch (error: unknown) {
+					// not an error 429: swallow error
+					if (!(error instanceof MatrixError) || error.httpStatus !== 429) {
+						logger.debug('swallowing add file error', { error });
+						return false;
+					}
+
+					// error 429: retry after returned retry_after_ms
+					const waitTime = error.data?.retry_after_ms ?? 0;
+					await new Promise((resolve) => setTimeout(resolve, waitTime + 500)); // The waitTime is not precise, so we add 500
+
+					if (attempt === maxAttempts) {
+						logger.debug('add file error: max retries', { error });
+						return false;
+					}
 				}
-				return true;
-			} catch (error) {
-				logger.debug('swallowing add file error', { error });
-				return false;
 			}
+			return false; // unreachable but required by TypeScript
 		},
 
 		async resendEvent(event: TBaseEvent) {
@@ -1125,11 +1143,28 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return response.results;
 		},
 
-		async getUsers(): Promise<Array<MatrixUser>> {
-			if (!this.client.getUsers) {
-				return [];
-			}
-			return this.client.getUsers();
+		/**
+		 * Gets all users in the hub, by walking over the rooms and getting their users.
+		 * This makes sure all users are there. The standard getUsers() method on the client reads on the store which is not always up-to-date
+		 * @returns all users of the hub
+		 */
+		getHubUsers(): Array<MatrixUser> {
+			const rooms = this.client.getRooms();
+			if (!rooms) return [];
+
+			const seen = new Set<string>(); // used for deduplication, faster than checking inside the array itself
+			const matrixUsers = new Array<MatrixUser>();
+
+			rooms.forEach((room) => {
+				for (const member of room.getJoinedMembers()) {
+					if (!seen.has(member.userId)) {
+						seen.add(member.userId);
+						const user = member.user ?? this.client.getUser(member.userId);
+						if (user) matrixUsers.push(user);
+					}
+				}
+			});
+			return matrixUsers;
 		},
 
 		/**
@@ -1173,35 +1208,24 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async fetchAuthorizedMediaUrl(url: string): Promise<string | null> {
+		async fetchAuthorizedMediaUrl(url: string): Promise<string> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
-				logger.error('Access token is missing');
-				return null;
+				throw new Error('Access token is missing');
 			}
 
-			const options = {
-				headers: {
-					Authorization: 'Bearer ' + accessToken,
-				},
+			const response = await fetch(url, {
+				headers: { Authorization: 'Bearer ' + accessToken },
 				method: 'GET',
-			};
+			});
 
-			try {
-				const response = await fetch(url, options);
-
-				const blob = await response.blob();
-
-				if (blob) {
-					const fileURL = window.URL.createObjectURL(blob);
-					return fileURL;
-				}
-				return null;
-			} catch (error) {
-				logger.error('Error downloading the file: ', error);
-				return null;
+			if (!response.ok) {
+				throw new Error(`Authorized media fetch failed: ${response.status} ${response.statusText} for ${url}`);
 			}
+
+			const blob = await response.blob();
+			return window.URL.createObjectURL(blob);
 		},
 
 		/**
@@ -1327,9 +1351,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (!room) {
 				return [];
 			}
-			const { allOtherMembers } = useModeration(room);
+			const user = useUser();
+			const otherMembers = getOtherRoomMembers(room, user.userId);
 			const inviteMembers = room.getOtherInviteMembers().map((member) => member.userId);
-			return [...allOtherMembers.value, ...inviteMembers];
+			return [...otherMembers, ...inviteMembers];
 		},
 		/**
 		 * Finds any new admin ID that needs to be invited to the room
@@ -1386,9 +1411,29 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async initialiseVideoCallPowerLevels(roomId: string) {
 			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
 			powerLevels.events = powerLevels.events || {};
-			powerLevels.events['org.matrix.msc3401.call.member'] = 0;
-			powerLevels.events['org.matrix.msc3401.call'] = 0;
+			powerLevels.events['org.matrix.msc3401.call.member'] = UserPowerLevel.User;
+			powerLevels.events['org.matrix.msc3401.call'] = UserPowerLevel.User;
 			await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
+		},
+
+		async initialiseTimeoutPowerLevels(roomId: string) {
+			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
+			powerLevels.events = powerLevels.events || {};
+			// Steward power level (50) required to issue timeouts
+			if (powerLevels.events['pubhubs.timeout'] === undefined) {
+				powerLevels.events['pubhubs.timeout'] = UserPowerLevel.Steward;
+				await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
+			}
+		},
+
+		async initialiseYellowCardPowerLevels(roomId: string) {
+			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
+			powerLevels.events = powerLevels.events || {};
+			// Power level 0 allows any user to send (users can dismiss their own warnings)
+			if (powerLevels.events['pubhubs.yellow_card'] === undefined) {
+				powerLevels.events['pubhubs.yellow_card'] = 0;
+				await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
+			}
 		},
 
 		addEndCallListener() {

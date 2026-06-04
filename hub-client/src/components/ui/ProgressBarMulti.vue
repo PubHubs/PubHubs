@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex h-4 overflow-hidden rounded-lg"
+		class="bg-surface-elevated flex h-100"
 		role="progressbar"
 	>
 		<div
@@ -14,9 +14,10 @@
 </template>
 
 <script setup lang="ts">
+	// Props
 	defineProps<{
 		percentages: number[];
 	}>();
 
-	const colors = ['bg-accent-green', 'bg-accent-orange', 'bg-accent-red'];
+	const colors = ['bg-accent-green!', 'bg-accent-orange!', 'bg-accent-red!'];
 </script>

@@ -23,7 +23,7 @@
 				:room="room"
 				class="no-callout group inline-block w-full select-none"
 				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
-				:icon="isSecuredRoom(room) ? 'shield' : 'chats-circle'"
+				:icon="menuIcon(room)"
 				@click="hubSettings.hideBar()"
 			>
 				<span class="flex w-full items-center justify-between gap-4">
@@ -32,18 +32,19 @@
 					</TruncatedText>
 
 					<span
-						v-if="settings.isFeatureEnabled(FeatureFlag.notifications)"
+						v-if="settings.isFeatureEnabled(FeatureFlag.notifications) && showsUnreadState(room.roomType)"
 						class="flex items-center gap-1 transition-all duration-200 ease-in-out"
 					>
 						<Badge
-							v-if="getUnreadCount(room.roomId, NotificationCountType.Total) > 0"
+							v-if="room.unreadState === 'unread'"
 							data-testid="unread-badge"
 							color="hub"
-							:size="roomBadgeSize(getUnreadCount(room.roomId, NotificationCountType.Total))"
+							size="sm"
 						/>
 						<Badge
-							v-if="getUnreadCount(room.roomId, NotificationCountType.Highlight) > 0"
-							color="hub"
+							v-if="room.unreadState === 'unknown'"
+							data-testid="unknown-badge"
+							color="unknown"
 							size="sm"
 						/>
 					</span>
@@ -113,7 +114,6 @@
 
 <script setup lang="ts">
 	// Packages
-	import { NotificationCountType } from 'matrix-js-sdk';
 	import { type PropType, computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
@@ -127,17 +127,20 @@
 	import MenuItemSkeleton from '@hub-client/components/ui/MenuItemSkeleton.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Logic
-	import { badgeSize } from '@hub-client/logic/utils/badgeUtils';
 
+	import { ContextVariant } from '@hub-client/models/components/contextMenu.models';
 	// Models
-	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms, showsUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -145,11 +148,6 @@
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { ContextVariant } from '@hub-client/new-design/models/contextMenu.models';
-	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const props = defineProps({
 		roomTypes: {
@@ -186,20 +184,6 @@
 	const roomsLoaded = computed(() => {
 		return rooms.roomsLoaded;
 	});
-
-	// Reactive dependency on unreadCountVersion for badge updates
-	function getUnreadCount(roomId: string, countType: NotificationCountType): number {
-		void rooms.unreadCountVersion;
-		const room = pubhubs.client.getRoom(roomId);
-		if (room) {
-			// TODO: use getUnreadNotificationCount once old thread
-			// notifications are globally marked as unread
-			return room.getRoomUnreadNotificationCount(countType);
-		}
-		return 0;
-	}
-
-	const roomBadgeSize = badgeSize;
 
 	async function leaveRoom(roomId: string) {
 		const room = currentJoinedRooms.value.find((room) => room.roomId === roomId);
@@ -240,4 +224,10 @@
 		if (!room.roomType) return false;
 		return SecuredRooms.includes(room.roomType as RoomType);
 	}
+
+	const menuIcon = (room: RoomListRoom): string => {
+		if (isSecuredRoom(room)) return 'shield';
+		if (settings.isFeatureEnabled(FeatureFlag.forumRooms) && room.roomType === RoomType.PH_FORUM_ROOM) return 'chat-circle-text';
+		return 'chats-circle';
+	};
 </script>

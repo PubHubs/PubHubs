@@ -9,28 +9,42 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+## Changes not merged to stable yet
+
+## 4 June 2026 - v3.4.0
+
+- [NEW] User room warnings have been updated to show up above the message input bar.
+- [NEW] RoomAdmins and Stewards can hand out (and revoke) timeouts to users in a room.
+- [NEW] RoomAdmins and Stewards can hide and delete any messages and normal users can hide their own messages.
+- [NEW] Different way of fetching library-files, added constant with maximum numbers of files to upload
+- [NEW] Eliminated the legacy `/v3/sync` loop; the hub client now uses `SlidingSyncSdk` exclusively.
+- [NEW] Added post-quantum key-exchange to protect against harvest now, decrypt later attacks.
+- [NEW] Added post-quantum signatures.
+- [BUG] Solved some problems with threads, making sure the shown number of replies is correct and reactive.
+- [NEW] Hubs now use postgres as database instead of sqlite.
+    - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,
+      during which the hub is not reachable. Keep a close eye on the hub's output.
+    - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
+      in `homeserver.live.yaml`.
+    - If the migration was successful, `homeserver.db` is moved to `homeserver.db.bak`.
+    - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container)
+      must be removed before the migration can be re-attempted.
+    - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
+      to the hub container's entrypoint.
+- _internal_ Test the registration flow and login flow for the pubhubs card including normal phone settings, and with battery saver on. Also test the registration flow via the obtain/reobtain button in yivi. If no issues arise set phCard in settings.ts to true for stable.
+
 ## 28 April 2026 - v3.3.0
 
 - [NEW] The synapse core module will now automatically be set with phc_url=https://phc.pubhubs.net in production if it is missing from the homeserver.yaml.
 - [NEW] RoomAdmins and Stewards can bar room members from participating in a room by issuing a red card.
 - [NEW] RoomAdmins and Stewards can warn room members by issuing a yellow card.
-- [NEW, behind feature flag for now] Video call functionality in direct rooms and secured rooms. 
+- [NEW, behind feature flag for now] Video call functionality in direct rooms and secured rooms.
 - [FIX] Element observer parameter is passed correctly.
 
 ## 02 April 2026 - v3.2.2
 
 - [NEW, behind a feature flag for now] Stewards (and users with higher privileges) can send whisper messages to other users in a room.
 - [NEW] Messages can be shared.
-- [NEW, behind a feature flag for now] Hubs now use postgres as database instead of sqlite.
-    - Migration from `homeserver.db` -> postgres happens automatically, but can take a few minutes,
-      during which the hub is not reachable. Keep a close eye on the hub's output.
-    - No changes to `homeserver.yaml` are necessary; the `database` field will be changed appropriately
-      in `homeserver.live.yaml`.
-    - If the migration was succesfull, `homeserver.db` is moved to `homeserver.db.bak`.
-    - If the migration fails, the newly created postgres data directory (located at `/data/postgres` within the container)
-      must be removed before the migration can be re-attempted.
-    - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
-      to the hub container's entrypoint.
 - [NEW] Startup optimization. Instead of fetching timelines for all joined rooms,
   only a timeline of 1 entry is fetched at selecting a room.
 - [NEW] Changed pagination from the standard pagination that filters client-side

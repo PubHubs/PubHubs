@@ -2,56 +2,71 @@
 	<div id="filePickerContainer">
 		<div
 			v-if="messageInput.state.fileAdded"
-			class="border-on-surface-disabled relative flex w-full justify-center border-b-2"
+			class="overflow-hidden"
 		>
-			<div class="m-2 mb-2 rounded-lg">
-				<div
-					v-if="imageTypes.includes(messageInput.state.fileAdded?.type)"
-					class="flex justify-center"
-				>
-					<img
-						:src="uri?.url ?? ''"
-						class="max-h-64 max-w-full rounded-lg"
+			<div class="rounded-t-base bg-accent-blue/10 border-accent-blue flex h-500 items-center justify-between gap-100 border-b px-200">
+				<div class="flex min-w-0 items-center gap-100">
+					<Icon
+						class="text-accent-blue shrink-0"
+						size="sm"
+						type="file"
 					/>
+					<span class="text-accent-blue text-label-small shrink-0">{{ $t('file.upload_file') }}</span>
+					<span class="text-on-surface-dim text-label-small truncate">
+						{{ messageInput.state.fileAdded.name }} ({{ filters.formatBytes(messageInput.state.fileAdded.size, 2) }})
+					</span>
 				</div>
-				<div class="mt-1 flex justify-center">
-					<div class="text-on-surface-dim text-label">
-						{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})
-					</div>
+				<div class="flex items-center gap-100">
+					<Icon
+						type="arrows-clockwise"
+						class="text-accent-blue shrink-0 hover:cursor-pointer"
+						size="sm"
+						@click.stop="openFile"
+					/>
+					<button
+						class="shrink-0 hover:cursor-pointer"
+						@click="removeFile()"
+					>
+						<Icon
+							class="text-accent-blue"
+							size="sm"
+							type="x"
+						/>
+					</button>
 				</div>
 			</div>
 			<div
-				class="flex gap-2 pt-3"
-				:class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }"
+				v-if="imageTypes.includes(messageInput.state.fileAdded?.type)"
+				class="flex justify-center px-200 pt-100 pb-200"
 			>
-				<Icon
-					type="arrows-clockwise"
-					class="hover:text-accent-secondary cursor-pointer"
-					@click.stop="openFile"
-				></Icon>
-				<Icon
-					type="trash"
-					class="hover:text-accent-error cursor-pointer"
-					@click="removeFile()"
-				></Icon>
+				<img
+					:src="uri?.url ?? ''"
+					class="max-h-64 max-w-full rounded-lg"
+				/>
+			</div>
+			<div class="mt-1 flex justify-center">
+				<div class="text-on-surface-dim text-label">
+					{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})
+				</div>
 			</div>
 		</div>
+		<input
+			ref="elFileInput"
+			type="file"
+			:accept="getTypesAsString(allTypes)"
+			class="attach-file"
+			data-testid="file-input"
+			hidden
+			@change="uploadFileTemporary($event)"
+			@cancel="messageInput.cancelFileUpload()"
+		/>
 	</div>
-
-	<input
-		ref="elFileInput"
-		type="file"
-		:accept="getTypesAsString(allTypes)"
-		class="attach-file"
-		data-testid="file-input"
-		hidden
-		@change="uploadFileTemporary($event)"
-		@cancel="messageInput.cancelFileUpload()"
-	/>
 </template>
 
 <script setup lang="ts">
 	import { type PropType, onBeforeUnmount, ref, watch } from 'vue';
+
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
@@ -91,6 +106,19 @@
 		(transferred) => {
 			if (transferred) {
 				ownsBlobMemory.value = false;
+			}
+		},
+	);
+
+	watch(
+		() => props.messageInput.state.fileAdded,
+		(file) => {
+			if (file && !uri.value?.url) {
+				if (ownsBlobMemory.value) {
+					uri.value?.revoke();
+				}
+				uri.value = new BlobManager(file);
+				ownsBlobMemory.value = true;
 			}
 		},
 	);

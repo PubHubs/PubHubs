@@ -11,3 +11,5 @@ mod admin;
 pub use admin::AdminArgs;
 mod enter;
 pub use enter::EnterArgs;
+mod doc;
+pub use doc::DocArgs;

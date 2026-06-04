@@ -80,8 +80,15 @@ function useMessageInput() {
 	}
 
 	function openSignMessage() {
+		const savedFile = state.fileAdded;
 		resetAll(true);
+		state.fileAdded = savedFile;
 		state.signMessage = true;
+	}
+
+	function closeSignMessage() {
+		state.signMessage = false;
+		state.showYiviQR = false;
 	}
 
 	function openPoll() {
@@ -136,6 +143,7 @@ function useMessageInput() {
 		cancelFileUpload,
 		closeFileUpload,
 		openSignMessage,
+		closeSignMessage,
 		openPoll,
 		closePoll,
 		editPoll,

@@ -6,10 +6,10 @@
 		<svg
 			v-bind="$attrs"
 			fill="currentColor"
-			:height="iconSizes[size]"
+			:height="iconSizes[size as TSize]"
 			:transform="displayMirrored"
 			viewBox="0 0 256 256"
-			:width="iconSizes[size]"
+			:width="iconSizes[size as TSize]"
 			xmlns="http://www.w3.org/2000/svg"
 		>
 			<slot />
@@ -19,66 +19,60 @@
 	</div>
 </template>
 
+<script lang="ts">
+	// Sizes
+	const iconSizes = {
+		sm: '16',
+		base: '24',
+	} as const;
+	export type TSize = keyof typeof iconSizes;
+</script>
+
 <script lang="ts" setup>
 	// Packages
-	import { type PropType, computed } from 'vue';
+	import { computed } from 'vue';
 
 	// Assets
 	import { icons } from '@hub-client/assets/icons';
-	import { iconSizes } from '@hub-client/assets/sizes';
 
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
-	const props = defineProps({
-		type: {
-			type: String,
-			default: 'selection',
+	// Props
+	const props = withDefaults(
+		defineProps<{
+			mirrored?: boolean;
+			size?: TSize | string;
+			testid?: string;
+			type?: string;
+			weight?: 'default' | 'regular' | 'fill';
+		}>(),
+		{
+			mirrored: false,
+			size: 'base',
+			testid: '',
+			type: 'selection',
+			weight: 'default',
 		},
-		size: {
-			type: [String, Number],
-			default: 'base',
-		},
-		weight: {
-			type: String as PropType<'default' | 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'>,
-			default: 'default',
-		},
-		mirrored: {
-			type: Boolean,
-			default: false,
-		},
-		testid: {
-			type: String,
-			default: '',
-		},
-	});
+	);
 
 	const logger = createLogger('Icon');
 
+	// Computed
 	const displayType = computed(() => {
-		if (icons[props.type]) {
-			return props.type;
-		}
-		logger.warn('fallback icon', props.type);
-		return 'selection'; // dotted square
+		if (icons[props.type]) return props.type;
+		logger.warn('[Icon] fallback icon', props.type);
+		return 'selection';
 	});
 
 	const weightType = computed(() => {
-		let weight = props.weight as string;
-		if (icons[displayType.value][weight]) {
-			return weight;
-		}
-		weight = Object.keys(icons[displayType.value])[0];
-		if (icons[displayType.value][weight]) {
-			return weight;
-		}
+		if (icons[displayType.value][props.weight]) return props.weight;
+		const fallback = Object.keys(icons[displayType.value])[0];
+		if (icons[displayType.value][fallback]) return fallback;
 		return '';
 	});
 
-	const id = computed(() => {
-		if (props.testid) return props.testid;
-		return props.type;
-	});
+	const id = computed(() => props.testid || props.type);
 
 	const displayMirrored = computed(() => (props.mirrored ? 'scale(-1, 1)' : undefined));
 </script>

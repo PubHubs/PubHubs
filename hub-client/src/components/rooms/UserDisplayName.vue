@@ -35,6 +35,7 @@
 	import filters from '@hub-client/logic/core/filters';
 
 	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const props = withDefaults(defineProps<Props>(), {
@@ -42,8 +43,10 @@
 		showPseudonym: true,
 		chooseColor: true,
 		userDisplayName: '',
+		roomId: '',
 	});
 	const { color, textColor } = useUserColor();
+	const rooms = useRooms();
 	const settings = useSettings();
 
 	interface Props {
@@ -52,6 +55,7 @@
 		showDisplayName?: boolean;
 		showPseudonym?: boolean;
 		chooseColor?: boolean;
+		roomId?: string;
 	}
 
 	// get Pseudonym
@@ -81,16 +85,25 @@
 	});
 
 	// Computed properties for styling
+	const isSteward = computed(() => {
+		if (!props.roomId) return false;
+		const room = rooms.room(props.roomId);
+		if (!room) return false;
+		if (room.isDirectMessageRoom()) return false;
+		return room.getPowerLevel(props.userId) >= 50;
+	});
+
 	const userColorClass = computed(() => {
+		if (isSteward.value) return 'text-accent-steward';
 		return props.chooseColor ? textColor(color(props.userId)) : '';
 	});
 
 	const displayNameClasses = computed(() => ({
-		[userColorClass.value]: props.chooseColor,
+		[userColorClass.value]: true,
 	}));
 
 	const pseudonymClasses = computed(() => ({
 		'font-semibold': !displayName.value,
-		[userColorClass.value]: props.chooseColor && !displayName.value,
+		[userColorClass.value]: !displayName.value,
 	}));
 </script>

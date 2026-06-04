@@ -4,14 +4,13 @@
 		<div class="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
 			<!-- Contact steward card -->
 			<div
-				v-if="stewards && stewards.length > 0"
-				class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2"
+				v-if="stewards && stewards.length > 0 && !isCurrentUserSteward"
+				class="hover:bg-surface-high rounded-base flex cursor-pointer items-center gap-4 p-2"
 				@click="contactSteward"
 			>
 				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
 					<Icon
 						type="lifebuoy"
-						size="md"
 						class="text-accent-steward"
 					/>
 				</div>
@@ -22,89 +21,50 @@
 			</div>
 
 			<div
-				v-if="roles.userIsStewardOrHigher() && admins && admins.length > 0"
-				class="pb-4"
-			>
-				<CollapsibleHeader :label="$t('moderation.admins')">
-					<template #right>
-						<div class="flex items-center gap-1">
-							<div>{{ admins.length }}</div>
-							<Icon type="user"></Icon>
-						</div>
-					</template>
-					<div
-						v-for="admin in admins"
-						:key="admin.userId"
-						v-context-menu="
-							admin.userId !== user.user?.userId && !props.disableDM
-								? (evt: any) => openMenu(evt, getUserPowerUserMenuItems(admin.userId), admin.userId)
-								: undefined
-						"
-						class="flex w-full items-center gap-2 rounded-md p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === admin.userId && 'bg-surface-low'"
-					>
-						<Avatar
-							:avatar-url="user.userAvatar(admin.userId)"
-							:user-id="admin.userId"
-							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
-						></Avatar>
-						<UserDisplayName
-							:user-id="admin.userId"
-							:user-display-name="user.userDisplayName(admin.userId)"
-							:enable-d-m="false"
-						></UserDisplayName>
-					</div>
-				</CollapsibleHeader>
-			</div>
-
-			<div
 				v-if="stewards && stewards.length > 0"
 				class="pb-4"
 			>
 				<CollapsibleHeader :label="$t('rooms.stewards')">
 					<template #right>
-						<div class="flex items-center gap-1">
-							<div>{{ stewards.length }}</div>
-							<Icon type="user"></Icon>
-						</div>
+						<Pill :value="stewards.length" />
 					</template>
 					<div
 						v-for="steward in stewards"
 						:key="steward.userId"
 						v-context-menu="
 							steward.userId !== user.user?.userId && !props.disableDM
-								? (evt: any) => openMenu(evt, getUserPowerUserMenuItems(steward.userId), steward.userId)
+								? (evt: any) => openMenu(evt, getPowerUserMenuItems(steward.userId), steward.userId)
 								: undefined
 						"
-						class="flex w-full items-center gap-2 rounded-md p-2"
+						class="rounded-base flex w-full items-center gap-2 p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-low'"
 					>
 						<Avatar
 							:avatar-url="user.userAvatar(steward.userId)"
 							:user-id="steward.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="steward.userId"
 							:user-display-name="user.userDisplayName(steward.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="steward.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 					</div>
 				</CollapsibleHeader>
 			</div>
 
-			<div
-				v-if="nonPowerMemberIds && nonPowerMemberIds.length > 0"
-				class=""
-			>
+			<div v-if="nonPowerMemberIds && nonPowerMemberIds.length > 0">
 				<CollapsibleHeader :label="$t('rooms.members')">
 					<template #right>
-						<div class="flex items-center gap-1">
-							<div>{{ nonPowerMemberIds.length }}</div>
-							<Icon type="user"></Icon>
-						</div>
+						<Pill :value="nonPowerMemberIds.length" />
 					</template>
 					<div
 						v-for="userId in nonPowerMemberIds"
@@ -116,30 +76,31 @@
 						<Avatar
 							:avatar-url="user.userAvatar(userId)"
 							:user-id="userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="userId"
 							:user-display-name="user.userDisplayName(userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 					</div>
 				</CollapsibleHeader>
 			</div>
-			<div
-				v-if="roles.userIsStewardOrHigher() && hasSanctionedMembers"
-				class="grow"
-			>
+			<div v-if="roles.userIsStewardOrHigher() && numberOfSanctionedMembers > 0">
 				<CollapsibleHeader :label="t('moderation.sanctioned_members')">
 					<template #right>
-						<div class="flex items-center gap-1">
-							<div>{{ redCardMembers.length + yellowCardMembers.length + revokedRedCardMembers.length }}</div>
-							<Icon type="user"></Icon>
-						</div>
+						<Pill :value="numberOfSanctionedMembers" />
 					</template>
 					<div
-						v-for="yellowCard in yellowCardMembers"
+						v-for="yellowCard in activeYellowCards"
 						:key="yellowCard.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getYellowCardContextMenuItems(yellowCard.userId), yellowCard.userId)"
 						class="flex w-full items-center gap-2 rounded-md p-2"
@@ -148,14 +109,21 @@
 						<Avatar
 							:avatar-url="user.userAvatar(yellowCard.userId)"
 							:user-id="yellowCard.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="yellowCard.userId"
 							:user-display-name="user.userDisplayName(yellowCard.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="yellowCard.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 						<Icon
 							type="exclamation-mark"
 							class="text-accent-yellow"
@@ -171,14 +139,21 @@
 						<Avatar
 							:avatar-url="user.userAvatar(redCard.userId)"
 							:user-id="redCard.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="redCard.userId"
 							:user-display-name="user.userDisplayName(redCard.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="redCard.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 						<Icon
 							type="exclamation-mark"
 							class="text-button-red"
@@ -194,64 +169,136 @@
 						<Avatar
 							:avatar-url="user.userAvatar(revoked.userId)"
 							:user-id="revoked.userId"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
 							class="h-8 w-8 shrink-0"
 						></Avatar>
 						<UserDisplayName
 							:user-id="revoked.userId"
 							:user-display-name="user.userDisplayName(revoked.userId)"
+							:room-id="props.room.roomId"
 							:enable-d-m="false"
-						></UserDisplayName>
+						></UserDisplayName
+						><span
+							v-if="revoked.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
 						<Icon
 							type="exclamation-mark"
 							class=""
 						></Icon>
 					</div>
+					<div
+						v-for="timeout in activeTimeouts"
+						:key="timeout.userId"
+						v-context-menu="(evt: any) => openMenu(evt, getTimeoutContextMenuItems(timeout.userId), timeout.userId)"
+						class="flex w-full items-center gap-2 rounded-md p-2"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === timeout.userId && 'bg-surface-low'"
+					>
+						<Avatar
+							:avatar-url="user.userAvatar(timeout.userId)"
+							:user-id="timeout.userId"
+							:room-id="props.room.roomId"
+							:enable-d-m="false"
+							class="h-8 w-8 shrink-0"
+						></Avatar>
+						<UserDisplayName
+							:user-id="timeout.userId"
+							:user-display-name="user.userDisplayName(timeout.userId)"
+							:room-id="props.room.roomId"
+							:enable-d-m="false"
+						></UserDisplayName
+						><span
+							v-if="timeout.userId === user.user?.userId"
+							class="text-on-surface-dim"
+							>&nbsp;{{ $t('admin.you_suffix') }}</span
+						>
+						<div class="text-button-red flex items-center gap-1">
+							<Icon
+								type="clock"
+								size="sm"
+							></Icon>
+							<span class="text-label-small">{{ formatTimeoutCountdown(timeout.timeout_until) }}</span>
+						</div>
+					</div>
 				</CollapsibleHeader>
 			</div>
 		</div>
 
-		<!-- Card reason dialogs -->
+		<!-- Yellow card dialog -->
 		<IssueCardDialog
-			v-if="cardDialog.visible"
-			:card-type="cardDialog.type"
-			@close="cardDialog.visible = false"
-			@submit="onCardDialogSubmit"
+			v-if="yellowCardDialog.visible"
+			card-type="yellow"
+			@close="yellowCardDialog.visible = false"
+			@submit="onYellowCardDialogSubmit"
+		/>
+
+		<!-- Red card dialog -->
+		<IssueCardDialog
+			v-if="redCardDialog.visible"
+			card-type="red"
+			@close="redCardDialog.visible = false"
+			@submit="onRedCardDialogSubmit"
+		/>
+
+		<!-- Timeout dialog -->
+		<IssueTimeoutDialog
+			v-if="timeoutDialog.visible"
+			:member-id="timeoutDialog.memberId"
+			@close="timeoutDialog.visible = false"
+			@submit="onTimeoutDialogSubmit"
+		/>
+
+		<!-- Kick dialog -->
+		<KickDialog
+			v-if="kickDialog.visible"
+			:member-id="kickDialog.memberId"
+			@close="kickDialog.visible = false"
+			@submit="onKickDialogSubmit"
 		/>
 	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { capitalize } from 'vue';
+	import { capitalize, computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Pill from '@hub-client/components/elements/Pill.vue';
+	import IssueTimeoutDialog from '@hub-client/components/forms/IssueTimeoutDialog.vue';
+	import KickDialog from '@hub-client/components/forms/KickDialog.vue';
 	import IssueCardDialog from '@hub-client/components/forms/issueCardDialog.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useModerationKick } from '@hub-client/composables/moderation/kick.composable';
+	import { useModerationMembership } from '@hub-client/composables/moderation/membership.composable';
+	import { useModerationRedCard } from '@hub-client/composables/moderation/red-card.composable';
+	import { useModerationTimeout } from '@hub-client/composables/moderation/timeout.composable';
+	import { useModerationWhisper } from '@hub-client/composables/moderation/whisper.composable';
+	import { useModerationYellowCard } from '@hub-client/composables/moderation/yellow-card.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
+	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
 	import { UserAction } from '@hub-client/models/users/TUser';
 
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Store
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { ContextVariant, type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
-	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
 	const props = defineProps({
 		room: {
@@ -272,22 +319,69 @@
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
 
-	const {
-		stewards,
-		admins,
-		nonPowerMemberIds,
-		yellowCardMembers,
-		redCardMembers,
-		revokedRedCardMembers,
-		hasSanctionedMembers,
-		canWhisperFromContextMenu,
-		cardDialog,
-		openCardDialog,
-		onCardDialogSubmit,
-		revokeRedCard,
-		contactSteward,
-		startWhisperToMember,
-	} = useModeration();
+	const base = useModerationBase();
+	const { stewards: baseStewards, nonPowerMemberIds } = base;
+	const stewards = computed(() => [...baseStewards.value]);
+	const isCurrentUserSteward = computed(() => stewards.value.some((s) => s.userId === user.user?.userId));
+	const { activeYellowCards, yellowCardDialog, openYellowCardDialog, onYellowCardDialogSubmit } = useModerationYellowCard(base);
+	const { redCardMembers, revokedRedCardMembers, redCardDialog, openRedCardDialog, onRedCardDialogSubmit, revokeRedCard } = useModerationRedCard(base);
+	const { kickDialog, openKickDialog, onKickDialogSubmit } = useModerationKick();
+	const { timeoutDialog, activeTimeouts, isUserTimedOut, canTimeoutUser, refreshTimeoutStatus, revokeTimeout, openTimeoutDialog, onTimeoutDialogSubmit } =
+		useModerationTimeout(base);
+	const { contactSteward } = useModerationMembership(base);
+	const { canWhisperFromContextMenu, startWhisperToMember } = useModerationWhisper();
+	const numberOfSanctionedMembers = computed(
+		() => redCardMembers.value.length + activeYellowCards.value.length + revokedRedCardMembers.value.length + activeTimeouts.value.length,
+	);
+
+	// Refs
+	const now = ref(Date.now());
+	let timeoutIntervalId: ReturnType<typeof setInterval> | undefined;
+
+	// Lifecycle
+	onMounted(() => {
+		// Update every minute for the timeout countdown display
+		timeoutIntervalId = setInterval(() => {
+			now.value = Date.now();
+			// Check if any timeouts have expired and refresh the status
+			if (activeTimeouts.value.some((t) => t.timeout_until <= now.value)) {
+				refreshTimeoutStatus();
+			}
+		}, 60000);
+	});
+
+	onUnmounted(() => {
+		if (timeoutIntervalId) {
+			clearInterval(timeoutIntervalId);
+		}
+	});
+
+	// Functions
+	/**
+	 * Formats the remaining timeout duration rounded down to minutes.
+	 * @param timeoutUntil - Unix timestamp in milliseconds when timeout expires
+	 * @returns Formatted string like "2h 30m", "45m", or "< 1m"
+	 */
+	const formatTimeoutCountdown = (timeoutUntil: number): string => {
+		// Reference now.value to make this reactive
+		const remainingMs = Math.max(0, timeoutUntil - now.value);
+		const totalSeconds = Math.floor(remainingMs / 1000);
+		const totalMinutes = Math.floor(totalSeconds / 60);
+
+		if (totalMinutes === 0) return '< 1m';
+		if (totalMinutes < 60) return `${totalMinutes}m`;
+
+		const hours = Math.floor(totalMinutes / 60);
+		const mins = totalMinutes % 60;
+
+		if (hours >= 24) {
+			const days = Math.floor(hours / 24);
+			const remainingHours = hours % 24;
+			return `${days}d ${remainingHours}h`;
+		}
+
+		return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+	};
 
 	const startDM = async (userId: string) => {
 		if (sidebar.isMobile.value) sidebar.close();
@@ -298,57 +392,82 @@
 		if (memberId === user.user?.userId || props.disableDM) return [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
 		const stewardActions: MenuItem[] = [];
-		const destructive: MenuItem[] = [];
 
 		if (canWhisperFromContextMenu.value && settings.isFeatureEnabled(FeatureFlag.whisper)) {
 			stewardActions.push({
 				label: t('menu.whisper'),
 				icon: 'whisper',
 				onClick: () => startWhisperToMember(memberId),
+				variant: ContextVariant.steward,
 			});
 		}
-
+		if (roles.userHasPermissionForAction(UserAction.Kick)) {
+			stewardActions.push({
+				label: capitalize(t('moderation.remove_from_room')),
+				icon: 'boot',
+				onClick: () => openKickDialog(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
+			});
+		}
+		if (roles.userHasPermissionForAction(UserAction.Timeout) && canTimeoutUser(memberId)) {
+			if (isUserTimedOut(memberId)) {
+				stewardActions.push({
+					label: capitalize(t('moderation.revoke_timeout')),
+					icon: 'clock-counter-clockwise',
+					onClick: () => revokeTimeout(props.room.roomId, memberId),
+					variant: ContextVariant.steward,
+				});
+			} else {
+				stewardActions.push({
+					label: capitalize(t('moderation.issue_timeout')),
+					icon: 'clock',
+					onClick: () => openTimeoutDialog(props.room.roomId, memberId),
+					variant: ContextVariant.steward,
+					title: capitalize(t('moderation.issue_timeout_info', { name: user.userDisplayName(memberId) ?? memberId })),
+				});
+			}
+		}
 		if (roles.userHasPermissionForAction(UserAction.Kick)) {
 			stewardActions.push({
 				label: capitalize(t('moderation.issue_yellow_card')),
 				icon: 'exclamation-mark',
-				onClick: () => openCardDialog('yellow', props.room.roomId, memberId),
+				onClick: () => openYellowCardDialog(props.room.roomId, memberId),
 				variant: ContextVariant.yellow,
-				title: t('moderation.issue_yellow_card_info'),
+				title: capitalize(t('moderation.issue_yellow_card_info')),
 			});
 		}
 
 		if (roles.userHasPermissionForAction(UserAction.Ban)) {
-			destructive.push({
+			stewardActions.push({
 				label: capitalize(t('moderation.issue_red_card')),
 				icon: 'exclamation-mark',
-				onClick: () => openCardDialog('red', props.room.roomId, memberId),
+				onClick: () => openRedCardDialog(props.room.roomId, memberId),
 				variant: ContextVariant.delicate,
-				title: t('moderation.issue_red_card_info'),
+				title: capitalize(t('moderation.issue_red_card_info')),
 			});
 		}
 
 		const divider: MenuItem = { divider: true, label: '' };
-		return [social, stewardActions, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	};
 
 	const getYellowCardContextMenuItems = (memberId: string): MenuItem[] => {
 		if (memberId === user.user?.userId || props.disableDM) return [];
-		const destructive: MenuItem[] = [];
+		const stewardActions: MenuItem[] = [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
 
 		if (roles.userHasPermissionForAction(UserAction.Ban)) {
-			destructive.push({
+			stewardActions.push({
 				label: capitalize(t('moderation.issue_red_card')),
 				icon: 'exclamation-mark',
-				onClick: () => openCardDialog('red', props.room.roomId, memberId),
+				onClick: () => openRedCardDialog(props.room.roomId, memberId),
 				variant: ContextVariant.delicate,
-				title: t('moderation.issue_red_card_info'),
+				title: capitalize(t('moderation.issue_red_card_info')),
 			});
 		}
 
 		const divider: MenuItem = { divider: true, label: '' };
-		return [social, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	};
 
 	const getRedCardContextMenuItems = (memberId: string): MenuItem[] => {
@@ -359,8 +478,9 @@
 		if (roles.userHasPermissionForAction(UserAction.Ban)) {
 			stewardActions.push({
 				label: capitalize(t('moderation.revoke_red_card')),
-				icon: 'arrow-bend-up-left',
+				icon: 'arrows-counter-clockwise',
 				onClick: () => revokeRedCard(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
 			});
 		}
 
@@ -368,7 +488,7 @@
 		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	};
 
-	function getUserPowerUserMenuItems(memberId: string) {
+	function getPowerUserMenuItems(memberId: string) {
 		if (memberId === user.user?.userId || props.disableDM) return [];
 		const stewardActions: MenuItem[] = [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
@@ -378,9 +498,28 @@
 				label: t('menu.whisper'),
 				icon: 'whisper',
 				onClick: () => startWhisperToMember(memberId),
+				variant: ContextVariant.steward,
 			});
 		}
 		const divider: MenuItem = { divider: true, label: '' };
 		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	}
+
+	const getTimeoutContextMenuItems = (memberId: string): MenuItem[] => {
+		if (memberId === user.user?.userId || props.disableDM) return [];
+		const stewardActions: MenuItem[] = [];
+		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
+
+		if (roles.userHasPermissionForAction(UserAction.Timeout)) {
+			stewardActions.push({
+				label: capitalize(t('moderation.revoke_timeout')),
+				icon: 'clock-counter-clockwise',
+				onClick: () => revokeTimeout(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
+			});
+		}
+
+		const divider: MenuItem = { divider: true, label: '' };
+		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+	};
 </script>

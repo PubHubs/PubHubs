@@ -6,11 +6,13 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result};
 use url::Url;
 
-use crate::misc::serde_ext::bytes_wrapper::B64UU;
+use crate::misc::serde_ext::bytes_wrapper::{B64, B64UU};
 use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
-    attr, elgamal, hub,
+    attr,
+    common::{elgamal, kem},
+    hub,
     misc::{jwt, serde_ext, time_ext},
     servers::yivi,
 };
@@ -83,9 +85,11 @@ pub struct ServerConfig<ServerSpecific> {
     #[serde(default = "default_ips")]
     pub ips: Box<[std::net::IpAddr]>,
 
-    // Note: #[serde(skip)] does not consume the 'bind_to' key
-    /// Deprecated.
-    pub bind_to: serde_ext::Skip,
+    /// Deprecated; consumed and ignored on read, omitted on write.
+    // `skip_serializing` rather than `skip`: an old config may still carry the `bind_to` key, and
+    // `skip` would not consume it — which `deny_unknown_fields` then rejects as an unknown field.
+    #[serde(default, skip_serializing)]
+    pub bind_to: serde::de::IgnoredAny,
 
     /// Random string used by this server to identify itself.  Randomly generated if not set.
     /// May be set manually when multiple instances of the same server are used.
@@ -95,20 +99,27 @@ pub struct ServerConfig<ServerSpecific> {
     /// If `None`, one is generated automatically (which is not suitable for production.)
     ///
     /// Generate using `cargo run tools generate signing-key`.
-    pub jwt_key: Option<api::SigningKey>,
+    pub signing_key: Option<api::SigningKeyBytes>,
 
-    /// Each server advertises an [`elgamal::PublicKey`] so that shared secrets may be established
-    /// with this server, and also encrypted messages may be sent to it.
-    ///
-    /// This key is also used to derive non-permanent secrets, like the the transcryptor's
-    /// encryption factor f_H for a hub H.
-    ///
-    /// Generate using `cargo run tools generate scalar`.
-    pub enc_key: Option<elgamal::PrivateKey>,
+    /// Deprecated, superseded by [`signing_key`](Self::signing_key); accepted (and ignored) so that
+    /// existing config files still carrying the old ed25519 `jwt_key` continue to load.  Omitted on
+    /// write.
+    #[serde(default, skip_serializing)]
+    pub jwt_key: serde::de::IgnoredAny,
 
-    /// Key used by admin to sign requests for the admin endpoints.
-    /// If `None`, one is generated automatically and the private key is  printed to the log.
-    pub admin_key: Option<api::VerifyingKey>,
+    /// Secret seed used only to derive this server's own non-permanent local secrets.
+    ///
+    /// Formerly an ElGamal private key that was also published (as `enc_key`) and used to establish
+    /// inter-server shared secrets; both of those roles now belong to the post-quantum KEM, so a
+    /// zero placeholder is published in its stead and only the local-seed role remains.
+    ///
+    /// If `None`, one is generated automatically (which is not suitable for production).
+    pub enc_key: Option<B64>,
+
+    /// Symmetric (HMAC) key, hex-encoded, that authenticates requests to the admin endpoints; the
+    /// same secret signs (admin cli) and verifies (server).
+    /// If `None`, one is generated automatically and printed to the log.
+    pub admin_key: Option<serde_ext::bytes_wrapper::B16>,
 
     /// If the server needs an object store, use this one.
     pub object_store: Option<ObjectStoreConfig>,
@@ -383,8 +394,9 @@ pub mod phc {
         #[serde(default)]
         pub user_quota: api::phc::user::Quota,
 
-        /// Deprecated.
-        pub card: serde_ext::Skip,
+        /// Deprecated; consumed and ignored on read, omitted on write.
+        #[serde(default, skip_serializing)]
+        pub card: serde::de::IgnoredAny,
 
         #[serde(default)]
         pub hub_cache: crate::servers::phc::HubCacheConfig,
@@ -423,6 +435,12 @@ pub mod transcryptor {
         ///
         /// Randomly generated when not set.t
         pub pseud_factor_secret: Option<B64UU>,
+
+        /// Hybrid post-quantum [`kem`] decapsulation key, used to establish a shared secret
+        /// with pubhubs central.  Randomly generated when not set.
+        ///
+        /// Generate using `cargo run tools generate decap-key`
+        pub decap_key: Option<kem::DecapKeyBytes>,
     }
 }
 
@@ -449,6 +467,12 @@ pub mod auths {
         /// Randomly generated when not set.  When changed, users loose access to all data
         /// stored at PHC.
         pub attr_key_secret: Option<B64UU>,
+
+        /// Hybrid post-quantum [`kem`] decapsulation key, used to establish a shared secret
+        /// with pubhubs central.  Randomly generated when not set.
+        ///
+        /// Generate using `cargo run tools generate decap-key`
+        pub decap_key: Option<kem::DecapKeyBytes>,
     }
 
     fn default_auth_window() -> core::time::Duration {
@@ -567,21 +591,25 @@ impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerCon
         self.self_check_code
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
-        self.jwt_key.get_or_insert_with(api::SigningKey::generate);
-        self.enc_key.get_or_insert_with(elgamal::PrivateKey::random);
-
-        self.admin_key.get_or_insert_with(|| {
-            let sk = api::SigningKey::generate();
-
-            log::info!(
-                "{} admin key: {}",
-                Extra::ServerT::NAME,
-                serde_json::to_string(&sk)
-                    .expect("unexpected error during serialization of admin key")
+        if self.signing_key.is_none() {
+            self.signing_key = Some(
+                api::SigningKey::generate()
+                    .map_err(|_| anyhow::anyhow!("failed to generate signing key"))?
+                    .encode(),
             );
-
-            sk.verifying_key().into()
+        }
+        self.enc_key.get_or_insert_with(|| {
+            serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
         });
+
+        if self.admin_key.is_none() {
+            let admin_key =
+                serde_ext::bytes_wrapper::B16::from_bytes(crate::misc::crypto::random_32_bytes());
+
+            log::info!("{} admin key: {admin_key}", Extra::ServerT::NAME);
+
+            self.admin_key = Some(admin_key);
+        }
 
         if let &mut Some(&mut ref mut osc) = &mut self.object_store.as_mut() {
             c.get::<HostAliases>()
@@ -595,6 +623,18 @@ impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerCon
     }
 }
 
+/// Populates `slot` with a freshly generated [`kem::DecapKeyBytes`] if it is `None`.
+fn ensure_decap_key(slot: &mut Option<kem::DecapKeyBytes>) -> anyhow::Result<()> {
+    if slot.is_none() {
+        *slot = Some(
+            kem::DecapKey::generate()
+                .and_then(|dk| dk.encode())
+                .map_err(|_| anyhow::anyhow!("generating kem decapsulation key"))?,
+        );
+    }
+    Ok(())
+}
+
 impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
     async fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
@@ -603,6 +643,8 @@ impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
         self.pseud_factor_secret.get_or_insert_with(|| {
             serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
         });
+
+        ensure_decap_key(&mut self.decap_key)?;
 
         Ok(())
     }
@@ -656,6 +698,8 @@ impl PrepareConfig<Pcc> for auths::ExtraConfig {
         self.attr_key_secret.get_or_insert_with(|| {
             serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
         });
+
+        ensure_decap_key(&mut self.decap_key)?;
 
         Ok(())
     }

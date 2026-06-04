@@ -23,9 +23,9 @@
 
 				<!-- Expands if the timeline height < the vieport, to top-align the content -->
 				<div class="flex h-full items-center justify-center px-4 md:px-16">
-					<InlineSpinner v-if="!initialLoadComplete && reversedTimeline.length === 0" />
+					<InlineSpinner v-if="!props.room.syncDataReceived && reversedTimeline.length === 0" />
 					<P
-						v-else-if="initialLoadComplete && reversedTimeline.length === 0"
+						v-else-if="props.room.syncDataReceived && reversedTimeline.length === 0"
 						class="text-on-surface-dim text-center"
 					>
 						{{ $t('rooms.no_messages_yet') }}
@@ -47,9 +47,7 @@
 								class="room-event"
 								:class="props.eventIdToScroll === item.matrixEvent.event.event_id && 'animate-highlight'"
 								:data-event-id="item.matrixEvent.event.event_id"
-								:deleted-event="item.isDeleted"
-								:event="item.matrixEvent.event"
-								:event-thread-length="item.threadLength.value"
+								:event="item"
 								:is-followed-by-grouped="isFollowedByGrouped(index)"
 								:is-grouped="isGroupedMessage(index)"
 								:room="room"
@@ -133,6 +131,7 @@
 	import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 	// Components
+	import P from '@hub-client/components/elements/P.vue';
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
@@ -494,6 +493,19 @@
 			if (settings.isFeatureEnabled(FeatureFlag.dateSplitter)) {
 				handleDateDisplayer(entries);
 			}
+
+			// From visible threads: fetch matrixthread and events for replycount in messagebubble
+			entries
+				.filter((e) => e.isIntersecting)
+				.forEach((entry) => {
+					const eventId = entry.target.id;
+					const timelineEvent = props.room.findTimelinEventById(eventId);
+					if (!timelineEvent) return;
+					if (!timelineEvent.thread.isMatrixThreadSet) {
+						timelineEvent.thread.setMatrixThread(props.room.getOrCreateMatrixThread(eventId));
+					}
+					timelineEvent.thread.fetchEvents().catch(() => {});
+				});
 		};
 
 		eventObserver?.setUpObserver(combinedHandler);
@@ -589,7 +601,26 @@
 		await rooms.waitForInitialRoomsLoaded();
 
 		if (!rooms.currentRoom) return;
-		if (!newestEventIsLoaded.value) return;
+
+		// Fresh room load - handle initial scroll and pagination
+		if (oldTimelineLength === 0 && newTimelineLength > 0) {
+			await nextTick();
+			setupPaginationObserver(topSentinel, bottomSentinel);
+			setupEventIntersectionObserver();
+
+			if (!isInitialScrollComplete.value) {
+				await performInitialScroll({
+					explicitEventId: props.eventIdToScroll,
+					lastReadEventId: displayedReadMarker.value ?? props.lastReadEventId,
+				});
+			}
+
+			return;
+		}
+
+		if (!newestEventIsLoaded.value) {
+			return;
+		}
 
 		// Notify scroll composable about new messages (for indicator)
 		// Skip during pagination - these are old messages being loaded, not new ones
@@ -623,17 +654,6 @@
 			await nextTick();
 			setupEventIntersectionObserver();
 		}
-
-		// If initial scroll hasn't happened yet and events just loaded, perform it now
-		if (!isInitialScrollComplete.value && oldTimelineLength === 0 && newTimelineLength > 0) {
-			await performInitialScroll({
-				explicitEventId: props.eventIdToScroll,
-				lastReadEventId: displayedReadMarker.value ?? props.lastReadEventId,
-			});
-			return;
-		}
-
-		logger.info(`onTimelineChange ended`);
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
@@ -662,16 +682,16 @@
 		eventToBeDeletedIsThreadRoot = isThreadRoot;
 	}
 
-	async function deleteMessage() {
+	async function deleteMessage(reason?: string) {
 		if (eventToBeDeleted.value) {
-			rooms.currentRoom?.deleteMessage(eventToBeDeleted.value, eventToBeDeletedIsThreadRoot);
+			rooms.currentRoom?.deleteMessage(eventToBeDeleted.value, eventToBeDeletedIsThreadRoot, undefined, reason);
 			logger.info(`Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
 		}
 	}
 
 	function waitObservingEvent() {
 		let timer = setInterval(function () {
-			if (props.room.getLiveTimelineNewestEvent()?.event_id?.substring(0, 1) !== '~') {
+			if (props.room.getLiveTimelineNewestEvent()?.event.event_id?.substring(0, 1) !== '~') {
 				setupEventIntersectionObserver();
 				clearInterval(timer);
 			}

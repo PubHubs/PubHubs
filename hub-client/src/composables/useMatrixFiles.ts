@@ -62,9 +62,7 @@ const useMatrixFiles = () => {
 
 		const matrixURL = formUrlfromMxc(url, true);
 
-		const fetchedAuthorizedUrl = await pubhubs.fetchAuthorizedMediaUrl(matrixURL);
-		if (fetchedAuthorizedUrl === null) throw new Error('Could not get authorized media URL');
-		return fetchedAuthorizedUrl;
+		return await pubhubs.fetchAuthorizedMediaUrl(matrixURL);
 	}
 
 	return {

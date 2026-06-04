@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="flex w-fit cursor-pointer items-center gap-3 truncate rounded-md px-2 text-nowrap"
-		:class="showInReplyTo ? 'bg-surface-elevated' : 'bg-surface-background'"
+		class="rounded-base flex w-fit cursor-pointer items-center gap-3 truncate px-2 text-nowrap"
+		:class="showInReplyTo ? 'bg-surface-base border-surface-elevated border-3' : 'bg-surface-background'"
 	>
 		<Icon
 			v-if="showInReplyTo"
@@ -25,7 +25,16 @@
 				:size="'sm'"
 				type="trash"
 			/>
-			<p class="line-clamp-1">
+			<p
+				v-if="hiddenMessageLabel"
+				class="line-clamp-1"
+			>
+				{{ hiddenMessageLabel }}
+			</p>
+			<p
+				v-else
+				class="line-clamp-1"
+			>
 				{{ snippetText }}
 			</p>
 		</div>
@@ -39,6 +48,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 
 	// Composables
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
@@ -57,10 +67,12 @@
 		// Whether or not to show the text "In reply to:" inside the snippet.
 		showInReplyTo?: boolean;
 		room: Room;
+		hiddenMessageLabel?: string;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
 		showInReplyTo: false,
+		hiddenMessageLabel: '',
 	});
 	const { color, textColor } = useUserColor();
 	const pubhubs = usePubhubsStore();

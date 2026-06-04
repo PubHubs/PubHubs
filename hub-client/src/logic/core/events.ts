@@ -5,12 +5,18 @@ import { EventTimeLineHandler } from '@hub-client/logic/core/eventTimeLineHandle
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
+import { MatrixEventType } from '@hub-client/models/constants';
 // Models
 import { type TEvent } from '@hub-client/models/events/TEvent';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
+
+enum PubHubsStateEventType {
+	Timeout = 'pubhubs.timeout',
+	YellowCard = 'pubhubs.yellow_card',
+}
 
 enum PubHubsMsgType {
 	Default = '',
@@ -33,6 +39,8 @@ enum PubHubsMsgType {
 	VideoCallModify = 'pubhubs.videocall.modify',
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
+	ForumTopic = MatrixEventType.RoomMessage, // 'm.room.message',
+	HideMessage = 'pubhubs.hide_message',
 }
 
 enum PubHubsInvisibleMsgType {
@@ -121,4 +129,4 @@ class Events {
 	}
 }
 
-export { Events, PubHubsMsgType as PubHubsMgType, PubHubsInvisibleMsgType };
+export { Events, PubHubsMsgType as PubHubsMgType, PubHubsInvisibleMsgType, PubHubsStateEventType };

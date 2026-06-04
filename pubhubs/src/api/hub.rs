@@ -24,7 +24,7 @@ pub struct InfoResp {
     /// (Not currently returned by actual hubs.)
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub verifying_key: Option<VerifyingKey>,
+    pub verifying_key: Option<VerifyingKeyBytes>,
 
     /// String describing the hub version, likely the result of `git describe --tags`
     pub hub_version: String,
@@ -43,7 +43,8 @@ pub struct InfoResp {
 #[serde(deny_unknown_fields)]
 #[must_use]
 pub struct DynamicHubInfo {
-    /// The last time these settings were reloaded by the hub
+    /// The last time these settings were reloaded by the hub, which a hub generally does every
+    /// minute.
     pub last_reload: NumericDate,
 
     /// Hub settings set by admin
@@ -70,6 +71,13 @@ pub struct EnterStartResp {
 
     /// Opaque number used only once to be included in the hub pseudonym package.
     pub nonce: EnterNonce,
+
+    /// The HHPP signature scheme this hub can verify.  The global client must relay it to
+    /// [`HhppReq::hhpp_signature_scheme`](crate::api::phc::user::HhppReq::hhpp_signature_scheme) so
+    /// PHC signs with a key the hub accepts.  Absent ⇒
+    /// [`Ed25519`](sso::HhppSignatureScheme::Ed25519), for hubs predating the hybrid migration.
+    #[serde(default, skip_serializing_if = "sso::HhppSignatureScheme::is_default")]
+    pub hhpp_signature_scheme: sso::HhppSignatureScheme,
 }
 
 /// Type of [`EnterStartResp::state`]

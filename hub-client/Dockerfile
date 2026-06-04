@@ -15,11 +15,8 @@ COPY --from=builder /usr/src/app/hub-client/dist /usr/var/static
 COPY hub-client/nginx.conf /etc/nginx/templates/default.conf.template
 
 COPY hub-client/start.sh .
-COPY hub-client/rebrand.sh .
-COPY hub-client/branding ./branding
 
 RUN chmod +x ./start.sh
-RUN chmod +x ./rebrand.sh
 
 EXPOSE 8800
 

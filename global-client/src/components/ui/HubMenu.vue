@@ -28,7 +28,6 @@
 							v-if="global.loggedIn || element.hubId === hubs.currentHubId"
 							:active="isActive"
 							class="text-on-surface"
-							:hub="hubs.hub(element.hubId)"
 							:hub-id="element.hubId"
 							:pinned="true"
 							@click="sendToHub"
@@ -76,6 +75,7 @@
 	// Components
 	import HubMenuHubIcon from '@global-client/components/ui/HubMenuHubIcon.vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	// Hub imports
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 

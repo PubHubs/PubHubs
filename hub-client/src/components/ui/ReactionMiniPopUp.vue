@@ -30,19 +30,18 @@
 				class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary relative flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 				@click.stop="openEmojiPanel()"
 			>
-				<Icon
-					size="xs"
-					type="plus"
-				/>
+				<Icon type="plus" />
 			</button>
 		</div>
 	</div>
 </template>
 
 <script lang="ts" setup>
-	import Icon from '../elements/Icon.vue';
-	import EmojiPicker from './EmojiPicker.vue';
 	import { ref } from 'vue';
+
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	// Components
+	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
 
 	import type Room from '@hub-client/models/rooms/Room';
 

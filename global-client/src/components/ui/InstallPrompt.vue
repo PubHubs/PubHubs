@@ -90,9 +90,9 @@
 				<Checkbox
 					v-model="neverShowAgain"
 					class="pt-3"
-					color="blue"
-					:label="$t('pwa.do_not_show_again')"
-				/>
+				>
+					{{ $t('pwa.do_not_show_again') }}
+				</Checkbox>
 				<p class="text-label-small pt-1 italic">
 					{{ $t('pwa.find_instructions') }}
 				</p>
@@ -112,7 +112,7 @@
 	import H1 from '@hub-client/components/elements/H1.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
+	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
 
 	// Stores
 	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';

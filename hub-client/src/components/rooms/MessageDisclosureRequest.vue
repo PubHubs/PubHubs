@@ -2,7 +2,7 @@
 	<div class="flex flex-col gap-2">
 		<P> {{ discosureRequest.message }} </P>
 		<div
-			class="bg-surface flex h-full items-center justify-evenly gap-x-4 rounded-2xl border p-4"
+			class="bg-surface-base rounded-base border-surface-elevated flex h-full items-center justify-evenly gap-x-4 border-3 p-4"
 			:class="!isMobile ? 'max-w-[700px] flex-row px-12' : 'w-full flex-col'"
 		>
 			<div class="flex w-full flex-col gap-2">
@@ -45,6 +45,10 @@
 <script lang="ts" setup>
 	import { computed, nextTick, ref, toRaw } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import P from '@hub-client/components/elements/P.vue';
 
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 

@@ -1,48 +1,16 @@
 <template>
-	<div class="bg-surface flex max-w-[700px] flex-col gap-3 rounded-xl border p-8">
+	<div class="bg-surface-base rounded-base border-surface-elevated flex max-w-[700px] flex-col gap-3 border-3 p-8">
 		<!-- Title -->
 		<div class="flex items-center">
 			<h3 class="font-bold">
 				{{ t('admin.disclosure_sign_message') }}
 			</h3>
-
 			<Icon
-				class="text-accent-red p-[0.6rem]"
-				size="sm"
-				type="warning"
-				@mouseout="showVerificationStatus = false"
-				@mouseover="showVerificationStatus = true"
-			/>
-
-			<div class="relative">
-				<div
-					v-if="showVerificationStatus"
-					class="bg-surface-high absolute right-0 bottom-6 w-40 rounded-md p-2"
-				>
-					<p class="text-label-small">
-						{{ $t('message.messageSigned.verificationStatus') }}
-					</p>
-				</div>
-			</div>
-
-			<Icon
-				class="ml-auto p-[0.6rem]"
+				class="ml-auto"
 				size="sm"
 				type="info"
-				@mouseout="showInfo = false"
-				@mouseover="showInfo = true"
+				:title="$t('message.messageSigned.info')"
 			/>
-
-			<div class="relative">
-				<div
-					v-if="showInfo"
-					class="bg-surface-high absolute right-2 bottom-6 w-40 rounded-md p-2"
-				>
-					<p class="text-label-small">
-						{{ $t('message.messageSigned.info') }}
-					</p>
-				</div>
-			</div>
 		</div>
 
 		<!-- Disclosed values (main content) -->
@@ -78,15 +46,18 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { capitalize, computed, ref } from 'vue';
+	import { capitalize, computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import P from '@hub-client/components/elements/P.vue';
 
 	// Models
 	import { type SignedMessage, getDisclosedAttributes, getMessage } from '@hub-client/models/components/signedMessages';
 
+	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
 	// Types
@@ -94,12 +65,11 @@
 		message: SignedMessage;
 	};
 
+	// Props
 	defineProps<Props>();
+
 	const { t } = useI18n();
 	const settings = useSettings();
 
 	const isMobile = computed(() => settings.isMobileState);
-
-	const showInfo = ref(false);
-	const showVerificationStatus = ref(false);
 </script>

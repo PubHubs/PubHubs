@@ -49,7 +49,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Props
-	type Variant = 'admin' | 'steward' | 'sign' | 'reply';
+	type Variant = 'steward' | 'sign' | 'reply';
 
 	const props = defineProps<{
 		icon: string;
@@ -63,10 +63,6 @@
 	}>();
 
 	const variantStyles = {
-		admin: {
-			container: 'bg-accent-admin/10 border-accent-admin',
-			text: 'text-accent-admin',
-		},
 		steward: {
 			container: 'bg-accent-steward/10 border-accent-steward',
 			text: 'text-accent-steward',

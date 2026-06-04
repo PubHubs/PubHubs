@@ -12,6 +12,7 @@ use crate::api::{self, ApiResultExt as _, EndpointDetails as _, NoPayload};
 use crate::client;
 use crate::common::secret::DigestibleSecret as _;
 use crate::handle;
+use crate::id;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::misc::serde_ext;
@@ -22,7 +23,10 @@ use crate::servers::{
     constellation,
 };
 
-use crate::{elgamal, hub};
+use crate::{
+    common::{elgamal, kem},
+    hub,
+};
 
 /// PubHubs Central server
 pub type Server = servers::ServerImpl<Details>;
@@ -33,28 +37,35 @@ impl servers::Details for Details {
     type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
+    type RunningStateSeed = RunningStateSeed;
     type ExtraSharedState = ExtraSharedState;
+    type ExtraServerState = ();
     type ObjectStoreT = servers::object_store::DefaultObjectStore;
 
     fn create_running_state(
-        server: &Server,
-        constellation: &Constellation,
+        _server: &Server,
+        _constellation: &Constellation,
+        seed: &RunningStateSeed,
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let auths_ss = server.enc_key.shared_secret(&constellation.auths_enc_key);
-        let t_ss = server
-            .enc_key
-            .shared_secret(&constellation.transcryptor_enc_key);
+        // The hybrid post-quantum shared secrets PHC encapsulated for its peers during `discover`.
+        let t_ss = seed.t_ss.clone();
+        let auths_ss = seed.auths_ss.clone();
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
             t_sealing_secret: phcrypto::sealing_secret(&t_ss),
             auths_sealing_secret: phcrypto::sealing_secret(&auths_ss),
-            auths_ss,
+            master_enc_key: seed.master_enc_key.clone(),
             t_ss,
+            auths_ss,
         })
     }
 
     fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
         Ok(ExtraSharedState {})
+    }
+
+    fn create_extra_server_state(_config: &servers::Config) -> anyhow::Result<()> {
+        Ok(())
     }
 }
 
@@ -93,12 +104,11 @@ impl Deref for App {
 
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
-    /// Shared secret with transcryptor
-    pub(super) t_ss: elgamal::SharedSecret,
+    /// Hybrid post-quantum shared secret with the transcryptor.
+    pub(super) t_ss: kem::SharedSecret,
 
-    /// Shared secret with authentication server
-    #[expect(dead_code)]
-    pub(super) auths_ss: elgamal::SharedSecret,
+    /// Hybrid post-quantum shared secret with the authentication server.
+    pub(super) auths_ss: kem::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with the authentication server
     ///
@@ -111,12 +121,28 @@ pub struct ExtraRunningState {
     /// Key used to (un)seal messages to and from the authentication server
     #[expect(dead_code)]
     pub(super) auths_sealing_secret: crypto::SealingKey,
+
+    /// The master encryption key `x_T x_PHC B`, derived from the transcryptor's sealed master key
+    /// part.  `None` until PHC has been able to unseal it (e.g. while the transcryptor has not yet
+    /// published a sealed part).  Held here because it is no longer part of the (public)
+    /// constellation.
+    pub(super) master_enc_key: Option<elgamal::PublicKey>,
+}
+
+/// Data threaded out of PHC's [`discover`](crate::servers::App::discover) into
+/// [`create_running_state`](crate::servers::Details::create_running_state): the hybrid KEM shared
+/// secrets PHC encapsulated for its peers, plus the master encryption key it derived from the
+/// transcryptor's sealed master key part.
+pub struct RunningStateSeed {
+    pub(super) t_ss: kem::SharedSecret,
+    pub(super) auths_ss: kem::SharedSecret,
+    pub(super) master_enc_key: Option<elgamal::PublicKey>,
 }
 
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
-        api::phct::hub::KeyEP::add_to(self, sc, App::handle_hub_key);
+        api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
 
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
@@ -146,7 +172,7 @@ impl crate::servers::App<Server> for App {
     async fn discover(
         self: &Rc<Self>,
         _phc_di: api::DiscoveryInfoResp,
-    ) -> api::Result<DiscoverVerdict> {
+    ) -> api::Result<DiscoverVerdict<RunningStateSeed>> {
         let (tdi_res, asdi_res) = tokio::join!(
             self.discovery_info_of(servers::Name::Transcryptor, &self.transcryptor_url),
             self.discovery_info_of(servers::Name::AuthenticationServer, &self.auths_url)
@@ -195,34 +221,98 @@ impl crate::servers::App<Server> for App {
             }
         }
 
-        let transcryptor_master_enc_key_part = tdi
-            .master_enc_key_part
-            .expect("should already have been checked to be some by discovery_info_of");
+        let current_rs = self.running_state.as_ref();
+
+        let t_prior = current_rs.and_then(|rs| {
+            let id = rs.constellation.transcryptor_encap_key_id.as_ref()?;
+            let ct = rs.constellation.transcryptor_ss_encap.as_ref()?;
+            Some((id, ct, &rs.t_ss))
+        });
+        let (transcryptor_encap_key_id, transcryptor_ss_encap, t_ss) =
+            Self::encap_or_reuse(tdi.encap_key.as_ref(), t_prior)?;
+
+        let auths_prior = current_rs.and_then(|rs| {
+            let id = rs.constellation.auths_encap_key_id.as_ref()?;
+            let ct = rs.constellation.auths_ss_encap.as_ref()?;
+            Some((id, ct, &rs.auths_ss))
+        });
+        let (auths_encap_key_id, auths_ss_encap, auths_ss) =
+            Self::encap_or_reuse(asdi.encap_key.as_ref(), auths_prior)?;
+
         let new_constellation_inner = constellation::Inner {
-            // The public master encryption key is `x_PHC * ( x_T * B )`
-            master_enc_key: phcrypto::combine_master_enc_key_parts(
-                &transcryptor_master_enc_key_part,
-                &self.master_enc_key_part,
-            ),
-            transcryptor_master_enc_key_part,
+            // placeholder; the real master encryption key `x_PHC x_T B` is held off-wire in PHC's
+            // running state (derived from the transcryptor's sealed master key part)
+            master_enc_key: Some(elgamal::PublicKey::zero()),
+            // placeholder; superseded by `transcryptor_master_enc_key_part_hash`
+            transcryptor_master_enc_key_part: Some(elgamal::PublicKey::zero()),
+            // the transcryptor publishes the hash of `x_T B` in its discovery info
+            transcryptor_master_enc_key_part_hash: tdi.master_enc_key_part_hash,
+            phc_master_enc_key_part_hash: Some(phcrypto::master_enc_key_part_hash(
+                self.master_enc_key_part.public_key(),
+            )),
             global_client_url: self.global_client_url.clone(),
             phc_url: self.phc_url.clone(),
-            phc_jwt_key: self.jwt_key.verifying_key().into(),
-            phc_enc_key: self.enc_key.public_key().clone(),
+            // PHC's ed25519 public key (the `ed` half), so pre-hybrid hubs can verify the EdDSA HHPP.
+            phc_jwt_key: crate::misc::serde_ext::ByteArray::from(
+                self.signing_key.verifying_key().ed25519_bytes(),
+            )
+            .into(),
+            phc_verifying_key: Some(self.verifying_key_bytes.clone()),
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            phc_enc_key: Some(elgamal::PublicKey::zero()),
             transcryptor_url: self.transcryptor_url.clone(),
-            transcryptor_jwt_key: tdi.jwt_key,
-            transcryptor_enc_key: tdi.enc_key,
+            transcryptor_jwt_key: api::DeprecatedJwtKey::default(),
+            // cloned (not moved) so `tdi` stays whole for `master_enc_key_from_sealed_part` below
+            transcryptor_verifying_key: tdi.verifying_key.clone(),
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            transcryptor_enc_key: Some(elgamal::PublicKey::zero()),
+            transcryptor_encap_key_id,
+            transcryptor_ss_encap,
             auths_url: self.auths_url.clone(),
-            auths_jwt_key: asdi.jwt_key,
-            auths_enc_key: asdi.enc_key,
+            auths_jwt_key: api::DeprecatedJwtKey::default(),
+            auths_verifying_key: asdi.verifying_key.clone(),
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            auths_enc_key: Some(elgamal::PublicKey::zero()),
+            auths_encap_key_id,
+            auths_ss_encap,
             ph_version: self.version.clone(),
+        };
+
+        let new_constellation_id = constellation::Inner::derive_id(&new_constellation_inner);
+
+        // PHC keeps the master encryption key once derived: it never changes in a real deployment
+        // (changing it would invalidate every polymorphic pseudonym).  The exception is an ephemeral
+        // local test setup that regenerates the key parts; detect that via their hashes in the
+        // constellation, warn loudly, and drop the now-stale key so it is re-derived.
+        let prior_master_enc_key = 'prior: {
+            let Some(rs) = self.running_state.as_ref() else {
+                break 'prior None;
+            };
+            if rs.constellation.transcryptor_master_enc_key_part_hash
+                != new_constellation_inner.transcryptor_master_enc_key_part_hash
+                || rs.constellation.phc_master_enc_key_part_hash
+                    != new_constellation_inner.phc_master_enc_key_part_hash
+            {
+                log::warn!(
+                    "a master encryption key part changed; this invalidates all existing \
+                     polymorphic pseudonyms and should only happen in an ephemeral test setup"
+                );
+                break 'prior None;
+            }
+            rs.master_enc_key.clone()
+        };
+
+        // Otherwise derive it from the transcryptor's sealed master key part — but only once the
+        // transcryptor has adopted the constellation PHC is computing, so the part is sealed under
+        // the shared secret PHC currently holds and the unseal is guaranteed to succeed.
+        let master_enc_key = match prior_master_enc_key {
+            existing @ Some(_) => existing,
+            None => self.master_enc_key_from_sealed_part(&tdi, &t_ss, new_constellation_id)?,
         };
 
         if self.running_state.is_none()
             || self.running_state.as_ref().unwrap().constellation.inner != new_constellation_inner
         {
-            let new_constellation_id = constellation::Inner::derive_id(&new_constellation_inner);
-
             if let Some(ref running_state) = self.running_state {
                 log::info!(
                     "Detected change in constellation {} -> {}",
@@ -239,10 +329,33 @@ impl crate::servers::App<Server> for App {
                     created_at: api::NumericDate::now(),
                     inner: new_constellation_inner,
                 }),
+                seed: RunningStateSeed {
+                    t_ss,
+                    auths_ss,
+                    master_enc_key,
+                },
             });
         }
 
-        let constellation = &self.running_state.as_ref().unwrap().constellation;
+        let running_state = self.running_state.as_ref().expect(
+            "running_state should be set here, but isn't (the block above returns when it is None)",
+        );
+
+        // Our constellation is unchanged.  If PHC has only now been able to derive the master
+        // encryption key (or it changed), rebuild the running state without changing the
+        // constellation, so the transcryptor and authentication server are not restarted.
+        if running_state.master_enc_key != master_enc_key {
+            log::info!("master encryption key (re)derived; updating running state only");
+            return Ok(DiscoverVerdict::RunningStateOutdated {
+                seed: RunningStateSeed {
+                    t_ss,
+                    auths_ss,
+                    master_enc_key,
+                },
+            });
+        }
+
+        let constellation = &running_state.constellation;
 
         log::info!("My own constellation is up-to-date");
 
@@ -298,6 +411,13 @@ impl crate::servers::App<Server> for App {
             // joinset was empty, no discovery was ran
             None => {
                 if tdi.constellation_or_id.is_some() && asdi.constellation_or_id.is_some() {
+                    // All servers share our constellation, so the transcryptor has adopted it and
+                    // published a sealed master key part for it — meaning we must have derived the
+                    // master encryption key by now.
+                    assert!(
+                        running_state.master_enc_key.is_some(),
+                        "all servers are on our constellation, but the master encryption key was not derived"
+                    );
                     log::info!("Constellation of all servers up to date!");
                     Ok(DiscoverVerdict::Alright)
                 } else {
@@ -558,6 +678,88 @@ impl App {
         }
         .check(tdi, url)
     }
+
+    /// Derives the master encryption key `x_T x_PHC B` from the transcryptor's sealed master key
+    /// part in its discovery info — but only once the transcryptor has adopted the constellation
+    /// `constellation_id` PHC is on.  Only then is its part sealed under the shared secret PHC
+    /// currently holds, so the unseal is guaranteed to succeed.
+    ///
+    /// Returns `Ok(None)` only when the transcryptor has not adopted our constellation yet (e.g.
+    /// right after PHC re-encapsulated a fresh shared secret).  Returns `Err` on a genuine
+    /// inconsistency that should never happen: the transcryptor *has* adopted our constellation —
+    /// so it has a running state and must publish a sealed part — yet that part is absent, fails to
+    /// open, or does not match its published hash.
+    fn master_enc_key_from_sealed_part(
+        &self,
+        tdi: &api::DiscoveryInfoResp,
+        t_ss: &kem::SharedSecret,
+        constellation_id: id::Id,
+    ) -> api::Result<Option<elgamal::PublicKey>> {
+        if tdi.constellation_or_id.as_ref().map(|c| *c.id()) != Some(constellation_id) {
+            return Ok(None);
+        }
+
+        let Some(sealed) = tdi.master_enc_key_part_sealed.clone() else {
+            log::error!(
+                "transcryptor adopted our constellation but published no sealed master key part"
+            );
+            return Err(api::ErrorCode::InternalError);
+        };
+
+        let api::MasterEncKeyPart(transcryptor_part) =
+            sealed.open(&phcrypto::sealing_secret(t_ss)).map_err(|_| {
+                log::error!(
+                    "could not open the transcryptor's sealed master encryption key part, even \
+                     though it has adopted our constellation"
+                );
+                api::ErrorCode::InternalError
+            })?;
+
+        if tdi.master_enc_key_part_hash
+            != Some(phcrypto::master_enc_key_part_hash(&transcryptor_part))
+        {
+            log::error!(
+                "transcryptor's sealed master_enc_key_part does not match its published hash"
+            );
+            return Err(api::ErrorCode::InternalError);
+        }
+
+        Ok(Some(phcrypto::combine_master_enc_key_parts(
+            &transcryptor_part,
+            &self.master_enc_key_part,
+        )))
+    }
+
+    fn encap_or_reuse(
+        peer_encap_key: Option<&kem::EncapKeyBytes>,
+        prior: Option<(&id::Id, &kem::CiphertextBytes, &kem::SharedSecret)>,
+    ) -> api::Result<(
+        Option<id::Id>,
+        Option<kem::CiphertextBytes>,
+        kem::SharedSecret,
+    )> {
+        let Some(ek_bytes) = peer_encap_key else {
+            return Ok((None, None, kem::SharedSecret::random()));
+        };
+
+        let new_id = ek_bytes.id();
+
+        if let Some((prev_id, prev_ct, prev_ss)) = prior
+            && *prev_id == new_id
+        {
+            return Ok((Some(*prev_id), Some(prev_ct.clone()), prev_ss.clone()));
+        }
+
+        let ek = ek_bytes.decode().map_err(|_| {
+            log::error!("failed to decode peer encap_key");
+            api::ErrorCode::InternalError
+        })?;
+        let (ct, ss) = ek.encap().map_err(|_| {
+            log::error!("failed to encapsulate for peer");
+            api::ErrorCode::InternalError
+        })?;
+        Ok((Some(new_id), Some(ct), ss))
+    }
 }
 
 #[derive(Clone)]
@@ -652,13 +854,12 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         let base = AppCreatorBase::<Server>::new(config)?;
 
-        let auth_token_secret: crypto::SealingKey = base
-            .enc_key
-            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-phc-auth-token-secret");
+        let enc_key: &[u8] = &base.enc_key;
+        let auth_token_secret: crypto::SealingKey =
+            enc_key.derive_sealing_key(sha2::Sha256::new(), "pubhubs-phc-auth-token-secret");
 
-        let pp_nonce_secret: crypto::SealingKey = base
-            .enc_key
-            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-pp-nonce-secret");
+        let pp_nonce_secret: crypto::SealingKey =
+            enc_key.derive_sealing_key(sha2::Sha256::new(), "pubhubs-pp-nonce-secret");
 
         Ok(Self {
             base,

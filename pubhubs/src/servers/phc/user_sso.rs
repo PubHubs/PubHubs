@@ -59,6 +59,7 @@ impl App {
         };
 
         let req = req.into_inner();
+        let hhpp_signature_scheme = req.hhpp_signature_scheme;
 
         let Ok(EncryptedHubPseudonymPackage {
             encrypted_hub_pseudonym,
@@ -106,18 +107,37 @@ impl App {
                 .compress()
                 .into();
 
-        Ok(HhppResp::Success(api::Signed::new_opts(
-            &*app.jwt_key,
-            &HashedHubPseudonymPackage {
-                hashed_hub_pseudonym,
-                pp_issued_at,
-                hub_nonce,
-            },
-            app.pp_nonce_validity,
-            // not sure if we should get a seprate configuration field for
-            // Hhpp's validity duration
-            Some(&running_state.constellation),
-        )?))
+        let hhpp = HashedHubPseudonymPackage {
+            hashed_hub_pseudonym,
+            pp_issued_at,
+            hub_nonce,
+        };
+
+        // Sign with the key the hub can verify (see `HhppSignatureScheme`): the ed25519 component
+        // for pre-hybrid hubs, the hybrid composite for updated ones.  Validity reuses
+        // `pp_nonce_validity` (TODO: a dedicated config field for the HHPP's validity?).
+        let signed = match hhpp_signature_scheme {
+            HhppSignatureScheme::Ed25519 => api::Signed::new_opts(
+                app.signing_key.ed25519_signing_key(),
+                &hhpp,
+                app.pp_nonce_validity,
+                Some(&running_state.constellation),
+            )?,
+            HhppSignatureScheme::HybridInterim => api::Signed::new_opts(
+                &app.signing_key,
+                &hhpp,
+                app.pp_nonce_validity,
+                Some(&running_state.constellation),
+            )?,
+            HhppSignatureScheme::HybridStandard => {
+                log::warn!(
+                    "hub requested the not-yet-implemented conformant HHPP signature scheme"
+                );
+                return Err(api::ErrorCode::BadRequest);
+            }
+        };
+
+        Ok(HhppResp::Success(signed))
     }
 }
 

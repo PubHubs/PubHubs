@@ -45,22 +45,28 @@
 				class="pl-2"
 				@click="toggle"
 			>
-				<span v-if="!changed">{{ title }}</span>
+				<span
+					v-if="!changed"
+					class="text-label-small"
+					>{{ title }}</span
+				>
 				<div
 					v-else
-					class="flex items-center gap-1"
+					class="flex items-center gap-1 pt-1"
 				>
 					<template v-if="toggleOrder">
 						<Icon
 							v-if="selectedOrder === SortOrder.asc"
 							type="arrow-up"
+							size="sm"
 						/>
 						<Icon
 							v-else
 							type="arrow-down"
+							size="sm"
 						/>
 					</template>
-					<span class="grow">{{ $t(options[selectedIndex] as string) }}</span>
+					<span class="text-label-small grow">{{ $t(options[selectedIndex] as string) }}</span>
 				</div>
 			</div>
 		</div>
@@ -69,7 +75,7 @@
 			@click="toggle"
 		>
 			<Icon
-				size="md"
+				size="sm"
 				type="caret-down"
 			/>
 		</div>
@@ -77,8 +83,9 @@
 </template>
 
 <script lang="ts" setup>
-	import Icon from '../elements/Icon.vue';
 	import { computed, ref } from 'vue';
+
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	import { type SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
 

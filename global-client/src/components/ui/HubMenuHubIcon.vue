@@ -4,7 +4,7 @@
 		v-if="hub"
 		class="group relative z-0 block h-full w-full cursor-pointer rounded-xl text-center transition-all ease-in-out"
 		:class="{ 'border-surface-elevated border-4': active }"
-		:title="hub.name"
+		:title="hub?.name"
 	>
 		<div
 			class="absolute top-1/3 -right-2 -z-10 h-4 w-4 rotate-45"
@@ -17,7 +17,7 @@
 			<iframe
 				:id="miniClientId + '_' + hubId"
 				class="pointer-events-none h-300 w-300 border-none"
-				:src="hub.url + '/miniclient.html?accessToken=' + accessToken"
+				:src="miniclientSrc"
 			/>
 		</div>
 
@@ -32,13 +32,13 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { ref } from 'vue';
+	import { computed, ref } from 'vue';
 
 	// Components
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
-	// Models
-	import { type Hub } from '@global-client/models/Hubs';
+	// Logic
+	import { cacheBust } from '@global-client/logic/utils/cacheBust';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
@@ -50,7 +50,6 @@
 	type Props = {
 		type?: string;
 		size?: string;
-		hub?: Hub;
 		hubId: string;
 		pinned?: boolean;
 		pinnable?: boolean;
@@ -60,7 +59,6 @@
 	const props = withDefaults(defineProps<Props>(), {
 		type: 'circle',
 		size: 'xl',
-		hub: undefined,
 		hubId: '',
 		pinned: false,
 		pinnable: false,
@@ -71,9 +69,14 @@
 	const settings = useSettings();
 	const hubs = useHubs();
 
+	const hub = computed(() => hubs.hub(props.hubId));
+
 	hubs.setupMiniclient(props.hubId);
 
 	const accessToken = ref<string>(JSON.stringify(global.getAuthInfo(props.hubId)));
+	const miniclientSrc = computed(
+		() => `${hub.value?.url}/miniclient.html?${new URLSearchParams({ accessToken: accessToken.value, hubId: props.hubId, cb: cacheBust })}`,
+	);
 
 	// When a user opens the hub for the first time on a device or in a browser, the accessToken
 	// and userId are only stored after the receivedMessage action with a message of type addAuthInfo

@@ -15,10 +15,11 @@
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
-	// Logic
-	import { delay } from '@global-client/logic/utils/generalUtils';
+	import { cacheBust } from '@global-client/logic/utils/cacheBust';
 
 	import { createLogger } from '@hub-client/logic/logging/Logger';
+	// Logic
+	import { delay } from '@hub-client/logic/utils/common';
 
 	import { type EnterStartResp } from '@global-client/models/MSS/TGeneral';
 
@@ -80,7 +81,7 @@
 
 		switch (state.kind) {
 			case Status.GlobalNotLoggedIn:
-				hubUrl.value = hub.url + '#/hub/';
+				hubUrl.value = `${hub.url}?${new URLSearchParams({ hubId, cb: cacheBust })}#/hub/`;
 				break;
 			case Status.MSSHubNotLoggedIn: {
 				try {
@@ -103,7 +104,7 @@
 							userId: enterCompleteResp.mxid,
 						});
 						// TODO make sure that accessToken is no longer passed in query parameter
-						hubUrl.value = hub.url + '?newToken=true&accessToken=' + authInfo;
+						hubUrl.value = `${hub.url}?${new URLSearchParams({ newToken: 'true', accessToken: authInfo, hubId, cb: cacheBust })}`;
 						break;
 					}
 				} catch (error) {
@@ -118,7 +119,7 @@
 					userId: state.userId,
 				});
 				// TODO: make sure that accessToken is no longer passed in query parameter
-				hubUrl.value = hub.url + '?accessToken=' + authInfo;
+				hubUrl.value = `${hub.url}?${new URLSearchParams({ accessToken: authInfo, hubId, cb: cacheBust })}`;
 				break;
 			}
 		}

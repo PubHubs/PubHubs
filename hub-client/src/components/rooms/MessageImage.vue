@@ -14,7 +14,7 @@
 		"
 		:alt="message.body"
 		:src="authMediaUrl.url"
-		class="max-h-[25rem] w-xs cursor-pointer rounded-md object-contain"
+		class="rounded-base border-surface-elevated max-h-[25rem] w-xs cursor-pointer border-3 object-contain"
 		@click.stop="showFullImage = true"
 	/>
 	<Teleport to="body">
@@ -37,10 +37,7 @@
 				:title="t('dialog.close')"
 				@click="showFullImage = false"
 			>
-				<Icon
-					type="x"
-					size="lg"
-				/>
+				<Icon type="x" />
 			</button>
 		</div>
 	</Teleport>
@@ -62,11 +59,14 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	// New design
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useImageActions } from '@hub-client/composables/useImageActions';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -74,10 +74,10 @@
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-
 	const props = defineProps<{ message: TImageMessageEventContent; deleted?: boolean }>();
+
+	const logger = createLogger('MessageImage');
+
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const matrixFiles = useMatrixFiles();
@@ -98,9 +98,12 @@
 	});
 
 	onMounted(async () => {
-		const url = await matrixFiles.getAuthorizedMediaUrl(props.message.url);
-		authMediaUrl.value?.revoke();
-		authMediaUrl.value = new BlobManager(url);
+		try {
+			const url = await matrixFiles.getAuthorizedMediaUrl(props.message.url);
+			authMediaUrl.value = new BlobManager(url);
+		} catch (error) {
+			logger.error('Failed to load authorized media', { url: props.message.url, error });
+		}
 	});
 
 	onBeforeUnmount(() => {

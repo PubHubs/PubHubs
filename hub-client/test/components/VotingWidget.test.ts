@@ -14,12 +14,12 @@ import { en } from '@hub-client/locales/en';
 import { nl } from '@hub-client/locales/nl';
 
 // Models
-import { TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
-import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
+import { type TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
+import { Poll, type PollOption, Scheduler, type SchedulerOption, type UserVote, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { Room } from '@hub-client/stores/rooms';
+import { type Room } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
 
 // Add to VotingWidget-test-setup.ts
@@ -100,19 +100,19 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: [], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'maybe', userVotes: [] },
+					{ choice: 'no', userVotes: [] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: [], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'maybe', userVotes: [] },
+					{ choice: 'no', userVotes: [] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 		];
@@ -150,15 +150,15 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 		];
@@ -174,30 +174,27 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] as UserVote[] },
 					{
 						choice: 'maybe',
-						userIds: ['2', '3'],
-						userVotes: ['12:20', '12:21'],
+						userVotes: [{ userId: '2', time: '12:20' }, { userId: '3', time: '12:21' }],
 					},
-					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
+					{ choice: 'no', userVotes: [{ userId: '1', time: '12:34' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
+					{ choice: 'yes', userVotes: [] as UserVote[] },
+					{ choice: 'maybe', userVotes: [] as UserVote[] },
+					{ choice: 'no', userVotes: [{ userId: '2', time: '' }, { userId: '3', time: '' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
@@ -232,23 +229,22 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
 					{
 						choice: 'maybe',
-						userIds: ['2', '3'],
-						userVotes: ['12:20', '12:21'],
+						userVotes: [{ userId: '2', time: '12:20' }, { userId: '3', time: '12:21' }],
 					},
-					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'no', userVotes: [{ userId: '1', time: '12:34' }] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [] },
+					{ choice: 'maybe', userVotes: [] },
+					{ choice: 'no', userVotes: [{ userId: '2', time: '' }, { userId: '3', time: '' }] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 		];
@@ -264,22 +260,20 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: ['12'], userVotes: ['12:30'] },
+					{ choice: 'yes', userVotes: [{ userId: '12', time: '12:30' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: ['1'], userVotes: ['00:12'] },
+					{ choice: 'yes', userVotes: [{ userId: '1', time: '00:12' }] },
 					{
 						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
+						userVotes: [{ userId: '1', time: '13:57' }, { userId: '2', time: '1:30' }, { userId: '3', time: '23:37' }],
 					},
 				],
 			},
@@ -316,165 +310,20 @@ describe('VotingWidget functions', () => {
 			{
 				optionId: 1,
 				votes: [
-					{ choice: 'yes', userIds: ['12'], userVotes: ['12:30'] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [{ userId: '12', time: '12:30' }] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 			{
 				optionId: 2,
 				votes: [
-					{ choice: 'yes', userIds: ['1'], userVotes: ['00:12'] },
-					{ choice: 'redacted', userIds: [], userVotes: [] },
+					{ choice: 'yes', userVotes: [{ userId: '1', time: '00:12' }] },
+					{ choice: 'redacted', userVotes: [] },
 				],
 			},
 		];
 		// Check if votes are initialized correctly
 		expect(wrapper.vm.votesByOption.options).toEqual(expectedVotes);
-	});
-
-	test('sort_score scores data correctly', () => {
-		// Use date of the system to test functions
-		const date = new Date();
-		// Mount the component with the relevant events
-		const wrapper = mount(VotingWidget, {
-			global: { plugins: [i18n] },
-			props: {
-				event: {
-					content: {
-						msgtype: 'pubhubs.voting_widget.widget',
-						body: 'TEST',
-						title: 'TEST',
-						description: 'TEST',
-						location: 'TEST',
-						options: [
-							{ id: 1, date: date },
-							{ id: 2, date: date },
-						],
-						type: 'scheduler',
-					},
-					event_id: 'TEST',
-				},
-				room: room,
-			},
-		});
-		// Add data to test the scoring function on
-		const data = [
-			{
-				optionId: 1,
-				votes: [
-					{ choice: 'yes', userIds: [], userVotes: [] },
-					{
-						choice: 'maybe',
-						userIds: ['2', '3'],
-						userVotes: ['12:20', '12:21'],
-					},
-					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
-					{
-						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
-					},
-				],
-			},
-			{
-				optionId: 2,
-				votes: [
-					{ choice: 'yes', userIds: ['1'], userVotes: [] },
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: ['2', '3'], userVotes: [] },
-					{
-						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
-					},
-				],
-			},
-		];
-		// Call the function
-		const sort_scoreSpy = vi.spyOn(wrapper.vm, 'sort_score');
-		const res1 = wrapper.vm.sort_score(data[0]);
-		const res2 = wrapper.vm.sort_score(data[0]);
-		expect(sort_scoreSpy).toBeCalledTimes(2);
-
-		// Check if the scoring was done correctly
-		expect(res1).toBe(1);
-		expect(res2).toBe(1);
-	});
-
-	test('get_sorted_votes_for_scheduler sorts the options correctly', () => {
-		// Use date of the system to test functions
-		const date = new Date();
-		const votesByOption = new VotingOptions();
-		votesByOption.options = [
-			{
-				optionId: 1,
-				votes: [
-					{ choice: 'yes', userIds: ['4'], userVotes: ['15:09'] },
-					{
-						choice: 'maybe',
-						userIds: ['2', '3'],
-						userVotes: ['12:20', '12:21'],
-					},
-					{ choice: 'no', userIds: ['1'], userVotes: ['12:34'] },
-					{
-						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
-					},
-				],
-			},
-			{
-				optionId: 2,
-				votes: [
-					{
-						choice: 'yes',
-						userIds: ['1', '4', '5'],
-						userVotes: ['12:20', '12:21', '15:00'],
-					},
-					{ choice: 'maybe', userIds: [], userVotes: [] },
-					{ choice: 'no', userIds: ['2', '3'], userVotes: ['12:20', '12:21'] },
-					{
-						choice: 'redacted',
-						userIds: ['1', '2', '3'],
-						userVotes: ['13:57', '1:30', '23:37'],
-					},
-				],
-			},
-		];
-
-		// Mount the component with the relevant events
-		const wrapper = mount(VotingWidget, {
-			global: { plugins: [i18n] },
-			props: {
-				votesByOption: [],
-				event: {
-					content: {
-						msgtype: 'pubhubs.voting_widget.widget',
-						body: 'TEST',
-						title: 'TEST',
-						description: 'TEST',
-						location: 'TEST',
-						options: [
-							{ id: 1, date: date },
-							{ id: 2, date: date },
-						],
-						type: 'scheduler',
-					},
-					event_id: 'TEST',
-				},
-				room: room,
-			},
-		});
-
-		// Set the votesByOption field of the mocked component (cant do this when mounting)
-		wrapper.vm.votesByOption = votesByOption;
-
-		// Call the function
-		const get_sorted_votes_for_schedulerSpy = vi.spyOn(wrapper.vm, 'get_sorted_votes_for_scheduler');
-
-		// Check if the sort happened correctly
-		expect(wrapper.vm.get_sorted_votes_for_scheduler()[0]).toEqual(2);
-		expect(get_sorted_votes_for_schedulerSpy).toHaveBeenCalled();
 	});
 
 	test('updateVotingWidgetWithEvent correctly updates the votingWidget for poll RADIO type', () => {
@@ -529,12 +378,12 @@ describe('VotingWidget functions', () => {
 		};
 		// Send the first event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventRadioHasNotVoted);
-		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds[0]).toBe('TEST');
+		expect(wrapper.vm.votesByOption.options[0].votes[0].userVotes[0].userId).toBe('TEST');
 
 		// Send the second event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventRadioHasVoted);
-		expect(wrapper.vm.votesByOption.options[1].votes[0].userIds[0]).toBe('TEST');
-		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds).toStrictEqual([]);
+		expect(wrapper.vm.votesByOption.options[1].votes[0].userVotes[0].userId).toBe('TEST');
+		expect(wrapper.vm.votesByOption.options[0].votes[0].userVotes).toStrictEqual([]);
 	});
 
 	test('updateVotingWidgetWithEvent correctly updates the votingWidget for poll CHECKBOX type', () => {
@@ -591,11 +440,11 @@ describe('VotingWidget functions', () => {
 		};
 		// Send the first event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventCheckboxHasNotVoted);
-		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds[0]).toBe('TEST');
+		expect(wrapper.vm.votesByOption.options[0].votes[0].userVotes[0].userId).toBe('TEST');
 
 		// Send the second event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventCheckboxHasVoted);
-		expect(wrapper.vm.votesByOption.options[1].votes[0].userIds[0]).toBe('TEST');
+		expect(wrapper.vm.votesByOption.options[1].votes[0].userVotes[0].userId).toBe('TEST');
 	});
 });
 
@@ -645,7 +494,14 @@ describe('Back end functions', () => {
 		usePubhubsStore().client.sendMessage = sendEventMock;
 
 		const roomId = 'roomId';
-		const scheduler = new Scheduler('Scheduler Test Title', 'Scheduler Test Description', 'Scheduler Test Location', ['1', '2', '3'], false, VotingWidgetType.SCHEDULER);
+		const scheduler = new Scheduler(
+			'Scheduler Test Title',
+			'Scheduler Test Description',
+			'Scheduler Test Location',
+			['1', '2', '3'],
+			false,
+			VotingWidgetType.SCHEDULER,
+		);
 
 		usePubhubsStore().addScheduler(roomId, scheduler);
 

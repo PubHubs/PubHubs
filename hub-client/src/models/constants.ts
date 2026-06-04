@@ -7,13 +7,15 @@ const SystemDefaults = {
 	SubscriptionRoomTimelineLimit: 50, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
 	initialRoomTimelineLimit: 30, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
 	roomTimelineLimit: 100, // Max messages in the sliding window
-	paginationBatchSize: 40, // Messages to fetch per pagination
+	paginationBatchSize: 100, // Messages to fetch per pagination
 	initialRoomListRange: 99999, // Initial number of rooms to fetch, in the future perhaps paginate this?
 	publicRoomsReload: 86_400_000, // Time to cache public rooms. Reload will be forced after creating.editing new rooms, so this can be long. Now set to one day.
-	MaxNumberFileUploads: 50, // Maximum number of files that can be dropped/uploaded
 	mainRoomListRange: 40, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
 	longPressDuration: 250, // Amount of milliseconds for a long-press
 	messageGroupGap: 60 * 60 * 1000, // Amount of miliseconds for the message group threshold
+	MaxNumberFileUploads: 50, // Maximum number of files that can be dropped/uploaded
+	maxLibraryFiles: 100, // Maximum amount of files to store in the file library
+	maxPaginationIterations: 5, // Maximum retries to get the retreived visible messages to match the paginationBatchSize
 } as const;
 
 // options for sliding sync
@@ -45,6 +47,8 @@ enum MatrixEventType {
 	RoomRedaction = 'm.room.redaction',
 	RoomReceipt = 'm.room.receipt',
 	RoomReadMarker = 'm.room.read_markers',
+	YellowCard = 'pubhubs.yellow_card',
+	Timeout = 'pubhubs.timeout',
 }
 
 // Relation strings that are not included in Matrix enums (yet)
@@ -57,6 +61,8 @@ enum RelationType {
 	Replace = 'm.replace',
 	Annotation = 'm.annotation',
 	EventId = 'event_id',
+	Hide = 'hide',
+	UnHide = 'unhide',
 }
 
 // Redaction strings that are not included in Matrix enums
@@ -72,7 +78,6 @@ enum Redaction {
 enum RoomEmit {
 	ScrollToEventId = 'scrollToEventId',
 	ScrolledToEventId = 'scrolledToEventId',
-	ThreadLengthChanged = 'threadLengthChanged',
 }
 
 enum ScrollPosition {

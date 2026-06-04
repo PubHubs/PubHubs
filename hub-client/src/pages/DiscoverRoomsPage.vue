@@ -92,9 +92,11 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
 	import RoomCard from '@hub-client/components/rooms/RoomCard.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Stores

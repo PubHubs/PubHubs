@@ -1,16 +1,15 @@
 <template>
 	<div
-		class="flex h-4"
+		class="flex h-100"
 		role="progressbar"
 	>
 		<div
-			class="rounded-l-lg transition-[width]"
-			:class="color + (percentage === 100 ? ' rounded-b-lg' : '')"
+			class="transition-[width]"
+			:class="color"
 			:style="{ width: percentage + '%' }"
 		/>
 		<div
-			class="bg-surface-high rounded-r-lg transition-[width]"
-			:class="{ 'rounded-b-lg': percentage === 0 }"
+			class="bg-surface-elevated transition-[width]"
 			:style="{ width: 100 - percentage + '%' }"
 		/>
 	</div>

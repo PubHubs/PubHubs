@@ -26,7 +26,6 @@ class Hub {
 	readonly serverUrl: string;
 	description: string;
 	logo: string;
-	unreadMessages: number;
 
 	private readonly settingsStore: SettingsStore;
 
@@ -41,7 +40,6 @@ class Hub {
 			this.description = hubId;
 		}
 		this.logo = '';
-		this.unreadMessages = 0;
 		if (pinia) {
 			// Needed in testing
 			this.settingsStore = useSettings(pinia);

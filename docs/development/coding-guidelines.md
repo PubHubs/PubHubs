@@ -115,7 +115,7 @@ We handle props definition in the following way.
 
 ```ts
 // Props
-const props = withDefaults(
+withDefaults(
   defineProps<{
     isActive: boolean;
     label: string;

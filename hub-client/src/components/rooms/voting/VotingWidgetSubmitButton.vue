@@ -13,6 +13,8 @@
 	// Packages
 	import { computed } from 'vue';
 
+	import Button from '@hub-client/components/elements/Button.vue';
+
 	const props = defineProps<{ disabled: boolean; isEdit: boolean }>();
 	const emit = defineEmits(['send', 'edit']);
 	const buttonText = computed(() => {

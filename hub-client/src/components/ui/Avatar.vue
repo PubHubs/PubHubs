@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
-		:class="avatarColor"
+		class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-clip rounded-full"
+		:class="[avatarColor, stewardRing]"
 	>
 		<img
 			v-if="avatarUrl"
@@ -14,7 +14,6 @@
 		<Icon
 			v-if="!avatarUrl || !loaded"
 			:class="iconColor"
-			size="lg"
 			testid="avatar"
 			:type="icon ? icon : 'user'"
 		/>
@@ -31,6 +30,7 @@
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
 	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
 	// Types
@@ -38,14 +38,23 @@
 		avatarUrl: string | undefined;
 		userId?: string;
 		icon?: string;
+		roomId?: string;
 	};
 
 	const props = defineProps<Props>();
 	const user = useUser();
+	const rooms = useRooms();
 	const { color, bgColor, onAccentColor } = useUserColor();
 	const image = ref<string | undefined>();
 	const loaded = ref(false);
 	const avatarColor = computed(getAvatarColor);
+	const stewardRing = computed(() => {
+		if (!props.roomId || !props.userId) return '';
+		const room = rooms.room(props.roomId);
+		if (!room) return '';
+		if (room.isDirectMessageRoom()) return '';
+		return room.getPowerLevel(props.userId) >= 50 ? 'ring-2 ring-accent-steward/75' : '';
+	});
 	const iconColor = computed(() => (props.userId ? onAccentColor(color(props.userId)) : 'text-on-surface'));
 	onMounted(async () => {
 		await getImage();

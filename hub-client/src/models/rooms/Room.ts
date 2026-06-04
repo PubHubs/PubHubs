@@ -1,7 +1,7 @@
 // Packages
 import { VotingWidgetType } from '../events/voting/VotingTypes';
 import {
-	type Direction,
+	Direction,
 	EventTimeline,
 	type EventTimelineSet,
 	EventType,
@@ -16,6 +16,7 @@ import {
 	type RoomMember as MatrixRoomMember,
 	MsgType,
 	NotificationCountType,
+	ReceiptType,
 	type Thread,
 } from 'matrix-js-sdk';
 import { type CachedReceipt, type WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -25,42 +26,31 @@ import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/s
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+// Logic
 import { api_synapse } from '@hub-client/logic/core/api';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
-// Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
-import { Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
-import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
 import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+import { type TTimeoutStateEvent } from '@hub-client/models/events/TTimeoutEvent';
+import { type TYellowCardStateEvent } from '@hub-client/models/events/TYellowCardEvent';
 import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
 import RoomMember, { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
+import { RoomType, type UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
-import TRoomThread from '@hub-client/models/thread/RoomThread';
+import { type StoredUnreadInfo, getStoredUnreadInfo, updateStoredUnreadInfo } from '@hub-client/models/rooms/unreadInfoCache';
+import type TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('Room');
-
-// Types
-enum RoomType {
-	SECURED = 'ph.messages.restricted',
-	PH_MESSAGES_DM = 'ph.messages.dm',
-	PH_MESSAGES_GROUP = 'ph.messages.group',
-	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
-	PH_MESSAGE_STEWARD_CONTACT = 'ph.messages.steward.contact',
-}
-
-type RoomThread = {
-	threadId: string;
-	rootEvent: MatrixEvent | undefined;
-	thread: TRoomThread | undefined;
-	threadLength: number;
-};
 
 const BotName = {
 	NOTICE: 'notices',
@@ -78,9 +68,8 @@ export default class Room {
 	private hidden: boolean;
 
 	// Threads/Events, public for vue reactivity
-	public currentThread: RoomThread | undefined = undefined;
+	public currentThreadId: string | undefined = undefined;
 	public currentEvent: TCurrentEvent | undefined = undefined;
-	//public threadUpdated: Ref<boolean> = ref(false); // toggle to indicate changed thread to vue components
 	public threadUpdated: boolean = false; // toggle to indicate changed thread to vue components
 
 	/** Whether the first sliding sync response has been received for this room's subscription */
@@ -157,7 +146,13 @@ export default class Room {
 	}
 
 	public isSecuredRoom(): boolean {
-		return this.getType() === RoomType.SECURED;
+		return this.getType() === RoomType.PH_MESSAGES_RESTRICTED;
+	}
+
+	public isForumRoom(): boolean {
+		const settings = useSettings();
+		if (!settings.isFeatureEnabled(FeatureFlag.forumRooms)) return false;
+		return this.getType() === RoomType.PH_FORUM_ROOM;
 	}
 
 	public isDirectMessageRoom(): boolean {
@@ -308,23 +303,7 @@ export default class Room {
 
 	// #endregion
 
-	// #reaction region  ///
-
-	public ifLastEventHasReaction(eventId: string): boolean {
-		const lastMessageEventId = this.matrixRoom
-			.getLiveTimeline()
-			.getEvents()
-			.filter((event) => event.getType() === EventType.RoomMessage)
-			.at(-1)?.event.event_id;
-		const reactEvent = this.getReactEventsFromTimeLine().find((event) => event.event.event_id === eventId);
-		if (reactEvent) {
-			const eventIdForMessage = reactEvent.getContent()[RelationType.RelatesTo]?.event_id;
-			if (eventIdForMessage === lastMessageEventId) {
-				return true;
-			}
-		}
-		return false;
-	}
+	// #reaction region
 
 	/**
 	 *  Gets reaction event based on relation event Id
@@ -339,7 +318,11 @@ export default class Room {
 
 	// #region members
 
-	// Sliding sync state methods //
+	// Sliding sync state methods
+
+	public getHideState(eventId: string) {
+		return this.timelineManager.getHideState(eventId);
+	}
 
 	public getStateMember(): RoomMemberStateEvent[];
 	public getStateMember(userId?: string): RoomMemberStateEvent | RoomMemberStateEvent[] | undefined {
@@ -353,7 +336,7 @@ export default class Room {
 	}
 
 	public getStateJoinedMembersIds(): string[] {
-		return this.stateEvents.filter((item) => item.content.membership === 'join').map((item) => item.sender);
+		return this.stateEvents.filter((item) => item.content.membership === 'join').map((item) => item.state_key);
 	}
 
 	public getStateJoinedMembers(): RoomMemberStateEvent[] {
@@ -364,14 +347,30 @@ export default class Room {
 		if (!userId) return 0;
 		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
 
-		if (!event) return 0;
-		return event.content.users[userId] ?? event.content.users_default;
+		if (event) {
+			return event.content.users[userId] ?? event.content.users_default ?? 0;
+		}
+		// Fall back to Matrix SDK room state (for rooms loaded without stateEvents)
+		const powerLevelEvent = this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomPowerLevels, '');
+		if (powerLevelEvent) {
+			const content = powerLevelEvent.getContent() as { users?: Record<string, number>; users_default?: number };
+			return content?.users?.[userId] ?? content?.users_default ?? 0;
+		}
+		return 0;
 	}
 
 	public getStatePowerLevel() {
 		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
 		if (!event) return null;
 		return event;
+	}
+
+	public getStateTimeout(): TTimeoutStateEvent | undefined {
+		return this.stateEvents.find((e) => e.type === MatrixEventType.Timeout && e.state_key === '') as TTimeoutStateEvent | undefined;
+	}
+
+	public getStateYellowCard(): TYellowCardStateEvent | undefined {
+		return this.stateEvents.find((e) => e.type === MatrixEventType.YellowCard && e.state_key === '') as TYellowCardStateEvent | undefined;
 	}
 
 	// End of sliding sync state methods //
@@ -499,8 +498,9 @@ export default class Room {
 	 * @param event — The event to delete
 	 * @param isThreadRoot — If given, the event has to be a rootevent of a thread which will also be deleted
 	 * @param threadId — If given, the event is inside a thread
+	 * @param reason — Optional reason for deletion (shown to original poster when deleted by moderator)
 	 */
-	public deleteMessage(event: TMessageEvent<TMessageEventContent>, isThreadRoot?: boolean, threadId?: string) {
+	public deleteMessage(event: TMessageEvent<TMessageEventContent>, isThreadRoot?: boolean, threadId?: string, reason?: string) {
 		const messageType = event.content.msgtype;
 		// If the message that will be deleted contains a file or image, delete this media from the server as well
 		if ((messageType === MsgType.File || messageType === MsgType.Image) && event.content.url && event.content.url.length > 0) {
@@ -512,8 +512,8 @@ export default class Room {
 		}
 
 		// if event to be deleted is the current thread, clear the current thread
-		if (this.currentThread?.threadId === event.event_id) {
-			this.currentThread = undefined;
+		if (this.currentThreadId === event.event_id) {
+			this.currentThreadId = undefined;
 		}
 
 		// If reactEvent exists, delete it with the message.
@@ -521,7 +521,7 @@ export default class Room {
 
 		// FIXME: Typing error
 		const threadIdToDelete = isThreadRoot ? event.event_id : threadId;
-		this.pubhubsStore.deleteMessage(this.matrixRoom.roomId, event.event_id, threadIdToDelete, reactEventId);
+		this.pubhubsStore.deleteMessage(this.matrixRoom.roomId, event.event_id, threadIdToDelete, reactEventId, reason);
 	}
 
 	// #endregion
@@ -556,6 +556,73 @@ export default class Room {
 		return this.matrixRoom.hasUserReadEvent(userId, eventId);
 	}
 
+	public unreadState(): UnreadState {
+		return Room.unreadState(this.matrixRoom, this);
+	}
+
+	/**
+	 * Determines the unread state of a room by extracting four parameters
+	 * from the timeline and delegating to computeUnreadState. When a project
+	 * Room is provided, its TimelineManager is consulted for visible events
+	 * that may pre-date the sliding sync window (e.g. when invisible events
+	 * have saturated the live timeline).
+	 */
+	static unreadState(matrixRoom: MatrixRoom, projectRoom?: Room): UnreadState {
+		const userId = matrixRoom.client.getUserId();
+		if (!userId) return 'read';
+
+		const roomId = matrixRoom.roomId;
+		// matrix-js-sdk appends to the live timeline in arrival order, not by ts.
+		// When a room is first sent via a list (timeline_limit=1) and later
+		// expanded via a subscription (timeline_limit=50), the latest event sits
+		// at index 0 with older events appended after it. Sort a copy so the
+		// rest of this function can rely on chronological order.
+		const events = [...matrixRoom.getLiveTimeline().getEvents()].sort((a, b) => a.getTs() - b.getTs());
+		const stored = getStoredUnreadInfo(roomId);
+		const receiptTs = matrixRoom.getReadReceiptForUserId(userId, false, ReceiptType.ReadPrivate)?.data.ts ?? 0;
+
+		if (events.length === 0) {
+			return computeUnreadState(receiptTs, undefined, undefined, stored);
+		}
+
+		const unhiddenEvents = projectRoom
+			? events.filter((e) => {
+					const id = e.getId();
+					return !id || !projectRoom.getHideState(id).isHidden;
+				})
+			: events;
+		const params = extractTimelineParams(unhiddenEvents, userId, receiptTs);
+		const { effectiveReceiptTs, timelineStartTs } = params;
+		let { lastVisibleTs } = params;
+
+		// Merge with TimelineManager: it holds visible events sorted ascending
+		// by ts (invariant; see TimelineManager._timelineEvents) and may include
+		// older messages paginated via /messages that aren't in the sliding
+		// sync window. Live's visible events should be a subset of TM's, so
+		// TM's last visible should never be older than live's — warn if it is.
+		if (projectRoom) {
+			const tmEvents = projectRoom.getLiveTimelineEvents();
+			if (tmEvents.length > 0) {
+				const tmLastVisibleTs = tmEvents[tmEvents.length - 1].getTs();
+				if (lastVisibleTs !== undefined && tmLastVisibleTs < lastVisibleTs) {
+					logger.warn('TimelineManager missing visible event present in live timeline', {
+						roomId,
+						liveLastVisibleTs: lastVisibleTs,
+						tmLastVisibleTs,
+					});
+				}
+				lastVisibleTs = lastVisibleTs === undefined ? tmLastVisibleTs : Math.max(lastVisibleTs, tmLastVisibleTs);
+			}
+		}
+
+		const state = computeUnreadState(effectiveReceiptTs, lastVisibleTs, timelineStartTs, stored);
+		updateStoredUnreadInfo(roomId, {
+			lastVisibleTs: lastVisibleTs ?? 0,
+			lastReadAllTs: state === 'read' ? events[events.length - 1].getTs() : undefined,
+		});
+		return state;
+	}
+
 	//#endregion
 
 	// #region Timeline
@@ -569,15 +636,13 @@ export default class Room {
 
 	public getLiveTimelineEvents(): MatrixEvent[] {
 		return this.timelineManager.getEvents().map((x) => x.matrixEvent);
-		//return this.matrixRoom.getLiveTimeline().getEvents();
 	}
 
-	public getLiveTimelineNewestEvent(): Partial<TBaseEvent> | undefined {
+	public getLiveTimelineNewestEvent(): MatrixEvent | undefined {
 		return this.timelineManager
 			.getEvents()
 			.map((x) => x.matrixEvent)
-			.at(-1)?.event;
-		//return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
+			.at(-1);
 	}
 
 	/**Select the latest voting event per user and voting option -> schedulers
@@ -594,39 +659,42 @@ export default class Room {
 
 		const relatedEvents = relatedTimeleineEvents.map((x) => x.matrixEvent);
 
-		if (votingWidgetType === VotingWidgetType.SCHEDULER) {
-			// Scheduler: return all latest events per user per option
-			const relatedEventsByOption = Object.values(
-				relatedEvents.reduce(
-					(acc, event) => {
-						const optionId = event.event.content?.optionId;
-						const userId = event.getSender();
+		// Split into votes and non-votes.
+		// Non-vote events (pick_option, close) are returned alongside votes
+		// so they can restore state (pickedOptionId, votingWidgetClosed), but
+		// they must never replace a vote event in the vote grouping.
+		const votes = relatedEvents.filter((e) => e.getContent()?.msgtype === PubHubsMgType.VotingWidgetVote);
+		const nonVotes = relatedEvents.filter((e) => e.getContent()?.msgtype !== PubHubsMgType.VotingWidgetVote);
 
+		if (votingWidgetType === VotingWidgetType.SCHEDULER) {
+			// Scheduler: keep the latest vote per user per option.
+			const dedupedVotes = Object.values(
+				votes.reduce(
+					(acc, event) => {
+						const optionId = event.getContent()?.optionId;
+						const userId = event.getSender();
 						if (!acc[optionId]) {
 							acc[optionId] = [];
 						}
-
-						const existingIndex = acc[optionId].findIndex((event: MatrixEvent) => event.getSender() === userId);
+						const existingIndex = acc[optionId].findIndex((e: MatrixEvent) => e.getSender() === userId);
 						if (existingIndex === -1) {
 							acc[optionId].push(event);
-						} else {
-							if ((acc[optionId][existingIndex].event.origin_server_ts ?? 0) < (event.event.origin_server_ts ?? 0)) {
-								acc[optionId][existingIndex] = event;
-							}
+						} else if ((acc[optionId][existingIndex].getTs() ?? 0) < (event.getTs() ?? 0)) {
+							acc[optionId][existingIndex] = event;
 						}
 						return acc;
 					},
 					{} as Record<string, MatrixEvent[]>,
 				),
 			).flat();
-			return relatedEventsByOption;
+			return [...dedupedVotes, ...nonVotes];
 		} else {
-			//Poll: return all latest events per user
-			const latestEventsPerUser = Object.values(
-				relatedEvents.reduce(
+			// Poll: keep the latest vote per user.
+			const dedupedVotes = Object.values(
+				votes.reduce(
 					(acc, event) => {
 						const userId = event.getSender();
-						if (userId && (!acc[userId] || (acc[userId].event.origin_server_ts ?? 0) < (event.event.origin_server_ts ?? 0))) {
+						if (userId && (!acc[userId] || (acc[userId].getTs() ?? 0) < (event.getTs() ?? 0))) {
 							acc[userId] = event;
 						}
 						return acc;
@@ -634,7 +702,7 @@ export default class Room {
 					{} as Record<string, MatrixEvent>,
 				),
 			);
-			return latestEventsPerUser;
+			return [...dedupedVotes, ...nonVotes];
 		}
 	}
 
@@ -644,10 +712,6 @@ export default class Room {
 
 	public getRelatedEventsByType(eventId: string, options: RelatedEventsOptions = {}): TimelineEvent[] {
 		return this.timelineManager.getRelatedEventsByType(eventId, options);
-	}
-
-	public fetchRelatedEvents(eventIds: string[]) {
-		return this.timelineManager.fetchRelatedEvents(eventIds);
 	}
 
 	public getReactEventsFromTimeLine(): MatrixEvent[] {
@@ -662,9 +726,24 @@ export default class Room {
 
 	// #region TimelineManager
 
-	public initTimeline() {
+	/**
+	 * Initialization room timeline: subscribes to sliding sync and loads initial messages
+	 */
+	public async initTimeline() {
 		this.syncDataReceived = false;
 		this.timelineManager.initRoomTimeline(this.matrixRoom.roomId);
+
+		// Load initial timeline if empty
+		if (this.timelineManager.getEvents().length === 0) {
+			await this.loadInitialTimeline();
+		}
+	}
+
+	/**
+	 * Initialization room library
+	 */
+	public async initFileLibrary() {
+		return this.timelineManager.initFileLibrary();
 	}
 
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
@@ -677,52 +756,66 @@ export default class Room {
 		const eventList = roomData.timeline.map((event) => {
 			return new MatrixEvent(event);
 		});
+
 		// BEGIN THREADS
 		// Threads are kept on room-level, so all events regarding the current thread need to be filtered and handled first.
 
-		// Handle thread redactions, for now only the DeletedFromThread events
+		// Handle thread-redactions, for now only the DeletedFromThread events
 		const redactions = eventList.filter(
 			(event) => event.getContent()?.[Redaction.Redacts] && event.getContent()?.[Redaction.Reason] === Redaction.DeletedFromThread,
 		);
 		if (redactions.length > 0) {
-			this.currentThread?.thread?.addRedactions(redactions);
+			// add redactions to the thread of the owner
+			redactions.forEach((redaction) => {
+				const redactedEventId = redaction.getContent()[Redaction.Redacts];
+				const owner = this.timelineManager.getEvents().find((e) => e.isEventInThread(redactedEventId));
+				owner?.thread.addRedactions([redaction]);
+			});
 		}
-		// Handle thread events, only when they are from the currentthread (otherwise they will be fetched on opening the thread)
+
+		// Handle thread-events, only from the currentthread: add them to the thread
+		// (thread-events from other threads are fetched on opening the thread)
 		const currentThreadEvents = eventList.filter(
 			(event) =>
 				event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread &&
-				this.currentThread?.threadId === event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
+				this.currentThreadId === event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
 		);
-		if (currentThreadEvents.length > 0 && this.currentThread?.thread) {
-			this.currentThread.thread.addEvents(currentThreadEvents);
+		if (currentThreadEvents.length > 0) {
+			this.getCurrentThread()?.addEvents(currentThreadEvents);
 		}
 
-		// set toggle to force vue component updates when something in the threads has changed, will also set current event for thread
-		if (currentThreadEvents.length > 0 || redactions.length > 0) {
-			this.threadUpdated = !this.threadUpdated;
-		}
-
-		// Events in threads that are NOT in the currentThread only need to update the specific counters
-		// This is done by notifying them the length has changed
+		// Handle thread-events in threads other than the currentThread: only for updating the specific counters, done by Vue's reactivity
 		const otherThreadEvents = eventList.filter(
 			(event) =>
 				event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread &&
-				this.currentThread?.threadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
+				this.currentThreadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
 		);
+
+		// Force vue reactivity for any thread change in this room, regardless of whether the affected thread is currently open
+		if (currentThreadEvents.length > 0 || otherThreadEvents.length > 0 || redactions.length > 0) {
+			this.threadUpdated = !this.threadUpdated;
+		}
+
+		// For all other visible threads: check whether they have a MatrixThread already
+		// if not: get the matrix thread, this will set their reactivity for the threadcounter
 		if (otherThreadEvents.length > 0) {
 			// make a set of all the rootIds of the otherThreadEvents
 			const otherThreadEventIds = new Set(otherThreadEvents.map((x) => x.getContent()[RelationType.RelatesTo]?.[RelationType.EventId]));
 
 			const currentEvents = this.timelineManager.getEvents();
 
-			// get the visible other threads by checking on the id
-			const visibleOtherThreads = currentEvents.filter((x) => otherThreadEventIds.has(x.matrixEvent.event.event_id));
+			// get the visible other threads by checking on the id and add the events
+			const visibleOtherThreads = currentEvents.filter((x) => otherThreadEventIds.has(x.matrixEvent.getId()));
 			visibleOtherThreads.forEach((event) => {
-				const eventId = event.matrixEvent.event.event_id;
+				const eventId = event.matrixEvent.getId();
 				if (eventId) {
 					event.thread.setMatrixThread(this.getOrCreateMatrixThread(eventId));
+
+					const eventsForThisThread = otherThreadEvents.filter((e) => e.getContent()[RelationType.RelatesTo]?.[RelationType.EventId] === eventId);
+					if (eventsForThisThread.length > 0) {
+						event.thread.addEvents(eventsForThisThread);
+					}
 				}
-				event.thread.getEvents(this.matrixRoom.client).then((_x) => event.thread.notifyLengthChange());
 			});
 		}
 
@@ -759,6 +852,10 @@ export default class Room {
 		return this.timelineManager.getLibraryEvents();
 	}
 
+	public removeLibraryEvent(eventId: string): void {
+		this.timelineManager.removeLibraryEvent(eventId);
+	}
+
 	/**
 	 *
 	 * @returns The newest message event id in the default timeline
@@ -770,8 +867,6 @@ export default class Room {
 	public getMessagesFilter(): Filter {
 		return this.timelineManager?.getMessagesFilter();
 	}
-
-	// #region TimelineManager
 
 	// The TimelineManager that controls the visible part of the timeline
 	// this is filtered to show only messages and gets updated by sliding sync or pagination
@@ -792,6 +887,29 @@ export default class Room {
 		await this.timelineManager.paginate(direction, limit, fromEventId);
 	}
 
+	/**
+	 * Loads initial timeline messages when the timeline is empty.
+	 * Fetches the most recent message and loads the timeline around it.
+	 */
+	public async loadInitialTimeline(): Promise<void> {
+		if (this.timelineManager.getEvents().length > 0) {
+			return; // Timeline already has events
+		}
+
+		const messagesResponse = await this.matrixRoom.client.createMessagesRequest(
+			this.roomId,
+			null,
+			1,
+			Direction.Backward,
+			this.timelineManager.getMessagesFilter(),
+		);
+
+		const lastEventId = messagesResponse.chunk[0]?.event_id;
+		if (lastEventId) {
+			await this.loadToEvent({ eventId: lastEventId });
+		}
+	}
+
 	public isOldestMessageLoaded(): boolean {
 		return this.timelineManager.isOldestMessageLoaded();
 	}
@@ -800,8 +918,8 @@ export default class Room {
 		return this.timelineManager?.isNewestMessageLoaded();
 	}
 
-	public isVisibleEvent(event: Partial<TBaseEvent>): boolean {
-		return this.timelineManager.isVisibleEvent(event);
+	public isVisibleEvent(event: MatrixEvent): boolean {
+		return this.timelineManager.isVisibleEvent(event.event);
 	}
 
 	public getRoomOldestMessageId(): string | undefined {
@@ -851,46 +969,38 @@ export default class Room {
 	}
 
 	public async getCurrentThreadEvents(): Promise<TimelineEvent[]> {
-		return (await this.currentThread?.thread?.getEvents(this.pubhubsStore.client as MatrixClient)) ?? [];
-	}
-
-	public setCurrentThreadLength(newValue: number) {
-		if (this.currentThread) {
-			this.currentThread.threadLength = newValue;
-		}
+		return (await this.getCurrentThread()?.getEvents()) ?? [];
 	}
 
 	public getCurrentThreadLength() {
-		return this.currentThread?.threadLength ?? 0;
+		return this.getCurrentThread()?.length ?? 0;
 	}
 
 	public getCurrentThreadId(): string | undefined {
-		return this.currentThread?.threadId;
+		return this.currentThreadId;
+	}
+
+	public getCurrentThreadRoot(): TimelineEvent | undefined {
+		return this.timelineManager.findTimelineEventById(this.currentThreadId);
 	}
 
 	public getCurrentThread(): TRoomThread | undefined {
-		return this.currentThread?.thread;
+		return this.getCurrentThreadRoot()?.thread;
 	}
 
-	public setCurrentThreadId(threadId: string | undefined): boolean {
-		this.currentThread = undefined;
+	public setCurrentThreadId(threadId: string | undefined) {
+		this.currentThreadId = threadId;
+
 		if (threadId) {
-			const matrixThread = this.getOrCreateMatrixThread(threadId);
-			const thread = new TRoomThread(matrixThread);
-			this.currentThread = {
-				threadId: threadId,
-				rootEvent: this.findEventById(threadId) ?? this.matrixRoom.findEventById(threadId),
-				thread: thread,
-				threadLength: thread.length || 1,
-			};
-			return true;
+			const thread = this.getCurrentThread();
+			if (thread && !thread.isMatrixThreadSet) {
+				thread.setMatrixThread(this.getOrCreateMatrixThread(threadId));
+			}
 		}
-
-		return false;
 	}
 
-	public deleteThreadMessage(event: TMessageEvent<TMessageEventContent>, threadRootId: string | undefined) {
-		this.deleteMessage(event, undefined, threadRootId);
+	public deleteThreadMessage(event: TMessageEvent<TMessageEventContent>, threadRootId: string | undefined, reason?: string) {
+		this.deleteMessage(event, undefined, threadRootId, reason);
 	}
 
 	// get the authorized url of the room-avatar
@@ -953,3 +1063,99 @@ export default class Room {
 
 	//#endregion
 }
+
+// #region Unread state helpers
+
+/**
+ * Extract timeline parameters for computeUnreadState from a non-empty event list.
+ * Own visible events advance effectiveReceiptTs (sending a message is an implicit receipt).
+ * Reaching m.room.create sets timelineStartTs to 0 (no gap — timeline covers the full room).
+ */
+function extractTimelineParams(
+	events: MatrixEvent[],
+	userId: string,
+	receiptTs: number,
+): { effectiveReceiptTs: number; lastVisibleTs: number | undefined; timelineStartTs: number } {
+	let effectiveReceiptTs = receiptTs;
+	let lastVisibleTs: number | undefined;
+	let timelineStartTs = events[0].getTs();
+	let foundLastVisible = false;
+	let foundOwnReceipt = false;
+
+	for (let i = events.length - 1; i >= 0; i--) {
+		if (events[i].getType() === EventType.RoomCreate) {
+			timelineStartTs = 0;
+			break;
+		}
+		if (!isVisibleEvent(events[i].event, userId)) continue;
+		if (!foundLastVisible) {
+			lastVisibleTs = events[i].getTs();
+			foundLastVisible = true;
+		}
+		if (!foundOwnReceipt && events[i].getSender() === userId) {
+			effectiveReceiptTs = Math.max(effectiveReceiptTs, events[i].getTs());
+			foundOwnReceipt = true;
+		}
+		if (foundLastVisible && foundOwnReceipt) break;
+	}
+
+	return { effectiveReceiptTs, lastVisibleTs, timelineStartTs };
+}
+
+/**
+ * Pure decision function: determines unread state from five parameters.
+ *
+ * The function is a monotone (order-preserving) map from the product of
+ * five partially ordered sets to {unread < unknown < read}:
+ *
+ *   receiptTs           ∈ (ℝ≥0, ≤)          — order-preserving (↑ → more read)
+ *   lastReadAllTs       ∈ (ℝ>0 ∪ {⊥}, ≤)   — order-preserving (↑ → more read); ⊥ incomparable
+ *   lastVisibleTs       ∈ (ℝ>0 ∪ {⊥}, ≥)   — order-reversing  (↑ → less read); ⊥ incomparable
+ *   timelineStartTs     ∈ (ℝ>0 ∪ {⊥}, ≥)   — order-reversing  (↑ → less read); ⊥ incomparable
+ *   storedLastVisibleTs ∈ (ℝ>0 ∪ {⊥}, ≥)   — order-reversing  (↑ → less read); ⊥ incomparable
+ *
+ * The decision models the existence of a hypothetical unread visible event
+ * at timestamp Ts > receiptTs:
+ *   - unread:  evidence that Ts exists
+ *   - read:    proof that Ts cannot exist
+ *   - unknown: neither
+ *
+ * lastReadAllTs is a cached proof that the room was read at a specific
+ * point. It may account for information not captured by receiptTs alone
+ * (e.g. own messages acting as implicit receipts). When it falls within
+ * the timeline window and no visible event appeared after it, the room
+ * is still read — even if non-visible events (e.g. display name changes)
+ * advanced the timeline.
+ */
+export function computeUnreadState(
+	receiptTs: number,
+	lastVisibleTs: number | undefined,
+	timelineStartTs: number | undefined,
+	stored: StoredUnreadInfo | undefined,
+): UnreadState {
+	// Cache: lastReadAllTs covers the timeline window, and no visible event
+	// appeared after it (lastVisibleTs is either absent or older).
+	if (stored?.lastReadAllTs !== undefined && timelineStartTs !== undefined && stored.lastReadAllTs >= timelineStartTs) {
+		if (lastVisibleTs === undefined || lastVisibleTs <= stored.lastReadAllTs) return 'read';
+	}
+
+	// Direct evidence: a visible event exists in the timeline.
+	if (lastVisibleTs !== undefined) {
+		return lastVisibleTs > receiptTs ? 'unread' : 'read';
+	}
+
+	// No visible event in timeline. Could an unread event hide in a blind spot?
+	if (timelineStartTs !== undefined) {
+		if (timelineStartTs <= receiptTs) return 'read';
+		if (stored && stored.lastVisibleTs > receiptTs) return 'unread';
+		return 'unknown';
+	}
+
+	// Empty timeline — no direct evidence at all.
+	if (stored?.lastReadAllTs !== undefined) return 'read';
+	if (stored && stored.lastVisibleTs > receiptTs) return 'unread';
+	if (stored && stored.lastVisibleTs > 0 && stored.lastVisibleTs <= receiptTs) return 'read';
+	return 'unknown';
+}
+
+// #endregion

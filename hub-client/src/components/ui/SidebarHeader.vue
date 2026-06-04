@@ -1,6 +1,6 @@
 <template>
-	<div class="flex shrink-0 items-center justify-between px-4 pb-4">
-		<h3 class="text-on-surface text-md font-semibold first-letter:uppercase">
+	<div class="flex shrink-0 items-center justify-between gap-4 px-4 pb-4">
+		<h3 class="text-on-surface text-md line-clamp-1 min-w-0 truncate font-semibold first-letter:uppercase">
 			{{ title }}
 		</h3>
 		<button
@@ -8,7 +8,10 @@
 			:aria-label="t('dialog.close')"
 			class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer"
 			:title="t('dialog.close')"
-			@click="sidebar.close()"
+			@click="
+				sidebar.close();
+				emit('close');
+			"
 		>
 			<Icon
 				size="sm"
@@ -35,6 +38,10 @@
 	// Props
 	defineProps<{
 		title: string;
+	}>();
+
+	const emit = defineEmits<{
+		close: [];
 	}>();
 
 	const { t } = useI18n();

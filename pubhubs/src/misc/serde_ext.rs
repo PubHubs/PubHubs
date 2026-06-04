@@ -6,17 +6,57 @@ use serde::{
 use core::fmt;
 use std::marker::PhantomData;
 
-/// Deserializes nothing, useful for ignoring deprecated fields in types annotated with
-/// `#[serde(deny_unknown_fields)]`.
-#[derive(serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Skip;
+/// A deprecated field that is ignored on read and re-emitted as a fixed placeholder on write.
+///
+/// On deserialize it consumes and discards any value (via [`serde::de::IgnoredAny`], so it also
+/// works under `#[serde(deny_unknown_fields)]`).  On serialize it writes `T::default()` through
+/// `T`'s own [`Serialize`].
+///
+/// Use this for a wire field that newer code no longer reads but that must still be *present* (and
+/// valid-looking) for older peers.  A field that may simply be *omitted* instead wants a
+/// `#[serde(default, skip_serializing)]` over a [`serde::de::IgnoredAny`] — no placeholder type
+/// needed.
+///
+/// `T` only selects which placeholder to emit; no `T` is stored — the field is just a marker.
+pub struct Placeholder<T>(PhantomData<T>);
 
-impl<'de> Deserialize<'de> for Skip {
-    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
-    {
-        Ok(Self {})
+// Implemented by hand rather than derived: `#[derive(Clone)]` &c. would generate
+// `impl<T: Clone> Clone for Placeholder<T>`, tying each trait to whether `T` has it.  But `T` is
+// only a phantom marker (never stored), so `Placeholder<T>` should carry these traits
+// unconditionally — independent of which placeholder type `T` is.
+impl<T> Default for Placeholder<T> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+impl<T> Clone for Placeholder<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl<T> Copy for Placeholder<T> {}
+impl<T> fmt::Debug for Placeholder<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Placeholder")
+    }
+}
+impl<T> PartialEq for Placeholder<T> {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+impl<T> Eq for Placeholder<T> {}
+
+impl<T: Default + Serialize> Serialize for Placeholder<T> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        T::default().serialize(serializer)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Placeholder<T> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        serde::de::IgnoredAny::deserialize(deserializer)?;
+        Ok(Self(PhantomData))
     }
 }
 
@@ -179,6 +219,13 @@ pub mod bytes_wrapper {
         }
     }
 
+    impl<O> BytesWrapper<serde_bytes::ByteBuf, O> {
+        /// Wraps a copy of the given bytes (e.g. for the [`B64`] byte-blob type).
+        pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Self {
+            serde_bytes::ByteBuf::from(bytes.as_ref().to_vec()).into()
+        }
+    }
+
     const VT_OWNED_BYTE_ARRAY: isize = 0;
     const VT_BORROWED_BYTE_ARRAY: isize = 1;
     const VT_TRANSIENT_BYTE_ARRAY: isize = 2;
@@ -189,10 +236,13 @@ pub mod bytes_wrapper {
     pub enum VisitorType {
         /// [serde::de::Visitor::visit_byte_buf], default
         OwnedByteArray = VT_OWNED_BYTE_ARRAY,
+
         /// [serde::de::Visitor::visit_borrowed_bytes]
         BorrowedByteArray = VT_BORROWED_BYTE_ARRAY,
+
         /// [serde::de::Visitor::visit_bytes]
         TransientByteArray = VT_TRANSIENT_BYTE_ARRAY,
+
         /// [serde::de::Visitor::visit_seq]
         ByteSequence = VT_BYTE_SEQUENCE,
     }
@@ -851,6 +901,14 @@ impl<const N: usize> From<[u8; N]> for ByteArray<N> {
 impl<const N: usize> From<ByteArray<N>> for [u8; N] {
     fn from(val: ByteArray<N>) -> Self {
         val.inner
+    }
+}
+
+// Manual (not derived): `[u8; N]: Default` only holds for `N` up to 32 in std, so a `derive` would
+// not apply for a general `const N`.  `[0u8; N]` works for any `N`.
+impl<const N: usize> Default for ByteArray<N> {
+    fn default() -> Self {
+        Self { inner: [0u8; N] }
     }
 }
 

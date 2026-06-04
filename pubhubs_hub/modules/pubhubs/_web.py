@@ -12,6 +12,7 @@ from ._secured_rooms_class import RoomAttribute
 from ._store import HubStore
 from ._validation import user_validator
 from ._cors import set_allow_origin_header
+from ._constants import USER
 
 import json
 import re
@@ -57,7 +58,7 @@ class YiviStart(DirectServeJsonResource):
         self._config = config
         self.store = store
 
-    @user_validator() 
+    @user_validator(USER)
     async def _async_render_GET(self, request, _):
 
         set_allow_origin_header(request, self._config.allowed_origins)
@@ -92,7 +93,7 @@ class YiviStart(DirectServeJsonResource):
  
 
     # For now, POST requests are just forwarded to the yivi server as a session request.
-    @user_validator() 
+    @user_validator(USER)
     async def _async_render_POST(self, request, _):
         set_allow_origin_header(request, self._config.allowed_origins)
 
@@ -190,10 +191,10 @@ class YiviResult(DirectServeJsonResource):
         else:
             return None
 
-    @user_validator() 
+    @user_validator(USER)
     async def _async_render_GET(self, request: SynapseRequest, user_id: str):
 
-        set_allow_origin_header(request, self._config.allowed_origins)         
+        set_allow_origin_header(request, self._config.allowed_origins)
 
         if not request.args.get(b"session_token") or not request.args.get(b"room_id"):
             respond_with_json(request, 400, {})
@@ -235,7 +236,7 @@ class YiviResult(DirectServeJsonResource):
             respond_with_json(request, 200, {"not_correct": "unfortunately not allowed in the room"})
 
 
-    @user_validator() 
+    @user_validator(USER)
     async def _async_render_POST(self, request: SynapseRequest, _):
 
         set_allow_origin_header(request, self._config.allowed_origins)

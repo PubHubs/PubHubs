@@ -14,7 +14,7 @@
 					<H1>{{ $t('register.welcome') }}</H1>
 					<Button
 						class="mt-6"
-						@click="$emit('next')"
+						@click="emit('next')"
 					>
 						{{ $t('register.register') }}
 					</Button>
@@ -23,3 +23,11 @@
 		</template>
 	</OnboardingTemplate>
 </template>
+
+<script lang="ts" setup>
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+
+	const emit = defineEmits(['next']);
+</script>

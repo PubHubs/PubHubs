@@ -85,7 +85,6 @@
 					:room="currentRoom!"
 					:scroll-to-event-id="currentRoom!.getCurrentEvent()?.eventId"
 					@scrolled-to-event-id="currentRoom!.setCurrentEvent(undefined)"
-					@thread-length-changed="currentThreadLengthChanged"
 				>
 				</RoomThread>
 
@@ -112,6 +111,7 @@
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRouter } from 'vue-router';
 
+	import Button from '@hub-client/components/elements/Button.vue';
 	import VideoCallDropDown from '@hub-client/components/forms/VideoCallDropDown.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import VideoCallPreview from '@hub-client/components/ui/VideoCallPreview.vue';
@@ -124,8 +124,6 @@
 
 	import { useRooms } from '@hub-client/stores/rooms';
 	import useVideoCall from '@hub-client/stores/videoCall';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
 
 	const videoCall = useVideoCall();
 	const router = useRouter();
@@ -259,8 +257,8 @@
 		showParticipants.value = false;
 	}
 
-	function currentThreadLengthChanged(newLength: number) {
-		if (!currentRoom.value) return;
-		currentRoom.value.setCurrentThreadLength(newLength);
-	}
+	// function currentThreadLengthChanged(newLength: number) {
+	// 	if (!currentRoom.value) return;
+	// 	currentRoom.value.setCurrentThreadLength(newLength);
+	// }
 </script>

@@ -22,18 +22,13 @@
 			<Foldout :question="`${$t('register.data_why')}`">
 				{{ $t('register.data_why_answer') }}
 			</Foldout>
-			<label
-				class="mt-6 flex font-bold"
-				for="attributesAdded"
+			<Checkbox
+				id="attributesAdded"
+				v-model="checked"
+				class="mt-1 mr-2 h-[16px] w-[16px] md:mt-1"
 			>
-				<Checkbox
-					id="attributesAdded"
-					v-model="checked"
-					class="mt-1 mr-2 h-[16px] w-[16px] md:mt-1"
-					:color="'blue'"
-				/>
 				{{ $t('register.data_added') }}
-			</label>
+			</Checkbox>
 			<Button
 				class="my-4 w-fit"
 				:disabled="!checked"
@@ -70,6 +65,10 @@
 <script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
 
 	defineEmits(['next', 'back']);
 

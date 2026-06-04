@@ -3,7 +3,10 @@
 		class="flex items-center gap-1"
 		:title="pseudonym"
 	>
-		<Icon type="user-circle" />
+		<Icon
+			type="user-circle"
+			size="sm"
+		/>
 		<DisplayNameCompact
 			:user-display-name="userDisplayName"
 			:user-id="userId"
@@ -14,6 +17,10 @@
 <script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
+
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	// Components
+	import DisplayNameCompact from '@hub-client/components/rooms/DisplayNameCompact.vue';
 
 	// Logic
 	import filters from '@hub-client/logic/core/filters';

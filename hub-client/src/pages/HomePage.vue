@@ -32,13 +32,11 @@
 					/>
 				</div>
 				<Button
+					icon="compass"
 					class="flex w-max justify-center gap-2"
 					@click="gotoDiscoverRooms()"
 				>
-					<Icon
-						size="lg"
-						type="compass"
-					/><span>{{ $t('menu.discover') }}</span>
+					{{ $t('menu.discover') }}
 				</Button>
 				<H3
 					v-if="hubDescription"
@@ -86,7 +84,10 @@
 	import { computed, onBeforeMount, ref } from 'vue';
 
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 	import H1 from '@hub-client/components/elements/H1.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 

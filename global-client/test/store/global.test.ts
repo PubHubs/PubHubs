@@ -94,7 +94,6 @@ describe('Global', () => {
 			expect(testhub0).toHaveProperty('url');
 			expect(testhub0).toHaveProperty('description');
 			expect(testhub0).toHaveProperty('logo');
-			expect(testhub0).toHaveProperty('unreadMessages');
 		});
 		test('changed pinnedHubs', async () => {
 			const global = useGlobal();

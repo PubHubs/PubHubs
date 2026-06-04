@@ -27,24 +27,27 @@ serde_bytes = { version = "0.11" }
 serde_json = { version = "1.0" }
 serde_urlencoded = { version = "0.7" }
 toml = { version = "1.0" }
-postcard = { version = "1.1", features = [ "use-std" ] }
+toml_writer = { version = "1.0" } # already pulled in by toml
+postcard = { version = "1.1", default-features = false, features = [ "use-std" ] }
 
 # better hashmap/hashset, supported by serde_json & toml
 indexmap = { version = "2.11", features = [ "serde" ] }
 
-rand = { version = "0" } 
+rand = { version = "0.10", features = ["sys_rng"] }
 # note: object_store is used by crates.io
 object_store = { version = "0.13", features = ["aws"] } 
 
 # Yivi interaction
-qrcode = { version = "0.14" }
+qrcode = { version = "0.14", default-features = false } # we only use unicode rendering
 regex = { version = "1.11" }
 
 # Web dependencies
-actix-web = { version = "4.11" }
+# default features disabled: we don't use macros, cookies, ws, or response compression
+actix-web = { version = "4.11", default-features = false, features = ["http2", "unicode", "compat"] }
 actix-cors = { version = "0.7" }
 bytes = { version = "1", features = ["serde"] }
-env_logger = { version = "0.11.8" }
+# humantime disabled: avoids jiff dependency; use `journalctl` or `docker logs -t` for timestamps
+env_logger = { version = "0.11.8", default-features = false, features = ["auto-color"] }
 mime = { version = "0.3" }
 log = { version = "0.4", features = ["serde"] }
 tokio = { version = "1.47", features = ["rt", "macros", "rt-multi-thread", "sync", "time", "io-std"] }
@@ -52,7 +55,15 @@ tokio-stream = { version = "0.1" } # <- dev dependency of tokio itself
 url = { version="2.5", features=["serde"] }
 
 # Proxying requests to Yivi and connection check
-awc = { version = "3.8", features = ["rustls-0_23-webpki-roots"] }
+# default features disabled: we don't need cookies or response decompression
+awc = { version = "3.8", default-features = false, features = ["rustls-0_23-webpki-roots"] }
+
+# awc, object_store and reqwest all use rustls.  Adding the following features makes
+# sure we can enable the post-quantum key-exchange X25519MLKEM768 for them.
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "prefer-post-quantum"] }
+
+# Needed for ML-KEM and (behind `unstable`) ML-DSA. Already pulled in via rustls' aws_lc_rs feature.
+aws-lc-rs = { version = "1.17", features = ["unstable"] }
 
 # RustCrypto packages
 aead = { version = "0.5", features=["getrandom"] }

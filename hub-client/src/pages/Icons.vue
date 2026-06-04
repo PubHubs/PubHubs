@@ -26,7 +26,7 @@
 				class="bg-surface-subtle h-36 w-32 place-content-center text-center"
 			>
 				<Icon
-					:type="key"
+					:type="key as string"
 					:size="size"
 					class="bg-surface hover:bg-accent-primary m-auto cursor-pointer"
 					:title="key"
@@ -43,6 +43,10 @@
 	import { icons } from '@hub-client/assets/icons';
 	import { iconSizes } from '@hub-client/assets/sizes';
 
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 
 	const size = ref('lg');

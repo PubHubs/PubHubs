@@ -13,7 +13,6 @@
 			<Icon
 				class="py-1"
 				:class="value === 'admin.title_administrator' ? 'text-background' : 'text-on-surface-variant'"
-				size="xs"
 				type="check-circle"
 			/>
 			<span

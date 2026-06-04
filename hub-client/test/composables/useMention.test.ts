@@ -27,7 +27,7 @@ import { describe, expect, test } from 'vitest';
 import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 
 // Model
-import { MentionMatch } from '@hub-client/models/components/TMessage';
+import { type MentionMatch } from '@hub-client/models/components/TMessage';
 
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';

@@ -39,6 +39,7 @@ export type HubInfoResp = Result<InfoResp, ErrorCode>;
 export type EnterStartResp = {
 	state: string;
 	nonce: string;
+	hhpp_signature_scheme?: string;
 };
 
 export type HubEnterStartResp = Result<EnterStartResp, ErrorCode>;

@@ -14,13 +14,13 @@
 			<p>{{ $t('register.yivi_downloaded') }}</p>
 			<Button
 				class="mt-6 mr-6 w-4000 max-w-full"
-				@click="$emit('next')"
+				@click="emit('next')"
 			>
 				{{ $t('register.yivi_no') }}
 			</Button>
 			<Button
 				class="mt-6 mb-4 w-4000 max-w-full py-3 leading-tight"
-				@click="$emit('skip')"
+				@click="emit('skip')"
 			>
 				{{ $t('register.yivi_yes') }}<br /><span class="text-body text-nowrap">({{ $t('register.skip_step1') }})</span>
 			</Button>
@@ -29,17 +29,18 @@
 			<div class="hidden h-4000 lg:flex">
 				<div class="flex w-full">
 					<img
-						alt="PubHubs mascot with Yivi app and Pubhubs screen silhouette"
-						src="../../../assets/mascot-yivi-app.svg"
+						alt="PubHubs mascot with phone"
+						src="../../../assets/mascot-attributes.svg"
 					/>
 				</div>
-			</div>
-			<div class="-mt-4 lg:hidden">
-				<img
-					class="relative left-1/2 -mb-20 w-40 pb-4 md:left-3/4"
-					src="../../../assets/mascot-yivi-app-small.svg"
-				/>
 			</div>
 		</template>
 	</OnboardingTemplate>
 </template>
+
+<script lang="ts" setup>
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+
+	const emit = defineEmits(['next', 'skip']);
+</script>
