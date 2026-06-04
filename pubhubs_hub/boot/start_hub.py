@@ -264,10 +264,12 @@ class Program:
                 with open(migration_config_path, "w") as f:
                     yaml.dump(config, f)
 
+                config_dir = os.path.dirname(os.path.abspath(live_config_path))
                 print(f"Running vanilla Synapse migration {sqlite3_path} -> postgres (this might take a while!) ...")
                 subprocess.run(("synapse_port_db",
-                                "--sqlite-database", sqlite3_path,
-                                "--postgres-config", migration_config_path),
+                                "--sqlite-database", os.path.abspath(sqlite3_path),
+                                "--postgres-config", os.path.abspath(migration_config_path)),
+                               cwd=config_dir,
                                check=True)
 
                 print(f"Removing {migration_config_path} ...")
