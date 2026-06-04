@@ -79,9 +79,10 @@ class Program:
                     hub_info = hub_info["Ok"]
                 hub['hub_info'] = hub_info 
                 logger.debug(f"{info_url}: {hub_info}")
-        except urllib.error.URLError as e:
-            logger.warn(f'failed to get {info_url}: {e}')
-            hub['hub_info'] = { 'error': e }
+        except (urllib.error.URLError, TimeoutError) as e:
+            logger.warning(f'failed to get {info_url}: {e}')
+            # URLError carries a .reason; a bare read-timeout TimeoutError does not.
+            hub['hub_info'] = { 'error': getattr(e, 'reason', e) }
 
     def print_hub_info(self):
         max_uri_len = max([len(hub['url']) for hub in self._hubs.values()])
@@ -90,7 +91,7 @@ class Program:
             hub_info = hub['hub_info']
             msg = None
             if 'error' in hub_info:
-                msg = hub_info['error'].reason
+                msg = hub_info['error']
                 prefix = tc.ERROR
             else:
                 msg = hub_info['hub_version']
