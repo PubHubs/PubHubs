@@ -223,33 +223,41 @@ impl crate::servers::App<Server> for App {
 
         let current_rs = self.running_state.as_ref();
 
-        let t_prior = current_rs.and_then(|rs| {
-            let id = rs.constellation.transcryptor_encap_key_id.as_ref()?;
-            let ct = rs.constellation.transcryptor_ss_encap.as_ref()?;
-            Some((id, ct, &rs.t_ss))
-        });
-        let (transcryptor_encap_key_id, transcryptor_ss_encap, t_ss) =
-            Self::encap_or_reuse(tdi.encap_key.as_ref(), t_prior)?;
+        let (transcryptor_encap_key_id, transcryptor_ss_encap, t_ss) = Self::encap_or_reuse(
+            servers::Name::Transcryptor,
+            tdi.encap_key.as_ref(),
+            current_rs.map(|rs| {
+                (
+                    &rs.constellation.transcryptor_encap_key_id,
+                    &rs.constellation.transcryptor_ss_encap,
+                    &rs.t_ss,
+                )
+            }),
+        )?;
 
-        let auths_prior = current_rs.and_then(|rs| {
-            let id = rs.constellation.auths_encap_key_id.as_ref()?;
-            let ct = rs.constellation.auths_ss_encap.as_ref()?;
-            Some((id, ct, &rs.auths_ss))
-        });
-        let (auths_encap_key_id, auths_ss_encap, auths_ss) =
-            Self::encap_or_reuse(asdi.encap_key.as_ref(), auths_prior)?;
+        let (auths_encap_key_id, auths_ss_encap, auths_ss) = Self::encap_or_reuse(
+            servers::Name::AuthenticationServer,
+            asdi.encap_key.as_ref(),
+            current_rs.map(|rs| {
+                (
+                    &rs.constellation.auths_encap_key_id,
+                    &rs.constellation.auths_ss_encap,
+                    &rs.auths_ss,
+                )
+            }),
+        )?;
 
         let new_constellation_inner = constellation::Inner {
-            // placeholder; the real master encryption key `x_PHC x_T B` is held off-wire in PHC's
-            // running state (derived from the transcryptor's sealed master key part)
-            master_enc_key: Some(elgamal::PublicKey::zero()),
-            // placeholder; superseded by `transcryptor_master_enc_key_part_hash`
-            transcryptor_master_enc_key_part: Some(elgamal::PublicKey::zero()),
             // the transcryptor publishes the hash of `x_T B` in its discovery info
-            transcryptor_master_enc_key_part_hash: tdi.master_enc_key_part_hash,
-            phc_master_enc_key_part_hash: Some(phcrypto::master_enc_key_part_hash(
+            transcryptor_master_enc_key_part_hash: tdi.master_enc_key_part_hash.ok_or_else(
+                || {
+                    log::error!("transcryptor's discovery info has no master_enc_key_part_hash");
+                    api::ErrorCode::InternalError
+                },
+            )?,
+            phc_master_enc_key_part_hash: phcrypto::master_enc_key_part_hash(
                 self.master_enc_key_part.public_key(),
-            )),
+            ),
             global_client_url: self.global_client_url.clone(),
             phc_url: self.phc_url.clone(),
             // PHC's ed25519 public key (the `ed` half), so pre-hybrid hubs can verify the EdDSA HHPP.
@@ -257,22 +265,14 @@ impl crate::servers::App<Server> for App {
                 self.signing_key.verifying_key().ed25519_bytes(),
             )
             .into(),
-            phc_verifying_key: Some(self.verifying_key_bytes.clone()),
-            // placeholder value - enc_key is not used to create shared secrets anymore
-            phc_enc_key: Some(elgamal::PublicKey::zero()),
+            phc_verifying_key: self.verifying_key_bytes.clone(),
             transcryptor_url: self.transcryptor_url.clone(),
-            transcryptor_jwt_key: api::DeprecatedJwtKey::default(),
             // cloned (not moved) so `tdi` stays whole for `master_enc_key_from_sealed_part` below
             transcryptor_verifying_key: tdi.verifying_key.clone(),
-            // placeholder value - enc_key is not used to create shared secrets anymore
-            transcryptor_enc_key: Some(elgamal::PublicKey::zero()),
             transcryptor_encap_key_id,
             transcryptor_ss_encap,
             auths_url: self.auths_url.clone(),
-            auths_jwt_key: api::DeprecatedJwtKey::default(),
             auths_verifying_key: asdi.verifying_key.clone(),
-            // placeholder value - enc_key is not used to create shared secrets anymore
-            auths_enc_key: Some(elgamal::PublicKey::zero()),
             auths_encap_key_id,
             auths_ss_encap,
             ph_version: self.version.clone(),
@@ -730,35 +730,36 @@ impl App {
         )))
     }
 
+    /// Encapsulate a fresh shared secret against the encapsulation key in `peer`'s discovery info
+    /// (error if it omits one), reusing `prior`'s ciphertext and secret when `peer`'s encapsulation
+    /// key is unchanged.
     fn encap_or_reuse(
+        peer: servers::Name,
         peer_encap_key: Option<&kem::EncapKeyBytes>,
         prior: Option<(&id::Id, &kem::CiphertextBytes, &kem::SharedSecret)>,
-    ) -> api::Result<(
-        Option<id::Id>,
-        Option<kem::CiphertextBytes>,
-        kem::SharedSecret,
-    )> {
-        let Some(ek_bytes) = peer_encap_key else {
-            return Ok((None, None, kem::SharedSecret::random()));
-        };
+    ) -> api::Result<(id::Id, kem::CiphertextBytes, kem::SharedSecret)> {
+        let peer_encap_key = peer_encap_key.ok_or_else(|| {
+            log::error!("{peer}'s discovery info has no encapsulation key");
+            api::ErrorCode::InternalError
+        })?;
 
-        let new_id = ek_bytes.id();
+        let new_id = peer_encap_key.id();
 
         if let Some((prev_id, prev_ct, prev_ss)) = prior
             && *prev_id == new_id
         {
-            return Ok((Some(*prev_id), Some(prev_ct.clone()), prev_ss.clone()));
+            return Ok((*prev_id, prev_ct.clone(), prev_ss.clone()));
         }
 
-        let ek = ek_bytes.decode().map_err(|_| {
-            log::error!("failed to decode peer encap_key");
+        let ek = peer_encap_key.decode().map_err(|_| {
+            log::error!("failed to decode {peer}'s encap_key");
             api::ErrorCode::InternalError
         })?;
         let (ct, ss) = ek.encap().map_err(|_| {
-            log::error!("failed to encapsulate for peer");
+            log::error!("failed to encapsulate for {peer}");
             api::ErrorCode::InternalError
         })?;
-        Ok((Some(new_id), Some(ct), ss))
+        Ok((new_id, ct, ss))
     }
 }
 

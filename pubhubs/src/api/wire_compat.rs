@@ -26,10 +26,10 @@
 #![cfg(test)]
 
 use crate::api::{
-    DeprecatedJwtKey, DiscoveryInfoResp, DiscoveryRunResp, Ed25519VerifyingKeyHex, ErrorCode,
-    MasterEncKeyPart, Result, Sealed, VerifyingKeyBytes,
+    DiscoveryInfoResp, DiscoveryRunResp, Ed25519VerifyingKeyHex, ErrorCode, MasterEncKeyPart,
+    Result, Sealed, VerifyingKeyBytes,
 };
-use crate::common::{elgamal, kem};
+use crate::common::kem;
 use crate::id;
 use crate::misc::jwt::NumericDate;
 use crate::servers::Name;
@@ -56,75 +56,22 @@ const SNAPSHOTS: &[(&str, Snapshots)] = &[
         // KEEP THIS COMMENT ON THE TOP (most-recent) ENTRY when adding a new one:
         // move it from the entry being demoted to the new entry above it.
         //
-        // Not yet shipped (production is at v3.3.0, which serves the >v3.2.2 shape; this entry
-        // only runs on the `main`/development deployment).
-        //
-        // New: encap_key (KEM); the master-key parts are no longer published in the clear —
-        // constellation carries {transcryptor,phc}_master_enc_key_part_hash, master_enc_key and
-        // transcryptor_master_enc_key_part are placeholders, and the transcryptor's discovery
-        // info carries master_enc_key_part_hash + master_enc_key_part_sealed.
-        // Also: jwt keys went hybrid post-quantum — the ed25519 `*_jwt_key` fields are now
-        // deprecated all-zero placeholders, superseded by `*_verifying_key` (PHC omits its own
-        // from its discovery info; the transcryptor and authentication server publish theirs).
-        ">v3.3.0",
+        // Drops the pre-v3.4.0 backward-compatibility fields: the deprecated ed25519 `*_jwt_key`
+        // placeholders (except the real `phc_jwt_key`, still needed by pre-v3.4.0 hubs), and the
+        // ElGamal `enc_key` / `master_enc_key` / `*_master_enc_key_part` placeholders.  PHC now
+        // publishes its own `verifying_key` in its discovery info, and the verifying-key / KEM /
+        // master-key-part-hash constellation fields are mandatory rather than optional.
+        ">v3.4.0",
         Snapshots {
-            discovery_info_resp_phc: r#"{
-  "name": "phc",
-  "self_check_code": "selfcheck-phc",
-  "version": "test-version",
-  "phc_url": "https://phc.example.test/",
-  "jwt_key": "0000000000000000000000000000000000000000000000000000000000000000",
-  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "constellation": {
-    "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "created_at": 1700000000,
-    "transcryptor_url": "https://tr.example.test/",
-    "transcryptor_jwt_key": "0000000000000000000000000000000000000000000000000000000000000000",
-    "transcryptor_verifying_key": {"ed":"AA==","ml":"AQ=="},
-    "transcryptor_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "transcryptor_master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "transcryptor_master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "phc_url": "https://phc.example.test/",
-    "phc_jwt_key": "0000000000000000000000000000000000000000000000000000000000000000",
-    "phc_verifying_key": {"ed":"AA==","ml":"AQ=="},
-    "phc_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "phc_master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "auths_url": "https://auths.example.test/",
-    "auths_jwt_key": "0000000000000000000000000000000000000000000000000000000000000000",
-    "auths_verifying_key": {"ed":"AA==","ml":"AQ=="},
-    "auths_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "master_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "global_client_url": "https://gc.example.test/",
-    "ph_version": "test-version"
-  }
-}"#,
-            discovery_info_resp_transcryptor: r#"{
-  "name": "transcryptor",
-  "self_check_code": "selfcheck-tr",
-  "version": "test-version",
-  "phc_url": "https://phc.example.test/",
-  "jwt_key": "0000000000000000000000000000000000000000000000000000000000000000",
-  "verifying_key": {"ed":"AA==","ml":"AQ=="},
-  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-  "master_enc_key_part_sealed": "AAAA",
-  "encap_key": {"ml":"AA==","ec":"AQ=="},
-  "constellation": { "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
-}"#,
-            discovery_info_resp_auths_blank: r#"{
-  "name": "auths",
-  "self_check_code": "selfcheck-auths",
-  "version": "test-version",
-  "phc_url": "https://phc.example.test/",
-  "jwt_key": "0000000000000000000000000000000000000000000000000000000000000000",
-  "verifying_key": {"ed":"AA==","ml":"AQ=="},
-  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "master_enc_key_part": null,
-  "encap_key": {"ml":"AA==","ec":"AQ=="},
-  "constellation": null
-}"#,
+            discovery_info_resp_phc: include_str!(
+                "wire_compat/v3.4.0-discovery_info_resp_phc.json"
+            ),
+            discovery_info_resp_transcryptor: include_str!(
+                "wire_compat/v3.4.0-discovery_info_resp_transcryptor.json"
+            ),
+            discovery_info_resp_auths_blank: include_str!(
+                "wire_compat/v3.4.0-discovery_info_resp_auths_blank.json"
+            ),
             discovery_run_resp_up_to_date: r#""UpToDate""#,
             discovery_run_resp_restarting: r#""Restarting""#,
             result_ok_up_to_date: r#"{"Ok":"UpToDate"}"#,
@@ -134,54 +81,27 @@ const SNAPSHOTS: &[(&str, Snapshots)] = &[
         },
     ),
     (
-        ">v3.2.2",
+        // Shipped as v3.4.0 (historical — do not edit to change the wire shape).  Retained so the
+        // current code is checked against what a v3.4.0 server sends during a rolling upgrade: it
+        // still carries the now-removed placeholders (`*_jwt_key` / `enc_key` / `master_enc_key` /
+        // `*_master_enc_key_part`), which the current code must ignore.
+        //
+        // Two reconciliations with the real v3.4.0 wire: the constellation's `*_encap_key_id` /
+        // `*_ss_encap` are present (a real v3.4.0 PHC always sets them; the original fixture for
+        // this entry happened to omit them), and PHC's discovery info carries `verifying_key` — a
+        // real v3.4.0 PHC omitted its own, but the field is now mandatory, and under the
+        // PHC-is-upgraded-first deploy order a new server only ever reads a newer PHC that sends it.
+        ">v3.3.0",
         Snapshots {
-            discovery_info_resp_phc: r#"{
-  "name": "phc",
-  "self_check_code": "selfcheck-phc",
-  "version": "test-version",
-  "phc_url": "https://phc.example.test/",
-  "jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
-  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "constellation": {
-    "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "created_at": 1700000000,
-    "transcryptor_url": "https://tr.example.test/",
-    "transcryptor_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
-    "transcryptor_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "transcryptor_master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "phc_url": "https://phc.example.test/",
-    "phc_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
-    "phc_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "auths_url": "https://auths.example.test/",
-    "auths_jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
-    "auths_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "master_enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    "global_client_url": "https://gc.example.test/",
-    "ph_version": "test-version"
-  }
-}"#,
-            discovery_info_resp_transcryptor: r#"{
-  "name": "transcryptor",
-  "self_check_code": "selfcheck-tr",
-  "version": "test-version",
-  "phc_url": "https://phc.example.test/",
-  "jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
-  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "master_enc_key_part": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "constellation": { "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
-}"#,
-            discovery_info_resp_auths_blank: r#"{
-  "name": "auths",
-  "self_check_code": "selfcheck-auths",
-  "version": "test-version",
-  "phc_url": "https://phc.example.test/",
-  "jwt_key": "66b1419fae979516fb3807dda1b05026b2570a7ab2190254e524af4f0934ddd2",
-  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-  "master_enc_key_part": null,
-  "constellation": null
-}"#,
+            discovery_info_resp_phc: include_str!(
+                "wire_compat/v3.3.0-discovery_info_resp_phc.json"
+            ),
+            discovery_info_resp_transcryptor: include_str!(
+                "wire_compat/v3.3.0-discovery_info_resp_transcryptor.json"
+            ),
+            discovery_info_resp_auths_blank: include_str!(
+                "wire_compat/v3.3.0-discovery_info_resp_auths_blank.json"
+            ),
             discovery_run_resp_up_to_date: r#""UpToDate""#,
             discovery_run_resp_restarting: r#""Restarting""#,
             result_ok_up_to_date: r#"{"Ok":"UpToDate"}"#,
@@ -202,10 +122,6 @@ fn wire_compat() {
     // Bogus hybrid verifying-key bytes — the serde shape is what wire_compat checks, not crypto
     // validity (matching the bogus KEM bytes below).
     let vkb: VerifyingKeyBytes = serde_json::from_str(r#"{"ed":"AA==","ml":"AQ=="}"#).unwrap();
-    let pk: elgamal::PublicKey = elgamal::PublicKey::from_hex(
-        "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
-    )
-    .unwrap();
     let id: id::Id = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         .parse()
         .unwrap();
@@ -219,6 +135,7 @@ fn wire_compat() {
     // Bogus KEM bytes — the serde shape is what wire_compat checks, not crypto validity.
     let encap_key: kem::EncapKeyBytes =
         serde_json::from_str(r#"{"ml":"AA==","ec":"AQ=="}"#).unwrap();
+    let ct: kem::CiphertextBytes = serde_json::from_str(r#"{"ml":"AA==","ec":"AQ=="}"#).unwrap();
     let sealed_part: Sealed<MasterEncKeyPart> = serde_json::from_str(r#""AAAA""#).unwrap();
 
     let constellation = Constellation {
@@ -226,25 +143,18 @@ fn wire_compat() {
         created_at: ts,
         inner: Inner {
             transcryptor_url: tr_url.clone(),
-            transcryptor_jwt_key: DeprecatedJwtKey::default(),
-            transcryptor_verifying_key: Some(vkb.clone()),
-            transcryptor_enc_key: Some(pk.clone()),
-            transcryptor_master_enc_key_part: Some(pk.clone()),
-            transcryptor_master_enc_key_part_hash: Some(id),
-            transcryptor_encap_key_id: None,
-            transcryptor_ss_encap: None,
+            transcryptor_verifying_key: vkb.clone(),
+            transcryptor_master_enc_key_part_hash: id,
+            transcryptor_encap_key_id: id,
+            transcryptor_ss_encap: ct.clone(),
             phc_url: phc_url.clone(),
             phc_jwt_key: Ed25519VerifyingKeyHex::default(),
-            phc_verifying_key: Some(vkb.clone()),
-            phc_enc_key: Some(pk.clone()),
-            phc_master_enc_key_part_hash: Some(id),
+            phc_verifying_key: vkb.clone(),
+            phc_master_enc_key_part_hash: id,
             auths_url: auths_url.clone(),
-            auths_jwt_key: DeprecatedJwtKey::default(),
-            auths_verifying_key: Some(vkb.clone()),
-            auths_enc_key: Some(pk.clone()),
-            auths_encap_key_id: None,
-            auths_ss_encap: None,
-            master_enc_key: Some(pk.clone()),
+            auths_verifying_key: vkb.clone(),
+            auths_encap_key_id: id,
+            auths_ss_encap: ct.clone(),
             global_client_url: gc_url,
             ph_version: Some(v.clone()),
         },
@@ -255,11 +165,7 @@ fn wire_compat() {
         self_check_code: "selfcheck-phc".to_owned(),
         version: Some(v.clone()),
         phc_url: phc_url.clone(),
-        jwt_key: DeprecatedJwtKey::default(),
-        // PHC withholds its hybrid verifying key from its own DiscoveryInfoResp (see server.rs).
-        verifying_key: None,
-        enc_key: Some(pk.clone()),
-        master_enc_key_part: Some(pk.clone()),
+        verifying_key: vkb.clone(),
         master_enc_key_part_hash: None,
         master_enc_key_part_sealed: None,
         encap_key: None,
@@ -271,10 +177,7 @@ fn wire_compat() {
         self_check_code: "selfcheck-tr".to_owned(),
         version: Some(v.clone()),
         phc_url: phc_url.clone(),
-        jwt_key: DeprecatedJwtKey::default(),
-        verifying_key: Some(vkb.clone()),
-        enc_key: Some(pk.clone()),
-        master_enc_key_part: Some(pk.clone()),
+        verifying_key: vkb.clone(),
         master_enc_key_part_hash: Some(id),
         master_enc_key_part_sealed: Some(sealed_part),
         encap_key: Some(encap_key.clone()),
@@ -286,10 +189,7 @@ fn wire_compat() {
         self_check_code: "selfcheck-auths".to_owned(),
         version: Some(v),
         phc_url,
-        jwt_key: DeprecatedJwtKey::default(),
-        verifying_key: Some(vkb),
-        enc_key: Some(pk),
-        master_enc_key_part: None,
+        verifying_key: vkb,
         master_enc_key_part_hash: None,
         master_enc_key_part_sealed: None,
         encap_key: Some(encap_key),

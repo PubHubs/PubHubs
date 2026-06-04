@@ -242,9 +242,8 @@ impl EndpointDetails for DiscoveryRun {
 ///
 /// </div>
 #[derive(Serialize, Deserialize, Debug, Clone)]
-// NOTE: `deny_unknown_fields` was deliberately dropped here so that future versions can add fields
-// without breaking deserialization at this version.  Be aware that v3.3.0 and earlier DID set it,
-// so a field that PHC emits still breaks those peers until they are out of rotation.
+// NOTE: `deny_unknown_fields` is deliberately not set, so a future version can add fields without
+// breaking deserialization on this version during a rolling upgrade.
 #[must_use]
 pub struct DiscoveryInfoResp {
     pub name: crate::servers::Name,
@@ -260,38 +259,8 @@ pub struct DiscoveryInfoResp {
     /// URL of the PubHubs Central server this server tries to connect to.
     pub phc_url: url::Url,
 
-    /// Deprecated ed25519 jwt key, kept for wire compatibility; see [`DeprecatedJwtKey`].
-    /// Superseded by [`verifying_key`](Self::verifying_key).
-    #[serde(default)]
-    pub jwt_key: DeprecatedJwtKey,
-
     /// This server's hybrid post-quantum verifying key, used to verify its JWTs and signatures.
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verifying_key: Option<VerifyingKeyBytes>,
-
-    /// Formerly the ElGamal key for encrypting to / establishing shared secrets with this server;
-    /// superseded by the post-quantum [`encap_key`].  Currently a placeholder zero pubkey; the
-    /// `Option` lets a future version omit it.
-    ///
-    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
-    /// rotation.
-    ///
-    /// [`encap_key`]: Self::encap_key
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub enc_key: Option<elgamal::PublicKey>,
-
-    /// Formerly the master encryption key part, `x_PHC B` or `x_T B` in the notation of the
-    /// whitepaper; now a placeholder zero pubkey (still set, as `Some(zero)`, by PHC and the
-    /// transcryptor).  Superseded by [`master_enc_key_part_hash`] and, for the transcryptor,
-    /// [`master_enc_key_part_sealed`], so the part is not exposed in the clear.
-    ///
-    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
-    /// rotation.
-    ///
-    /// [`master_enc_key_part_hash`]: Self::master_enc_key_part_hash
-    /// [`master_enc_key_part_sealed`]: Self::master_enc_key_part_sealed
-    pub master_enc_key_part: Option<elgamal::PublicKey>,
+    pub verifying_key: VerifyingKeyBytes,
 
     /// Hash of the transcryptor's master encryption key part `x_T B`, published so PHC can commit
     /// it to the constellation id before it is able to unseal the part itself.  Set by the

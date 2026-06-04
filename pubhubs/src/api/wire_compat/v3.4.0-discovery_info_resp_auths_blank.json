@@ -1,0 +1,9 @@
+{
+  "name": "auths",
+  "self_check_code": "selfcheck-auths",
+  "version": "test-version",
+  "phc_url": "https://phc.example.test/",
+  "verifying_key": {"ed":"AA==","ml":"AQ=="},
+  "encap_key": {"ml":"AA==","ec":"AQ=="},
+  "constellation": null
+}

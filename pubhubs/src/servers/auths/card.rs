@@ -273,15 +273,10 @@ impl App {
             comment,
         } = req.into_inner();
 
-        let Some(phc_verifying_key) = running_state
-            .constellation
-            .phc_verifying_key
-            .as_ref()
-            .and_then(|vk| vk.decode().ok())
-        else {
+        let Ok(phc_verifying_key) = running_state.constellation.phc_verifying_key.decode() else {
             log::warn!(
-                "cannot verify card-pseudonym package: constellation has no (valid) \
-                 phc_verifying_key yet"
+                "cannot verify card-pseudonym package: constellation's phc_verifying_key does not \
+                 decode"
             );
             return Err(api::ErrorCode::InternalError);
         };

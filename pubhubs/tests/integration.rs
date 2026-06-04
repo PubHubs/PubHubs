@@ -188,7 +188,7 @@ async fn main_integration_test_local(
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
                 if let Some(ref constellation) = constellation_maybe
-                    && constellation.transcryptor_encap_key_id.as_ref() != Some(&t_encap_key_id)
+                    && constellation.transcryptor_encap_key_id != t_encap_key_id
                 {
                     log::debug!(
                         "stable constellation has old transcryptor encapsulation key still"
@@ -234,7 +234,7 @@ async fn main_integration_test_local(
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
                 if let Some(ref constellation) = constellation_maybe
-                    && constellation.phc_verifying_key.as_ref() != Some(&phc_vk)
+                    && constellation.phc_verifying_key != phc_vk
                 {
                     log::debug!("stable constellation has old phc signing key still");
                     return None;
@@ -340,15 +340,7 @@ async fn main_integration_test_local(
     // check that the ticket is valid
     ticket
         .clone()
-        .open(
-            &constellation
-                .phc_verifying_key
-                .as_ref()
-                .unwrap()
-                .decode()
-                .unwrap(),
-            None,
-        )
+        .open(&constellation.phc_verifying_key.decode().unwrap(), None)
         .unwrap();
 
     // Exercise the HubPingEP demo endpoint against every server.
@@ -1566,13 +1558,7 @@ async fn handle_enter_complete(
         hub_nonce,
     } = hhpp
         .open(
-            &context
-                .constellation
-                .phc_verifying_key
-                .as_ref()
-                .unwrap()
-                .decode()
-                .unwrap(),
+            &context.constellation.phc_verifying_key.decode().unwrap(),
             Some(&context.constellation),
         )
         .unwrap();

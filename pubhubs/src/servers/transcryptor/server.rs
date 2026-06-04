@@ -36,19 +36,10 @@ impl servers::Details for Details {
         constellation: &Constellation,
         _seed: &(),
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let ss_encap = constellation
-            .transcryptor_ss_encap
-            .as_ref()
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "constellation contains no shared secret encapsulated for us; \
-                 check_constellation should have rejected it"
-                )
-            })?;
         let phc_ss = server
             .extra()
             .decap_key
-            .decap(ss_encap)
+            .decap(&constellation.transcryptor_ss_encap)
             .map_err(|_| anyhow::anyhow!("decapsulating shared secret from PHC failed"))?;
 
         Ok(ExtraRunningState {
@@ -125,22 +116,15 @@ impl crate::servers::App<Server> for App {
 
                     // These fields we don't care about:
                     transcryptor_url: _,
-                    transcryptor_jwt_key: _, // deprecated placeholder
-                    transcryptor_enc_key: _,
-                    transcryptor_master_enc_key_part: _, // deprecated
                     transcryptor_ss_encap: _,
-                    auths_enc_key: _,
-                    auths_jwt_key: _,
                     auths_verifying_key: _,
                     auths_url: _,
                     auths_encap_key_id: _,
                     auths_ss_encap: _,
                     phc_jwt_key: _,
                     phc_verifying_key: _,
-                    phc_enc_key: _,
                     phc_master_enc_key_part_hash: _,
                     phc_url: _,
-                    master_enc_key: _,
                     global_client_url: _,
                     ph_version: _, // (already checked)
                 },
@@ -150,12 +134,12 @@ impl crate::servers::App<Server> for App {
 
         // PHC must have encapsulated against our current encapsulation key; otherwise reject so that
         // discovery re-runs and PHC (re)publishes a matching ciphertext.
-        if *transcryptor_encap_key_id != Some(self.encap_key.id()) {
+        if *transcryptor_encap_key_id != self.encap_key.id() {
             return false;
         }
 
-        transcryptor_verifying_key.as_ref() == Some(&self.verifying_key_bytes)
-            && *transcryptor_master_enc_key_part_hash == Some(self.master_enc_key_part_hash)
+        transcryptor_verifying_key == &self.verifying_key_bytes
+            && *transcryptor_master_enc_key_part_hash == self.master_enc_key_part_hash
     }
 
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {

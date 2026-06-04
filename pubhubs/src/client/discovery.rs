@@ -140,18 +140,6 @@ impl DiscoveryInfoCheck<'_> {
             return Err(api::ErrorCode::InternalError);
         }
 
-        if inf.master_enc_key_part.is_some()
-            != matches!(
-                inf.name,
-                servers::Name::PubhubsCentral | servers::Name::Transcryptor
-            )
-        {
-            log::error!(
-                "master_enc_key_part must be set by the transcryptor and pubhub central, but no other servers - url: {source}"
-            );
-            return Err(api::ErrorCode::InternalError);
-        }
-
         if let Some(ref ic) = inf.constellation_or_id
             && let Some(sc) = self.constellation
             && *ic.id() != sc.id

@@ -804,10 +804,8 @@ pub struct UserState {
     #[serde(default)]
     pub registration_date: Option<api::NumericDate>,
 
-    /// Randomly generated and by [`Constellation::master_enc_key`] elgamal encrypted
-    /// identifier used to generate hub pseudonyms for this user.
-    ///
-    /// [`Constellation::master_enc_key`]: crate::servers::constellation::Inner::master_enc_key
+    /// Randomly generated identifier used to generate hub pseudonyms for this user, ElGamal
+    /// encrypted under the PubHubs master encryption key (`x_T x_PHC B`).
     pub polymorphic_pseudonym: elgamal::Triple,
 
     /// Whether this account is banned

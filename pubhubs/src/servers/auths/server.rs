@@ -42,16 +42,10 @@ impl servers::Details for Details {
         constellation: &Constellation,
         _seed: &(),
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let ss_encap = constellation.auths_ss_encap.as_ref().ok_or_else(|| {
-            anyhow::anyhow!(
-                "constellation contains no shared secret encapsulated for us; \
-                 check_constellation should have rejected it"
-            )
-        })?;
         let phc_ss = server
             .extra()
             .decap_key
-            .decap(ss_encap)
+            .decap(&constellation.auths_ss_encap)
             .map_err(|_| anyhow::anyhow!("decapsulating shared secret from PHC failed"))?;
 
         Ok(ExtraRunningState {
@@ -270,23 +264,16 @@ impl crate::servers::App<Server> for App {
 
                     // These fields we don't care about:
                     auths_url: _,
-                    auths_jwt_key: _, // deprecated placeholder
-                    auths_enc_key: _,
                     auths_ss_encap: _,
-                    transcryptor_jwt_key: _,
                     transcryptor_verifying_key: _,
-                    transcryptor_enc_key: _,
                     transcryptor_url: _,
-                    transcryptor_master_enc_key_part: _,
                     transcryptor_master_enc_key_part_hash: _,
                     transcryptor_encap_key_id: _,
                     transcryptor_ss_encap: _,
                     phc_jwt_key: _,
                     phc_verifying_key: _,
-                    phc_enc_key: _,
                     phc_master_enc_key_part_hash: _,
                     phc_url: _,
-                    master_enc_key: _,
                     global_client_url: _,
                     ph_version: _, // (already checked)
                 },
@@ -296,11 +283,11 @@ impl crate::servers::App<Server> for App {
 
         // PHC must have encapsulated against our current encapsulation key; otherwise reject so that
         // discovery re-runs and PHC (re)publishes a matching ciphertext.
-        if *auths_encap_key_id != Some(self.encap_key.id()) {
+        if *auths_encap_key_id != self.encap_key.id() {
             return false;
         }
 
-        auths_verifying_key.as_ref() == Some(&self.verifying_key_bytes)
+        auths_verifying_key == &self.verifying_key_bytes
     }
 
     fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {

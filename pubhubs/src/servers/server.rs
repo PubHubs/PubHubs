@@ -873,15 +873,8 @@ impl<S: Server> AppBase<S> {
 
         let ts_req = signed_req.into_inner();
 
-        let Some(phc_verifying_key) = running_state
-            .constellation
-            .phc_verifying_key
-            .as_ref()
-            .and_then(|vk| vk.decode().ok())
-        else {
-            log::warn!(
-                "cannot verify hub ping: constellation has no (valid) phc_verifying_key yet"
-            );
+        let Ok(phc_verifying_key) = running_state.constellation.phc_verifying_key.decode() else {
+            log::warn!("cannot verify hub ping: constellation's phc_verifying_key does not decode");
             return Err(api::ErrorCode::InternalError);
         };
 
@@ -1071,9 +1064,7 @@ impl<S: Server> AppBase<S> {
         // The transcryptor publishes a hash of its master encryption key part (so PHC can commit it
         // to the constellation before it is able to unseal the part) and, once it shares a secret
         // with PHC, the part itself sealed under that secret.  PHC and AS publish neither: PHC
-        // commits its own part's hash to the constellation directly and must not add discovery-info
-        // fields that v3.3.0 and earlier peers reject; AS has no master key part.  (The
-        // `Transcryptor` guard must come first: `master_enc_key_part_sealing_key` panics elsewhere.)
+        // commits its own part's hash to the constellation directly; AS has no master key part.
         let master_enc_key_part_hash = if matches!(S::NAME, Name::Transcryptor)
             && let Some(sk) = app.master_enc_key_part()
         {
@@ -1098,24 +1089,7 @@ impl<S: Server> AppBase<S> {
             version: app.version.clone(),
             self_check_code: app.self_check_code.clone(),
             phc_url: app.phc_url.clone(),
-            // deprecated ed25519 placeholder; the real key is the hybrid `verifying_key` below.
-            jwt_key: api::DeprecatedJwtKey::default(),
-            // PHC withholds its verifying_key here: DiscoveryInfoResp had `deny_unknown_fields` in
-            // <=v3.3.0, so emitting it would crash those peers.  PHC's key still reaches the
-            // transcryptor and authentication server via the constellation (which has no
-            // `deny_unknown_fields`); those two servers do publish theirs here so PHC can build it.
-            verifying_key: if S::NAME == crate::servers::Name::PubhubsCentral {
-                None
-            } else {
-                Some(app.verifying_key_bytes.clone())
-            },
-            // placeholder value - enc_key is not used to create shared secrets anymore
-            enc_key: Some(elgamal::PublicKey::zero()),
-            // placeholder - the real part moved to `master_enc_key_part_hash`/`_sealed`; kept
-            // `Some(zero)` for PHC and T but `None` for AS, preserving the old topology check.
-            master_enc_key_part: app
-                .master_enc_key_part()
-                .map(|_| elgamal::PublicKey::zero()),
+            verifying_key: app.verifying_key_bytes.clone(),
             master_enc_key_part_hash,
             master_enc_key_part_sealed,
             encap_key: app.encap_key().cloned(),
