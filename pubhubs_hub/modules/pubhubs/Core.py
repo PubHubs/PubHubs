@@ -31,12 +31,16 @@ try:
 except:
     pass # TODO
 
+# Composite post-quantum HHPP verification (ML-DSA-65 + Ed25519); see _composite_hhpp.py.
+from ._composite_hhpp import BESPOKE_ALG, hhpp_jwt, parse_verifying_key
+
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
 # Module that adds some of the core pubhubs functionality:
 #   - version number metrics
-#   - the '_synapse/client/.ph/' endpoints 
+#   - the '_synapse/client/.ph/' endpoints
+
 
 @dataclass
 class Config:
@@ -84,7 +88,7 @@ class Core:
         api.register_web_resource('/_synapse/client/.ph/enter-complete', PhEnterCompleteEP(self))
         self._constellation = None
         self._constellation_last_update_triggered = 0
-        self._phc_jwt_key = None # set by get_constellation
+        self._phc_verifying_key = None # CompositeKey, set by get_constellation
         self.trigger_get_constellation()
 
     @staticmethod
@@ -116,16 +120,25 @@ class Core:
         assert("Ok" in resp)
         ok_json = resp['Ok']
         assert("constellation" in ok_json)
-        self._constellation = ok_json['constellation']
-        logger.info(f"retrieved constellation with id {self._constellation['id']}")
+        constellation = ok_json['constellation']
 
-        self._phc_jwt_key = authlib.jose.JsonWebKey.import_key({
-            'kty': 'OKP',
-            'alg': 'EdDSA',
-            'crv': 'Ed25519',
-            'x': b64enc(bytes.fromhex(self._constellation['phc_jwt_key'])),
-            'use': 'sig',
-        })
+        # PHC's composite verifying key {ed, ml} (standard base64), used to verify the HHPP.
+        # Parse before committing the constellation, so a refresh that lacks/garbles the key keeps
+        # the previous working constellation+key instead of wiping it.  Missing/malformed is logged,
+        # not fatal (it should be present, since hubs upgrade after the central servers).
+        vk = constellation.get('phc_verifying_key')
+        if vk is None:
+            logger.error("constellation lacks phc_verifying_key; PHC too old to verify composite HHPP")
+            return
+        try:
+            phc_verifying_key = parse_verifying_key(vk)
+        except Exception as e:
+            logger.error(f"could not parse phc_verifying_key for composite HHPP verification: {e}")
+            return
+
+        self._constellation = constellation
+        self._phc_verifying_key = phc_verifying_key
+        logger.info(f"retrieved constellation with id {self._constellation['id']}")
 
 def get_version_string():
     try:
@@ -174,9 +187,13 @@ class PhEnterStartEP(Resource):
             'random': random
         }).encode('ascii'), b"nonce"))
 
+        # Tell PHC to sign the HHPP with the bespoke composite scheme.  (We accept the standard
+        # scheme too, but the backend only produces the bespoke one for now.)  Rollout order is
+        # central servers first, then hubs, so PHC already understands this field.
         return respond_with_json(request, 200, { 'Ok': {
                 'state': state,
                 'nonce': nonce,
+                'hhpp_signature_scheme': BESPOKE_ALG,
             }}, send_cors=True)
 
 def b64enc(some_bytes):
@@ -206,12 +223,17 @@ class PhEnterCompleteEP(Resource):
     def render_POST(self, request):
         d = twisted.internet.defer.ensureDeferred(self._render_POST_async(request))
         d.addCallback(lambda result: self._finish_request(request, result))
+        d.addErrback(lambda failure: self._finish_on_error(request, failure))
         return NOT_DONE_YET
 
     def _finish_request(self, request, result):
         respond_with_json(request, 200, result, send_cors=True)
 
-    def _get_phc_jwt_key(self, header, payload):
+    def _finish_on_error(self, request, failure):
+        logger.error(f"unhandled error in enter-complete: {failure.getTraceback()}")
+        self._finish_request(request, internal_error())
+
+    def _get_phc_verifying_key(self, header, payload):
         if self._core._constellation == None:
             logger.warning("constellation suddenly became None")
             raise Return(please_retry())
@@ -238,7 +260,11 @@ class PhEnterCompleteEP(Resource):
             self._core.trigger_get_constellation()
             raise Return({ 'Ok': 'RetryFromStart' })
 
-        return self._core._phc_jwt_key
+        # The constellation is current; both composite variants verify against the same key.
+        if self._core._phc_verifying_key is None:
+            logger.error("no phc_verifying_key available to verify the composite HHPP")
+            raise Return(internal_error())
+        return self._core._phc_verifying_key
 
     async def _render_POST_async(self, request):
         try:
@@ -276,13 +302,25 @@ class PhEnterCompleteEP(Resource):
             return please_retry()
 
         try:
-            claims = authlib.jose.jwt.decode(hhpp, self._get_phc_jwt_key)
-        except Return as re: 
-            # 'Return' is raised by _get_phc_jwt_key when something is wrong with the 
+            claims = hhpp_jwt.decode(hhpp, self._get_phc_verifying_key)
+        except Return as re:
+            # 'Return' is raised by _get_phc_verifying_key when something is wrong with the
             # constellation
             return re._return_value
+        except authlib.jose.errors.JoseError as e:
+            # malformed HHPP, a disallowed/unknown alg, or a bad composite signature
+            logger.warning(f"rejecting hhpp: {e}")
+            return bad_request()
 
-        claims.validate() # TODO: test that this validates exp, nbf
+        try:
+            claims.validate() # validates exp/nbf when present
+        except authlib.jose.errors.ExpiredTokenError:
+            # the HHPP has aged out; as with an expired state, minting a fresh one fixes it
+            logger.info("expired hhpp submitted")
+            return { 'Ok': 'RetryFromStart' }
+        except authlib.jose.errors.JoseError as e:
+            logger.warning(f"invalid hhpp claims: {e}")
+            return bad_request()
 
         if 'ph-mc' not in claims or claims['ph-mc'] != 11:
             logger.warn("request with wrong message code submitted")

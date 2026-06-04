@@ -6,11 +6,14 @@ use std::rc::Rc;
 use actix_web::web;
 use sha2::digest::Digest as _;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
+use crate::servers::{
+    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
+    constellation, yivi,
+};
 use crate::{
     api::{self, EndpointDetails as _},
     attr,
-    common::{elgamal, secret::DigestibleSecret as _},
+    common::{kem, secret::DigestibleSecret as _},
     handle, id, map,
     misc::{crypto, jwt},
     phcrypto,
@@ -29,14 +32,27 @@ impl servers::Details for Details {
     type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
+    type RunningStateSeed = ();
     type ExtraSharedState = ExtraSharedState;
+    type ExtraServerState = ExtraServerState;
     type ObjectStoreT = servers::object_store::UseNone;
 
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
+        _seed: &(),
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let phc_ss = server.enc_key.shared_secret(&constellation.phc_enc_key);
+        let ss_encap = constellation.auths_ss_encap.as_ref().ok_or_else(|| {
+            anyhow::anyhow!(
+                "constellation contains no shared secret encapsulated for us; \
+                 check_constellation should have rejected it"
+            )
+        })?;
+        let phc_ss = server
+            .extra()
+            .decap_key
+            .decap(ss_encap)
+            .map_err(|_| anyhow::anyhow!("decapsulating shared secret from PHC failed"))?;
 
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&phc_ss),
@@ -48,15 +64,30 @@ impl servers::Details for Details {
     fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
         Ok(ExtraSharedState {})
     }
+
+    fn create_extra_server_state(config: &servers::Config) -> anyhow::Result<ExtraServerState> {
+        let xconf = config.auths.as_ref().unwrap();
+        let decap_key = xconf
+            .decap_key
+            .as_ref()
+            .expect("decap_key was not set nor generated")
+            .decode()
+            .map_err(|_| anyhow::anyhow!("decoding kem decapsulation key"))?;
+        Ok(ExtraServerState { decap_key })
+    }
 }
 
 pub struct ExtraSharedState {}
 
+pub struct ExtraServerState {
+    pub(super) decap_key: kem::DecapKey,
+}
+
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
-    /// Shared secret with pubhubs central
+    /// Hybrid post-quantum shared secret with pubhubs central
     #[expect(dead_code)]
-    pub phc_ss: elgamal::SharedSecret,
+    pub phc_ss: kem::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with pubhubs central.
     ///
@@ -77,6 +108,7 @@ pub struct App {
     pub auth_window: core::time::Duration,
     pub attr_key_secret: Vec<u8>,
     pub chained_sessions_ctl: Option<ChainedSessionsCtl>,
+    pub encap_key: kem::EncapKeyBytes,
 }
 
 impl Deref for App {
@@ -172,6 +204,14 @@ impl AuthState {
 }
 
 impl App {
+    /// Implements [`api::server::HubPingEP`].
+    async fn handle_hub_ping(
+        app: Rc<Self>,
+        signed_req: web::Json<api::phc::hub::TicketSigned<api::server::PingReq>>,
+    ) -> api::Result<api::server::PingResp> {
+        crate::servers::AppBase::<Server>::handle_hub_ping(app, signed_req).await
+    }
+
     /// Implements [`api::auths::WelcomeEP`].
     fn cached_handle_welcome(app: &Self) -> api::Result<api::auths::WelcomeResp> {
         let attr_types: HashMap<handle::Handle, attr::Type> = app
@@ -194,6 +234,7 @@ impl App {
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::auths::WelcomeEP::caching_add_to(self, sc, App::cached_handle_welcome);
+        api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
 
         api::auths::AuthStartEP::add_to(self, sc, App::handle_auth_start);
         api::auths::AuthCompleteEP::add_to(self, sc, App::handle_auth_complete);
@@ -224,17 +265,26 @@ impl crate::servers::App<Server> for App {
             inner:
                 constellation::Inner {
                     // These fields we must check:
-                    auths_enc_key: enc_key,
-                    auths_jwt_key: jwt_key,
+                    auths_verifying_key,
+                    auths_encap_key_id,
 
                     // These fields we don't care about:
                     auths_url: _,
+                    auths_jwt_key: _, // deprecated placeholder
+                    auths_enc_key: _,
+                    auths_ss_encap: _,
                     transcryptor_jwt_key: _,
+                    transcryptor_verifying_key: _,
                     transcryptor_enc_key: _,
                     transcryptor_url: _,
                     transcryptor_master_enc_key_part: _,
+                    transcryptor_master_enc_key_part_hash: _,
+                    transcryptor_encap_key_id: _,
+                    transcryptor_ss_encap: _,
                     phc_jwt_key: _,
+                    phc_verifying_key: _,
                     phc_enc_key: _,
+                    phc_master_enc_key_part_hash: _,
                     phc_url: _,
                     master_enc_key: _,
                     global_client_url: _,
@@ -244,7 +294,24 @@ impl crate::servers::App<Server> for App {
             created_at: _,
         } = constellation;
 
-        enc_key == self.enc_key.public_key() && **jwt_key == self.jwt_key.verifying_key()
+        // PHC must have encapsulated against our current encapsulation key; otherwise reject so that
+        // discovery re-runs and PHC (re)publishes a matching ciphertext.
+        if *auths_encap_key_id != Some(self.encap_key.id()) {
+            return false;
+        }
+
+        auths_verifying_key.as_ref() == Some(&self.verifying_key_bytes)
+    }
+
+    fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
+        Some(&self.encap_key)
+    }
+
+    async fn discover(
+        self: &Rc<Self>,
+        phc_inf: api::DiscoveryInfoResp,
+    ) -> api::Result<DiscoverVerdict<()>> {
+        self.discover_as_non_phc(phc_inf).await
     }
 }
 
@@ -258,6 +325,7 @@ pub struct AppCreator {
     auth_window: core::time::Duration,
     attr_key_secret: Vec<u8>,
     chained_sessions_ctl: Option<ChainedSessionsCtl>,
+    encap_key: kem::EncapKeyBytes,
 }
 
 impl Deref for AppCreator {
@@ -292,6 +360,13 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             }
         }
 
+        if let Some(cfg) = xconf.yivi.as_ref() {
+            anyhow::ensure!(
+                !matches!(cfg.requestor_creds.key, yivi::SigningKey::RS256(_)),
+                "rs256 yivi requestor credentials are not supported (due to RUSTSEC-2023-0071); use hs256 instead"
+            );
+        }
+
         let yivi: Option<YiviCtx> = xconf.yivi.as_ref().map(|cfg| YiviCtx {
             requestor_url: cfg.requestor_url.as_ref().clone(),
             requestor_creds: cfg.requestor_creds.clone(),
@@ -300,9 +375,9 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             card_config: cfg.card.clone(),
         });
 
-        let auth_state_secret: crypto::SealingKey = base
-            .enc_key
-            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-auths-auth-state");
+        let enc_key: &[u8] = &base.enc_key;
+        let auth_state_secret: crypto::SealingKey =
+            enc_key.derive_sealing_key(sha2::Sha256::new(), "pubhubs-auths-auth-state");
 
         let auth_window = xconf.auth_window;
 
@@ -316,6 +391,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .as_ref()
             .map(|yivi_ctx| ChainedSessionsCtl::new(yivi_ctx.clone()));
 
+        let encap_key = xconf
+            .decap_key
+            .as_ref()
+            .expect("decap_key was not set nor generated")
+            .decode()
+            .and_then(|dk| dk.encap_key().encode())
+            .map_err(|_| anyhow::anyhow!("deriving kem encapsulation key"))?;
+
         Ok(Self {
             base,
             attribute_types,
@@ -324,6 +407,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auth_window,
             attr_key_secret,
             chained_sessions_ctl,
+            encap_key,
         })
     }
 
@@ -341,6 +425,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auth_window: self.auth_window,
             attr_key_secret: self.attr_key_secret,
             chained_sessions_ctl: self.chained_sessions_ctl,
+            encap_key: self.encap_key,
         }
     }
 }

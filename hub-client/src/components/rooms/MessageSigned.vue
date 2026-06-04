@@ -1,46 +1,15 @@
 <template>
-	<div class="bg-surface flex max-w-[700px] flex-col rounded-xl border p-3">
-		<div class="flex">
+	<div class="bg-surface-base rounded-base outline-surface-elevated flex max-w-[700px] flex-col p-4 outline-3">
+		<div class="flex items-center gap-100">
 			<h3 class="font-bold">
 				{{ $t('message.messageSigned.heading') }}
 			</h3>
 			<Icon
-				class="text-accent-red p-[0.6rem]"
-				:size="'sm'"
-				type="warning"
-				@mouseout="showVerificationStatus = false"
-				@mouseover="showVerificationStatus = true"
-			/>
-			<div class="relative">
-				<div
-					v-if="showVerificationStatus"
-					class="bg-surface-high absolute right-0 bottom-6 w-32 rounded-md p-2"
-				>
-					<p class="text-label-small">
-						{{ $t('message.messageSigned.verificationStatus') }}
-					</p>
-				</div>
-			</div>
-			<Icon
-				class="ml-auto p-[0.6rem]"
-				:size="'sm'"
+				class="ml-auto"
+				size="sm"
 				type="info"
-				@mouseout="showInfo = false"
-				@mouseover="showInfo = true"
+				:title="$t('message.messageSigned.info')"
 			/>
-			<!-- An extra div to ensure the info popup is always positioned the same -->
-			<div class="relative">
-				<div
-					v-if="showInfo"
-					class="bg-surface-high absolute right-2 bottom-6 w-32 rounded-md p-2"
-				>
-					<p class="text-label-small">
-						{{ $t('message.messageSigned.info') }}
-					</p>
-				</div>
-			</div>
-			<!-- Not supported yet -->
-			<!-- <IconButton type="download-simple" :size="'sm'"  class=" "/> -->
 		</div>
 		<p>{{ getMessage(message) }}</p>
 		<div class="flex w-full min-w-0 flex-col overflow-x-auto p-2">
@@ -48,11 +17,10 @@
 				<li
 					v-for="attribute in getDisclosedAttributes(message)"
 					:key="attribute.id"
-					class="flex w-fit items-center rounded-full bg-black px-2 text-white"
+					class="rounded-base bg-surface-elevated flex w-fit items-center gap-100 px-3 py-2"
 				>
 					<Icon
-						class="mr-1"
-						:size="'sm'"
+						size="sm"
 						type="seal-check"
 					/>
 
@@ -67,9 +35,6 @@
 </template>
 
 <script lang="ts" setup>
-	// Packages
-	import { ref } from 'vue';
-
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
@@ -82,7 +47,4 @@
 	};
 
 	defineProps<Props>();
-
-	const showInfo = ref(false);
-	const showVerificationStatus = ref(false);
 </script>

@@ -2,7 +2,10 @@ import { MatrixEvent, type Room as MatrixRoom } from 'matrix-js-sdk';
 import { ref } from 'vue';
 
 import { api_synapse } from '@hub-client/logic/core/api';
+import { ApiError } from '@hub-client/logic/core/apiCore';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+
+import type Room from '@hub-client/models/rooms/Room';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
@@ -56,27 +59,52 @@ const useRoomLibrary = () => {
 		}
 	}
 
-	async function deleteMedia(url: string, eventId: string, roomId: string) {
+	async function deleteMedia(url: string, eventId: string, roomId: string, retryCount = 0): Promise<void> {
+		const maxRetries = 3;
 		try {
 			await api_synapse.apiDELETE(url);
-			await pubhubsStore.deleteMessage(roomId, eventId);
 		} catch (error) {
-			logger.error('Unable to delete the media file ' + error);
-			return null;
+			// Check for rate limiting (429)
+			if (error instanceof ApiError && (error.status === 429 || error.errcode === 'M_LIMIT_EXCEEDED')) {
+				if (retryCount < maxRetries) {
+					const waitTime = error.retry_after_ms ?? 5000;
+					logger.warn(`Rate limited, waiting ${waitTime}ms before retry ${retryCount + 1}/${maxRetries}`);
+					await new Promise((resolve) => setTimeout(resolve, waitTime));
+					return deleteMedia(url, eventId, roomId, retryCount + 1);
+				}
+				logger.error('Max retries exceeded for rate limiting');
+				return;
+			}
+
+			// Check for 404/not found errors
+			if (error instanceof ApiError && (error.status === 404 || error.errcode === 'M_NOT_FOUND')) {
+				logger.warn('Media file already deleted, proceeding to redact event: ' + eventId);
+			} else {
+				logger.error('Unable to delete the media file ' + error);
+				return;
+			}
 		}
+		await pubhubsStore.deleteMessage(roomId, eventId);
 	}
 
-	async function removeFromTimeline(eventId: string, roomId: string, signedEvents: Array<MatrixEvent>) {
+	async function removeFromTimeline(room: Room, eventId: string, signedEvents: Array<MatrixEvent>) {
 		try {
-			await pubhubsStore.deleteLibraryMessage(roomId, eventId);
+			await pubhubsStore.deleteLibraryMessage(room.roomId, eventId);
 			// Remove all the related child events (signed banners) from the timeline
 			for (const relatedEvent of signedEvents) {
 				if (relatedEvent.event.event_id) {
-					await pubhubsStore.deleteLibraryMessage(roomId, relatedEvent.event.event_id);
+					await pubhubsStore.deleteLibraryMessage(room.roomId, relatedEvent.event.event_id);
 				}
 			}
 		} catch (error) {
 			logger.error('Unable to update the roomlibrary timeline ' + error);
+		}
+		// Remove from local library events immediately for reactivity
+		room.removeLibraryEvent(eventId);
+		for (const relatedEvent of signedEvents) {
+			if (relatedEvent.event.event_id) {
+				room.removeLibraryEvent(relatedEvent.event.event_id);
+			}
 		}
 	}
 

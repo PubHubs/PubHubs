@@ -1,12 +1,9 @@
 <template>
 	<div
-		class="flex h-full w-full flex-col overflow-hidden py-4"
+		class="relative flex h-full w-full flex-col overflow-hidden py-4"
 		data-testid="sidekick"
 	>
-		<SidebarHeader
-			v-if="!groupPanel"
-			:title="t('others.new_message')"
-		/>
+		<SidebarHeader :title="groupPanel ? t('others.new_group') : t('others.new_message')" />
 		<div class="flex min-h-0 flex-1 flex-col">
 			<div
 				v-if="!groupPanel"
@@ -21,38 +18,28 @@
 					<input
 						v-model="userFilter"
 						class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
-						:placeholder="t('others.search')"
+						:placeholder="t('others.search_users')"
 						type="text"
 					/>
 				</div>
-				<Button
-					class="bg-on-surface-variant text-label-small hover:text-surface-high dark:text-surface-high flex w-full items-center justify-center gap-2"
-					size="sm"
-					@click="groupPanel = true"
-				>
-					<Icon type="plus" /> {{ t('others.new_group') }}
-				</Button>
 			</div>
 			<div
 				v-else
 				class="flex flex-col gap-2 px-4"
 			>
-				<div class="bg-surface-high flex items-center justify-between rounded-md px-3 py-2">
+				<button
+					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled -mx-4 flex items-center gap-2 border-y px-4 py-3 transition-colors hover:cursor-pointer"
+					type="button"
+					@click="groupProfile ? backToGroupPanel() : (groupPanel = false)"
+				>
 					<Icon
-						class="cursor-pointer"
-						type="arrow-left"
-						@click="groupProfile ? backToGroupPanel() : (groupPanel = false)"
+						size="sm"
+						type="caret-left"
 					/>
-					<span class="text-label-small mr-auto pl-2">
-						{{ t('others.new_group') }}
-					</span>
-					<Icon
-						class="cursor-pointer"
-						type="x"
-						@click="$emit('close')"
-					/>
-				</div>
-				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
+					<span class="text-body-small">{{ t('dialog.back') }}</span>
+				</button>
+
+				<div class="bg-surface-high mt-2 flex items-center gap-2 rounded-md px-3 py-2">
 					<Icon
 						class="text-on-surface-dim"
 						size="sm"
@@ -61,7 +48,7 @@
 					<input
 						v-model="userFilter"
 						class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
-						:placeholder="t('others.filter_users')"
+						:placeholder="t('others.search_users')"
 						type="text"
 					/>
 				</div>
@@ -136,24 +123,6 @@
 						<span class="mt-1 w-16 truncate text-center text-sm">{{ userStore.userDisplayName(userId) }}</span>
 					</div>
 				</div>
-				<Button
-					v-if="groupPanelButton"
-					class="bg-on-surface-variant text-surface-high hover:bg-surface-subtle mt-6 flex items-center justify-between"
-					:disabled="selectionNotCompleted"
-					@click="usersSelectionDone()"
-				>
-					{{ t('others.next') }}
-					<Icon type="arrow-right" />
-				</Button>
-				<Button
-					v-if="groupProfileButton"
-					class="bg-on-surface-variant text-surface-high text-label-small hover:bg-surface-subtle mt-12 flex justify-between"
-					:disabled="cannotCreateGroupRoom"
-					size="xs"
-					@click="groupCreationDone(usersSelected)"
-				>
-					{{ t('others.next') }}<Icon type="arrow-right" />
-				</Button>
 			</div>
 
 			<div
@@ -172,7 +141,6 @@
 						<div class="bg-accent-admin/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
 							<Icon
 								class="text-accent-admin"
-								size="md"
 								type="lifebuoy"
 							/>
 						</div>
@@ -183,9 +151,9 @@
 					</div>
 				</div>
 
-				<template v-if="Object.keys(categorizedUsers).length">
+				<template v-if="categorizedUsers.length">
 					<div
-						v-for="(usersInLetter, letter) in categorizedUsers"
+						v-for="[letter, usersInLetter] in categorizedUsers"
 						:key="letter"
 						class="mb-4"
 					>
@@ -209,8 +177,8 @@
 									:user-id="user.userId"
 								/>
 								<div class="flex flex-col">
-									<span>{{ user.displayName || user.userId }}</span>
-									<span> {{ filters.extractPseudonym(user.userId) }}</span>
+									<span v-if="isUserDisplayNameInList(user.displayName)">{{ user.displayName }}</span>
+									<span>{{ filters.extractPseudonym(user.userId) }}</span>
 								</div>
 							</li>
 						</ul>
@@ -223,6 +191,29 @@
 				</template>
 			</div>
 		</div>
+		<FloatingActionButton
+			v-if="!groupPanel"
+			class="absolute right-4 bottom-4"
+			:label="t('others.new_group')"
+			icon="plus"
+			@click="groupPanel = true"
+		/>
+		<FloatingActionButton
+			v-if="groupPanel && groupPanelButton"
+			class="absolute right-4 bottom-4"
+			:label="t('others.next')"
+			:disabled="selectionNotCompleted"
+			icon="arrow-right"
+			@click="usersSelectionDone()"
+		/>
+		<FloatingActionButton
+			v-if="groupPanel && groupProfileButton"
+			class="absolute right-4 bottom-4"
+			:label="t('others.next')"
+			:disabled="cannotCreateGroupRoom"
+			icon="arrow-right"
+			@click="groupCreationDone(usersSelected)"
+		/>
 	</div>
 </template>
 
@@ -233,6 +224,7 @@
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
+	import FloatingActionButton from '@hub-client/components/elements/FloatingActionButton.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
@@ -247,9 +239,6 @@
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import filters from '@hub-client/logic/core/filters';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
-
-	// Models
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -286,15 +275,13 @@
 	const selectedUsers = ref<string[]>([]);
 	const MAX_USER_GROUP = 5;
 
-	const _adminRoomExists = computed(() => rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length > 0);
-
 	onBeforeUnmount(() => {
 		avatarPreviewUrl.value?.revoke();
 	});
 
 	const usersSelected = computed(() =>
-		pubhubs.client
-			.getUsers()
+		pubhubs
+			.getHubUsers()
 			.filter((user) => selectedUsers.value.includes(user.userId))
 			.map((user) => user.userId),
 	);
@@ -314,8 +301,8 @@
 
 		// Get the base users and filter them
 		const baseUsers =
-			pubhubs.client
-				.getUsers()
+			pubhubs
+				.getHubUsers()
 				.filter((otherUser) => otherUser.userId !== userStore.userId && !otherUser.userId.includes('notices_user'))
 				.filter((u) => {
 					const displayName = u.displayName?.toLowerCase() || u.userId.toLowerCase();
@@ -323,16 +310,7 @@
 					return displayName.includes(filterText);
 				}) ?? [];
 
-		// Sort users alphabetically by display name
-		const sortedUsers = [...baseUsers].sort((a, b) => {
-			const nameA = a.displayName?.toUpperCase() || '';
-			const nameB = b.displayName?.toUpperCase() || '';
-			if (nameA < nameB) return -1;
-			if (nameA > nameB) return 1;
-			return 0;
-		});
-
-		sortedUsers.forEach((user) => {
+		baseUsers.forEach((user) => {
 			const firstLetter = user.displayName ? user.displayName.charAt(0).toUpperCase() : '#';
 			if (!categories[firstLetter]) {
 				categories[firstLetter] = [];
@@ -340,7 +318,15 @@
 			categories[firstLetter].push(user as User);
 		});
 
-		return categories;
+		// Sort on first letter of username: A-Z, 0-9, @
+		const categoryOrder = (k: string) => {
+			if (k.toLowerCase() !== k.toUpperCase()) return 0; // so a-z, A-Z, but also Ä, é, ç etc.
+			if (k >= '0' && k <= '9') return 1;
+			return 2;
+		};
+		return Object.keys(categories)
+			.sort((a, b) => categoryOrder(a) - categoryOrder(b) || a.localeCompare(b))
+			.map((key) => [key, categories[key]!] as [string, User[]]);
 	});
 
 	async function handleAdminContact() {
@@ -375,6 +361,11 @@
 
 		groupProfile.value = true;
 		hideAvatarPreview.value = true;
+	}
+
+	function isUserDisplayNameInList(displayName: string | undefined): boolean {
+		if (!displayName) return false;
+		return displayName[0].toLowerCase() !== displayName[0].toUpperCase(); // // so a-z, A-Z, but also Ä, é, ç etc.
 	}
 
 	function toggleUserSelection(user: User) {

@@ -272,6 +272,10 @@
 	import DownloadLinks from '@global-client/components/ui/onboarding/DownloadLinks.vue';
 	import FaqSection from '@global-client/components/ui/onboarding/FaqSection.vue';
 
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import H2 from '@hub-client/components/elements/H2.vue';
+	import P from '@hub-client/components/elements/P.vue';
+
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 

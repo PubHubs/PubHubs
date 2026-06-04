@@ -13,14 +13,15 @@
 	import ViewVotesSchedulerOption from '@hub-client/components/rooms/voting/view-votes/ViewVotesSchedulerOption.vue';
 
 	// Models
-	import { type SchedulerOption } from '@hub-client/models/events/voting/VotingTypes';
+	import { type SchedulerOption, type UserVote } from '@hub-client/models/events/voting/VotingTypes';
 
+	// Props
 	const props = defineProps<{
 		options: SchedulerOption[];
 		votesByOption: {
 			optionId: number;
 			votes: {
-				userVotes: { userId: string; time: string }[];
+				userVotes: UserVote[];
 				choice: string;
 			}[];
 		}[];

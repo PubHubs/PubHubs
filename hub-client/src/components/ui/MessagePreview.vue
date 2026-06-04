@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="@container w-full rounded-xl p-4"
-		:class="active ? 'bg-surface' : 'bg-surface-low'"
+		class="rounded-base @container w-full border-3 p-4"
+		:class="active ? 'bg-surface-base border-surface-elevated' : 'bg-surface-low border-surface-base hover:bg-surface-base hover:border-surface-elevated'"
 	>
 		<div class="flex gap-3">
 			<Avatar
@@ -65,12 +65,19 @@
 						{{ t('rooms.no_messages_yet') }}
 					</p>
 					<Badge
-						v-if="newMessage > 0"
+						v-if="unreadState === 'unread'"
 						data-testid="unread-badge"
 						class="shrink-0"
-					>
-						{{ newMessage }}
-					</Badge>
+						color="hub"
+						size="sm"
+					/>
+					<Badge
+						v-if="unreadState === 'unknown'"
+						data-testid="unread-badge"
+						class="shrink-0"
+						color="unknown"
+						size="sm"
+					/>
 				</div>
 			</div>
 		</div>
@@ -79,11 +86,12 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { EventType, MsgType, NotificationCountType } from 'matrix-js-sdk';
-	import { computed, ref, watch } from 'vue';
+	import { EventType, MsgType } from 'matrix-js-sdk';
+	import { type PropType, computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import Badge from '@hub-client/components/elements/Badge.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
@@ -91,15 +99,17 @@
 
 	// Composables
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useModerationMembership } from '@hub-client/composables/moderation/membership.composable';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import filters from '@hub-client/logic/core/filters';
+	import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { RoomType, type UnreadState } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
@@ -109,6 +119,10 @@
 		room: {
 			type: Room,
 			required: true,
+		},
+		unreadState: {
+			type: String as PropType<UnreadState>,
+			default: 'unknown',
 		},
 		isMobile: {
 			type: Boolean,
@@ -122,7 +136,7 @@
 
 	const userStore = useUser();
 	const { t } = useI18n();
-	const { stewardSourceRoomName } = useModeration();
+	const { stewardSourceRoomName } = useModerationMembership(useModerationBase());
 	const { formatMentions } = useMentionsDisplay();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);
 
@@ -152,8 +166,6 @@
 		},
 		{ immediate: true },
 	);
-
-	const newMessage = computed(() => props.room.getUnreadNotificationCount(NotificationCountType.Total));
 
 	const latestMessageEvent = computed(() => {
 		const events = props.room.getLiveTimelineEvents();
@@ -237,9 +249,9 @@
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return event.value?.getSender();
 		if (roomType.value !== RoomType.PH_MESSAGES_DM) return;
 
-		const { allOtherMembers } = useModeration(props.room);
-		if (allOtherMembers.value.length > 0) {
-			return allOtherMembers.value[0];
+		const otherMembers = getOtherRoomMembers(props.room, userStore.userId);
+		if (otherMembers.length > 0) {
+			return otherMembers[0];
 		} else {
 			const notInvitedMembersIds = props.room.notInvitedMembersIdsOfPrivateRoom();
 			return props.room.getMember(notInvitedMembersIds[0])?.userId;
@@ -254,8 +266,8 @@
 
 	function getOtherUserDisplayName(): string | undefined {
 		// Admin contact has a private one-to-one room
-		const { allOtherMembers } = useModeration(props.room);
-		if (allOtherMembers.value.length > 1) return undefined;
-		return allOtherMembers.value.map((userId) => userStore.userDisplayName(userId)).pop();
+		const otherMembers = getOtherRoomMembers(props.room, userStore.userId);
+		if (otherMembers.length > 1) return undefined;
+		return otherMembers.map((userId) => userStore.userDisplayName(userId)).pop();
 	}
 </script>

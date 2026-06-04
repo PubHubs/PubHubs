@@ -1,101 +1,100 @@
 <template>
-	<button
-		v-if="option.status === 'empty'"
-		class="bg-background hover:bg-surface-high relative mb-1 flex h-[42px] w-full rounded-lg border text-left"
-	>
-		<div class="mx-2 flex w-full items-center">
-			<VueDatePicker
-				id="schedulerDatePickerInput"
-				v-model="date"
-				class=""
-				dark
-				:is-24="is24HourFormat"
-				:locale="locale"
-				:min-date="new Date()"
-				offset="20"
-				range
-				:six-weeks="'fair'"
-				@update:model-value="updateDateOption"
-			>
-				<template #trigger>
-					<p class="text-label flex-1">
-						{{ $t('message.voting.add_option') }}
-					</p>
-				</template>
-				<template #action-preview="{ value }">
-					<div class="text-left text-balance">
-						{{ filters.getDateStr(value, is24HourFormat, d, true) }}
-					</div>
-				</template>
-			</VueDatePicker>
+	<div class="gap-075 mb-100 flex flex-col items-start justify-start">
+		<label class="text-label-small text-on-surface-dim">{{ $t('message.voting.option') }}</label>
+		<div class="flex w-full items-center gap-100">
+			<div class="relative grow">
+				<button
+					v-if="option.status === 'empty'"
+					class="bg-surface-base outline-offset-thin outline-on-surface-dim focus:outline-button-blue w-full justify-start rounded px-175 py-100 text-left outline-2 focus:outline-3"
+				>
+					<VueDatePicker
+						id="schedulerDatePickerInput"
+						v-model="date"
+						dark
+						:is-24="is24HourFormat"
+						:locale="locale"
+						:min-date="new Date()"
+						offset="20"
+						range
+						:six-weeks="'fair'"
+						append-to-body
+						@update:model-value="updateDateOption"
+					>
+						<template #trigger>
+							<span class="text-on-surface-dim/75 text-label font-normal">{{ $t('message.voting.add_option') }}</span>
+						</template>
+						<template #action-preview="{ value }">
+							<div class="text-left text-balance">
+								{{ filters.getDateStr(value, is24HourFormat, d, true) }}
+							</div>
+						</template>
+					</VueDatePicker>
+				</button>
+				<div
+					v-else-if="option.status === 'filled'"
+					class="bg-surface-base outline-offset-thin outline-on-surface-dim focus-within:outline-button-blue flex w-full items-center rounded px-175 py-100 outline-2 focus-within:outline-3"
+				>
+					<VueDatePicker
+						v-model="date"
+						dark
+						:is-24="is24HourFormat"
+						:locale="locale"
+						:min-date="new Date()"
+						offset="20"
+						range
+						:six-weeks="'fair'"
+						append-to-body
+						@internal-model-change="handleInternal"
+						@update:model-value="updateDateOption"
+					>
+						<template #trigger>
+							<span class="text-label">{{ filters.getDateStr(option.date, is24HourFormat, d) }}</span>
+						</template>
+						<template #action-preview="{ value }">
+							<div class="text-left text-balance">
+								{{ filters.getDateStr(value, is24HourFormat, d, true) }}
+							</div>
+						</template>
+						<!-- Add a custom time picker overlay, because model-auto with range does not allow for changing the time for a single date. -->
+						<template #time-picker-overlay>
+							<div class="time-picker-overlay">
+								<div v-if="isRangeComplete">
+									<VueDatePicker
+										v-model="time"
+										auto-apply
+										dark
+										inline
+										:range="rangeOptions"
+										:time="time"
+										:time-picker="true"
+										@update:model-value="updateTime"
+									/>
+								</div>
+								<div v-else>
+									<VueDatePicker
+										v-model="time"
+										auto-apply
+										dark
+										inline
+										:time="time"
+										:time-picker="true"
+										@update:model-value="updateTime"
+									/>
+								</div>
+							</div>
+						</template>
+					</VueDatePicker>
+					<Icon
+						:as-button="true"
+						class="hover:text-accent-red shrink-0 hover:cursor-pointer"
+						size="sm"
+						type="x"
+						@click="emit('removeOption')"
+					/>
+				</div>
+			</div>
 		</div>
-	</button>
-	<button
-		v-else-if="option.status === 'filled'"
-		class="bg-background hover:bg-surface-high mb-1 flex h-[42px] w-full items-center justify-between rounded-lg border"
-	>
-		<div class="flex w-full">
-			<VueDatePicker
-				v-model="date"
-				class="m-auto min-w-10"
-				dark
-				:is-24="is24HourFormat"
-				:locale="locale"
-				:min-date="new Date()"
-				range
-				:six-weeks="'fair'"
-				@internal-model-change="handleInternal"
-				@update:model-value="updateDateOption"
-			>
-				<template #trigger>
-					<div class="mx-2 text-left">
-						<div>{{ filters.getDateStr(option.date, is24HourFormat, d) }}</div>
-					</div>
-				</template>
-				<template #action-preview="{ value }">
-					<div class="text-left text-balance">
-						{{ filters.getDateStr(value, is24HourFormat, d, true) }}
-					</div>
-				</template>
-				<!-- Add a custom time picker overlay, because model-auto with range does not allow for changing the time for a single date. -->
-				<template #time-picker-overlay>
-					<div class="time-picker-overlay">
-						<div v-if="isRangeComplete">
-							<VueDatePicker
-								v-model="time"
-								auto-apply
-								dark
-								inline
-								:range="rangeOptions"
-								:time="time"
-								:time-picker="true"
-								@update:model-value="updateTime"
-							/>
-						</div>
-						<div v-else>
-							<VueDatePicker
-								v-model="time"
-								auto-apply
-								dark
-								inline
-								:time="time"
-								:time-picker="true"
-								@update:model-value="updateTime"
-							/>
-						</div>
-					</div>
-				</template>
-			</VueDatePicker>
-			<Icon
-				:as-button="true"
-				class="m-auto mr-2"
-				:icon-color="'text-accent-red'"
-				size="sm"
-				type="trash"
-				@click="emit('removeOption')"
-			/>
-		</div>
-	</button>
+	</div>
 </template>
 
 <script lang="ts" setup>
@@ -120,6 +119,7 @@
 	const props = defineProps<{
 		option: SchedulerOption;
 	}>();
+
 	const emit = defineEmits(['updateOption', 'removeOption']);
 	const settings = useSettings();
 	const { d, locale: i18nLocale } = useI18n();

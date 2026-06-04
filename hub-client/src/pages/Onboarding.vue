@@ -36,10 +36,10 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput
+								<TextField
 									v-model="inputValue"
 									class="placeholder-on-surface-dim! text-label h-10"
-									:maxlength="24"
+									:validation="{ maxLength: 24 }"
 									:placeholder="pseudonym"
 								/>
 								<Button @click="fileInput!.click()">
@@ -77,7 +77,6 @@
 									/>
 									<Icon
 										v-else
-										size="lg"
 										type="user"
 									/>
 								</div>
@@ -146,7 +145,7 @@
 						<Button
 							v-if="!isConsentOnly"
 							class="text-on-surface-variant w-fit px-0"
-							color="text"
+							variant="tertiary"
 							@click="prevStep"
 						>
 							{{ t('forms.back') }}
@@ -196,7 +195,7 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput
+								<TextField
 									v-model="inputValue"
 									class="placeholder-on-surface-dim! text-label h-10"
 									:placeholder="pseudonym"
@@ -236,7 +235,6 @@
 									/>
 									<Icon
 										v-else
-										size="lg"
 										type="user"
 									/>
 								</div>
@@ -293,7 +291,7 @@
 						<Button
 							v-if="!isConsentOnly"
 							class="text-on-surface-variant w-fit px-0"
-							color="text"
+							variant="tertiary"
 							@click="prevStep"
 						>
 							{{ t('forms.back') }}
@@ -340,8 +338,8 @@
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
-	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
-	import TextInput from '@hub-client/components/forms/TextInput.vue';
+	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 

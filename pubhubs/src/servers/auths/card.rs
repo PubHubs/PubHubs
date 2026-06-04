@@ -273,19 +273,31 @@ impl App {
             comment,
         } = req.into_inner();
 
-        let card_pseudonym_package =
-            match cpp_signed.open(&*running_state.constellation.phc_jwt_key, None) {
-                Ok(cpp) => cpp,
-                Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
-                    return Err(api::ErrorCode::InternalError);
-                }
-                Err(OpenError::OtherwiseInvalid) => {
-                    return Err(api::ErrorCode::BadRequest);
-                }
-                Err(OpenError::Expired) | Err(OpenError::InvalidSignature) => {
-                    return Ok(api::auths::CardResp::PleaseRetryWithNewCardPseud);
-                }
-            };
+        let Some(phc_verifying_key) = running_state
+            .constellation
+            .phc_verifying_key
+            .as_ref()
+            .and_then(|vk| vk.decode().ok())
+        else {
+            log::warn!(
+                "cannot verify card-pseudonym package: constellation has no (valid) \
+                 phc_verifying_key yet"
+            );
+            return Err(api::ErrorCode::InternalError);
+        };
+
+        let card_pseudonym_package = match cpp_signed.open(&phc_verifying_key, None) {
+            Ok(cpp) => cpp,
+            Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
+                return Err(api::ErrorCode::InternalError);
+            }
+            Err(OpenError::OtherwiseInvalid) => {
+                return Err(api::ErrorCode::BadRequest);
+            }
+            Err(OpenError::Expired) | Err(OpenError::InvalidSignature) => {
+                return Ok(api::auths::CardResp::PleaseRetryWithNewCardPseud);
+            }
+        };
 
         let (esr, attr) = app.issue_card(card_pseudonym_package, comment)?;
 

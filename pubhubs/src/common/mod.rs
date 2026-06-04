@@ -1,6 +1,6 @@
-//! What's common between the ABI and binary.
-//!
-//! Please keep this as small as possible.
+//! What was common between the binary and the ABI (which is no longer used).
 
+pub mod dsa;
 pub mod elgamal;
+pub mod kem;
 pub mod secret;

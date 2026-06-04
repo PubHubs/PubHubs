@@ -4,11 +4,11 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
-import { delay } from '@global-client/logic/utils/generalUtils';
 import { decodeJWT, handleErrors, responseEqualToRequested } from '@global-client/logic/utils/mssUtils';
 import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
+import { delay } from '@hub-client/logic/utils/common';
 
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';
@@ -28,6 +28,7 @@ import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
+import { useLocalStores } from '@global-client/stores/localStores';
 
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
@@ -140,7 +141,7 @@ const useMSS = defineStore('mss', {
 			return warningMessage;
 		},
 
-		async enterHub(id: string, nonceStatePair: EnterStartResp): Promise<string | undefined> {
+		async enterHub(id: string, enterStartResp: EnterStartResp): Promise<string | undefined> {
 			const maxAttempts = 4;
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
 				if (attempt > 0) {
@@ -150,7 +151,7 @@ const useMSS = defineStore('mss', {
 				const sealedPPP = await this.phcServer.pppEP();
 				assert.isDefined(sealedPPP, 'Something went wrong, sealedPPP should be defined.');
 				const transcryptor = await this.getTranscryptor();
-				const sealedEhpp = await transcryptor.ehppEP(nonceStatePair.nonce, id, sealedPPP);
+				const sealedEhpp = await transcryptor.ehppEP(enterStartResp.nonce, id, sealedPPP);
 
 				if (sealedEhpp === 'RetryWithNewPpp' && attempt < maxAttempts) {
 					continue;
@@ -158,7 +159,7 @@ const useMSS = defineStore('mss', {
 					throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
 				}
 				assert.isDefined(sealedEhpp, 'Something went wrong, sealedEhpp should be defined or you should have gone back to requesting a new Ppp.');
-				const signedHhpp = await this.phcServer.hhppEP(sealedEhpp);
+				const signedHhpp = await this.phcServer.hhppEP(sealedEhpp, enterStartResp.hhpp_signature_scheme);
 
 				if (signedHhpp === 'RetryWithNewPpp' && attempt < maxAttempts) {
 					continue;
@@ -258,6 +259,7 @@ const useMSS = defineStore('mss', {
 
 		logout(): void {
 			this.phcServer.reset();
+			useLocalStores().clear();
 			localStorage.removeItem('PHauthToken');
 			localStorage.removeItem('UserSecret');
 			localStorage.removeItem('UserSecretVersion');

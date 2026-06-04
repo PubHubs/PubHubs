@@ -92,7 +92,7 @@ class VideoCallServlet(DirectServeJsonResource):
 
         room_name = parse_string(request, "room_id")
 
-        if not self.store.is_allowed(user.authenticated_entity, room_name):
+        if not await self.store.is_allowed(user.authenticated_entity, room_name):
             respond_with_json(request, 403, {"error": "User is not allowed to join this room"}, True)
             return
 
@@ -108,7 +108,7 @@ class VideoCallServlet(DirectServeJsonResource):
 
         room_name = parse_string(request, "room_id")
 
-        if not self.store.is_allowed(user.authenticated_entity, room_name):
+        if not await self.store.is_allowed(user.authenticated_entity, room_name):
             respond_with_json(request, 403, {"error": "User is not allowed to join this room"}, True)
             return
 

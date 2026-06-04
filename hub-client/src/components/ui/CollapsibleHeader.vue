@@ -4,11 +4,13 @@
 		:title="title"
 	>
 		<div
-			class="flex cursor-pointer items-center justify-between"
-			@click="toggle()"
+			class="flex items-center justify-between"
+			:class="collapsible ? 'cursor-pointer' : ''"
+			@click="collapsible && toggle()"
 		>
 			<div class="text-on-surface-dim flex items-center gap-2">
 				<Icon
+					v-if="collapsible"
 					class="transition-transform duration-200"
 					:class="{ 'rotate-45': !collapsed }"
 					size="sm"
@@ -30,7 +32,7 @@
 			</div>
 		</div>
 		<div
-			v-show="!collapsed"
+			v-show="!collapsible || !collapsed"
 			class="mt-2"
 		>
 			<slot />
@@ -39,11 +41,17 @@
 </template>
 
 <script lang="ts" setup>
+	// Packages
 	import { ref } from 'vue';
 
+	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	defineProps<{ label?: string; title?: string }>();
+	// Props
+	withDefaults(defineProps<{ label: string; title?: string | undefined; collapsible?: boolean }>(), {
+		collapsible: true,
+		title: undefined,
+	});
 
 	const collapsed = ref(false);
 

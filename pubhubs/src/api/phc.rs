@@ -60,7 +60,7 @@ pub mod hub {
     #[serde(deny_unknown_fields)]
     pub struct TicketContent {
         pub handle: crate::handle::Handle,
-        pub verifying_key: VerifyingKey,
+        pub verifying_key: VerifyingKeyBytes,
     }
 
     having_message_code!(TicketContent, PhcHubTicket);
@@ -78,7 +78,7 @@ pub mod hub {
         /// the provided `ticket`, and checking the `ticket` using `key`.
         pub fn open(
             self,
-            key: &ed25519_dalek::VerifyingKey,
+            key: &VerifyingKey,
         ) -> std::result::Result<(T, crate::handle::Handle), TicketOpenError>
         where
             T: Signable,
@@ -88,9 +88,16 @@ pub mod hub {
                 .open(key, None)
                 .map_err(TicketOpenError::Ticket)?;
 
+            // PHC validates the hub's verifying key when it mints the ticket, so a malformed key in a
+            // valid ticket is PHC's fault — report it as a Ticket error, not a Signed one.
+            let hub_verifying_key = ticket_content
+                .verifying_key
+                .decode()
+                .map_err(|_| TicketOpenError::Ticket(OpenError::OtherwiseInvalid))?;
+
             let msg: T = self
                 .signed
-                .open(&*ticket_content.verifying_key, None)
+                .open(&hub_verifying_key, None)
                 .map_err(TicketOpenError::Signed)?;
 
             Ok((msg, ticket_content.handle))
@@ -109,6 +116,40 @@ pub mod hub {
 
         #[error("ticket is valid, but not the signature made using it")]
         Signed(#[source] OpenError),
+    }
+
+    impl TicketOpenError {
+        /// Standard verdict for this error: respond with `retry_response` (when the hub can
+        /// recover by obtaining a new ticket), or fail the handler with an [`ErrorCode`].
+        ///
+        /// `retry_response` is typically the handler's `RetryWithNewTicket` response variant.
+        pub fn default_verdict<R>(self, retry_response: R) -> Result<R> {
+            match self {
+                // Ticket failed PHC's signature check or has aged past its TTL: requesting a fresh
+                // ticket from PHC fixes both cases.
+                Self::Ticket(OpenError::InvalidSignature) | Self::Ticket(OpenError::Expired) => {
+                    Ok(retry_response)
+                }
+                // Internal crypto failure.  `Ticket(OtherConstellation)` is defensive: the ticket
+                // is not constellation-bound (see [`Signable::CONSTELLATION_BOUND`]), so this
+                // arm would only fire on a code bug.
+                Self::Ticket(OpenError::InternalError)
+                | Self::Ticket(OpenError::OtherConstellation(..))
+                | Self::Signed(OpenError::InternalError) => Err(ErrorCode::InternalError),
+                // The hub just created the inner `Signed` for this request, so a bad/expired
+                // signature, a malformed JWT, or a constellation mismatch all point to a
+                // hub-side bug; surface as `BadRequest` so the hub investigates rather than
+                // loops on a fresh ticket.  (`Signed(OtherConstellation)` is currently
+                // unreachable: [`TicketSigned`] does not support constellation-bound inner
+                // messages.  If support is added, that arm should get its own
+                // `RetryWithNewConstellation` response variant instead.)
+                Self::Ticket(OpenError::OtherwiseInvalid)
+                | Self::Signed(OpenError::OtherwiseInvalid)
+                | Self::Signed(OpenError::InvalidSignature)
+                | Self::Signed(OpenError::Expired)
+                | Self::Signed(OpenError::OtherConstellation(..)) => Err(ErrorCode::BadRequest),
+            }
+        }
     }
 }
 
@@ -134,7 +175,18 @@ pub mod user {
         pub hubs: HashMap<handle::Handle, crate::hub::BasicInfo>,
     }
 
-    /// Provides the global client with cached details about the hubs
+    /// Provides the global client with cached details about the hubs.
+    ///
+    /// Hub information is retrieved by default every minute, but this can be configured,
+    /// see [`crate::servers::config::phc::ExtraConfig::hub_cache`].
+    ///
+    /// If a hub becomes unreachable, the last seen hub info will remain in the cache.
+    ///
+    /// To see whether a hub is offline, you can compare the
+    /// [`crate::api::hub::DynamicHubInfo::last_reload`] value of the [`crate::api::hub::InfoResp::dynamic`] field
+    /// against the current time.  If the difference is more than, say, three minutes, the hub is
+    /// likely offline.  (The hub currently updates every minute, PHC fetches these updates every
+    /// minute, and pushes this after at most 5 seconds to the `App`s.)
     #[derive(Debug)]
     pub struct CachedHubInfoEP {}
     impl EndpointDetails for CachedHubInfoEP {
@@ -657,6 +709,12 @@ pub mod user {
     pub struct HhppReq {
         /// The encrypted pseudonym to hash. Can be obtained from [`tr::EhppEP`].
         pub ehpp: Sealed<sso::EncryptedHubPseudonymPackage>,
+
+        /// The scheme to sign the resulting HHPP with, relayed by the global client from
+        /// [`EnterStartResp::hhpp_signature_scheme`](crate::api::hub::EnterStartResp::hhpp_signature_scheme).
+        /// Absent ⇒ [`Ed25519`](sso::HhppSignatureScheme::Ed25519).
+        #[serde(default, skip_serializing_if = "sso::HhppSignatureScheme::is_default")]
+        pub hhpp_signature_scheme: sso::HhppSignatureScheme,
     }
 
     /// Returned by [`HhppEP`].
@@ -691,6 +749,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
     pub struct CardPseudPackage {
         pub card_pseud: CardPseud,
+
         /// Registration date for this user.  Can be `None` for users that registered under v3.0.0.
         pub registration_date: Option<NumericDate>,
     }

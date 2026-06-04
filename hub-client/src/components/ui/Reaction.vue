@@ -7,11 +7,11 @@
 		<div
 			v-for="item in reactionSummary"
 			:key="item.key"
-			class="bg-surface rounded-full"
+			class="bg-surface-base rounded-base"
 		>
 			<span
-				class="group/reaction relative inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1"
-				:class="item.hasUserReacted ? 'bg-accent-blue/30 border-accent-blue border' : 'border border-transparent'"
+				class="group/reaction rounded-base relative inline-flex cursor-pointer items-center gap-2 px-3 py-1"
+				:class="item.hasUserReacted ? 'bg-accent-blue/30 border-accent-blue border-2' : 'border-surface-elevated border-2'"
 				role="listitem"
 				:title="item.tooltipTitle"
 				@click.stop="toggleReaction(item)"

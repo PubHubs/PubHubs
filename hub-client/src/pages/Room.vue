@@ -1,23 +1,5 @@
 <template>
 	<div class="flex h-full flex-col">
-		<Dialog
-			v-if="room?.roomId && user.getYellowCards && user.yellowCards.includes(room.roomId)"
-			:title="capitalize(t('moderation.yellow_card'))"
-			:buttons="yellowCardButtons"
-			@close="onYellowCardClose"
-		>
-			<div class="flex flex-row gap-3">
-				<Icon
-					type="exclamation-mark"
-					size="3xl"
-					class="text-accent-yellow"
-				></Icon>
-				<div class="flex flex-col gap-2">
-					<p>{{ t('moderation.yellow_card_info') }}</p>
-					<p class="text-on-surface-variant text-sm">{{ yellowCardMembers.find((card) => card.userId === user.userId)?.reason }}</p>
-				</div>
-			</div>
-		</Dialog>
 		<template v-if="rooms.currentRoomExists">
 			<div
 				v-if="isLoading"
@@ -44,6 +26,13 @@
 						data-testid="back"
 						class="cursor-pointer"
 						@click="router.push({ name: 'direct-msg' })"
+					/>
+					<Icon
+						v-if="rooms.currentRoom.isForumRoom() && props.topicId"
+						type="caret-left"
+						data-testid="back"
+						class="cursor-pointer"
+						@click="router.push({ name: 'room', params: { id: rooms.currentRoomId } })"
 					/>
 					<Icon
 						v-else-if="notPrivateRoom()"
@@ -120,17 +109,10 @@
 
 						<!-- Thread tab (shown when a thread is selected) -->
 						<GlobalBarButton
-							v-if="room?.getCurrentThreadId()"
+							v-if="room?.getCurrentThreadId() && !room.isForumRoom()"
 							type="chat-circle"
 							:selected="sidebar.activeTab.value === SidebarTab.Thread"
 							@click="sidebar.toggleTab(SidebarTab.Thread)"
-						/>
-
-						<!-- Editing icon for steward (but not for administrator) -->
-						<GlobalBarButton
-							v-if="roles.userHasPermissionForAction(UserAction.StewardPanel, props.id)"
-							type="dots-three-vertical"
-							@click="stewardCanEdit()"
 						/>
 					</RoomHeaderButtons>
 				</div>
@@ -140,11 +122,16 @@
 			<div class="flex flex-1 overflow-hidden">
 				<div class="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
 					<RoomTimeline
-						v-if="room"
+						v-if="room && !room.isForumRoom()"
 						:key="props.id"
 						:room="room"
 						:event-id-to-scroll="scrollToEventId"
 						:last-read-event-id="lastReadEventId"
+					/>
+					<ForumRoomTimeline
+						v-if="room && room.isForumRoom()"
+						:room="room"
+						:topic-id="topicId"
 					/>
 				</div>
 
@@ -162,7 +149,6 @@
 						:room="room"
 						:scroll-to-event-id="room.getCurrentEvent()?.eventId"
 						@scrolled-to-event-id="room.setCurrentEvent(undefined)"
-						@thread-length-changed="currentThreadLengthChanged"
 					/>
 					<RoomMemberList
 						v-if="sidebar.activeTab.value === SidebarTab.Members && room"
@@ -190,7 +176,8 @@
 
 <script setup lang="ts">
 	// Packages
-	import { capitalize, computed, onMounted, ref, watch } from 'vue';
+	import { KnownMembership } from 'matrix-js-sdk';
+	import { capitalize, computed, onMounted, ref, watch, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
@@ -209,25 +196,25 @@
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
-	import Dialog from '@hub-client/components/ui/Dialog.vue';
+	import ForumRoomTimeline from '@hub-client/components/rooms/forum/ForumRoomTimeline.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
-	import { useModeration } from '@hub-client/composables/moderation.composable';
 	// Composables
-	import { useRoles } from '@hub-client/composables/roles.composable';
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
 	import { useClipboard } from '@hub-client/composables/useClipboard';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
+	import { delay } from '@hub-client/logic/utils/common';
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
-	import { UserAction } from '@hub-client/models/users/TUser';
 
-	import { DialogOk } from '@hub-client/stores/dialog';
+	import { DialogOk, useDialog } from '@hub-client/stores/dialog';
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -236,35 +223,19 @@
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-
 	// Passed by the router
 	const props = defineProps({
 		id: { type: String, required: true },
+		topicId: { type: String, default: undefined },
 	});
 
 	const logger = createLogger('Room');
-
-	const yellowCardButtons = computed(() => [
-		{
-			label: 'ok',
-			action: DialogOk,
-			color: 'primary',
-			enabled: true,
-		},
-	]);
-
-	function onYellowCardClose() {
-		if (room.value) {
-			user.removeYellowCard(room.value.roomId);
-		}
-	}
 
 	const { t } = useI18n();
 	const route = useRoute();
 	const rooms = useRooms();
 	const user = useUser();
-	const roles = useRoles();
+	const dialogStore = useDialog();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
 	const videoCall = useVideoCall();
@@ -275,7 +246,7 @@
 	const isMobile = computed(() => settings.isMobileState);
 
 	const pubhubs = usePubhubsStore();
-	const { yellowCardMembers, watchEffectCardAction } = useModeration();
+	const { membershipEvents } = useModerationBase();
 
 	const ongoingCall = computed(() => room.value!.isOngoingCall());
 	const joinSecuredRoom = ref<string | null>(null);
@@ -326,18 +297,24 @@
 		if (completed) isLoading.value = false;
 	});
 
-	// Close sidebar instantly before leaving this page
-	onBeforeRouteLeave(() => {
-		sidebar.closeInstantly();
-	});
-
-	// Clear thread when sidebar is closed
+	// Clear thread and search when sidebar is closed
 	watch(
 		() => sidebar.isOpen.value,
 		(isOpen) => {
 			// Only clear thread when transitioning from open to closed
 			if (isOpen === false && room.value) {
 				room.value.setCurrentThreadId(undefined);
+				sidebar.clearSearchState();
+			}
+		},
+	);
+
+	// Clear search when switching away from Search or Thread tabs
+	watch(
+		() => sidebar.activeTab.value,
+		(tab) => {
+			if (tab !== SidebarTab.Search && tab !== SidebarTab.Thread) {
+				sidebar.clearSearchState();
 			}
 		},
 	);
@@ -370,9 +347,10 @@
 		if (completed) isLoading.value = false;
 	});
 
-	function currentThreadLengthChanged(newLength: number) {
-		room.value?.setCurrentThreadLength(newLength);
-	}
+	// Close sidebar instantly before leaving this page
+	onBeforeRouteLeave(() => {
+		sidebar.closeInstantly();
+	});
 
 	async function update(): Promise<boolean> {
 		const currentVersion = ++updateVersion;
@@ -441,28 +419,12 @@
 				}
 			}
 			room.value.setCurrentThreadId(ev.threadId);
+			sidebar.openTab(SidebarTab.Thread);
 		} else {
 			room.value.setCurrentThreadId(undefined);
 		}
 		room.value.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
 		scrollToEventId.value = ev.eventId;
-	}
-
-	async function stewardCanEdit() {
-		// We need to fetch latest public created rooms.
-		const currentPublicRooms = await pubhubs.getAllPublicRooms();
-
-		const roomToEdit = currentPublicRooms.find((room) => room.room_id === props.id);
-
-		// If room is not there then don't show dialog box. Throw an error.
-		if (roomToEdit) {
-			router.push({ name: 'editroom', params: { id: props.id } });
-		} else {
-			router.push({
-				name: 'error-page',
-				query: { errorKey: 'errors.cant_find_room' },
-			});
-		}
 	}
 	function notPrivateRoom() {
 		if (!room.value) return true;
@@ -487,5 +449,56 @@
 		return settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.value!.isSecuredRoom() || room.value!.isPrivateRoom());
 	}
 
-	watchEffectCardAction();
+	const handleKick = (roomId: string, reason?: string) => {
+		const message = reason
+			? `${capitalize(t('moderation.removed_from_room'))}\n\n${capitalize(t('moderation.kick_reason'))}: ${reason}`
+			: capitalize(t('moderation.removed_from_room'));
+		dialogStore.yesno(message);
+
+		const handleOk = async () => {
+			cleanup();
+			await pubhubs.joinRoom(roomId);
+			const maxAttempts = 7;
+			for (let attempt = 0; attempt < maxAttempts; attempt++) {
+				const hasJoinEvent = membershipEvents.value.some(
+					(event) => event.content.membership === KnownMembership.Join && event.state_key === user.userId,
+				);
+				if (hasJoinEvent) {
+					router.push({ name: 'room', params: { id: roomId } });
+					break;
+				}
+				await delay(attempt);
+			}
+		};
+
+		const cleanup = () => {
+			dialogStore.removeCallback(DialogOk);
+		};
+
+		dialogStore.addCallback(DialogOk, handleOk);
+	};
+
+	watchEffect(async () => {
+		const currentRoom = rooms.currentRoom;
+		if (!currentRoom) return;
+
+		// Check if user was banned (red card)
+		const hasBanEvent = membershipEvents.value.some(
+			(event) => event.content.membership === KnownMembership.Ban && event.state_key === user.userId && event.sender !== event.state_key,
+		);
+
+		// Check if user was kicked (removed from room without ban)
+		const kickEvent = membershipEvents.value.find(
+			(event) => event.content.membership === KnownMembership.Leave && event.state_key === user.userId && event.sender !== event.state_key,
+		);
+
+		if (hasBanEvent) {
+			// Red card - user is banned, redirect to error page
+			router.push({ name: 'error-page', query: { errorKey: 'moderation.red_card_info' } });
+		} else if (kickEvent) {
+			// Regular kick (remove from room) - show dialog to rejoin with reason
+			handleKick(currentRoom.roomId, kickEvent.content.reason);
+			router.push({ name: 'home' });
+		}
+	});
 </script>

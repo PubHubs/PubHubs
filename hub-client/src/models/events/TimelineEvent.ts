@@ -1,6 +1,5 @@
 import { RelationType } from '../constants';
 import { type MatrixEvent } from 'matrix-js-sdk';
-import { ref } from 'vue';
 
 import { Events } from '@hub-client/logic/core/events';
 
@@ -15,10 +14,9 @@ import { useRooms } from '@hub-client/stores/rooms';
  */
 class TimelineEvent {
 	public matrixEvent: MatrixEvent;
-	public threadLength = ref(0);
 
 	private roomId: string;
-	private _thread: TRoomThread = new TRoomThread(undefined);
+	private _thread: TRoomThread;
 	private rooms = useRooms();
 	private eventsHandler: Events = new Events();
 	private _isDeleted: boolean = false;
@@ -27,24 +25,13 @@ class TimelineEvent {
 		this.matrixEvent = matrixEvent;
 		this.roomId = roomId;
 
+		this._thread = new TRoomThread(this.roomId, this.matrixEvent.getId()!, undefined);
+
 		// calls eventhandler to adapt event to PubHubs event
 		this.eventsHandler.eventRoomTimeline(this.matrixEvent, false);
 
-		// if this event is a root of a thread: load the thread, make the callbackfunction for length reactivity
 		if (!inThread) {
 			this.loadThread();
-
-			this.threadLength.value = this.thread?.length ?? 0;
-			// set a listener on the threadlength for when it changes. so the ref field can pass it to the vue components
-			this.thread?.onLengthChange(() => {
-				if (!this.thread.isMatrixThreadSet && matrixEvent.event.event_id) {
-					const room = useRooms()?.room(roomId);
-					if (room) {
-						this._thread.setMatrixThread(room.getOrCreateMatrixThread(matrixEvent.event.event_id));
-					}
-				}
-				this.threadLength.value = this.thread?.length ?? 0;
-			});
 		}
 	}
 
@@ -70,6 +57,17 @@ class TimelineEvent {
 
 	get threadEventThreadroot(): string | undefined {
 		return this.matrixEvent.getContent()[RelationType.RelatesTo]?.[RelationType.EventId];
+	}
+
+	/**
+	 * This is not reactive! Use the array in rooms.ts for reactivity
+	 */
+	get threadLength(): number {
+		return this._thread.length;
+	}
+
+	get latestThreadEventTimestamp(): number {
+		return this._thread?.lastEventTimeStamp ?? 0;
 	}
 
 	isEventInThread(eventId: string): boolean {

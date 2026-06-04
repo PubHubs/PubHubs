@@ -226,6 +226,7 @@ impl EnterArgs {
         let api::hub::EnterStartResp {
             state: hub_state,
             nonce: hub_nonce,
+            hhpp_signature_scheme,
         } = client
             .query_with_retry::<api::hub::EnterStartEP, _, _>(&hub_info.url, api::NoPayload)
             .await
@@ -262,7 +263,10 @@ impl EnterArgs {
         let hhpp_resp = client
             .query::<api::phc::user::HhppEP>(
                 &constellation.phc_url,
-                api::phc::user::HhppReq { ehpp },
+                api::phc::user::HhppReq {
+                    ehpp,
+                    hhpp_signature_scheme,
+                },
             )
             .auth_header(auth_token.clone())
             .with_retry()

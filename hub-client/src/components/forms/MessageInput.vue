@@ -3,6 +3,21 @@
 		class="w-full px-3 pb-3 md:px-6"
 		v-bind="$attrs"
 	>
+		<!-- Timeout notification bar -->
+		<TimeoutNotificationBar
+			v-if="isCurrentUserTimedOut && currentUserTimeoutInfo"
+			:timeout-until="currentUserTimeoutInfo.timeout_until"
+			:reason="currentUserTimeoutInfo.reason"
+			@timeout-expired="onTimeoutExpired"
+		/>
+
+		<!-- Yellow card notification bar -->
+		<YellowCardNotificationBar
+			v-if="isCurrentUserWarned && currentUserYellowCardInfo"
+			:reason="currentUserYellowCardInfo.reason"
+			@dismiss="onDismissYellowCard"
+		/>
+
 		<!-- Floating -->
 		<div class="relative">
 			<Popover
@@ -40,6 +55,24 @@
 					>
 				</div>
 			</Popover>
+			<Popover
+				v-if="moderationPopover"
+				class="absolute right-0 bottom-4"
+				@close="moderationPopover = false"
+			>
+				<div class="flex flex-wrap items-center justify-end gap-2">
+					<PopoverButton
+						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
+						icon="megaphone-simple"
+						:class="isAnnouncementMode ? 'text-accent-steward' : ''"
+						@click="
+							isAnnouncementMode = !isAnnouncementMode;
+							moderationPopover = false;
+						"
+						>{{ isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement') }}</PopoverButton
+					>
+				</div>
+			</Popover>
 			<MentionAutoComplete
 				v-if="messageInput.state.showMention"
 				:msg="value as string"
@@ -60,7 +93,7 @@
 		</div>
 
 		<div class="flex max-h-[50vh] items-end justify-between gap-2">
-			<div class="bg-surface-high rounded-base w-full shadow-xs">
+			<div class="bg-surface-base rounded-base w-full shadow">
 				<!-- In reply to -->
 				<InputModeBar
 					v-if="inReplyTo"
@@ -79,6 +112,7 @@
 						</template>
 					</Suspense>
 				</InputModeBar>
+
 				<InputModeBar
 					v-if="messageActions.whisperingToUserId"
 					icon="whisper"
@@ -132,67 +166,87 @@
 					:variant="announcementVariant"
 					@close="isAnnouncementMode = false"
 				/>
+
 				<InputModeBar
 					v-if="messageInput.state.signMessage"
 					icon="seal-check"
 					:label="$t('message.sign.signed_message_email')"
 					:tooltip="$t('message.sign.signed_message_tooltip')"
 					variant="sign"
-					@close="messageInput.resetAll(true)"
+					@close="messageInput.closeSignMessage()"
 				/>
 
 				<div
 					v-if="messageInput.state.textArea"
-					class="rounded-base flex items-center gap-x-4 px-4 py-2"
+					class="rounded-base border-surface-elevated flex items-center gap-x-4 border-3 px-4 py-2"
+					:class="isInputDisabled ? 'cursor-not-allowed opacity-50' : ''"
 				>
-					<IconButton
-						:type="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
-						data-testid="paperclip"
+					<Icon
+						v-if="isInputDisabled"
+						type="plus-circle"
 						size="lg"
+						class="text-on-surface-dim cursor-not-allowed"
+					/>
+					<IconButton
+						v-else
+						:icon="messageInput.state.popover ? 'x-circle' : 'plus-circle'"
+						data-testid="paperclip"
+						size="base"
+						variant="secondary"
 						class="transition-transform duration-200 hover:cursor-pointer"
 						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
-						@click.stop="messageInput.togglePopover()"
-					/>
-					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
-					<TextArea
-						ref="elTextInput"
-						v-model="valueAsString"
-						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
-						:placeholder="isAnnouncementMode ? $t('message.announcement_placeholder') : $t('rooms.new_message')"
-						:title="$t('rooms.new_message')"
-						textarea
-						@changed="changed()"
-						@submit="submitMessage()"
-						@cancel="cancel()"
-						@caret-pos="setCaretPos"
-						@focus="messageInput.state.showMention = true"
-						@blur="
-							setTimeout(() => {
-								messageInput.state.showMention = false;
-							}, 150)
+						@click.stop="
+							messageInput.togglePopover();
+							moderationPopover = false;
 						"
 					/>
+					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
+					<!-- Wrapper div captures Enter key to prevent submission when timed out -->
+					<div
+						class="grow"
+						@keydown.enter.exact.capture="preventSubmitWhenTimedOut"
+					>
+						<MessageInputTextArea
+							ref="elTextInput"
+							v-model="valueAsString"
+							class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
+							:class="isInputDisabled ? 'cursor-not-allowed' : ''"
+							:placeholder="inputPlaceholder"
+							:title="$t('rooms.new_message')"
+							:disabled="isInputDisabled"
+							@changed="changed()"
+							@submit="submitMessage()"
+							@cancel="cancel()"
+							@caret-pos="setCaretPos"
+							@focus="messageInput.state.showMention = true"
+							@blur="
+								setTimeout(() => {
+									messageInput.state.showMention = false;
+								}, 150)
+							"
+							@paste="handlePaste"
+						/>
+					</div>
 
-					<!--Steward and above can broadcast only in main time line-->
+					<!--Moderation tools-->
 					<button
 						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
 						class="hover:cursor-pointer"
-						:class="isAnnouncementMode ? (announcementVariant === 'admin' ? 'text-accent-admin' : 'text-accent-steward') : ''"
-						:title="isAnnouncementMode ? $t('message.disable_announcement') : $t('message.enable_announcement')"
-						@click="isAnnouncementMode = !isAnnouncementMode"
+						:class="moderationPopover ? 'text-accent-steward' : ''"
+						:title="$t('menu.moderation')"
+						@click.stop="
+							moderationPopover = !moderationPopover;
+							messageInput.state.popover = false;
+						"
 					>
-						<Icon
-							type="megaphone-simple"
-							size="lg"
-						></Icon>
+						<Icon type="circles-three-plus"></Icon>
 					</button>
 
 					<!-- Emoji picker -->
-					<button class="hover:cursor-pointer">
+					<button :class="isInputDisabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'">
 						<Icon
 							type="smiley"
-							size="lg"
-							@click.stop="messageInput.toggleEmojiPicker()"
+							@click.stop="toggleEmojiPicker()"
 						/>
 					</button>
 
@@ -203,10 +257,7 @@
 						:disabled="!messageInput.state.sendButtonEnabled"
 						@click="submitMessage"
 					>
-						<Icon
-							type="paper-plane-right"
-							size="lg"
-						/>
+						<Icon type="paper-plane-right" />
 					</button>
 				</div>
 			</div>
@@ -238,27 +289,35 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import TextArea from '@hub-client/components/forms/TextArea.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import MessageInputTextArea from '@hub-client/components/forms/MessageInputTextArea.vue';
+	import type TextAreaOld from '@hub-client/components/forms/elements/TextAreaOld.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
 	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
+	import FilePicker from '@hub-client/components/ui/FilePicker.vue';
 	import InputModeBar from '@hub-client/components/ui/InputModeBar.vue';
 	import MentionAutoComplete from '@hub-client/components/ui/MentionAutoComplete.vue';
 	import Popover from '@hub-client/components/ui/Popover.vue';
 	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
+	import TimeoutNotificationBar from '@hub-client/components/ui/TimeoutNotificationBar.vue';
+	import YellowCardNotificationBar from '@hub-client/components/ui/YellowCardNotificationBar.vue';
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
 	import { type UserDetails } from '@hub-client/composables/mention-autocomplete.composable';
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useModerationTimeout } from '@hub-client/composables/moderation/timeout.composable';
+	import { useModerationYellowCard } from '@hub-client/composables/moderation/yellow-card.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useYiviIosWorkaround } from '@hub-client/composables/yiviIosWorkaround.composable';
 
-	import { type BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { useMessageInput } from '@hub-client/logic/messageInput';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
@@ -311,6 +370,9 @@
 	const settings = useSettings();
 	const messageActions = useMessageActions();
 	const messageInput = useMessageInput();
+	const base = useModerationBase();
+	const { isCurrentUserTimedOut, currentUserTimeoutInfo, refreshTimeoutStatus } = useModerationTimeout(base);
+	const { isCurrentUserWarned, currentUserYellowCardInfo, dismissYellowCard } = useModerationYellowCard(base);
 
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const valueAsString = computed({
@@ -331,13 +393,26 @@
 	const selectedAttributesSigningMessage = ref<string[]>(['pbdf.sidn-pbdf.email.email']);
 
 	const filePickerEl = ref();
-	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
+	const elTextInput = ref<InstanceType<typeof TextAreaOld> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 	const isAnnouncementMode = ref(false);
+	const moderationPopover = ref(false);
 
-	const announcementVariant = computed<'admin' | 'steward'>(() => {
-		const powerLevel = props.room.getPowerLevel(user.userId ?? '');
-		return powerLevel === 100 ? 'admin' : 'steward';
+	const announcementVariant = computed(() => 'steward' as const);
+
+	const isInputDisabled = computed(() => isCurrentUserTimedOut.value || isCurrentUserWarned.value);
+
+	const inputPlaceholder = computed(() => {
+		if (isCurrentUserTimedOut.value) {
+			return t('moderation.placeholder_timed_out');
+		}
+		if (isCurrentUserWarned.value) {
+			return t('moderation.placeholder_warning');
+		}
+		if (isAnnouncementMode.value) {
+			return t('message.announcement_placeholder');
+		}
+		return t('rooms.new_message');
 	});
 
 	let threadRoot: TMessageEvent | undefined = undefined;
@@ -393,8 +468,7 @@
 		() => props.editingPoll,
 		() => {
 			if (props.editingPoll) {
-				pubhubs.editPoll(props.room.roomId, props.editingPoll.eventId, props.editingPoll.poll);
-				pollObject.value = props.editingPoll.poll;
+				messageInput.editPoll(props.editingPoll.poll, props.editingPoll.eventId);
 			}
 		},
 	);
@@ -403,8 +477,7 @@
 		() => props.editingScheduler,
 		() => {
 			if (props.editingScheduler) {
-				pubhubs.editScheduler(props.room.roomId, props.editingScheduler.eventId, props.editingScheduler.scheduler);
-				schedulerObject.value = props.editingScheduler.scheduler;
+				messageInput.editScheduler(props.editingScheduler.scheduler, props.editingScheduler.eventId);
 			}
 		},
 	);
@@ -456,13 +529,22 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
+		if (messageInput.state.signMessage || messageInput.state.showYiviQR) return;
 		if (!messageInput.hasActivePopup.value || event.key === 'Escape') {
 			messageInput.resetAll();
 			messageInput.state.sendButtonEnabled = isValidMessage();
 		}
 	}
 
+	function isUserCurrentlyTimedOut(): boolean {
+		const timeoutInfo = currentUserTimeoutInfo.value;
+		return !!timeoutInfo && timeoutInfo.timeout_until > Date.now();
+	}
+
 	function isValidMessage(): boolean {
+		// Cannot send if timed out - check actual timestamp, not cached computed
+		if (isUserCurrentlyTimedOut()) return false;
+
 		let valid = false;
 		// TextAreas always return strings, so the message is valid to send if it is a string with a length > 0
 		if (typeof value.value === 'string' && value.value.trim().length > 0) valid = true;
@@ -471,9 +553,48 @@
 		return valid;
 	}
 
+	function onTimeoutExpired() {
+		// Force re-computation of timeout-related computed properties
+		refreshTimeoutStatus();
+		// Re-check send button state when timeout expires
+		messageInput.state.sendButtonEnabled = isValidMessage();
+	}
+
+	async function onDismissYellowCard() {
+		await dismissYellowCard(props.room.roomId);
+	}
+
+	function preventSubmitWhenTimedOut(event: KeyboardEvent) {
+		// Prevent Enter key from triggering submit when user is timed out
+		// This stops the event before it reaches the TextArea's internal handler
+		if (isUserCurrentlyTimedOut()) {
+			event.stopPropagation();
+		}
+	}
+
 	function clickedAttachment() {
 		if (filePickerEl.value) {
 			filePickerEl.value.openFile();
+		}
+	}
+
+	function handlePaste(event: ClipboardEvent) {
+		const items = event.clipboardData?.items;
+		if (!items) return;
+		for (const item of items) {
+			if (!item.type.startsWith('image/')) continue;
+			event.preventDefault();
+			const file = item.getAsFile();
+			if (!file) continue;
+			if (fileBlobOwnedByParent.value && uriForFileUpload.value) {
+				uriForFileUpload.value.revoke();
+			}
+			messageInput.setFileAdded(file);
+			const blobManager = new BlobManager(file);
+			uriForFileUpload.value = blobManager;
+			fileBlobOwnedByParent.value = true;
+			messageInput.activateSendButton();
+			return;
 		}
 	}
 
@@ -483,6 +604,9 @@
 		}
 		uriForFileUpload.value = uriBlob;
 		fileBlobOwnedByParent.value = !!uriBlob;
+		if (!uriBlob) {
+			messageInput.state.sendButtonEnabled = isValidMessage();
+		}
 	}
 
 	function insertMention(item: UserDetails | TPublicRoom, marker: '@' | '#') {
@@ -506,6 +630,9 @@
 	}
 
 	async function submitMessage() {
+		// Don't process submission if user is timed out - keep their message intact
+		if (isUserCurrentlyTimedOut()) return;
+
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 
@@ -555,12 +682,22 @@
 			const accessToken = pubhubs.Auth.getAccessToken();
 			if (!accessToken) return;
 			fileUpload(t('errors.file_upload'), accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
-				pubhubs.addFile(props.room.roomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string, undefined, replyTo);
+				pubhubs.addFile(
+					props.room.roomId,
+					threadRoot?.event_id,
+					undefined,
+					messageInput.state.fileAdded as File,
+					url,
+					value.value as string,
+					undefined,
+					replyTo,
+				);
 				uriForFileUpload.value?.revoke();
 				fileBlobOwnedByParent.value = false;
 				uriForFileUpload.value = undefined;
 				value.value = '';
 				messageInput.cancelFileUpload();
+				messageInput.state.sendButtonEnabled = isValidMessage();
 			});
 		} else if (messageActions.replyingTo && inReplyTo.value) {
 			pubhubs.addMessage(props.room.roomId, String(value.value), threadRoot, inReplyTo.value);
@@ -573,18 +710,23 @@
 	}
 
 	function editMessage() {
-		if (messageInput.state.poll && pollObject.value.canSend()) {
-			pollObject.value.removeEmptyOptions();
-			pubhubs.editPoll(props.room.roomId, messageInput.state.editEventId as string, pollObject.value as Poll);
+		if (messageInput.state.poll && messageInput.state.pollObject?.canSend()) {
+			messageInput.state.pollObject.removeEmptyOptions();
+			pubhubs.editPoll(props.room.roomId, messageInput.state.editEventId as string, messageInput.state.pollObject as Poll);
 			messageInput.openTextArea();
-		} else if (messageInput.state.scheduler && schedulerObject.value.canSend()) {
-			pubhubs.editScheduler(props.room.roomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
+		} else if (messageInput.state.scheduler && messageInput.state.schedulerObject?.canSend()) {
+			pubhubs.editScheduler(props.room.roomId, messageInput.state.editEventId as string, messageInput.state.schedulerObject as Scheduler);
 			messageInput.openTextArea();
 		}
 	}
 
 	function signMessage(message: string, attributes: string[], threadRoot: TMessageEvent | undefined) {
 		yiviFlow(EYiviFlow.Sign, finishedSigningMessage, rooms.currentRoomId, '#' + EYiviFlow.Sign, attributes, message, threadRoot);
+	}
+
+	function toggleEmojiPicker() {
+		if (isInputDisabled.value) return;
+		messageInput.toggleEmojiPicker();
 	}
 
 	function finishedSigningMessage(result: YiviSigningSessionResult | SecuredRoomAttributeResult, threadRoot: TMessageEvent | undefined) {

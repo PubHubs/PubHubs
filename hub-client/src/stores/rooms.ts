@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventType, type IStateEvent, type Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { Direction, EventType, type IStateEvent, type Room as MatrixRoom } from 'matrix-js-sdk';
 import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
@@ -15,10 +15,20 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
 import Room from '@hub-client/models/rooms/Room';
-import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+import {
+	DirectRooms,
+	PublicRooms,
+	type RoomListRoom,
+	RoomType,
+	SecuredRooms,
+	type UnreadState,
+	showsUnreadState,
+	worstUnreadState,
+} from '@hub-client/models/rooms/TBaseRoom';
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
+import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
@@ -73,15 +83,16 @@ const useRooms = defineStore('rooms', {
 		return {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
-			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu
+			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu. TODO: split into a Map<roomId, RoomListRoom> for O(1) lookup + a sorted [name, roomId][] array for display order
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: Record<string, string> } },
 			securedRoom: undefined as TSecuredRoom | undefined,
-			initialRoomsLoaded: false,
+			initialRoomsLoaded: false, // Set true after sliding sync's first Complete response. The first request uses InitialRoomList with a very large range, so every joined room is in client.getRooms() by this point; timeline data fills in afterwards via MainRoomList's widening.
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
 			unreadCountVersion: 0, // Increment to trigger reactive updates for badge
+			threadLengths: {} as Record<string, Record<string, number>>, // Keeps (reactively) track of the thread length For each room a Record<eventId, length>
 		};
 	},
 
@@ -130,6 +141,30 @@ const useRooms = defineStore('rooms', {
 
 		loadedSecuredRooms(): RoomListRoom[] {
 			return this.roomList.filter((room) => room.isHidden === false && room.roomType && SecuredRooms.includes(room.roomType as RoomType));
+		},
+
+		/**
+		 * Highest matrix power level the current user holds across loaded rooms.
+		 * Synapse-admin status is intentionally excluded — that policy lives in roles.composable.
+		 * Returns UserPowerLevel.User (0) when the user has no override anywhere.
+		 */
+		userMaxRoomPowerLevel(): number {
+			const userStore = useUser();
+			const userId = userStore.userId;
+			if (!userId) return UserPowerLevel.User;
+			let highest = UserPowerLevel.User;
+			for (const listRoom of this.roomList) {
+				if (DirectRooms.includes(listRoom.roomType as RoomType)) continue;
+				const event = listRoom.stateEvents.find((e) => e.type === EventType.RoomPowerLevels && e.content.users);
+				if (!event) continue;
+				const users = event.content.users as Record<string, number>;
+				const level = users[userId] ?? (event.content.users_default as number | undefined) ?? UserPowerLevel.User;
+				if (level > highest) {
+					highest = level;
+					if (highest === UserPowerLevel.Admin) return highest;
+				}
+			}
+			return highest;
 		},
 
 		// TODO never used. Can be deleted?
@@ -249,20 +284,15 @@ const useRooms = defineStore('rooms', {
 	//#endregion getters
 
 	actions: {
-		// Fetch the total of unread notifications of all rooms in the hub
-		async fetchTotalUnreadCounts(): Promise<number> {
+		// Returns the worst unread state across all visible rooms (those
+		// displayed in the sidebar: public, secured, and private).
+		async fetchAggregateUnreadState(): Promise<UnreadState> {
 			await this.waitForInitialRoomsLoaded();
-
-			const pubhubs = usePubhubsStore();
-			const rooms = pubhubs.client.getRooms();
-			let unread = 0;
-			for (const roomListRoom of this.roomList) {
-				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
-				if (room) {
-					unread += room.getRoomUnreadNotificationCount(NotificationCountType.Total);
-				}
-			}
-			return unread;
+			return worstUnreadState(
+				[...this.loadedPublicRooms, ...this.loadedSecuredRooms, ...this.loadedPrivateRooms]
+					.filter((r) => showsUnreadState(r.roomType))
+					.map((r) => r.unreadState),
+			);
 		},
 
 		async waitForInitialRoomsLoaded(): Promise<void> {
@@ -271,14 +301,50 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
-		setRoomsLoaded(value: boolean) {
-			this.initialRoomsLoaded = value;
+		setRoomsLoaded(loaded: boolean) {
+			if (this.initialRoomsLoaded === loaded) return;
+			this.initialRoomsLoaded = loaded;
+			if (!loaded) return;
+			// Rooms are added to roomList with unreadState 'unknown'. Compute the
+			// real state now that all rooms and the SDK are ready.
+			this.refreshAllUnreadStates();
+		},
+
+		/**
+		 * Recompute the unread state for every room in roomList. Useful after
+		 * any source of truth changes — e.g. after the persisted unread cache
+		 * is loaded from the global client, the previously-computed dots may
+		 * be stale and need to be re-derived.
+		 */
+		refreshAllUnreadStates() {
+			for (const entry of this.roomList) {
+				this.notifyUnreadCountChanged(entry.roomId);
+			}
 		},
 		setTimestamps(timestamps: Array<Array<number | string>>) {
 			this.timestamps = timestamps;
 		},
 
-		notifyUnreadCountChanged() {
+		setThreadLength(roomId: string, eventId: string, length: number) {
+			if (!this.threadLengths[roomId]) {
+				this.threadLengths[roomId] = {};
+			}
+			this.threadLengths[roomId][eventId] = length;
+		},
+
+		clearThreadLengths(roomId: string) {
+			delete this.threadLengths[roomId];
+		},
+
+		notifyUnreadCountChanged(roomId: string) {
+			const entry = this.roomList.find((r) => r.roomId === roomId);
+			if (entry) {
+				const pubhubs = usePubhubsStore();
+				const matrixRoom = pubhubs.client.getRoom(roomId);
+				// If the SDK doesn't have the room yet, we can't determine the state.
+				entry.unreadState = matrixRoom ? Room.unreadState(matrixRoom, this.rooms[roomId]) : 'unknown';
+			}
+			// TODO: inefficient global signal; thread consumers (RoomTimeline, RoomMessageBubble) should use per-room reactivity
 			this.unreadCountVersion++;
 		},
 
@@ -294,6 +360,7 @@ const useRooms = defineStore('rooms', {
 
 		changeRoom(roomId: string, skipNavigation = false) {
 			if (this.currentRoomId !== roomId) {
+				// don't remove info about the events, their threads and relations here: keep switching between rooms fast
 				this.currentRoomId = roomId;
 				if (!skipNavigation) {
 					const messagebox = useMessageBox();
@@ -391,6 +458,7 @@ const useRooms = defineStore('rooms', {
 
 		deleteRoomsWithMatrixRoom(roomId: string) {
 			if (this.currentRoomId === roomId) {
+				this.clearThreadLengths(this.currentRoomId);
 				this.currentRoomId = '';
 			}
 			delete this.rooms[roomId];
@@ -623,10 +691,8 @@ const useRooms = defineStore('rooms', {
 		getTPublicRoom(roomId: string): TPublicRoom | undefined {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
-		getTotalPrivateRoomUnreadMsgCount(): number {
-			return this.privateRooms
-				.filter((room) => room.hasMessages())
-				.reduce((total, room) => total + room.getUnreadNotificationCount(NotificationCountType.Total), 0);
+		getPrivateRoomUnreadState(): UnreadState {
+			return worstUnreadState(this.loadedPrivateRooms.map((r) => r.unreadState));
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {

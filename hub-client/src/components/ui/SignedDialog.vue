@@ -23,7 +23,7 @@
 				:href="fileUrl.url"
 			>
 				<span>{{ $t('roomlibrary.download_info') }}</span>
-				<IconButton type="download-simple" />
+				<IconButton icon="download-simple" />
 			</a>
 		</p>
 	</Dialog>
@@ -35,6 +35,8 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 

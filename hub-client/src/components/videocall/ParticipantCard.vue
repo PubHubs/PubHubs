@@ -33,7 +33,7 @@
 				class="bg-surface absolute right-4 z-10 rounded-md shadow-lg"
 			>
 				<Button
-					:color="'gray-100'"
+					variant="secondary"
 					@click="toggleMute"
 				>
 					{{ isLocallyMuted ? 'Unmute for me' : 'Mute for me' }}
@@ -44,11 +44,12 @@
 </template>
 
 <script setup lang="ts">
-	import UserDisplayName from '../rooms/UserDisplayName.vue';
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 
+	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';

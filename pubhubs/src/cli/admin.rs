@@ -13,9 +13,9 @@ pub struct AdminArgs {
     #[arg(value_name = "SERVER")]
     server: servers::Name,
 
-    /// Admin secret key, hex encoded.
+    /// Admin secret key (symmetric HMAC), hex encoded.
     #[arg(value_name = "ADMIN_KEY")]
-    admin_key: api::SigningKey,
+    admin_key: crate::misc::serde_ext::bytes_wrapper::B16,
 
     #[command(subcommand)]
     command: Commands,
@@ -30,7 +30,7 @@ impl AdminArgs {
             Commands::Config(args) => args.run(AdminContext {
                 config,
                 server: self.server,
-                admin_key: self.admin_key,
+                admin_key: crate::misc::jwt::HS256(self.admin_key.into_inner().into_vec()),
                 url: tokio::sync::OnceCell::const_new(),
                 client: client::Client::builder().agent(client::Agent::Cli).finish(),
             }),
@@ -41,7 +41,7 @@ impl AdminArgs {
 struct AdminContext {
     config: Config,
     server: servers::Name,
-    admin_key: api::SigningKey,
+    admin_key: crate::misc::jwt::HS256,
     url: tokio::sync::OnceCell<url::Url>,
     client: client::Client,
 }
@@ -53,7 +53,7 @@ impl AdminContext {
             .query_with_retry::<api::admin::InfoEP, _, _>(
                 &self.get_url().await?.clone(),
                 &api::Signed::<api::admin::InfoReq>::new(
-                    &*self.admin_key,
+                    &self.admin_key,
                     &api::admin::InfoReq {},
                     std::time::Duration::from_secs(10),
                 )
@@ -176,7 +176,7 @@ impl ConfigUpdateArgs {
             .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
                 ctx.get_url().await?,
                 &api::Signed::<api::admin::UpdateConfigReq>::new(
-                    &*ctx.admin_key,
+                    &ctx.admin_key,
                     &api::admin::UpdateConfigReq {
                         pointer: self.pointer.clone(),
                         new_value: self.new_value.clone(),

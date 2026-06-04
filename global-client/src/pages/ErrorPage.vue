@@ -7,9 +7,12 @@
 			<H1 class="text-accent-primary">
 				{{ $t('errors.oops') }}
 			</H1>
-			<H3 class="">
-				{{ $t(errorKey, errorValues) }}
-			</H3>
+			<!-- eslint-disable vue/no-v-html -- sanitized via sanitizeHtml -->
+			<h3
+				class="font-headings text-h3 font-semibold"
+				v-html="sanitizedErrorMessage"
+			></h3>
+			<!-- eslint-enable vue/no-v-html -->
 			<router-link :to="{ name: 'home' }">
 				<Button
 					v-if="errorKey !== 'errors.no_hubs_found'"
@@ -25,22 +28,28 @@
 <script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import H1 from '@hub-client/components/elements/H1.vue';
-	import H3 from '@hub-client/components/elements/H3.vue';
+
+	// Logic
+	import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
 	// Props
-	defineProps({
+	const props = defineProps({
 		errorKey: { type: String, required: true },
 		errorValues: { type: Array, required: true },
 	});
 
+	const { t } = useI18n();
+
 	const settings = useSettings();
 
 	const isMobile = computed(() => settings.isMobileState);
+	const sanitizedErrorMessage = computed(() => sanitizeHtml(t(props.errorKey, props.errorValues as string[])));
 </script>

@@ -1,6 +1,6 @@
 <template>
-	<div>
-		<div class="flex gap-2 py-2">
+	<div class="flex flex-col gap-200 p-200">
+		<div class="flex gap-200">
 			<!-- Yes Votes -->
 			<OptionButton color="bg-accent-green text-on-accent-green">
 				<Icon
@@ -20,7 +20,7 @@
 				></UserDisplayName>
 			</div>
 		</div>
-		<div class="flex gap-2 py-2">
+		<div class="flex gap-200">
 			<!-- Maybe Votes -->
 			<OptionButton color="bg-accent-orange text-on-accent-orange">
 				<Icon
@@ -40,7 +40,7 @@
 				></UserDisplayName>
 			</div>
 		</div>
-		<div class="flex gap-2 py-2">
+		<div class="flex gap-200">
 			<!-- No Votes -->
 			<OptionButton color="bg-accent-red text-on-accent-red">
 				<Icon
@@ -50,8 +50,8 @@
 			</OptionButton>
 			<div>{{ noVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', noVotes.length) }}</div>
 			<div
-				v-for="vote in noVotes"
-				:key="vote.userId"
+				v-for="(vote, index) in noVotes"
+				:key="index"
 				class="mr-2 flex gap-2"
 			>
 				<UserDisplayName
@@ -65,14 +65,20 @@
 
 <script setup lang="ts">
 	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+	import OptionButton from '@hub-client/components/rooms/voting/scheduler/OptionButton.vue';
+
+	// Models
+	import { type UserVote } from '@hub-client/models/events/voting/VotingTypes';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
+	// Props
 	const props = defineProps<{
 		votes: {
-			userVotes: { userId: string; time: string }[];
+			userVotes: UserVote[];
 			choice: string;
 		}[];
 	}>();

@@ -63,19 +63,44 @@
 						href="#"
 						@click.prevent="onScrollToEventId(item.event_id, item.event_threadId)"
 					>
-						<div class="hover:bg-surface-high flex flex-col gap-1 rounded-md p-2">
-							<div class="flex items-center gap-2">
+						<div class="hover:bg-surface-base rounded-base flex flex-col p-200">
+							<div class="flex gap-4">
 								<Avatar
 									:avatar-url="user.userAvatar(item.event_sender)"
-									class="h-8 w-8 shrink-0"
+									class="h-12 w-12 shrink-0"
 									:user-id="item.event_sender"
 								/>
-								<div class="min-w-0 flex-1">
-									<TruncatedText>{{ item.event_body }}</TruncatedText>
+								<div class="flex flex-col gap-100">
+									<div class="h-fit min-w-0 flex-1">
+										<UserDisplayName
+											:user-id="item.event_sender"
+											:user-display-name="user.userDisplayName(item.event_sender)"
+										/>
+									</div>
+									<div class="flex gap-4">
+										<div class="min-w-0 flex-1">
+											<span
+												class="block w-full truncate text-sm"
+												:title="item.event_body"
+												>{{ item.event_body }}
+											</span>
+										</div>
+									</div>
+									<div class="flex gap-4">
+										<div class="text-on-surface-dim min-w-0 flex-1">
+											<span class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1">
+												<EventTime
+													:timestamp="item.event_timestamp"
+													:show-date="true"
+												/>
+												<EventTime
+													:timestamp="item.event_timestamp"
+													:show-date="false"
+												/>
+											</span>
+										</div>
+									</div>
 								</div>
-							</div>
-							<div class="text-on-surface-dim pl-10">
-								<EventTimeCompact :timestamp="item.event_timestamp" />
 							</div>
 						</div>
 					</a>
@@ -98,8 +123,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
-	import EventTimeCompact from '@hub-client/components/rooms/EventTimeCompact.vue';
+	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
@@ -108,7 +132,6 @@
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
-	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -137,10 +160,7 @@
 	const user = useUser();
 
 	const searchInput = ref<HTMLInputElement | null>(null);
-	const searchTerm = ref('');
-	const searchResults = ref<TSearchResult[]>([]);
-	const searched = ref(false);
-	const isSearching = ref(false);
+	const { searchTerm, searchResults, searched, isSearching } = useSidebar();
 
 	onMounted(() => {
 		searchInput.value?.focus();
@@ -221,35 +241,37 @@
 	function formatSearchResult(eventbody: string, searchterm: string, numberOfWords: number): string {
 		if (!eventbody || !searchterm) return '';
 
-		const words = filterAlphanumeric(eventbody)?.toLowerCase().split(/\s+/);
-		const searchWords = filterAlphanumeric(searchterm.trim())?.toLowerCase().split(/\s+/);
+		const trimmed = eventbody.trim();
+		const lowerBody = trimmed.toLowerCase();
+		const lowerSearch = searchterm.trim().toLowerCase();
+		const searchWords = lowerSearch.split(/\s+/).filter(Boolean);
+		if (searchWords.length === 0) return '';
 
-		if (!words || !searchWords) return '';
+		const originalWords = trimmed.split(/\s+/);
+		const lowerWords = lowerBody.split(/\s+/);
 
-		let index = -1;
-		for (let i = 0; i <= words.length - searchWords.length; i++) {
-			if (words[i] !== searchWords[0]) continue;
-			let match = true;
+		let matchIndex = -1;
+		for (let i = 0; i <= lowerWords.length - searchWords.length; i++) {
+			if (lowerWords[i] !== searchWords[0]) continue;
+			let allMatch = true;
 			for (let j = 1; j < searchWords.length; j++) {
-				if (words[i + j] !== searchWords[j]) {
-					match = false;
+				if (lowerWords[i + j] !== searchWords[j]) {
+					allMatch = false;
 					break;
 				}
 			}
-			if (match) {
-				index = i;
+			if (allMatch) {
+				matchIndex = i;
 				break;
 			}
 		}
 
-		if (index === -1) return '';
+		if (matchIndex === -1) return '';
 
-		const originalWords = eventbody.split(' ');
-		const start = Math.max(0, index - numberOfWords);
-		const end = Math.min(originalWords.length, index + searchWords.length + numberOfWords);
+		const start = Math.max(0, matchIndex - numberOfWords);
+		const end = Math.min(originalWords.length, matchIndex + searchWords.length + numberOfWords);
+		const snippet = originalWords.slice(start, end).join(' ');
 
-		const searchSnippet = originalWords.slice(start, end).join(' ');
-
-		return useMentionsDisplay().formatMentions(searchSnippet);
+		return useMentionsDisplay().formatMentions(snippet);
 	}
 </script>

@@ -6,6 +6,7 @@ from .HubClientApiConfig import HubClientApiConfig
 from ._validation import user_validator
 from ._cors import set_allow_origin_header
 from ._store import HubStore
+from ._constants import HUB_ADMIN, GUEST
 
 import logging
 import json
@@ -38,6 +39,7 @@ class HubSettingsResource(DirectServeJsonResource):
 		self._config = config
 		self._store = store
 	
+	@user_validator(GUEST)
 	async def _async_render_GET(self, request: SynapseRequest) -> bytes:
 		path = self._config.hub_description_path
 		
@@ -51,7 +53,7 @@ class HubSettingsResource(DirectServeJsonResource):
 		request.setHeader(b"Content-Type", b"application/json")
 		respond_with_json(request, 200, hub_settings_json)
     
-	@user_validator(require_admin=True)
+	@user_validator(HUB_ADMIN)
 	async def _async_render_POST(self, request: SynapseRequest, _) -> bytes:
 			
 		set_allow_origin_header(request, self._config.allowed_origins)

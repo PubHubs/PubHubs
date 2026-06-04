@@ -7,14 +7,13 @@
 			>
 				<Icon
 					type="exclamation-mark"
-					size="3xl"
 					class="text-button-red"
 				></Icon>
 				<div class="flex flex-col items-center justify-center gap-y-4">
 					<H1 class="text-accent-primary capitalize">{{ $t('moderation.red_card') }}</H1>
 					<H3 class="">{{ $t(errorKey) }}</H3>
 					<p class="text-on-surface-variant text-sm">{{ redCardMembers.find((card) => card.userId === userStore.userId)?.reason }}</p>
-					<router-link :to="fromRoute || { name: 'home' }">
+					<router-link :to="redCardBackRoute">
 						<Button class="mx-auto block max-w-md rounded-lg py-2">
 							{{ $t('dialog.go_back') }}
 						</Button>
@@ -26,7 +25,12 @@
 				class="flex flex-col items-center gap-y-4"
 			>
 				<H1 class="text-accent-primary">{{ $t('errors.oops') }}</H1>
-				<H3 class="">{{ $t(errorKey, errorValues) }}</H3>
+				<!-- eslint-disable vue/no-v-html -- sanitized via sanitizeHtml -->
+				<h3
+					class="font-headings text-h3 font-semibold"
+					v-html="sanitizedErrorMessage"
+				></h3>
+				<!-- eslint-enable vue/no-v-html -->
 				<router-link :to="fromRoute || { name: 'home' }">
 					<Button
 						v-if="errorKey !== 'errors.no_hubs_found'"
@@ -41,19 +45,44 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
+	import { computed } from 'vue';
+	import { useI18n } from 'vue-i18n';
+
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	import { useModeration } from '@hub-client/composables/moderation.composable';
+	// Composables
+	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useModerationRedCard } from '@hub-client/composables/moderation/red-card.composable';
 
+	// Logic
+	import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+
+	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
-	defineProps({
+	const props = defineProps({
 		errorKey: { type: String, required: true },
 		errorValues: { type: Array, required: true },
 		fromRoute: { type: String, default: null },
 	});
-	const { redCardMembers } = useModeration();
+
+	const { t } = useI18n();
+
+	const { redCardMembers } = useModerationRedCard(useModerationBase());
 	const userStore = useUser();
+
+	const sanitizedErrorMessage = computed(() => sanitizeHtml(t(props.errorKey, props.errorValues as string[])));
+
+	// For red card, don't go back to a room (user is banned), go home instead
+	const redCardBackRoute = computed(() => {
+		if (props.fromRoute && !props.fromRoute.startsWith('/room/')) {
+			return props.fromRoute;
+		}
+		return { name: 'home' };
+	});
 </script>

@@ -12,20 +12,19 @@ stages: # List of stages for jobs, and their order of execution
   - publish-images
   - deploy-own
 
-rust-clippy:
-  stage: tests
-  tags:
-    - docker
-  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
-  script:
-    - cd pubhubs
-    - cargo clippy -- --deny "warnings"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "stable"
+.rust-cache: &rust-cache
+  cache:
+    key: rust-$CI_COMMIT_REF_SLUG
+    # New branches and MRs warm-start from main's cache instead of building cold.
+    fallback_keys:
+      - rust-main
+    paths:
+      - pubhubs/target/
+      - .cargo/
+  variables:
+    CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
 
-rust-unit-test:
+rust:
   stage: tests
   tags:
     - docker
@@ -34,22 +33,32 @@ rust-unit-test:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  <<: *rust-cache
   script:
     - cd pubhubs
+    - echo "=== cargo clippy ==="
+    - cargo clippy --all-targets -- --deny "warnings"
+    - echo "=== cargo test ==="
     - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug cargo test
+    - echo "=== cargo deny check ==="
+    - cargo deny check
 
-rust-cargo-deny:
-  stage: tests
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "stable"
+rust-doc:
+  stage: deploy-own
   tags:
     - docker
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - rust
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  <<: *rust-cache
   script:
     - cd pubhubs
-    - cargo deny check
+    - cargo run --quiet doc --document-private-items
+    - cd target/doc
+    - chmod 600 $UPDATE_RUST_DOC_MAIN_KEY
+    - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_RUST_DOC_MAIN_KEY
 
 build-pubhubs-image:
   stage: publish-images
@@ -61,18 +70,14 @@ build-pubhubs-image:
       variables:
         CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:stable
   needs:
-    - job: rust-unit-test
-      optional: true
-    - job: rust-cargo-deny
-      optional: true
-    - job: rust-clippy
+    - job: rust
       optional: true
   tags:
     - docker
   image: docker:latest
   script:
     - unset DOCKER_HOST
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
     # a bit more history until we hit our tag's commit.
@@ -142,7 +147,7 @@ build-image-hub:
     - docker
   image: docker:latest # docker:stable does not work, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/228
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
     # a bit more history until we hit our tag's commit.
@@ -181,7 +186,7 @@ deploy-stable-hubs:
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-open-source-dev-matrix
 
 .node-setup:
-  image: node:24.14.1
+  image: node:24.15.0
   tags: [docker]
   cache:
     key:
@@ -261,7 +266,7 @@ build-hubclient:
     - docker
   image: docker:latest
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} -f hub-client/Dockerfile .
     - docker push ${CONTAINER_IMAGE}
 
@@ -304,7 +309,7 @@ build-and-deploy-global-client-main:
     - client-type-check
     - globalclient-unit-test
   tags: [docker]
-  image: node:24.14.1
+  image: node:24.15.0
   script:
     - cd global-client/dist
     - chmod 600 $UPDATE_GLOBAL_CLIENT_MAIN_KEY
@@ -326,7 +331,7 @@ build-and-deploy-global-client-stable:
     - job: globalclient-unit-test
       optional: true
   tags: [docker]
-  image: node:24.14.1
+  image: node:24.15.0
   script:
     - cd global-client/dist
     - chmod 600 $UPDATE_GLOBAL_CLIENT_STABLE_KEY

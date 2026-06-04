@@ -36,6 +36,7 @@ impl Cli {
                 Commands::Tools(args) => run_args!(args, "tools"),
                 Commands::Admin(args) => run_args!(args, "admin"),
                 Commands::Enter(args) => run_args!(args, "enter"),
+                Commands::Doc(args) => run_args!(args, "doc"),
             },
         }
     }
@@ -54,9 +55,15 @@ enum Commands {
 
     /// Enter pubhubs (and a hub) returning pubhubs (and Synapse) access token(s)
     Enter(pubhubs::cli::EnterArgs),
+
+    /// Like `cargo doc`, but with KaTeX header injected to render math
+    Doc(pubhubs::cli::DocArgs),
 }
 
 fn main() {
+    // make sure all http clients use pq crypto
+    pubhubs::misc::rustls_ext::ensure_pq_default_crypto_provider();
+
     if let Err(err) = Cli::parse().run(Cli::command()) {
         err.exit()
     }

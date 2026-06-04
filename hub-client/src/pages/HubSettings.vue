@@ -61,7 +61,7 @@
 			<!-- Icon -->
 			<div class="max-w-7000">
 				<MediaUploadSection
-					:accept="'image/*, .svg'"
+					:accept="'image/png,image/jpeg,image/svg+xml'"
 					:description="$t('hub_settings.icon_description')"
 					:error-text="iconErrorText"
 					:media-url="iconUrl"
@@ -82,7 +82,7 @@
 			<!-- Banner -->
 			<div class="max-w-7000">
 				<MediaUploadSection
-					:accept="'image/*, .svg'"
+					:accept="'image/png,image/jpeg,image/svg+xml'"
 					:description="$t('hub_settings.banner_description')"
 					:error-text="bannerErrorText"
 					:media-url="bannerUrl"
@@ -138,10 +138,13 @@
 	import { computed, onBeforeMount, onBeforeUnmount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import Label from '@hub-client/components/forms/elements/Label.vue';
+	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
@@ -155,10 +158,6 @@
 	// Stores
 	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, toolbarSettings, useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useSettings } from '@hub-client/stores/settings';
-
-	import Button from '@hub-client/new-design/components/Button.vue';
-	import Label from '@hub-client/new-design/components/forms/Label.vue';
-	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 
 	const hubSettings = useHubSettings();
 	const settings = useSettings();
@@ -234,13 +233,13 @@
 
 		if (!ALLOWED_HUB_ICON_TYPES.includes(file.type)) {
 			logger.info('User tried to upload file with type that is not allowed.', { type: file.type });
-			showError(mediaType, 'hub_settings.file_format_not_allowed');
+			showError(mediaType, t('hub_settings.file_format_not_allowed').toString());
 			return;
 		}
 
 		if (file.size > MAX_HUB_ICON_SIZE) {
 			logger.info('User tried to upload file that is too large.', { size: file.size });
-			showError(mediaType, 'hub_settings.file_too_large');
+			showError(mediaType, t('hub_settings.file_too_large').toString());
 			return;
 		}
 
@@ -347,7 +346,7 @@
 				}
 			} catch (er) {
 				logger.error(`Failed to delete ${mediaType}.`, { error: er });
-				showError(mediaType, mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner');
+				showError(mediaType, t(mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner').toString());
 				return false;
 			}
 		}
@@ -362,19 +361,20 @@
 			} else {
 				await hubSettings.setBanner(file);
 			}
-		} catch {
-			showError(mediaType, mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner');
+		} catch (er) {
+			const fallbackKey = mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner';
+			const backendMessage = er instanceof Error ? er.message : '';
+			showError(mediaType, backendMessage || t(fallbackKey).toString());
 			return false;
 		}
 		return true;
 	}
 
 	function showError(mediaType: 'icon' | 'banner', message: string) {
-		const translated = t(message).toString();
 		if (mediaType === 'icon') {
-			iconErrorText.value = translated;
+			iconErrorText.value = message;
 		} else {
-			bannerErrorText.value = translated;
+			bannerErrorText.value = message;
 		}
 	}
 

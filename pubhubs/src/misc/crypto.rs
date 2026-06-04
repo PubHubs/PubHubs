@@ -48,7 +48,7 @@ pub fn url_unseal<T: serde::de::DeserializeOwned>(
     key: &chacha20poly1305::Key,
     aad: impl AsRef<[u8]>,
 ) -> Result<T, crate::misc::error::Opaque> {
-    let buf = Base64Url::decode_vec(envelope.as_ref()).map_err(|_| crate::misc::error::OPAQUE)?;
+    let buf = Base64Url::decode_vec(envelope.as_ref())?;
 
     unseal(&buf, key, aad)
 }

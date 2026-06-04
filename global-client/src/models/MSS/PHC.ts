@@ -30,9 +30,9 @@ export default class PHCServer {
 	/** NOTE: Do not use this variable directly to prevent using an expired authToken. Instead, use _getAuthToken(). */
 	private _authToken: string | null = null;
 	private _expiryAuthToken: null | bigint = null;
-	/** NOTE: Do not use this variable directly, but use _getUserSecretInfo(). */
+	/** NOTE: Do not use this variable directly, but use getUserSecretInfo(). */
 	private _userSecret: string | undefined;
-	/** NOTE: Do not use this variable directly, but use _getUserSecretInfo(). */
+	/** NOTE: Do not use this variable directly, but use getUserSecretInfo(). */
 	private _userSecretVersion: number | undefined;
 
 	constructor() {
@@ -299,7 +299,7 @@ export default class PHCServer {
 
 	// #region UserSecret object
 
-	private async _getUserSecretInfo() {
+	async getUserSecretInfo() {
 		const global = useGlobal();
 		assert.isNotNull(global.loggedIn, 'The user secret cannot be requested if a user is not logged in.');
 		if (this._userSecret && this._userSecretVersion) {
@@ -661,7 +661,7 @@ export default class PHCServer {
 			return null;
 		}
 		const object = new Uint8Array(getObjectResp.object);
-		const userSecretInfo = await this._getUserSecretInfo();
+		const userSecretInfo = await this.getUserSecretInfo();
 		// this._getUserSecret will only return undefined in case where the user gets logged out because they were messing with their local storage.
 		// In practice, this means that this._getUserSecret will never return undefined, since the user will have been redirected to the login page in that case.
 		assert.isDefined(userSecretInfo, 'Could not retrieve the userSecret from localstorage.');
@@ -837,7 +837,7 @@ export default class PHCServer {
 		const encoder = new TextEncoder();
 		const encodedData = encoder.encode(JSON.stringify(data));
 		// Encrypt the encoded data if the userSecret is present
-		const userSecretInfo = await this._getUserSecretInfo();
+		const userSecretInfo = await this.getUserSecretInfo();
 		// this._getUserSecret will only return undefined in case where the user gets logged out because they were messing with their local storage.
 		// In practice, this means that this._getUserSecret will never return undefined, since the user will have been redirected to the login page in that case.
 		assert.isDefined(userSecretInfo, 'Could not retrieve the userSecret from localstorage.');
@@ -863,8 +863,8 @@ export default class PHCServer {
 		}
 	}
 
-	async hhppEP(sealedEhpp: string) {
-		const hhppReq: TPHC.HhppReq = { ehpp: sealedEhpp };
+	async hhppEP(sealedEhpp: string, hhppSignatureScheme?: string) {
+		const hhppReq: TPHC.HhppReq = { ehpp: sealedEhpp, hhpp_signature_scheme: hhppSignatureScheme };
 		const options = {
 			body: JSON.stringify(hhppReq),
 			headers: {

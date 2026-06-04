@@ -65,7 +65,7 @@ describe('MessageBox Store', () => {
 			expect(messageboxParent.isConnected).toBe(true);
 
 			// send message
-			const message = new Message(MessageType.UnreadMessages, 4);
+			const message = new Message(MessageType.UnreadMessages);
 
 			messageboxParent.resolveTarget = mockTarget;
 			const spyResolveTarget = vi.spyOn(messageboxParent, 'resolveTarget');

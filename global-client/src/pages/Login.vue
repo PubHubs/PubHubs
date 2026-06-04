@@ -54,18 +54,20 @@
 									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								/>
 							</div>
-							<Button
-								color="gray"
-								@click="loginMSS()"
-							>
-								{{ show ? $t('dialog.close') : $t('login.login') }}
-							</Button>
-							<router-link
-								class="w-full"
-								:to="{ path: '/register', query: { redirectPath: redirectPath } }"
-							>
-								<Button>{{ $t('register.register_with', [$t('common.yivi')]) }}</Button>
-							</router-link>
+							<div class="flex gap-4">
+								<Button
+									variant="secondary"
+									@click="loginMSS()"
+								>
+									{{ show ? $t('dialog.close') : $t('login.login') }}
+								</Button>
+								<router-link
+									class="w-full"
+									:to="{ path: '/register', query: { redirectPath: redirectPath } }"
+								>
+									<Button>{{ $t('register.register_with', [$t('common.yivi')]) }}</Button>
+								</router-link>
+							</div>
 						</div>
 					</div>
 

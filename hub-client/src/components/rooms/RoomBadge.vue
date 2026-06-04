@@ -1,7 +1,7 @@
 <template>
 	<span
 		v-if="shouldShowBadge"
-		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-2 border uppercase"
+		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-2 border-2 uppercase"
 		:class="badgeClasses"
 		data-testid="event-badges"
 		:title="badgeTitle"
@@ -25,7 +25,6 @@
 	interface Props {
 		user: string;
 		roomId: string;
-		isHubAdmin?: boolean;
 	}
 
 	// Props
@@ -52,7 +51,9 @@
 	const isSteward = computed(() => userPowerLevel.value >= UserPowerLevel.Steward);
 	const isExpert = computed(() => userPowerLevel.value >= UserPowerLevel.Expert);
 
-	const hasPrivileges = computed(() => isExpert.value || isSteward.value || isSuperSteward.value || isAdmin.value);
+	const isRoomSteward = computed(() => isAdmin.value || isSteward.value || isSuperSteward.value);
+
+	const hasPrivileges = computed(() => isExpert.value || isRoomSteward.value);
 
 	const roomAttributes = computed(() => {
 		return rooms.roomNotices[props.roomId]?.[props.user] ?? {};
@@ -61,13 +62,11 @@
 	const roomAttributeEntries = computed(() => Object.entries(roomAttributes.value));
 
 	const shouldShowBadge = computed(() => {
-		return props.isHubAdmin || hasPrivileges.value || roomAttributeEntries.value.length > 0;
+		return hasPrivileges.value || roomAttributeEntries.value.length > 0;
 	});
 
 	const badgeLabel = computed(() => {
-		if (props.isHubAdmin) return t('admin.title_hub_administrator');
-		if (isAdmin.value) return t('admin.title_room_administrator');
-		if (isSteward.value || isSuperSteward.value) return t('admin.title_room_steward');
+		if (isRoomSteward.value) return t('admin.title_room_steward');
 		if (roomAttributeEntries.value.length > 0) {
 			const [, value] = roomAttributeEntries.value[0];
 			return value.includes('.') ? t(value) : value;
@@ -76,7 +75,7 @@
 	});
 
 	const badgeTitle = computed(() => {
-		if (props.isHubAdmin || isAdmin.value || isSteward.value || isSuperSteward.value) {
+		if (isRoomSteward.value) {
 			return badgeLabel.value;
 		}
 		if (roomAttributeEntries.value.length > 0) {
@@ -88,8 +87,7 @@
 	});
 
 	const badgeClasses = computed(() => {
-		if (isAdmin.value) return 'border-accent-admin';
-		if (isSteward.value || isSuperSteward.value) return 'border-accent-steward';
+		if (isRoomSteward.value) return 'border-accent-steward';
 		if (isExpert.value) return 'border-on-surface-dim';
 		return 'border-on-surface-dim';
 	});

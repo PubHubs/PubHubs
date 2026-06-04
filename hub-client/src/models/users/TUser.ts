@@ -51,12 +51,13 @@ enum UserAction {
 	RoomAnnouncement = 'RoomAnnouncement',
 	Kick = 'Kick',
 	Ban = 'Ban',
+	Timeout = 'Timeout',
 }
 
 const UserRoleActionsOwn = {
 	[UserRole.User]: [UserAction.MessageSteward],
 	[UserRole.Expert]: [],
-	[UserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement, UserAction.Kick, UserAction.Ban],
+	[UserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement, UserAction.Kick, UserAction.Ban, UserAction.Timeout],
 	[UserRole.SuperSteward]: [UserAction.Invite],
 	[UserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel],
 } as Record<UserRole, UserAction[]>;

@@ -1,89 +1,56 @@
 <template>
-	<div class="bg-surface-subtle w-5/6 rounded-lg p-5">
-		<div class="mb-4">
-			<div class="flex justify-between">
-				<div class="mb-2">
+	<div
+		class="bg-surface-base border-surface-elevated rounded-base w-5/6 border-3 p-200"
+		@contextmenu.prevent="openMenu($event, getContextMenuItems(), null, true)"
+	>
+		<div class="mb-200 flex flex-col gap-100">
+			<div class="flex flex-wrap items-center justify-between gap-100">
+				<div class="flex flex-wrap items-center gap-100 wrap-anywhere">
 					<Icon
 						v-if="votingWidgetClosed"
-						class="text-accent-orange float-left -mt-1 mr-1"
+						class="text-accent-orange"
+						size="sm"
 						type="lock"
 					/>
 					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
 					<span
+						v-if="isEdited"
+						class="text-on-surface-variant flex"
+					>
+						({{ $t('message.voting.edited') }})
+					</span>
+					<span
 						v-if="votingWidgetClosed"
 						class="text-label-small italic"
-						><br />{{ $t('message.scheduler_closed') }}</span
-					>
+						>{{ $t('message.scheduler_closed') }}
+					</span>
 				</div>
-
-				<div class="flex">
-					<Icon
-						v-if="hasUserVoted"
-						class="bg-surface hover:bg-accent-primary rounded-md"
-						size="lg"
-						:title="$t(showVotes ? 'message.voting.hide_votes' : 'message.voting.show_votes')"
-						type="user"
-						@click.stop="toggleShowVotes()"
-					/>
-					<ActionMenu
-						v-if="isCreator"
-						class="ml-2"
-					>
-						<template v-if="votingWidget.type === VotingWidgetType.SCHEDULER">
-							<ActionMenuItem
-								v-if="votingWidgetClosed == false"
-								@click="closeWidget"
-							>
-								{{ $t('message.close') }}
-							</ActionMenuItem>
-							<ActionMenuItem
-								v-else
-								@click="reopenWidget"
-							>
-								{{ $t('message.reopen') }}
-							</ActionMenuItem>
-						</template>
-						<ActionMenuItem
-							v-if="votingWidgetClosed == false"
-							@click="editWidget"
-						>
-							{{ $t('message.edit') }}
-						</ActionMenuItem>
-					</ActionMenu>
-				</div>
+				<button
+					v-if="!isMobile"
+					class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary ml-2 flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
+					:title="$t('message.context_menu')"
+					@click.stop="openMenu($event, getContextMenuItems(), null, true)"
+				>
+					<Icon type="dots-three-vertical" />
+				</button>
 			</div>
 
 			<span
 				v-if="votingWidget.location"
-				class="flex wrap-anywhere"
+				class="flex items-center gap-100 wrap-anywhere"
 			>
 				<Icon
-					class="mt-1 mr-1"
 					size="sm"
 					type="map-pin"
 				/>
 				{{ votingWidget.location }}
 			</span>
-			<span class="mt-2 flex wrap-anywhere">{{ votingWidget.description }}</span>
-			<span
-				v-if="isEdited"
-				class="text-on-surface-variant flex"
-			>
-				({{ $t('message.voting.edited') }})
-			</span>
-			<div
-				v-if="isCreator && votingWidgetClosed && pickedOptionId === -1"
-				class="flex justify-center"
-			>
-				<div class="bg-background flex items-center rounded-md px-2 py-1">
-					<div class="bg-accent-orange mr-2 h-5 w-5 rounded-full text-center">!</div>
-					<span>{{ $t('message.pick_option') }} :</span>
-				</div>
-			</div>
+			<span class="flex wrap-anywhere">{{ votingWidget.description }}</span>
 		</div>
 
 		<PollOptionList
 			v-if="votingWidget.type === VotingWidgetType.POLL"
+			:closed="votingWidgetClosed"
 			:event-id="event.event_id"
 			:has-user-voted="hasUserVoted"
 			:options="votingWidget.options as PollOption[]"
@@ -102,6 +69,7 @@
 			:show-votes-before-voting="votingWidget.showVotesBeforeVoting"
 			:sort-based-on-score="votingWidgetClosed && isCreator"
 			:votes-by-option="votesByOption.options"
+			@pick-date="onPickDate($event)"
 		/>
 	</div>
 </template>
@@ -116,13 +84,14 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import PollOptionList from '@hub-client/components/rooms/voting/poll/PollOptionList.vue';
 	import SchedulerOptionList from '@hub-client/components/rooms/voting/scheduler/SchedulerOptionList.vue';
-	import ActionMenu from '@hub-client/components/ui/ActionMenu.vue';
-	import ActionMenuItem from '@hub-client/components/ui/ActionMenuItem.vue';
+
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import filters from '@hub-client/logic/core/filters';
 
+	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	// Models
 	import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 	import { type TVotingMessageEvent } from '@hub-client/models/events/voting/TVotingMessageEvent';
@@ -144,6 +113,21 @@
 	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// Types
+	type VotingReplyContent = {
+		msgtype?: string;
+		title?: string;
+		description?: string;
+		location?: string;
+		voting_type?: VotingWidgetType;
+		showVotesBeforeVoting?: boolean;
+		options?: PollOption[] | SchedulerOption[];
+		'm.relates_to'?: { event_id?: string };
+		optionId?: number;
+		vote?: string;
+	};
+
+	// Props
 	const props = withDefaults(
 		defineProps<{
 			room: Room;
@@ -151,24 +135,77 @@
 		}>(),
 		{},
 	);
+
 	const emit = defineEmits<{
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
 	}>();
+
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
 	const user = useUser();
 	const settings = useSettings();
-	const { d } = useI18n();
-
-	let lastEventTimestamp: number;
+	const { d, t } = useI18n();
+	const isMobile = computed(() => settings.isMobileState);
 	const isCreator = user.userId === props.event.sender;
+	const { openMenu } = useContextMenu();
+
+	const getContextMenuItems = (): MenuItem[] => {
+		const items: MenuItem[] = [];
+		if (hasUserVoted.value) {
+			items.push({
+				label: t(showVotes.value ? 'message.voting.hide_votes' : 'message.voting.show_votes'),
+				icon: showVotes.value ? 'eye-slash' : 'eye',
+				onClick: () => toggleShowVotes(),
+			});
+		}
+		if (isCreator && !votingWidgetClosed.value) {
+			items.push({ label: t('message.edit'), icon: 'pencil-simple', onClick: () => editWidget() });
+		}
+		if (isCreator) {
+			if (votingWidgetClosed.value) {
+				items.push({ label: t('message.reopen'), icon: 'lock-open', onClick: () => reopenWidget() });
+			} else {
+				items.push({ label: t('message.close'), icon: 'lock', onClick: () => closeWidget(), variant: ContextVariant.delicate });
+			}
+		}
+		return items;
+	};
 
 	const isEdited = ref(false);
 	const showVotes = ref(false);
 	const votesByOption = ref(new VotingOptions());
 	const hasUserVoted = ref<boolean>(false);
 	const votingWidget = ref<VotingWidget>(new Poll());
+	let lastEventTimestamp: number;
+	const processedEventIds = new Set<string>();
+
+	const is24HourFormat = computed(() => {
+		return settings.timeformat === TimeFormat.format24;
+	});
+
+	// Lifecycle
+	watch(
+		() => votesByOption.value.options,
+		() => {
+			hasUserVoted.value = votesByOption.value.options.some((vote) =>
+				vote.votes.some((v) => v.userVotes.some((uv) => uv.userId === (user.userId ?? ''))),
+			);
+		},
+	);
+
+	onMounted(() => {
+		votesByOption.value.options = initializeVotesByOption(votingWidget.value.options);
+		collectVotes();
+	});
+
+	watch(
+		() => props.room.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id),
+		(event) => {
+			collectNewVotes(event);
+		},
+	);
+
 	if (props.event.content.type === VotingWidgetType.POLL) {
 		votingWidget.value = new Poll(
 			props.event.content.title,
@@ -186,29 +223,6 @@
 		);
 	}
 
-	watch(
-		() => votesByOption.value.options,
-		() => {
-			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId ?? '')));
-		},
-	);
-
-	onMounted(() => {
-		votesByOption.value.options = initializeVotesByOption(votingWidget.value.options);
-		collectVotes();
-	});
-
-	const is24HourFormat = computed(() => {
-		return settings.timeformat === TimeFormat.format24;
-	});
-
-	watch(
-		() => props.room.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id),
-		(event) => {
-			collectNewVotes(event);
-		},
-	);
-
 	votingWidget.value.removeExcessOptions();
 
 	const votingWidgetClosed = ref(false);
@@ -219,21 +233,21 @@
 		const votesForOption: votesForOption = { optionId: option.id, votes: [] };
 		if (type === VotingWidgetType.SCHEDULER) {
 			votesForOption.votes = [
-				{ choice: 'yes', userIds: [], userVotes: [] },
-				{ choice: 'maybe', userIds: [], userVotes: [] },
-				{ choice: 'no', userIds: [], userVotes: [] },
-				{ choice: 'redacted', userIds: [], userVotes: [] },
+				{ choice: 'yes', userVotes: [] },
+				{ choice: 'maybe', userVotes: [] },
+				{ choice: 'no', userVotes: [] },
+				{ choice: 'redacted', userVotes: [] },
 			];
 		} else {
 			votesForOption.votes = [
-				{ choice: 'yes', userIds: [], userVotes: [] },
-				{ choice: 'redacted', userIds: [], userVotes: [] },
+				{ choice: 'yes', userVotes: [] },
+				{ choice: 'redacted', userVotes: [] },
 			];
 		}
 		return votesForOption;
 	}
 
-	//returns an empty 'votesForOption' array
+	// Returns an empty 'votesForOption' array
 	function initializeVotesByOption(options: SchedulerOption[] | PollOption[]) {
 		let newVotesByOption: votesForOption[];
 		newVotesByOption = [];
@@ -244,52 +258,7 @@
 		return newVotesByOption;
 	}
 
-	function sort_score(v: votesForOption) {
-		let score = 0.0;
-		for (const userChoices of v.votes) {
-			if (userChoices.choice === 'redacted') {
-				continue;
-			}
-			if (userChoices.choice === 'yes') {
-				score += 1.0 * userChoices.userIds.length;
-			}
-			if (userChoices.choice === 'maybe') {
-				score += 0.5 * userChoices.userIds.length;
-			}
-		}
-		return score;
-	}
-
-	function get_sorted_votes_for_scheduler() {
-		let res = [...votesByOption.value.options];
-		res.sort((v1, v2) => {
-			let s1 = sort_score(v1);
-			let s2 = sort_score(v2);
-			if (s1 < s2) {
-				return 1;
-			}
-			if (s1 > s2) {
-				return -1;
-			}
-			return 0;
-		});
-		return res.map((x) => x.optionId);
-	}
-
-	type VotingReplyContent = {
-		msgtype?: string;
-		title?: string;
-		description?: string;
-		location?: string;
-		voting_type?: VotingWidgetType;
-		showVotesBeforeVoting?: boolean;
-		options?: PollOption[] | SchedulerOption[];
-		'm.relates_to'?: { event_id?: string };
-		optionId?: number;
-		vote?: string;
-	};
-
-	//modify a voting widget with a modify event sent by it's creator
+	// Modify a voting widget with a modify event sent by it's creator
 	function modifyVotingWidgetWithEvent(replyEvent: TBaseEvent) {
 		const reply_content = replyEvent.content as VotingReplyContent;
 		switch (reply_content.msgtype) {
@@ -409,8 +378,8 @@
 			modifyVotingWidgetWithEvent(replyEvent);
 		}
 
-		if (replyEvent.type === PubHubsMgType.VotingWidgetPickOption) {
-			pickedOptionId.value = reply_content.optionId ?? 0;
+		if (replyEvent.type === PubHubsMgType.VotingWidgetPickOption && reply_content.optionId !== undefined && reply_content.optionId >= 0) {
+			pickedOptionId.value = reply_content.optionId;
 		}
 
 		//ignore votes when closed and ignore non vote events from here
@@ -436,7 +405,7 @@
 				//need to check each option here, since the user can only vote one option on a radio poll
 				for (const option of votesByOption.value.options) {
 					for (const userChoices of option.votes) {
-						alreadyRegisteredUserIndex = userChoices.userIds.indexOf(reply_user);
+						alreadyRegisteredUserIndex = userChoices.userVotes.findIndex((uv) => uv.userId === reply_user);
 						if (alreadyRegisteredUserIndex >= 0) {
 							userVoteAlreadyRegistered = true;
 							alreadyRegisteredUserChoices = userChoices;
@@ -449,7 +418,7 @@
 				}
 			} else {
 				for (const userChoices of correspondingOption.votes) {
-					alreadyRegisteredUserIndex = userChoices.userIds.indexOf(reply_user);
+					alreadyRegisteredUserIndex = userChoices.userVotes.findIndex((uv) => uv.userId === reply_user);
 					if (alreadyRegisteredUserIndex >= 0) {
 						userVoteAlreadyRegistered = true;
 						alreadyRegisteredUserChoices = userChoices;
@@ -460,12 +429,10 @@
 
 			if (userVoteAlreadyRegistered) {
 				//remove the old vote
-				alreadyRegisteredUserChoices?.userIds.splice(alreadyRegisteredUserIndex, 1);
-				alreadyRegisteredUserChoices?.userVotes?.splice(alreadyRegisteredUserIndex, 1);
+				alreadyRegisteredUserChoices?.userVotes.splice(alreadyRegisteredUserIndex, 1);
 			}
 			//add the vote
-			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userIds.push(reply_user);
-			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userVotes?.push({ userId: reply_user, time: reply_time });
+			correspondingOption.votes.find((vote) => vote.choice === reply_vote)?.userVotes.push({ userId: reply_user, time: reply_time });
 
 			if (replyEvent.origin_server_ts > lastEventTimestamp) {
 				lastEventTimestamp = replyEvent.origin_server_ts;
@@ -473,7 +440,7 @@
 
 			//check if the user has voted but don't count redacted votes
 			hasUserVoted.value = votesByOption.value.options.some((vote) =>
-				vote.votes.some((v) => v.userIds.includes(user.userId ?? '') && v.choice !== 'redacted'),
+				vote.votes.some((v) => v.userVotes.some((uv) => uv.userId === (user.userId ?? '')) && v.choice !== 'redacted'),
 			);
 		}
 	}
@@ -485,7 +452,10 @@
 		if (props.event.unsigned) {
 			const events = props.room.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id);
 			votesByOption.value.options = initializeVotesByOption(votingWidget.value.options); //clear any stored data in votesByOption
+			processedEventIds.clear();
 			events?.forEach((event) => {
+				const id = event.event.event_id;
+				if (id) processedEventIds.add(id);
 				lastEventTimestamp = event.event.origin_server_ts as number;
 				updateVotingWidgetWithEvent(event.event as unknown as TBaseEvent);
 			});
@@ -495,6 +465,9 @@
 
 	function collectNewVotes(events: MatrixEvent[]) {
 		events.forEach((event) => {
+			const id = event.event.event_id;
+			if (!id || processedEventIds.has(id)) return;
+			processedEventIds.add(id);
 			updateVotingWidgetWithEvent(event.event as unknown as TBaseEvent);
 		});
 		votesByOption.value.removeRedactedVotes();
@@ -507,23 +480,29 @@
 				if (userChoices.choice === 'redacted') {
 					continue;
 				}
-				user_ids = [...new Set([...user_ids, ...userChoices.userIds])];
+				user_ids = [...new Set([...user_ids, ...userChoices.userVotes.map((uv) => uv.userId)])];
 			}
 		}
 		return user_ids;
 	}
 
+	function onPickDate(optionId: number) {
+		pickedOptionId.value = optionId;
+		showVotes.value = false;
+	}
+
 	function closeWidget() {
-		const sortedOptionIds = get_sorted_votes_for_scheduler();
-		votingWidget.value.options = sortedOptionIds
-			.map((optionId) => {
-				return votingWidget.value.options.find((option) => option.id === optionId);
-			})
-			.filter((option) => option !== undefined) as PollOption[] | SchedulerOption[];
+		votingWidgetClosed.value = true;
+		if (votingWidget.value.type === VotingWidgetType.SCHEDULER) {
+			showVotes.value = true;
+		}
+		pickedOptionId.value = -1;
 		pubhubs.closeVotingWidget(rooms.currentRoomId, props.event.event_id, get_user_ids());
 	}
 
 	function reopenWidget() {
+		votingWidgetClosed.value = false;
+		pickedOptionId.value = -1;
 		pubhubs.reopenVotingWidget(rooms.currentRoomId, props.event.event_id, get_user_ids());
 		pubhubs.pickOptionVotingWidget(rooms.currentRoomId, props.event.event_id, -1);
 	}

@@ -19,6 +19,8 @@
 	// Packages
 	import { computed, onMounted, ref } from 'vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// Types
 	type Props = {
 		hubNameForImgAlt?: string; // Used when showing multiple Hubs.

@@ -72,7 +72,7 @@ enum MessageType {
 	DialogHideModal = modalPrefix + '-hide', // Hide modal over bar
 
 	Sync = 'sync', // CHILD asks for syncing settings etc.
-	UnreadMessages = 'unreadmessages', // Sync total of unread messages for a hub
+	UnreadMessages = 'unreadmessages', // Fired (without payload) on read→unread transition so the parent can show a desktop notification
 	SendHubInformation = 'sendhubinformation', // Let child ask to send the hubinformation
 	HubInformation = 'hubinformation', // Sync hub information (name) with hub client.
 	Settings = 'settings', // Sync settings
@@ -86,6 +86,25 @@ enum MessageType {
 	CloseSidebar = 'closesidebar', // Close the sidebar in the hub client
 	ContextMenuOpen = 'contextmenu-open', // Hub asks global to show a context menu
 	ContextMenuSelect = 'contextmenu-select', // Global sends selected item index back to hub
+
+	// Per-hub key-value store persisted in the global client's localStorage.
+	// The hub client's own localStorage is unreliable (blocked in third-party
+	// iframes on Safari). The hub loads all data on startup, then sends
+	// fire-and-forget updates.
+	LocalStoreLoad = 'local-store-load', // Hub → global: request all stored key-value pairs
+	LocalStoreLoaded = 'local-store-loaded', // Global → hub: response with all pairs
+	LocalStoreUpdate = 'local-store-update', // Hub → global: update { key, value }
+
+	// Miniclient unread state mirroring. A miniclient iframe renders one of two
+	// inner components: MiniclientIndependent (runs its own MatrixClient and
+	// computes unread state locally) or MiniclientLinked (no MatrixClient;
+	// mirrors the aggregate state pushed by the currently-active hub client).
+	// HubActive tells a miniclient which of the two to mount; each hub's
+	// miniclient switches to Linked when its hub becomes the globally active
+	// one. This avoids running two sliding syncs per hub and guarantees only
+	// one writer to the LocalStore.
+	HubActive = 'hub-active', // Parent → miniclient: { active: boolean }; whether the miniclient's hub is the globally active hub.
+	AggregateUnreadState = 'aggregate-unread-state', // Hub-client → parent → matching miniclient: { hubId, state: UnreadState }.
 }
 
 /**

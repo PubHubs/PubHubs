@@ -1,0 +1,94 @@
+// New design
+// Models
+import type { MenuItem } from '@hub-client/models/components/contextMenu.models';
+import { SystemDefaults } from '@hub-client/models/constants';
+
+import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
+
+export function useContextMenu() {
+	const store = useContextMenuStore();
+	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+	/**
+	 * Opens the context menu
+	 *
+	 * @param evt - The triggering event
+	 * @param items - The context menu item array
+	 * @param targetId - The unique id for the context menu
+	 * @param alignRight - Align the menu's right edge with the click position
+	 */
+	const openMenu = (evt: MouseEvent | PointerEvent | TouchEvent, items: MenuItem[], targetId: string | number | null = null, alignRight = false): void => {
+		const isTouch = 'touches' in evt;
+
+		evt.preventDefault();
+		evt.stopPropagation();
+
+		if (isTouch) {
+			const layoutRoot = document.getElementById('layout-root');
+			if (layoutRoot) layoutRoot.style.overflowX = 'hidden';
+
+			longPressTimer = setTimeout(() => {
+				openMenuAtEvent(evt, items, targetId, alignRight);
+				if (layoutRoot) layoutRoot.style.overflowX = '';
+			}, SystemDefaults.longPressDuration);
+
+			const clearTimer = () => {
+				if (longPressTimer) clearTimeout(longPressTimer);
+				longPressTimer = null;
+				if (layoutRoot) layoutRoot.style.overflowX = '';
+				window.removeEventListener('touchend', clearTimer);
+				window.removeEventListener('touchmove', clearTimer);
+			};
+
+			window.addEventListener('touchend', clearTimer);
+			window.addEventListener('touchmove', clearTimer);
+
+			return;
+		}
+
+		openMenuAtEvent(evt, items, targetId, alignRight);
+	};
+
+	/**
+	 * Internal helper to compute coordinates and open the store
+	 *
+	 * @param evt - The triggering event
+	 * @param items - The context menu item array
+	 * @param targetId - The unique id for the context menu
+	 */
+	const openMenuAtEvent = (
+		evt: MouseEvent | PointerEvent | TouchEvent,
+		items: MenuItem[],
+		targetId: string | number | null = null,
+		alignRight = false,
+	): void => {
+		const isTouch = 'touches' in evt;
+
+		let x = 0;
+		let y = 0;
+
+		if (isTouch && evt.touches.length > 0) {
+			x = evt.touches[0].clientX;
+			y = evt.touches[0].clientY;
+		} else if ('clientX' in evt) {
+			x = evt.clientX;
+			y = evt.clientY;
+		}
+
+		store.open(items, Math.round(x), Math.round(y), targetId, alignRight);
+	};
+
+	const close = () => {
+		store.close();
+	};
+
+	const select = (item: MenuItem) => {
+		store.select(item);
+	};
+
+	return {
+		close,
+		openMenu,
+		select,
+	};
+}

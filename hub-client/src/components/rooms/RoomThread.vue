@@ -4,17 +4,24 @@
 		class="flex h-full w-full flex-col pt-4"
 		data-testid="thread-sidekick"
 	>
-		<SidebarHeader :title="t('rooms.thread')" />
+		<SidebarHeader
+			v-if="!isForum"
+			:title="t('rooms.thread')"
+		/>
 		<!-- Thread message list -->
-		<div class="flex-1 overflow-y-scroll pb-4">
+		<div
+			ref="elScrollContainer"
+			class="flex-1 overflow-y-scroll pb-4"
+			style="overflow-anchor: none"
+		>
 			<!-- Root event -->
 			<div
-				v-if="filteredEvents.length === 0 && props.room.currentThread?.rootEvent?.event"
+				v-if="rootEvent"
 				:id="threadRootId"
 			>
 				<RoomMessageBubble
 					:room="room"
-					:event="props.room.currentThread?.rootEvent?.event"
+					:event="rootEvent"
 					:view-from-thread="true"
 					:active-reaction-panel="activeReactionPanel"
 					class="room-event"
@@ -24,22 +31,30 @@
 					@reaction-panel-close="closeReactionPanel"
 					@clicked-emoticon="sendEmoji"
 				>
+					<template #bottom>
+						<ForumEventBody
+							v-if="isForum"
+							:event="rootEvent"
+						>
+						</ForumEventBody>
+					</template>
 				</RoomMessageBubble>
 			</div>
 
 			<!-- Thread replies -->
 			<div
-				v-for="item in filteredEvents"
+				v-for="(item, index) in filteredEvents"
 				:key="item.matrixEvent.event.event_id"
 			>
 				<div
 					:id="item.matrixEvent.event.event_id"
 					:ref="setEventRef"
-					class="mx-3 rounded-md"
+					class="rounded-md"
+					:class="{ 'pl-800': isForum && index > 0, 'mb-400': isForum && index === 0 }"
 				>
 					<RoomMessageBubble
 						:room="room"
-						:event="item.matrixEvent.event"
+						:event="item"
 						:view-from-thread="true"
 						:active-reaction-panel="activeReactionPanel"
 						class="room-event"
@@ -48,7 +63,16 @@
 						@delete-message="confirmDeleteMessage"
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
-					></RoomMessageBubble>
+					>
+						<template #bottom>
+							<ForumEventBody
+								v-if="isForum"
+								:is-first="index === 0"
+								:event="item"
+							>
+							</ForumEventBody>
+						</template>
+					</RoomMessageBubble>
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
@@ -60,6 +84,11 @@
 					</div>
 				</div>
 			</div>
+
+			<InlineSpinner
+				v-if="loadingEvents"
+				class="mx-auto my-100"
+			></InlineSpinner>
 		</div>
 
 		<!-- Thread input -->
@@ -78,7 +107,7 @@
 		:room="room"
 		:view-from-thread="true"
 		@close="showConfirmDelMsgDialog = false"
-		@yes="deleteMessage(eventToBeDeleted)"
+		@yes="(reason?: string) => deleteMessage(eventToBeDeleted, reason)"
 	></DeleteMessageDialog>
 </template>
 
@@ -92,6 +121,8 @@
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
+	import ForumEventBody from '@hub-client/components/rooms/forum/ForumEventBody.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
@@ -105,35 +136,46 @@
 	import { RelationType, RoomEmit, ScrollPosition, ScrollSelect, TimelineScrollConstants } from '@hub-client/models/constants';
 	import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
-	import Room from '@hub-client/models/rooms/Room';
+	import type Room from '@hub-client/models/rooms/Room';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	const props = defineProps({
-		room: {
-			type: Room,
-			required: true,
+	const props = withDefaults(
+		defineProps<{
+			isForum?: boolean;
+			room: Room;
+			scrollToEventId?: string | undefined;
+		}>(),
+		{
+			isForum: false,
+			scrollToEventId: undefined,
 		},
-		scrollToEventId: { type: String, default: undefined },
-	});
+	);
 
-	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
+	const emit = defineEmits([RoomEmit.ScrolledToEventId]);
+
+	const elScrollContainer = ref<HTMLElement | null>(null);
 
 	const logger = createLogger('RoomThread');
 
 	const { t } = useI18n();
 
 	const threadRootId = computed(() => {
-		return props.room.currentThread?.rootEvent?.event.event_id;
+		return props.room.currentThreadId;
+	});
+
+	const rootEvent = computed(() => {
+		return props.room.getCurrentThreadRoot();
 	});
 
 	const filteredEvents = computed(() => {
-		return threadEvents.filter((event) => !event.isDeleted && event.matrixEvent.getType() !== EventType.Reaction);
+		return threadEvents.filter(
+			(event) =>
+				!event.isDeleted && event.matrixEvent.getType() !== EventType.Reaction && event.matrixEvent.getId() !== rootEvent.value?.matrixEvent.getId(),
+		);
 	});
-
-	const numberOfThreadEvents = computed(() => Math.max(filteredEvents.value.length, 1));
 
 	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
@@ -142,6 +184,8 @@
 	let deletedEvents: Reactive<MatrixEvent[]> = reactive<MatrixEvent[]>([]);
 	let threadEvents: TimelineEvent[] = shallowReactive<TimelineEvent[]>([]);
 	let eventObserver: ElementObserver | null = null;
+	let contentLoadObserver: ResizeObserver | null = null;
+	let contentLoadTimer: ReturnType<typeof setTimeout> | null = null;
 	const elRoomEvent = ref<HTMLElement[]>([]);
 	const elThreadTimeline = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
@@ -150,14 +194,15 @@
 
 	const activeReactionPanel = ref<string | null>(null);
 	const { READ_DELAY_MS } = TimelineScrollConstants;
+	const loadingEvents = ref(false);
 
 	watch(
 		() => props.room.threadUpdated,
-		() => getThreadEvents(),
+		() => nextTick(() => getThreadEvents()),
 	);
 
 	watch(
-		() => props.room.currentThread?.threadId,
+		() => props.room.currentThreadId,
 		() => changeThreadId(),
 		{ immediate: true },
 	);
@@ -170,17 +215,16 @@
 		{ immediate: true },
 	);
 
-	watch(
-		() => filteredEvents.value.length,
-		() => emit(RoomEmit.ThreadLengthChanged, numberOfThreadEvents.value),
-	);
-
 	onMounted(() => {
 		logger.debug('RoomThread mounted');
 		setupEventIntersectionObserver();
 	});
 
 	onBeforeUnmount(() => {
+		// cleanup resize observer
+		contentLoadObserver?.disconnect();
+		if (contentLoadTimer) clearTimeout(contentLoadTimer);
+
 		// Cleanup event observer
 		if (eventObserver) {
 			eventObserver.disconnectObserver();
@@ -216,6 +260,7 @@
 
 	async function changeThreadId() {
 		await getThreadEvents();
+		await nextTick();
 
 		setupEventIntersectionObserver();
 
@@ -223,10 +268,7 @@
 		if (currentEvent) {
 			scrollToEvent(currentEvent.eventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 		} else {
-			const lastEvent = filteredEvents.value[filteredEvents.value.length - 1];
-			if (lastEvent?.matrixEvent.event?.event_id) {
-				scrollToEvent(lastEvent.matrixEvent.event.event_id, { position: ScrollPosition.End });
-			}
+			scrollToLastEvent();
 		}
 	}
 
@@ -236,15 +278,14 @@
 	}
 
 	async function getThreadEvents() {
+		loadingEvents.value = true;
+
 		const events = await props.room.getCurrentThreadEvents();
 		threadEvents.splice(0, threadEvents.length, ...events);
 
-		if (threadEvents.length > 0) {
-			const lastEventId = threadEvents[threadEvents.length - 1].matrixEvent.event.event_id;
-			if (lastEventId) {
-				nextTick(() => scrollToEvent(lastEventId));
-			}
-		}
+		scrollToLastEvent();
+
+		loadingEvents.value = false;
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
@@ -281,15 +322,48 @@
 		}
 	}
 
+	/**
+	 * A resize-observer to make sure we scroll to the right position
+	 * Vue takes some time to generate all RoomMessageBubbles, the list of items start with only the avatars,
+	 * when the messagebubbles are generated they push the last event out of view.
+	 * The resize observer corrects this. Since it can be called multiple times, it is checked if it is already running by the contentloadTimer
+	 */
+	function scrollToLastEvent() {
+		nextTick(() => {
+			if (!elScrollContainer.value) return;
+			const container = elScrollContainer.value;
+
+			contentLoadObserver?.disconnect();
+			if (contentLoadTimer) clearTimeout(contentLoadTimer);
+
+			container.scrollTop = container.scrollHeight;
+
+			contentLoadObserver = new ResizeObserver(() => {
+				requestAnimationFrame(() => {
+					if (contentLoadObserver) container.scrollTop = container.scrollHeight;
+				});
+			});
+			for (const child of container.children) {
+				contentLoadObserver.observe(child);
+			}
+
+			contentLoadTimer = setTimeout(() => {
+				contentLoadObserver?.disconnect();
+				contentLoadObserver = null;
+				contentLoadTimer = null;
+			}, 500);
+		});
+	}
+
 	function confirmDeleteMessage(event: TMessageEvent) {
 		eventToBeDeleted.value = event;
 		showConfirmDelMsgDialog.value = true;
 	}
 
-	function deleteMessage(event: TMessageEvent<TMessageEventContent> | undefined) {
+	function deleteMessage(event: TMessageEvent<TMessageEventContent> | undefined, reason?: string) {
 		if (event) {
 			let deletedEvent = threadEvents.find((e) => e.matrixEvent.event.event_id === event.event_id);
-			props.room.deleteThreadMessage(event, deletedEvent?.matrixEvent.threadRootId);
+			props.room.deleteThreadMessage(event, deletedEvent?.matrixEvent.threadRootId, reason);
 			if (deletedEvent) {
 				deletedEvents.push(deletedEvent.matrixEvent as MatrixEvent);
 			}

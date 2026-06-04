@@ -1,6 +1,9 @@
 // Packages
 import { computed, ref, shallowRef } from 'vue';
 
+// Models
+import { type TSearchResult } from '@hub-client/models/search/TSearch';
+
 // Stores
 import { type Room } from '@hub-client/stores/rooms';
 import { useSettings } from '@hub-client/stores/settings';
@@ -8,6 +11,8 @@ import { useSettings } from '@hub-client/stores/settings';
 export enum SidebarTab {
 	DirectMessage = 'dm',
 	Library = 'library',
+	ManageRoom = 'manage-room',
+	ManageUser = 'manage-user',
 	Members = 'members',
 	NewDM = 'newdm',
 	None = 'none',
@@ -21,6 +26,12 @@ const LAST_DM_ROOM_KEY = 'pubhubs_lastDMRoomId';
 const lastDMRoomId = ref<string | null>(sessionStorage.getItem(LAST_DM_ROOM_KEY));
 const skipTransition = ref(false);
 const skipNextRestore = ref(false);
+
+// Search state persisted across tab switches (Search <-> Thread)
+const searchTerm = ref('');
+const searchResults = ref<TSearchResult[]>([]);
+const searched = ref(false);
+const isSearching = ref(false);
 
 export function useSidebar() {
 	const settings = useSettings();
@@ -115,16 +126,28 @@ export function useSidebar() {
 		}, 0);
 	}
 
+	function clearSearchState() {
+		searchTerm.value = '';
+		searchResults.value = [];
+		searched.value = false;
+		isSearching.value = false;
+	}
+
 	return {
 		activeTab: computed(() => activeTab.value),
 		selectedDMRoom: computed(() => selectedDMRoom.value),
 		lastDMRoomId: computed(() => lastDMRoomId.value),
 		skipTransition: computed(() => skipTransition.value),
+		searchTerm,
+		searchResults,
+		searched,
+		isSearching,
 		isOpen,
 		isMobile,
 		openTab,
 		close,
 		clearLastDMRoom,
+		clearSearchState,
 		toggleTab,
 		openDMRoom,
 		restoreDMRoom,

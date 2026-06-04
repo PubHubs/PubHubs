@@ -3,13 +3,16 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::elgamal;
+use crate::common::{elgamal, kem};
 use crate::misc::crypto;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::phcrypto;
 use crate::{
-    api::{self, EndpointDetails as _, OpenError, phc::hub::TicketOpenError},
-    servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation},
+    api::{self, EndpointDetails as _},
+    servers::{
+        self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
+        constellation,
+    },
 };
 
 use api::tr::*;
@@ -23,14 +26,30 @@ impl servers::Details for Details {
     type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
+    type RunningStateSeed = ();
     type ExtraSharedState = ExtraSharedState;
+    type ExtraServerState = ExtraServerState;
     type ObjectStoreT = servers::object_store::UseNone;
 
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
+        _seed: &(),
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let phc_ss = server.enc_key.shared_secret(&constellation.phc_enc_key);
+        let ss_encap = constellation
+            .transcryptor_ss_encap
+            .as_ref()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "constellation contains no shared secret encapsulated for us; \
+                 check_constellation should have rejected it"
+                )
+            })?;
+        let phc_ss = server
+            .extra()
+            .decap_key
+            .decap(ss_encap)
+            .map_err(|_| anyhow::anyhow!("decapsulating shared secret from PHC failed"))?;
 
         Ok(ExtraRunningState {
             phc_sealing_secret: phcrypto::sealing_secret(&phc_ss),
@@ -41,14 +60,30 @@ impl servers::Details for Details {
     fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
         Ok(ExtraSharedState {})
     }
+
+    fn create_extra_server_state(config: &servers::Config) -> anyhow::Result<ExtraServerState> {
+        let xconf = config.transcryptor.as_ref().unwrap();
+        let decap_key = xconf
+            .decap_key
+            .as_ref()
+            .expect("decap_key was not set nor generated")
+            .decode()
+            .map_err(|_| anyhow::anyhow!("decoding kem decapsulation key"))?;
+        Ok(ExtraServerState { decap_key })
+    }
 }
 
 pub struct ExtraSharedState {}
 
+pub struct ExtraServerState {
+    pub(super) decap_key: kem::DecapKey,
+}
+
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
-    /// Secret shared with pubhubs central
-    phc_ss: elgamal::SharedSecret,
+    /// Hybrid post-quantum shared secret with pubhubs central
+    #[expect(dead_code)]
+    phc_ss: kem::SharedSecret,
 
     /// Key used to (un)seal messages to and from PHC
     pub(super) phc_sealing_secret: crypto::SealingKey,
@@ -58,7 +93,9 @@ pub struct App {
     base: AppBase<Server>,
     master_enc_key_part: elgamal::PrivateKey,
     master_enc_key_part_inv: curve25519_dalek::Scalar,
+    master_enc_key_part_hash: crate::id::Id,
     pseud_factor_secret: B64UU,
+    encap_key: kem::EncapKeyBytes,
 }
 
 impl Deref for App {
@@ -71,9 +108,8 @@ impl Deref for App {
 
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
-        api::phct::hub::KeyEP::add_to(self, sc, App::handle_hub_key);
-
         EhppEP::add_to(self, sc, App::handle_ehpp);
+        api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
     }
 
     fn check_constellation(&self, constellation: &Constellation) -> bool {
@@ -83,17 +119,26 @@ impl crate::servers::App<Server> for App {
             inner:
                 constellation::Inner {
                     // These fields we must check:
-                    transcryptor_jwt_key: jwt_key,
-                    transcryptor_enc_key: enc_key,
-                    transcryptor_master_enc_key_part: master_enc_key_part,
+                    transcryptor_verifying_key,
+                    transcryptor_master_enc_key_part_hash,
+                    transcryptor_encap_key_id,
 
                     // These fields we don't care about:
                     transcryptor_url: _,
+                    transcryptor_jwt_key: _, // deprecated placeholder
+                    transcryptor_enc_key: _,
+                    transcryptor_master_enc_key_part: _, // deprecated
+                    transcryptor_ss_encap: _,
                     auths_enc_key: _,
                     auths_jwt_key: _,
+                    auths_verifying_key: _,
                     auths_url: _,
+                    auths_encap_key_id: _,
+                    auths_ss_encap: _,
                     phc_jwt_key: _,
+                    phc_verifying_key: _,
                     phc_enc_key: _,
+                    phc_master_enc_key_part_hash: _,
                     phc_url: _,
                     master_enc_key: _,
                     global_client_url: _,
@@ -103,59 +148,43 @@ impl crate::servers::App<Server> for App {
             created_at: _,
         } = constellation;
 
-        enc_key == self.enc_key.public_key()
-            && **jwt_key == self.jwt_key.verifying_key()
-            && master_enc_key_part == self.master_enc_key_part.public_key()
+        // PHC must have encapsulated against our current encapsulation key; otherwise reject so that
+        // discovery re-runs and PHC (re)publishes a matching ciphertext.
+        if *transcryptor_encap_key_id != Some(self.encap_key.id()) {
+            return false;
+        }
+
+        transcryptor_verifying_key.as_ref() == Some(&self.verifying_key_bytes)
+            && *transcryptor_master_enc_key_part_hash == Some(self.master_enc_key_part_hash)
     }
 
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
         Some(&self.master_enc_key_part)
     }
+
+    fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
+        Some(&self.encap_key)
+    }
+
+    fn master_enc_key_part_sealing_key(&self) -> Option<&api::SealingKey> {
+        self.running_state.as_ref().map(|rs| &rs.phc_sealing_secret)
+    }
+
+    async fn discover(
+        self: &Rc<Self>,
+        phc_inf: api::DiscoveryInfoResp,
+    ) -> api::Result<DiscoverVerdict<()>> {
+        self.discover_as_non_phc(phc_inf).await
+    }
 }
 
 impl App {
-    async fn handle_hub_key(
+    /// Implements [`api::server::HubPingEP`].
+    async fn handle_hub_ping(
         app: Rc<Self>,
-        signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
-    ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.running_state_or_please_retry()?;
-
-        let ts_req = signed_req.into_inner();
-
-        let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
-
-        if let Err(toe) = ts_req.open(&running_state.constellation.phc_jwt_key) {
-            match toe {
-                TicketOpenError::Ticket(OpenError::InvalidSignature)
-                | TicketOpenError::Ticket(OpenError::Expired) => {
-                    return Ok(api::phct::hub::KeyResp::RetryWithNewTicket);
-                }
-                TicketOpenError::Ticket(OpenError::InternalError)
-                | TicketOpenError::Ticket(OpenError::OtherConstellation(..))
-                | TicketOpenError::Signed(OpenError::OtherConstellation(..))
-                | TicketOpenError::Signed(OpenError::InternalError) => {
-                    return Err(api::ErrorCode::InternalError);
-                }
-                TicketOpenError::Ticket(OpenError::OtherwiseInvalid)
-                | TicketOpenError::Signed(OpenError::OtherwiseInvalid)
-                | TicketOpenError::Signed(OpenError::InvalidSignature)
-                | TicketOpenError::Signed(OpenError::Expired) => {
-                    return Err(api::ErrorCode::BadRequest);
-                }
-            }
-        }
-
-        // At this point we can be confident that the ticket is authentic, so we can give the hub
-        // its decryption key based on the provided ticket
-
-        let key_part: curve25519_dalek::Scalar = phcrypto::t_hub_key_part(
-            ticket_digest,
-            &running_state.phc_ss, // shared secret with pubhubs central
-            &app.enc_key,
-            &app.master_enc_key_part,
-        );
-
-        Ok(api::phct::hub::KeyResp::Success { key_part })
+        signed_req: web::Json<api::phc::hub::TicketSigned<api::server::PingReq>>,
+    ) -> api::Result<api::server::PingResp> {
+        crate::servers::AppBase::<Server>::handle_hub_ping(app, signed_req).await
     }
 
     /// Implements [`EhppEP`]
@@ -200,6 +229,7 @@ pub struct AppCreator {
     master_enc_key_part: elgamal::PrivateKey,
     master_enc_key_part_inv: curve25519_dalek::Scalar,
     pseud_factor_secret: B64UU,
+    encap_key: kem::EncapKeyBytes,
 }
 
 impl Deref for AppCreator {
@@ -232,11 +262,20 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .clone()
             .expect("pseud_factor_secret was not generated");
 
+        let encap_key = xconf
+            .decap_key
+            .as_ref()
+            .expect("decap_key was not set nor generated")
+            .decode()
+            .and_then(|dk| dk.encap_key().encode())
+            .map_err(|_| anyhow::anyhow!("deriving kem encapsulation key"))?;
+
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config)?,
             master_enc_key_part_inv: master_enc_key_part.as_scalar().invert(),
             master_enc_key_part,
             pseud_factor_secret,
+            encap_key,
         })
     }
 
@@ -248,9 +287,13 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     ) -> App {
         App {
             base: AppBase::new(self.base, handle, generation),
+            master_enc_key_part_hash: phcrypto::master_enc_key_part_hash(
+                self.master_enc_key_part.public_key(),
+            ),
             master_enc_key_part: self.master_enc_key_part,
             master_enc_key_part_inv: self.master_enc_key_part_inv,
             pseud_factor_secret: self.pseud_factor_secret,
+            encap_key: self.encap_key,
         }
     }
 }

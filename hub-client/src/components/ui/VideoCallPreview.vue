@@ -14,7 +14,6 @@
 			>
 				<Icon
 					type="person"
-					size="xl"
 					class="h-full w-full text-white"
 				></Icon>
 			</div>

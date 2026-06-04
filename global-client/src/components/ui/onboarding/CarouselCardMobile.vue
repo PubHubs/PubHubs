@@ -47,6 +47,9 @@
 </template>
 
 <script setup>
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	defineProps({
 		index: {
 			type: Number,
