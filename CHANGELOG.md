@@ -11,6 +11,8 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
+## 4 June 2026 - v3.4.0
+
 - [NEW] User room warnings have been updated to show up above the message input bar.
 - [NEW] RoomAdmins and Stewards can hand out (and revoke) timeouts to users in a room.
 - [NEW] RoomAdmins and Stewards can hide and delete any messages and normal users can hide their own messages.
