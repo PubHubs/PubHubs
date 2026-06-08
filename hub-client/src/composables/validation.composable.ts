@@ -46,13 +46,13 @@ const validateMessageFunctions: { [key: string]: (...args: unknown[]) => unknown
 	},
 
 	minLength: (value: unknown, min: unknown, keyTranslation: unknown): ValidationMessage => {
-		const v = value as string;
-		return { translationKey: 'validation.min_length', parameters: [keyTranslation as string, min as number, v.length] };
+		const v = value as string | undefined;
+		return { translationKey: 'validation.min_length', parameters: [keyTranslation as string, min as number, v?.length ?? 0] };
 	},
 
 	maxLength: (value: unknown, max: unknown, keyTranslation: unknown): ValidationMessage => {
-		const v = value as string;
-		return { translationKey: 'validation.max_length', parameters: [keyTranslation as string, max as number, v.length] };
+		const v = value as string | undefined;
+		return { translationKey: 'validation.max_length', parameters: [keyTranslation as string, max as number, v?.length ?? 0] };
 	},
 
 	maxItems: (value: unknown, max: unknown, keyTranslation: unknown): ValidationMessage => {

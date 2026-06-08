@@ -2,7 +2,7 @@
 	<Dialog
 		:buttons="buttonsSubmitCancel"
 		:title="$t('settings.profile_title')"
-		width="w-full md:w-2/6"
+		width="w-full md:w-1/2 2xl:w-2/6"
 		@close="dialogAction($event)"
 	>
 		<form @submit.prevent="submit">
@@ -97,11 +97,11 @@
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
-	import { type FormDataType, useFormState } from '@hub-client/composables/useFormState';
+	import { useFormState } from '@hub-client/composables/useFormState';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
@@ -126,7 +126,7 @@
 
 	formState.setData({
 		displayName: {
-			value: user.userDisplayName(user.userId ?? '') as string,
+			value: user.userDisplayName(user.userId ?? '') ?? '',
 		},
 	});
 
@@ -139,7 +139,7 @@
 
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());
-		formState.data.displayName.value = user.userDisplayName(user.userId ?? '') as FormDataType;
+		formState.data.displayName.value = user.userDisplayName(user.userId ?? '') ?? '';
 		blobUrl.value = new BlobManager(user.userAvatar(user.userId ?? ''));
 	});
 
