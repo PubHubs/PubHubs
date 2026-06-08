@@ -1,11 +1,15 @@
-# Taken from synapse/python_dependencies.py in the original synapse
-attrs>=19.2.0,!=21.1.0
-authlib>=0.14.0
+# Dependencies the hub imports directly or pins itself.
+authlib>=0.15.1
 # ML-DSA (post-quantum) HHPP verification; >=48 ships ML-DSA via bundled OpenSSL 3.5 wheels
 cryptography>=48.0.0
-Jinja2<3.1.2
-typing-extensions>=3.7.4
 twisted>=24.11.0
 livekit-api>=1.0.2
-# /use the same version as the docker image is built from
-matrix-synapse==1.151.0
+# Use the same version as the docker image is built from
+matrix-synapse==1.153.0
+
+# Transitive dependencies of synapse that the hub does not import directly; copied from
+# synapse's pyproject.toml to pin the same minimal versions. Keep in sync with the latest
+# synapse: https://github.com/element-hq/synapse/blob/master/pyproject.toml
+attrs>=26.1.0,!=21.1.0
+Jinja2>=3.0
+typing-extensions>=4.14.1

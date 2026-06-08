@@ -100,11 +100,15 @@ export default defineConfig({
 			if (log.includes('Failed to resolve directive')) return false;
 		},
 	},
+	optimizeDeps: {
+		exclude: ['vue-i18n'],
+	},
 	resolve: {
 		alias: {
 			'@global-client': fileURLToPath(new URL('./src', import.meta.url)),
 			'@hub-client': fileURLToPath(new URL('../hub-client/src', import.meta.url)),
 			process: 'process/browser',
+			'vue-i18n': 'vue-i18n/dist/vue-i18n.esm-bundler.js',
 		},
 		dedupe: ['pinia'], // Necessary to avoid duplicate pinia instances
 	},
