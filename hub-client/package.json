@@ -39,7 +39,7 @@
 		"tailwind-merge": "^3",
 		"util": "^0.12.5",
 		"vue": "^3.2.13",
-		"vue-i18n": "^11",
+		"vue-i18n": "11.4.0",
 		"vue-router": "^5.0.4"
 	},
 	"devDependencies": {
@@ -57,7 +57,7 @@
 		"tailwindcss": "^4.2.2",
 		"typescript": "^6.0.2",
 		"vite": "^7.2.6",
-		"vite-plugin-node-polyfills": "^0.26.0",
+		"vite-plugin-node-polyfills": "^0.28.0",
 		"vitest": "^4",
 		"vue-mess-detector": "^0.68.0",
 		"vue-tsc": "^2",
