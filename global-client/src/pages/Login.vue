@@ -39,7 +39,7 @@
 						<div class="flex flex-col gap-4">
 							<H1>
 								{{ $t('common.app_name') }}
-								{{ $t('login.global_login') }}
+								{{ $t('login.login') }}
 							</H1>
 							<P>{{ $t('register.have_account', [$t('common.app_name')]) }}</P>
 						</div>
@@ -71,6 +71,19 @@
 						</div>
 					</div>
 
+					<!-- Info message (e.g., from logout) -->
+					<div
+						v-if="message"
+						class="items-top bg-surface-low text-accent-primary m-8 flex w-3/4 flex-row items-center gap-x-4 rounded-xl px-4 py-8 break-normal"
+					>
+						<Icon
+							class=""
+							type="info"
+						/>
+						<P>{{ $t(message.key, message.values) }}</P>
+					</div>
+
+					<!-- Error message -->
 					<div
 						v-if="error"
 						class="items-top bg-surface-low text-accent-error m-8 flex w-3/4 flex-row gap-x-4 rounded-xl px-4 py-8 break-normal"
@@ -79,7 +92,7 @@
 							class="mt-1"
 							type="warning"
 						/>
-						<P> {{ $t(error.key, error.values) }}</P>
+						<P>{{ $t(error.key, error.values) }}</P>
 					</div>
 				</div>
 			</div>
@@ -134,6 +147,14 @@
 	const error = ref();
 
 	const isMobile = computed(() => settings.isMobileState);
+
+	// Check for message passed via query params (e.g., from logout)
+	const message = computed(() => {
+		const key = route.query.message?.toString();
+		if (!key) return null;
+		const values = route.query.messageValues?.toString().split(',').filter(Boolean) || [];
+		return { key, values };
+	});
 
 	onMounted(async () => {
 		try {

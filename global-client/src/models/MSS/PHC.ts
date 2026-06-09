@@ -16,12 +16,6 @@ import * as TPHC from '@global-client/models/MSS/TPHC';
 // Stores
 import { useGlobal } from '@global-client/stores/global';
 
-import { DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
-import { useSettings } from '@hub-client/stores/settings';
-
-// Other
-import { setLanguage, setUpi18n } from '@hub-client/i18n';
-
 const logger = createLogger('PHCServer');
 
 export default class PHCServer {
@@ -62,23 +56,8 @@ export default class PHCServer {
 	}
 
 	triggerLogoutProcedure() {
-		const dialog = useDialog();
 		const global = useGlobal();
-		const i18n = setUpi18n();
-		const language = useSettings().language;
-		setLanguage(i18n, language);
-		const { t } = i18n.global;
-		dialog.confirm(t('login.not_logged_in'), t('login.login_again'), 'global');
-		dialog.addCallback(DialogOk, async () => {
-			await global.logout();
-			dialog.removeCallback(DialogOk);
-			dialog.removeCallback(DialogCancel);
-		});
-		dialog.addCallback(DialogCancel, async () => {
-			await global.logout();
-			dialog.removeCallback(DialogCancel);
-			dialog.removeCallback(DialogOk);
-		});
+		global.logout({ key: 'login.login_again' });
 	}
 
 	// #region Global client login
