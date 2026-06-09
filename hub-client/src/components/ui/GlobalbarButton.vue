@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="hover:bg-on-surface-variant hover:text-background rounded-base p-2 hover:cursor-pointer"
-		:class="selected ? 'bg-surface-high' : 'bg-background'"
+		class="hover:bg-surface-elevated rounded-base p-2 hover:cursor-pointer"
+		:class="selected ? 'bg-surface-elevated' : 'bg-surface-base'"
 		role="button"
 		@click="handleClick"
 	>

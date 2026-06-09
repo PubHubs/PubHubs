@@ -9,7 +9,7 @@
 		/>
 		<Icon
 			v-if="fallback && !imageLoaded"
-			class="text-on-surface-variant h-full w-full"
+			class="text-on-surface-dim h-full w-full"
 			type="lightning-slash"
 		/>
 	</figure>

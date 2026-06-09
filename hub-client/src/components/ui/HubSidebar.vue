@@ -88,7 +88,7 @@
 			<template v-else>
 				<!-- Back button -->
 				<button
-					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled -m-3 flex items-center gap-2 border-b p-3 transition-colors hover:cursor-pointer md:-m-4 md:p-4"
+					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled/25 -m-3 flex items-center gap-2 border-b-2 p-3 transition-colors hover:cursor-pointer md:-m-4 md:p-4"
 					type="button"
 					@click="showModerationMenu = false"
 				>

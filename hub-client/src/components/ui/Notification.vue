@@ -18,7 +18,7 @@
 	<!-- Notification Panel (directly under the bell) -->
 	<div
 		v-if="showNotifications"
-		class="border-surface-high bg-surface absolute top-20 right-0 z-50 mt-2 mb-8 max-h-96 overflow-y-auto rounded-lg border p-4 shadow-lg"
+		class="border-on-surface-dim bg-surface absolute top-20 right-0 z-50 mt-2 mb-8 max-h-96 overflow-y-auto rounded-lg border p-4 shadow-lg"
 		@click.stop
 	>
 		<div class="mb-2 flex items-center justify-between">
@@ -27,7 +27,7 @@
 		<div
 			v-for="notification in notifications"
 			:key="notification.type"
-			class="bg-surface-low mt-2 flex flex-col items-end justify-between rounded-xs p-2 shadow-xs"
+			class="bg-surface-base mt-2 flex flex-col items-end justify-between rounded-xs p-2 shadow-xs"
 		>
 			<div class="flex flex-row">
 				<p class="mr-2">

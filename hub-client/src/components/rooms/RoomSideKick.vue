@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface-low relative z-50 h-full w-full shrink-0 overflow-y-auto md:w-[33%]">
+	<div class="bg-surface-base relative z-50 h-full w-full shrink-0 overflow-y-auto md:w-[33%]">
 		<SideKickHeader>
 			<span>{{ title }}</span>
 			<Icon

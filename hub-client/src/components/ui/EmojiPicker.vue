@@ -18,7 +18,6 @@
 					v-if="index !== 1"
 					class="cursor-pointer"
 					:class="{ 'border-b-2': selectedGroup === index }"
-					size="md"
 					:type="image"
 					@click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)"
 				/>

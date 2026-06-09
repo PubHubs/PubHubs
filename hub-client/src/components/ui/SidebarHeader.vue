@@ -6,7 +6,7 @@
 		<button
 			v-if="!isMobile"
 			:aria-label="t('dialog.close')"
-			class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer"
+			class="text-on-surface-dim hover:text-on-surface hover:bg-surface-elevated rounded-md p-1 transition-colors hover:cursor-pointer"
 			:title="t('dialog.close')"
 			@click="
 				sidebar.close();

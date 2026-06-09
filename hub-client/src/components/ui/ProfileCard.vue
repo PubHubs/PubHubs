@@ -10,10 +10,10 @@
 				/>
 				<div
 					v-if="userStore.userId !== (userId ? userId : event.sender) && props.room?.getPowerLevel(userId ? userId : event.sender) !== 50"
-					class="bg-surface-low mb-2 rounded-md p-[2%]"
+					class="bg-surface-base mb-2 rounded-md p-[2%]"
 				>
 					<Button
-						class="bg-on-surface-variant cursor-pointer"
+						class="bg-on-surface-dim cursor-pointer"
 						@click.once="userStore.goToUserRoom(userId ? userId : event.sender)"
 					>
 						<Icon type="envelope" />

@@ -12,7 +12,7 @@
 		>
 			<Icon :type="copied ? 'check' : 'info'" />
 		</span>
-		<div class="bg-surface-high h-24 w-full shrink-0">
+		<div class="bg-surface-base h-24 w-full shrink-0">
 			<HubBanner
 				:banner-url="hub.bannerUrl"
 				:hub-name="hub.name"
@@ -20,7 +20,7 @@
 			/>
 		</div>
 		<div class="flex h-30 items-start gap-4 p-5 sm:p-6">
-			<div class="bg-surface-high aspect-square h-12 w-12 shrink-0 overflow-clip rounded-xl">
+			<div class="bg-surface-base aspect-square h-12 w-12 shrink-0 overflow-clip rounded-xl">
 				<HubIcon
 					:hub-name="hub.name"
 					:icon-url="hub.iconUrlLight"

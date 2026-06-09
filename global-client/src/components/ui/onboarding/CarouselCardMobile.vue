@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="bg-surface-low mt-2 flex aspect-2/3 h-fit w-full min-w-0 shrink-0 snap-center flex-col items-center justify-center overflow-hidden rounded-3xl p-8"
+		class="bg-surface-base rounded-base border-surface-elevated mt-2 flex aspect-2/3 h-fit w-full min-w-0 shrink-0 snap-center flex-col items-center justify-center overflow-hidden border-3 p-8"
 	>
 		<div class="relative flex h-full w-full flex-col gap-4 overflow-hidden">
 			<!-- Header -->

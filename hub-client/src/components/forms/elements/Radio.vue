@@ -22,7 +22,7 @@
 		>
 			<div
 				class="bg-surface-base outline-offset-thin outline-on-surface-dim h-200 w-200 rounded-[999px] outline"
-				:class="{ 'ring-button-blue ring-3': hasFocus }"
+				:class="{ 'ring-accent-blue-interactive ring-3': hasFocus }"
 			/>
 		</div>
 

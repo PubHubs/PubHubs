@@ -3,7 +3,7 @@
 		v-if="props.scrollStatus && displayDate() !== ''"
 		class="pointer-events-none fixed top-6 z-40 flex w-full justify-end"
 	>
-		<span class="text-on-surface-variant rounded-full px-6 text-right">{{ displayDate() }}</span>
+		<span class="text-on-surface-dim rounded-full px-6 text-right">{{ displayDate() }}</span>
 	</div>
 </template>
 

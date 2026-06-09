@@ -10,7 +10,7 @@
 			<!-- Shared Header -->
 			<div
 				v-else
-				class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8"
+				class="border-on-surface-disabled/25 flex h-[80px] shrink-0 items-center justify-between border-b-2 p-8"
 				:class="isMobile ? 'pl-12' : 'pl-8'"
 				data-testid="roomheader"
 			>

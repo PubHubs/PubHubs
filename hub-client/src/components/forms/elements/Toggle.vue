@@ -9,7 +9,7 @@
 		<div
 			v-if="!model"
 			class="bg-surface-base outline-surface-on-surface-dim px-050 py-050 outline-offset-thin flex items-center justify-start rounded-[999px] outline"
-			:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
+			:class="{ 'ring-accent-blue-interactive ring-3': hasFocus, 'opacity-50': disabled }"
 		>
 			<div class="bg-on-surface-dim h-150 w-150 rounded-full" />
 			<div class="h-150 w-150 rounded-full" />
@@ -17,7 +17,7 @@
 		<div
 			v-else
 			class="bg-on-accent-blue outline-accent-blue px-050 py-050 outline-050 outline-offset-thin inline-flex items-center justify-start rounded-[999px] outline"
-			:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
+			:class="{ 'ring-accent-blue-interactive ring-3': hasFocus, 'opacity-50': disabled }"
 		>
 			<div class="h-150 w-150 rounded-full" />
 			<div class="bg-accent-blue h-150 w-150 rounded-full" />

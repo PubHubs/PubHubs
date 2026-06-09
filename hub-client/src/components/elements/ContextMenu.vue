@@ -25,7 +25,7 @@
 			>
 				<div
 					v-if="item.divider"
-					class="bg-surface-low my-50 h-px shrink-0"
+					class="bg-on-surface-dim my-50 h-px shrink-0"
 				/>
 				<ContextMenuItem
 					v-else
@@ -81,7 +81,7 @@
 				>
 					<div
 						v-if="item.divider"
-						class="bg-surface-low my-100 h-px shrink-0"
+						class="bg-on-surface-dim my-100 h-px shrink-0"
 					/>
 					<ContextMenuItem
 						v-else

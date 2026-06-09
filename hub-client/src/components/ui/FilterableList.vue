@@ -70,7 +70,7 @@
 		</template>
 		<template v-else-if="search.length > 0 || activeChips.size > 0">
 			<p
-				class="text-on-surface-variant text-center"
+				class="text-on-surface-dim text-center"
 				role="status"
 			>
 				{{ t('others.search_nothing_found') }}
@@ -78,7 +78,7 @@
 		</template>
 		<p
 			v-else-if="emptyText && items.length === 0"
-			class="text-on-surface-variant text-center"
+			class="text-on-surface-dim text-center"
 			role="status"
 		>
 			{{ emptyText }}

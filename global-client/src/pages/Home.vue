@@ -1,12 +1,11 @@
 <template>
 	<div class="flex max-h-screen flex-col overflow-y-auto">
-		<div class="border-on-surface-disabled flex h-[80px] shrink-0 items-center border-b px-8">
+		<div class="border-on-surface-disabled/25 flex h-[80px] shrink-0 items-center border-b-2 px-8">
 			<div class="flex items-center gap-2 whitespace-nowrap">
 				<div class="flex items-center gap-2">
 					<Icon
 						class="text-on-surface"
 						type="compass"
-						size="md"
 					/>
 					<div class="font-headings text-h3 font-semibold">{{ $t('home.discover_hubs') }}</div>
 				</div>
@@ -18,7 +17,7 @@
 				<div class="relative w-full md:ml-auto md:w-[320px]">
 					<input
 						v-model="searchQuery"
-						class="outline-offset-thin outline-on-surface-dim focus:ring-button-blue text-on-surface placeholder-on-surface-dim w-full rounded px-175 py-100 pr-10 outline focus:ring-3 focus:outline-none"
+						class="outline-offset-thin outline-on-surface-dim focus:ring-accent-blue-interactive text-on-surface placeholder-on-surface-dim w-full rounded px-175 py-100 pr-10 outline focus:ring-3 focus:outline-none"
 						:placeholder="$t('others.search_hubs')"
 						type="text"
 					/>
@@ -53,13 +52,13 @@
 						:key="n"
 						class="bg-surface w-full animate-pulse overflow-hidden rounded-xl"
 					>
-						<div class="bg-surface-high h-30 w-full"></div>
+						<div class="bg-surface-base h-30 w-full"></div>
 						<div class="flex h-30 items-start gap-4 p-5 sm:p-6">
-							<div class="bg-surface-high h-12 w-12 shrink-0 rounded-xl"></div>
+							<div class="bg-surface-base h-12 w-12 shrink-0 rounded-xl"></div>
 							<div class="flex w-full flex-col gap-2 pt-1">
-								<div class="bg-surface-high h-4 w-3/4 rounded"></div>
-								<div class="bg-surface-high h-3 w-full rounded"></div>
-								<div class="bg-surface-high h-3 w-2/3 rounded"></div>
+								<div class="bg-surface-base h-4 w-3/4 rounded"></div>
+								<div class="bg-surface-base h-3 w-full rounded"></div>
+								<div class="bg-surface-base h-3 w-2/3 rounded"></div>
 							</div>
 						</div>
 					</div>

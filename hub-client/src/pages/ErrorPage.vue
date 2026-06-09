@@ -1,18 +1,18 @@
 <template>
 	<div class="flex h-full items-center justify-center p-10">
-		<div class="md:'-8/12 bg-surface-low flex w-full flex-col gap-y-4 rounded-xl px-8 py-12 text-center shadow-lg">
+		<div class="md:'-8/12 bg-surface-base flex w-full flex-col gap-y-4 rounded-xl px-8 py-12 text-center shadow-lg">
 			<div
 				v-if="errorKey === 'moderation.red_card_info'"
 				class="flex flex-row items-center justify-center gap-x-4"
 			>
 				<Icon
 					type="exclamation-mark"
-					class="text-button-red"
+					class="text-accent-red-interactive"
 				></Icon>
 				<div class="flex flex-col items-center justify-center gap-y-4">
 					<H1 class="text-accent-primary capitalize">{{ $t('moderation.red_card') }}</H1>
 					<H3 class="">{{ $t(errorKey) }}</H3>
-					<p class="text-on-surface-variant text-sm">{{ redCardMembers.find((card) => card.userId === userStore.userId)?.reason }}</p>
+					<p class="text-on-surface text-sm">{{ redCardMembers.find((card) => card.userId === userStore.userId)?.reason }}</p>
 					<router-link :to="redCardBackRoute">
 						<Button class="mx-auto block max-w-md rounded-lg py-2">
 							{{ $t('dialog.go_back') }}

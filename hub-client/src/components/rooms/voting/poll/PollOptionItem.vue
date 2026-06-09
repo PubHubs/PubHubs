@@ -43,7 +43,7 @@
 			</div>
 			<div
 				v-if="showVotesBeforeVoting || hasUserVotedOnThisOption || hasUserVotedOnOtherOption"
-				class="flex flex-wrap items-center gap-2"
+				class="flex items-center gap-2"
 			>
 				<Avatar
 					v-for="userId in userIds.slice(0).slice(-3)"

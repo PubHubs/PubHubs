@@ -24,7 +24,7 @@
 			v-if="result.length > 0 && hasFocus"
 			class="absolute top-800 z-50 flex w-full grow flex-col pb-300"
 		>
-			<div class="bg-surface-low outline-offset-thin rounded outline">
+			<div class="bg-surface-elevated outline-offset-thin rounded outline">
 				<DropDownOption
 					v-for="(item, index) in result"
 					:key="index"

@@ -38,7 +38,9 @@
 					:aria-required="required ? 'true' : undefined"
 					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline-2 focus:outline-3"
 					:class="[
-						!validated && changed ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
+						!validated && changed
+							? 'outline-accent-error focus:outline-on-accent-error'
+							: 'outline-on-surface-dim focus:outline-accent-blue-interactive',
 						icon ? 'pl-12!' : '',
 						rightIcon ? 'pr-12!' : '',
 					]"
@@ -55,7 +57,9 @@
 					:aria-required="required ? 'true' : undefined"
 					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline-2 focus:outline-3"
 					:class="[
-						!validated && changed ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
+						!validated && changed
+							? 'outline-accent-error focus:outline-on-accent-error'
+							: 'outline-on-surface-dim focus:outline-accent-blue-interactive',
 						icon ? 'pl-12!' : '',
 						rightIcon ? 'pr-12!' : '',
 					]"

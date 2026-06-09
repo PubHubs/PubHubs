@@ -1,7 +1,7 @@
 <template>
 	<HeaderFooter
 		bg-bar-low="bg-background"
-		bg-bar-medium="bg-surface-low"
+		bg-bar-medium="bg-surface-base"
 	>
 		<template #header>
 			<div
@@ -84,7 +84,7 @@
 										<button
 											v-if="selectedAttributes.length > 1"
 											type="button"
-											class="text-button-red ml-050 -mr-100 cursor-pointer"
+											class="text-accent-red-interactive ml-050 -mr-100 cursor-pointer"
 											tabindex="-1"
 											:title="t('admin.remove_attribute')"
 											@click.stop="
@@ -163,7 +163,7 @@
 													{{ value }}
 													<button
 														type="button"
-														class="group-hover:text-button-red cursor-pointer"
+														class="group-hover:text-accent-red-interactive cursor-pointer"
 														:title="t('admin.remove_value')"
 														@click="
 															selectedAttributes[activeTab].accepted.splice(index, 1);

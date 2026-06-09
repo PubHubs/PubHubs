@@ -39,7 +39,7 @@
 					<div
 						v-for="room in visibleRooms"
 						:key="room.roomId"
-						class="hover:bg-surface-low flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
+						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
 						@click="emit('navigateToRoom', room.roomId)"
 					>
 						<span class="truncate text-sm">{{ room.name }}</span>

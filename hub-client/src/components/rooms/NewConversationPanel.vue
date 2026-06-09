@@ -9,7 +9,7 @@
 				v-if="!groupPanel"
 				class="flex shrink-0 flex-col gap-2 px-4"
 			>
-				<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
+				<div class="bg-surface-sunken flex items-center gap-2 rounded-md px-3 py-2">
 					<Icon
 						class="text-on-surface-dim"
 						size="sm"
@@ -17,7 +17,7 @@
 					/>
 					<input
 						v-model="userFilter"
-						class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
+						class="text-label-small placeholder:text-on-surface-dim w-full border-none bg-transparent focus:ring-0 focus:outline-0"
 						:placeholder="t('others.search_users')"
 						type="text"
 					/>
@@ -28,7 +28,7 @@
 				class="flex flex-col gap-2 px-4"
 			>
 				<button
-					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled -mx-4 flex items-center gap-2 border-y px-4 py-3 transition-colors hover:cursor-pointer"
+					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled/25 -mx-4 flex items-center gap-2 border-y-2 px-4 py-3 transition-colors hover:cursor-pointer"
 					type="button"
 					@click="groupProfile ? backToGroupPanel() : (groupPanel = false)"
 				>
@@ -39,7 +39,7 @@
 					<span class="text-body-small">{{ t('dialog.back') }}</span>
 				</button>
 
-				<div class="bg-surface-high mt-2 flex items-center gap-2 rounded-md px-3 py-2">
+				<div class="bg-surface-sunken mt-2 flex items-center gap-2 rounded-md px-3 py-2">
 					<Icon
 						class="text-on-surface-dim"
 						size="sm"
@@ -47,7 +47,7 @@
 					/>
 					<input
 						v-model="userFilter"
-						class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
+						class="text-label-small placeholder:text-on-surface-dim w-full border-none bg-transparent focus:ring-0 focus:outline-0"
 						:placeholder="t('others.search_users')"
 						type="text"
 					/>
@@ -57,7 +57,7 @@
 					class="mt-4 flex flex-col gap-2"
 				>
 					<span class="text-label-small text-on-surface-dim"> {{ t('others.select_group_name') }}</span>
-					<div class="bg-surface-high flex items-center gap-2 rounded-md px-3 py-2">
+					<div class="bg-surface-sunken flex items-center gap-2 rounded-md px-3 py-2">
 						<div class="bg-surface-variant h-10 w-10 cursor-pointer overflow-hidden rounded-full">
 							<Avatar
 								v-if="avatarPreviewUrl"
@@ -85,7 +85,7 @@
 
 						<input
 							v-model="groupName"
-							class="text-label-small placeholder:text-on-surface-variant min-w-0 grow border-none bg-transparent focus:ring-0 focus:outline-0"
+							class="text-label-small placeholder:text-on-surface-dim min-w-0 grow border-none bg-transparent focus:ring-0 focus:outline-0"
 							:placeholder="t('others.select_group_name')"
 							type="text"
 						/>
@@ -135,7 +135,7 @@
 					class="mb-4"
 				>
 					<div
-						class="hover:bg-surface-high flex cursor-pointer items-center gap-4 rounded-md p-2"
+						class="hover:bg-surface-elevated flex cursor-pointer items-center gap-4 rounded-md p-2"
 						@click="handleAdminContact"
 					>
 						<div class="bg-accent-admin/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
@@ -164,7 +164,7 @@
 							<li
 								v-for="user in usersInLetter"
 								:key="user.userId"
-								class="hover:bg-surface-high flex cursor-pointer items-center gap-2 rounded-md p-2"
+								class="hover:bg-surface-elevated flex cursor-pointer items-center gap-2 rounded-md p-2"
 								@click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
 							>
 								<Icon

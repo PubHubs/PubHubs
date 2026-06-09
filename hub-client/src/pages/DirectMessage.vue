@@ -2,7 +2,7 @@
 	<div class="flex h-full flex-col">
 		<!-- Shared Header -->
 		<div
-			class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8"
+			class="border-on-surface-disabled/25 flex h-[80px] shrink-0 items-center justify-between border-b-2 p-8"
 			:class="isMobile ? 'pl-12' : 'pl-8'"
 		>
 			<!-- Left: DM title (on mobile, show conversation name when sidebar is open) -->
@@ -79,7 +79,7 @@
 					<div
 						v-for="n in 3"
 						:key="n"
-						class="bg-surface-low w-full animate-pulse rounded-xl p-4"
+						class="bg-surface-base w-full animate-pulse rounded-xl p-4"
 					>
 						<div class="flex gap-3">
 							<div class="bg-surface-base h-12 w-12 shrink-0 rounded-full" />
@@ -134,7 +134,7 @@
 						:is-mobile="isMobile"
 						:active="selectedRoom?.roomId === entry.room.roomId"
 						class="hover:cursor-pointer"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-low!'"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-base!'"
 						role="listitem"
 						@click="openDMRoom(entry.room)"
 					/>
@@ -144,7 +144,7 @@
 			<!-- Desktop: DM room shown directly (not in sidebar) -->
 			<div
 				v-if="!isMobile && selectedRoom"
-				class="border-on-surface-disabled flex min-w-0 flex-1 border-l"
+				class="border-on-surface-disabled/25 flex min-w-0 flex-1 border-l-2"
 			>
 				<DirectMessageRoom
 					:key="selectedRoom.roomId"
@@ -181,7 +181,7 @@
 			<!-- Desktop: Empty state when no room selected -->
 			<div
 				v-if="!isMobile && !selectedRoom && sortedPrivateRooms.length > 0"
-				class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l"
+				class="border-on-surface-disabled/25 text-on-surface-dim flex flex-1 items-center justify-center border-l-2"
 			>
 				{{ t('others.select_conversation') }}
 			</div>
@@ -189,7 +189,7 @@
 			<!-- Desktop: Placeholder when no conversations exist yet -->
 			<div
 				v-if="!isMobile && !dmLoading && sortedPrivateRooms.length === 0"
-				class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l"
+				class="border-on-surface-disabled/25 text-on-surface-dim flex flex-1 items-center justify-center border-l-2"
 			>
 				{{ t('others.start_new_conversation') }}
 			</div>

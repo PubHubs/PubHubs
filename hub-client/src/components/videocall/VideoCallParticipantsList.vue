@@ -1,6 +1,6 @@
 <template>
-	<div class="border-surface-high bg-background relative flex h-full w-full shrink-0 flex-col border-l md:w-[33%]">
-		<div class="bg-surface-low m-3 mb-0 flex items-center gap-2 rounded-md p-2">
+	<div class="border-on-surface-dim bg-background relative flex h-full w-full shrink-0 flex-col border-l md:w-[33%]">
+		<div class="bg-surface-base m-3 mb-0 flex items-center gap-2 rounded-md p-2">
 			<!-- TODO: add language variable -->
 			<p class="~text-label-tiny-min/label-tiny-max truncate text-nowrap">Participants ({{ remoteParticipants.length }})</p>
 		</div>

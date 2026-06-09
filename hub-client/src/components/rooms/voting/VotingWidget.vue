@@ -15,7 +15,7 @@
 					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
 					<span
 						v-if="isEdited"
-						class="text-on-surface-variant flex"
+						class="text-on-surface-dim flex"
 					>
 						({{ $t('message.voting.edited') }})
 					</span>
@@ -27,7 +27,7 @@
 				</div>
 				<button
 					v-if="!isMobile"
-					class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary ml-2 flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
+					class="text-on-surface-dim hover:bg-accent-primary hover:text-on-accent-primary ml-2 flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
 					:title="$t('message.context_menu')"
 					@click.stop="openMenu($event, getContextMenuItems(), null, true)"
 				>

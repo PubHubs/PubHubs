@@ -21,7 +21,7 @@
 				:class="isMobile ? 'flex-col' : 'flex-row'"
 			>
 				<div
-					class="bg-surface-low flex shrink-0 items-center justify-center"
+					class="bg-surface-sunken/50 flex shrink-0 items-center justify-center"
 					:class="isMobile ? 'h-2/5 w-full px-12' : 'h-full w-1/2 px-36'"
 				>
 					<figure class="h-auto w-full">
@@ -86,7 +86,7 @@
 					<!-- Error message -->
 					<div
 						v-if="error"
-						class="items-top bg-surface-low text-accent-error m-8 flex w-3/4 flex-row gap-x-4 rounded-xl px-4 py-8 break-normal"
+						class="items-top bg-surface-base text-accent-error m-8 flex w-3/4 flex-row gap-x-4 rounded-xl px-4 py-8 break-normal"
 					>
 						<Icon
 							class="mt-1"

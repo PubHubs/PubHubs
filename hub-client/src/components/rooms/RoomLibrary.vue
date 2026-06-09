@@ -15,7 +15,7 @@
 				<!-- Search and sort -->
 				<div class="w-full">
 					<div class="mb-4 flex w-full gap-4">
-						<div class="bg-surface-high flex w-2/3 items-center gap-2 rounded-md px-3 py-2">
+						<div class="bg-surface-sunken flex w-2/3 items-center gap-2 rounded-md px-3 py-2">
 							<Icon
 								class="text-on-surface-dim"
 								size="sm"
@@ -23,7 +23,7 @@
 							/>
 							<input
 								v-model="filter"
-								class="text-label-small placeholder:text-on-surface-variant w-full border-none bg-transparent focus:ring-0 focus:outline-0"
+								class="text-label-small placeholder:text-on-surface-dim w-full border-none bg-transparent focus:ring-0 focus:outline-0"
 								:placeholder="t('others.search')"
 								role="searchbox"
 								:title="t('others.search')"

@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface-low my-400 p-200">
+	<div class="bg-surface-base my-400 p-200">
 		<ValidatedForm
 			v-slot="{ isValidated }"
 			class="p-200"
