@@ -43,6 +43,7 @@
 			<ul
 				v-if="events.length > 0"
 				class="flex flex-col gap-y-2"
+				data-testid="forum-thread-list"
 			>
 				<li
 					v-for="tEvent in orderedEvents"
@@ -113,7 +114,7 @@
 	});
 
 	const orderedEvents = computed(() => {
-		let ordered = events.value;
+		const ordered = [...events.value];
 		ordered.sort((a, b) => {
 			if (orderType.value === ORDER.Created) {
 				if (orderDir.value === ORDER_DIR.desc) {
@@ -123,11 +124,9 @@
 				}
 			}
 			if (orderType.value === ORDER.Activity) {
-				if (orderDir.value === ORDER_DIR.asc) {
-					return b.latestThreadEventTimestamp - a.latestThreadEventTimestamp;
-				} else {
-					return a.latestThreadEventTimestamp - b.latestThreadEventTimestamp;
-				}
+				return orderDir.value === ORDER_DIR.asc
+					? b.latestThreadEventTimestamp - a.latestThreadEventTimestamp
+					: a.latestThreadEventTimestamp - b.latestThreadEventTimestamp;
 			}
 			if (orderType.value === ORDER.Replies) {
 				const ar = (a.threadLength ?? 0) as unknown as number;

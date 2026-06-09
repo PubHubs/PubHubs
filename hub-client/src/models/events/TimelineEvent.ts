@@ -67,7 +67,8 @@ class TimelineEvent {
 	}
 
 	get latestThreadEventTimestamp(): number {
-		return this._thread?.lastEventTimeStamp ?? 0;
+		// Fall back to the event's own timestamp if there are no replies yet
+		return this._thread?.lastEventTimeStamp ?? this.matrixEvent.getTs();
 	}
 
 	isEventInThread(eventId: string): boolean {
