@@ -203,7 +203,7 @@
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<!-- Wrapper div captures Enter key to prevent submission when timed out -->
 					<div
-						class="grow"
+						class="flex grow items-center"
 						@keydown.enter.exact.capture="preventSubmitWhenTimedOut"
 					>
 						<MessageInputTextArea
