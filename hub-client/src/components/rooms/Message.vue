@@ -51,10 +51,12 @@
 					v-else-if="segment.type === 'room' && segment.tokenId && segment.id"
 					v-context-menu="
 						(evt: any) =>
-							openMenu(evt, [{ label: t('menu.join_room'), icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId!, segment.id!) }])
+							openMenu(evt, [
+								{ label: t('menu.join_room'), icon: 'chats-circle', onClick: () => handleRoomMentionClick(segment.tokenId!, segment.id!) },
+							])
 					"
 					class="no-callout relative select-none"
-					@click="joinIfMember(segment.tokenId, segment.id)"
+					@click="handleRoomMentionClick(segment.tokenId, segment.id)"
 				>
 					<span class="text-accent-primary cursor-pointer">{{ segment.content }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
@@ -66,6 +68,7 @@
 							:secured="isSecured"
 							title="rooms.join_room"
 							@close="activeMentionCard = null"
+							@confirm="handleRoomJoinConfirm(segment.tokenId!)"
 						/>
 					</div>
 				</span>
@@ -163,17 +166,29 @@
 		return messageSegments.value.some((seg) => seg.type !== 'text');
 	});
 
-	async function joinIfMember(roomId: string, segmentId: string) {
+	async function handleRoomMentionClick(roomId: string, segmentId: string) {
 		const userId = userStore.userId;
-		if (userId) {
-			const userIsMember = await pubhubs.isUserRoomMember(userId, roomId);
-			if (userIsMember) {
-				await router.push({ name: 'room', params: { id: roomId } });
-			} else {
-				activeMentionCard.value = segmentId;
-				await roomsStore.fetchPublicRooms();
-				isSecured.value = roomsStore.publicRoomIsSecure(roomId);
-			}
+		if (!userId) return;
+
+		const userIsMember = await pubhubs.isUserRoomMember(userId, roomId);
+
+		if (userIsMember) {
+			// Already a member - just navigate
+			await router.push({ name: 'room', params: { id: roomId } });
+			return;
+		}
+
+		// Not a member - show confirmation dialog
+		await roomsStore.fetchPublicRooms();
+		isSecured.value = roomsStore.publicRoomIsSecure(roomId);
+		activeMentionCard.value = segmentId;
+	}
+
+	async function handleRoomJoinConfirm(roomId: string) {
+		// Called when user confirms joining a public (non-secured) room
+		const result = await pubhubs.joinRoom(roomId);
+		if (result !== -1) {
+			await router.push({ name: 'room', params: { id: roomId } });
 		}
 	}
 </script>
