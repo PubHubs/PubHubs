@@ -108,6 +108,13 @@ You can run these all at once in the following way:
 mask run all
 ```
 
+> [!INFO]
+> If you want to specify the url to use for Yivi, for example when unable to connect because of network restrictions, you can do the following:
+>
+> ```sh
+> YIVI_HOST=192.168.0.2 mask run all
+> ```
+
 Alternatively, if you are only making changes to the hub, you can run the hub client against our [staging server](https://main.pubhubs.ihub.ru.nl). To do so, you can run:
 
 ```sh
@@ -157,6 +164,7 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 ### 6. Solutions for common issues
 
 - If Yivi cannot communicate with your local development setup, disable your firewall.
+- If Yivi still doesn't communicate with your local development, and you are on eduroam, you might have to use a VPN such as Tailscale to connect your development machine and your phone.
 - Is you run into CORS issues, disable HTPPS-only in your browser.
 
 ---
