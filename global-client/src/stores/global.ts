@@ -155,7 +155,7 @@ const useGlobal = defineStore('global', {
 			}
 		},
 
-		async logout() {
+		async logout(message?: { key: string; values?: string[] }) {
 			this.loggedIn = false;
 
 			const mss = useMSS();
@@ -163,7 +163,10 @@ const useGlobal = defineStore('global', {
 
 			// TODO: find a way router can be part of a store that TypeScript swallows.
 			// @ts-expect-error -- router is injected as plugin, not in store type
-			await this.router.replace({ name: 'login' });
+			await this.router.replace({
+				name: 'login',
+				query: message ? { message: message.key, messageValues: message.values?.join(',') } : undefined,
+			});
 		},
 
 		// Will be called after each relevant change in state (watched in App.vue)

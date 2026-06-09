@@ -190,9 +190,7 @@ const en = {
 	},
 	login: {
 		login: 'Login',
-		global_login: 'Login',
-		not_logged_in: 'Not logged in anymore',
-		login_again: 'You are not logged in anymore. You will be sent back to the login screen. Please log in again to continue.',
+		login_again: 'You have been logged out. Please log in again to continue.',
 	},
 	logout: {
 		logout: 'Logout',
