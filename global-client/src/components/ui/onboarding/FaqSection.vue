@@ -10,11 +10,11 @@
 			<div
 				v-for="(item, index) in faqs"
 				:key="index"
-				class="bg-surface-low flex w-full flex-col gap-2 rounded-2xl"
+				class="bg-surface-base border-surface-elevated flex w-full flex-col gap-2 rounded border-3"
 			>
 				<div
-					class="flex w-full justify-between rounded-2xl px-4 py-2 font-semibold hover:cursor-pointer"
-					:class="openIndex === index && 'bg-surface'"
+					class="flex w-full justify-between rounded px-4 py-2 font-semibold hover:cursor-pointer"
+					:class="openIndex === index && 'border-surface-elevated/50 border-b-3'"
 					@click="toggle(index)"
 				>
 					<span>{{ item.question }}</span>

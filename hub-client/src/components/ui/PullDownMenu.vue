@@ -1,15 +1,15 @@
 <template>
 	<div
 		v-click-outside="close"
-		class="bg-surface-low relative flex w-full items-center rounded-md"
+		class="bg-surface-elevated relative flex w-full items-center rounded-md"
 		role="menubar"
 	>
-		<div class="bg-surface-low absolute top-1 w-full cursor-pointer rounded-md whitespace-nowrap">
+		<div class="bg-surface-elevated absolute top-1 w-full cursor-pointer rounded-md whitespace-nowrap">
 			<div v-show="open">
 				<div
 					v-for="(option, index) in options"
 					:key="index"
-					class="text-on-surface-dim hover:bg-on-surface-variant flex items-center gap-1 rounded-md pl-2 hover:text-white"
+					class="text-on-surface-dim hover:bg-surface-elevated flex items-center gap-1 rounded-md pl-2 hover:text-white"
 					:class="selectedClass(index)"
 					@click="select(index)"
 				>
@@ -121,7 +121,7 @@
 
 	const selectedClass = (index: number): string => {
 		if (index === selectedIndex.value) {
-			return 'dark:text-white text-on-surface-variant';
+			return 'dark:text-white text-on-surface-dim';
 		}
 		return '';
 	};

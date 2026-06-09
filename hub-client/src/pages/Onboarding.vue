@@ -12,7 +12,7 @@
 
 			<div class="relative flex h-full flex-col gap-8 px-4 pt-20">
 				<!-- Hub Icon -->
-				<div class="bg-surface-low absolute -top-12 h-24 w-24 rounded-2xl p-[3px]">
+				<div class="bg-surface-base absolute -top-12 h-24 w-24 rounded-2xl p-[3px]">
 					<HubIcon
 						:icon-url="hubSettings.iconUrlLight"
 						:icon-url-dark="hubSettings.iconUrlDark"
@@ -53,7 +53,7 @@
 									@change="handleFileUpload"
 								/>
 							</div>
-							<p class="text-on-surface-variant italic">
+							<p class="text-on-surface italic">
 								{{ t('onboarding.username_disclaimer') }}
 							</p>
 						</div>
@@ -64,7 +64,7 @@
 							class="flex flex-col gap-2"
 						>
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="bg-surface-low flex w-full items-center gap-6 rounded-xl p-4 xl:w-1/2">
+							<div class="bg-surface-base flex w-full items-center gap-6 rounded-xl p-4 xl:w-1/2">
 								<div
 									class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
 									:class="textColor(color(user.userId!))"
@@ -119,7 +119,7 @@
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
 						<div
 							v-if="consentText"
-							class="bg-surface-low rounded-3xl p-4 break-all"
+							class="bg-surface-base rounded-3xl p-4 break-all"
 						>
 							<mavon-editor
 								v-model="consentText"
@@ -144,7 +144,7 @@
 					>
 						<Button
 							v-if="!isConsentOnly"
-							class="text-on-surface-variant w-fit px-0"
+							class="text-on-surface w-fit px-0"
 							variant="tertiary"
 							@click="prevStep"
 						>
@@ -171,7 +171,7 @@
 				<!-- Step 1 -->
 				<div
 					v-if="step === 1"
-					class="bg-surface-low flex w-full flex-col overflow-hidden rounded-3xl lg:flex-row"
+					class="bg-surface-base flex w-full flex-col overflow-hidden rounded-3xl lg:flex-row"
 				>
 					<!-- Left Image -->
 					<div class="flex h-[250px] w-full flex-col gap-6 overflow-y-auto lg:h-auto lg:w-1/2">
@@ -211,7 +211,7 @@
 									@change="handleFileUpload"
 								/>
 							</div>
-							<p class="text-on-surface-variant italic">
+							<p class="text-on-surface italic">
 								{{ t('onboarding.username_disclaimer') }}
 							</p>
 						</div>
@@ -267,14 +267,14 @@
 				<!-- Step 2 -->
 				<div
 					v-if="step === 2"
-					class="bg-surface-low flex w-full overflow-hidden rounded-3xl"
+					class="bg-surface-base flex w-full overflow-hidden rounded-3xl"
 				>
 					<!-- Left Rules -->
 					<div class="flex h-full w-1/2 flex-col gap-6 overflow-y-auto px-16 pt-32">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
 						<div
 							v-if="consentText"
-							class="bg-surface-low rounded-3xl p-4"
+							class="bg-surface-base rounded-3xl p-4"
 						>
 							<mavon-editor
 								v-model="consentText"
@@ -290,7 +290,7 @@
 					<div class="bg-surface flex h-full w-1/2 flex-col gap-6 overflow-y-auto px-16 py-32">
 						<Button
 							v-if="!isConsentOnly"
-							class="text-on-surface-variant w-fit px-0"
+							class="text-on-surface w-fit px-0"
 							variant="tertiary"
 							@click="prevStep"
 						>

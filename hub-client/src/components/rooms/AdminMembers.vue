@@ -1,7 +1,7 @@
 <template>
 	<div class="bg-surface absolute inset-0 z-20 h-full opacity-75" />
 	<div class="fixed inset-0 z-20 flex items-center justify-center p-4">
-		<div class="bg-surface-low relative min-h-[300px] rounded-md border p-8 sm:w-[480px] md:w-[640px]">
+		<div class="bg-surface-base relative min-h-[300px] rounded-md border p-8 sm:w-[480px] md:w-[640px]">
 			<div class="flex justify-between">
 				<h2 class="mx-2 my-2 mt-4 font-bold">
 					{{ t('admin.title_room_join') }}
@@ -20,7 +20,7 @@
 
 			<hr class="mx-8 mt-2" />
 			<Button
-				class="bg-on-surface-variant hover:bg-surface-subtle dark:text-surface-low absolute inset-0 mt-4 w-full rounded-xs px-4 text-center"
+				class="bg-on-surface-dim hover:bg-surface-subtle dark:text-surface-base absolute inset-0 mt-4 w-full rounded-xs px-4 text-center"
 				@click="handleActionClick"
 			>
 				{{ t('admin.join') }}

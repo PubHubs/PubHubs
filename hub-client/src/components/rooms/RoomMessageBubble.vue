@@ -7,6 +7,7 @@
 			ref="elReactionPopUp"
 			class="group flex flex-col"
 			:class="[
+				!isAnnouncementMessage && 'hover:bg-surface-sunken/75',
 				props.isGrouped ? 'pt-1!' : 'pt-4!',
 				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
 				getMessageContainerClasses,
@@ -69,7 +70,7 @@
 				<!-- Message and Actions -->
 				<div
 					:class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }"
-					class="min-w-0"
+					class="text-on-surface-bright min-w-0"
 				>
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<!-- Message Snippet -->
@@ -181,7 +182,7 @@
 					>
 						<!-- Message Action Buttons -->
 						<div
-							class="bg-surface-elevated rounded-base absolute right-0 flex"
+							class="rounded-base bg-background absolute right-0 flex shadow"
 							:class="actionButtonPosition"
 						>
 							<template v-if="timerReady && !deleteMessageDialog">
@@ -206,7 +207,7 @@
 							<!-- Reaction Button -->
 							<button
 								v-if="!redactedMessage"
-								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_emoji')"
 								@click.stop="emit('reactionPanelToggle', event.event_id!)"
 							>
@@ -216,7 +217,7 @@
 							<!-- Reply Button -->
 							<button
 								v-if="!msgIsNotSend && !redactedMessage"
-								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply')"
 								@click="reply"
 							>
@@ -229,24 +230,25 @@
 									!deleteMessageDialog &&
 									!viewFromThread &&
 									canReplyInThread &&
+									threadReplyCount <= 0 &&
 									!msgIsNotSend &&
 									!redactedMessage &&
 									!props.room.isDirectMessageRoom()
 								"
-								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_in_thread')"
 								@click="replyInThread"
 							>
 								<Icon
 									type="chat-circle"
-									size="md"
+									size="base"
 								/>
 							</button>
 
 							<!-- Context Menu Button -->
 							<button
 								v-if="!redactedMessage"
-								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.context_menu')"
 								@click.stop="openMenu($event, getContextMenuItems(), event.event_id!)"
 							>
@@ -624,8 +626,7 @@
 		const baseClasses = {
 			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
-			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === event.value.event_id,
-			'group-hover:bg-surface-low! hover:bg-surface-low!': !isPrivilegedMessage.value || redactedMessage.value,
+			'bg-surface-sunken!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === event.value.event_id,
 		};
 
 		if (!isPrivilegedMessage.value || redactedMessage.value) {

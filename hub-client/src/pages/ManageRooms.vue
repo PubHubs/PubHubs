@@ -6,7 +6,7 @@
 	/>
 	<div class="flex h-full w-full flex-col overflow-hidden">
 		<div
-			class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b px-8"
+			class="border-on-surface-disabled/25 flex h-[80px] shrink-0 items-center justify-between border-b-2 px-8"
 			:class="isMobile ? 'pl-12' : 'pl-8'"
 		>
 			<div class="flex w-fit items-center gap-3 overflow-hidden">

@@ -2,7 +2,7 @@
 	<div class="flex w-full flex-col">
 		<div class="flex w-full items-center gap-4 pb-4">
 			<Icon
-				class="text-surface-high dark:text-on-surface-dim"
+				class="text-on-surface-dim"
 				type="compass"
 			/>
 			<TextField

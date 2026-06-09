@@ -28,7 +28,7 @@
 			<div
 				:id="fieldId"
 				ref="element"
-				class="bg-surface outline-offset-thin outline-on-surface-dim focus:ring-button-blue flex w-full flex-col rounded outline focus:ring-3"
+				class="bg-surface outline-offset-thin outline-on-surface-dim focus:ring-accent-blue-interactive flex w-full flex-col rounded outline focus:ring-3"
 				role="combobox"
 				tabindex="0"
 			>
@@ -124,7 +124,7 @@
 				v-show="open && filteredOptions.length > 0"
 				class="absolute top-800 z-50 flex w-full grow flex-col pb-300"
 			>
-				<div class="bg-surface-low outline-offset-thin rounded outline">
+				<div class="bg-surface-elevated outline-offset-thin rounded outline">
 					<DropDownOption
 						v-for="(option, index) in filteredOptions"
 						:key="index"

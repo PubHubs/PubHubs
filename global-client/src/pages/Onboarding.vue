@@ -223,7 +223,7 @@
 								v-for="(item, index) in items"
 								:key="index"
 								class="h-3 w-3 rounded-full transition-all duration-300"
-								:class="[currentIndex === index ? 'bg-accent-primary scale-110' : 'bg-surface-low', 'cursor-pointer']"
+								:class="[currentIndex === index ? 'bg-accent-primary scale-110' : 'bg-surface-base', 'cursor-pointer']"
 								@click="scrollTo(index)"
 							/>
 						</div>

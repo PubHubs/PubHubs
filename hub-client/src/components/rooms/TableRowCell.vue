@@ -1,7 +1,7 @@
 <template>
 	<div
 		class="border-surface-base group-hover:bg-surface-base flex min-h-16 cursor-pointer items-center border-b px-4 py-3"
-		:class="selected ? 'bg-surface-elevated' : odd ? 'bg-surface-low' : ''"
+		:class="selected ? 'bg-surface-elevated' : odd ? 'bg-surface-sunken' : ''"
 	>
 		<slot />
 	</div>

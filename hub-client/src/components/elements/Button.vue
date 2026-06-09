@@ -70,13 +70,13 @@
 <script lang="ts">
 	// Variants
 	const buttonVariants = {
-		primary: 'bg-button-blue text-on-button-blue outline-button-blue hover:opacity-75',
-		secondary: 'bg-surface-base text-on-surface outline-button-blue hover:opacity-75',
-		tertiary: 'border border-1 -border-offset-1 border-surface-on-surface-dim outline-button-blue hover:opacity-75',
-		error: 'bg-button-red text-on-button-red outline-button-red hover:opacity-75',
-		primaryIcon: 'text-button-blue outline-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
-		secondaryIcon: 'text-on-surface-dim outline-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
-		errorIcon: 'text-accent-error outline-button-blue hover:opacity-75 min-h-300 h-300! w-300!',
+		primary: 'bg-accent-blue-interactive text-on-accent-blue outline-accent-blue-interactive hover:opacity-75',
+		secondary: 'bg-surface-sunken text-on-surface outline-accent-blue-interactive hover:opacity-75',
+		tertiary: 'border border-1 -border-offset-1 border-surface-on-surface-dim outline-accent-blue-interactive hover:opacity-75',
+		error: 'bg-accent-red-interactive text-on-accent-red outline-accent-red-interactive hover:opacity-75',
+		primaryIcon: 'text-accent-blue-interactive outline-accent-blue-interactive hover:opacity-75 min-h-300 h-300! w-300!',
+		secondaryIcon: 'text-on-surface-dim outline-accent-blue-interactive hover:opacity-75 min-h-300 h-300! w-300!',
+		errorIcon: 'text-accent-error outline-accent-blue-interactive hover:opacity-75 min-h-300 h-300! w-300!',
 	} as const;
 	export type TVariant = keyof typeof buttonVariants;
 </script>

@@ -1,5 +1,7 @@
 <template>
-	<div class="bg-surface-low flex w-[80ch] min-w-0 shrink-0 snap-center flex-col items-center justify-center rounded-3xl p-10 py-12">
+	<div
+		class="bg-surface-base border-surface-elevated flex w-[80ch] min-w-0 shrink-0 snap-center flex-col items-center justify-center rounded border-3 p-10 py-12"
+	>
 		<div class="relative flex h-full w-full flex-col justify-center overflow-hidden">
 			<!-- Two-column layout -->
 			<div class="grid h-full grow grid-cols-2 gap-8">

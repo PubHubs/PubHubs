@@ -1,5 +1,5 @@
 <template>
-	<div class="group bg-surface-low m-3 mb-0 flex items-center justify-between overflow-hidden rounded-md py-2 pr-4 pl-2">
+	<div class="group bg-surface-base m-3 mb-0 flex items-center justify-between overflow-hidden rounded-md py-2 pr-4 pl-2">
 		<div class="flex w-full items-center gap-2 truncate">
 			<div class="flex h-fit w-full flex-col overflow-hidden">
 				<UserDisplayName
@@ -12,13 +12,13 @@
 			v-if="!isCameraEnabled"
 			type="video_mute"
 			size="sm"
-			class="text-on-surface-variant rounded-md stroke-0 p-2"
+			class="text-on-surface-dim rounded-md stroke-0 p-2"
 		/>
 		<Icon
 			v-if="!isMicrophoneEnabled || videoCall.isLocallyMuted(remoteParticipantName)"
 			type="microphone_mute"
 			size="sm"
-			class="text-on-surface-variant rounded-md stroke-0 p-2"
+			class="text-on-surface-dim rounded-md stroke-0 p-2"
 		/>
 		<div>
 			<Icon

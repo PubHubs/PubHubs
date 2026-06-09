@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="bg-surface-base"
-		:class="direction === 'horizontal' ? 'my-2 h-px w-full' : 'mx-2 h-full w-px'"
+		class="bg-on-surface-disabled/50"
+		:class="direction === 'horizontal' ? 'h-025 my-2 w-full' : 'w-025 mx-2 h-full'"
 	>
 		<slot />
 	</div>

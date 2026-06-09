@@ -7,14 +7,14 @@
 			<H2 class="line-clamp-2">{{ room.name }}</H2>
 			<div
 				v-if="isSecured"
-				class="bg-button-blue text-on-button-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
+				class="bg-accent-blue-interactive text-on-accent-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
 				:title="t('admin.secured_room')"
 			>
 				<Icon type="shield"></Icon>
 			</div>
 			<div
 				v-else-if="isForumRoom()"
-				class="bg-button-blue text-on-button-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
+				class="bg-accent-blue-interactive text-on-accent-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
 			>
 				<Icon type="chat-circle-text"></Icon>
 			</div>

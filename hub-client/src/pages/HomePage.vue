@@ -46,7 +46,7 @@
 				</H3>
 				<div
 					v-if="hubDescription"
-					class="bg-surface-low max-w-full rounded-2xl"
+					class="bg-surface-base max-w-full rounded-2xl"
 				>
 					<mavon-editor
 						v-model="hubDescription"
@@ -64,7 +64,7 @@
 				</H3>
 				<div
 					v-if="hubContact"
-					class="bg-surface-low! max-w-full rounded-2xl"
+					class="bg-surface-base! max-w-full rounded-2xl"
 				>
 					<mavon-editor
 						v-model="hubContact"

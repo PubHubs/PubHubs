@@ -9,7 +9,7 @@
 			<li
 				v-for="(item, index) in filteredItems"
 				:key="index"
-				class="group hover:bg-surface-high flex cursor-pointer items-center gap-2 px-4"
+				class="group hover:bg-surface-elevated flex cursor-pointer items-center gap-2 px-4"
 				@click.stop="clickedItem(item)"
 			>
 				<Avatar

@@ -209,7 +209,7 @@
 						<MessageInputTextArea
 							ref="elTextInput"
 							v-model="valueAsString"
-							class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
+							class="text-label placeholder:text-on-surface-dim max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
 							:class="isInputDisabled ? 'cursor-not-allowed' : ''"
 							:placeholder="inputPlaceholder"
 							:title="$t('rooms.new_message')"

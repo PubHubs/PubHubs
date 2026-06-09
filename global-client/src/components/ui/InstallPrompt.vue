@@ -4,7 +4,7 @@
 		class="fixed inset-0 z-50"
 	>
 		<div
-			class="bg-surface-high absolute inset-0 opacity-80"
+			class="bg-surface-base absolute inset-0 opacity-80"
 			@click="closePrompt"
 		/>
 		<div class="bg-background absolute right-0 bottom-0 left-0 flex h-fit w-full flex-col rounded-t-2xl p-2 shadow-[0_-5px_10px_rgba(0,0,0,0.2)]">
@@ -36,7 +36,7 @@
 					{{ $t('pwa.install') }}
 				</Button>
 			</div>
-			<hr class="border-surface-high my-2 border-t" />
+			<hr class="border-on-surface-dim my-2 border-t" />
 			<div class="px-4 pt-4 pb-8">
 				<H3 class="mb-3"> {{ $t('pwa.add_app') }}! </H3>
 				<p v-if="deferredPrompt">

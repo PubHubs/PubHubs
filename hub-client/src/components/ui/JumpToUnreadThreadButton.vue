@@ -1,7 +1,7 @@
 <template>
 	<div class="animate-fade-in absolute top-4 right-3 z-50 flex w-fit transform md:right-6">
 		<button
-			class="bg-surface-high text-on-surface hover:bg-surface shadow-elevation-2 flex items-center justify-center gap-2 rounded-full px-4 py-3 transition-all hover:cursor-pointer motion-safe:hover:scale-105 motion-safe:active:scale-95"
+			class="bg-surface-elevated text-on-surface hover:bg-surface shadow-elevation-2 flex items-center justify-center gap-2 rounded-full px-4 py-3 transition-all hover:cursor-pointer motion-safe:hover:scale-105 motion-safe:active:scale-95"
 			:aria-label="$t('rooms.jump_to_unread_thread')"
 			@click="$emit('click')"
 		>

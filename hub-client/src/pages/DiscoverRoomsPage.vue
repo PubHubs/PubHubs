@@ -20,7 +20,7 @@
 				<div class="relative w-full md:ml-auto md:w-[320px]">
 					<input
 						v-model="searchQuery"
-						class="outline-offset-thin outline-on-surface-dim focus:ring-button-blue text-on-surface placeholder-on-surface-dim w-full rounded px-175 py-100 pr-10 outline focus:ring-3 focus:outline-none"
+						class="outline-offset-thin outline-on-surface-dim focus:ring-accent-blue-interactive text-on-surface placeholder-on-surface-dim w-full rounded px-175 py-100 pr-10 outline focus:ring-3 focus:outline-none"
 						:placeholder="$t('others.search_rooms')"
 						type="text"
 						@keyup="startFilter"

@@ -1,7 +1,11 @@
 <template>
 	<div
 		class="rounded-base @container w-full border-3 p-4"
-		:class="active ? 'bg-surface-base border-surface-elevated' : 'bg-surface-low border-surface-base hover:bg-surface-base hover:border-surface-elevated'"
+		:class="
+			active
+				? 'bg-surface-base border-surface-elevated'
+				: 'bg-surface-base border-surface-elevated hover:bg-surface-elevated hover:border-surface-elevated'
+		"
 	>
 		<div class="flex gap-3">
 			<Avatar
@@ -48,7 +52,7 @@
 				<div class="flex items-center gap-2">
 					<div
 						v-if="room.hasMessages()"
-						class="text-on-surface-dim flex min-w-0 flex-1 items-center gap-1 truncate"
+						class="text-on-surface flex min-w-0 flex-1 items-center gap-1 truncate"
 					>
 						<Icon
 							v-if="preview.icon"
@@ -60,7 +64,7 @@
 					</div>
 					<p
 						v-else
-						class="text-on-surface-dim min-w-0 flex-1 truncate"
+						class="text-on-surfacem min-w-0 flex-1 truncate"
 					>
 						{{ t('rooms.no_messages_yet') }}
 					</p>

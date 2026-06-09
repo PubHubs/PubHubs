@@ -22,7 +22,7 @@
 				:to="{ name: 'room', params: { id: room.roomId } }"
 				:room="room"
 				class="no-callout group inline-block w-full select-none"
-				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
+				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-elevated!'"
 				:icon="menuIcon(room)"
 				@click="hubSettings.hideBar()"
 			>

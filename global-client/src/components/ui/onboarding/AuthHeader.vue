@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface flex h-[80px] w-full items-center px-6 py-4">
+	<div class="bg-surface border-surface-elevated flex h-[80px] w-full items-center border-b-3 px-6 py-4">
 		<div class="flex h-full w-full items-center justify-between gap-16">
 			<a
 				class="h-full py-2"

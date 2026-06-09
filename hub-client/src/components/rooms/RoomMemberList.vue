@@ -5,7 +5,7 @@
 			<!-- Contact steward card -->
 			<div
 				v-if="stewards && stewards.length > 0 && !isCurrentUserSteward"
-				class="hover:bg-surface-high rounded-base flex cursor-pointer items-center gap-4 p-2"
+				class="hover:bg-surface-elevated rounded-base flex cursor-pointer items-center gap-4 p-2"
 				@click="contactSteward"
 			>
 				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
@@ -37,7 +37,7 @@
 								: undefined
 						"
 						class="rounded-base flex w-full items-center gap-2 p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-low'"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-elevated'"
 					>
 						<Avatar
 							:avatar-url="user.userAvatar(steward.userId)"
@@ -71,7 +71,7 @@
 						:key="userId"
 						v-context-menu="(evt: any) => openMenu(evt, getMemberContextMenuItems(userId), userId)"
 						class="flex w-full items-center gap-2 rounded-md p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === userId && 'bg-surface-low'"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === userId && 'bg-surface-elevated'"
 					>
 						<Avatar
 							:avatar-url="user.userAvatar(userId)"
@@ -104,7 +104,7 @@
 						:key="yellowCard.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getYellowCardContextMenuItems(yellowCard.userId), yellowCard.userId)"
 						class="flex w-full items-center gap-2 rounded-md p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === yellowCard.userId && 'bg-surface-low'"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === yellowCard.userId && 'bg-surface-elevated'"
 					>
 						<Avatar
 							:avatar-url="user.userAvatar(yellowCard.userId)"
@@ -134,7 +134,7 @@
 						:key="redCard.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getRedCardContextMenuItems(redCard.userId), redCard.userId)"
 						class="flex w-full items-center gap-2 rounded-md p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === redCard.userId && 'bg-surface-low'"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === redCard.userId && 'bg-surface-elevated'"
 					>
 						<Avatar
 							:avatar-url="user.userAvatar(redCard.userId)"
@@ -156,7 +156,7 @@
 						>
 						<Icon
 							type="exclamation-mark"
-							class="text-button-red"
+							class="text-accent-red-interactive"
 						></Icon>
 					</div>
 					<div
@@ -164,7 +164,7 @@
 						:key="revoked.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getYellowCardContextMenuItems(revoked.userId), revoked.userId)"
 						class="flex w-full items-center gap-2 rounded-md p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === revoked.userId && 'bg-surface-low'"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === revoked.userId && 'bg-surface-elevated'"
 					>
 						<Avatar
 							:avatar-url="user.userAvatar(revoked.userId)"
@@ -194,7 +194,7 @@
 						:key="timeout.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getTimeoutContextMenuItems(timeout.userId), timeout.userId)"
 						class="flex w-full items-center gap-2 rounded-md p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === timeout.userId && 'bg-surface-low'"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === timeout.userId && 'bg-surface-elevated'"
 					>
 						<Avatar
 							:avatar-url="user.userAvatar(timeout.userId)"
@@ -214,7 +214,7 @@
 							class="text-on-surface-dim"
 							>&nbsp;{{ $t('admin.you_suffix') }}</span
 						>
-						<div class="text-button-red flex items-center gap-1">
+						<div class="text-accent-red-interactive flex items-center gap-1">
 							<Icon
 								type="clock"
 								size="sm"

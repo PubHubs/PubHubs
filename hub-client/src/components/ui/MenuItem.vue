@@ -1,8 +1,8 @@
 <template>
 	<li
 		role="menuitem"
-		:class="{ 'bg-surface-low text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }"
-		class="hover:bg-surface-low rounded-base h-fit transition-all duration-200 ease-in-out"
+		:class="{ 'bg-surface-elevated text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }"
+		class="hover:bg-surface-elevated rounded-base h-fit transition-all duration-200 ease-in-out"
 		@click="handleClick"
 	>
 		<router-link

@@ -23,7 +23,7 @@
 					<div class="flex gap-3">
 						<button
 							type="button"
-							class="hover:text-on-surface-variant cursor-pointer"
+							class="hover:text-on-surface-dim cursor-pointer"
 							:aria-label="$t('settings.change_avatar')"
 							@click="fileInput?.click()"
 						>

@@ -11,7 +11,7 @@
 		<!-- Scrim -->
 		<div
 			v-if="dialog.properties.modal"
-			class="bg-surface-high absolute h-full w-full opacity-80"
+			class="bg-background/80 absolute h-full w-full"
 		/>
 
 		<!-- Dialog -->
@@ -27,11 +27,11 @@
 				:class="isMobile && dialog.properties.type != 'global' ? 'w-[calc(50vw+40px)]' : 'w-full'"
 			>
 				<div
-					class="bg-surface-low shadow-surface-high flex max-h-full flex-col justify-between gap-1 rounded-md p-4 shadow-xl md:m-4"
+					class="bg-surface-base rounded-base border-surface-elevated flex max-h-full flex-col justify-between gap-1 border-3 shadow"
 					:class="width"
 					@click.stop
 				>
-					<div class="flex w-full items-center justify-between">
+					<div class="flex w-full items-center justify-between p-4">
 						<H2 v-if="dialog.properties.title !== ''">
 							{{ dialog.properties.title }}
 						</H2>
@@ -43,10 +43,13 @@
 							@click="doAction(DialogCancel)"
 						/>
 					</div>
-					<Divider v-if="hasContent" />
+					<Divider
+						v-if="hasContent"
+						class="my-0!"
+					/>
 					<div
 						v-if="hasContent"
-						class="h-full py-1 pr-4 text-left"
+						class="h-full p-4 pr-4 pb-1 text-left"
 						:class="props.allowOverflow ? 'overflow-visible' : 'overflow-y-auto'"
 					>
 						<slot />
@@ -57,10 +60,13 @@
 						/>
 						<!-- eslint-enable vue/no-v-html -->
 					</div>
-					<Divider v-if="dialog.properties.buttons.length > 0" />
+					<Divider
+						v-if="dialog.properties.buttons.length > 0"
+						class="my-0!"
+					/>
 					<div
 						v-if="dialog.properties.buttons.length > 0"
-						class="flex w-full flex-row-reverse justify-start gap-2"
+						class="flex w-full flex-row-reverse justify-start gap-2 p-4"
 					>
 						<div
 							v-for="(button, index) in dialog.properties.buttons"

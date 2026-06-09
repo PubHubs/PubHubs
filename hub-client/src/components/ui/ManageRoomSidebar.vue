@@ -75,7 +75,7 @@
 					<div
 						v-for="steward in combinedStewards"
 						:key="steward.userId"
-						class="hover:bg-surface-low flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
+						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
 						@click="emit('navigateToUser', steward.userId)"
 					>
 						<Avatar
@@ -111,7 +111,7 @@
 					<div
 						v-for="userId in nonPowerMemberIds"
 						:key="userId"
-						class="hover:bg-surface-low flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
+						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
 						@click="emit('navigateToUser', userId)"
 					>
 						<Avatar

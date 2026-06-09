@@ -3,7 +3,7 @@
 		<div
 			v-for="(bar, index) in bars"
 			:key="index"
-			:class="'m-1 h-4 w-4 transition ease-in-out' + (bar ? ' bg-accent-primary' : ' bg-surface-low')"
+			:class="'m-1 h-4 w-4 transition ease-in-out' + (bar ? ' bg-accent-primary' : ' bg-surface-sunken')"
 		/>
 	</div>
 </template>

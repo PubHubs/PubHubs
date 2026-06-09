@@ -42,8 +42,8 @@
 	}>();
 
 	const colorClass: Record<string, string> = {
-		primary: 'bg-accent-primary text-on-accent-primary',
-		error: 'text-on-accent-red bg-accent-red',
+		primary: 'bg-accent-blue-interactive text-on-accent-blue',
+		error: 'text-on-accent-red bg-accent-red-interactive',
 	};
 
 	const buttonClass = computed(() => colorClass[props.color] ?? colorClass['primary']);
