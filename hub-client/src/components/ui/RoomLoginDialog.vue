@@ -68,6 +68,7 @@
 	const emit = defineEmits<{
 		(e: 'update:dialogOpen', value: string | null): void;
 		(e: 'close'): void;
+		(e: 'confirm'): void;
 	}>();
 
 	const { t } = useI18n();
@@ -93,8 +94,12 @@
 		});
 	});
 
-	async function handleClose() {
+	async function handleClose(action?: number) {
 		emit('update:dialogOpen', null);
 		emit('close');
+		// action === 1 means "Yes" was clicked (for non-secured rooms)
+		if (action === 1) {
+			emit('confirm');
+		}
 	}
 </script>
