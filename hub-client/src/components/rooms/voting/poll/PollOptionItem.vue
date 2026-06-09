@@ -4,12 +4,12 @@
 		:class="!showVotes && 'h-800'"
 	>
 		<div
-			class="flex h-full min-h-600 justify-between px-200 py-100"
+			class="flex h-full min-h-600 justify-between gap-100 px-200 py-100"
 			role="link"
 			:class="!closed && 'cursor-pointer'"
 			@click="$emit('vote', option.id)"
 		>
-			<div class="flex items-center gap-2">
+			<div class="flex min-w-0 items-center gap-2">
 				<div
 					v-if="hasUserVotedOnThisOption"
 					class="flex-none"
@@ -22,7 +22,7 @@
 				</div>
 				<div
 					v-else
-					class="relative"
+					class="relative flex-none"
 					:class="!closed && 'group/check'"
 				>
 					<Icon
@@ -36,9 +36,17 @@
 						type="check-circle"
 					/>
 				</div>
-				<div class="flex items-center gap-1">
-					<span>{{ option.title }}</span>
-					<span v-if="showVotes">({{ votes.length }}&nbsp;{{ $t('message.voting.plural_votes', votes.length) }})</span>
+				<div class="flex min-w-0 items-center gap-1">
+					<span
+						class="truncate"
+						:title="option.title"
+						>{{ option.title }}</span
+					>
+					<span
+						v-if="showVotes"
+						class="shrink-0"
+						>({{ votes.length }}&nbsp;{{ $t('message.voting.plural_votes', votes.length) }})</span
+					>
 				</div>
 			</div>
 			<div

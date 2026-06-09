@@ -62,10 +62,10 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 				title,
 			}));
 			messagebox.sendMessage(new Message(MessageType.ContextMenuOpen, { items: serialized, x: clientX, y: clientY, targetId }));
-		} else {
-			isOpen.value = true;
-			disableWheelScroll();
 		}
+
+		isOpen.value = true;
+		disableWheelScroll();
 	}
 
 	function close() {

@@ -236,6 +236,11 @@
 				useContextMenuStore().selectByIndex(message.content as number);
 			});
 
+			// Receive context menu close from global-client (mobile)
+			messagebox.addCallback('parentFrame', MessageType.ContextMenuClose, () => {
+				useContextMenuStore().close();
+			});
+
 			// Ask for hubinformation
 			messagebox.sendMessage(new Message(MessageType.SendHubInformation));
 		}

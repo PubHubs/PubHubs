@@ -86,6 +86,9 @@ enum MessageType {
 	CloseSidebar = 'closesidebar', // Close the sidebar in the hub client
 	ContextMenuOpen = 'contextmenu-open', // Hub asks global to show a context menu
 	ContextMenuSelect = 'contextmenu-select', // Global sends selected item index back to hub
+	ContextMenuClose = 'contextmenu-close', // Global notifies hub that the context menu was dismissed
+
+	ClipboardWrite = 'clipboard-write', // Hub asks global to write text to clipboard (top-level frame has clipboard access; iframes may not)
 
 	// Per-hub key-value store persisted in the global client's localStorage.
 	// The hub client's own localStorage is unreliable (blocked in third-party

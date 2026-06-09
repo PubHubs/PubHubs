@@ -300,6 +300,15 @@ const useHubs = defineStore('hubs', {
 						y,
 						targetId,
 					);
+
+					// When the context menu is dismissed (scrim click, escape, or item
+					// selection), notify the hub so it can clear the message highlight.
+					const unsubscribe = contextMenu.$subscribe(() => {
+						if (!contextMenu.isOpen) {
+							messagebox.sendMessage(new Message(MessageType.ContextMenuClose), iframeHubId);
+							unsubscribe();
+						}
+					});
 				});
 
 				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, () => {

@@ -16,6 +16,7 @@
 		:src="authMediaUrl.url"
 		class="rounded-base border-surface-elevated max-h-[25rem] w-xs cursor-pointer border-3 object-contain"
 		@click.stop="showFullImage = true"
+		@touchstart.stop
 	/>
 	<Teleport to="body">
 		<div

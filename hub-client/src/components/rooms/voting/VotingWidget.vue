@@ -1,7 +1,9 @@
 <template>
 	<div
-		class="bg-surface-base border-surface-elevated rounded-base w-5/6 border-3 p-200"
+		class="bg-surface-base border-surface-elevated rounded-base border-3 p-200"
+		:class="isMobile ? 'w-full' : 'w-5/6'"
 		@contextmenu.prevent="openMenu($event, getContextMenuItems(), null, true)"
+		@touchstart.stop
 	>
 		<div class="mb-200 flex flex-col gap-100">
 			<div class="flex flex-wrap items-center justify-between gap-100">
