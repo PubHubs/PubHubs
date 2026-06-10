@@ -191,6 +191,7 @@ const en = {
 	login: {
 		login: 'Login',
 		login_again: 'You have been logged out. Please log in again to continue.',
+		loading_yivi: 'Loading Yivi...',
 	},
 	logout: {
 		logout: 'Logout',

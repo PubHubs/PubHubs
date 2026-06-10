@@ -192,6 +192,7 @@ const nl = {
 	login: {
 		login: 'Login',
 		login_again: 'Je bent uitgelogd. Log opnieuw in om verder te gaan.',
+		loading_yivi: 'Yivi laden...',
 	},
 	logout: {
 		logout: 'Logout',
