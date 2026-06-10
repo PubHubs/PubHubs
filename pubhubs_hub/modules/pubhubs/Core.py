@@ -1,12 +1,10 @@
 import logging
 import json
 import subprocess
-import base64
 import time
 import math
 from dataclasses import dataclass
 
-import authlib.jose
 from pathlib import Path
 from urllib.parse import urlparse, urljoin
 from  urllib.request import urlopen
@@ -24,15 +22,20 @@ from prometheus_client import Gauge
 
 from synapse.module_api import ModuleApi
 from synapse.http.server import respond_with_json, respond_with_json_bytes
-import synapse.api.errors
 
 try:
     import conf.modules.pseudonyms
 except:
     pass # TODO
 
-# Composite post-quantum HHPP verification (ML-DSA-65 + Ed25519); see _composite_hhpp.py.
-from ._composite_hhpp import BESPOKE_ALG, hhpp_jwt, parse_verifying_key
+# Composite post-quantum HHPP verification (ML-DSA-65 + Ed25519).
+from ._hhpp import (
+    BESPOKE_ALG,
+    HhppStatus,
+    check_hhpp,
+    parse_verifying_key,
+)
+from ._base64url import b64url_decode, b64url_encode
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -176,14 +179,14 @@ class PhEnterStartEP(Resource):
 
     def render_POST(self, request):
         # binds nonce and state
-        random = b64enc(nacl.utils.random(32))
+        random = b64url_encode(nacl.utils.random(32))
 
-        state = b64enc(self._core._secret_box.encrypt(json.dumps({
+        state = b64url_encode(self._core._secret_box.encrypt(json.dumps({
             'random': random,
             'iat': time.time()
         }).encode('ascii'), b"state"))
 
-        nonce = b64enc(self._core._secret_box.encrypt(json.dumps({
+        nonce = b64url_encode(self._core._secret_box.encrypt(json.dumps({
             'random': random
         }).encode('ascii'), b"nonce"))
 
@@ -196,12 +199,6 @@ class PhEnterStartEP(Resource):
                 'hhpp_signature_scheme': BESPOKE_ALG,
             }}, send_cors=True)
 
-def b64enc(some_bytes):
-    return base64.urlsafe_b64encode(some_bytes).decode('ascii').strip('=')
-
-def b64dec(some_string):
-    return base64.urlsafe_b64decode(some_string + "==") # python requires padding
-
 def bad_request():
     return { 'Err': 'BadRequest' }
 
@@ -211,10 +208,6 @@ def internal_error():
 def please_retry():
     return { 'Err': 'PleaseRetry' }
 
-
-class Return(Exception):
-    def __init__(self, return_value):
-        self._return_value = return_value
 
 class PhEnterCompleteEP(Resource):
     def __init__(self, core):
@@ -233,39 +226,6 @@ class PhEnterCompleteEP(Resource):
         logger.error(f"unhandled error in enter-complete: {failure.getTraceback()}")
         self._finish_request(request, internal_error())
 
-    def _get_phc_verifying_key(self, header, payload):
-        if self._core._constellation == None:
-            logger.warning("constellation suddenly became None")
-            raise Return(please_retry())
-
-        # check that our constellation if up-to-date
-        if 'ph-ci' not in payload or 'c' not in payload['ph-ci'] or 'i' not in payload['ph-ci']:
-            raise Return(bad_request())
-        
-        their_c = payload['ph-ci']['c']
-        their_i = payload['ph-ci']['i']
-
-        our_c = self._core._constellation['created_at']
-        our_i = self._core._constellation['id']
-
-        if our_c < their_c:
-            logger.info("constellation out of date")
-            self._core.trigger_get_constellation()
-            raise Return(please_retry())
-        if their_c < our_c:
-            # signed by old key
-            raise Return({ 'Ok': 'RetryFromStart' })
-        if our_i != their_i:
-            logger.info("constellation maybe out of date")
-            self._core.trigger_get_constellation()
-            raise Return({ 'Ok': 'RetryFromStart' })
-
-        # The constellation is current; both composite variants verify against the same key.
-        if self._core._phc_verifying_key is None:
-            logger.error("no phc_verifying_key available to verify the composite HHPP")
-            raise Return(internal_error())
-        return self._core._phc_verifying_key
-
     async def _render_POST_async(self, request):
         try:
             r = json.load(request.content)
@@ -280,7 +240,7 @@ class PhEnterCompleteEP(Resource):
         state_str = r['state']
 
         try:
-            state = json.loads(self._core._secret_box.decrypt(b64dec(state_str), b"state"))
+            state = json.loads(self._core._secret_box.decrypt(b64url_decode(state_str), b"state"))
         except Exception as e:
             logger.warn(f"invalid state passed to enter complete endpoint: {e}")
             return bad_request()
@@ -297,34 +257,29 @@ class PhEnterCompleteEP(Resource):
             logger.info("expired enter state submitted")
             return { 'Ok': 'RetryFromStart' }
 
-        if self._core._constellation == None:
-            self._core.trigger_get_constellation();
-            return please_retry()
-
-        try:
-            claims = hhpp_jwt.decode(hhpp, self._get_phc_verifying_key)
-        except Return as re:
-            # 'Return' is raised by _get_phc_verifying_key when something is wrong with the
-            # constellation
-            return re._return_value
-        except authlib.jose.errors.JoseError as e:
-            # malformed HHPP, a disallowed/unknown alg, or a bad composite signature
-            logger.warning(f"rejecting hhpp: {e}")
-            return bad_request()
-
-        try:
-            claims.validate() # validates exp/nbf when present
-        except authlib.jose.errors.ExpiredTokenError:
-            # the HHPP has aged out; as with an expired state, minting a fresh one fixes it
-            logger.info("expired hhpp submitted")
-            return { 'Ok': 'RetryFromStart' }
-        except authlib.jose.errors.JoseError as e:
-            logger.warning(f"invalid hhpp claims: {e}")
-            return bad_request()
-
-        if 'ph-mc' not in claims or claims['ph-mc'] != 11:
-            logger.warn("request with wrong message code submitted")
-            return bad_request()
+        # check_hhpp does the signature check plus the message-code/constellation/expiry routing and
+        # the our/their-fault split; we only map each status to a response, refetching the
+        # constellation (rate-limited) on the statuses where we might be the stale side.
+        result = check_hhpp(hhpp, self._core._phc_verifying_key, self._core._constellation)
+        match result.status:
+            case HhppStatus.OUR_CONSTELLATION_STALE:
+                self._core.trigger_get_constellation()
+                return please_retry()
+            case HhppStatus.CONSTELLATIONS_DIVERGED:
+                # can't tell who is behind: catch up in case it's us, and have the client start over
+                self._core.trigger_get_constellation()
+                return { 'Ok': 'RetryFromStart' }
+            case HhppStatus.THEIR_CONSTELLATION_STALE | HhppStatus.EXPIRED:
+                # the client must obtain a fresh HHPP (theirs was signed by an old key, or aged out)
+                return { 'Ok': 'RetryFromStart' }
+            case HhppStatus.OTHERWISE_INVALID:
+                return bad_request()
+            case HhppStatus.MISMINTED:
+                return internal_error()
+            case HhppStatus.VERIFIED:
+                claims = result.claims
+            case _:
+                raise AssertionError(f"unhandled hhpp status {result.status}")
 
         if not 'hub_nonce' in claims or 'pp_issued_at' not in claims or 'hashed_hub_pseudonym' not in claims:
             logger.error("missing fields in hhpp")
@@ -334,12 +289,17 @@ class PhEnterCompleteEP(Resource):
         nonce_str = claims['hub_nonce']
         hhp = claims['hashed_hub_pseudonym']
 
+        if not isinstance(pp_issued_at, int) or isinstance(pp_issued_at, bool):
+            # pp_issued_at is a NumericDate (a u64); a non-integer means PHC misminted the hhpp
+            logger.error("misminted hhpp: non-integer pp_issued_at")
+            return internal_error()
+
         if time.time() - pp_issued_at > 10: # TODO: make configurable
             logger.info("hhpp from pp that was issued too long ago")
             return { 'Ok': 'RetryFromStart' }
 
         try:
-            nonce = json.loads(self._core._secret_box.decrypt(b64dec(nonce_str), b"nonce"))
+            nonce = json.loads(self._core._secret_box.decrypt(b64url_decode(nonce_str), b"nonce"))
         except Exception as e:
             logger.warn(f"invalid nonce passed to enter complete endpoint: {e}")
             return bad_request()
@@ -368,17 +328,10 @@ class PhEnterCompleteEP(Resource):
             #  (2) this makes migrations easier
             longlocalpart = nacl.utils.random(32).hex()
 
-            for localpart in conf.modules.pseudonyms.PseudonymHelper.short_pseudonyms(longlocalpart):
-                try:
-                    mxid = await self._core._api.register_user(localpart, localpart, None, False)
-                    break
-                except synapse.api.errors.SynapseError as err:
-                    if err.errcode == synapse.api.errors.Codes.USER_IN_USE:
-                        length += 1
-                        continue
-                    raise err
-            else:
-                raise RuntimeError("random pseudonym already taken (!?) ")
+            mxid = await conf.modules.pseudonyms.register_under_fresh_pseudonym(
+                longlocalpart,
+                lambda localpart: self._core._api.register_user(localpart, localpart, None, False),
+            )
 
             await self._core._api.record_user_external_id("pubhubs", hhp, mxid)
             logger.info(f"registered {mxid} for {hhp}")

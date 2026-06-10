@@ -23,7 +23,7 @@ COPY --chmod=755 config/local/livekit.local.yaml /conf/livekit.local.yaml
 # Do not install the `livekit` client package here: it pulls numpy wheels that require x86_64-v2 and crash on older CPUs.
 RUN pip install --no-cache-dir livekit-api
 
-# Post-quantum HHPP verification (modules/pubhubs/_composite_hhpp.py) needs ML-DSA, which requires
+# Post-quantum HHPP verification (modules/pubhubs/_hhpp.py) needs ML-DSA, which requires
 # cryptography>=48 (its manylinux wheels bundle OpenSSL 3.5); the synapse base image ships an older
 # one.  Keep in sync with the floor in requirements.txt.  The hub refuses to start without it.
 RUN pip install --no-cache-dir 'cryptography>=48.0.0'

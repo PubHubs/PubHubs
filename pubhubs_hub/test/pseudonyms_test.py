@@ -4,10 +4,11 @@ import subprocess
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 from synapse.module_api import ModuleApi
+from synapse.api.errors import SynapseError, Codes
 
 import sys
 sys.path.append("modules")
-from pseudonyms import PseudonymHelper, Pseudonym
+from pseudonyms import PseudonymHelper, Pseudonym, register_under_fresh_pseudonym
 
 
 class TestPseudonymHelper(unittest.TestCase):
@@ -48,6 +49,49 @@ class TestPseudonymHelper(unittest.TestCase):
                 '012345678901234b-790123456789abcd'
                 ])
 
+
+class TestRegisterUnderFreshPseudonym(IsolatedAsyncioTestCase):
+    # a valid 64-char local pseudonym; its 14 short pseudonyms are listed in test_short_pseudonums
+    LOCAL_PSEUDONYM = "0123456789" * 6 + "abcd"
+
+    def _register_user_rejecting(self, taken):
+        """A fake register_user that raises USER_IN_USE for any localpart in `taken`, otherwise
+        returns a mxid built from it; records every attempt in self.attempts."""
+        self.attempts = []
+        async def register_user(localpart):
+            self.attempts.append(localpart)
+            if localpart in taken:
+                raise SynapseError(400, "User ID already taken.", Codes.USER_IN_USE)
+            return f"@{localpart}:hub"
+        return register_user
+
+    async def test_uses_first_free_pseudonym(self):
+        mxid = await register_under_fresh_pseudonym(self.LOCAL_PSEUDONYM, self._register_user_rejecting(set()))
+        self.assertEqual(len(self.attempts), 1)
+        self.assertEqual(mxid, f"@{self.attempts[0]}:hub")
+
+    async def test_retries_past_taken_pseudonyms(self):
+        # the first two short pseudonyms are already taken; registration must skip to the third.
+        # Regression test: the old code did `length += 1` on collision — an UnboundLocalError — so a
+        # single collision aborted registration with a 500 instead of trying the next pseudonym.
+        candidates = list(PseudonymHelper.short_pseudonyms(self.LOCAL_PSEUDONYM))
+        mxid = await register_under_fresh_pseudonym(
+            self.LOCAL_PSEUDONYM, self._register_user_rejecting(set(candidates[:2]))
+        )
+        self.assertEqual(self.attempts, candidates[:3])
+        self.assertEqual(mxid, f"@{candidates[2]}:hub")
+
+    async def test_non_collision_error_propagates(self):
+        async def register_user(localpart):
+            raise SynapseError(403, "forbidden", Codes.FORBIDDEN)
+        with self.assertRaises(SynapseError):
+            await register_under_fresh_pseudonym(self.LOCAL_PSEUDONYM, register_user)
+
+    async def test_all_taken_raises_runtime_error(self):
+        candidates = list(PseudonymHelper.short_pseudonyms(self.LOCAL_PSEUDONYM))
+        with self.assertRaises(RuntimeError):
+            await register_under_fresh_pseudonym(self.LOCAL_PSEUDONYM, self._register_user_rejecting(set(candidates)))
+        self.assertEqual(self.attempts, candidates)  # exhausted every short pseudonym
 
 
 if __name__ == '__main__':

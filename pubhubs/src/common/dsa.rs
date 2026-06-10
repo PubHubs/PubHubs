@@ -482,7 +482,7 @@ mod tests {
 
     /// Emits a bespoke (`ph-ML-DSA-65-Ed25519`, empty ML-DSA context) test vector — a real compact
     /// JWS plus the verifying key — for the Python hub's cross-implementation verification test
-    /// (`pubhubs_hub/modules/pubhubs/tests/test_composite_hhpp.py`).  No official vector exists for
+    /// (`pubhubs_hub/test/hhpp_test.py`).  No official vector exists for
     /// our interim empty-context variant, so we generate one here.  ML-DSA signing is randomised, so
     /// the signature is not reproducible, but the fixed seeds make the verifying key deterministic
     /// and any valid signature verifies.  Ignored by default; regenerate with:

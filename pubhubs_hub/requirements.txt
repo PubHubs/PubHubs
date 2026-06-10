@@ -1,9 +1,11 @@
 # Dependencies the hub imports directly or pins itself.
-authlib>=0.15.1
 # ML-DSA (post-quantum) HHPP verification; >=48 ships ML-DSA via bundled OpenSSL 3.5 wheels
 cryptography>=48.0.0
 twisted>=24.11.0
 livekit-api>=1.0.2
+# pseudonyms.py imports synapse.handlers.oidc, which needs authlib; synapse declares it only under
+# its optional [oidc] extra, so the hub must pin it itself (the Core.py HHPP path no longer uses it).
+authlib>=0.15.1
 # Use the same version as the docker image is built from
 matrix-synapse==1.153.0
 
