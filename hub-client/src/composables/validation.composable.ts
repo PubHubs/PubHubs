@@ -56,8 +56,8 @@ const validateMessageFunctions: { [key: string]: (...args: unknown[]) => unknown
 	},
 
 	maxItems: (value: unknown, max: unknown, keyTranslation: unknown): ValidationMessage => {
-		const v = value as unknown[];
-		return { translationKey: 'validation.max_items', parameters: [keyTranslation as string, max as number, v.length] };
+		const v = value as unknown[] | undefined;
+		return { translationKey: 'validation.max_items', parameters: [keyTranslation as string, max as number, v?.length ?? 0] };
 	},
 
 	minValue: (value: unknown, min: unknown, keyTranslation: unknown): ValidationMessage => {
