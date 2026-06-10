@@ -49,6 +49,17 @@
 								class="relative flex w-full items-center justify-center"
 								:class="isMobile ? '-mb-2' : '-mb-4'"
 							>
+								<!-- Loading overlay -->
+								<div
+									v-if="qrLoading"
+									class="absolute bottom-8 left-0 z-[40] flex h-[280px] w-full items-center justify-center rounded-lg bg-white p-8 shadow-lg after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+								>
+									<div class="flex flex-col items-center gap-2">
+										<InlineSpinner />
+										<P class="text-on-surface-dim text-sm">{{ $t('login.loading_yivi') }}</P>
+									</div>
+								</div>
+								<!-- Yivi injects content here - must be empty -->
 								<div
 									id="yivi-authentication"
 									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
@@ -144,6 +155,7 @@
 
 	const show = ref<boolean>(false);
 	const loading = ref<boolean>(true);
+	const qrLoading = ref<boolean>(false);
 	const error = ref();
 
 	const isMobile = computed(() => settings.isMobileState);
@@ -172,22 +184,45 @@
 
 		if (loginMethod === loginMethods.Yivi) {
 			show.value = !show.value;
+			if (show.value) {
+				qrLoading.value = true;
+				watchForYiviContent();
+			}
 		}
 		try {
 			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.Login);
 			if (errorMessage) {
 				error.value = errorMessage;
 				show.value = false;
+				qrLoading.value = false;
 				return;
 			}
 			show.value = false;
+			qrLoading.value = false;
 			const redirectPath = route.query.redirect?.toString() || '/';
 			router.replace(redirectPath);
 		} catch (error) {
 			router.replace({ name: 'error' });
 			show.value = false;
+			qrLoading.value = false;
 			logger.error('Error during MSS login', { error });
 		}
+	}
+
+	function watchForYiviContent() {
+		const yiviEl = document.getElementById('yivi-authentication');
+		if (!yiviEl) return;
+
+		const observer = new MutationObserver(() => {
+			// Wait for actual QR code (canvas or svg) not just the text
+			const hasQrCode = yiviEl.querySelector('canvas, svg');
+			if (hasQrCode) {
+				qrLoading.value = false;
+				observer.disconnect();
+			}
+		});
+
+		observer.observe(yiviEl, { childList: true, subtree: true });
 	}
 
 	window.addEventListener('pageshow', () => (show.value = false));
