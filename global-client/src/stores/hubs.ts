@@ -311,10 +311,11 @@ const useHubs = defineStore('hubs', {
 					});
 				});
 
-				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, () => {
+				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, async () => {
 					global.removeAccessToken(this.currentHubId);
-					// So far this message is not yet used but the hub clients.
-					// This will happen if the client says it's unhappy with its' token so refresh the page to reflect current state.
+					// Save settings to persist the token removal before reloading
+					await global.saveGlobalSettings();
+					// Reload to trigger re-authentication with fresh credentials
 					location.reload();
 				});
 			}
