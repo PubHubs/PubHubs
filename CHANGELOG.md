@@ -11,6 +11,12 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
+- [NEW] The logout now directly goes to the login page, replacing the logout dialog pop up.
+- [BUG] Fixed that there was no indication that the yivi qr code was being loaded on the global-client login page.
+- [BUG] Fixed that the yes button for the join room pop up was not responsive.
+- _internal_ Test the registration flow and login flow for the pubhubs card including normal phone settings, and with battery saver on. Also test the registration flow via the obtain/reobtain button in yivi. If no issues arise set phCard in settings.ts to true for stable.
+- _NOTE:_ We could not activate the phCard last time as Frans got yivi errors when obtaining/reobtaining cards.
+
 ## 4 June 2026 - v3.4.0
 
 - [NEW] User room warnings have been updated to show up above the message input bar.
@@ -31,7 +37,6 @@ _Please add a brief description of any changes and any migrations to be performe
       must be removed before the migration can be re-attempted.
     - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
       to the hub container's entrypoint.
-- _internal_ Test the registration flow and login flow for the pubhubs card including normal phone settings, and with battery saver on. Also test the registration flow via the obtain/reobtain button in yivi. If no issues arise set phCard in settings.ts to true for stable.
 
 ## 28 April 2026 - v3.3.0
 
@@ -58,7 +63,6 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Memberlist is again shown
 - [BUG] Icon reply for root of thread disabled in thread timeline
 - [BUG] Removed timeout for reading of hubs for debugging
-    - _internal_ (remove me after merge): uncomment []
 
 ## 06 February 2026 - v3.2.0
 
