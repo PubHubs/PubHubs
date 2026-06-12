@@ -4,6 +4,7 @@ export type EhpppReq = {
 	hub_nonce: string;
 	hub: string;
 	ppp: string;
+	hub_mac_key?: string;
 };
 
 export type EhppResp = 'RetryWithNewPpp' | { Success: string };

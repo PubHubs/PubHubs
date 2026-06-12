@@ -896,6 +896,7 @@ async fn main_integration_test_local(
         state: hub_state,
         nonce: hub_nonce,
         hhpp_signature_scheme,
+        hub_mac_key,
     } = client
         .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
         .with_retry()
@@ -910,6 +911,7 @@ async fn main_integration_test_local(
                 hub_nonce,
                 hub: mock_hub.context.info.id,
                 ppp,
+                hub_mac_key,
             },
         )
         .with_retry()
@@ -972,6 +974,7 @@ async fn main_integration_test_local(
         state: hub_state,
         nonce: hub_nonce,
         hhpp_signature_scheme,
+        hub_mac_key,
     } = client
         .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
         .with_retry()
@@ -986,6 +989,7 @@ async fn main_integration_test_local(
                 hub_nonce,
                 hub: mock_hub.context.info.id,
                 ppp,
+                hub_mac_key,
             },
         )
         .with_retry()
@@ -1056,6 +1060,7 @@ struct MockHubContext {
     pub info: hub::BasicInfo,
     pub sk: api::SigningKey,
     pub constellation: servers::Constellation,
+    pub mac_key: api::hub::HubMacKey,
 }
 
 impl MockHub {
@@ -1064,6 +1069,7 @@ impl MockHub {
             info,
             sk: api::SigningKey::generate().unwrap(),
             constellation,
+            mac_key: api::hub::HubMacKey::random(),
         });
 
         let mut server_builder = actix_web::HttpServer::new({
@@ -1532,12 +1538,13 @@ async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_
     }))
 }
 
-async fn handle_enter_start(_context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
+async fn handle_enter_start(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
     web::Json(api::Result::Ok(api::hub::EnterStartResp {
         state: api::hub::EnterState::from(B64UU::from(serde_bytes::ByteBuf::from(b"state"))),
         nonce: api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce"))),
         // the mock hub verifies the hybrid composite (see `handle_enter_complete`)
         hhpp_signature_scheme: api::sso::HhppSignatureScheme::HybridInterim,
+        hub_mac_key: Some(context.mac_key.clone()),
     }))
 }
 
@@ -1556,6 +1563,7 @@ async fn handle_enter_complete(
         hashed_hub_pseudonym,
         pp_issued_at: _pp_issued_at,
         hub_nonce,
+        hub_id_mac,
     } = hhpp
         .open(
             &context.constellation.phc_verifying_key.decode().unwrap(),
@@ -1567,6 +1575,8 @@ async fn handle_enter_complete(
         hub_nonce,
         api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce")))
     );
+
+    assert_eq!(hub_id_mac, Some(context.mac_key.mac(&context.info.id)));
 
     web::Json(api::Result::Ok(api::hub::EnterCompleteResp::Entered {
         access_token: base16ct::lower::encode_string(hashed_hub_pseudonym.as_bytes().as_slice()),

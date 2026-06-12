@@ -179,6 +179,7 @@ impl App {
             hub_nonce,
             hub,
             ppp,
+            hub_mac_key,
         } = req.into_inner();
 
         let Ok(api::sso::PolymorphicPseudonymPackage {
@@ -196,11 +197,14 @@ impl App {
             hub,
         );
 
+        let hub_id_mac = hub_mac_key.map(|key| key.mac(&hub));
+
         Ok(EhppResp::Success(api::Sealed::new(
             &api::sso::EncryptedHubPseudonymPackage {
                 encrypted_hub_pseudonym,
                 hub_nonce,
                 phc_nonce,
+                hub_id_mac,
             },
             &running_state.phc_sealing_secret,
         )?))

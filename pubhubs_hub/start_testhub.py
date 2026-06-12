@@ -17,7 +17,8 @@ def main():
                         help="Which hostname to use to (have clients) contact the clients and other servers:"
                         " localhost or 'networkhost', the IP address of the local internet interface. "
                         "Currently pubhubs does not work under 'networkhost' due to it not being a 'secure context' for crypto in the browser. "
-                        "The networkhost _is_, however, always used by the yivi app to contact the yivi server at the hub. ")
+                        "The networkhost _is_, however, always used for the hub server url (public_baseurl): "
+                        "it must match the url PHC advertises for this hub, and the yivi app contacts the hub via it. ")
     parser.add_argument("--networkhost", 
                         default=None,
                         help="Use this networkhost (e.g. '1.2.3.4', '[1::2]') instead of trying to autodetect it. Used e.g. by the yivi app to contact the hub.")
@@ -64,8 +65,9 @@ def main():
             raise RuntimeError(f"unknown mode {args.mode}")
 
     hub_client_url = f"http://{host}:{8001+args.number}"
-    hub_server_url = f"http://{host}:{8008+args.number}"
-    hub_server_url_for_yivi = f"http://{networkhost}:{8008+args.number}"
+    # always the networkhost: it must match the url PHC advertises for this hub (from which the
+    # hub resolves its own id), and the yivi app (which cannot use localhost) contacts the hub via it
+    hub_server_url = f"http://{networkhost}:{8008+args.number}"
     global_client_url = f"http://{host}:8080"
     phc_url = f"http://{host}:5050"
 
@@ -93,7 +95,6 @@ def main():
                     "--environment", "development",
                     "--hub-client-url", hub_client_url,
                     "--hub-server-url", hub_server_url,
-                    "--hub-server-url-for-yivi", hub_server_url_for_yivi,
                     "--global-client-url", global_client_url,
                     *replace_sqlite3_by_postgres,
                     *server_name,

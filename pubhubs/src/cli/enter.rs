@@ -227,6 +227,7 @@ impl EnterArgs {
             state: hub_state,
             nonce: hub_nonce,
             hhpp_signature_scheme,
+            hub_mac_key,
         } = client
             .query_with_retry::<api::hub::EnterStartEP, _, _>(&hub_info.url, api::NoPayload)
             .await
@@ -250,6 +251,7 @@ impl EnterArgs {
                     hub_nonce,
                     hub: hub_info.id,
                     ppp,
+                    hub_mac_key,
                 },
             )
             .with_retry()

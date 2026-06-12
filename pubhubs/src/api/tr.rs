@@ -29,9 +29,17 @@ pub struct EhppReq {
     /// (Hub ids can be obtained via [`phc::user::WelcomeEP`].)
     pub hub: id::Id,
 
-    /// The polymorphic pseudonym from which to create the hub pseudonym.  
+    /// The polymorphic pseudonym from which to create the hub pseudonym.
     /// Can be obtained from [`phc::user::PppEP`].
     pub ppp: Sealed<sso::PolymorphicPseudonymPackage>,
+
+    /// Per-session key from [`hub::EnterStartResp::hub_mac_key`], relayed by the global client; when
+    /// present the transcryptor returns [`sso::EncryptedHubPseudonymPackage::hub_id_mac`] binding
+    /// [`Self::hub`].  `None` for hubs predating the check.
+    ///
+    /// TODO: remove once all hubs are >3.4.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hub_mac_key: Option<hub::HubMacKey>,
 }
 
 /// Returned by [`EhppEP`].

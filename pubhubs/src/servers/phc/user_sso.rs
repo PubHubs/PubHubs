@@ -65,6 +65,7 @@ impl App {
             encrypted_hub_pseudonym,
             hub_nonce,
             phc_nonce,
+            hub_id_mac,
         }) = req.ehpp.open(&running_state.t_sealing_secret)
         else {
             log::debug!("invalid Ehpp submitted to Hhpp endpoint");
@@ -111,6 +112,7 @@ impl App {
             hashed_hub_pseudonym,
             pp_issued_at,
             hub_nonce,
+            hub_id_mac,
         };
 
         // Sign with the key the hub can verify (see `HhppSignatureScheme`): the ed25519 component

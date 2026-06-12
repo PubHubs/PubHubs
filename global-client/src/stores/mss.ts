@@ -151,7 +151,7 @@ const useMSS = defineStore('mss', {
 				const sealedPPP = await this.phcServer.pppEP();
 				assert.isDefined(sealedPPP, 'Something went wrong, sealedPPP should be defined.');
 				const transcryptor = await this.getTranscryptor();
-				const sealedEhpp = await transcryptor.ehppEP(enterStartResp.nonce, id, sealedPPP);
+				const sealedEhpp = await transcryptor.ehppEP({ nonce: enterStartResp.nonce, id, ppp: sealedPPP, hubMacKey: enterStartResp.hub_mac_key });
 
 				if (sealedEhpp === 'RetryWithNewPpp' && attempt < maxAttempts) {
 					continue;
@@ -246,7 +246,7 @@ const useMSS = defineStore('mss', {
 		},
 
 		async getTranscryptor(): Promise<{
-			ehppEP: (nonce: string, id: string, ppp: string) => Promise<string>;
+			ehppEP: (args: { nonce: string; id: string; ppp: string; hubMacKey?: string }) => Promise<string>;
 		}> {
 			if (!this._transcryptor) {
 				await this.initializeServers();

@@ -3,6 +3,8 @@ import json
 import subprocess
 import time
 import math
+import hashlib
+import hmac
 from dataclasses import dataclass
 
 from pathlib import Path
@@ -90,6 +92,7 @@ class Core:
         api.register_web_resource('/_synapse/client/.ph/enter-start', PhEnterStartEP(self))
         api.register_web_resource('/_synapse/client/.ph/enter-complete', PhEnterCompleteEP(self))
         self._constellation = None
+        self._hub_id = None # b64url hub id, set by get_constellation; needed to verify the hub-id mac
         self._constellation_last_update_triggered = 0
         self._phc_verifying_key = None # CompositeKey, set by get_constellation
         self.trigger_get_constellation()
@@ -114,12 +117,19 @@ class Core:
             logger.info("not triggering update of constellation yet")
             return
         self._constellation_last_update_triggered = now
-        twisted.internet.defer.ensureDeferred(self.get_constellation())
+        # in its own logcontext (logs its own failures); a bare ensureDeferred here would leak the
+        # calling request's logcontext into the reactor, killing synapse's looping calls
+        self._api.run_as_background_process("get_constellation", self.get_constellation)
 
     async def get_constellation(self):
         url = urljoin(self._config.phc_url, ".ph/user/welcome")
         logger.info(f"requesting {url}")
-        resp = await self._api.http_client.get_json(url)
+        try:
+            resp = await self._api.http_client.get_json(url)
+        except Exception as e:
+            # expected now and then (e.g. PHC not yet up when we boot); retriggered on demand
+            logger.warn(f"could not retrieve constellation from {url}: {e}")
+            return
         assert("Ok" in resp)
         ok_json = resp['Ok']
         assert("constellation" in ok_json)
@@ -142,6 +152,32 @@ class Core:
         self._constellation = constellation
         self._phc_verifying_key = phc_verifying_key
         logger.info(f"retrieved constellation with id {self._constellation['id']}")
+
+        # Resolve our own hub id (to verify the hub-id mac in enter-complete) from PHC's advertised
+        # hubs, matching our public_baseurl against the hub urls (ignoring paths: PHC advertises
+        # the hub server url with the /_synapse/client/ path attached).
+        my_url = normalize_hub_url(self._api.public_baseurl)
+        ids = [h['id'] for h in ok_json['hubs'].values() if normalize_hub_url(h['url']) == my_url]
+        if len(ids) != 1:
+            logger.error(f"cannot resolve our hub id: expected exactly one advertised hub at {my_url} "
+                         f"(our public_baseurl, {self._api.public_baseurl}), found {len(ids)}; "
+                         "is public_baseurl set to the url this hub is registered with at PHC?")
+            return
+        if self._hub_id is not None and ids[0] != self._hub_id:
+            logger.critical(f"our hub id changed from {self._hub_id} to {ids[0]}! the hub id must never change; "
+                            "keeping the old id, so logins will fail closed (a restart would adopt the new id)")
+            return
+        if self._hub_id is None:
+            logger.info(f"resolved our hub id: {ids[0]}")
+        self._hub_id = ids[0]
+
+def normalize_hub_url(url):
+    """Reduces a url to lowercased scheme://host:port, dropping any path, so a hub's
+    public_baseurl and the url PHC advertises for it compare equal.  Otherwise exact by design
+    (no default-port/trailing-dot canonicalization): the strict host:port match also catches a
+    public_baseurl that disagrees with what PHC has registered."""
+    parts = urlparse(url)
+    return f"{parts.scheme}://{parts.netloc}".lower()
 
 def get_version_string():
     try:
@@ -180,10 +216,13 @@ class PhEnterStartEP(Resource):
     def render_POST(self, request):
         # binds nonce and state
         random = b64url_encode(nacl.utils.random(32))
+        # per-session key the transcryptor macs our hub id with; recovered from the state in enter-complete
+        mac_key = b64url_encode(nacl.utils.random(32))
 
         state = b64url_encode(self._core._secret_box.encrypt(json.dumps({
             'random': random,
-            'iat': time.time()
+            'iat': time.time(),
+            'mac_key': mac_key,
         }).encode('ascii'), b"state"))
 
         nonce = b64url_encode(self._core._secret_box.encrypt(json.dumps({
@@ -197,6 +236,7 @@ class PhEnterStartEP(Resource):
                 'state': state,
                 'nonce': nonce,
                 'hhpp_signature_scheme': BESPOKE_ALG,
+                'hub_mac_key': mac_key,
             }}, send_cors=True)
 
 def bad_request():
@@ -207,6 +247,11 @@ def internal_error():
 
 def please_retry():
     return { 'Err': 'PleaseRetry' }
+
+def verify_hub_id_mac(own_hub_id, mac_key, hub_id_mac):
+    """Whether hub_id_mac == HMAC-SHA256(mac_key, own_hub_id); all args unpadded-base64url strings."""
+    expected = hmac.new(b64url_decode(mac_key), b64url_decode(own_hub_id), hashlib.sha256).digest()
+    return hmac.compare_digest(expected, b64url_decode(hub_id_mac))
 
 
 class PhEnterCompleteEP(Resource):
@@ -245,7 +290,7 @@ class PhEnterCompleteEP(Resource):
             logger.warn(f"invalid state passed to enter complete endpoint: {e}")
             return bad_request()
         
-        if not isinstance(state, dict) or "random" not in state or "iat" not in state:
+        if not isinstance(state, dict) or "random" not in state or "iat" not in state or "mac_key" not in state:
             logger.error("missing fields in enter state")
             return internal_error()
 
@@ -312,6 +357,22 @@ class PhEnterCompleteEP(Resource):
 
         if nonce_random != state_random:
             logger.warn("mismatch between enter nonce and state")
+            return bad_request()
+
+        # Verify the transcryptor pseudonymised for *this* hub: recompute the hub-id mac over our own id
+        # with the per-session key from our state, and reject a mismatch (a client that requested a
+        # different hub's factor).  Fail closed.
+        if self._core._hub_id is None:
+            # not resolved yet (e.g. PHC hadn't listed us at startup); refetch and have the client retry
+            self._core.trigger_get_constellation()
+            return please_retry()
+
+        if 'hub_id_mac' not in claims:
+            logger.warn("hhpp lacks the hub-id mac (stale or non-compliant client)")
+            return bad_request()
+
+        if not verify_hub_id_mac(self._core._hub_id, state['mac_key'], claims['hub_id_mac']):
+            logger.warn("hub-id mac mismatch: transcryptor pseudonymised for a different hub")
             return bad_request()
 
         logger.info(f"enter user with hashed hub pseudonym {hhp}")
