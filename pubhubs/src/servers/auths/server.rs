@@ -55,8 +55,16 @@ impl servers::Details for Details {
         })
     }
 
-    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
-        Ok(ExtraSharedState {})
+    fn create_extra_shared_state(config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+        let mut attribute_types: map::Map<attr::Type> = Default::default();
+
+        for attr_type in config.auths.as_ref().unwrap().attribute_types.iter() {
+            if let Some(handle_or_id) = attribute_types.insert_new(attr_type.clone()) {
+                anyhow::bail!("two attribute types are known as {handle_or_id}");
+            }
+        }
+
+        Ok(ExtraSharedState { attribute_types })
     }
 
     fn create_extra_server_state(config: &servers::Config) -> anyhow::Result<ExtraServerState> {
@@ -71,7 +79,10 @@ impl servers::Details for Details {
     }
 }
 
-pub struct ExtraSharedState {}
+pub struct ExtraSharedState {
+    /// Immutable attribute-type registry, built once from config and shared by all apps.
+    pub attribute_types: map::Map<attr::Type>,
+}
 
 pub struct ExtraServerState {
     pub(super) decap_key: kem::DecapKey,
@@ -96,7 +107,6 @@ pub struct ExtraRunningState {
 /// Authentication server per-thread [`App`] that handles incoming requests.
 pub struct App {
     pub base: AppBase<Server>,
-    pub attribute_types: map::Map<attr::Type>,
     pub yivi: Option<YiviCtx>,
     pub auth_state_secret: crypto::SealingKey,
     pub auth_window: core::time::Duration,
@@ -139,7 +149,7 @@ impl App {
         &'s self,
         attr_type_handle: &handle::Handle,
     ) -> Option<&'s attr::Type> {
-        self.attribute_types.get(attr_type_handle)
+        self.shared.attribute_types.get(attr_type_handle)
     }
 }
 
@@ -209,6 +219,7 @@ impl App {
     /// Implements [`api::auths::WelcomeEP`].
     fn cached_handle_welcome(app: &Self) -> api::Result<api::auths::WelcomeResp> {
         let attr_types: HashMap<handle::Handle, attr::Type> = app
+            .shared
             .attribute_types
             .values()
             .map(|attr_type| (attr_type.handles.preferred().clone(), attr_type.clone()))
@@ -287,7 +298,7 @@ impl crate::servers::App<Server> for App {
             return false;
         }
 
-        auths_verifying_key == &self.verifying_key_bytes
+        auths_verifying_key == &self.shared.verifying_key_bytes
     }
 
     fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
@@ -306,7 +317,6 @@ impl crate::servers::App<Server> for App {
 #[derive(Clone)]
 pub struct AppCreator {
     base: AppCreatorBase<Server>,
-    attribute_types: map::Map<attr::Type>,
     yivi: Option<YiviCtx>,
     auth_state_secret: crypto::SealingKey,
     auth_window: core::time::Duration,
@@ -338,14 +348,6 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let base = AppCreatorBase::<Server>::new(config)?;
 
         let xconf = &config.auths.as_ref().unwrap();
-
-        let mut attribute_types: crate::map::Map<attr::Type> = Default::default();
-
-        for attr_type in xconf.attribute_types.iter() {
-            if let Some(handle_or_id) = attribute_types.insert_new(attr_type.clone()) {
-                anyhow::bail!("two attribute types are known as {handle_or_id}");
-            }
-        }
 
         if let Some(cfg) = xconf.yivi.as_ref() {
             anyhow::ensure!(
@@ -388,7 +390,6 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         Ok(Self {
             base,
-            attribute_types,
             yivi,
             auth_state_secret,
             auth_window,
@@ -406,7 +407,6 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     ) -> App {
         App {
             base: AppBase::new(self.base, handle, generation),
-            attribute_types: self.attribute_types,
             yivi: self.yivi,
             auth_state_secret: self.auth_state_secret,
             auth_window: self.auth_window,

@@ -60,8 +60,16 @@ impl servers::Details for Details {
         })
     }
 
-    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
-        Ok(ExtraSharedState {})
+    fn create_extra_shared_state(config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+        let mut hubs: crate::map::Map<hub::BasicInfo> = Default::default();
+
+        for basic_hub_info in config.phc.as_ref().unwrap().hubs.iter() {
+            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone().into()) {
+                anyhow::bail!("two hubs are known as {hub_or_id}");
+            }
+        }
+
+        Ok(ExtraSharedState { hubs })
     }
 
     fn create_extra_server_state(_config: &servers::Config) -> anyhow::Result<()> {
@@ -69,14 +77,16 @@ impl servers::Details for Details {
     }
 }
 
-pub struct ExtraSharedState {}
+pub struct ExtraSharedState {
+    /// Immutable hub registry, built once from config and shared by all apps.
+    pub hubs: crate::map::Map<hub::BasicInfo>,
+}
 
 pub struct App {
     pub base: AppBase<Server>,
     pub transcryptor_url: url::Url,
     pub auths_url: url::Url,
     pub global_client_url: url::Url,
-    pub hubs: crate::map::Map<hub::BasicInfo>,
     pub master_enc_key_part: elgamal::PrivateKey,
     pub attr_id_secret: Box<[u8]>,
     pub auth_token_secret: crypto::SealingKey,
@@ -262,10 +272,10 @@ impl crate::servers::App<Server> for App {
             phc_url: self.phc_url.clone(),
             // PHC's ed25519 public key (the `ed` half), so pre-hybrid hubs can verify the EdDSA HHPP.
             phc_jwt_key: crate::misc::serde_ext::ByteArray::from(
-                self.signing_key.verifying_key().ed25519_bytes(),
+                self.shared.signing_key.verifying_key().ed25519_bytes(),
             )
             .into(),
-            phc_verifying_key: self.verifying_key_bytes.clone(),
+            phc_verifying_key: self.shared.verifying_key_bytes.clone(),
             transcryptor_url: self.transcryptor_url.clone(),
             // cloned (not moved) so `tdi` stays whole for `master_enc_key_from_sealed_part` below
             transcryptor_verifying_key: tdi.verifying_key.clone(),
@@ -559,7 +569,7 @@ impl HubCacheUpdater {
             unpublished_updates: Cell::new(false),
         });
 
-        for basic_hub_info in app.hubs.values() {
+        for basic_hub_info in app.shared.hubs.values() {
             localset.spawn_local(hcu.clone().handle_hub(basic_hub_info.clone()));
         }
 
@@ -769,7 +779,6 @@ pub struct AppCreator {
     pub transcryptor_url: url::Url,
     pub auths_url: url::Url,
     pub global_client_url: url::Url,
-    pub hubs: crate::map::Map<hub::BasicInfo>,
     pub master_enc_key_part: elgamal::PrivateKey,
     pub attr_id_secret: Box<[u8]>,
     pub auth_token_secret: crypto::SealingKey,
@@ -818,7 +827,6 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             global_client_url: self.global_client_url,
-            hubs: self.hubs,
             master_enc_key_part: self.master_enc_key_part,
             attr_id_secret: self.attr_id_secret,
             auth_token_secret: self.auth_token_secret,
@@ -838,15 +846,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
-        let mut hubs: crate::map::Map<hub::BasicInfo> = Default::default();
-
         let xconf = &config.phc.as_ref().unwrap();
-
-        for basic_hub_info in xconf.hubs.iter() {
-            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone().into()) {
-                anyhow::bail!("two hubs are known as {hub_or_id}");
-            }
-        }
 
         let master_enc_key_part: elgamal::PrivateKey = xconf
             .master_enc_key_part
@@ -867,7 +867,6 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
             auths_url: xconf.auths_url.as_ref().clone(),
             global_client_url: xconf.global_client_url.as_ref().clone(),
-            hubs,
             master_enc_key_part,
             attr_id_secret: <serde_bytes::ByteBuf as Clone>::clone(
                 xconf

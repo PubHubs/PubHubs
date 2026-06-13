@@ -666,13 +666,6 @@ pub struct AppCreatorBase<S: Server> {
     pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub phc_url: url::Url,
     pub self_check_code: String,
-    /// Signing key in encoded form: cheap to clone (this struct is cloned per worker thread), and
-    /// decoding a `PqdsaKeyPair` is never cheap.  Decoded into the live [`api::SigningKey`] once in
-    /// [`AppBase::new`], mirroring how the KEM decap key is carried as bytes and decoded per worker.
-    pub signing_key_bytes: api::SigningKeyBytes,
-    /// Cached verifying-key encoding (cheap to clone), so we don't re-encode it on every discovery
-    /// poll / `check_constellation`.
-    pub verifying_key_bytes: api::VerifyingKeyBytes,
     pub enc_key: Box<[u8]>,
     pub admin_key: crate::misc::jwt::HS256,
     pub shared: SharedState<S>,
@@ -686,8 +679,6 @@ impl<S: Server> Clone for AppCreatorBase<S> {
             running_state: self.running_state.clone(),
             phc_url: self.phc_url.clone(),
             self_check_code: self.self_check_code.clone(),
-            signing_key_bytes: self.signing_key_bytes.clone(),
-            verifying_key_bytes: self.verifying_key_bytes.clone(),
             enc_key: self.enc_key.clone(),
             admin_key: self.admin_key.clone(),
             shared: self.shared.clone(),
@@ -709,18 +700,19 @@ where
 
         let server_config = S::server_config_from(config);
 
-        let signing_key_bytes = server_config
+        // Decode the config-validated signing-key bytes into the live key once here, in the shared
+        // state, instead of per worker thread: a `PqdsaKeyPair` is expensive to construct, and the
+        // key is `Sync`, so all workers share this single decoded copy.  It also survives discovery
+        // restarts, which reuse the shared state rather than rebuilding it.
+        let signing_key = server_config
             .signing_key
             .as_ref()
             .expect("signing_key was not set nor generated")
-            .clone();
-        // Decode once here only to derive and cache the verifying-key encoding; the live signing key
-        // is decoded per worker thread in `AppBase::new`.
-        let verifying_key_bytes = signing_key_bytes
             .decode()
-            .map_err(|_| anyhow::anyhow!("invalid signing_key in config"))?
-            .verifying_key()
-            .encode();
+            .map_err(|_| anyhow::anyhow!("invalid signing_key in config"))?;
+        // Cache the verifying-key encoding so we don't re-encode it on every discovery poll /
+        // `check_constellation`.
+        let verifying_key_bytes = signing_key.verifying_key().encode();
 
         let admin_key = crate::misc::jwt::HS256(
             server_config
@@ -738,8 +730,6 @@ where
                 .self_check_code
                 .clone()
                 .expect("self_check_code was not set nor generated"),
-            signing_key_bytes,
-            verifying_key_bytes,
             enc_key: <serde_bytes::ByteBuf as Clone>::clone(
                 server_config
                     .enc_key
@@ -753,6 +743,8 @@ where
             shared: SharedState::new(SharedStateInner {
                 object_store: TryFrom::try_from(&server_config.object_store)
                     .with_context(|| format!("Creating object store for {}", S::NAME))?,
+                signing_key,
+                verifying_key_bytes,
                 extra: S::create_extra_shared_state(config)?,
             }),
             version: server_config.version.clone(),
@@ -768,9 +760,6 @@ pub struct AppBase<S: Server> {
     pub handle: Handle<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
-    pub signing_key: api::SigningKey,
-    /// Cached verifying-key encoding; see [`AppCreatorBase::verifying_key_bytes`].
-    pub verifying_key_bytes: api::VerifyingKeyBytes,
     pub admin_key: crate::misc::jwt::HS256,
     pub shared: SharedState<S>,
     pub client: client::Client,
@@ -806,19 +795,6 @@ impl<S: Server> AppBase<S> {
             handle: handle.clone(),
             phc_url: creator_base.phc_url,
             self_check_code: creator_base.self_check_code,
-            // Decode the config-validated signing-key bytes into the live key once per worker thread,
-            // mirroring how each worker decodes its own KEM decap key.
-            //
-            // TODO: an ML-DSA `PqdsaKeyPair` is neither `Clone` nor cheaply reconstructible (both
-            // `from_seed` and `from_raw_private_key` cost tens of µs — measured), so each worker
-            // re-derives the key from bytes here.  Once aws-lc-rs offers a cheap clone (e.g. an
-            // `EVP_PKEY_up_ref`-backed `Clone`), carry a live `api::SigningKey` in `AppCreatorBase`
-            // and clone it per worker instead.
-            signing_key: creator_base
-                .signing_key_bytes
-                .decode()
-                .expect("signing_key bytes were validated during config preparation"),
-            verifying_key_bytes: creator_base.verifying_key_bytes,
             admin_key: creator_base.admin_key,
             shared: creator_base.shared,
             client: client::Client::builder()
@@ -1089,7 +1065,7 @@ impl<S: Server> AppBase<S> {
             version: app.version.clone(),
             self_check_code: app.self_check_code.clone(),
             phc_url: app.phc_url.clone(),
-            verifying_key: app.verifying_key_bytes.clone(),
+            verifying_key: app.shared.verifying_key_bytes.clone(),
             master_enc_key_part_hash,
             master_enc_key_part_sealed,
             encap_key: app.encap_key().cloned(),
@@ -1238,6 +1214,15 @@ impl<S: Server> SharedState<S> {
 
 pub struct SharedStateInner<S: Server> {
     pub object_store: S::ObjectStoreT,
+
+    /// Decoded once and shared by all apps: a `PqdsaKeyPair` is expensive to construct, and it's
+    /// `Sync`.
+    pub signing_key: api::SigningKey,
+
+    /// Cached verifying-key encoding, so we don't re-encode it on every discovery poll /
+    /// `check_constellation`.
+    pub verifying_key_bytes: api::VerifyingKeyBytes,
+
     pub extra: S::ExtraSharedState,
 }
 

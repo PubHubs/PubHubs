@@ -120,13 +120,13 @@ impl App {
         // `pp_nonce_validity` (TODO: a dedicated config field for the HHPP's validity?).
         let signed = match hhpp_signature_scheme {
             HhppSignatureScheme::Ed25519 => api::Signed::new_opts(
-                app.signing_key.ed25519_signing_key(),
+                app.shared.signing_key.ed25519_signing_key(),
                 &hhpp,
                 app.pp_nonce_validity,
                 Some(&running_state.constellation),
             )?,
             HhppSignatureScheme::HybridInterim => api::Signed::new_opts(
-                &app.signing_key,
+                &app.shared.signing_key,
                 &hhpp,
                 app.pp_nonce_validity,
                 Some(&running_state.constellation),

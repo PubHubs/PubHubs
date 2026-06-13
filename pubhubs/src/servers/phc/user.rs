@@ -29,6 +29,7 @@ impl App {
         let running_state = app.running_state_or_please_retry()?;
 
         let hubs: HashMap<handle::Handle, hub::BasicInfo> = app
+            .shared
             .hubs
             .values()
             .map(|hub| (hub.handles.preferred().clone(), hub.clone()))

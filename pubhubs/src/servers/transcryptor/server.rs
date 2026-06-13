@@ -138,7 +138,7 @@ impl crate::servers::App<Server> for App {
             return false;
         }
 
-        transcryptor_verifying_key == &self.verifying_key_bytes
+        transcryptor_verifying_key == &self.shared.verifying_key_bytes
             && *transcryptor_master_enc_key_part_hash == self.master_enc_key_part_hash
     }
 

@@ -31,7 +31,7 @@ impl App {
                 }
             })?;
 
-        let Some(hub) = app.hubs.get(&req.handle) else {
+        let Some(hub) = app.shared.hubs.get(&req.handle) else {
             return Ok(TicketResp::UnknownHub);
         };
 
@@ -69,7 +69,7 @@ impl App {
 
         // if so, hand out ticket
         Ok(TicketResp::Success(api::Signed::new(
-            &app.signing_key,
+            &app.shared.signing_key,
             &TicketContent {
                 handle: req.handle,
                 verifying_key,
