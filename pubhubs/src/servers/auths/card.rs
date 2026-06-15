@@ -273,15 +273,7 @@ impl App {
             comment,
         } = req.into_inner();
 
-        let Ok(phc_verifying_key) = running_state.constellation.phc_verifying_key.decode() else {
-            log::warn!(
-                "cannot verify card-pseudonym package: constellation's phc_verifying_key does not \
-                 decode"
-            );
-            return Err(api::ErrorCode::InternalError);
-        };
-
-        let card_pseudonym_package = match cpp_signed.open(&phc_verifying_key, None) {
+        let card_pseudonym_package = match cpp_signed.open(&running_state.phc_verifying_key, None) {
             Ok(cpp) => cpp,
             Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                 return Err(api::ErrorCode::InternalError);

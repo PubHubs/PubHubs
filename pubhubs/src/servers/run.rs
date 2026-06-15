@@ -556,9 +556,19 @@ impl DiscoveryLimiter {
 
                 let new_url = constellation.url(S::NAME).clone();
 
-                let old_running_state = server
-                    .running_state
-                    .replace(RunningState::new(constellation, extra));
+                let new_running_state = match RunningState::new(constellation, extra) {
+                    Ok(running_state) => running_state,
+                    Err(err) => {
+                        log::error!(
+                            "Error while restarting {} after discovery: {}",
+                            S::NAME,
+                            err
+                        );
+                        return false; // do not restart
+                    }
+                };
+
+                let old_running_state = server.running_state.replace(new_running_state);
 
                 // See if our url has changed
                 if old_running_state.is_none_or(|rs| rs.constellation.url(S::NAME) != &new_url) {

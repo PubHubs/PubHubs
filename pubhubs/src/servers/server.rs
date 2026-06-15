@@ -849,12 +849,7 @@ impl<S: Server> AppBase<S> {
 
         let ts_req = signed_req.into_inner();
 
-        let Ok(phc_verifying_key) = running_state.constellation.phc_verifying_key.decode() else {
-            log::warn!("cannot verify hub ping: constellation's phc_verifying_key does not decode");
-            return Err(api::ErrorCode::InternalError);
-        };
-
-        let (req, hub_handle) = match ts_req.open(&phc_verifying_key) {
+        let (req, hub_handle) = match ts_req.open(&running_state.phc_verifying_key) {
             Ok(opened) => opened,
             Err(toe) => return toe.default_verdict(api::server::PingResp::RetryWithNewTicket),
         };
@@ -1160,16 +1155,26 @@ factory_tuple! { A B C D E F G H I J K L M N O P }
 pub struct RunningState<Extra: Clone + core::fmt::Debug> {
     pub constellation: Box<Constellation>,
 
+    /// PHC's hybrid verifying key, decoded once here from `constellation.phc_verifying_key` rather
+    /// than re-parsing the ML-DSA key on every request that opens a PHC-signed ticket or package.
+    pub phc_verifying_key: api::VerifyingKey,
+
     /// Accessible via [`Deref`].
     extra: Extra,
 }
 
 impl<Extra: Clone + core::fmt::Debug> RunningState<Extra> {
-    pub(crate) fn new(constellation: Constellation, extra: Extra) -> Self {
-        RunningState {
+    pub(crate) fn new(constellation: Constellation, extra: Extra) -> Result<Self> {
+        let phc_verifying_key = constellation
+            .phc_verifying_key
+            .decode()
+            .map_err(|_| anyhow::anyhow!("constellation's phc_verifying_key does not decode"))?;
+
+        Ok(RunningState {
             constellation: Box::new(constellation),
+            phc_verifying_key,
             extra,
-        }
+        })
     }
 }
 
