@@ -110,6 +110,7 @@ pub struct App {
     pub yivi: Option<YiviCtx>,
     pub auth_state_secret: crypto::SealingKey,
     pub auth_window: core::time::Duration,
+    pub max_attr_types_per_req: usize,
     pub attr_key_secret: Vec<u8>,
     pub chained_sessions_ctl: Option<ChainedSessionsCtl>,
     pub encap_key: kem::EncapKeyBytes,
@@ -320,6 +321,7 @@ pub struct AppCreator {
     yivi: Option<YiviCtx>,
     auth_state_secret: crypto::SealingKey,
     auth_window: core::time::Duration,
+    max_attr_types_per_req: usize,
     attr_key_secret: Vec<u8>,
     chained_sessions_ctl: Option<ChainedSessionsCtl>,
     encap_key: kem::EncapKeyBytes,
@@ -370,6 +372,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         let auth_window = xconf.auth_window;
 
+        let max_attr_types_per_req = xconf.max_attr_types_per_req;
+
         let attr_key_secret = xconf
             .attr_key_secret
             .as_ref()
@@ -393,6 +397,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             yivi,
             auth_state_secret,
             auth_window,
+            max_attr_types_per_req,
             attr_key_secret,
             chained_sessions_ctl,
             encap_key,
@@ -410,6 +415,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             yivi: self.yivi,
             auth_state_secret: self.auth_state_secret,
             auth_window: self.auth_window,
+            max_attr_types_per_req: self.max_attr_types_per_req,
             attr_key_secret: self.attr_key_secret,
             chained_sessions_ctl: self.chained_sessions_ctl,
             encap_key: self.encap_key,

@@ -40,6 +40,24 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         }
 
+        // Bound the work (and the size of the signed disclosure request and sealed state) that an
+        // anonymous request can trigger; a real request asks for only a few attribute types.
+        let max = app.max_attr_types_per_req;
+        if req.attr_types.len() > max
+            || req.attr_type_choices.len() > max
+            || req
+                .attr_type_choices
+                .iter()
+                .any(|choices| choices.len() > max)
+        {
+            log::debug!(
+                "rejecting AuthStartReq: it requests more than {max} attribute types (or alternatives \
+                 per type); this limit is set by the authentication server's `max_attr_types_per_req` \
+                 config option"
+            );
+            return Err(api::ErrorCode::BadRequest);
+        }
+
         let attr_type_choices = if req.attr_type_choices.is_empty() {
             req.attr_types.into_iter().map(|at| vec![at]).collect()
         } else {
