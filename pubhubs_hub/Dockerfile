@@ -26,7 +26,9 @@ RUN pip install --no-cache-dir livekit-api
 # Post-quantum HHPP verification (modules/pubhubs/_hhpp.py) needs ML-DSA, which requires
 # cryptography>=48 (its manylinux wheels bundle OpenSSL 3.5); the synapse base image ships an older
 # one.  Keep in sync with the floor in requirements.txt.  The hub refuses to start without it.
-RUN pip install --no-cache-dir 'cryptography>=48.0.0'
+# Also upgrade pyOpenSSL: cryptography>=49 removed the _lib.GEN_EMAIL binding that the base image's
+# older pyOpenSSL references at import ("AttributeError: module 'lib' has no attribute 'GEN_EMAIL'").
+RUN pip install --no-cache-dir 'cryptography>=48.0.0' 'pyOpenSSL>=26.3.0'
 
 RUN apt-get update && \
 	apt-get install -y -q postgresql sudo && \

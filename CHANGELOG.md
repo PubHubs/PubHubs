@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
+- [BUG] Fixed the hub crashing on startup after an image rebuild (`module 'lib' has no attribute 'GEN_EMAIL'`); Dockerfile now upgrades pyOpenSSL with cryptography. **Cherry-pick to stable if hotfixing**, because upon tagging the same problem will appear on stable too.
 - [NEW] The logout now directly goes to the login page, replacing the logout dialog pop up.
 - [BUG] Fixed that there was no indication that the yivi qr code was being loaded on the global-client login page.
 - [BUG] Fixed that the yes button for the join room pop up was not responsive.
