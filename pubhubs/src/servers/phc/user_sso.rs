@@ -31,7 +31,7 @@ impl App {
 
         let nonce_inner = PpNonceInner {
             user_id: user_state.id,
-            not_valid_after: now + app.pp_nonce_validity,
+            not_valid_after: now.add_clamp(app.pp_nonce_validity.as_secs()),
             issued_at: now,
         };
 

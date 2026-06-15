@@ -271,12 +271,12 @@ impl Claims {
 
     /// Sets `exp` claim such that the jwt is valid for the given `duration`.
     pub fn exp_after(self, duration: std::time::Duration) -> Result<Self, Error> {
-        self.claim("exp", NumericDate::now() + duration)
+        self.claim("exp", NumericDate::now().add_clamp(duration.as_secs()))
     }
 
     /// Sets `nbf` to the current timestamp, minus 30 seconds leeway.
     pub fn nbf(self) -> Result<Self, Error> {
-        self.claim("nbf", NumericDate::now() - 30)
+        self.claim("nbf", NumericDate::now().sub_clamp(30))
     }
 
     /// Signs these claims, returning a [`JWT`].
@@ -296,24 +296,61 @@ impl Claims {
 /// which each day is accounted for by exactly 86400 seconds, other
 /// than that non-integer values can be represented."
 ///
-/// But contrary to this, we will reject negative timestamps with an error,
-/// and silently round down non-negative decimals to the nearest u64.
+/// But contrary to this, we reject negative timestamps — and timestamps beyond the invariant upper
+/// bound below (the last second of year 9999) — with an error, and silently round down
+/// non-negative decimals to the nearest u64.
+///
+/// # Invariant
+///
+/// `timestamp <= MAX_TIMESTAMP_SECS`, the last second of year 9999 and the largest instant
+/// representable in RFC3339.  Construction and arithmetic go through [`new_clamp`](Self::new_clamp),
+/// [`add_clamp`](Self::add_clamp) and [`sub_clamp`](Self::sub_clamp), which saturate into range; the
+/// `Deserialize` and `TryFrom<SystemTime>` impls instead *reject* an out-of-range value with an
+/// error.
+///
+/// The bound is a safety property, not just tidiness.  The `exp`/`nbf`/`iat` claims are
+/// attacker-controlled, and a value near `u64::MAX` overflows [`std::time::SystemTime`] — whose
+/// addition panics above `i64::MAX` seconds — the moment the date is formatted into a log or error
+/// message (e.g. the "not yet valid" message built from a bogus far-future `nbf`).  Staying in
+/// range also keeps `humantime` rendering the year correctly.  Because the invariant holds, the
+/// `From<&NumericDate> for SystemTime` conversion is total and lossless, so serializing and then
+/// deserializing a `NumericDate` round-trips faithfully.
+///
+/// The range operations are named (`*_clamp`) rather than `+`/`-`/`new` so the saturating behaviour
+/// is explicit at the call site and never silently surprises the reader.
 #[derive(Serialize, Default, Clone, Copy, Eq, PartialEq, Debug, PartialOrd, Ord)]
 #[serde(transparent)]
 pub struct NumericDate {
     timestamp: u64,
 }
 
+/// Invariant upper bound of [`NumericDate`] (see its docs): `9999-12-31T23:59:59Z`.
+pub(crate) const MAX_TIMESTAMP_SECS: u64 = 253_402_300_799;
+
 impl NumericDate {
-    /// Creates a new numeric date from the given `timestamp`, the  number of seconds since the
-    /// unix epoch ignoring leap seconds.
-    pub fn new(timestamp: u64) -> Self {
-        Self { timestamp }
+    /// Creates a numeric date from `timestamp`, the number of seconds since the unix epoch
+    /// (ignoring leap seconds), saturating at [`MAX_TIMESTAMP_SECS`] to uphold the invariant.
+    pub fn new_clamp(timestamp: u64) -> Self {
+        Self {
+            timestamp: timestamp.min(MAX_TIMESTAMP_SECS),
+        }
+    }
+
+    /// Adds `secs` seconds, saturating at [`MAX_TIMESTAMP_SECS`].
+    pub fn add_clamp(self, secs: u64) -> Self {
+        Self::new_clamp(self.timestamp.saturating_add(secs))
+    }
+
+    /// Subtracts `secs` seconds, saturating at zero.
+    pub fn sub_clamp(self, secs: u64) -> Self {
+        Self::new_clamp(self.timestamp.saturating_sub(secs))
     }
 
     /// Creates a numeric date representing the current moment
     pub fn now() -> Self {
-        std::time::SystemTime::now().into()
+        std::time::SystemTime::now()
+            .try_into()
+            .expect("system clock not between 1970 and 9999")
     }
 
     /// Returns the number of seconds this date is after the unix epoch.
@@ -337,18 +374,36 @@ impl NumericDate {
     }
 }
 
-impl From<std::time::SystemTime> for NumericDate {
-    fn from(st: std::time::SystemTime) -> Self {
-        Self::new(
-            st.duration_since(std::time::UNIX_EPOCH)
-                .expect("before unix epoch")
-                .as_secs(),
-        )
+/// A value falls outside the [`NumericDate`] invariant range (before the unix epoch, or after the
+/// last second of year 9999).  Returned by fallible, non-clamping operations such as the
+/// `TryFrom<SystemTime>` conversion.
+#[derive(Debug, thiserror::Error)]
+#[error("value is out of NumericDate range (before 1970, or after year 9999)")]
+pub struct OutOfRange;
+
+impl TryFrom<std::time::SystemTime> for NumericDate {
+    type Error = OutOfRange;
+
+    /// Fallible (not [`From`] with a clamp) so a far-future `SystemTime` can never be silently
+    /// rewritten — even if a future caller feeds in a time that isn't the (sane) system clock.
+    fn try_from(st: std::time::SystemTime) -> Result<Self, Self::Error> {
+        let secs = st
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| OutOfRange)?
+            .as_secs();
+
+        if secs > MAX_TIMESTAMP_SECS {
+            return Err(OutOfRange);
+        }
+
+        Ok(Self { timestamp: secs })
     }
 }
 
 impl From<&NumericDate> for std::time::SystemTime {
     fn from(nd: &NumericDate) -> Self {
+        // Total by the NumericDate invariant (`timestamp <= MAX_TIMESTAMP_SECS`, far below the
+        // SystemTime overflow point), so this never panics.
         std::time::UNIX_EPOCH + std::time::Duration::from_secs(nd.timestamp)
     }
 }
@@ -372,11 +427,19 @@ impl Visitor<'_> for NumericDateVisitor {
     type Value = NumericDate;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "a non-negative number")
+        write!(
+            f,
+            "a non-negative number no greater than {MAX_TIMESTAMP_SECS}"
+        )
     }
 
     fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<Self::Value, E> {
-        Ok(NumericDate::new(v))
+        // Reject out-of-range timestamps at this untrusted boundary (rather than clamping) so a
+        // bogus far-future claim is treated as invalid, not silently rewritten.
+        if v > MAX_TIMESTAMP_SECS {
+            return Err(E::invalid_value(serde::de::Unexpected::Unsigned(v), &self));
+        }
+        Ok(NumericDate::new_clamp(v))
     }
 
     fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<Self::Value, E> {
@@ -396,32 +459,6 @@ impl Visitor<'_> for NumericDateVisitor {
     }
 
     // NOTE: u/i128 are not supported by serde_json by default
-}
-
-impl core::ops::Add<std::time::Duration> for NumericDate {
-    type Output = Self;
-
-    fn add(self, duration: std::time::Duration) -> Self::Output {
-        self + duration.as_secs()
-    }
-}
-
-impl core::ops::Add<u64> for NumericDate {
-    type Output = Self;
-
-    fn add(mut self, secs: u64) -> Self::Output {
-        self.timestamp += secs;
-        self
-    }
-}
-
-impl core::ops::Sub<u64> for NumericDate {
-    type Output = Self;
-
-    fn sub(mut self, secs: u64) -> Self::Output {
-        self.timestamp -= secs;
-        self
-    }
 }
 
 impl From<String> for JWT {
@@ -1132,6 +1169,31 @@ mod tests {
                 .timestamp,
             1
         );
+
+        // The invariant upper bound (year 9999) deserializes; anything past it is rejected rather
+        // than accepted and later panicking when formatted (a bogus far-future `nbf` was a DoS).
+        assert!(NumericDate::deserialize(serde_json::json!(MAX_TIMESTAMP_SECS)).is_ok());
+        assert!(NumericDate::deserialize(serde_json::json!(MAX_TIMESTAMP_SECS + 1)).is_err());
+        assert!(NumericDate::deserialize(serde_json::json!(u64::MAX)).is_err());
+
+        // The boundary value still converts to a SystemTime and renders — no panic.
+        assert_eq!(
+            NumericDate::new_clamp(MAX_TIMESTAMP_SECS).date(),
+            "9999-12-31"
+        );
+    }
+
+    #[test]
+    fn numericdate_clamps_and_saturates() {
+        assert_eq!(
+            NumericDate::new_clamp(u64::MAX).timestamp(),
+            MAX_TIMESTAMP_SECS
+        );
+        assert_eq!(
+            NumericDate::new_clamp(0).add_clamp(u64::MAX).timestamp(),
+            MAX_TIMESTAMP_SECS
+        );
+        assert_eq!(NumericDate::new_clamp(5).sub_clamp(10).timestamp(), 0);
     }
 
     #[test]

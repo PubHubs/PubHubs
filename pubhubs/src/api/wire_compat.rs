@@ -125,7 +125,7 @@ fn wire_compat() {
     let id: id::Id = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         .parse()
         .unwrap();
-    let ts = NumericDate::new(1_700_000_000);
+    let ts = NumericDate::new_clamp(1_700_000_000);
     let phc_url: url::Url = "https://phc.example.test/".parse().unwrap();
     let tr_url: url::Url = "https://tr.example.test/".parse().unwrap();
     let auths_url: url::Url = "https://auths.example.test/".parse().unwrap();

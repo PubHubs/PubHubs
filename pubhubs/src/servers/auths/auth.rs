@@ -49,7 +49,7 @@ impl App {
         let state = AuthState {
             source: req.source,
             attr_type_choices,
-            exp: api::NumericDate::now() + app.auth_window,
+            exp: api::NumericDate::now().add_clamp(app.auth_window.as_secs()),
             yivi_chained_session: None,
             yivi_ati2at: Default::default(),
         };

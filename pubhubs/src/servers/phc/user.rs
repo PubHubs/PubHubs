@@ -663,7 +663,7 @@ impl App {
         }
 
         let iat = jwt::NumericDate::now();
-        let exp = iat + self.auth_token_validity;
+        let exp = iat.add_clamp(self.auth_token_validity.as_secs());
         Ok(Ok(AuthTokenPackage {
             expires: exp,
             auth_token: AuthTokenInner {

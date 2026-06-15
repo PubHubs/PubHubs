@@ -96,7 +96,7 @@ impl CardValidFor {
             })
             .collect();
 
-        let unix_epoch = api::NumericDate::new(0);
+        let unix_epoch = api::NumericDate::new_clamp(0);
 
         'epoch_present: {
             if let Some(hcv) = list.front()
@@ -132,7 +132,7 @@ pub struct HistoricCardValidFor {
 impl Default for HistoricCardValidFor {
     fn default() -> Self {
         Self {
-            starting_epoch: yivi::Epoch::with_seqnr(0),
+            starting_epoch: yivi::Epoch::default(),
             value: core::time::Duration::from_secs(2 * 7 * 24 * 3600), // two weeks
         }
     }
@@ -337,23 +337,26 @@ mod tests {
 
         assert_eq!(cvf.now(), core::time::Duration::from_hours(5 * 24 * 7));
         assert_eq!(
-            cvf.at(api::NumericDate::from(
+            cvf.at(api::NumericDate::try_from(
                 humantime::parse_rfc3339_weak("1980-01-01 00:00:00").unwrap()
-            )),
+            )
+            .unwrap()),
             core::time::Duration::from_hours(4 * 24 * 7)
         );
         assert_eq!(
-            cvf.at(api::NumericDate::from(
+            cvf.at(api::NumericDate::try_from(
                 // start of epoch 512
                 humantime::parse_rfc3339_weak("1979-12-27T00:00:00").unwrap()
-            )),
+            )
+            .unwrap()),
             core::time::Duration::from_hours(4 * 24 * 7)
         );
         assert_eq!(
-            cvf.at(api::NumericDate::from(
+            cvf.at(api::NumericDate::try_from(
                 // the second before epoch 512 starts
                 humantime::parse_rfc3339_weak("1979-12-26T23:59:59").unwrap()
-            )),
+            )
+            .unwrap()),
             core::time::Duration::from_hours(2 * 24 * 7)
         );
     }

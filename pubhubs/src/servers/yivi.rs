@@ -273,7 +273,7 @@ impl CredentialToBeIssued {
 
     pub fn valid_for(self, duration: std::time::Duration) -> Self {
         Self {
-            validity: Some(api::NumericDate::now() + duration),
+            validity: Some(api::NumericDate::now().add_clamp(duration.as_secs())),
             ..self
         }
     }
@@ -920,9 +920,20 @@ impl SessionType {
 /// Represents a Yivi _epoch_ by its sequence number.  The `0`th epoch starts at 1970-01-01T00:00:00Z
 /// and each epoch lasts exactly $60 \cdot 60 \cdot 24 \cdot 7$ seconds (= 1 week).
 #[derive(
-    Debug, Clone, Copy, PartialOrd, Ord, Eq, PartialEq, serde::Serialize, serde::Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialOrd,
+    Ord,
+    Eq,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
 )]
-#[serde(transparent)]
+// `try_from`/`into` (rather than `transparent`) keep the bare-u64 wire format while validating the
+// sequence number on the way in — see `Epoch::MAX_SEQNR`.
+#[serde(try_from = "u64", into = "u64")]
 pub struct Epoch {
     seqnr: u64,
 }
@@ -933,29 +944,62 @@ impl Epoch {
         60 * 60 * 24 * 7
     }
 
+    /// Largest valid sequence number: beyond it an epoch's *start* falls outside the representable
+    /// [`NumericDate`](api::NumericDate) range.  `From<NumericDate>` never produces a larger one.
+    /// The last valid epoch *contains* the maximal instant, so its *end* is unrepresentable and
+    /// [`ends`](Self::ends) saturates there.
+    const MAX_SEQNR: u64 = jwt::MAX_TIMESTAMP_SECS / Self::seconds();
+
     /// Returns the current Yivi epoch
     pub fn current() -> Epoch {
         api::NumericDate::now().into()
     }
 
-    /// Returns the Yivi epoch with the given sequence number
-    pub fn with_seqnr(seqnr: u64) -> Self {
-        Self { seqnr }
+    /// Returns the Yivi epoch with the given sequence number, or [`jwt::OutOfRange`] when it is so
+    /// large that the epoch would fall outside the representable [`NumericDate`](api::NumericDate)
+    /// range.
+    pub fn with_seqnr(seqnr: u64) -> Result<Self, jwt::OutOfRange> {
+        if seqnr > Self::MAX_SEQNR {
+            return Err(jwt::OutOfRange);
+        }
+        Ok(Self { seqnr })
     }
 
-    /// Returns the second of this epoch starts
+    /// Returns the second this epoch starts
     pub fn starts(&self) -> api::NumericDate {
-        api::NumericDate::new(self.seqnr * Self::seconds())
+        // `seqnr <= MAX_SEQNR` (invariant), so the product is in range and cannot overflow.
+        api::NumericDate::new_clamp(self.seqnr * Self::seconds())
     }
 
-    /// Returns the first second of the next epoch
+    /// Returns the first second of the next epoch.
+    ///
+    /// For the last representable epoch — whose successor would start after year 9999, never a
+    /// real, present-day epoch — this saturates to the maximal representable instant rather than
+    /// going out of range.
     pub fn ends(&self) -> api::NumericDate {
-        api::NumericDate::new((self.seqnr + 1) * Self::seconds())
+        // `seqnr <= MAX_SEQNR`, so `(seqnr + 1) * seconds()` cannot overflow u64; `new_clamp`
+        // saturates the single epoch whose end falls past year 9999 (see the doc above).
+        api::NumericDate::new_clamp((self.seqnr + 1) * Self::seconds())
+    }
+}
+
+impl TryFrom<u64> for Epoch {
+    type Error = jwt::OutOfRange;
+
+    fn try_from(seqnr: u64) -> Result<Self, Self::Error> {
+        Self::with_seqnr(seqnr)
+    }
+}
+
+impl From<Epoch> for u64 {
+    fn from(epoch: Epoch) -> u64 {
+        epoch.seqnr
     }
 }
 
 impl From<api::NumericDate> for Epoch {
     fn from(nd: api::NumericDate) -> Self {
+        // `nd.timestamp() <= MAX_TIMESTAMP_SECS`, so `seqnr <= MAX_SEQNR`: the invariant holds.
         Self {
             seqnr: nd.timestamp() / Self::seconds(),
         }
@@ -1058,5 +1102,28 @@ mod test {
                 ),
             ]
         );
+    }
+
+    #[test]
+    fn epoch_boundary() {
+        // The largest accepted sequence number is the one whose epoch contains the last
+        // representable instant (year 9999); one past it is rejected, both by `with_seqnr` and by
+        // deserialization.
+        assert!(Epoch::with_seqnr(Epoch::MAX_SEQNR).is_ok());
+        assert!(Epoch::with_seqnr(Epoch::MAX_SEQNR + 1).is_err());
+        assert!(serde_json::from_value::<Epoch>(serde_json::json!(Epoch::MAX_SEQNR)).is_ok());
+        assert!(serde_json::from_value::<Epoch>(serde_json::json!(Epoch::MAX_SEQNR + 1)).is_err());
+
+        // `From<NumericDate>` of the last representable instant yields exactly MAX_SEQNR — never a
+        // larger, would-be-rejected one.
+        let max_date = api::NumericDate::new_clamp(jwt::MAX_TIMESTAMP_SECS);
+        assert_eq!(Epoch::from(max_date).seqnr, Epoch::MAX_SEQNR);
+
+        // The last epoch has no representable end, so `ends()` — and hence `Display`, which calls
+        // it — saturates to the maximal instant instead of panicking.
+        let last = Epoch::with_seqnr(Epoch::MAX_SEQNR).unwrap();
+        assert!(last.starts().timestamp() <= jwt::MAX_TIMESTAMP_SECS);
+        assert_eq!(last.ends().timestamp(), jwt::MAX_TIMESTAMP_SECS);
+        let _ = last.to_string(); // must not panic
     }
 }
