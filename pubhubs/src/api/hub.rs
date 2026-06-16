@@ -33,10 +33,33 @@ pub struct InfoResp {
     /// URL to this hub's client
     pub hub_client_url: url::Url,
 
+    /// The database engine the hub is currently running on, which lets us track which hubs
+    /// have completed the sqlite3 -> postgres migration.  Defaults to [`DatabaseEngine::Unknown`]
+    /// for hubs predating this field.
+    #[serde(default)]
+    pub database_engine: DatabaseEngine,
+
     /// Changeable information about this hub.
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dynamic: Option<DynamicHubInfo>,
+}
+
+/// Database engine a hub runs on; reported by [`InfoResp::database_engine`].
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum DatabaseEngine {
+    /// Synapse's built-in sqlite3 database: a hub that has not (yet) migrated.
+    Sqlite3,
+
+    /// The embedded postgres database: a hub that has completed the migration.
+    Postgres,
+
+    /// Reported by hubs predating this field, or running an unrecognised engine.  Also the
+    /// catch-all for any engine string we don't know, so a new engine never fails to parse.
+    #[default]
+    #[serde(other)]
+    Unknown,
 }
 
 /// Type for [`InfoResp::dynamic`]

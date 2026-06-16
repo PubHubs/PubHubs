@@ -1,6 +1,9 @@
 # Dependencies the hub imports directly or pins itself.
 # ML-DSA (post-quantum) HHPP verification; >=48 ships ML-DSA via bundled OpenSSL 3.5 wheels
 cryptography>=48.0.0
+# cryptography>=49 dropped the _lib.GEN_EMAIL binding that older pyOpenSSL referenced at
+# import; pin pyOpenSSL forward to match.  Keep in sync with the floor in pubhubs_hub/Dockerfile.
+pyOpenSSL>=26.3.0
 twisted>=24.11.0
 livekit-api>=1.0.2
 # pseudonyms.py imports synapse.handlers.oidc, which needs authlib; synapse declares it only under

@@ -24,6 +24,7 @@ from prometheus_client import Gauge
 
 from synapse.module_api import ModuleApi
 from synapse.http.server import respond_with_json, respond_with_json_bytes
+from synapse.storage.engines import PostgresEngine, Sqlite3Engine
 
 try:
     import conf.modules.pseudonyms
@@ -72,9 +73,22 @@ class Core:
             version_string
             ).set(1)
 
-        # [Endpoints] 
-        hub_info = { 
+        # The database engine synapse is actually connected through this boot, so we can
+        # track which hubs have completed the sqlite3 -> postgres migration ('postgres')
+        # and which are still on (or deferring to) sqlite3 ('sqlite3').  Must match the
+        # rust enum api::hub::DatabaseEngine: 'sqlite3', 'postgres' or 'unknown'.
+        engine = self._api._store.db_pool.engine
+        if isinstance(engine, PostgresEngine):
+            database_engine = 'postgres'
+        elif isinstance(engine, Sqlite3Engine):
+            database_engine = 'sqlite3'
+        else:
+            database_engine = 'unknown'
+
+        # [Endpoints]
+        hub_info = {
                     'hub_version': version_string,
+                    'database_engine': database_engine,
                     'dynamic': { 'last_reload': 0 }
         }
 

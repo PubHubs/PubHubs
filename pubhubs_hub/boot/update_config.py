@@ -20,6 +20,16 @@ logging.basicConfig(
 
 logger = logging.getLogger()
 
+
+def sqlite3_path_in(config: dict):
+    """The sqlite3 database path configured in a parsed homeserver config, or None when the
+    configured database engine is not sqlite3."""
+    db = config.get('database') or {}
+    if db.get('name') != 'sqlite3':
+        return None
+    return (db.get('args') or {}).get('database')
+
+
 class CheckEnvironment(Enum):
     DEVELOPMENT = "dont change"
     PRODUCTION = "change"
@@ -139,9 +149,7 @@ class UpdateConfig:
                     continue
                 module['config']['global_client_url'] = self._global_client_url
 
-        db = homeserver.get('database', {})
-        if db.get('name') == 'sqlite3':
-            self._sqlite3_path = db.get('args', {}).get('database')
+        self._sqlite3_path = sqlite3_path_in(homeserver)
 
         if self._replace_sqlite3_by_postgres:
             self._maybe_replace_sqlite3_by_postgres(homeserver)

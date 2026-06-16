@@ -2,16 +2,36 @@
 
 import argparse
 import subprocess
-import threading
 import update_config
 import os
 import sys
+import signal
 import shutil
 import time
 import yaml
 import sqlite3
 import psycopg2
 import contextlib
+import atexit
+import collections
+
+# The embedded postgres data directory.
+PG_DATA_DIR = "/data/postgres"
+
+# How long _stop_all waits, in total, for the services to exit cleanly on shutdown.
+# Kept under docker's default 10s stop grace so postgres can finish (and remove its
+# postmaster.pid) before docker escalates to an uncatchable SIGKILL.
+STOP_GRACE = 8
+
+# A long-running child process and how to stop it: `stop` is a callable invoked with
+# `proc` to shut the service down cleanly.
+Service = collections.namedtuple("Service", ("name", "proc", "stop"))
+
+
+def _terminate(proc):
+    """Default service stopper: request a clean exit via SIGTERM (non-blocking;
+    _stop_all waits for the actual exit)."""
+    proc.terminate()
 
 def main():
     parser = argparse.ArgumentParser(
@@ -44,16 +64,140 @@ def main():
 class Program:
     def __init__(self, args):
         self._args = args
-        self._waiter = Waiter()
+        # Long-running services, in start order.
+        self._services = []
 
     def run(self):
+        # start_hub.py is the container's PID 1.  Line-buffer our own stdout so progress
+        # and shutdown lines reach `docker logs` promptly.  This governs only this
+        # script's handful of print()s; the children -- synapse in particular -- write to
+        # the shared fd through their own logging and are unaffected by this setting.
+        sys.stdout.reconfigure(line_buffering=True)
+
+        # The kernel drops signals that we have installed no handler for, so docker
+        # stop's SIGTERM would be ignored until it escalates to an uncatchable SIGKILL.
+        # Turn the stop signals into a normal interpreter exit so the atexit cleanup runs.
+        # (SIGKILL still can't be caught; the services are then SIGKILLed -- harmless
+        # beyond a slower next boot for postgres.)
+        signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+        signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
+
+        # A stop signal during _setup() -- e.g. mid sqlite->postgres migration -- also
+        # exits 0, which looks successful despite leaving a half-done migration.  We
+        # accept that: the next boot refuses a data-dir-present-but-no-.bak state (the
+        # guard in _run_postgres) rather than serving a half-migrated database.  Recovery
+        # is manual (the guard prints the steps); this exit code does not affect that.
+
+        # Clean up however we leave: normal exit, a stopped service, an exception, or a
+        # stop signal (all of which now run atexit).
+        atexit.register(self._stop_all)
+
+        self._setup()
+        names = self._wait_for_exits()
+        print(f"{', '.join(names)} exited; shutting down ...")
+        sys.exit(1)
+
+    def _start(self, name, args, stop=_terminate, **popen_kwargs):
+        """Start a long-running service and track it so we can wait on and stop it.
+
+        `stop` is called with the service's Popen to shut it down cleanly; it defaults to
+        SIGTERM (_terminate).
+        """
+        proc = subprocess.Popen(args, **popen_kwargs)
+        self._services.append(Service(name, proc, stop))
+        return proc
+
+    def _wait_for_exits(self):
+        """Block until one or more services exit, then return all their names.
+
+        A plain poll loop -- no threads.  A stop signal interrupts the sleep and exits
+        via atexit.  One second of latency to notice a crash is fine for a supervisor.
+        Returning every process that died within the same poll tick avoids blaming an
+        arbitrary one when several go down together.
+
+        We poll only our own tracked services and deliberately do NOT waitpid(-1) to reap
+        arbitrary reparented orphans.  As PID 1 we *could* collect zombies from orphaned
+        grandchildren, but the kernel reaps the whole PID namespace on container exit, and
+        nothing in this tree orphans children at a meaningful rate (sudo wrappers are reaped
+        by subprocess.run, the postmaster reaps its own backends), so a reaper / tini is not
+        worth it.  Don't be tempted to add one without first seeing real <defunct> buildup.
+        """
+        while True:
+            dead = [s.name for s in self._services if s.proc.poll() is not None]
+            if dead:
+                return dead
+            time.sleep(1)
+
+    def _stop_all(self):
+        """Best-effort clean stop of every running service (atexit handler).
+
+        Two phases: first ask each service to stop, in reverse start order with a short
+        pause between each so a dependent (synapse) starts releasing its connections before
+        the service it depends on (postgres) is stopped; then wait -- bounded by STOP_GRACE
+        in total -- for them all to exit.  The stop() calls themselves are non-blocking.
+
+        Best effort, not a guarantee: whatever is still alive when STOP_GRACE elapses (or
+        when we exit) is left to the kernel SIGKILL as the PID namespace is torn down -- at
+        worst a slower next boot for postgres, never corruption.  The stops are issued one
+        at a time with a pause between them (below, so synapse releases its connections
+        before postgres goes away), and we do not block stop signals during teardown -- so a
+        second SIGTERM/Ctrl-C raises through this handler and can cut teardown short before
+        every service, postgres included, has been asked to stop.  Accepted: the normal
+        single-signal stop runs the full teardown.
+        """
+        # Start the clock before issuing the stops: those should not block, but if one
+        # ever does, that time still counts against the grace rather than extending it.
+        deadline = time.monotonic() + STOP_GRACE
+        for s in reversed(self._services):
+            if s.proc.poll() is not None:
+                continue
+            print(f"Stopping {s.name} ...")
+            # Never let one service's stopper abort the teardown of the others: a raising
+            # stop() (e.g. a spawn failure inside _stop_postgres) would otherwise propagate
+            # out of this atexit handler and skip every remaining stop and wait.
+            try:
+                s.stop(s.proc)
+            except Exception as e:
+                print(f"WARNING: stopping {s.name} raised {e!r}; continuing teardown.")
+            # Give each service a moment to act on the stop -- and, for synapse, to begin
+            # releasing its postgres connections -- before stopping the one it depends on.
+            time.sleep(0.5)
+
+        for s in self._services:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                still_running = [t.name for t in self._services if t.proc.poll() is None]
+                print(f"WARNING: shutdown grace ({STOP_GRACE}s) elapsed; leaving "
+                      f"{', '.join(still_running)} to the kernel SIGKILL.")
+                break
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                s.proc.wait(timeout=remaining)
+
+    def _stop_postgres(self, pg_bindir):
+        """Ask postgres for a clean fast shutdown via pg_ctl, without blocking.
+
+        -m fast disconnects sessions, checkpoints, removes postmaster.pid, and exits.
+        --no-wait makes pg_ctl deliver the shutdown request and return immediately;
+        _stop_all then waits (bounded, alongside the other services) for the postmaster to
+        actually exit.  A bare SIGTERM would instead trigger a "smart" shutdown that waits
+        for clients -- see the stop= comment where postgres is started.
+        """
+        result = subprocess.run(("sudo", "-u", "postgres",
+                        os.path.join(pg_bindir, "pg_ctl"),
+                        "stop", "-D", PG_DATA_DIR, "-m", "fast", "--no-wait"),
+                       stdin=subprocess.DEVNULL)
+        if result.returncode != 0:
+            print(f"WARNING: pg_ctl stop exited {result.returncode}; "
+                  "postgres may not have shut down cleanly.")
+
+    def _setup(self):
         # Using the same defaults for SYNAPSE_CONFIG_DIR and SYNAPSE_CONFIG_PATH here
-        #   as Synapse's docker container:  
+        #   as Synapse's docker container:
         # <https://github.com/element-hq/synapse/blob/70c044db8efabacf3deaf8635d98c593b722541a/docker/start.py#L164>
         if "SYNAPSE_CONFIG_DIR" not in os.environ:
             os.environ["SYNAPSE_CONFIG_DIR"] = "/data"
         config_dir = os.environ["SYNAPSE_CONFIG_DIR"]
-        
+
         if "SYNAPSE_CONFIG_PATH" not in os.environ:
             os.environ["SYNAPSE_CONFIG_PATH"] = os.path.join(config_dir, "homeserver.yaml")
         old_config_path = os.environ["SYNAPSE_CONFIG_PATH"]
@@ -62,13 +206,34 @@ class Program:
         live_config_path = old_config_path[:-len("yaml")] + "live.yaml"
         os.environ["SYNAPSE_CONFIG_PATH"] = live_config_path
 
-        uc = update_config.run(input_file=old_config_path,
+        # Decide -- before generating the live config -- whether to run synapse on the
+        # embedded postgres this boot, because that choice is exactly what update_config
+        # encodes into the live config (a postgres `database` section, or the original sqlite
+        # one left untouched).  "..._now" marks it as the per-boot decision, distinct from the
+        # standing --replace-sqlite3-by-postgres intent: a fresh hub keeps running on sqlite
+        # until its database is ready, then migrates automatically on a later boot.
+        with open(old_config_path) as f:
+            sqlite3_path = update_config.sqlite3_path_in(yaml.safe_load(f) or {})
+
+        replace_sqlite3_by_postgres_now = False
+        if self._args.replace_sqlite3_by_postgres and sqlite3_path is not None:
+            if os.path.exists(PG_DATA_DIR) or os.path.exists(sqlite3_path + '.bak'):
+                # Already migrated (or a migration was at least started): postgres is the live
+                # database, never sqlite.  _run_postgres re-checks the data-dir/.bak invariants
+                # and refuses if the migrated data has gone missing.
+                replace_sqlite3_by_postgres_now = True
+            elif os.path.exists(sqlite3_path):
+                # Migrate only once synapse has drained its background updates -- synapse_port_db
+                # refuses while any are pending, and a brand-new database always has some.
+                replace_sqlite3_by_postgres_now = self._sqlite_background_updates_done(sqlite3_path)
+
+        update_config.run(input_file=old_config_path,
                           output_file=live_config_path,
                           environment=self._args.environment,
                           hub_client_url=self._args.hub_client_url,
                           hub_server_url=self._args.hub_server_url,
                           global_client_url=self._args.global_client_url,
-                          replace_sqlite3_by_postgres=self._args.replace_sqlite3_by_postgres,
+                          replace_sqlite3_by_postgres=replace_sqlite3_by_postgres_now,
                           server_name=self._args.server_name)
 
         # Start LiveKit server.
@@ -82,10 +247,10 @@ class Program:
                 livekit_config_path = "/conf/livekit.local.yaml"
             else:
                 livekit_config_path = "/conf/livekit.yaml"
-        self._waiter.add("livekit", subprocess.Popen(("/usr/bin/livekit-server", 
-                        "--config", livekit_config_path)))
+        self._start("livekit", ("/usr/bin/livekit-server",
+                        "--config", livekit_config_path))
 
-        self._waiter.add("yivi", subprocess.Popen(("/usr/bin/irma", 
+        self._start("yivi", ("/usr/bin/irma",
                         "server",
                         "--issue-perms", "*",
                         "--production",
@@ -97,44 +262,58 @@ class Program:
                         "-l", "0.0.0.0",
                         "-p", "8089",
                         "--client-listen-addr", "0.0.0.0",
-                        "--client-port", "8088")))
+                        "--client-port", "8088"))
 
         if self._args.environment == "development":
             os.putenv("AUTHLIB_INSECURE_TRANSPORT", "for_development_only_of_course")
 
-        # When a sqlite3 database is configured, update_config rewrote it to a
-        # postgres config and left _sqlite3_path set; run a local postgres and
-        # migrate into it.  When postgres is already configured (_sqlite3_path is
-        # None), there is nothing to replace, so leave it to Synapse.
-        if self._args.replace_sqlite3_by_postgres and uc._sqlite3_path is not None:
-            self._run_postgres(uc._sqlite3_path, live_config_path)
-
-        if uc._sqlite3_path is not None and not self._args.replace_sqlite3_by_postgres:
-            # The migration renames homeserver.db to homeserver.db.bak on success.
-            # A missing db alongside a .bak means this hub already migrated to
-            # postgres; starting on sqlite would serve an empty hub, so refuse.
-            if not os.path.exists(uc._sqlite3_path) and os.path.exists(uc._sqlite3_path + '.bak'):
-                print(f"ERROR: {uc._sqlite3_path} is missing but {uc._sqlite3_path}.bak exists —")
+        # Either run synapse on the embedded postgres (migrating into it the first boot the
+        # sqlite database is ready) or run synapse directly on the configured sqlite.  When
+        # postgres is configured in homeserver.yaml directly, sqlite3_path is None and both
+        # branches are skipped: there is nothing to migrate, so leave it to Synapse.
+        if replace_sqlite3_by_postgres_now:
+            self._run_postgres(sqlite3_path, live_config_path)
+        elif sqlite3_path is not None:
+            # Synapse will run on sqlite.  Refuse the one dangerous case: a missing db
+            # alongside a .bak means this hub already migrated to postgres, so starting on
+            # sqlite would serve an empty hub.  (Reached only with --no-replace-sqlite3-by-
+            # postgres; with the flag on, a present .bak routes us to postgres above.)
+            if not os.path.exists(sqlite3_path) and os.path.exists(sqlite3_path + '.bak'):
+                print(f"ERROR: {sqlite3_path} is missing but {sqlite3_path}.bak exists —")
                 print( "       this hub was already migrated to postgres. Starting now would")
                 print( "       create an EMPTY sqlite database. Refusing.")
                 print( "       To keep using the migrated postgres database, pass --replace-sqlite3-by-postgres.")
-                print(f"       To go back to the pre-migration database, restore {uc._sqlite3_path} from its .bak")
+                print(f"       To go back to the pre-migration database, restore {sqlite3_path} from its .bak")
                 print( "       (any changes since the migration are in postgres, not in the backup).")
                 sys.exit(1)
 
-            # Only optimize an existing database; don't create one that isn't there.
-            if os.path.exists(uc._sqlite3_path):
+            # Optimize an existing database (don't create one that isn't there); this makes
+            # some Synapse queries significantly faster.
+            if os.path.exists(sqlite3_path):
                 print("Running PRAGMA optimize on SQLite database ...")
-                # This makes some Synapse queries significantly faster
-                with sqlite3.connect(uc._sqlite3_path) as conn:
+                with sqlite3.connect(sqlite3_path) as conn:
                     conn.execute("PRAGMA optimize;")
-                print("PRAGMA optimize complete.", flush=True)
+                print("PRAGMA optimize complete.")
 
-        self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
+        self._start("synapse", ("/start.py",))
 
-        self._waiter.wait()
-        print("waiting for 10 seconds to kill all remaining processes")
-        time.sleep(10)
+    def _sqlite_background_updates_done(self, sqlite3_path):
+        """True iff `sqlite3_path` is an initialised synapse database with no pending
+        background updates -- the precondition synapse_port_db enforces before migrating
+        (it aborts with "Pending background updates exist ..." otherwise).  Opened read-only,
+        so it never creates the database (nor leaves a root-owned -wal/-shm behind)."""
+        try:
+            with contextlib.closing(
+                    sqlite3.connect(f"file:{sqlite3_path}?mode=ro", uri=True)) as conn:
+                (pending,) = conn.execute("SELECT count(*) FROM background_updates").fetchone()
+        except sqlite3.DatabaseError:
+            # Missing/locked/corrupt file, or no background_updates table yet: not a ready
+            # synapse database.  Run synapse on sqlite; migrate later.
+            return False
+        if pending:
+            print(f"{sqlite3_path} has {pending} pending background update(s); running synapse "
+                  "on sqlite and deferring the postgres migration until they finish.")
+        return pending == 0
 
     def _run_postgres(self, sqlite3_path, live_config_path):
         """Run a postgres server inside this container, migrating the configured
@@ -152,7 +331,7 @@ class Program:
         # Setting stdin=subprocess.DEVNULL seems to prevent this.
 
         # find postres executable path
-        pg_data_dir = "/data/postgres"
+        pg_data_dir = PG_DATA_DIR
         pg_bindir = subprocess.run(('sudo', '-u', 'postgres',
                                  'pg_config', '--bindir'),
                                 stdin=subprocess.DEVNULL,
@@ -212,28 +391,46 @@ class Program:
 
         # run postgres, so we can issue commands to it
         print("Starting postgres ...")
-        self._waiter.add("postgres",
-                         subprocess.Popen(('sudo', '-u', 'postgres',
-                                           os.path.join(pg_bindir, "postgres"),
-                                           '-D', pg_data_dir,
-                                           # Tuning: don't have postgres wait for data to be written to disk.
-                                           # Risks loss of the last transaction, but there's no risk
-                                           # of corruption.
-                                           # <https://www.postgresql.org/docs/current/wal-async-commit.html>
-                                           '-c', 'synchronous_commit=off',
-                                           # When more tuning is needed:
-                                           #  - <https://element-hq.github.io/synapse/latest/postgres.html#tuning-postgres>
-                                           #  - <https://pgtune.leopard.in.ua/>
-                                           ),
-                                          stdin=subprocess.DEVNULL))
+        postgres_process = self._start("postgres",
+                         ('sudo', '-u', 'postgres',
+                          os.path.join(pg_bindir, "postgres"),
+                          '-D', pg_data_dir,
+                          # Tuning: don't have postgres wait for data to be written to disk.
+                          # Risks loss of the last transaction, but there's no risk
+                          # of corruption.
+                          # <https://www.postgresql.org/docs/current/wal-async-commit.html>
+                          '-c', 'synchronous_commit=off',
+                          # When more tuning is needed:
+                          #  - <https://element-hq.github.io/synapse/latest/postgres.html#tuning-postgres>
+                          #  - <https://pgtune.leopard.in.ua/>
+                          ),
+                         # postgres runs under sudo, but a bare SIGTERM reaches the
+                         # postmaster (sudo relays it) as a "smart" shutdown that waits for
+                         # clients to disconnect.  synapse does quit on its own SIGTERM
+                         # (signalled first), but its graceful shutdown can take several
+                         # seconds and _stop_all doesn't wait for it to finish before
+                         # stopping postgres -- so a smart shutdown could outlast docker's
+                         # grace and be SIGKILLed, leaving a stale lock file.  A "fast"
+                         # shutdown is prompt and independent of synapse, so we use that.
+                         stop=lambda proc: self._stop_postgres(pg_bindir),
+                         stdin=subprocess.DEVNULL)
         countdown = 300
-        while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"),
-                             stdin=subprocess.DEVNULL).returncode != 0:
+        while True:
+            # Check for a dead postgres before the timeout, so a crash -- e.g. a stale
+            # postmaster.pid from a previous unclean shutdown, a bad config, or wrong
+            # permissions on the data directory -- is reported as postgres's own error
+            # rather than misreported as a timeout, even when it dies on the last iteration.
+            if postgres_process.poll() is not None:
+                raise RuntimeError(f"postgres exited with code {postgres_process.returncode} before "
+                                   "becoming ready; see its error output above")
+            if subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"),
+                              stdin=subprocess.DEVNULL).returncode == 0:
+                break
+            if countdown == 0:
+                raise RuntimeError("postgres server did not start properly; the reason might be in the logs above")
             print(f"Waiting {countdown} seconds for the postgres server to come up ...")
             time.sleep(1)
             countdown -= 1
-            if countdown == 0:
-                raise RuntimeError("postgres server did not start properly; the reason might be in the logs above")
 
         if fresh_db:
             print("Creating `synapse` postgres user ...")
@@ -280,8 +477,7 @@ class Program:
 
                 print(f"Renaming {sqlite3_path} -> {sqlite3_backup_path} ...")
                 os.rename(sqlite3_path, sqlite3_backup_path)
-                print("Migration to postgres completed!", flush=True)
-                # flushing here to make sure Synapse's output comes after
+                print("Migration to postgres completed!")
 
         # Force a checkpoint so that PostgreSQL does not run it in the
         # background while Synapse is already serving clients, which would
@@ -290,16 +486,24 @@ class Program:
         subprocess.run(("sudo", "-u", "postgres", "psql", "--dbname=hub",
                         "-c", "CHECKPOINT"),
                        stdin=subprocess.DEVNULL, check=True)
-        print("CHECKPOINT complete.", flush=True)
+        print("CHECKPOINT complete.")
 
     def migrate_ph_tables(self, sqlite_conn, pg_conn):
         sqlite_cur = sqlite_conn.cursor()
         pg_cur = pg_conn.cursor()
 
         for table_name in ('allowed_to_join_room', 'secured_rooms', 'joined_hub'):
-            print(f"Migrating table {table_name} ...")
             sqlite_cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
-            sql = sqlite_cur.fetchone()[0]
+            row = sqlite_cur.fetchone()
+            if row is None:
+                # These tables are created by the hub's synapse modules at runtime, not by
+                # synapse itself, so a migration source that predates them lacks them.  The
+                # modules recreate them idempotently (CREATE TABLE IF NOT EXISTS) on first
+                # boot, so skipping is safe.
+                print(f"Table {table_name} not present in the source database; skipping.")
+                continue
+            print(f"Migrating table {table_name} ...")
+            sql = row[0]
             print(f"Executing in postgres: {sql} ...")
             pg_cur.execute(sql)
 
@@ -375,25 +579,6 @@ class Program:
             pg_cur.execute(sql, (stream_name,))
 
         pg_conn.commit()
-
-
-# wait() waits for any of the processes added to Waiter to quit
-class Waiter:
-    def __init__(self):
-        self._barrier = threading.Barrier(2) 
-
-    def add(self, name, process):
-        # daemon=True makes sure that this thread does not keep the whole process alive when the main thread exists
-        threading.Thread(target=Waiter.wait_for_process_to_exit, args=(name, process, self._barrier), daemon=True).start()
-
-    def wait(self):
-        self._barrier.wait()
-
-    @staticmethod
-    def wait_for_process_to_exit(name, process, barrier):
-        process.wait()
-        print(f"ERROR: {name} exited early!")
-        barrier.wait()
 
 
 if __name__ == "__main__":
