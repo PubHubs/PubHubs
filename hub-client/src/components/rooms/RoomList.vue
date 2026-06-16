@@ -191,8 +191,8 @@
 			scrollToEnd();
 			const leaveMsg = await leaveMessageContext(roomId);
 			if (DirectRooms.includes(room.roomType as RoomType)) {
-				if (await dialog.okcancel(t('rooms.hide_sure'))) {
-					await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
+				if (await dialog.okcancel(t('rooms.leave_dm_sure'))) {
+					await pubhubs.leaveDMRoom(room);
 					await router.replace({ name: 'home' });
 				}
 			} else if (await dialog.okcancel(t(leaveMsg))) {
