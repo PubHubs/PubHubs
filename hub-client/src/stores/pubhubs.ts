@@ -67,7 +67,7 @@ import { useConnection } from '@hub-client/stores/connection';
 import { useDialog } from '@hub-client/stores/dialog';
 import { useMessageActions } from '@hub-client/stores/message-actions';
 import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
-import { type User, useUser } from '@hub-client/stores/user';
+import { useUser } from '@hub-client/stores/user';
 import useVideoCall from '@hub-client/stores/videoCall';
 
 const logger = createLogger('PubHubs');
@@ -462,22 +462,22 @@ const usePubhubsStore = defineStore('pubhubs', {
 				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
 			}
 
-			// Rejoin and unhide existing room
+			// Reuse existing room only if user is still a member
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
-				const rooms = useRooms();
-				// Ensure we're a member before modifying room state
-				if (!(await this.isUserRoomMember(me.userId, existingRoomId))) {
-					await this.joinRoom(existingRoomId);
+				const isMember = await this.isUserRoomMember(me.userId, existingRoomId);
+				if (isMember) {
+					const rooms = useRooms();
+					let name = rooms.room(existingRoomId)?.name;
+					if (name) {
+						name = updatePrivateRoomName(name, me.userId, false);
+					} else {
+						name = createNewPrivateRoomName([me.userId, ...otherUsers]);
+					}
+					await this.renameRoom(existingRoomId, name);
+					rooms.setRoomListHidden(existingRoomId, false);
+					return { room_id: existingRoomId };
 				}
-				let name = rooms.room(existingRoomId)?.name;
-				if (name) {
-					name = updatePrivateRoomName(name, me.userId, false);
-				} else {
-					name = createNewPrivateRoomName([me.userId, ...otherUsers]);
-				}
-				await this.renameRoom(existingRoomId, name);
-				rooms.setRoomListHidden(existingRoomId, false);
-				return { room_id: existingRoomId };
+				// User is not a member anymore - fall through to create a new room
 			}
 
 			// Create new room
@@ -521,14 +521,11 @@ const usePubhubsStore = defineStore('pubhubs', {
 			this.updateRoom(roomId, true);
 		},
 
-		async setPrivateRoomHiddenStateForUser(room: Room | RoomListRoom, hide: boolean) {
-			const rooms = useRooms();
-			let name = room.name;
-			const user = useUser();
-			const me = user.user as User;
-			name = updatePrivateRoomName(name, me.userId, hide);
-			await this.client.setRoomName(room.roomId, name);
-			rooms.setRoomListHidden(room.roomId, hide);
+		/**
+		 * Leaves a DM room. This improves performance by reducing the number of rooms in the client.
+		 */
+		async leaveDMRoom(room: Room | RoomListRoom): Promise<void> {
+			await this.leaveRoom(room.roomId);
 		},
 
 		_createEmptyMentions(): TMentions {

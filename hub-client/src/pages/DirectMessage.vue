@@ -121,7 +121,7 @@
 									[
 										{
 											label: t('menu.leave_conversation'),
-											icon: 'eye-slash',
+											icon: 'sign-out',
 											variant: ContextVariant.delicate,
 											onClick: () => leaveConversation(entry.room),
 										},
@@ -296,15 +296,6 @@
 	const sortedPrivateRooms = computed<PrivateRoomEntry[]>(() => {
 		return rooms.loadedPrivateRooms
 			.filter((r) => rooms.rooms[r.roomId])
-			.filter((r) => {
-				const room = rooms.rooms[r.roomId] as Room;
-				if (!room) return false;
-				if (room.hasMessages()) return true;
-				if (selectedRoom.value?.roomId === r.roomId) return true;
-				if (sidebar.selectedDMRoom.value?.roomId === r.roomId) return true;
-				if (sidebar.lastDMRoomId.value === r.roomId) return true;
-				return false;
-			})
 			.map((r) => ({ room: rooms.rooms[r.roomId] as Room, unreadState: r.unreadState }))
 			.sort((a, b) => {
 				const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
@@ -421,8 +412,8 @@
 	}
 
 	async function leaveConversation(room: Room) {
-		if (await dialog.okcancel(t('rooms.hide_sure'))) {
-			await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
+		if (await dialog.okcancel(t('rooms.leave_dm_sure'))) {
+			await pubhubs.leaveDMRoom(room);
 			if (selectedRoom.value?.roomId === room.roomId) {
 				selectedRoom.value = null;
 			}
