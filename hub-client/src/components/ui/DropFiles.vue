@@ -266,8 +266,8 @@
 			file.status = FileReader.LOADING;
 			file.progress = 0;
 
-			await new Promise<void>((resolve) => {
-				asyncFileUpload(
+			try {
+				await asyncFileUpload(
 					pubhubs.Auth.getAccessToken() as string,
 					uploadUrl,
 					file,
@@ -296,10 +296,14 @@
 							file.status = FileReader.EMPTY;
 							uploadError.value = true;
 						}
-						resolve();
 					},
 				);
-			});
+			} catch {
+				// Upload failed (e.g., rate limited, network error)
+				file.progress = 0;
+				file.status = FileReader.EMPTY;
+				uploadError.value = true;
+			}
 			files.value = files.value.filter((x) => x.status !== FileReader.DONE);
 		}
 		uploadIsActive.value = false;
