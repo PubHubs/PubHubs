@@ -54,11 +54,11 @@ type AuthTask = {
 		yivi_requestor_url: string;
 	};
 };
-export type YiviWaitForResultResp = { Success: { disclosure: string } } | { PleaseRestartAuth: string } | { SessionGone: string };
+export type YiviWaitForResultResp = { Success: { disclosure: string } } | 'PleaseRestartAuth' | 'SessionGone';
 
 export type YiviReleaseNextSessionResp = { Success: Record<string, never> } | 'PleaseRestartAuth' | 'SessionGone' | 'YiviServerGone' | 'TooEarly';
 
-export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string; stale_after: number };
+export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string; stale_after?: number };
 
 export type CardResp = { Success: CardRespSuccess } | 'PleaseRetryWithNewCardPseud';
 
