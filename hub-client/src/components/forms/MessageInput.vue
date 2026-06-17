@@ -681,24 +681,36 @@
 			} as unknown as Event;
 			const accessToken = pubhubs.Auth.getAccessToken();
 			if (!accessToken) return;
-			fileUpload(t('errors.file_upload'), accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
-				pubhubs.addFile(
-					props.room.roomId,
-					threadRoot?.event_id,
-					undefined,
-					messageInput.state.fileAdded as File,
-					url,
-					value.value as string,
-					undefined,
-					replyTo,
-				);
-				uriForFileUpload.value?.revoke();
-				fileBlobOwnedByParent.value = false;
-				uriForFileUpload.value = undefined;
-				value.value = '';
-				messageInput.cancelFileUpload();
-				messageInput.state.sendButtonEnabled = isValidMessage();
-			});
+			fileUpload(
+				t('errors.file_upload'),
+				accessToken,
+				uploadUrl,
+				allTypes,
+				syntheticEvent,
+				(url) => {
+					pubhubs.addFile(
+						props.room.roomId,
+						threadRoot?.event_id,
+						undefined,
+						messageInput.state.fileAdded as File,
+						url,
+						value.value as string,
+						undefined,
+						replyTo,
+					);
+					uriForFileUpload.value?.revoke();
+					fileBlobOwnedByParent.value = false;
+					uriForFileUpload.value = undefined;
+					value.value = '';
+					messageInput.cancelFileUpload();
+					messageInput.state.sendButtonEnabled = isValidMessage();
+				},
+				() => {
+					// On error: reset state so user can try again
+					messageInput.cancelFileUpload();
+					messageInput.state.sendButtonEnabled = isValidMessage();
+				},
+			);
 		} else if (messageActions.replyingTo && inReplyTo.value) {
 			pubhubs.addMessage(props.room.roomId, String(value.value), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
