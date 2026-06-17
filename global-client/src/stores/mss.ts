@@ -117,13 +117,24 @@ const useMSS = defineStore('mss', {
 			if (!entered) return errorMessage;
 
 			// 9. Issue a Pubhubs card if registering a new account
-			// IMPORTANT: Do this immediately after entering PHC to minimize Yivi server wait time.
 			// The Yivi server has been waiting since step 4 (disclosure) and will timeout after ~5 seconds.
+			// If card issuance fails due to network error (e.g., battery saver),
+			// we return a warning so the user can retry card issuance separately.
 			if (isRegistering && cardFeature) {
 				const comment = 'via\n' + attributeValues.join('\n');
-				const { cardAttr, errorMessage: cardError } = await this.issueCard(true, comment, identifyingAttr);
-				if (cardAttr) identifying['ph_card'] = cardAttr;
-				else warningMessage = cardError;
+				try {
+					const { cardAttr, errorMessage: cardError } = await this.issueCard(true, comment, identifyingAttr);
+					if (cardAttr) identifying['ph_card'] = cardAttr;
+					else warningMessage = cardError;
+				} catch (error) {
+					// Card issuance failed (likely network error from battery saver)
+					// Return warning so user can retry card issuance from the UI
+					if (error instanceof TypeError && error.message.includes('NetworkError')) {
+						warningMessage = { key: 'YiviServerGone', values: [comment] };
+					} else {
+						throw error;
+					}
+				}
 			}
 
 			// 10. Load updated state (moved after card issuance to reduce Yivi wait time)
