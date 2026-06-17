@@ -259,10 +259,27 @@ pub struct ChainedSessionsConfig {
     #[serde(with = "crate::misc::time_ext::human_duration")]
     #[serde(default = "default_chained_session_validity")]
     pub session_validity: core::time::Duration,
+
+    /// Maximum number of concurrent chained sessions.
+    ///
+    /// This is a budget on long-lived connections, not on memory: each pending chained session can
+    /// tie up a `wait-for-result` connection (browser) and a `next-session` connection (Yivi
+    /// server, woken ~10×/second in drip mode), all drawn from the shared connection pool. A
+    /// too-high value would let anonymously-started chained sessions starve ordinary login/hub
+    /// traffic, so keep this well below the number of connections the server can sustain. Once the
+    /// maximum is reached new chained sessions are refused with
+    /// [`api::auths::AuthStartResp::ChainedSessionsTemporarilyUnavailable`] until the
+    /// `session_validity` expiry drains the table; in-flight sessions are never evicted.
+    #[serde(default = "default_max_chained_sessions")]
+    pub max_sessions: usize,
 }
 
 fn default_chained_session_validity() -> core::time::Duration {
     core::time::Duration::from_secs(10 * 60) // 10 minutes
+}
+
+fn default_max_chained_sessions() -> usize {
+    1000
 }
 
 impl Default for ChainedSessionsConfig {
@@ -273,7 +290,7 @@ impl Default for ChainedSessionsConfig {
 
 type NextSession = Option<yivi::ExtendedSessionRequest>;
 
-type CreateSessionCrs = tokio::sync::oneshot::Sender<api::Result<id::Id>>;
+type CreateSessionCrs = tokio::sync::oneshot::Sender<api::Result<Option<id::Id>>>;
 type WaitForResultCrs =
     tokio::sync::oneshot::Sender<api::Result<api::auths::YiviWaitForResultResp>>;
 type WaitForNextSessionCrs = tokio::sync::oneshot::Sender<api::Result<NextSession>>;
@@ -309,8 +326,11 @@ enum CscCommand {
 }
 
 impl ChainedSessionsCtl {
-    /// Creates a new chained session, returning its [`id::Id`]
-    pub async fn create_session(&self) -> api::Result<id::Id> {
+    /// Creates a new chained session, returning its [`id::Id`].
+    ///
+    /// Returns `Ok(None)` when the configured maximum number of concurrent chained sessions
+    /// ([`ChainedSessionsConfig::max_sessions`]) has been reached.
+    pub async fn create_session(&self) -> api::Result<Option<id::Id>> {
         let (resp_sender, resp_receiver) = tokio::sync::oneshot::channel();
 
         self.send_command(CscCommand::CreateSession { resp_sender })
@@ -541,6 +561,21 @@ impl ChainedSessionsBackend {
     }
 
     async fn handle_create_session(&mut self, resp_sender: CreateSessionCrs) {
+        // `sessions.len()` is the live count; `expiry_queue` may still hold ids of sessions that
+        // already completed (see its docstring), so it must not be used here.
+        let max_sessions = self.ctx.chained_sessions_config.max_sessions;
+        if self.sessions.len() >= max_sessions {
+            log::warn!(
+                "refusing new chained session: at the configured maximum of {max_sessions} concurrent chained sessions"
+            );
+            if resp_sender.send(Ok(None)).is_err() {
+                log::warn!(
+                    "create-session response channel closed before capacity refusal could be sent"
+                );
+            }
+            return;
+        }
+
         let chained_session_id = id::Id::random();
 
         assert!(
@@ -559,7 +594,11 @@ impl ChainedSessionsBackend {
 
         log::trace!("chained session {chained_session_id} created");
 
-        Self::respond_to(resp_sender, Ok(chained_session_id), chained_session_id);
+        Self::respond_to(
+            resp_sender,
+            Ok(Some(chained_session_id)),
+            chained_session_id,
+        );
     }
 
     async fn handle_wait_for_result(

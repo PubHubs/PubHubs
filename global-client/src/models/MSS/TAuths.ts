@@ -66,7 +66,11 @@ export type CardRespSuccess = { attr: string; issuance_request: string; yivi_req
 
 export type CardReq = { card_pseud_package: { card_pseud: number; registration_date?: number }; comment: string };
 
-export type StartResp = { Success: StartRespSuccess } | { UnknownAttrType: string } | { SourceNotAvailableFor: string };
+export type StartResp =
+	| { Success: StartRespSuccess }
+	| { UnknownAttrType: string }
+	| { SourceNotAvailableFor: string }
+	| 'ChainedSessionsTemporarilyUnavailable';
 
 export type StartRespSuccess = { task: AuthTask; state: Array<number> };
 

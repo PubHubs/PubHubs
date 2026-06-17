@@ -210,8 +210,15 @@ impl App {
                 let csc = app.chained_sessions_ctl_or_bad_request()?;
                 let running_state = app.running_state_or_internal_error()?;
 
+                let Some(chained_session_id) = csc.create_session().await? else {
+                    log::debug!(
+                        "refusing yivi chained session: authentication server at its chained-session capacity"
+                    );
+                    return Ok(api::auths::AuthStartResp::ChainedSessionsTemporarilyUnavailable);
+                };
+
                 state.yivi_chained_session = Some(ChainedSessionSetup {
-                    id: csc.create_session().await?,
+                    id: chained_session_id,
                     drip: yivi_chained_session_drip,
                 });
 

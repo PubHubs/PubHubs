@@ -102,7 +102,13 @@ async fn main_integration_test() {
         
         [requestor_creds]
         name = "ph_auths"
-        key.hs256 = "c2VjcmV0""#, // = "secret"
+        key.hs256 = "c2VjcmV0"  # = "secret"
+
+        [chained_sessions]
+        # Low cap so the chained-session capacity test can reach it without creating thousands of
+        # sessions.  The other chained-session tests only ever hold one session at a time.
+        max_sessions = 2
+        "#,
     )
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
@@ -465,6 +471,63 @@ async fn main_integration_test_local(
         attrs
             .get::<handle::Handle>(&"phone".parse().unwrap())
             .is_some()
+    );
+
+    // Test that chained sessions beyond the configured maximum (max_sessions = 2 in the test
+    // config) are refused with ChainedSessionsTemporarilyUnavailable.  These started sessions are
+    // left pending (no yivi server ever calls in), so each keeps occupying a slot.
+    let auth_start_chained_req = || api::auths::AuthStartReq {
+        source: attr::Source::Yivi,
+        attr_types: vec!["email".parse().unwrap()],
+        attr_type_choices: Default::default(),
+        yivi_chained_session: true,
+        yivi_chained_session_drip: false,
+    };
+    for _ in 0..2 {
+        let resp = client
+            .query_with_retry::<api::auths::AuthStartEP, _, _>(
+                &constellation.auths_url,
+                &auth_start_chained_req(),
+            )
+            .await
+            .unwrap();
+        assert!(
+            matches!(resp, api::auths::AuthStartResp::Success { .. }),
+            "chained session below the cap should be granted, got {resp:?}"
+        );
+    }
+    let resp = client
+        .query_with_retry::<api::auths::AuthStartEP, _, _>(
+            &constellation.auths_url,
+            &auth_start_chained_req(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        matches!(
+            resp,
+            api::auths::AuthStartResp::ChainedSessionsTemporarilyUnavailable
+        ),
+        "chained session exceeding the cap should be refused, got {resp:?}"
+    );
+
+    // Once the sessions' validity (10 minutes by default) elapses they expire, freeing their
+    // slots, so a new chained session is granted again.  No HTTP request is in flight while time
+    // is paused, so awc's request timeout cannot fire during the jump.
+    tokio::time::pause();
+    tokio::time::advance(Duration::from_secs(11 * 60)).await;
+    tokio::time::resume();
+
+    let resp = client
+        .query_with_retry::<api::auths::AuthStartEP, _, _>(
+            &constellation.auths_url,
+            &auth_start_chained_req(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        matches!(resp, api::auths::AuthStartResp::Success { .. }),
+        "chained session should be granted again after the earlier ones expired, got {resp:?}"
     );
 
     // Retrieve attribute key for email

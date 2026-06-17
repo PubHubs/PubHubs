@@ -149,6 +149,14 @@ pub enum AuthStartResp {
     /// the same [`crate::servers::yivi::AttributeTypeIdentifier`]. This is not something that is currently e
     /// expected to happen.
     Conflict(handle::Handle, handle::Handle),
+
+    /// The authentication server is temporarily at its configured maximum number of concurrent
+    /// chained sessions, so it cannot start a new one right now.
+    ///
+    /// The global client may fall back to the non-chained flow by retrying [`AuthStartEP`] with
+    /// `yivi_chained_session` (and `yivi_chained_session_drip`) set to `false`, at the cost of the
+    /// user scanning a second Yivi QR for card issuance.
+    ChainedSessionsTemporarilyUnavailable,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
