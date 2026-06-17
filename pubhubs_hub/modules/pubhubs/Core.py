@@ -131,6 +131,7 @@ class Core:
             logger.info("not triggering update of constellation yet")
             return
         self._constellation_last_update_triggered = now
+        logger.info("triggering update of constellation")
         # in its own logcontext (logs its own failures); a bare ensureDeferred here would leak the
         # calling request's logcontext into the reactor, killing synapse's looping calls
         self._api.run_as_background_process("get_constellation", self.get_constellation)
@@ -144,9 +145,15 @@ class Core:
             # expected now and then (e.g. PHC not yet up when we boot); retriggered on demand
             logger.warn(f"could not retrieve constellation from {url}: {e}")
             return
-        assert("Ok" in resp)
+        if "Ok" not in resp:
+            # PHC itself may still be starting up and answer .ph/user/welcome with
+            # {"Err": "PleaseRetry"} (or another error); retriggered on demand
+            logger.warn(f"could not retrieve constellation from {url}: PHC responded with {resp}")
+            return
         ok_json = resp['Ok']
-        assert("constellation" in ok_json)
+        if "constellation" not in ok_json:
+            logger.warn(f"could not retrieve constellation from {url}: response lacks a constellation (keys: {list(ok_json.keys())})")
+            return
         constellation = ok_json['constellation']
 
         # PHC's composite verifying key {ed, ml} (standard base64), used to verify the HHPP.
@@ -322,10 +329,15 @@ class PhEnterCompleteEP(Resource):
         result = check_hhpp(hhpp, self._core._phc_verifying_key, self._core._constellation)
         match result.status:
             case HhppStatus.OUR_CONSTELLATION_STALE:
+                logger.info("enter-complete: our constellation is stale — older than the one mentioned in the "
+                            "client's hhpp; triggering a constellation refresh and asking the client to retry")
                 self._core.trigger_get_constellation()
                 return please_retry()
             case HhppStatus.CONSTELLATIONS_DIVERGED:
                 # can't tell who is behind: catch up in case it's us, and have the client start over
+                logger.info("enter-complete: our constellation and the one mentioned in the client's hhpp "
+                            "diverge at the same created_at (cannot tell which is stale); triggering a "
+                            "refresh and asking the client to start over")
                 self._core.trigger_get_constellation()
                 return { 'Ok': 'RetryFromStart' }
             case HhppStatus.THEIR_CONSTELLATION_STALE | HhppStatus.EXPIRED:
@@ -378,6 +390,8 @@ class PhEnterCompleteEP(Resource):
         # different hub's factor).  Fail closed.
         if self._core._hub_id is None:
             # not resolved yet (e.g. PHC hadn't listed us at startup); refetch and have the client retry
+            logger.info("enter-complete: our hub id is not resolved yet (PHC may not list this hub, or its "
+                        "constellation could not be retrieved); triggering a refresh and asking the client to retry")
             self._core.trigger_get_constellation()
             return please_retry()
 
