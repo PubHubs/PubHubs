@@ -15,7 +15,7 @@ logger = logging.getLogger(os.path.basename(__file__))
 
 def main():
     parser = argparse.ArgumentParser(description="Checks which hubs are online, "
-                                     "and what version they are running")
+                                     "what version they are running, and what database engine they are using.")
 
     parser.add_argument('-e', '--environment', 
                         default="stable",
@@ -86,6 +86,7 @@ class Program:
 
     def print_hub_info(self):
         max_uri_len = max([len(hub['url']) for hub in self._hubs.values()])
+        max_version_len = max([len(hub['hub_info'].get('hub_version','')) for hub in self._hubs.values()])
 
         for hub in self._hubs.values():
             hub_info = hub['hub_info']
@@ -94,7 +95,7 @@ class Program:
                 msg = hub_info['error']
                 prefix = tc.ERROR
             else:
-                msg = hub_info['hub_version']
+                msg = hub_info['hub_version'].ljust(max_version_len+2) + hub_info.get('database_engine', 'n/a')
                 prefix = tc.OK
             print(f"{prefix}{hub['url'].ljust(max_uri_len+1)} {msg}{tc.END}")
 
