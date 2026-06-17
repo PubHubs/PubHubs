@@ -428,17 +428,24 @@
 
 		const errorMsg = t('errors.file_upload');
 
-		try {
-			fileUpload(errorMsg, accessToken, uploadUrl, supportedImageTypes, syntheticEvent, async (mxUrl) => {
+		fileUpload(
+			errorMsg,
+			accessToken,
+			uploadUrl,
+			supportedImageTypes,
+			syntheticEvent,
+			async (mxUrl) => {
 				if (mxUrl) {
 					await pubhubs.setRoomAvatar(roomId, mxUrl);
 				}
-			});
-		} catch (error) {
-			logger.error('Error uploading avatar:', error);
-			avatarPreviewUrl.value?.revoke();
-			return;
-		}
+			},
+			() => {
+				// On error: clean up and log
+				logger.error('Error uploading avatar');
+				avatarPreviewUrl.value?.revoke();
+				selectedAvatarFile.value = null;
+			},
+		);
 	}
 
 	async function setRoomName(roomId: string, roomName: string) {

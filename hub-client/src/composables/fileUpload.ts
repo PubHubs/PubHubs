@@ -13,16 +13,33 @@ interface ExtendedFile extends File {
 }
 
 // Better to pass pubhubs object to useMatrixFiles.
-const fileUpload = (errorMsg: string, accessToken: string, uploadUrl: string, fileTypeToCheck: string[], event: Event, callback: (uri: string) => void) => {
+const fileUpload = (
+	errorMsg: string,
+	accessToken: string,
+	uploadUrl: string,
+	fileTypeToCheck: string[],
+	event: Event,
+	callback: (uri: string) => void,
+	onError?: (status: number, response: string) => void,
+) => {
 	const target = event.currentTarget as HTMLInputElement;
 	if (target) {
 		const files = target.files;
 		if (files) {
 			if (fileTypeToCheck.includes(files[0].type)) {
 				const fileReader = new FileReader();
-				fileReader.readAsArrayBuffer(files[0]);
-
 				const req = new XMLHttpRequest();
+
+				fileReader.onerror = () => {
+					logger.error('Failed to read file');
+					if (onError) {
+						onError(0, 'Failed to read file');
+					} else {
+						const dialog = useDialog();
+						dialog.confirm(errorMsg);
+					}
+				};
+
 				fileReader.onload = () => {
 					req.open('POST', uploadUrl, true);
 					req.setRequestHeader('Authorization', 'Bearer ' + accessToken);
@@ -35,10 +52,20 @@ const fileUpload = (errorMsg: string, accessToken: string, uploadUrl: string, fi
 						if (req.status === 200) {
 							const obj = JSON.parse(req.responseText);
 							const uri = obj.content_uri;
-							callback(uri); // Call the callback function with the URI
+							callback(uri);
+						} else {
+							logger.error(`Upload failed with status ${req.status}:`, req.responseText);
+							if (onError) {
+								onError(req.status, req.responseText);
+							} else {
+								const dialog = useDialog();
+								dialog.confirm(errorMsg);
+							}
 						}
 					}
 				};
+
+				fileReader.readAsArrayBuffer(files[0]);
 			} else {
 				const dialog = useDialog();
 
@@ -76,13 +103,22 @@ const asyncFileUpload = async (
 				req.send(fileReader.result);
 			};
 
-			req.onreadystatechange = async function () {
+			req.onreadystatechange = function () {
 				if (req.readyState !== 4) return;
 
 				if (req.status === 200) {
-					const { content_uri: uri } = JSON.parse(req.responseText);
-					await onReady(uri);
-					resolve({ success: true });
+					try {
+						const { content_uri: uri } = JSON.parse(req.responseText);
+						onReady(uri)
+							.then(() => resolve({ success: true }))
+							.catch((err) => {
+								logger.error('Error in onReady callback:', err);
+								reject(err);
+							});
+					} catch (err) {
+						logger.error('Error parsing upload response:', err);
+						reject(err);
+					}
 				} else if (req.status === 429) {
 					// Rate limited - parse retry_after_ms and signal retry
 					try {

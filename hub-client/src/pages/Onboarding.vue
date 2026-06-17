@@ -406,16 +406,24 @@
 
 		const errorMsg = t('errors.file_upload');
 
-		try {
-			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, async (mxUrl) => {
+		fileUpload(
+			errorMsg,
+			accessToken,
+			uploadUrl,
+			imageTypes,
+			syntheticEvent,
+			async (mxUrl) => {
 				avatarMxcUrl.value = mxUrl;
 				if (avatarMxcUrl.value) {
 					await user.setAvatarUrl(avatarMxcUrl.value);
 				}
-			});
-		} catch (error) {
-			logger.error('Error uploading avatar:', error);
-		}
+			},
+			() => {
+				// On error: reset file selection so user can try again
+				selectedAvatarFile.value = null;
+				logger.error('Error uploading avatar');
+			},
+		);
 	};
 
 	// Consent handling

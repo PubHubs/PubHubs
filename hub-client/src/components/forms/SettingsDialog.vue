@@ -193,12 +193,23 @@
 		} as unknown as Event;
 		if (accessToken) {
 			const errorMsg = t('errors.file_upload');
-			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, (mxUrl) => {
-				avatarMxcUrl.value = mxUrl;
-				if (avatarMxcUrl.value !== undefined) {
-					user.setAvatarUrl(avatarMxcUrl.value);
-				}
-			});
+			fileUpload(
+				errorMsg,
+				accessToken,
+				uploadUrl,
+				imageTypes,
+				syntheticEvent,
+				(mxUrl) => {
+					avatarMxcUrl.value = mxUrl;
+					if (avatarMxcUrl.value !== undefined) {
+						user.setAvatarUrl(avatarMxcUrl.value);
+					}
+				},
+				() => {
+					// On error: reset file selection so user can try again
+					fileInfo.value = undefined;
+				},
+			);
 		} else {
 			logger.error('Access Token is invalid for File upload.');
 		}
