@@ -399,6 +399,11 @@
 				@close="hideMessageDialog.visible = false"
 				@submit="onHideMessageDialogSubmit"
 			></HideMessageDialog>
+			<ReportDialog
+				v-if="reportDialog.visible"
+				@close="reportDialog.visible = false"
+				@submit="onReportDialogSubmit"
+			></ReportDialog>
 		</div>
 	</div>
 </template>
@@ -412,6 +417,7 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import HideMessageDialog from '@hub-client/components/forms/HideMessageDialog.vue';
+	import ReportDialog from '@hub-client/components/forms/ReportDialog.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Message from '@hub-client/components/rooms/Message.vue';
 	import MessageDisclosed from '@hub-client/components/rooms/MessageDisclosed.vue';
@@ -431,6 +437,7 @@
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+	import { useModerationCreateReport } from '@hub-client/composables/moderation/create-report.composable';
 	import { useModerationHideMessage } from '@hub-client/composables/moderation/hide-message.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
@@ -562,6 +569,7 @@
 		}
 	});
 	const { unHideMessage, hideMessageDialog, onHideMessageDialogSubmit, openHideMessageDialog } = useModerationHideMessage();
+	const { reportDialog, openReportDialog, onReportDialogSubmit } = useModerationCreateReport();
 
 	/**
 	 * Different types can be passed in props.event, this selects the event property from each type
@@ -789,6 +797,15 @@
 				label: t('menu.copy_message'),
 				icon: 'copy',
 				onClick: () => navigator.clipboard.writeText(event.value.content!.body),
+			});
+		}
+
+		// Report message (only for other users' messages)
+		if (!redactedMessage.value && event.value.sender !== user.userId && !props.room.isDirectMessageRoom()) {
+			utility.push({
+				label: capitalize(t('moderation.report_message')),
+				icon: 'warning',
+				onClick: () => openReportDialog(props.room.roomId, event.value.event_id!),
 			});
 		}
 

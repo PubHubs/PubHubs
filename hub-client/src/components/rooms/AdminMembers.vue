@@ -42,7 +42,7 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Logic
-	import { APIService } from '@hub-client/logic/core/apiHubManagement';
+	import { APIService } from '@hub-client/logic/core/apiService';
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';

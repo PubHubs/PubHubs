@@ -11,14 +11,9 @@ from synapse.module_api import ModuleApi
 from synapse.types import Requester
 
 from .HubClientApiConfig import HubClientApiConfig
-from ._validation import user_validator, assert_is_admin, assert_has_power_level
-from ._errors import InsufficientPowerLevelError
+from ._validation import user_validator
 from ._cors import set_allow_origin_header
-from ._constants import (
-    USER,
-    STEWARD,
-    HUB_ADMIN,
-)
+from ._constants import HUB_ADMIN
 from ._secured_rooms_class import SecuredRoom
 from ._store import HubStore
 
@@ -42,22 +37,14 @@ class SecuredRoomsServlet(DirectServeJsonResource):
         self._room_creation_handler = room_creation_handler
         self._room_shutdown_handler = room_shutdown_handler
 
-    @user_validator(USER)
+    @user_validator(HUB_ADMIN)
     async def _async_render_GET(self, request: SynapseRequest, user_id: str):
-        """List all secured rooms."""
+        """List all secured rooms. Admin only."""
         set_allow_origin_header(request, self._config.allowed_origins)
 
-        try:
-            await assert_has_power_level(request, user_id, self._module_api, STEWARD)
-            room_id = self.get_room_id_from_request(request)
-            room = await self._store.get_secured_room(room_id)
-            respond_with_json(request, 200, room.to_dict(), True)
-        except InsufficientPowerLevelError:
-            # Fallback to admin check
-            await assert_is_admin(user_id, request, self._module_api)
-            rooms = await self._store.get_secured_rooms()
-            rooms = [room.to_dict() for room in rooms]
-            respond_with_json(request, 200, rooms, True)
+        rooms = await self._store.get_secured_rooms()
+        rooms = [room.to_dict() for room in rooms]
+        respond_with_json(request, 200, rooms, True)
 
     @user_validator(HUB_ADMIN)
     async def _async_render_POST(self, request: SynapseRequest, user_id: str):
@@ -78,31 +65,26 @@ class SecuredRoomsServlet(DirectServeJsonResource):
         respond_with_json(request, 200, new_room.to_dict(), True)
 
 
-    @user_validator(USER)
+    @user_validator(HUB_ADMIN)
     async def _async_render_PUT(self, request: SynapseRequest, user_id: str):
-        """Update a secured room with the newly send options, will match on the room_id"""
-        # Put request contains a body with the updated room options
+        """Update a secured room with the newly send options, will match on the room_id. Admin only."""
+        set_allow_origin_header(request, self._config.allowed_origins)
+
         request_body = parse_json_object_from_request(request)
         updated_room = SecuredRoom(**request_body)
-        # First check whether the user is a steward, fall back to admin check
-        try:
-            await assert_has_power_level(request, user_id, self._module_api, STEWARD, updated_room.room_id)
-        except InsufficientPowerLevelError:
-            await assert_is_admin(user_id, request, self._module_api)
-    
-        
+
         current_room = await self._store.get_secured_room(updated_room.room_id)
         if current_room:
             if current_room.type.value != updated_room.type.value:
-                respond_with_json(request, 400, {"errors": f"Can't update room type after creation"}, True)
+                respond_with_json(request, 400, {"errors": "Cannot update room type after creation"}, True)
                 return
 
             await current_room.update_name(updated_room.name, self._module_api, user_id)
             await current_room.update_topic(updated_room.topic, self._module_api, user_id)
             await self._store.update_secured_room(updated_room)
-            respond_with_json(request, 200, {"modified": f"{updated_room.room_id}"}, True)
+            respond_with_json(request, 200, {"modified": updated_room.room_id}, True)
         else:
-            respond_with_json(request, 400, {"errors": f"No room with that id"}, True)
+            respond_with_json(request, 400, {"errors": "No room with that id"}, True)
 
 
     # Will shut down the room as well.
@@ -127,18 +109,6 @@ class SecuredRoomsServlet(DirectServeJsonResource):
             respond_with_json(request, 200, {"deleted": f"{current_room.room_id}"}, True)
         else:
             respond_with_json(request, 400, {"errors": f"No room with that id"}, True)
-
-    def get_room_id_from_request(self, request):
-        if isinstance(request, dict):  # Test case scenario where request is a dict
-            room_id_bytes = request.get(b'room_id', [None])[0]
-        else:  # Normal case where request has 'args' attribute
-            room_id_bytes = request.args.get(b'room_id', [None])[0]
-
-        if room_id_bytes:
-            return room_id_bytes.decode('utf-8')
-
-        return None
-
 
 class NoticesServlet(DirectServeJsonResource):
     def __init__(self, server_notices_user: str):
