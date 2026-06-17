@@ -21,13 +21,51 @@ pub struct Set {
     wait_jh: tokio::task::JoinHandle<usize>,
 }
 
+/// Additional options for [`Set::new_opts`].
+///
+/// Used by the integration tests to run the servers on pre-bound, ephemeral ports, so that
+/// multiple [`Set`]s can run simultaneously.  Each listener is `try_clone`d (the file descriptor
+/// is dup'd) every time its server (re)starts — e.g. after discovery — so the originals are kept
+/// alive (by the [`Runner`], for as long as the server runs) to keep the port reserved.
+#[derive(Default)]
+pub struct SetOpts {
+    /// If set, PubHubs Central listens on this pre-bound socket instead of binding the address in
+    /// its config.  Its advertised `phc_url` must point at the same port (not checked at runtime).
+    pub phc_listener: Option<std::net::TcpListener>,
+
+    /// Like [`SetOpts::phc_listener`], but for the transcryptor.
+    pub transcryptor_listener: Option<std::net::TcpListener>,
+
+    /// Like [`SetOpts::phc_listener`], but for the authentication server.
+    pub auths_listener: Option<std::net::TcpListener>,
+}
+
+impl SetOpts {
+    /// Takes the pre-bound listener for the given server, if any.
+    fn take_listener(&mut self, name: Name) -> Option<std::net::TcpListener> {
+        match name {
+            Name::PubhubsCentral => self.phc_listener.take(),
+            Name::Transcryptor => self.transcryptor_listener.take(),
+            Name::AuthenticationServer => self.auths_listener.take(),
+        }
+    }
+}
+
 impl Set {
     /// Creates a new set of PubHubs servers from the given config.
     /// To signal shutdown of these senders, drop the returned `sender`.
     pub fn new(
         config: &crate::servers::Config,
     ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
-        let (inner, shutdown_sender) = SetInner::new(config)?;
+        Self::new_opts(config, SetOpts::default())
+    }
+
+    /// Like [`Set::new`], but takes additional [`SetOpts`].
+    pub fn new_opts(
+        config: &crate::servers::Config,
+        opts: SetOpts,
+    ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
+        let (inner, shutdown_sender) = SetInner::new(config, opts)?;
 
         let wait_jh = tokio::task::spawn(inner.wait());
 
@@ -81,6 +119,7 @@ impl SetInner {
     /// that can be dropped to signal the [`SetInner`] should shutdown.
     pub fn new(
         config: &crate::servers::Config,
+        mut opts: SetOpts,
     ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
         let rt_handle: tokio::runtime::Handle = tokio::runtime::Handle::current();
         let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
@@ -123,6 +162,8 @@ impl SetInner {
                     let config = config.clone();
                     let rt_handle = rt_handle.clone();
                     let shutdown_receiver = shutdown_sender.subscribe();
+                    let listener =
+                        opts.take_listener(<crate::servers::$server::Server as Server>::NAME);
 
                     // We use spawn_blocking instead of spawn, because we want a separate thread
                     // for each server to run on
@@ -132,6 +173,7 @@ impl SetInner {
                             rt_handle,
                             shutdown_receiver,
                             worker_count,
+                            listener,
                         )
                     });
                 }
@@ -139,6 +181,15 @@ impl SetInner {
         }
 
         for_all_servers!(run_server);
+
+        // A pre-bound listener supplied for a server absent from `config` is never taken above and
+        // would be dropped silently (releasing its port); catch that misuse in debug builds.
+        debug_assert!(
+            opts.phc_listener.is_none()
+                && opts.transcryptor_listener.is_none()
+                && opts.auths_listener.is_none(),
+            "SetOpts has a pre-bound listener for a server not present in the config"
+        );
 
         let (external_shutdown_sender, external_shutdown_receiver) =
             tokio::sync::oneshot::channel();
@@ -161,6 +212,7 @@ impl SetInner {
         rt_handle: tokio::runtime::Handle,
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
         worker_count: Option<NonZero<usize>>,
+        listener: Option<std::net::TcpListener>,
     ) -> Result<()> {
         assert!(config.preparation_state == crate::servers::config::PreparationState::Preliminary);
 
@@ -169,9 +221,14 @@ impl SetInner {
         let fut = localset.run_until(async {
             let config = config.prepare_for(S::NAME).await?;
 
-            crate::servers::run::Runner::<S>::new(&config, shutdown_receiver, worker_count)?
-                .run()
-                .await
+            crate::servers::run::Runner::<S>::new(
+                &config,
+                shutdown_receiver,
+                worker_count,
+                listener,
+            )?
+            .run()
+            .await
         });
 
         let result = rt_handle.block_on(fut);
@@ -253,6 +310,11 @@ struct Runner<ServerT: Server> {
     pubhubs_server: Rc<ServerT>,
     shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
     worker_count: Option<NonZero<usize>>,
+
+    /// If set, the server listens on this pre-bound socket — `try_clone`d on each (re)start —
+    /// instead of binding the address in its [`ServerConfig`].  Held here so the port stays
+    /// reserved for the server's whole lifetime.  See [`SetOpts`].
+    listener: Option<std::net::TcpListener>,
 
     /// Number of restarts (i.e. modifications applied)
     generation: usize,
@@ -752,6 +814,7 @@ impl<S: Server> Runner<S> {
         global_config: &crate::servers::Config,
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
         worker_count: Option<NonZero<usize>>,
+        listener: Option<std::net::TcpListener>,
     ) -> Result<Self> {
         log::trace!("{}: creating runner...", S::NAME);
 
@@ -763,6 +826,7 @@ impl<S: Server> Runner<S> {
             pubhubs_server,
             shutdown_receiver,
             worker_count,
+            listener,
             generation: 0,
         })
     }
@@ -781,16 +845,25 @@ impl<S: Server> Runner<S> {
 
         let server_config = self.pubhubs_server.server_config();
 
+        let bind_target: String = match self.listener.as_ref() {
+            // Pre-bound socket — the integration tests use this for ephemeral ports.
+            Some(listener) => format!("pre-bound socket {:?}", listener.local_addr()),
+            None => format!(
+                "{}, port {}",
+                server_config
+                    .ips
+                    .iter()
+                    .map(|ip| ip.to_string())
+                    .collect::<Box<[String]>>()
+                    .join(", "),
+                server_config.port,
+            ),
+        };
+
         log::info!(
-            "{}:  binding actix server to {}, port {}, running on {:?}",
+            "{}:  binding actix server to {}, running on {:?}",
             S::NAME,
-            server_config
-                .ips
-                .iter()
-                .map(|ip| ip.to_string())
-                .collect::<Box<[String]>>()
-                .join(", "),
-            server_config.port,
+            bind_target,
             std::thread::current().id()
         );
 
@@ -841,8 +914,17 @@ impl<S: Server> Runner<S> {
                         },
                     )
                 })
-                .disable_signals() // we handle signals ourselves
-                .bind(server_config)?;
+                .disable_signals(); // we handle signals ourselves
+
+            builder = match self.listener.as_ref() {
+                // Reuse the pre-bound listener (the integration tests use this for ephemeral
+                // ports), dup'd each restart so the held original keeps the port reserved.
+                // See [`SetOpts`].
+                Some(listener) => {
+                    builder.listen(listener.try_clone().context("cloning pre-bound listener")?)?
+                }
+                None => builder.bind(server_config)?,
+            };
 
             if let Some(worker_count) = self.worker_count {
                 builder = builder.workers(worker_count.get());
