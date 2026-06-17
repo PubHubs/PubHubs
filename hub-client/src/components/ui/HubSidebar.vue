@@ -130,22 +130,25 @@
 				</CollapsibleHeader>
 
 				<!-- Moderation -->
-				<!-- <CollapsibleHeader :label="t('menu.moderation')">
+				<CollapsibleHeader
+					v-if="isModerator"
+					:label="t('menu.moderation')"
+				>
 					<Menu>
 						<MenuItem
-							:to="{ name: 'nop' }"
+							:to="{ name: 'reports' }"
 							icon="warning"
 							@click="hubSettings.hideBar()"
 							>{{ t('menu.reports') }}</MenuItem
 						>
-						<MenuItem
+						<!-- <MenuItem
 							:to="{ name: 'nop' }"
 							icon="file"
 							@click="hubSettings.hideBar()"
 							>{{ t('menu.audit_log') }}</MenuItem
-						>
+						> -->
 					</Menu>
-				</CollapsibleHeader> -->
+				</CollapsibleHeader>
 
 				<!-- Manage -->
 				<CollapsibleHeader
@@ -225,7 +228,7 @@
 
 	const route = useRoute();
 	// INFO: when adding a page to the moderation sidebar, update the routes
-	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'editroom']);
+	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'reports', 'editroom']);
 	const showModerationMenu = ref(moderationRoutes.has(route.name as string));
 
 	watch(

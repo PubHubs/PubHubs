@@ -3,7 +3,7 @@ import { EventType } from 'matrix-js-sdk';
 import { type Ref, computed, ref, watch } from 'vue';
 
 // Logic
-import { APIService } from '@hub-client/logic/core/apiHubManagement';
+import { APIService } from '@hub-client/logic/core/apiService';
 
 // Models
 import { DirectRooms, type RoomListRoom, type RoomType } from '@hub-client/models/rooms/TBaseRoom';
@@ -86,7 +86,10 @@ export function useUserRooms(userId: Ref<string>, isAdmin: Ref<boolean>) {
 			const entry = roomListById.get(roomId);
 			if (entry && DirectRooms.includes(entry.roomType as RoomType)) return true;
 			const roomObj = rooms.room(roomId);
-			if (roomObj?.isDirectMessageRoom()) return true;
+			if (roomObj) {
+				const type = roomObj.getType();
+				if (type && DirectRooms.includes(type as RoomType)) return true;
+			}
 			const publicRoom = rooms.publicRooms.find((r) => r.room_id === roomId);
 			if (publicRoom?.room_type && DirectRooms.includes(publicRoom.room_type as RoomType)) return true;
 			return false;

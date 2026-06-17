@@ -97,8 +97,9 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed } from 'vue';
+	import { computed, onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
@@ -120,10 +121,12 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
+	const route = useRoute();
+	const router = useRouter();
 	const settings = useSettings();
+	const sidebar = useSidebar();
 	const isMobile = computed(() => settings.isMobileState);
 	const user = useUser();
-	const sidebar = useSidebar();
 
 	const {
 		hubUsers,
@@ -141,4 +144,17 @@
 		navigateToRoom,
 		selectUser,
 	} = useManageUsers();
+
+	onMounted(async () => {
+		// Check for userId query parameter and auto-select user
+		const queryUserId = route.query.userId as string | undefined;
+		if (queryUserId) {
+			const userAccount = hubUsers.value.find((u) => u.name === queryUserId);
+			if (userAccount) {
+				selectUser(userAccount.name, userAccount.displayname);
+			}
+			// Clear the query parameter
+			router.replace({ query: {} });
+		}
+	});
 </script>

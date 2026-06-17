@@ -29,17 +29,11 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	securedRoom: 'client/srextra',
 	videoCall: 'client/videocall',
 
-	// User admin API
-	usersAPIV1: 'admin/v1/users/',
-	usersAPIV2: 'admin/v2/users/',
-	usersAPIV3: 'admin/v3/users/',
+	// Client Steward APIs
+	stewardSecuredRooms: 'client/steward/secured_rooms',
+	stewardReports: 'client/steward/reports',
 
-	// User room
-	APIV1: 'admin/v1/',
-	roomsAPIV1: 'admin/v1/rooms/',
-	roomsAPIV2: 'admin/v2/rooms/',
-
-	// Hub settings
+	// Client Hub settings
 	hub: 'client/hub',
 	hubLogo: 'client/hublogo',
 	hubSettings: 'client/hub/settings',
@@ -50,8 +44,17 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	hubBanner: 'client/hub/banner',
 	hubBannerDefault: 'client/hub/default-banner',
 
-	// Hub data
+	// Client Hub data
 	data: 'client/hub/data',
+
+	// Synapse Admin APIs
+	usersAPIV1: 'admin/v1/users/',
+	usersAPIV2: 'admin/v2/users/',
+	usersAPIV3: 'admin/v3/users/',
+	APIV1: 'admin/v1/',
+	roomsAPIV1: 'admin/v1/rooms/',
+	roomsAPIV2: 'admin/v2/rooms/',
+	eventReports: 'admin/v1/event_reports',
 });
 
 const api_matrix = new Api(BASE_URL + '/_matrix', {

@@ -14,27 +14,37 @@
 				:placeholder="placeholderText"
 			/>
 
-			<!-- Chip filter buttons -->
+			<!-- Chip filter buttons and actions -->
 			<div
-				v-if="chipFilters.length > 0"
-				class="flex shrink-0 gap-4 overflow-x-scroll p-[3px] whitespace-nowrap"
-				:class="isMobile ? '-mr-4' : 'mr-0'"
-				role="group"
-				:aria-label="t('others.search')"
+				v-if="chipFilters.length > 0 || $slots.actions"
+				class="flex items-start justify-between gap-4"
 			>
-				<Button
-					v-for="chip in chipFilters"
-					:key="chip.label"
-					:aria-label="chip.label"
-					:aria-pressed="activeChips.has(chip.label)"
-					:icon="activeChips.has(chip.label) ? 'check' : undefined"
-					:variant="activeChips.has(chip.label) ? 'primary' : 'secondary'"
-					size="sm"
-					type="button"
-					@click="toggleChip(chip.label)"
+				<div
+					v-if="chipFilters.length > 0"
+					class="flex shrink-0 flex-wrap items-center gap-2 p-[3px]"
+					role="group"
+					:aria-label="t('others.search')"
 				>
-					{{ chip.label }}
-				</Button>
+					<Button
+						v-for="chip in chipFilters"
+						:key="chip.label"
+						:aria-label="chip.label"
+						:aria-pressed="activeChips.has(chip.label)"
+						:icon="activeChips.has(chip.label) ? 'check' : undefined"
+						:variant="activeChips.has(chip.label) ? 'primary' : 'secondary'"
+						size="sm"
+						type="button"
+						@click="toggleChip(chip.label)"
+					>
+						{{ chip.label }}
+					</Button>
+				</div>
+				<div
+					v-if="$slots.actions"
+					class="shrink-0"
+				>
+					<slot name="actions" />
+				</div>
 			</div>
 		</div>
 

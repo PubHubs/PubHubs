@@ -599,9 +599,10 @@ const useRooms = defineStore('rooms', {
 			const result = await api_synapse.apiGET<Array<TSecuredRoom>>(api_synapse.apiURLS.securedRooms);
 			this.securedRooms = result;
 		},
-		// Needs Moderator token
-		async fetchSecuredRoomSteward() {
-			return await api_synapse.apiGET<TSecuredRoom>(`${api_synapse.apiURLS.securedRooms}?room_id=${this.currentRoom?.roomId}`);
+		// Needs Steward token (power level 50+)
+		async fetchSecuredRoomSteward(roomId?: string) {
+			const id = roomId ?? this.currentRoom?.roomId;
+			return await api_synapse.apiGET<TSecuredRoom>(`${api_synapse.apiURLS.stewardSecuredRooms}?room_id=${id}`);
 		},
 
 		// Non-Admin api for getting information about an individual secured room based on room ID.
@@ -635,11 +636,12 @@ const useRooms = defineStore('rooms', {
 			return { result: newRoom };
 		},
 
+		// Change secured room (requires steward power level 50+, works for admins too)
 		async changeSecuredRoom(room: TSecuredRoom) {
 			if (!validSecuredRoomAttributes(room)) {
 				throw new Error('errors.no_valid_attribute');
 			}
-			const response = await api_synapse.apiPUT<{ modified: string }>(api_synapse.apiURLS.securedRooms, room);
+			const response = await api_synapse.apiPUT<{ modified: string }>(api_synapse.apiURLS.stewardSecuredRooms, room);
 			const modified_id = response.modified;
 			const pidx = this.securedRooms.findIndex((room) => room.room_id === modified_id);
 			if (pidx >= 0) {
@@ -700,9 +702,10 @@ const useRooms = defineStore('rooms', {
 		getPrivateRoomUnreadState(): UnreadState {
 			return worstUnreadState(this.loadedPrivateRooms.map((r) => r.unreadState));
 		},
+		// Steward: kick all users from secured room (power level 50+)
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {
-				await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=removed_from_secured_room`, { room_id: roomId });
+				await api_synapse.apiPOST(`${api_synapse.apiURLS.stewardSecuredRooms}/remove_users`, { room_id: roomId });
 			} catch (error) {
 				logger.error(`Could not kick all users from ${roomId}`, error);
 			}

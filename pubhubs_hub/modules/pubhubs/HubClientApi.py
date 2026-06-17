@@ -14,6 +14,7 @@ from ._web import JoinServlet
 from ._constants import  METHOD_POLLING_INTERVAL, CLIENT_URL, GLOBAL_CLIENT_URL
 from .HubResource import HubResource
 from .HubClientApiConfig import HubClientApiConfig
+from ._steward import StewardResource
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -127,8 +128,10 @@ class HubClientApi(object):
         api.register_web_resource("/_synapse/client/srextra", SecuredRoomExtraServlet(self.store, self.module_api))
 
         api.register_web_resource("/_synapse/client/hub", HubResource(api, self._config, self.store))
-        
+
         api.register_web_resource("/_synapse/client/videocall", VideoCallServlet( self._config,  self.store, self.module_api))
+
+        api.register_web_resource("/_synapse/client/steward", StewardResource(api, self._config, self.store))
 
         api.register_spam_checker_callbacks(user_may_join_room=self.joining)
 

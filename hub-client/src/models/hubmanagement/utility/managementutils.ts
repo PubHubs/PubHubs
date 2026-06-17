@@ -2,7 +2,7 @@
 import { EventType } from 'matrix-js-sdk';
 
 // Logic
-import { APIService } from '@hub-client/logic/core/apiHubManagement';
+import { APIService } from '@hub-client/logic/core/apiService';
 
 // Models
 import { type TRoomCreate, type TState } from '@hub-client/models/events/TStateEvent';

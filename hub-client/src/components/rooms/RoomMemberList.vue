@@ -36,27 +36,13 @@
 								? (evt: any) => openMenu(evt, getPowerUserMenuItems(steward.userId), steward.userId)
 								: undefined
 						"
-						class="rounded-base flex w-full items-center gap-2 p-2"
+						class="flex w-full items-center rounded-md p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-elevated'"
 					>
-						<Avatar
-							:avatar-url="user.userAvatar(steward.userId)"
+						<UserBadge
 							:user-id="steward.userId"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
-						></Avatar>
-						<UserDisplayName
-							:user-id="steward.userId"
-							:user-display-name="user.userDisplayName(steward.userId)"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-						></UserDisplayName
-						><span
-							v-if="steward.userId === user.user?.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
-						>
+							size="lg"
+						/>
 					</div>
 				</CollapsibleHeader>
 			</div>
@@ -67,30 +53,16 @@
 						<Pill :value="nonPowerMemberIds.length" />
 					</template>
 					<div
-						v-for="userId in nonPowerMemberIds"
-						:key="userId"
-						v-context-menu="(evt: any) => openMenu(evt, getMemberContextMenuItems(userId), userId)"
-						class="flex w-full items-center gap-2 rounded-md p-2"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === userId && 'bg-surface-elevated'"
+						v-for="memberId in nonPowerMemberIds"
+						:key="memberId"
+						v-context-menu="(evt: any) => openMenu(evt, getMemberContextMenuItems(memberId), memberId)"
+						class="flex w-full items-center rounded-md p-2"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === memberId && 'bg-surface-elevated'"
 					>
-						<Avatar
-							:avatar-url="user.userAvatar(userId)"
-							:user-id="userId"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
-						></Avatar>
-						<UserDisplayName
-							:user-id="userId"
-							:user-display-name="user.userDisplayName(userId)"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-						></UserDisplayName
-						><span
-							v-if="userId === user.user?.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
-						>
+						<UserBadge
+							:user-id="memberId"
+							size="lg"
+						/>
 					</div>
 				</CollapsibleHeader>
 			</div>
@@ -103,124 +75,69 @@
 						v-for="yellowCard in activeYellowCards"
 						:key="yellowCard.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getYellowCardContextMenuItems(yellowCard.userId), yellowCard.userId)"
-						class="flex w-full items-center gap-2 rounded-md p-2"
+						class="flex w-full items-center rounded-md p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === yellowCard.userId && 'bg-surface-elevated'"
 					>
-						<Avatar
-							:avatar-url="user.userAvatar(yellowCard.userId)"
+						<UserBadge
 							:user-id="yellowCard.userId"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
-						></Avatar>
-						<UserDisplayName
-							:user-id="yellowCard.userId"
-							:user-display-name="user.userDisplayName(yellowCard.userId)"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-						></UserDisplayName
-						><span
-							v-if="yellowCard.userId === user.user?.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
+							size="lg"
 						>
-						<Icon
-							type="exclamation-mark"
-							class="text-accent-yellow"
-						></Icon>
+							<Icon
+								type="exclamation-mark"
+								class="text-accent-yellow"
+							/>
+						</UserBadge>
 					</div>
 					<div
 						v-for="redCard in redCardMembers"
 						:key="redCard.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getRedCardContextMenuItems(redCard.userId), redCard.userId)"
-						class="flex w-full items-center gap-2 rounded-md p-2"
+						class="flex w-full items-center rounded-md p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === redCard.userId && 'bg-surface-elevated'"
 					>
-						<Avatar
-							:avatar-url="user.userAvatar(redCard.userId)"
+						<UserBadge
 							:user-id="redCard.userId"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
-						></Avatar>
-						<UserDisplayName
-							:user-id="redCard.userId"
-							:user-display-name="user.userDisplayName(redCard.userId)"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-						></UserDisplayName
-						><span
-							v-if="redCard.userId === user.user?.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
+							size="lg"
 						>
-						<Icon
-							type="exclamation-mark"
-							class="text-accent-red-interactive"
-						></Icon>
+							<Icon
+								type="exclamation-mark"
+								class="text-accent-red-interactive"
+							/>
+						</UserBadge>
 					</div>
 					<div
 						v-for="revoked in revokedRedCardMembers"
 						:key="revoked.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getYellowCardContextMenuItems(revoked.userId), revoked.userId)"
-						class="flex w-full items-center gap-2 rounded-md p-2"
+						class="flex w-full items-center rounded-md p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === revoked.userId && 'bg-surface-elevated'"
 					>
-						<Avatar
-							:avatar-url="user.userAvatar(revoked.userId)"
+						<UserBadge
 							:user-id="revoked.userId"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
-						></Avatar>
-						<UserDisplayName
-							:user-id="revoked.userId"
-							:user-display-name="user.userDisplayName(revoked.userId)"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-						></UserDisplayName
-						><span
-							v-if="revoked.userId === user.user?.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
+							size="lg"
 						>
-						<Icon
-							type="exclamation-mark"
-							class=""
-						></Icon>
+							<Icon type="exclamation-mark" />
+						</UserBadge>
 					</div>
 					<div
 						v-for="timeout in activeTimeouts"
 						:key="timeout.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getTimeoutContextMenuItems(timeout.userId), timeout.userId)"
-						class="flex w-full items-center gap-2 rounded-md p-2"
+						class="flex w-full items-center rounded-md p-2"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === timeout.userId && 'bg-surface-elevated'"
 					>
-						<Avatar
-							:avatar-url="user.userAvatar(timeout.userId)"
+						<UserBadge
 							:user-id="timeout.userId"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
-						></Avatar>
-						<UserDisplayName
-							:user-id="timeout.userId"
-							:user-display-name="user.userDisplayName(timeout.userId)"
-							:room-id="props.room.roomId"
-							:enable-d-m="false"
-						></UserDisplayName
-						><span
-							v-if="timeout.userId === user.user?.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
+							size="lg"
 						>
-						<div class="text-accent-red-interactive flex items-center gap-1">
-							<Icon
-								type="clock"
-								size="sm"
-							></Icon>
-							<span class="text-label-small">{{ formatTimeoutCountdown(timeout.timeout_until) }}</span>
-						</div>
+							<div class="text-accent-red-interactive flex items-center gap-1">
+								<Icon
+									type="clock"
+									size="sm"
+								/>
+								<span class="text-label-small">{{ formatTimeoutCountdown(timeout.timeout_until) }}</span>
+							</div>
+						</UserBadge>
 					</div>
 				</CollapsibleHeader>
 			</div>
@@ -271,10 +188,9 @@
 	import IssueTimeoutDialog from '@hub-client/components/forms/IssueTimeoutDialog.vue';
 	import KickDialog from '@hub-client/components/forms/KickDialog.vue';
 	import IssueCardDialog from '@hub-client/components/forms/issueCardDialog.vue';
-	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
-	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
+	import UserBadge from '@hub-client/components/ui/UserBadge.vue';
 
 	// New design
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';

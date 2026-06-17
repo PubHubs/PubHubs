@@ -68,7 +68,7 @@
 	import { type FormDataType, useFormState } from '@hub-client/composables/useFormState';
 
 	// Logic
-	import { APIService } from '@hub-client/logic/core/apiHubManagement';
+	import { APIService } from '@hub-client/logic/core/apiService';
 
 	// Models
 	import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
