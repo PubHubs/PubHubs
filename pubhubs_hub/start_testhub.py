@@ -69,7 +69,6 @@ def main():
     # hub resolves its own id), and the yivi app (which cannot use localhost) contacts the hub via it
     hub_server_url = f"http://{networkhost}:{8008+args.number}"
     global_client_url = f"http://{host}:8080"
-    phc_url = f"http://{host}:5050"
 
     replace_sqlite3_by_postgres = ()
     if args.replace_sqlite3_by_postgres != None: 
