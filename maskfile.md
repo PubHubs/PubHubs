@@ -222,19 +222,12 @@ Every command below is structured as `mask run hub <subcommand>`
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
-**OPTIONS**
-
-- host
-  - flags: --host
-  - type: string
-  - desc: Override the networkhost the hub advertises to yivi (e.g. a Tailscale IP). Falls back to YIVI_HOST.
-
 ```sh
 echo "Running testhub${n}"
 
 cd pubhubs_hub
 hub_host="${host:-${YIVI_HOST:-}}"
-python3 start_testhub.py "${n}" ${hub_host:+--networkhost "$hub_host"}
+python3 start_testhub.py "${n}"
 ```
 
 #### client (n)
