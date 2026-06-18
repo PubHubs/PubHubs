@@ -10,14 +10,14 @@
 			<!-- Shared Header -->
 			<div
 				v-else
-				class="border-on-surface-disabled/25 flex h-[80px] shrink-0 items-center justify-between border-b-2 p-8"
-				:class="isMobile ? 'pl-12' : 'pl-8'"
+				class="border-on-surface-disabled/25 flex h-[80px] shrink-0 items-center justify-between gap-200 border-b-2"
+				:class="isMobile ? 'p-150 pl-400' : 'p-200'"
 				data-testid="roomheader"
 			>
 				<!-- Left: Room info -->
 				<div
 					v-if="rooms.currentRoom"
-					class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden"
+					class="relative flex min-w-0 flex-1 items-center gap-150 overflow-hidden"
 					data-testid="roomtype"
 				>
 					<Icon
@@ -44,9 +44,9 @@
 								? (evt: any) => openMenu(evt, [{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl() }])
 								: undefined
 						"
-						class="group relative"
+						class="group relative min-w-0 overflow-hidden"
 					>
-						<H3 class="text-on-surface flex">
+						<H3 class="text-on-surface flex min-w-0">
 							<TruncatedText class="font-headings font-semibold">
 								<PrivateRoomHeader
 									v-if="room?.isPrivateRoom()"
@@ -73,7 +73,7 @@
 				</div>
 
 				<!-- Right: Sidebar controls -->
-				<div class="flex items-center gap-2">
+				<div class="flex items-center gap-100">
 					<RoomHeaderButtons>
 						<!-- Search -->
 						<GlobalBarButton

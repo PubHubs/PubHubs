@@ -1,9 +1,9 @@
 <template>
-	<div class="mb-4 flex items-center">
-		<H1 class="mr-3 text-xl xl:mr-4 xl:text-4xl">
+	<div class="mb-200 flex items-center">
+		<H1 class="mr-150 text-xl xl:mr-200 xl:text-4xl">
 			{{ $t('register.register_with') }}
 		</H1>
-		<figure class="h-[1.125rem] lg:h-6">
+		<figure class="h-[1.125rem] lg:h-300">
 			<Logo />
 		</figure>
 	</div>

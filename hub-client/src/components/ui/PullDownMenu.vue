@@ -4,12 +4,12 @@
 		class="bg-surface-elevated relative flex w-full items-center rounded-md"
 		role="menubar"
 	>
-		<div class="bg-surface-elevated absolute top-1 w-full cursor-pointer rounded-md whitespace-nowrap">
+		<div class="bg-surface-elevated top-050 absolute w-full cursor-pointer rounded-md whitespace-nowrap">
 			<div v-show="open">
 				<div
 					v-for="(option, index) in options"
 					:key="index"
-					class="text-on-surface-dim hover:bg-surface-elevated flex items-center gap-1 rounded-md pl-2 hover:text-white"
+					class="text-on-surface-dim hover:bg-surface-elevated gap-050 flex items-center rounded-md pl-100 hover:text-white"
 					:class="selectedClass(index)"
 					@click="select(index)"
 				>
@@ -42,7 +42,7 @@
 			</div>
 			<div
 				v-show="!open"
-				class="pl-2"
+				class="pl-100"
 				@click="toggle"
 			>
 				<span
@@ -52,7 +52,7 @@
 				>
 				<div
 					v-else
-					class="flex items-center gap-1 pt-1"
+					class="gap-050 pt-050 flex items-center"
 				>
 					<template v-if="toggleOrder">
 						<Icon
@@ -71,7 +71,7 @@
 			</div>
 		</div>
 		<div
-			class="absolute right-1 cursor-pointer rounded-md bg-transparent"
+			class="right-050 absolute cursor-pointer rounded-md bg-transparent"
 			@click="toggle"
 		>
 			<Icon

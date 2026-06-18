@@ -26,14 +26,14 @@
 				:icon="menuIcon(room)"
 				@click="hubSettings.hideBar()"
 			>
-				<span class="flex w-full items-center justify-between gap-4">
+				<span class="flex w-full items-center justify-between gap-200">
 					<TruncatedText>
 						<RoomName :room="room" />
 					</TruncatedText>
 
 					<span
 						v-if="settings.isFeatureEnabled(FeatureFlag.notifications) && showsUnreadState(room.roomType)"
-						class="flex items-center gap-1 transition-all duration-200 ease-in-out"
+						class="gap-050 flex items-center transition-all duration-200 ease-in-out"
 					>
 						<Badge
 							v-if="room.unreadState === 'unread'"
@@ -88,7 +88,7 @@
 						messageValues = notification.message_values;
 					"
 				>
-					<span class="flex w-full items-center justify-between gap-4">
+					<span class="flex w-full items-center justify-between gap-200">
 						<TruncatedText>
 							<span>{{ notification.message_values[0] }}</span>
 						</TruncatedText>

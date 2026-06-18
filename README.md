@@ -84,14 +84,13 @@ Now you're ready to start developing.
 PubHubs consists of two main components:
 
 1. `Pubhubs Central`, which manages the global login
-
-   - [./pubhubs](./pubhubs/) folder contains the backend
-   - [./global-client](./global-client/) folder contains the client
+    - [./pubhubs](./pubhubs/) folder contains the backend
+    - [./global-client](./global-client/) folder contains the client
 
 2. The `Hubs`, which run the Synapse server and Matrix client
-   - [/pubhubs_hub](./pubhubs_hub/) folder contains the synapse server
-     - [/pubhubs_hub/testhub[0-4]](./pubhubs_hub/testhub0) folders contain the test hubs
-   - [/hub-client](./hub-client/) folder contains the hub client
+    - [/pubhubs_hub](./pubhubs_hub/) folder contains the synapse server
+        - [/pubhubs_hub/testhub[0-4]](./pubhubs_hub/testhub0) folders contain the test hubs
+    - [/hub-client](./hub-client/) folder contains the hub client
 
 To run the local development, you need to run six things locally:
 
@@ -150,16 +149,16 @@ quit;
 If the hub is using PostgreSQL instead of SQLite3, use the following instead:
 
 ```sh
-docker exec pubhubs-testhub0 sudo -u postgres psql hub
+docker exec -it pubhubs-testhub0 sudo -u postgres psql hub # For testhub0
 
--- Inside psql
-UPDATE users SET admin = 1; -- Note that this will make all the existing users admin, use 'WHERE' to specify
+# Inside psql
+UPDATE users SET admin = 1; # Note that this will make all the existing users admin, use 'WHERE' to specify
 
--- Afterwards, quit with:
+# Afterwards, quit with:
 \q
 ```
 
-After doing this, restart the hub server, or close `mask run all` and run it again.
+After doing this, restart the hub server, or close `mask run all` and run it again to gain admin access.
 
 ### 6. Solutions for common issues
 

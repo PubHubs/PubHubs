@@ -97,12 +97,12 @@ const useVideoCall = defineStore('videoCall', {
 			return this.livekit_room?.remoteParticipants.get(id) as RemoteParticipant;
 		},
 
-		async startCall(): Promise<boolean> {
+		async startCall(message?: string): Promise<boolean> {
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
 			if (!currentRoom) return false;
 
-			const eventId = await this.pubhubsStore.addVideoCallMessage(currentRoom.roomId, 'VideoCall Started');
+			const eventId = await this.pubhubsStore.addVideoCallMessage(currentRoom.roomId, message ?? 'VideoCall Started');
 			this.eventId = eventId;
 
 			this.groupCall = await currentRoom.createGroupCall();

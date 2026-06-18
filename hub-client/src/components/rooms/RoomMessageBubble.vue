@@ -8,8 +8,8 @@
 			class="group flex flex-col"
 			:class="[
 				!isAnnouncementMessage && 'hover:bg-surface-sunken/75',
-				props.isGrouped ? 'pt-1!' : 'pt-4!',
-				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
+				props.isGrouped ? 'pt-050!' : 'pt-200!',
+				props.isFollowedByGrouped ? 'pb-050!' : 'pb-200!',
 				getMessageContainerClasses,
 				!isPrivilegedMessage && !redactedMessage && 'border-l-transparent',
 				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y',
@@ -23,13 +23,18 @@
 		>
 			<!-- Message Container -->
 			<div
-				class="relative flex w-full gap-4 py-0!"
-				:class="[getMessageContainerClasses, isMobile ? 'px-2' : 'px-5']"
+				class="relative flex w-full gap-200"
+				:class="[
+					getMessageContainerClasses,
+					isMobile ? 'px-100' : 'px-250',
+					props.isGrouped ? 'py-050!' : 'py-100!',
+					!props.isFollowedByGrouped && 'pb-100!',
+				]"
 			>
 				<!-- Reaction Panel -->
 				<div
 					v-if="showReactionPanel && hasBeenVisible"
-					:class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']"
+					:class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-400']"
 				>
 					<ReactionMiniPopUp
 						:event-id="event.event_id!"
@@ -52,13 +57,13 @@
 				<!-- Avatar placeholder -->
 				<div
 					v-else-if="!props.isGrouped"
-					class="bg-surface-base flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
+					class="bg-surface-base flex aspect-square h-600 w-600 shrink-0 items-center justify-center overflow-hidden rounded-full"
 				></div>
 
 				<!-- Grouped spacer with hover time -->
 				<div
 					v-else
-					class="flex w-12 shrink-0 items-center justify-center"
+					class="flex w-600 shrink-0 items-center justify-center"
 				>
 					<EventTime
 						:timestamp="event.origin_server_ts!"
@@ -78,14 +83,14 @@
 							<MessageSnippet
 								v-if="inReplyToId && showReplySnippet(event.content!.msgtype!)"
 								:event-id="inReplyToId"
-								class="mb-2"
+								class="mb-100"
 								:show-in-reply-to="true"
 								:room="room"
 								:hidden-message-label="replyHideState.label"
 								@click="onInReplyToClick"
 							/>
 							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
+								<div class="flex items-center gap-150 rounded-md px-100">
 									<p>{{ t('state.loading_message') }}</p>
 								</div>
 							</template>
@@ -93,7 +98,7 @@
 
 						<div
 							v-if="!props.isGrouped"
-							class="mb-2 flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+							class="gap-y-050 mb-100 flex w-full min-w-0 flex-wrap items-center gap-x-100"
 						>
 							<UserDisplayName
 								:user-id="event.sender!"
@@ -112,7 +117,7 @@
 							<!-- Announcement -->
 							<span
 								v-if="isAnnouncementMessage && !redactedMessage"
-								class="inline-flex items-center gap-1 leading-none"
+								class="gap-050 inline-flex items-center leading-none"
 								:class="
 									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
@@ -125,7 +130,7 @@
 							<!-- Whisper -->
 							<span
 								v-if="isWhisperMessage && !redactedMessage && event.sender! !== user.userId"
-								class="inline-flex items-center gap-1 leading-none"
+								class="gap-050 inline-flex items-center leading-none"
 								:class="
 									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
@@ -136,7 +141,7 @@
 							</span>
 							<span
 								v-if="isWhisperMessage && !redactedMessage && event.sender === user.userId && event.content!.whisper_to"
-								class="inline-flex items-center gap-1 leading-none"
+								class="gap-050 inline-flex items-center leading-none"
 								:class="
 									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
@@ -147,7 +152,7 @@
 							</span>
 
 							<!-- Timestamp -->
-							<span class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1">
+							<span class="text-label-tiny text-on-surface-dim gap-050 inline-flex items-center">
 								<EventTime
 									:timestamp="event.origin_server_ts!"
 									:show-date="true"
@@ -162,14 +167,14 @@
 						<Suspense v-if="hasBeenVisible && inReplyToId && showWhisperReplySnippet">
 							<MessageSnippet
 								:event-id="inReplyToId"
-								class="mb-2"
+								class="mb-100"
 								:show-in-reply-to="true"
 								:room="room"
 								:hidden-message-label="replyHideState.label"
 								@click="onInReplyToClick"
 							/>
 							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
+								<div class="flex items-center gap-150 rounded-md px-100">
 									<p>{{ t('state.loading_message') }}</p>
 								</div>
 							</template>
@@ -188,7 +193,7 @@
 							<template v-if="timerReady && !deleteMessageDialog">
 								<button
 									v-if="msgIsNotSend && connection.isOn"
-									class="mb-1 ml-2"
+									class="mb-050 ml-100"
 									:title="t('errors.resend')"
 									@click="resend()"
 								>
@@ -200,14 +205,14 @@
 								<Icon
 									v-if="msgIsNotSend && !connection.isOn"
 									type="wifi-slash"
-									class="text-red mb-1 ml-2"
+									class="text-red mb-050 ml-100"
 								/>
 							</template>
 
 							<!-- Reaction Button -->
 							<button
 								v-if="!redactedMessage"
-								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_emoji')"
 								@click.stop="emit('reactionPanelToggle', event.event_id!)"
 							>
@@ -217,7 +222,7 @@
 							<!-- Reply Button -->
 							<button
 								v-if="!msgIsNotSend && !redactedMessage"
-								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply')"
 								@click="reply"
 							>
@@ -235,7 +240,7 @@
 									!redactedMessage &&
 									!props.room.isDirectMessageRoom()
 								"
-								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_in_thread')"
 								@click="replyInThread"
 							>
@@ -248,7 +253,7 @@
 							<!-- Context Menu Button -->
 							<button
 								v-if="!redactedMessage"
-								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.context_menu')"
 								@click.stop="openMenu($event, getContextMenuItems(), event.event_id!)"
 							>
@@ -367,7 +372,7 @@
 					<button
 						v-if="threadReplyCount > 0 && !viewFromThread && !redactedMessage && !room.isDirectMessageRoom() && !room.isForumRoom()"
 						type="button"
-						class="text-accent-primary hover:text-accent-primary/80 text-label-small mt-2 inline-flex items-center gap-1 hover:cursor-pointer hover:underline"
+						class="text-accent-primary hover:text-accent-primary/80 text-label-small gap-050 mt-100 inline-flex items-center hover:cursor-pointer hover:underline"
 						@click="replyInThread"
 					>
 						<Icon
@@ -380,7 +385,7 @@
 
 					<div
 						v-if="$slots.bottom || $slots.extras"
-						class="flex items-end justify-between gap-4"
+						class="flex items-end justify-between gap-200"
 					>
 						<!-- Extra slot bottom: forum stuff -->
 						<slot name="bottom"></slot>
@@ -466,6 +471,7 @@
 	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
+	import { Message as MessageBoxMessage, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -632,7 +638,7 @@
 
 	const getMessageContainerClasses = computed(() => {
 		const baseClasses = {
-			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
+			'p-100 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
 			'bg-surface-sunken!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === event.value.event_id,
 		};
@@ -796,7 +802,15 @@
 			utility.push({
 				label: t('menu.copy_message'),
 				icon: 'copy',
-				onClick: () => navigator.clipboard.writeText(event.value.content!.body),
+				onClick: () => {
+					const text = event.value.content!.body;
+					const mb = useMessageBox();
+					if (mb.inIframe) {
+						mb.sendMessage(new MessageBoxMessage(MessageType.ClipboardWrite, text));
+					} else {
+						navigator.clipboard.writeText(text);
+					}
+				},
 			});
 		}
 

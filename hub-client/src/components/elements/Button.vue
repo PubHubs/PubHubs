@@ -72,7 +72,7 @@
 	const buttonVariants = {
 		primary: 'bg-accent-blue-interactive text-on-accent-blue outline-accent-blue-interactive hover:opacity-75',
 		secondary: 'bg-surface-sunken text-on-surface outline-accent-blue-interactive hover:opacity-75',
-		tertiary: 'border border-1 -border-offset-1 border-surface-on-surface-dim outline-accent-blue-interactive hover:opacity-75',
+		tertiary: 'border -border-offset-1 border-surface-on-surface-dim outline-accent-blue-interactive hover:opacity-75',
 		error: 'bg-accent-red-interactive text-on-accent-red outline-accent-red-interactive hover:opacity-75',
 		primaryIcon: 'text-accent-blue-interactive outline-accent-blue-interactive hover:opacity-75 min-h-300 h-300! w-300!',
 		secondaryIcon: 'text-on-surface-dim outline-accent-blue-interactive hover:opacity-75 min-h-300 h-300! w-300!',

@@ -3,13 +3,13 @@
 		class="bg-surface-background rounded-base border-surface-elevated relative z-0 mb-100 flex flex-col overflow-clip border-3"
 		:class="[!showVotes && 'h-800', option.id === pickedOptionId && 'border-accent-green!']"
 	>
-		<div class="flex h-full min-h-600 items-center justify-between px-200 py-100">
+		<div class="flex h-full min-h-600 items-center justify-between gap-200 px-200 py-100">
 			<div class="flex items-end">
 				{{ filters.getDateStr(option.date, is24HourFormat, d) }}
 			</div>
 			<div
 				v-if="!closed"
-				class="ml-auto flex items-center justify-end gap-2"
+				class="ml-auto flex items-center justify-end gap-100"
 			>
 				<OptionButton
 					color="bg-accent-green text-on-accent-green"

@@ -2,26 +2,31 @@
 	<div class="border-on-surface-disabled/25 relative flex h-full w-[80px] shrink-0 snap-start flex-col border-r-2">
 		<Modal :show="global.isModalVisible">
 			<div class="flex h-full w-full max-w-svh flex-col overflow-y-hidden">
-				<div class="border-on-surface-disabled/25 flex aspect-square h-[80px] items-center justify-center border-b-2 p-2">
+				<div class="border-on-surface-disabled/25 flex aspect-square h-[80px] items-center justify-center border-b-2 p-200">
 					<router-link
 						class="h-full"
 						to="/"
 					>
 						<img
 							alt="PubHubs logo"
-							class="h-full w-full object-contain"
-							:src="logoUrl"
+							class="h-full w-full object-contain dark:hidden"
+							:src="logoLightUrl"
+						/>
+						<img
+							alt="PubHubs logo"
+							class="hidden h-full w-full object-contain dark:block"
+							:src="logoDarkUrl"
 						/>
 					</router-link>
 				</div>
 
-				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden">
+				<div class="gap-050 flex h-full flex-1 flex-col overflow-y-hidden">
 					<HubMenu />
 
-					<div class="flex h-fit w-full flex-col gap-8 self-end p-4">
+					<div class="flex h-fit w-full flex-col gap-400 self-end p-200">
 						<div
 							v-if="global.loggedIn"
-							class="flex flex-col items-center gap-4"
+							class="flex flex-col items-center gap-200"
 						>
 							<GlobalbarButton
 								type="sliders-horizontal"
@@ -66,7 +71,8 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
 
-	const logoUrl = '/client/img/icons/512x512.svg';
+	const logoLightUrl = '/client/img/icons/512x512.svg';
+	const logoDarkUrl = '/client/img/icons/favicon_white.svg';
 	const dialog = useDialog();
 	const { t } = useI18n();
 	const global = useGlobal();

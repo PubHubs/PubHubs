@@ -1,9 +1,9 @@
 <template>
-	<div class="flex h-full w-full flex-col py-4">
+	<div class="flex h-full w-full flex-col py-200">
 		<SidebarHeader :title="t('roomlibrary.library')" />
-		<div class="flex flex-1 flex-col overflow-hidden px-4">
+		<div class="flex flex-1 flex-col overflow-hidden px-200">
 			<!-- Top: upload area + search/sort (fixed) -->
-			<div class="flex shrink-0 flex-col gap-4">
+			<div class="flex shrink-0 flex-col gap-200">
 				<!-- Upload area -->
 				<div class="w-full">
 					<DropFiles
@@ -14,8 +14,8 @@
 
 				<!-- Search and sort -->
 				<div class="w-full">
-					<div class="mb-4 flex w-full gap-4">
-						<div class="bg-surface-sunken flex w-2/3 items-center gap-2 rounded-md px-3 py-2">
+					<div class="mb-200 flex w-full gap-200">
+						<div class="bg-surface-sunken flex w-2/3 items-center gap-100 rounded-md px-150 py-100">
 							<Icon
 								class="text-on-surface-dim"
 								size="sm"
@@ -55,7 +55,7 @@
 							class="bg-background! mb-0! flex shrink-0"
 							data-testid="filemanager-admin"
 						>
-							<div class="flex items-center gap-1">
+							<div class="gap-050 flex items-center">
 								<IconButton
 									v-if="!selectedAll"
 									icon="square"
@@ -92,10 +92,10 @@
 									<div>
 										<InlineCollapse>
 											<template #visible="{ collapsed }">
-												<div class="flex h-6 items-center gap-1">
+												<div class="gap-050 flex h-300 items-center">
 													<div
 														v-if="user.isAdmin"
-														class="flex items-center gap-1"
+														class="gap-050 flex items-center"
 													>
 														<IconButton
 															v-if="isSelected(item)"
@@ -177,7 +177,7 @@
 													</div>
 													<div
 														v-if="user.isAdmin"
-														class="flex items-center gap-1"
+														class="gap-050 flex items-center"
 													>
 														<IconButton
 															class="hover:text-accent-red"
@@ -190,11 +190,11 @@
 												</div>
 											</template>
 											<template #collapsed>
-												<div class="text-md flex flex-wrap items-center gap-2">
+												<div class="text-md flex flex-wrap items-center gap-100">
 													<div class="flex grow">
 														<div
 															v-if="isSigned(item.matrixEvent.getId())"
-															class="bg-signed text-label-small flex items-center gap-2 rounded-xs px-1"
+															class="bg-signed text-label-small px-050 flex items-center gap-100 rounded-xs"
 														>
 															<Icon
 																class="text-accent-primary"
@@ -210,7 +210,7 @@
 															/>
 														</div>
 													</div>
-													<div class="text-label-small xs:gap-1 flex items-center md:gap-2">
+													<div class="text-label-small xs:gap-050 flex items-center md:gap-100">
 														<AvatarDisplayNameCompact
 															v-if="item.matrixEvent.getSender()"
 															:user-display-name="user.userDisplayName(item.matrixEvent.getSender() ?? '')"
@@ -247,14 +247,14 @@
 			:title="$t('roomlibrary.sign_file_hash')"
 			@close="signingMessage = false"
 		>
-			<div class="flex flex-col items-center gap-4">
+			<div class="flex flex-col items-center gap-200">
 				<div
 					:id="EYiviFlow.Sign"
 					class="text-center"
 				/>
 				<div class="text-center">
 					{{ $t('roomlibrary.sign_file_hash') }} `<span class="italic">{{ item.matrixEvent.event.content?.filename }}`</span> :
-					<div class="bg-accent-secondary mt-3 rounded-md border p-2 font-bold wrap-anywhere text-black">{{ showFileHash }}</div>
+					<div class="bg-accent-secondary mt-150 rounded-md border p-100 font-bold wrap-anywhere text-black">{{ showFileHash }}</div>
 					<br />
 					{{ $t('roomlibrary.check_file_hash') }}
 				</div>

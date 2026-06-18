@@ -7,7 +7,7 @@
 	>
 		<router-link
 			:to="to"
-			class="flex items-center gap-4 px-4 py-2"
+			class="flex items-center gap-200 px-200 py-100"
 		>
 			<Icon
 				class=""

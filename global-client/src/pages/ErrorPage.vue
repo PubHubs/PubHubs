@@ -1,7 +1,7 @@
 <template>
-	<div class="flex h-full items-center justify-center p-10">
+	<div class="flex h-full items-center justify-center p-500">
 		<div
-			class="bg-surface-base flex flex-col gap-y-4 rounded-xl px-8 py-12 text-center shadow-lg"
+			class="bg-surface-base flex flex-col gap-y-200 rounded-xl px-400 py-600 text-center shadow-lg"
 			:class="isMobile ? 'w-full' : 'w-8/12'"
 		>
 			<H1 class="text-accent-primary">
@@ -16,7 +16,7 @@
 			<router-link :to="{ name: 'home' }">
 				<Button
 					v-if="errorKey !== 'errors.no_hubs_found'"
-					class="mx-auto block max-w-md rounded-lg py-2"
+					class="mx-auto block max-w-md rounded-lg py-100"
 				>
 					{{ $t('dialog.go_back') }}
 				</Button>

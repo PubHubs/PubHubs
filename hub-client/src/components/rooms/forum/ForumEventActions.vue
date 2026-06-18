@@ -1,7 +1,7 @@
 <template>
-	<div class="flex flex-col justify-between gap-2">
-		<div class="flex items-center justify-between gap-2">
-			<div class="flex items-center gap-1">
+	<div class="flex flex-col justify-between gap-100">
+		<div class="flex items-center justify-between gap-100">
+			<div class="gap-050 flex items-center">
 				<template v-if="event.latestThreadEventTimestamp > 0">
 					<EventTime
 						:timestamp="event.latestThreadEventTimestamp"

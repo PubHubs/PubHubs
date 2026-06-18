@@ -1,6 +1,6 @@
 <template>
 	<button
-		class="bg-surface-base hover:bg-surface-elevated rounded-base border-surface-elevated flex h-18 w-36 flex-col items-center justify-center gap-2 overflow-hidden border-3 p-4 shadow hover:cursor-pointer"
+		class="bg-surface-base hover:bg-surface-elevated rounded-base border-surface-elevated flex h-fit w-2000 flex-col items-center justify-center gap-100 overflow-hidden border-3 p-200 shadow hover:cursor-pointer"
 		@click="click"
 	>
 		<Icon :type="icon" />

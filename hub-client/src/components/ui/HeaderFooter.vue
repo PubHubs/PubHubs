@@ -1,11 +1,14 @@
 <template>
 	<div class="border-on-surface-disabled/25 relative flex h-full w-full flex-col justify-between overflow-hidden border-r-2">
 		<div class="z-10 flex h-full flex-col overflow-hidden">
-			<div class="border-on-surface-disabled/25 flex h-[80px] flex-col justify-start border-b-2 px-8">
+			<div
+				class="border-on-surface-disabled/25 flex h-[80px] flex-col justify-start border-b-2"
+				:class="isMobile ? 'p-150' : 'p-200'"
+			>
 				<slot name="header" />
 			</div>
 			<div class="relative flex-1 overflow-x-hidden overflow-y-auto">
-				<slot class="p-4 md:p-4" />
+				<slot :class="isMobile ? 'p-150' : 'p-200'" />
 			</div>
 		</div>
 		<div>
@@ -22,5 +25,5 @@
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
-	const _isMobile = computed(() => settings.isMobileState);
+	const isMobile = computed(() => settings.isMobileState);
 </script>

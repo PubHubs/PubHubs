@@ -1,9 +1,9 @@
 <template>
-	<div class="relative flex h-full flex-col overflow-y-hidden py-4">
+	<div class="relative flex h-full flex-col overflow-y-hidden py-200">
 		<SidebarHeader :title="t('admin.room_details')" />
 		<div
 			v-if="roomId"
-			class="flex flex-1 flex-col gap-300 overflow-y-auto px-4 pb-16"
+			class="flex flex-1 flex-col gap-300 overflow-y-auto px-200 pb-800"
 		>
 			<!-- Room info card -->
 			<div class="bg-surface-base rounded-base border-surface-elevated flex flex-col gap-200 border-3 p-200">
@@ -16,7 +16,7 @@
 					</span>
 					<div
 						v-if="memberCount !== undefined"
-						class="text-on-surface-dim flex items-center gap-1 text-sm"
+						class="text-on-surface-dim gap-050 flex items-center text-sm"
 					>
 						<Icon
 							type="user"
@@ -28,7 +28,7 @@
 			</div>
 
 			<!-- Description -->
-			<div v-if="roomTopic">
+			<div v-if="roomTopic && roomTopic !== '-'">
 				<CollapsibleHeader
 					:label="t('admin.topic')"
 					:collapsible="false"
@@ -66,7 +66,7 @@
 			<!-- Stewards (admins + stewards combined) -->
 			<div
 				v-if="hasRoomData && combinedStewards.length > 0"
-				class="pb-4"
+				class="pb-200"
 			>
 				<CollapsibleHeader :label="$t('rooms.stewards')">
 					<template #right>
@@ -75,7 +75,7 @@
 					<div
 						v-for="steward in combinedStewards"
 						:key="steward.userId"
-						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
+						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-100 rounded-md p-100"
 						@click="emit('navigateToUser', steward.userId)"
 					>
 						<Avatar
@@ -83,7 +83,7 @@
 							:user-id="steward.userId"
 							:room-id="props.roomId"
 							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
+							class="h-400 w-400 shrink-0"
 						/>
 						<UserDisplayName
 							:user-id="steward.userId"
@@ -102,7 +102,7 @@
 			<!-- Members -->
 			<div
 				v-if="hasRoomData && nonPowerMemberIds.length > 0"
-				class="pb-4"
+				class="pb-200"
 			>
 				<CollapsibleHeader :label="$t('rooms.members')">
 					<template #right>
@@ -111,7 +111,7 @@
 					<div
 						v-for="userId in nonPowerMemberIds"
 						:key="userId"
-						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
+						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-100 rounded-md p-100"
 						@click="emit('navigateToUser', userId)"
 					>
 						<Avatar
@@ -119,7 +119,7 @@
 							:user-id="userId"
 							:room-id="props.roomId"
 							:enable-d-m="false"
-							class="h-8 w-8 shrink-0"
+							class="h-400 w-400 shrink-0"
 						/>
 						<UserDisplayName
 							:user-id="userId"
@@ -137,7 +137,7 @@
 		</div>
 		<div
 			v-else
-			class="flex h-full items-center justify-center px-4"
+			class="flex h-full items-center justify-center px-200"
 		>
 			<p class="text-on-surface-dim text-center italic">
 				{{ t('admin.select_room_placeholder') }}
@@ -147,7 +147,7 @@
 		<!-- FABs -->
 		<div
 			v-if="roomId"
-			class="absolute right-3 bottom-3 flex gap-2"
+			class="absolute right-150 bottom-150 flex gap-100"
 		>
 			<FloatingActionButton
 				:label="t('admin.go_to_room')"

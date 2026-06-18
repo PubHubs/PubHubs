@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex flex-wrap gap-2"
+		class="flex flex-wrap gap-100"
 		data-testid="reactions"
 		role="list"
 	>
@@ -10,7 +10,7 @@
 			class="bg-surface-base rounded-base"
 		>
 			<span
-				class="group/reaction rounded-base relative inline-flex cursor-pointer items-center gap-2 px-3 py-1"
+				class="group/reaction rounded-base py-050 relative inline-flex cursor-pointer items-center gap-100 px-150"
 				:class="item.hasUserReacted ? 'bg-accent-blue/30 border-accent-blue border-2' : 'border-surface-elevated border-2'"
 				role="listitem"
 				:title="item.tooltipTitle"

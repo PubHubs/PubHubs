@@ -1,15 +1,15 @@
 <template>
 	<div
-		class="relative flex h-full w-full flex-col overflow-hidden py-4"
+		class="relative flex h-full w-full flex-col overflow-hidden py-200"
 		data-testid="sidekick"
 	>
 		<SidebarHeader :title="groupPanel ? t('others.new_group') : t('others.new_message')" />
 		<div class="flex min-h-0 flex-1 flex-col">
 			<div
 				v-if="!groupPanel"
-				class="flex shrink-0 flex-col gap-2 px-4"
+				class="flex shrink-0 flex-col gap-100 px-200"
 			>
-				<div class="bg-surface-sunken flex items-center gap-2 rounded-md px-3 py-2">
+				<div class="bg-surface-sunken flex items-center gap-100 rounded-md px-150 py-100">
 					<Icon
 						class="text-on-surface-dim"
 						size="sm"
@@ -25,10 +25,10 @@
 			</div>
 			<div
 				v-else
-				class="flex flex-col gap-2 px-4"
+				class="flex flex-col gap-100 px-200"
 			>
 				<button
-					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled/25 -mx-4 flex items-center gap-2 border-y-2 px-4 py-3 transition-colors hover:cursor-pointer"
+					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled/25 -mx-200 flex items-center gap-100 border-y-2 px-200 py-150 transition-colors hover:cursor-pointer"
 					type="button"
 					@click="groupProfile ? backToGroupPanel() : (groupPanel = false)"
 				>
@@ -39,7 +39,7 @@
 					<span class="text-body-small">{{ t('dialog.back') }}</span>
 				</button>
 
-				<div class="bg-surface-sunken mt-2 flex items-center gap-2 rounded-md px-3 py-2">
+				<div class="bg-surface-sunken mt-100 flex items-center gap-100 rounded-md px-150 py-100">
 					<Icon
 						class="text-on-surface-dim"
 						size="sm"
@@ -54,11 +54,11 @@
 				</div>
 				<div
 					v-if="groupProfile"
-					class="mt-4 flex flex-col gap-2"
+					class="mt-200 flex flex-col gap-100"
 				>
 					<span class="text-label-small text-on-surface-dim"> {{ t('others.select_group_name') }}</span>
-					<div class="bg-surface-sunken flex items-center gap-2 rounded-md px-3 py-2">
-						<div class="bg-surface-variant h-10 w-10 cursor-pointer overflow-hidden rounded-full">
+					<div class="bg-surface-sunken flex items-center gap-100 rounded-md px-150 py-100">
+						<div class="bg-surface-variant h-500 w-500 cursor-pointer overflow-hidden rounded-full">
 							<Avatar
 								v-if="avatarPreviewUrl"
 								:avatar-url="avatarPreviewUrl.url"
@@ -95,13 +95,13 @@
 
 				<span
 					v-if="selectedUsers.length === 0"
-					class="text-label-small mx-auto mt-4"
+					class="text-label-small mx-auto mt-200"
 				>
 					{{ t('others.group_select') }}
 				</span>
 				<div
 					v-else
-					class="mt-4 flex flex-wrap justify-start gap-y-2"
+					class="mt-200 flex flex-wrap justify-start gap-y-100"
 				>
 					<div
 						v-for="userId in usersSelected"
@@ -110,7 +110,7 @@
 					>
 						<div class="relative">
 							<Icon
-								class="bg-surface-subtle absolute right-0 bottom-0 cursor-pointer rounded-full"
+								class="bg-surface absolute right-0 bottom-0 cursor-pointer rounded-full"
 								size="sm"
 								type="x"
 								@click.stop="removeUserFromSelection(userId)"
@@ -120,25 +120,25 @@
 								:user-id="userId"
 							/>
 						</div>
-						<span class="mt-1 w-16 truncate text-center text-sm">{{ userStore.userDisplayName(userId) }}</span>
+						<span class="mt-050 w-800 truncate text-center text-sm">{{ userStore.userDisplayName(userId) }}</span>
 					</div>
 				</div>
 			</div>
 
 			<div
 				v-if="!groupProfile"
-				class="mt-4 grow overflow-y-auto px-4"
+				class="mt-200 grow overflow-y-auto px-200"
 			>
 				<!-- Admin contact -->
 				<div
 					v-if="!userStore.isAdmin && !groupPanel"
-					class="mb-4"
+					class="mb-200"
 				>
 					<div
-						class="hover:bg-surface-elevated flex cursor-pointer items-center gap-4 rounded-md p-2"
+						class="hover:bg-surface-elevated flex cursor-pointer items-center gap-200 rounded-md p-100"
 						@click="handleAdminContact"
 					>
-						<div class="bg-accent-admin/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+						<div class="bg-accent-admin/10 flex h-600 w-600 shrink-0 items-center justify-center rounded-full">
 							<Icon
 								class="text-accent-admin"
 								type="lifebuoy"
@@ -155,16 +155,16 @@
 					<div
 						v-for="[letter, usersInLetter] in categorizedUsers"
 						:key="letter"
-						class="mb-4"
+						class="mb-200"
 					>
-						<h3 class="text-md text-on-surface-dim sticky top-0 z-10 py-1 font-bold uppercase">
+						<h3 class="text-md text-on-surface-dim py-050 sticky top-0 z-10 font-bold uppercase">
 							{{ letter }}
 						</h3>
 						<ul>
 							<li
 								v-for="user in usersInLetter"
 								:key="user.userId"
-								class="hover:bg-surface-elevated flex cursor-pointer items-center gap-2 rounded-md p-2"
+								class="hover:bg-surface-elevated flex cursor-pointer items-center gap-100 rounded-md p-100"
 								@click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
 							>
 								<Icon
@@ -185,7 +185,7 @@
 					</div>
 				</template>
 				<template v-else>
-					<div class="text-on-surface-dim py-4 text-center">
+					<div class="text-on-surface-dim py-200 text-center">
 						{{ t('others.join_room_to_dm') }}
 					</div>
 				</template>
@@ -193,14 +193,14 @@
 		</div>
 		<FloatingActionButton
 			v-if="!groupPanel"
-			class="absolute right-4 bottom-4"
+			class="absolute right-200 bottom-200"
 			:label="t('others.new_group')"
-			icon="plus"
+			icon="users-three"
 			@click="groupPanel = true"
 		/>
 		<FloatingActionButton
 			v-if="groupPanel && groupPanelButton"
-			class="absolute right-4 bottom-4"
+			class="absolute right-200 bottom-200"
 			:label="t('others.next')"
 			:disabled="selectionNotCompleted"
 			icon="arrow-right"
@@ -208,7 +208,7 @@
 		/>
 		<FloatingActionButton
 			v-if="groupPanel && groupProfileButton"
-			class="absolute right-4 bottom-4"
+			class="absolute right-200 bottom-200"
 			:label="t('others.next')"
 			:disabled="cannotCreateGroupRoom"
 			icon="arrow-right"

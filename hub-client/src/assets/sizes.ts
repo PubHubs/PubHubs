@@ -10,15 +10,15 @@ const iconSizes: { [key: string]: number } = {
 };
 
 const buttonSizes: { [key: string]: string } = {
-	xs: 'py-0 px-2 h-6',
-	sm: 'py-1 px-2',
-	base: 'py-2 px-4',
-	lg: 'py-3 px-6',
+	xs: 'py-0 px-100 h-300',
+	sm: 'py-050 px-100',
+	base: 'py-100 px-200',
+	lg: 'py-150 px-300',
 };
 
 const headerSizes: { [key: string]: string } = {
-	sm: 'max-h-16 md:max-h-24',
-	base: 'max-h-24',
+	sm: 'max-h-800 md:max-h-1200',
+	base: 'max-h-1200',
 };
 
 export { iconSizes, buttonSizes, headerSizes };

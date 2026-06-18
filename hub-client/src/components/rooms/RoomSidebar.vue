@@ -40,6 +40,6 @@
 			return 'relative z-40 w-0 border-l-0';
 		}
 
-		return 'border-on-surface-disabled/25 relative z-40 w-[360px] 3xl:w-[420px] border-l-2';
+		return 'border-on-surface-disabled/25 relative z-200 w-[360px] 3xl:w-[420px] border-l-2';
 	});
 </script>

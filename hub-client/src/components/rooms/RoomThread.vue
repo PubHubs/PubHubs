@@ -1,7 +1,7 @@
 <template>
 	<div
 		ref="elThreadTimeline"
-		class="flex h-full w-full flex-col pt-4"
+		class="flex h-full w-full flex-col pt-200"
 		data-testid="thread-sidekick"
 	>
 		<SidebarHeader
@@ -11,7 +11,7 @@
 		<!-- Thread message list -->
 		<div
 			ref="elScrollContainer"
-			class="flex-1 overflow-y-scroll pb-4"
+			class="flex-1 overflow-y-scroll pb-200"
 			style="overflow-anchor: none"
 		>
 			<!-- Root event -->
@@ -75,7 +75,7 @@
 					</RoomMessageBubble>
 
 					<!-- Reaction display for message -->
-					<div class="flex flex-wrap gap-2 px-20">
+					<div class="flex flex-wrap gap-100 px-800">
 						<Reaction
 							v-if="reactionExistsForMessage(item as TimelineEvent)"
 							:react-event="onlyReactionEvent(item.matrixEvent.event.event_id ?? '')"
@@ -94,7 +94,7 @@
 		<!-- Thread input -->
 		<MessageInput
 			v-if="room"
-			class="z-10 -mt-4"
+			class="z-10 -mt-200"
 			:room="room"
 			:in-thread="true"
 		></MessageInput>

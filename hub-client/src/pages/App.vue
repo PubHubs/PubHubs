@@ -54,9 +54,8 @@
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 
-	// New design
-	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Stores
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { type HubInformation } from '@hub-client/stores/hub-settings';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';

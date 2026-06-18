@@ -1,6 +1,6 @@
 <template>
-	<div class="fixed bottom-0 flex h-20 w-9/12 items-center justify-between px-4">
-		<div class="flex items-center space-x-4">
+	<div class="fixed bottom-0 flex h-800 w-9/12 items-center justify-between px-200">
+		<div class="flex items-center space-x-200">
 			<!-- TODO: add language variables -->
 			<Button
 				variant="error"

@@ -1,6 +1,6 @@
 <template>
 	<select
-		class="focus:ring-offset-width-0 focus:shadow-0 theme-dark:border-white theme-dark:text-white w-full rounded-2xl border-1 border-black bg-transparent text-black focus:ring-0 focus:ring-offset-0 focus:outline-0 focus:outline-offset-0"
+		class="focus:ring-offset-width-0 focus:shadow-0 theme-dark:border-white theme-dark:text-white border-050 w-full rounded-2xl border-black bg-transparent text-black focus:ring-0 focus:ring-offset-0 focus:outline-0 focus:outline-offset-0"
 		@change="
 			updateSelect($event);
 			changed();

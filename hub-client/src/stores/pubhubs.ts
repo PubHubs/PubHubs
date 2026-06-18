@@ -130,7 +130,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 					try {
 						const profile = await this.client.getProfileInfo(newUserId);
-						user.setProfile(profile);
+						await user.setProfile(profile);
 					} catch (error) {
 						logger.debug('There is no profile information (avatar or displayname) for this user.', { error });
 					}

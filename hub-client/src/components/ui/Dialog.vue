@@ -11,7 +11,7 @@
 		<!-- Scrim -->
 		<div
 			v-if="dialog.properties.modal"
-			class="bg-background/80 absolute h-full w-full"
+			class="bg-scrim/50 dark:bg-scrim/75 absolute h-full w-full"
 		/>
 
 		<!-- Dialog -->
@@ -27,18 +27,18 @@
 				:class="isMobile && dialog.properties.type != 'global' ? 'w-[calc(50vw+40px)]' : 'w-full'"
 			>
 				<div
-					class="bg-surface-base rounded-base border-surface-elevated flex max-h-full flex-col justify-between gap-1 border-3 shadow"
+					class="bg-surface-base rounded-base border-surface-elevated gap-050 flex max-h-full flex-col justify-between border-3 shadow-2xl"
 					:class="width"
 					@click.stop
 				>
-					<div class="flex w-full items-center justify-between p-4">
+					<div class="flex w-full items-center justify-between p-200">
 						<H2 v-if="dialog.properties.title !== ''">
 							{{ dialog.properties.title }}
 						</H2>
 						<slot name="header" />
 						<Icon
 							v-if="dialog.properties.close"
-							class="float-right -mt-1 cursor-pointer hover:opacity-75"
+							class="-mt-050 float-right cursor-pointer hover:opacity-75"
 							type="x"
 							@click="doAction(DialogCancel)"
 						/>
@@ -49,7 +49,7 @@
 					/>
 					<div
 						v-if="hasContent"
-						class="h-full p-4 pr-4 pb-1 text-left"
+						class="pb-050 h-full p-200 pr-200 text-left"
 						:class="props.allowOverflow ? 'overflow-visible' : 'overflow-y-auto'"
 					>
 						<slot />
@@ -66,7 +66,7 @@
 					/>
 					<div
 						v-if="dialog.properties.buttons.length > 0"
-						class="flex w-full flex-row-reverse justify-start gap-2 p-4"
+						class="flex w-full flex-row-reverse justify-start gap-100 p-200"
 					>
 						<div
 							v-for="(button, index) in dialog.properties.buttons"

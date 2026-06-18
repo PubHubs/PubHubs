@@ -6,17 +6,17 @@
 			<!-- Registration section -->
 			<section
 				class="bg-background flex flex-col overflow-x-hidden"
-				:class="isMobile ? 'h-[calc(100svh-7.5rem)] gap-4 py-4' : 'gap-8 py-16'"
+				:class="isMobile ? 'h-[calc(100svh-7.5rem)] gap-200 py-200' : 'gap-400 py-800'"
 			>
 				<div
 					class="flex shrink-0 flex-col"
-					:class="isMobile ? 'h-full gap-4' : 'gap-8'"
+					:class="isMobile ? 'h-full gap-200' : 'gap-400'"
 				>
 					<!-- Title -->
 					<div class="mx-auto w-full max-w-[80ch]">
 						<div
-							class="flex flex-col gap-2"
-							:class="isMobile && 'px-4'"
+							class="flex flex-col gap-100"
+							:class="isMobile && 'px-200'"
 						>
 							<P
 								v-if="!isMobile"
@@ -30,14 +30,14 @@
 
 					<!-- Carousel -->
 					<div
-						class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden"
+						class="flex h-full w-full max-w-screen flex-col gap-200 overflow-hidden"
 						:class="isMobile && 'max-h-[calc(100svh-80px)]'"
 					>
 						<!-- Mobile -->
 						<div
 							v-if="isMobile"
 							ref="carouselMobile"
-							class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4"
+							class="no-scrollbar flex h-full snap-x snap-mandatory gap-200 overflow-x-auto scroll-smooth px-200"
 						>
 							<!-- Card 1 -->
 							<CarouselCardMobile
@@ -48,11 +48,11 @@
 									<H2>{{ $t('register.card_1_title', [$t('common.yivi')]) }}</H2>
 								</template>
 
-								<div class="flex h-full flex-col gap-2">
+								<div class="flex h-full flex-col gap-100">
 									<P>{{ $t('register.card_1_text_1', [$t('common.app_name'), $t('common.yivi')]) }}</P>
 									<div class="flex h-full w-full items-center justify-center">
 										<div class="w-full" />
-										<DownloadLinks class="my-2 pr-8" />
+										<DownloadLinks class="my-100 pr-400" />
 										<div class="w-full" />
 									</div>
 								</div>
@@ -67,7 +67,7 @@
 									<H2>{{ $t('register.card_2_title', [$t('common.yivi')]) }}</H2>
 								</template>
 
-								<div class="flex flex-col gap-2">
+								<div class="flex flex-col gap-100">
 									<P>{{ $t('register.card_2_text_1', [$t('common.yivi')]) }}</P>
 									<P>{{ $t('register.card_2_text_2', [$t('common.yivi')]) }}</P>
 								</div>
@@ -93,7 +93,7 @@
 									<H2>{{ error ? $t('errors.oops') : $t('register.card_3_title') }}</H2>
 								</template>
 
-								<div class="flex flex-col gap-2">
+								<div class="flex flex-col gap-100">
 									<P>{{
 										error
 											? $t('errors.' + error.key, error.values ? error.values : [])
@@ -102,7 +102,7 @@
 								</div>
 
 								<template #extra>
-									<div class="flex h-full w-full flex-col items-center justify-center gap-4">
+									<div class="flex h-full w-full flex-col items-center justify-center gap-200">
 										<div
 											id="yivi-authentication"
 											class="aspect-square w-full"
@@ -116,7 +116,7 @@
 						<div
 							v-else
 							ref="carouselDesktop"
-							class="no-scrollbar flex snap-x snap-mandatory gap-12 overflow-x-auto scroll-smooth py-6"
+							class="no-scrollbar flex snap-x snap-mandatory gap-600 overflow-x-auto scroll-smooth py-300"
 							style="
 								padding-left: max(1rem, calc(50vw - 40ch));
 								padding-right: max(1rem, calc(50vw - 40ch));
@@ -135,9 +135,9 @@
 									<H2>{{ $t('register.card_1_title', [$t('common.yivi')]) }}</H2>
 								</template>
 
-								<div class="flex flex-col gap-2">
+								<div class="flex flex-col gap-100">
 									<P>{{ $t('register.card_1_text_1', [$t('common.app_name'), $t('common.yivi')]) }}</P>
-									<DownloadLinks class="my-2" />
+									<DownloadLinks class="my-100" />
 									<H2>{{ $t('register.card_1_yivi', [$t('common.yivi')]) }}</H2>
 									<P>{{ $t('register.card_1_yivi_text', [$t('common.yivi')]) }}</P>
 								</div>
@@ -163,13 +163,13 @@
 									<H2>{{ $t('register.card_2_title', [$t('common.yivi')]) }}</H2>
 								</template>
 
-								<div class="flex flex-col gap-2">
+								<div class="flex flex-col gap-100">
 									<P>{{ $t('register.card_2_text_1', [$t('common.yivi')]) }}</P>
 									<P>{{ $t('register.card_2_text_2', [$t('common.yivi')]) }}</P>
 								</div>
 
 								<template #right>
-									<figure class="flex h-full w-full items-center justify-center px-8 xl:px-24">
+									<figure class="flex h-full w-full items-center justify-center px-400 xl:px-1000">
 										<img
 											class="object-cover"
 											src="../assets/mascot-attributes.svg"
@@ -193,18 +193,18 @@
 									<H2>{{ error ? $t('errors.oops') : $t('register.card_3_title') }}</H2>
 								</template>
 
-								<div class="flex flex-col gap-2">
+								<div class="flex flex-col gap-100">
 									<P>{{ error ? $t('errors.' + error.key, error.values ? error.values : []) : $t('register.card_3_text_1') }}</P>
 									<P
 										v-if="!error"
-										class="mb-6"
+										class="mb-300"
 									>
 										{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}
 									</P>
 								</div>
 
 								<template #right>
-									<div class="flex h-full w-full flex-col items-center justify-center gap-4">
+									<div class="flex h-full w-full flex-col items-center justify-center gap-200">
 										<div
 											id="yivi-authentication"
 											class="h-fit w-fit"
@@ -216,13 +216,13 @@
 
 						<!-- Page Indicators -->
 						<div
-							class="flex items-center justify-center gap-4"
-							:class="isMobile ? 'py-0' : 'py-1'"
+							class="flex items-center justify-center gap-200"
+							:class="isMobile ? 'py-0' : 'py-050'"
 						>
 							<div
 								v-for="(item, index) in items"
 								:key="index"
-								class="h-3 w-3 rounded-full transition-all duration-300"
+								class="h-150 w-150 rounded-full transition-all duration-300"
 								:class="[currentIndex === index ? 'bg-accent-primary scale-110' : 'bg-surface-base', 'cursor-pointer']"
 								@click="scrollTo(index)"
 							/>
@@ -233,13 +233,13 @@
 
 			<!-- Yivi section -->
 			<section
-				class="my-16 flex w-full flex-col items-center"
-				:class="isMobile ? 'mb-16' : 'mb-32'"
+				class="my-800 flex w-full flex-col items-center"
+				:class="isMobile ? 'mb-800' : 'mb-2000'"
 			>
-				<div class="flex w-full max-w-[80ch] flex-col gap-8">
+				<div class="flex w-full max-w-[80ch] flex-col gap-400">
 					<div
 						class="flex w-full"
-						:class="isMobile && 'px-4'"
+						:class="isMobile && 'px-200'"
 					>
 						<H2>{{ $t('register.yivi_explained', [$t('common.yivi')]) }}</H2>
 					</div>
@@ -286,8 +286,8 @@
 	// Logic
 	import { useMSS } from '@global-client/stores/mss';
 
-	import { DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
 	// Stores
+	import { DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();

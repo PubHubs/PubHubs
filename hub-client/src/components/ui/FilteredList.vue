@@ -1,6 +1,6 @@
 <template>
 	<div class="flex w-full flex-col">
-		<div class="flex w-full items-center gap-4 pb-4">
+		<div class="flex w-full items-center gap-200 pb-200">
 			<Icon
 				class="text-on-surface-dim"
 				type="compass"
@@ -14,7 +14,7 @@
 		</div>
 		<ul
 			v-if="filteredItems.length > 0"
-			:class="listClass + ' flex h-full flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-md'"
+			:class="listClass + ' flex h-full flex-col gap-100 overflow-x-hidden overflow-y-auto rounded-md'"
 		>
 			<li
 				v-for="(item, index) in filteredItems"

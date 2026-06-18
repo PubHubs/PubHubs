@@ -5,11 +5,11 @@
 		v-if="listUserRooms.length > 0"
 		:buttons="buttonsSubmitCancel"
 		:title="$t('admin.user_perm_heading') + ' - ' + displayName"
-		:width="isMobile ? 'px-8 w-full' : 'w-[700px] px-8'"
+		:width="isMobile ? 'px-400 w-full' : 'w-[700px] px-400'"
 		@close="emit('close')"
 	>
 		<!-- Table header -->
-		<div class="text-label-small-min/label-small-max text-on-surface-dim mt-8 mb-2 flex w-full items-center gap-4 px-6">
+		<div class="text-label-small-min/label-small-max text-on-surface-dim mt-400 mb-100 flex w-full items-center gap-200 px-300">
 			<div class="flex-[2] font-medium">
 				{{ t('admin.title_room') }}
 			</div>
@@ -26,19 +26,19 @@
 			<div
 				v-for="room in listUserRooms"
 				:key="room.room_id"
-				class="border-on-surface-dim flex w-full items-center gap-4 border-t px-6 py-3"
+				class="border-on-surface-dim flex w-full items-center gap-200 border-t px-300 py-150"
 			>
 				<div class="flex-[2] truncate">
 					{{ room.room_name }}
 				</div>
 				<div class="flex-[1]">
-					<span :class="'inline-block rounded-md px-2 py-0.5 ' + getTagClassBasedOnRole(room.room_pl)">{{
+					<span :class="'py-thin inline-block rounded-md px-100 ' + getTagClassBasedOnRole(room.room_pl)">{{
 						roles.getRoleByPowerLevel(room.room_pl)
 					}}</span>
 				</div>
 				<div class="flex-[2]">
 					<template v-if="isRoomAdmin(room.room_id)">
-						<span class="bg-accent-red inline-block rounded-md px-2 py-0.5">{{ roles.getRoleByPowerLevel(room.room_pl) }}</span>
+						<span class="bg-accent-red py-thin inline-block rounded-md px-100">{{ roles.getRoleByPowerLevel(room.room_pl) }}</span>
 					</template>
 					<DropDown
 						v-else

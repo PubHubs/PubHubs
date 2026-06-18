@@ -1,13 +1,13 @@
 <template>
-	<div class="relative flex h-full flex-col overflow-y-hidden py-4">
+	<div class="relative flex h-full flex-col overflow-y-hidden py-200">
 		<SidebarHeader :title="displayName ? (userId === currentUserId ? `${displayName} ${t('admin.you_suffix')}` : displayName) : t('admin.user_details')" />
 		<div
 			v-if="userId"
-			class="flex flex-1 flex-col gap-300 overflow-y-auto px-4 pb-16"
+			class="flex flex-1 flex-col gap-300 overflow-y-auto px-200 pb-800"
 		>
 			<!-- User info card -->
 			<div class="bg-surface-base rounded-base border-surface-elevated flex flex-col gap-200 border-3 p-200">
-				<div class="flex items-center gap-3">
+				<div class="flex items-center gap-150">
 					<Avatar
 						:avatar-url="user.userAvatar(userId)"
 						:user-id="userId"
@@ -39,7 +39,7 @@
 					<div
 						v-for="room in visibleRooms"
 						:key="room.roomId"
-						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
+						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-100 rounded-md p-100"
 						@click="emit('navigateToRoom', room.roomId)"
 					>
 						<span class="truncate text-sm">{{ room.name }}</span>
@@ -49,7 +49,7 @@
 		</div>
 		<div
 			v-else
-			class="flex h-full items-center justify-center px-4"
+			class="flex h-full items-center justify-center px-200"
 		>
 			<p class="text-on-surface-dim text-center italic">
 				{{ t('admin.select_user_placeholder') }}
@@ -59,7 +59,7 @@
 		<!-- FABs -->
 		<div
 			v-if="userId"
-			class="absolute right-3 bottom-3 flex gap-2"
+			class="absolute right-150 bottom-150 flex gap-100"
 		>
 			<FloatingActionButton
 				v-if="isAdmin"

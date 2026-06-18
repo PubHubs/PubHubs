@@ -5,11 +5,11 @@
 	>
 		<H3
 			class="text-accent-primary text-label-small uppercase"
-			:class="{ 'mt-3': index > 0 }"
+			:class="{ 'mt-150': index > 0 }"
 		>
 			{{ $t('others.step', [index + 1]) }}
 		</H3>
-		<div class="flex items-center gap-1">
+		<div class="gap-050 flex items-center">
 			<Icon :type="item.icon" />
 			<p class="font-bold">
 				{{ $t(item.instruction) }}

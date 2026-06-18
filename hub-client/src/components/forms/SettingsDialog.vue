@@ -6,8 +6,8 @@
 		@close="dialogAction($event)"
 	>
 		<form @submit.prevent="submit">
-			<div class="mb-4 flex flex-col md:flex-row md:items-start">
-				<label class="text-gray w-2/6 shrink-0 pt-1 font-semibold">{{ $t('settings.avatar') }}</label>
+			<div class="mb-200 flex flex-col md:flex-row md:items-start">
+				<label class="text-gray pt-050 w-2/6 shrink-0 font-semibold">{{ $t('settings.avatar') }}</label>
 				<input
 					ref="fileInput"
 					accept="image/png, image/jpeg, image/svg"
@@ -15,12 +15,12 @@
 					type="file"
 					@change="chooseAvatar($event)"
 				/>
-				<div class="flex items-center gap-4">
+				<div class="flex items-center gap-200">
 					<Avatar
 						:avatar-url="blobUrl?.url"
 						class="outline-surface-elevated h-800 w-800 rounded-full outline-3"
 					/>
-					<div class="flex gap-3">
+					<div class="flex gap-150">
 						<button
 							type="button"
 							class="hover:text-on-surface-dim cursor-pointer"
@@ -47,10 +47,10 @@
 				</div>
 			</div>
 
-			<div class="mb-4 flex flex-col md:flex-row md:items-start">
+			<div class="mb-200 flex flex-col md:flex-row md:items-start">
 				<label
 					for="displayname"
-					class="text-gray w-2/6 shrink-0 pt-1 font-semibold"
+					class="text-gray pt-050 w-2/6 shrink-0 font-semibold"
 					>{{ $t('settings.displayname') }}</label
 				>
 				<TextField
@@ -64,10 +64,10 @@
 				/>
 			</div>
 
-			<div class="mb-4 flex flex-col md:flex-row md:items-start">
-				<label class="text-gray w-2/6 shrink-0 pt-1 font-semibold">{{ $t('settings.userId') }}</label>
+			<div class="mb-200 flex flex-col md:flex-row md:items-start">
+				<label class="text-gray pt-050 w-2/6 shrink-0 font-semibold">{{ $t('settings.userId') }}</label>
 				<div
-					class="text-on-surface-dim text-body p-1 text-lg italic"
+					class="text-on-surface-dim text-body p-050 text-lg italic"
 					:title="$t('settings.userId_description')"
 				>
 					{{ user.userId }}
@@ -76,7 +76,7 @@
 
 			<div
 				v-if="formState.message.value !== ''"
-				class="bg-green-dark mt-2 rounded-lg p-2 text-white"
+				class="bg-green-dark mt-100 rounded-lg p-100 text-white"
 			>
 				{{ formState.message }}
 			</div>
@@ -127,6 +127,13 @@
 	formState.setData({
 		displayName: {
 			value: user.userDisplayName(user.userId ?? '') ?? '',
+			validation: {
+				min_length: 3,
+				max_length: settings.getDisplayNameMaxLength,
+				allow_empty_text: true,
+				allow_empty_number: true,
+				allow_empty_object: true,
+			},
 		},
 	});
 
@@ -161,6 +168,7 @@
 		// This check enables empty values to be submitted since dataIsChanged() method can't handle empty values conditional cal.
 		if (formState.dataIsChanged('displayName')) {
 			const newDisplayName = formState.data.displayName.value as string;
+			if (newDisplayName.length > 0 && !formState.isValidated()) return;
 			await user.setDisplayName(newDisplayName);
 			formState.setMessage(t('settings.displayname_changed', [newDisplayName]));
 			formState.updateData('displayName', newDisplayName);

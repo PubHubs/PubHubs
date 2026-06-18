@@ -1,5 +1,5 @@
 <template>
-	<span class="text-label-small flex items-center gap-1 text-nowrap">
+	<span class="text-label-small gap-050 flex items-center text-nowrap">
 		<Icon
 			type="clock"
 			size="sm"

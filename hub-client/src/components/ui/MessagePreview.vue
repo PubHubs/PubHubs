@@ -1,13 +1,13 @@
 <template>
 	<div
-		class="rounded-base @container w-full border-3 p-4"
+		class="rounded-base @container w-full border-3 p-200"
 		:class="
 			active
 				? 'bg-surface-base border-surface-elevated'
 				: 'bg-surface-base border-surface-elevated hover:bg-surface-elevated hover:border-surface-elevated'
 		"
 	>
-		<div class="flex gap-3">
+		<div class="flex gap-150">
 			<Avatar
 				:avatar-url="avatarOverrideUrl"
 				class="shrink-0"
@@ -15,9 +15,9 @@
 				:user-id="displayUserId"
 			/>
 
-			<div class="flex min-w-0 flex-1 flex-col gap-1">
+			<div class="gap-050 flex min-w-0 flex-1 flex-col">
 				<!-- Name + Timestamp -->
-				<div class="flex items-baseline gap-2">
+				<div class="flex items-baseline gap-100">
 					<UserDisplayName
 						v-if="displayUserId"
 						class="min-w-0 flex-1"
@@ -49,10 +49,10 @@
 				</p>
 
 				<!-- Message preview + Unread badge -->
-				<div class="flex items-center gap-2">
+				<div class="flex items-center gap-100">
 					<div
 						v-if="room.hasMessages()"
-						class="text-on-surface flex min-w-0 flex-1 items-center gap-1 truncate"
+						class="text-on-surface gap-050 flex min-w-0 flex-1 items-center truncate"
 					>
 						<Icon
 							v-if="preview.icon"

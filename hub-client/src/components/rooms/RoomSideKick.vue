@@ -3,12 +3,12 @@
 		<SideKickHeader>
 			<span>{{ title }}</span>
 			<Icon
-				class="hover:text-accent-red absolute right-2 cursor-pointer"
+				class="hover:text-accent-red absolute right-100 cursor-pointer"
 				type="x"
 				@click="close()"
 			/>
 		</SideKickHeader>
-		<div class="mt-4 flex flex-col p-3">
+		<div class="mt-200 flex flex-col p-150">
 			<slot />
 		</div>
 	</div>

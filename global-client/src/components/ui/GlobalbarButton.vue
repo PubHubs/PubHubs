@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="bg-surface-base hover:bg-surface-elevated w-fit rounded-md p-2 hover:cursor-pointer"
+		class="bg-surface-base hover:bg-surface-elevated w-fit rounded-md p-100 hover:cursor-pointer"
 		@click="handleClick"
 	>
 		<Icon

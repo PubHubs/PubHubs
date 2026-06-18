@@ -1,7 +1,7 @@
 <template>
 	<div
 		v-show="isActive"
-		class="pt-2"
+		class="pt-100"
 		role="tabpanel"
 	>
 		<slot />

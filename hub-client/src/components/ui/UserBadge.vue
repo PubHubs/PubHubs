@@ -1,5 +1,5 @@
 <template>
-	<div class="flex items-center gap-2">
+	<div class="flex items-center gap-200">
 		<Avatar
 			class="shrink-0"
 			:class="avatarSize"

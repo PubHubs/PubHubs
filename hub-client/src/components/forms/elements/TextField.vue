@@ -18,13 +18,13 @@
 			>
 				<Icon
 					v-if="icon"
-					class="text-on-surface-dim absolute top-1/2 left-2 -translate-y-1/2"
+					class="text-on-surface-dim absolute top-1/2 left-100 -translate-y-1/2"
 					size="sm"
 					:type="icon"
 				/>
 				<Icon
 					v-if="rightIcon"
-					class="text-on-surface-dim absolute top-1/2 right-2 -translate-y-1/2"
+					class="text-on-surface-dim absolute top-1/2 right-100 -translate-y-1/2"
 					:class="rightIconClass"
 					size="sm"
 					:type="rightIcon"

@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex min-h-36 w-full cursor-pointer flex-col justify-center border-2 border-dotted max-md:min-h-0 max-md:border-none"
+		class="flex min-h-2000 w-full cursor-pointer flex-col justify-center border-2 border-dotted max-md:min-h-0 max-md:border-none"
 		@drop.prevent="onDroppedFile"
 		@click="openBrowse()"
 	>
@@ -8,7 +8,7 @@
 			<div class="text-accent-error font-bold md:text-center">
 				<Icon
 					type="warning"
-					class="mr-1 inline-block"
+					class="mr-050 inline-block"
 				></Icon
 				>{{ $t('file.max_upload_reached') }}
 			</div>
@@ -17,13 +17,13 @@
 			<div class="text-center max-md:hidden">
 				<Icon
 					type="upload-simple"
-					class="mr-1 inline-block"
+					class="mr-050 inline-block"
 				></Icon
 				>{{ $t('file.drop_files') }}
 			</div>
 			<div class="text-md text-center max-md:hidden">{{ $t('common.or') }}</div>
 			<Button
-				class="mx-auto flex items-center justify-center gap-1 max-md:mx-0 max-md:w-full"
+				class="gap-050 mx-auto flex items-center justify-center max-md:mx-0 max-md:w-full"
 				:title="$t('file.upload_files')"
 				><Icon
 					type="upload-simple"
@@ -54,17 +54,17 @@
 	</div>
 	<div
 		v-if="uploadError"
-		class="bg-accent-error mt-2 mb-2 inline-block w-full rounded-lg p-2 text-center text-white"
+		class="bg-accent-error mt-100 mb-100 inline-block w-full rounded-lg p-100 text-center text-white"
 	>
 		<Icon
 			type="warning"
-			class="mr-1 inline-block"
+			class="mr-050 inline-block"
 		></Icon
 		>{{ $t('file.upload_error') }}
 	</div>
 	<div
 		v-if="files.length > 0"
-		class="mt-2 mb-2 flex flex-wrap gap-2"
+		class="mt-100 mb-100 flex flex-wrap gap-100"
 		data-testid="file-list-buttons"
 	>
 		<div>
@@ -86,14 +86,14 @@
 	</div>
 	<BarList
 		v-if="files.length > 0"
-		class="mt-2"
+		class="mt-100"
 		data-testid="file-list"
 	>
 		<BarListItem
 			v-for="file in files"
 			:key="file.name"
 		>
-			<div class="mb-1 flex h-6 items-center gap-2">
+			<div class="mb-050 flex h-300 items-center gap-100">
 				<div><FileIcon :filename="file.name"></FileIcon></div>
 				<div class="grow truncate">{{ file.name }}</div>
 				<div class="text-nowrap">{{ filters.formatBytes(file.size, 2) }}</div>
@@ -113,7 +113,7 @@
 			</div>
 			<ProgressBar
 				:percentage="file.progress"
-				class="max-h-1"
+				class="max-h-050"
 				:color="file.status == 2 ? 'bg-accent-lime' : 'bg-accent-primary'"
 			></ProgressBar>
 		</BarListItem>

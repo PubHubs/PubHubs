@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-row gap-2">
+	<div class="flex flex-row gap-100">
 		<Avatar
 			:avatar-url="avatarOverrideUrl"
 			icon="two_users"
@@ -13,12 +13,12 @@
 			<p class="text-label-small flex leading-tight">
 				{{ props.room.getRoomMembers() }}
 				<Icon
-					class="mr-1"
+					class="mr-050"
 					size="sm"
 					type="user"
 				/>
 
-				<span class="mx-1">
+				<span class="mx-050">
 					{{ user.user.displayName }}
 					<span v-if="memberList.length > 0">,</span>
 				</span>
@@ -26,7 +26,7 @@
 				<span
 					v-for="(member, index) in memberList"
 					:key="member.userId"
-					class="mx-1 truncate"
+					class="mx-050 truncate"
 				>
 					{{ member.rawDisplayName }}
 					<span v-if="index < memberList.length - 1">,</span>

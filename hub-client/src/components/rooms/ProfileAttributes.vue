@@ -1,17 +1,17 @@
 <template>
 	<span
 		v-if="roomAttributes.length > 0"
-		class="flex w-full items-center gap-x-1"
+		class="gap-x-050 flex w-full items-center"
 	>
 		<span
 			v-for="[attribute, value] in roomAttributes"
 			:key="attribute"
-			class="text-background text-label-small flex w-fit items-center gap-1 rounded-full px-2 lowercase"
+			class="text-background text-label-small gap-050 flex w-fit items-center px-100 lowercase not-even:rounded-full"
 			:class="value === 'admin.title_administrator' ? 'bg-accent-primary' : 'bg-surface text-on-surface'"
 			:title="value === 'admin.title_administrator' ? $t(value) : `${attribute}: ${value}`"
 		>
 			<Icon
-				class="py-1"
+				class="py-050"
 				:class="value === 'admin.title_administrator' ? 'text-background' : 'text-on-surface'"
 				type="check-circle"
 			/>

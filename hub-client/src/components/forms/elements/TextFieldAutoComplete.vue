@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+		class="gap-050 relative mb-100 flex w-full min-w-4000 flex-col items-start justify-start"
 		:help="help"
 		:name="fieldName"
 		:validation="validation"

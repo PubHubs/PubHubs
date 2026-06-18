@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="rounded-base flex w-fit cursor-pointer items-center gap-3 truncate px-2 text-nowrap"
+		class="rounded-base flex w-fit cursor-pointer items-center gap-150 truncate px-100 text-nowrap"
 		:class="showInReplyTo ? 'bg-surface-base border-surface-elevated border-3' : 'bg-surface-background'"
 	>
 		<Icon
@@ -16,7 +16,7 @@
 			/>
 		</p>
 		<div
-			class="flex w-full items-center gap-1"
+			class="gap-050 flex w-full items-center"
 			:class="{ 'text-accent-error': redactedMessage }"
 			:title="snippetText"
 		>

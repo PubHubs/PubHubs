@@ -2,16 +2,16 @@
 	<!-- Mobile: card layout -->
 	<div
 		v-if="isMobile"
-		class="rounded-base bg-surface-base flex flex-col gap-4 p-4"
+		class="rounded-base bg-surface-base flex flex-col gap-200 p-200"
 		:title="userId"
 		@click="$emit('click')"
 	>
-		<div class="flex items-center gap-4">
+		<div class="flex items-center gap-200">
 			<Avatar
 				:avatar-url="avatarUrl"
 				:user-id="userId"
 			/>
-			<div class="flex min-w-0 flex-1 flex-col gap-1">
+			<div class="gap-050 flex min-w-0 flex-1 flex-col">
 				<p class="truncate font-semibold">
 					{{ displayName }}
 				</p>
@@ -20,7 +20,7 @@
 				</p>
 			</div>
 		</div>
-		<div class="flex flex-wrap items-center gap-4 text-sm">
+		<div class="flex flex-wrap items-center gap-200 text-sm">
 			<Icon
 				v-if="isAdmin"
 				size="sm"
@@ -32,7 +32,7 @@
 	<!-- Desktop: grid cells -->
 	<template v-else>
 		<TableRowCell
-			class="flex min-w-0 items-center gap-2"
+			class="flex min-w-0 items-center gap-100"
 			:title="displayName"
 		>
 			<Avatar
@@ -51,7 +51,7 @@
 			</p>
 		</TableRowCell>
 
-		<TableRowCell class="flex items-center gap-2">
+		<TableRowCell class="flex items-center gap-100">
 			<Icon
 				v-if="isAdmin"
 				size="sm"

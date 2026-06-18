@@ -1,8 +1,8 @@
 <template>
-	<div class="flex h-full flex-1 flex-col items-center justify-between gap-2 overflow-y-auto md:gap-4">
+	<div class="flex h-full flex-1 flex-col items-center justify-between gap-100 overflow-y-auto md:gap-200">
 		<InlineSpinner v-if="global.loggedIn && global.hubsLoading" />
 		<draggable
-			class="list-group flex w-full flex-1 flex-col gap-2 overflow-x-hidden p-4"
+			class="list-group flex w-full flex-1 flex-col gap-100 overflow-x-hidden p-200"
 			:delay="300"
 			:delay-on-touch-only="true"
 			ghost-class="hub-drag-ghost"
@@ -17,7 +17,7 @@
 			<template #item="{ element }">
 				<div
 					v-if="hubs.hub(element.hubId)"
-					class="flex h-auto justify-center gap-4"
+					class="flex h-auto justify-center gap-200"
 				>
 					<router-link
 						v-slot="{ isActive }"
@@ -37,14 +37,13 @@
 			</template>
 		</draggable>
 		<div
-			class="relative h-12 max-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out"
-			:class="{ 'max-h-12': isDragging }"
+			class="relative h-600 max-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out"
+			:class="{ 'max-h-600': isDragging }"
 		>
 			<div class="absolute grid h-full w-full items-center justify-center">
 				<Icon
-					:class="[hoverOverHubremoval ? 'text-on-accent-error' : 'text-accent-error']"
-					class="rounded-md p-1"
-					size="lg"
+					:class="[hoverOverHubremoval ? 'text-on-accent-red' : 'text-accent-red']"
+					class="p-050 rounded-md"
 					type="trash"
 				/>
 			</div>

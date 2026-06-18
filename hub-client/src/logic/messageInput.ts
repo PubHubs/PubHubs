@@ -23,10 +23,11 @@ function useMessageInput() {
 		scheduler: false,
 		schedulerObject: null as Scheduler | null,
 		editEventId: undefined as string | undefined,
+		videocall: false,
 	});
 
 	const isEdit = computed(() => state.editEventId !== undefined);
-	const hasActivePopup = computed(() => state.emojiPicker || state.showMention || state.popover || state.poll || state.scheduler);
+	const hasActivePopup = computed(() => state.emojiPicker || state.showMention || state.popover || state.poll || state.scheduler || state.videocall);
 
 	function resetAll(rememberSendButtonEnabled = false) {
 		state.popover = false;
@@ -42,6 +43,7 @@ function useMessageInput() {
 		state.pollObject = null;
 		state.scheduler = false;
 		state.schedulerObject = null;
+		state.videocall = false;
 		state.editEventId = undefined;
 	}
 
@@ -129,6 +131,16 @@ function useMessageInput() {
 		state.textArea = false;
 	}
 
+	function openVideocall() {
+		state.popover = false;
+		state.videocall = true;
+		state.sendButtonEnabled = true;
+	}
+
+	function closeVideocall() {
+		state.videocall = false;
+	}
+
 	return {
 		state,
 		isEdit,
@@ -150,6 +162,8 @@ function useMessageInput() {
 		openScheduler,
 		closeScheduler,
 		editScheduler,
+		openVideocall,
+		closeVideocall,
 	};
 }
 

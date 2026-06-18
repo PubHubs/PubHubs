@@ -1,13 +1,13 @@
 <template>
 	<Dialog
 		:title="$t('message.delete.heading')"
-		:width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'"
+		:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 		class="z-50"
 		@close="close()"
 	>
 		<ValidatedForm
 			v-slot="{ isValidated }"
-			class="flex flex-col gap-4 p-4"
+			class="flex flex-col gap-200 p-200"
 			@submit.prevent
 		>
 			<div v-if="!user.isAdmin && (event.content.msgtype === MsgType.File || event.content.msgtype === MsgType.Image)">
@@ -31,7 +31,7 @@
 					/>
 					<Reaction
 						v-if="displayReactionInDialog(event.event_id)"
-						class="mx-4 w-5/6"
+						class="mx-200 w-5/6"
 						:message-event-id="event.event_id"
 						:react-event="displayReactionInDialog(event.event_id) ?? []"
 					/>

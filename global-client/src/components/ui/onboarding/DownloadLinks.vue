@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-wrap gap-4">
+	<div class="flex flex-wrap gap-200">
 		<a
 			class="w-[125px] rounded-xl bg-black p-[10px] md:w-[150px]"
 			href="https://apps.apple.com/nl/app/irma-authenticatie/id1294092994"

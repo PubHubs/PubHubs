@@ -22,7 +22,7 @@
 				/>
 
 				<!-- Expands if the timeline height < the vieport, to top-align the content -->
-				<div class="flex h-full items-center justify-center px-4 md:px-16">
+				<div class="flex h-full items-center justify-center px-200 md:px-800">
 					<InlineSpinner v-if="!props.room.syncDataReceived && reversedTimeline.length === 0" />
 					<P
 						v-else-if="props.room.syncDataReceived && reversedTimeline.length === 0"
@@ -62,11 +62,11 @@
 								<template #reactions>
 									<div
 										v-if="reactionExistsForMessage(item)"
-										class="mt-2 mb-1 flex flex-wrap gap-2"
-										:class="isMobile ? 'px-2' : 'px-5'"
+										class="mb-050 mt-100 flex flex-wrap gap-100"
+										:class="isMobile ? 'px-100' : 'px-250'"
 									>
 										<Reaction
-											class="pl-16"
+											class="pl-800"
 											:message-event-id="item.matrixEvent.event.event_id!"
 											:react-event="onlyReactionEvent(item.matrixEvent.event.event_id!)"
 										/>
@@ -85,7 +85,7 @@
 				<!-- Room created indicator-->
 				<div
 					v-if="oldestEventIsLoaded"
-					class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase"
+					class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-100 flex w-fit items-center justify-center gap-100 border uppercase"
 				>
 					{{ $t('rooms.roomCreated') }}
 				</div>
@@ -110,7 +110,7 @@
 
 		<MessageInput
 			v-if="room"
-			class="z-10 shrink-0"
+			class="shrink-0"
 			:editing-poll="editingPollProp"
 			:editing-scheduler="editingSchedulerProp"
 			:in-thread="false"

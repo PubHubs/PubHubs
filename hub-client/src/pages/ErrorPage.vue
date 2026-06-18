@@ -1,20 +1,20 @@
 <template>
-	<div class="flex h-full items-center justify-center p-10">
-		<div class="md:'-8/12 bg-surface-base flex w-full flex-col gap-y-4 rounded-xl px-8 py-12 text-center shadow-lg">
+	<div class="flex h-full items-center justify-center p-500">
+		<div class="md:'-8/12 bg-surface-base flex w-full flex-col gap-y-200 rounded-xl px-400 py-600 text-center shadow-lg">
 			<div
 				v-if="errorKey === 'moderation.red_card_info'"
-				class="flex flex-row items-center justify-center gap-x-4"
+				class="flex flex-row items-center justify-center gap-x-200"
 			>
 				<Icon
 					type="exclamation-mark"
 					class="text-accent-red-interactive"
 				></Icon>
-				<div class="flex flex-col items-center justify-center gap-y-4">
+				<div class="flex flex-col items-center justify-center gap-y-200">
 					<H1 class="text-accent-primary capitalize">{{ $t('moderation.red_card') }}</H1>
 					<H3 class="">{{ $t(errorKey) }}</H3>
 					<p class="text-on-surface text-sm">{{ redCardMembers.find((card) => card.userId === userStore.userId)?.reason }}</p>
 					<router-link :to="redCardBackRoute">
-						<Button class="mx-auto block max-w-md rounded-lg py-2">
+						<Button class="mx-auto block max-w-md rounded-lg py-100">
 							{{ $t('dialog.go_back') }}
 						</Button>
 					</router-link>
@@ -22,7 +22,7 @@
 			</div>
 			<div
 				v-else
-				class="flex flex-col items-center gap-y-4"
+				class="flex flex-col items-center gap-y-200"
 			>
 				<H1 class="text-accent-primary">{{ $t('errors.oops') }}</H1>
 				<!-- eslint-disable vue/no-v-html -- sanitized via sanitizeHtml -->
@@ -34,7 +34,7 @@
 				<router-link :to="fromRoute || { name: 'home' }">
 					<Button
 						v-if="errorKey !== 'errors.no_hubs_found'"
-						class="mx-auto block max-w-md rounded-lg py-2"
+						class="mx-auto block max-w-md rounded-lg py-100"
 					>
 						{{ $t('dialog.go_back') }}
 					</Button>

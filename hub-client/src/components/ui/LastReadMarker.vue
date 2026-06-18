@@ -1,7 +1,7 @@
 <template>
 	<div
 		v-if="showMarker"
-		class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 bg-background mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase"
+		class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 bg-background mx-auto my-100 flex w-fit items-center justify-center gap-100 border uppercase"
 	>
 		{{ $t('rooms.last_read_message') }}
 	</div>

@@ -1,16 +1,16 @@
 <template>
-	<div class="flex flex-col gap-2">
+	<div class="flex flex-col gap-100">
 		<P> {{ discosureRequest.message }} </P>
 		<div
-			class="bg-surface-base rounded-base border-surface-elevated flex h-full items-center justify-evenly gap-x-4 border-3 p-4"
-			:class="!isMobile ? 'max-w-[700px] flex-row px-12' : 'w-full flex-col'"
+			class="bg-surface-base rounded-base border-surface-elevated flex h-full items-center justify-evenly gap-x-200 border-3 p-200"
+			:class="!isMobile ? 'max-w-[700px] flex-row px-600' : 'w-full flex-col'"
 		>
-			<div class="flex w-full flex-col gap-2">
+			<div class="flex w-full flex-col gap-100">
 				<H3>{{ t('admin.disclosure_dialog_title') }}</H3>
 				<P class="text-body-small">
 					{{ t('admin.disclosure_message', [roomName]) }}
 				</P>
-				<div class="flex flex-row items-center gap-2 rounded-lg border bg-white p-4 text-black">
+				<div class="flex flex-row items-center gap-100 rounded-lg border bg-white p-200 text-black">
 					<img
 						alt="Yivi"
 						class="h-[1.75rem]"
@@ -28,7 +28,7 @@
 				/>
 				<div
 					v-else
-					class="m-8 flex h-[211.5px] w-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl bg-white text-black"
+					class="m-400 flex h-[211.5px] w-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl bg-white text-black"
 					@click="startDisclosure"
 				>
 					<icon

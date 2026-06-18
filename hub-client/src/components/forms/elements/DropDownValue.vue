@@ -1,6 +1,6 @@
 <template>
 	<span
-		class="inline-flex max-h-300 w-full items-center justify-start gap-2 truncate overflow-hidden"
+		class="inline-flex max-h-300 w-full items-center justify-start gap-100 truncate overflow-hidden"
 		:title="label"
 	>
 		<Avatar

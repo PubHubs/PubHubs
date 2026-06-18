@@ -1,7 +1,7 @@
 <template>
 	<textarea
 		ref="elTextarea"
-		v-tw-class="'p-2'"
+		v-tw-class="'p-100'"
 		class="text-body focus:border-on-surface disabled:bg-surface-base! w-full resize-none rounded-lg border focus:ring-0 focus:outline-0 focus:outline-offset-0"
 		:disabled="disabled === true"
 		:maxlength="maxLength"

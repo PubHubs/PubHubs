@@ -1,8 +1,8 @@
 <template>
-	<div class="flex flex-col gap-1 wrap-break-word">
+	<div class="gap-050 flex flex-col wrap-break-word">
 		<!-- Deleted Message -->
 		<template v-if="deleted">
-			<div class="flex flex-row items-center gap-1">
+			<div class="gap-050 flex flex-row items-center">
 				<Icon
 					class="text-on-surface-dim"
 					size="sm"
@@ -15,7 +15,7 @@
 			<!-- Reason shown only to original poster -->
 			<p
 				v-if="deletedBySteward && redactionReason && (isOriginalPoster || roles.userIsStewardOrHigher(props.event.room_id))"
-				class="text-on-surface-dim ml-5 overflow-hidden text-sm text-ellipsis italic"
+				class="text-on-surface-dim ml-250 overflow-hidden text-sm text-ellipsis italic"
 			>
 				{{ t('message.delete.reason') }}: {{ redactionReason }}
 			</p>

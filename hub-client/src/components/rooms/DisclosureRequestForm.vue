@@ -1,7 +1,7 @@
 <template>
 	<Dialog
 		:title="$t('admin.ask_disclosure_title')"
-		:width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'"
+		:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 		@close="close()"
 	>
 		<ValidatedForm
