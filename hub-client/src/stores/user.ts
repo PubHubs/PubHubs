@@ -150,16 +150,22 @@ const useUser = defineStore('user', {
 					memberToUpdate?.displayName !== member.content.displayname ||
 					memberToUpdate?.contentAvatarUrl !== member.content.avatar_url
 				) {
-					// Revoke old avatar blob URL before replacing
-					if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
-						URL.revokeObjectURL(memberToUpdate.avatarUrl);
+					const profile: UserProfile = {};
+
+					if (memberToUpdate?.displayName !== member.content.displayname) {
+						profile.displayName = member.content.displayname ?? undefined;
 					}
-					const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
-					const profile: UserProfile = {
-						displayName: member.content.displayname ?? undefined,
-						avatarUrl: avatarUrl,
-						contentAvatarUrl: member.content.avatar_url,
-					};
+
+					if (memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
+						// Revoke old avatar blob URL before replacing
+						if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
+							URL.revokeObjectURL(memberToUpdate.avatarUrl);
+						}
+						const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
+						profile.avatarUrl = avatarUrl;
+						profile.contentAvatarUrl = member.content.avatar_url;
+					}
+
 					this.setUserProfile(member.sender, profile);
 				}
 			});
@@ -180,7 +186,10 @@ const useUser = defineStore('user', {
 				logger.error('Failed to set display name on server', error);
 				return;
 			}
-			if (this.userId) this.setUserProfile(this.userId, { displayName: name });
+			if (this.userId) {
+				const existing = this.usersProfile.get(this.userId) ?? {};
+				this.setUserProfile(this.userId, { ...existing, displayName: name });
+			}
 		},
 
 		async setAvatarUrl(avatarUrl: string) {
@@ -202,7 +211,10 @@ const useUser = defineStore('user', {
 				URL.revokeObjectURL(oldAvatar);
 			}
 
-			if (this.userId) this.setUserProfile(this.userId, { contentAvatarUrl: avatarUrl, avatarUrl: authorizedUrl });
+			if (this.userId) {
+				const existing = this.usersProfile.get(this.userId) ?? {};
+				this.setUserProfile(this.userId, { ...existing, contentAvatarUrl: avatarUrl, avatarUrl: authorizedUrl });
+			}
 		},
 
 		// Profile setter method for me.
@@ -210,7 +222,8 @@ const useUser = defineStore('user', {
 		async setProfile(profile: { avatar_url?: string; displayname?: string }) {
 			if (!this.userId) return;
 
-			const profileData: UserProfile = {};
+			const existing = this.usersProfile.get(this.userId) ?? {};
+			const profileData: UserProfile = { ...existing };
 
 			if (profile.displayname !== undefined) {
 				profileData.displayName = profile.displayname;
@@ -219,7 +232,6 @@ const useUser = defineStore('user', {
 			if (profile.avatar_url !== undefined) {
 				const { getAuthorizedMediaUrl } = useMatrixFiles();
 				const authorizedUrl = await getAuthorizedMediaUrl(profile.avatar_url);
-				// Revoke old avatar blob URL before replacing
 				const oldAvatar = this.usersProfile.get(this.userId)?.avatarUrl;
 				if (oldAvatar?.startsWith('blob:')) {
 					URL.revokeObjectURL(oldAvatar);
