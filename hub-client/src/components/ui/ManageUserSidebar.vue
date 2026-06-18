@@ -36,14 +36,22 @@
 					<template #right>
 						<Pill :value="visibleRooms.length" />
 					</template>
-					<div
+					<template
 						v-for="room in visibleRooms"
 						:key="room.roomId"
-						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-100 rounded-md p-100"
-						@click="emit('navigateToRoom', room.roomId)"
 					>
-						<span class="truncate text-sm">{{ room.name }}</span>
-					</div>
+						<RoomLink
+							v-if="canManage(room.roomId)"
+							:room-id="room.roomId"
+							:name="room.name"
+						/>
+						<div
+							v-else
+							class="flex w-full items-center gap-100 rounded-md p-100"
+						>
+							<span class="truncate text-sm">{{ room.name }}</span>
+						</div>
+					</template>
 				</CollapsibleHeader>
 			</div>
 		</div>
@@ -93,9 +101,11 @@
 	import Pill from '@hub-client/components/elements/Pill.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
+	import RoomLink from '@hub-client/components/ui/RoomLink.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useUserRooms } from '@hub-client/composables/useUserRooms';
 
 	// Logic
@@ -103,6 +113,7 @@
 
 	// Models
 	import { type Administrator } from '@hub-client/models/hubmanagement/models/admin';
+	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
@@ -118,7 +129,6 @@
 	const emit = defineEmits<{
 		edit: [];
 		disclose: [];
-		navigateToRoom: [roomId: string];
 	}>();
 
 	const { t } = useI18n();
@@ -129,6 +139,12 @@
 		computed(() => props.userId),
 		computed(() => props.isAdmin),
 	);
+
+	const { userPowerLevel } = useRoles();
+
+	function canManage(roomId: string) {
+		return userPowerLevel(roomId) >= UserPowerLevel.Steward;
+	}
 
 	const pseudonym = computed(() => {
 		if (!props.userId) return '';

@@ -229,10 +229,6 @@ export function useManageRooms() {
 		router.push({ name: 'room', params: { id: selectedRoomId.value } });
 	}
 
-	function navigateToUser(userId: string) {
-		router.push({ name: 'manage-users', query: { userId } });
-	}
-
 	function selectRoom(roomId: string, roomName: string) {
 		if (sidebar.activeTab.value === SidebarTab.ManageRoom && selectedRoomId.value === roomId) {
 			sidebar.close();
@@ -260,7 +256,6 @@ export function useManageRooms() {
 		removeSelectedRoom,
 		promoteSelectedRoom,
 		goToSelectedRoom,
-		navigateToUser,
 		selectRoom,
 		closeForm,
 		itemRoomId,

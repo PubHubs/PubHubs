@@ -100,7 +100,6 @@
 					@edit="editSelectedRoom"
 					@remove="removeSelectedRoom"
 					@promote="promoteSelectedRoom"
-					@navigate-to-user="navigateToUser"
 				/>
 			</RoomSidebar>
 		</div>
@@ -157,7 +156,6 @@
 		removeSelectedRoom,
 		promoteSelectedRoom,
 		goToSelectedRoom,
-		navigateToUser,
 		selectRoom,
 		closeForm,
 		itemRoomId,

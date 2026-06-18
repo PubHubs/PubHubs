@@ -100,11 +100,6 @@ export function useUserRooms(userId: Ref<string>, isAdmin: Ref<boolean>) {
 				if (!isDirectRoom(roomId)) addRoom(roomId);
 			}
 		} else {
-			for (const publicRoom of rooms.publicRooms) {
-				if (isMember(publicRoom.room_id, selectedUserId)) {
-					addRoom(publicRoom.room_id);
-				}
-			}
 			for (const entry of rooms.roomList) {
 				if (DirectRooms.includes(entry.roomType as RoomType)) continue;
 

@@ -1,7 +1,7 @@
 <template>
 	<div class="flex h-full w-full flex-col overflow-hidden">
 		<div
-			class="border-on-surface-disabled flex h-1000 shrink-0 items-center justify-between border-b px-400"
+			class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between border-b-2 px-400"
 			:class="isMobile ? 'pl-600' : 'pl-400'"
 		>
 			<div class="flex w-fit items-center gap-150 overflow-hidden">

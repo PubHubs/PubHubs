@@ -1,7 +1,7 @@
 <template>
 	<div class="flex h-full w-full flex-col overflow-hidden">
 		<div
-			class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b px-400"
+			class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between border-b-2 px-400"
 			:class="isMobile ? 'pl-600' : 'pl-400'"
 		>
 			<div class="flex w-fit items-center gap-150 overflow-hidden">
@@ -80,7 +80,6 @@
 					:is-admin="isAdmin"
 					@edit="currentAdministrator ? (showUserInRoomForm = true) : undefined"
 					@disclose="openDisclosureForSelectedUser"
-					@navigate-to-room="navigateToRoom"
 				/>
 			</RoomSidebar>
 		</div>
@@ -97,9 +96,8 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onMounted } from 'vue';
+	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
@@ -121,8 +119,6 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
-	const route = useRoute();
-	const router = useRouter();
 	const settings = useSettings();
 	const sidebar = useSidebar();
 	const isMobile = computed(() => settings.isMobileState);
@@ -141,20 +137,6 @@
 		asUserAccount,
 		openDisclosureForSelectedUser,
 		closeAskDisclosureForm,
-		navigateToRoom,
 		selectUser,
 	} = useManageUsers();
-
-	onMounted(async () => {
-		// Check for userId query parameter and auto-select user
-		const queryUserId = route.query.userId as string | undefined;
-		if (queryUserId) {
-			const userAccount = hubUsers.value.find((u) => u.name === queryUserId);
-			if (userAccount) {
-				selectUser(userAccount.name, userAccount.displayname);
-			}
-			// Clear the query parameter
-			router.replace({ query: {} });
-		}
-	});
 </script>

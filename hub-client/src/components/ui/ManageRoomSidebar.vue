@@ -72,30 +72,11 @@
 					<template #right>
 						<Pill :value="combinedStewards.length" />
 					</template>
-					<div
+					<UserLink
 						v-for="steward in combinedStewards"
 						:key="steward.userId"
-						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-100 rounded-md p-100"
-						@click="emit('navigateToUser', steward.userId)"
-					>
-						<Avatar
-							:avatar-url="user.userAvatar(steward.userId)"
-							:user-id="steward.userId"
-							:room-id="props.roomId"
-							:enable-d-m="false"
-							class="h-400 w-400 shrink-0"
-						/>
-						<UserDisplayName
-							:user-id="steward.userId"
-							:user-display-name="user.userDisplayName(steward.userId)"
-							:room-id="props.roomId"
-							:enable-d-m="false"
-						/><span
-							v-if="steward.userId === user.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
-						>
-					</div>
+						:user-id="steward.userId"
+					/>
 				</CollapsibleHeader>
 			</div>
 
@@ -108,30 +89,11 @@
 					<template #right>
 						<Pill :value="nonPowerMemberIds.length" />
 					</template>
-					<div
+					<UserLink
 						v-for="userId in nonPowerMemberIds"
 						:key="userId"
-						class="hover:bg-surface-elevated flex w-full cursor-pointer items-center gap-100 rounded-md p-100"
-						@click="emit('navigateToUser', userId)"
-					>
-						<Avatar
-							:avatar-url="user.userAvatar(userId)"
-							:user-id="userId"
-							:room-id="props.roomId"
-							:enable-d-m="false"
-							class="h-400 w-400 shrink-0"
-						/>
-						<UserDisplayName
-							:user-id="userId"
-							:user-display-name="user.userDisplayName(userId)"
-							:room-id="props.roomId"
-							:enable-d-m="false"
-						/><span
-							v-if="userId === user.userId"
-							class="text-on-surface-dim"
-							>&nbsp;{{ $t('admin.you_suffix') }}</span
-						>
-					</div>
+						:user-id="userId"
+					/>
 				</CollapsibleHeader>
 			</div>
 		</div>
@@ -187,16 +149,12 @@
 	import FloatingActionButton from '@hub-client/components/elements/FloatingActionButton.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Pill from '@hub-client/components/elements/Pill.vue';
-	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
-	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
+	import UserLink from '@hub-client/components/ui/UserLink.vue';
 
 	// Composables
 	import { useRoomDetails } from '@hub-client/composables/useRoomDetails';
-
-	// Stores
-	import { useUser } from '@hub-client/stores/user';
 
 	// Props
 	const props = defineProps({
@@ -211,11 +169,9 @@
 		edit: [];
 		remove: [];
 		promote: [];
-		navigateToUser: [userId: string];
 	}>();
 
 	const { t } = useI18n();
-	const user = useUser();
 
 	const { securedRoom, roomTypeDisplay, memberCount, roomTopic, yiviAttributeNames, hasRoomData, combinedStewards, nonPowerMemberIds } = useRoomDetails(
 		computed(() => props.roomId),

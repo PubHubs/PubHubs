@@ -21,13 +21,10 @@
 				:label="t('admin.report_room')"
 				:collapsible="false"
 			>
-				<p>{{ report.name || report.room_id }}</p>
-				<p
-					v-if="report.canonical_alias"
-					class="text-on-surface-dim text-sm"
-				>
-					{{ report.canonical_alias }}
-				</p>
+				<RoomLink
+					:room-id="report.room_id"
+					:name="report.name ?? ''"
+				/>
 			</CollapsibleHeader>
 
 			<!-- Reported user -->
@@ -98,9 +95,9 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import FloatingActionButton from '@hub-client/components/elements/FloatingActionButton.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
 	import ReportedMessagePreview from '@hub-client/components/ui/ReportedMessagePreview.vue';
+	import RoomLink from '@hub-client/components/ui/RoomLink.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 	import UserLink from '@hub-client/components/ui/UserLink.vue';
 
