@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface-base rounded-base outline-surface-elevated flex max-w-[700px] flex-col p-4 outline-3">
+	<div class="bg-surface-base rounded-base outline-surface-elevated flex max-w-[480px] flex-col p-200 outline-3">
 		<div class="flex items-center gap-100">
 			<h3 class="font-bold">
 				{{ $t('message.messageSigned.heading') }}
@@ -12,12 +12,12 @@
 			/>
 		</div>
 		<p>{{ getMessage(message) }}</p>
-		<div class="flex w-full min-w-0 flex-col overflow-x-auto p-2">
-			<ul class="mt-1 ml-auto flex w-fit">
+		<div class="flex w-full min-w-0 flex-col overflow-x-auto p-100">
+			<ul class="mt-050 ml-auto flex w-fit">
 				<li
 					v-for="attribute in getDisclosedAttributes(message)"
 					:key="attribute.id"
-					class="rounded-base bg-surface-elevated flex w-fit items-center gap-100 px-3 py-2"
+					class="rounded-base bg-surface-elevated flex w-fit items-center gap-100 px-150 py-100"
 				>
 					<Icon
 						size="sm"

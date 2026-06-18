@@ -1,22 +1,22 @@
 <template>
 	<div
-		class="bg-surface-base border-surface-elevated flex w-[80ch] min-w-0 shrink-0 snap-center flex-col items-center justify-center rounded border-3 p-10 py-12"
+		class="bg-surface-base border-surface-elevated flex w-[80ch] min-w-0 shrink-0 snap-center flex-col items-center justify-center rounded border-3 p-500 py-600"
 	>
 		<div class="relative flex h-full w-full flex-col justify-center overflow-hidden">
 			<!-- Two-column layout -->
-			<div class="grid h-full grow grid-cols-2 gap-8">
+			<div class="grid h-full grow grid-cols-2 gap-400">
 				<!-- Text -->
 				<div class="col-span-1 flex flex-col justify-center overflow-y-auto">
 					<!-- Header -->
-					<div class="mb-6 flex items-center gap-4">
+					<div class="mb-300 flex items-center gap-200">
 						<div
-							class="flex aspect-square h-6 w-6 items-center justify-center rounded-full"
+							class="flex aspect-square h-300 w-300 items-center justify-center rounded-full"
 							:class="error ? 'bg-accent-error text-on-accent-error' : 'bg-accent-primary text-on-accent-primary'"
 						>
 							<Icon
 								v-if="error"
 								type="warning"
-								class="h-4 w-4"
+								class="h-200 w-200"
 							/>
 							<span
 								v-else
@@ -26,7 +26,7 @@
 						</div>
 						<slot name="title" />
 					</div>
-					<div class="mb-8 flex items-center pl-10">
+					<div class="mb-400 flex items-center pl-500">
 						<slot />
 					</div>
 				</div>
@@ -40,7 +40,7 @@
 			<!-- Footer -->
 			<div
 				v-if="active"
-				class="absolute bottom-0 left-0 mt-6 flex w-full gap-8"
+				class="absolute bottom-0 left-0 mt-300 flex w-full gap-400"
 				:class="index == 0 ? 'justify-end' : index == 1 ? 'justify-between' : 'justify-start'"
 			>
 				<Button

@@ -311,6 +311,15 @@ const useHubs = defineStore('hubs', {
 					});
 				});
 
+				// Write to clipboard from the top-level frame (clipboard API is
+				// unreliable from inside cross-origin iframes on mobile Safari).
+				messagebox.addCallback(iframeHubId, MessageType.ClipboardWrite, (message: Message) => {
+					const text = message.content as string;
+					navigator.clipboard.writeText(text).catch((err) => {
+						logger.error('Failed to write to clipboard:', err);
+					});
+				});
+
 				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, async () => {
 					global.removeAccessToken(this.currentHubId);
 					// Save settings to persist the token removal before reloading

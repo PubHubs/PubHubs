@@ -10,7 +10,7 @@
 				:aria-label="t('notifications.heading')"
 				@click.stop="showNotifications = !showNotifications"
 			/>
-			<span class="bg-accent-red text-on-accent-red absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-xs">
+			<span class="bg-accent-red text-on-accent-red -top-050 -right-050 absolute flex h-200 w-200 items-center justify-center rounded-full text-xs">
 				{{ notifications.length }}
 			</span>
 		</div>
@@ -18,19 +18,19 @@
 	<!-- Notification Panel (directly under the bell) -->
 	<div
 		v-if="showNotifications"
-		class="border-on-surface-dim bg-surface absolute top-20 right-0 z-50 mt-2 mb-8 max-h-96 overflow-y-auto rounded-lg border p-4 shadow-lg"
+		class="border-on-surface-dim bg-surface absolute top-800 right-0 z-50 mt-100 mb-400 max-h-96 overflow-y-auto rounded-lg border p-200 shadow-lg"
 		@click.stop
 	>
-		<div class="mb-2 flex items-center justify-between">
+		<div class="mb-100 flex items-center justify-between">
 			<span class="font-semibold">{{ t('notifications.heading') }}</span>
 		</div>
 		<div
 			v-for="notification in notifications"
 			:key="notification.type"
-			class="bg-surface-base mt-2 flex flex-col items-end justify-between rounded-xs p-2 shadow-xs"
+			class="bg-surface-base mt-100 flex flex-col items-end justify-between rounded-xs p-100 shadow-xs"
 		>
 			<div class="flex flex-row">
-				<p class="mr-2">
+				<p class="mr-100">
 					{{ t(`notifications.${notification.type}`, notification.message_values) }}
 				</p>
 				<Icon
@@ -41,7 +41,7 @@
 					{{ t('notifications.dismiss') }}
 				</Icon>
 			</div>
-			<div class="flex flex-row items-center gap-2">
+			<div class="flex flex-row items-center gap-100">
 				<Button
 					v-if="
 						(notification.type === TNotificationType.RemovedFromSecuredRoom ||

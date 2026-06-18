@@ -41,10 +41,10 @@
 			>
 				<img
 					:src="uri?.url ?? ''"
-					class="max-h-64 max-w-full rounded-lg"
+					class="max-h-3000 max-w-full rounded-lg"
 				/>
 			</div>
-			<div class="mt-1 flex justify-center">
+			<div class="mt-050 flex justify-center">
 				<div class="text-on-surface-dim text-label">
 					{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})
 				</div>

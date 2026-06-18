@@ -2,14 +2,14 @@
 	<div
 		v-if="isVisible"
 		ref="elContainer"
-		class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg"
+		class="scrollbar bg-surface fixed max-h-2500 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg"
 		:style="getStyle()"
 	>
 		<ul>
 			<li
 				v-for="(item, index) in filteredItems"
 				:key="index"
-				class="group hover:bg-surface-elevated flex cursor-pointer items-center gap-2 px-4"
+				class="group hover:bg-surface-elevated flex cursor-pointer items-center gap-100 px-200"
 				@click.stop="clickedItem(item)"
 			>
 				<Avatar
@@ -17,7 +17,7 @@
 					:avatar-url="userStore.userAvatar(item.userId)"
 					:user-id="item.userId"
 				/>
-				<div class="flex max-w-3000 flex-col items-center py-2">
+				<div class="flex max-w-3000 flex-col items-center py-100">
 					<TruncatedText :title="getDisplayName(item)">
 						{{ getDisplayName(item) }}
 					</TruncatedText>

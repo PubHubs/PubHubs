@@ -4,14 +4,14 @@
 		:class="isMobile && !hubSettings.isSolo ? 'w-[calc(50%-40px)]!' : 'flex max-w-[280px]'"
 	>
 		<template #header>
-			<div class="flex h-full w-full items-center justify-between gap-4">
+			<div class="flex h-full w-full items-center justify-between gap-200">
 				<div
 					v-context-menu="(evt: Event) => openMenu(evt as MouseEvent, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])"
-					class="group relative flex min-w-0 items-center gap-2"
+					class="group relative flex min-w-0 items-center gap-100"
 				>
 					<H2 class="font-headings text-h2 text-on-surface truncate font-semibold">{{ hubSettings.hubName }}</H2>
 				</div>
-				<div class="flex items-center gap-2">
+				<div class="flex items-center gap-100">
 					<GlobalbarButton
 						v-if="isModerator && !showModerationMenu"
 						:selected="showModerationMenu"
@@ -25,18 +25,18 @@
 		</template>
 
 		<div
-			class="flex flex-col gap-8 p-3 md:p-4"
+			class="flex flex-col gap-400 p-150 md:p-200"
 			role="menu"
 		>
 			<template v-if="!showModerationMenu">
-				<section class="flex flex-col gap-4">
+				<section class="flex flex-col gap-200">
 					<div
-						class="bg-surface text-hub-text rounded-base border-surface-elevated flex h-1000 items-center justify-between overflow-hidden border-3 p-4"
+						class="bg-surface text-hub-text rounded-base border-surface-elevated flex h-1000 items-center justify-between overflow-hidden border-3 p-200"
 						role="complementary"
 					>
-						<div class="flex w-full items-center gap-2 truncate">
+						<div class="flex w-full items-center gap-100 truncate">
 							<Avatar
-								:avatar-url="user.userAvatar(user.userId!) ?? user.avatarUrl"
+								:avatar-url="user.avatarUrl"
 								:user-id="user.userId!"
 							/>
 							<div class="flex h-fit w-full flex-col overflow-hidden">
@@ -88,7 +88,7 @@
 			<template v-else>
 				<!-- Back button -->
 				<button
-					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled/25 -m-3 flex items-center gap-2 border-b-2 p-3 transition-colors hover:cursor-pointer md:-m-4 md:p-4"
+					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled/25 -m-150 flex items-center gap-100 border-b-2 p-150 transition-colors hover:cursor-pointer md:-m-200 md:p-200"
 					type="button"
 					@click="showModerationMenu = false"
 				>

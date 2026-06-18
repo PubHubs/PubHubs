@@ -1,9 +1,9 @@
 <template>
 	<div class="bg-surface absolute inset-0 z-20 h-full opacity-75" />
-	<div class="fixed inset-0 z-20 flex items-center justify-center p-4">
-		<div class="bg-surface-base relative min-h-[300px] rounded-md border p-8 sm:w-[480px] md:w-[640px]">
+	<div class="fixed inset-0 z-20 flex items-center justify-center p-200">
+		<div class="bg-surface-base relative min-h-[300px] rounded-md border p-400 sm:w-[480px] md:w-[640px]">
 			<div class="flex justify-between">
-				<h2 class="mx-2 my-2 mt-4 font-bold">
+				<h2 class="mx-100 my-100 mt-200 font-bold">
 					{{ t('admin.title_room_join') }}
 				</h2>
 				<Icon
@@ -12,15 +12,15 @@
 				/>
 			</div>
 
-			<hr class="mx-8 mt-2" />
-			<div class="my-2 flex flex-col">
+			<hr class="mx-400 mt-100" />
+			<div class="my-100 flex flex-col">
 				<span>{{ t('admin.join_warning') }}</span>
-				<span class="mt-4">{{ t('admin.refresh_admin_operation') }} </span>
+				<span class="mt-200">{{ t('admin.refresh_admin_operation') }} </span>
 			</div>
 
-			<hr class="mx-8 mt-2" />
+			<hr class="mx-400 mt-100" />
 			<Button
-				class="bg-on-surface-dim hover:bg-surface-subtle dark:text-surface-base absolute inset-0 mt-4 w-full rounded-xs px-4 text-center"
+				class="bg-on-surface-dim hover:bg-surface dark:text-surface-base absolute inset-0 mt-200 w-full rounded-xs px-200 text-center"
 				@click="handleActionClick"
 			>
 				{{ t('admin.join') }}

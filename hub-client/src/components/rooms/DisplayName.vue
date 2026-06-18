@@ -5,7 +5,7 @@
 		:title="displayname"
 		>{{ displayname }}</span
 	>
-	<span class="text-label-small mt-1 text-nowrap">{{ filters.extractPseudonym(user?.userId ?? '') }}</span>
+	<span class="text-label-small mt-050 text-nowrap">{{ filters.extractPseudonym(user?.userId ?? '') }}</span>
 </template>
 
 <script lang="ts" setup>

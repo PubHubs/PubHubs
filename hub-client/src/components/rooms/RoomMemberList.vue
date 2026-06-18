@@ -1,14 +1,14 @@
 <template>
-	<div class="flex h-full flex-col overflow-y-hidden py-4">
+	<div class="flex h-full flex-col overflow-y-hidden py-200">
 		<SidebarHeader :title="$t('rooms.members')" />
-		<div class="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
+		<div class="flex flex-1 flex-col gap-200 overflow-y-auto px-200">
 			<!-- Contact steward card -->
 			<div
 				v-if="stewards && stewards.length > 0 && !isCurrentUserSteward"
-				class="hover:bg-surface-elevated rounded-base flex cursor-pointer items-center gap-4 p-2"
+				class="hover:bg-surface-elevated rounded-base flex cursor-pointer items-center gap-200 p-100"
 				@click="contactSteward"
 			>
-				<div class="bg-accent-steward/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+				<div class="bg-accent-steward/10 flex h-600 w-600 shrink-0 items-center justify-center rounded-full">
 					<Icon
 						type="lifebuoy"
 						class="text-accent-steward"
@@ -22,7 +22,7 @@
 
 			<div
 				v-if="stewards && stewards.length > 0"
-				class="pb-4"
+				class="pb-200"
 			>
 				<CollapsibleHeader :label="$t('rooms.stewards')">
 					<template #right>
@@ -36,13 +36,19 @@
 								? (evt: any) => openMenu(evt, getPowerUserMenuItems(steward.userId), steward.userId)
 								: undefined
 						"
-						class="flex w-full items-center rounded-md p-2"
+						class="flex w-full items-center gap-100 rounded-md p-100"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-elevated'"
 					>
 						<UserBadge
 							:user-id="steward.userId"
 							size="lg"
-						/>
+						>
+							<span
+								v-if="steward.userId === user.user?.userId"
+								class="text-on-surface-dim"
+								>{{ $t('admin.you_suffix') }}</span
+							>
+						</UserBadge>
 					</div>
 				</CollapsibleHeader>
 			</div>
@@ -56,13 +62,19 @@
 						v-for="memberId in nonPowerMemberIds"
 						:key="memberId"
 						v-context-menu="(evt: any) => openMenu(evt, getMemberContextMenuItems(memberId), memberId)"
-						class="flex w-full items-center rounded-md p-2"
+						class="flex w-full items-center gap-100 rounded-md p-100"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === memberId && 'bg-surface-elevated'"
 					>
 						<UserBadge
 							:user-id="memberId"
 							size="lg"
-						/>
+						>
+							<span
+								v-if="memberId === user.user?.userId"
+								class="text-on-surface-dim"
+								>{{ $t('admin.you_suffix') }}</span
+							>
+						</UserBadge>
 					</div>
 				</CollapsibleHeader>
 			</div>
@@ -75,13 +87,18 @@
 						v-for="yellowCard in activeYellowCards"
 						:key="yellowCard.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getYellowCardContextMenuItems(yellowCard.userId), yellowCard.userId)"
-						class="flex w-full items-center rounded-md p-2"
+						class="flex w-full items-center gap-100 rounded-md p-100"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === yellowCard.userId && 'bg-surface-elevated'"
 					>
 						<UserBadge
 							:user-id="yellowCard.userId"
 							size="lg"
 						>
+							<span
+								v-if="yellowCard.userId === user.user?.userId"
+								class="text-on-surface-dim"
+								>{{ $t('admin.you_suffix') }}</span
+							>
 							<Icon
 								type="exclamation-mark"
 								class="text-accent-yellow"
@@ -92,13 +109,18 @@
 						v-for="redCard in redCardMembers"
 						:key="redCard.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getRedCardContextMenuItems(redCard.userId), redCard.userId)"
-						class="flex w-full items-center rounded-md p-2"
+						class="flex w-full items-center gap-100 rounded-md p-100"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === redCard.userId && 'bg-surface-elevated'"
 					>
 						<UserBadge
 							:user-id="redCard.userId"
 							size="lg"
 						>
+							<span
+								v-if="redCard.userId === user.user?.userId"
+								class="text-on-surface-dim"
+								>{{ $t('admin.you_suffix') }}</span
+							>
 							<Icon
 								type="exclamation-mark"
 								class="text-accent-red-interactive"
@@ -109,13 +131,18 @@
 						v-for="revoked in revokedRedCardMembers"
 						:key="revoked.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getYellowCardContextMenuItems(revoked.userId), revoked.userId)"
-						class="flex w-full items-center rounded-md p-2"
+						class="flex w-full items-center gap-100 rounded-md p-100"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === revoked.userId && 'bg-surface-elevated'"
 					>
 						<UserBadge
 							:user-id="revoked.userId"
 							size="lg"
 						>
+							<span
+								v-if="revoked.userId === user.user?.userId"
+								class="text-on-surface-dim"
+								>{{ $t('admin.you_suffix') }}</span
+							>
 							<Icon type="exclamation-mark" />
 						</UserBadge>
 					</div>
@@ -123,14 +150,19 @@
 						v-for="timeout in activeTimeouts"
 						:key="timeout.userId"
 						v-context-menu="(evt: any) => openMenu(evt, getTimeoutContextMenuItems(timeout.userId), timeout.userId)"
-						class="flex w-full items-center rounded-md p-2"
+						class="flex w-full items-center gap-100 rounded-md p-100"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === timeout.userId && 'bg-surface-elevated'"
 					>
 						<UserBadge
 							:user-id="timeout.userId"
 							size="lg"
 						>
-							<div class="text-accent-red-interactive flex items-center gap-1">
+							<span
+								v-if="timeout.userId === user.user?.userId"
+								class="text-on-surface-dim"
+								>{{ $t('admin.you_suffix') }}</span
+							>
+							<div class="text-accent-red-interactive gap-050 flex items-center">
 								<Icon
 									type="clock"
 									size="sm"

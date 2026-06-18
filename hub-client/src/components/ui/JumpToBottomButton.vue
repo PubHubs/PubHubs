@@ -1,9 +1,9 @@
 <template>
-	<div class="animate-fade-in absolute right-3 bottom-4 z-50 flex w-fit transform md:right-6">
+	<div class="animate-fade-in absolute right-150 bottom-200 z-50 flex w-fit transform md:right-300">
 		<button
 			:aria-label="count > 0 ? $t('rooms.new_messages', { count }) : $t('rooms.jump_to_bottom')"
 			class="bg-surface-elevated text-on-surface hover:bg-surface shadow-elevation-2 flex items-center justify-center rounded-full transition-all hover:cursor-pointer motion-safe:hover:scale-105 motion-safe:active:scale-95"
-			:class="count > 0 ? 'gap-2 px-4 py-3' : 'aspect-square p-3'"
+			:class="count > 0 ? 'gap-100 px-200 py-150' : 'aspect-square p-150'"
 			@click="$emit('click')"
 		>
 			<Icon

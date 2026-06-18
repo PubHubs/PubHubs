@@ -1,6 +1,6 @@
 <template>
-	<div class="group bg-surface-base m-3 mb-0 flex items-center justify-between overflow-hidden rounded-md py-2 pr-4 pl-2">
-		<div class="flex w-full items-center gap-2 truncate">
+	<div class="group bg-surface-base m-150 mb-0 flex items-center justify-between overflow-hidden rounded-md py-100 pr-200 pl-100">
+		<div class="flex w-full items-center gap-100 truncate">
 			<div class="flex h-fit w-full flex-col overflow-hidden">
 				<UserDisplayName
 					:user-id="participantUserId"
@@ -12,25 +12,25 @@
 			v-if="!isCameraEnabled"
 			type="video_mute"
 			size="sm"
-			class="text-on-surface-dim rounded-md stroke-0 p-2"
+			class="text-on-surface-dim rounded-md stroke-0 p-100"
 		/>
 		<Icon
 			v-if="!isMicrophoneEnabled || videoCall.isLocallyMuted(remoteParticipantName)"
 			type="microphone_mute"
 			size="sm"
-			class="text-on-surface-dim rounded-md stroke-0 p-2"
+			class="text-on-surface-dim rounded-md stroke-0 p-100"
 		/>
 		<div>
 			<Icon
 				type="dots"
 				size="sm"
-				class="hover:text-accent-primary stroke-0 p-2 hover:cursor-pointer"
+				class="hover:text-accent-primary stroke-0 p-100 hover:cursor-pointer"
 				@click.stop="toggleDropDown()"
 			></Icon>
 			<div
 				v-if="expandDrowpDown"
 				ref="dropDown"
-				class="bg-surface absolute right-4 z-10 rounded-md shadow-lg"
+				class="bg-surface absolute right-200 z-10 rounded-md shadow-lg"
 			>
 				<Button
 					variant="secondary"

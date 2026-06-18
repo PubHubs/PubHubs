@@ -10,7 +10,7 @@
 			class="inline-flex h-300 w-300 flex-col items-center justify-center gap-100"
 		>
 			<div
-				class="bg-on-accent-blue outline-accent-blue p-050 outline-offset-050 flex flex-col items-start justify-center rounded-[999px] outline"
+				class="bg-on-accent-blue outline-accent-blue p-050 flex flex-col items-start justify-center rounded-[999px] outline outline-offset-1"
 				:class="{ 'ring-accent-blue ring-3': hasFocus }"
 			>
 				<div class="bg-accent-blue h-100 w-100 rounded-full" />

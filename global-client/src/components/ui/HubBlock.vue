@@ -6,28 +6,28 @@
 	>
 		<span
 			v-if="contact"
-			class="bg-on-surface-bright text-surface-base absolute top-2 right-2 z-40 flex cursor-pointer items-center justify-center rounded-full p-[1px]"
+			class="bg-on-surface-bright text-surface-base absolute top-100 right-100 z-50 flex cursor-pointer items-center justify-center rounded-full p-[1px]"
 			:title="copied ? t('home.contact_copied') : contact"
 			@click.stop="copyContact"
 		>
 			<Icon :type="copied ? 'check' : 'info'" />
 		</span>
-		<div class="bg-surface-base h-24 w-full shrink-0">
+		<div class="bg-surface-base h-1200 w-full shrink-0">
 			<HubBanner
 				:banner-url="hub.bannerUrl"
 				:hub-name="hub.name"
 				class="h-full! w-full"
 			/>
 		</div>
-		<div class="flex h-30 items-start gap-4 p-5 sm:p-6">
-			<div class="bg-surface-base aspect-square h-12 w-12 shrink-0 overflow-clip rounded-xl">
+		<div class="flex h-2000 items-start gap-200 p-250 sm:p-300">
+			<div class="bg-surface-base aspect-square h-600 w-600 shrink-0 overflow-clip rounded-xl">
 				<HubIcon
 					:hub-name="hub.name"
 					:icon-url="hub.iconUrlLight"
 					:icon-url-dark="hub.iconUrlDark"
 				/>
 			</div>
-			<div class="flex min-w-0 flex-col gap-1 pr-4">
+			<div class="gap-050 flex min-w-0 flex-col pr-200">
 				<h2 class="truncate font-bold">
 					{{ hub.hubName }}
 				</h2>

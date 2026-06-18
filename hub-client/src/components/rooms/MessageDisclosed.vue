@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface-base rounded-base border-surface-elevated flex max-w-[700px] flex-col gap-3 border-3 p-8">
+	<div class="bg-surface-base rounded-base border-surface-elevated flex max-w-[700px] flex-col gap-150 border-3 p-400">
 		<!-- Title -->
 		<div class="flex items-center">
 			<h3 class="font-bold">
@@ -14,9 +14,9 @@
 		</div>
 
 		<!-- Disclosed values (main content) -->
-		<div class="flex max-w-[400px] flex-col gap-2">
+		<div class="flex max-w-[400px] flex-col gap-100">
 			<div
-				class="flex items-center gap-2 rounded-lg border bg-white p-4"
+				class="flex items-center gap-100 rounded-lg border bg-white p-200"
 				:class="!isMobile ? 'flex-row' : 'flex-col'"
 			>
 				<img
@@ -24,7 +24,7 @@
 					class="h-[1.75rem]"
 					src="@hub-client/assets/yivi-logo.svg"
 				/>
-				<div class="flex flex-wrap items-center gap-2 break-all">
+				<div class="flex flex-wrap items-center gap-100 break-all">
 					<div
 						v-for="attribute in getDisclosedAttributes(message)"
 						:key="attribute.id"

@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="hover:bg-surface-elevated rounded-base p-2 hover:cursor-pointer"
+		class="hover:bg-surface-elevated rounded-base p-100 hover:cursor-pointer"
 		:class="selected ? 'bg-surface-elevated' : 'bg-surface-base'"
 		role="button"
 		@click="handleClick"

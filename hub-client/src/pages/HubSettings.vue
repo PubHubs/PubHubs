@@ -2,8 +2,8 @@
 	<HeaderFooter>
 		<template #header>
 			<div
-				class="flex h-full items-center gap-3"
-				:class="isMobile ? 'pl-4' : 'pl-0'"
+				class="flex h-full items-center gap-150"
+				:class="isMobile ? 'p-150 pl-400' : 'p-200'"
 			>
 				<Icon type="sliders-horizontal" />
 				<H3 class="text-on-surface flex">
@@ -116,7 +116,7 @@
 		</form>
 
 		<!-- Fixed save button -->
-		<div class="fixed right-10 bottom-5 z-20 flex items-center gap-200">
+		<div class="fixed right-500 bottom-250 z-20 flex items-center gap-200">
 			<p
 				v-if="settingsSaved"
 				class="text-on-surface-dim text-label-small"

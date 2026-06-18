@@ -2,13 +2,13 @@
 	<div
 		ref="popover"
 		v-click-outside="close"
-		class="rounded-base z-40"
+		class="rounded-base z-100"
 		:style="style"
 		role="toolbar"
 	>
 		<IconButton
 			v-if="showClosingCross"
-			class="absolute top-2 right-2"
+			class="absolute top-100 right-100"
 			size="base"
 			icon="x"
 			@click="close()"

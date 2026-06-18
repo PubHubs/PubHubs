@@ -1,10 +1,10 @@
 <template>
 	<div
 		v-if="!topicId"
-		class="mx-auto w-full overflow-x-hidden overflow-y-scroll p-4"
+		class="mx-auto w-full overflow-x-hidden overflow-y-scroll p-200"
 	>
-		<div class="mb-2 flex items-center justify-between gap-2 px-5">
-			<div class="flex items-center gap-2">
+		<div class="mb-100 flex items-center justify-between gap-100 px-250">
+			<div class="flex items-center gap-100">
 				<Button
 					icon="plus"
 					:variant="addNewThread ? 'primary' : 'secondary'"
@@ -12,7 +12,7 @@
 					>{{ $t('message.forum.add_new_thread') }}</Button
 				>
 			</div>
-			<div class="flex items-center gap-2">
+			<div class="flex items-center gap-100">
 				<span>{{ $t('message.forum.sortby') }}:</span>
 				<Button
 					v-for="order in ORDER"
@@ -35,14 +35,14 @@
 			<!-- Loading indicator -->
 			<div
 				v-if="events.length === 0"
-				class="flex h-full min-h-600 items-center justify-center px-4 md:px-16"
+				class="flex h-full min-h-600 items-center justify-center px-200 md:px-800"
 			>
 				<InlineSpinner />
 			</div>
 
 			<ul
 				v-if="events.length > 0"
-				class="flex flex-col gap-y-2"
+				class="flex flex-col gap-y-100"
 				data-testid="forum-thread-list"
 			>
 				<li

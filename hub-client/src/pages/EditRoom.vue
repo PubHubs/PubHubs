@@ -5,8 +5,8 @@
 	>
 		<template #header>
 			<div
-				class="flex h-full items-center gap-3"
-				:class="isMobile && 'pl-4'"
+				class="flex h-full items-center gap-150"
+				:class="isMobile && 'pl-200'"
 			>
 				<Icon :type="isSecured ? 'shield' : 'chats-circle'" />
 				<H3 class="text-on-surface flex">
@@ -119,7 +119,7 @@
 									>
 										<DropDown
 											v-model="selectedAttributes[activeTab].label"
-											class="text-label placeholder:text-surface-subtle"
+											class="text-label placeholder:text-on-surface-dim"
 											:filtered="true"
 											:options="yiviAttributes"
 										>
@@ -195,7 +195,7 @@
 		</ValidatedForm>
 
 		<!-- Fixed action buttons -->
-		<div class="fixed right-10 bottom-5 z-20 flex items-center gap-200">
+		<div class="fixed right-500 bottom-250 z-20 flex items-center gap-200">
 			<Button
 				variant="error"
 				@click.stop.prevent="back()"

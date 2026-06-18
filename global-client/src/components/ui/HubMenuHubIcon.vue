@@ -7,12 +7,12 @@
 		:title="hub?.name"
 	>
 		<div
-			class="absolute top-1/3 -right-2 -z-10 h-4 w-4 rotate-45"
+			class="absolute top-1/3 -right-100 -z-10 h-200 w-200 rotate-45"
 			:class="{ 'border-surface-elevated bg-surface-elevated border-t-4 border-r-4': active }"
 		/>
 		<div
 			v-show="hub && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)"
-			class="absolute -top-1 -right-1 z-10"
+			class="-top-050 -right-050 absolute z-10"
 		>
 			<iframe
 				:id="miniClientId + '_' + hubId"

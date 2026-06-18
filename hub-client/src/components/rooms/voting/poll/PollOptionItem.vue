@@ -9,7 +9,7 @@
 			:class="!closed && 'cursor-pointer'"
 			@click="$emit('vote', option.id)"
 		>
-			<div class="flex min-w-0 items-center gap-2">
+			<div class="flex min-w-0 items-center gap-100">
 				<div
 					v-if="hasUserVotedOnThisOption"
 					class="flex-none"
@@ -36,7 +36,7 @@
 						type="check-circle"
 					/>
 				</div>
-				<div class="flex min-w-0 items-center gap-1">
+				<div class="gap-050 flex min-w-0 items-center">
 					<span
 						class="truncate"
 						:title="option.title"
@@ -51,12 +51,12 @@
 			</div>
 			<div
 				v-if="showVotesBeforeVoting || hasUserVotedOnThisOption || hasUserVotedOnOtherOption"
-				class="flex items-center gap-2"
+				class="flex items-center gap-100"
 			>
 				<Avatar
 					v-for="userId in userIds.slice(0).slice(-3)"
 					:key="userId"
-					class="h-full max-h-12 w-auto max-sm:hidden"
+					class="h-full max-h-600 w-auto max-sm:hidden"
 					:avatar-url="user.userAvatar(userId)"
 					:user-id="userId"
 				/>

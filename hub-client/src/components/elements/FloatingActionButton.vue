@@ -5,7 +5,7 @@
 		:class="buttonClass"
 		:disabled="disabled"
 		:title="title ?? label"
-		class="focus:outline-accent-primary rounded-base z-50 flex h-12 w-12 cursor-pointer items-center justify-center font-medium shadow-lg transition-all duration-150 ease-in-out hover:opacity-75 focus:outline-3 active:scale-95 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+		class="focus:outline-accent-primary rounded-base z-50 flex h-600 w-600 cursor-pointer items-center justify-center font-medium shadow-lg transition-all duration-150 ease-in-out hover:opacity-75 focus:outline-3 active:scale-95 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		type="button"
 		@click="handleClick"
 	>

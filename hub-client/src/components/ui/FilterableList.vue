@@ -4,8 +4,8 @@
 		class="flex w-full flex-col"
 	>
 		<div
-			class="flex flex-col gap-y-4 pb-4"
-			:class="isMobile ? 'px-3' : 'px-4'"
+			class="flex flex-col gap-y-200 pb-200"
+			:class="isMobile ? 'px-150' : 'px-200'"
 		>
 			<TextField
 				v-model="search"
@@ -17,7 +17,7 @@
 			<!-- Chip filter buttons and actions -->
 			<div
 				v-if="chipFilters.length > 0 || $slots.actions"
-				class="flex items-start justify-between gap-4"
+				class="flex items-start justify-between gap-200"
 			>
 				<div
 					v-if="chipFilters.length > 0"
@@ -56,8 +56,8 @@
 			/>
 			<div
 				v-if="totalPages > 1"
-				class="flex items-center gap-4 py-4"
-				:class="isMobile ? 'justify-start px-3' : 'justify-center px-4'"
+				class="flex items-center gap-200 py-200"
+				:class="isMobile ? 'justify-start px-150' : 'justify-center px-200'"
 			>
 				<Button
 					variant="secondary"

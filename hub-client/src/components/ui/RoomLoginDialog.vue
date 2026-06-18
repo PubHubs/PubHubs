@@ -13,7 +13,7 @@
 
 			<div
 				v-if="props.secured && requiredAttributes.length > 0"
-				class="my-4 flex flex-wrap gap-3"
+				class="my-200 flex flex-wrap gap-150"
 			>
 				<Chip
 					v-for="attr in requiredAttributes"
@@ -24,14 +24,14 @@
 			</div>
 			<P
 				v-if="roomDescription"
-				class="my-4"
+				class="my-200"
 			>
 				{{ roomDescription }}
 			</P>
 
 			<SecuredRoomLogin
 				v-if="props.secured"
-				class="relative left-1/2 mb-24 w-max -translate-x-1/2 transform"
+				class="relative left-1/2 mb-1000 w-max -translate-x-1/2 transform"
 				:secured-room-id="props.dialogOpen"
 				:show-close="false"
 				@success="handleClose"

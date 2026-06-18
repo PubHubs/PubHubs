@@ -1,14 +1,14 @@
 <template>
-	<div class="bg-surface border-surface-elevated flex h-[80px] w-full items-center border-b-3 px-6 py-4">
-		<div class="flex h-full w-full items-center justify-between gap-16">
+	<div class="bg-surface border-surface-elevated flex h-[80px] w-full items-center border-b-3 px-300 py-200">
+		<div class="flex h-full w-full items-center justify-between gap-800">
 			<a
-				class="h-full py-2"
+				class="h-full py-100"
 				:href="globalClientUrl"
 				rel="noopener noreferrer"
 			>
 				<Logo />
 			</a>
-			<div class="flex h-4 items-center justify-center gap-2">
+			<div class="flex h-200 items-center justify-center gap-100">
 				<p
 					v-if="settings.language === 'nl'"
 					class="hover:text-accent-primary cursor-pointer font-bold"

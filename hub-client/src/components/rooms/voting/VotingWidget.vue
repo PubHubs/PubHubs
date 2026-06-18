@@ -1,7 +1,7 @@
 <template>
 	<div
 		class="bg-surface-base border-surface-elevated rounded-base border-3 p-200"
-		:class="isMobile ? 'w-full' : 'w-5/6'"
+		:class="isMobile ? 'w-full' : 'w-fit max-w-5/6 min-w-[480px]'"
 		@contextmenu.prevent="openMenu($event, getContextMenuItems(), null, true)"
 		@touchstart.stop
 	>
@@ -14,7 +14,7 @@
 						size="sm"
 						type="lock"
 					/>
-					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
+					<span class="mr-050 font-bold">{{ votingWidget.title }}</span>
 					<span
 						v-if="isEdited"
 						class="text-on-surface-dim flex"
@@ -29,7 +29,7 @@
 				</div>
 				<button
 					v-if="!isMobile"
-					class="text-on-surface-dim hover:bg-accent-primary hover:text-on-accent-primary ml-2 flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:cursor-pointer"
+					class="text-on-surface-dim hover:bg-accent-primary hover:text-on-accent-primary p-050 ml-100 flex items-center justify-center rounded-md transition-all duration-300 ease-in-out hover:cursor-pointer"
 					:title="$t('message.context_menu')"
 					@click.stop="openMenu($event, getContextMenuItems(), null, true)"
 				>

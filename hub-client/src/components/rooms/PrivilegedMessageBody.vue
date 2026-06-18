@@ -1,5 +1,5 @@
 <template>
-	<div class="wrap-break-words flex flex-row items-center gap-1">
+	<div class="wrap-break-words gap-050 flex flex-row items-center">
 		<!-- eslint-disable vue/no-v-html -- sanitized via sanitizeHtml -->
 		<p
 			class="overflow-hidden text-ellipsis"

@@ -1,7 +1,7 @@
 <template>
-	<div class="p-4">
-		<H1 class="mb-4">Icons</H1>
-		<div class="mb-4 flex gap-2">
+	<div class="p-200">
+		<H1 class="mb-200">Icons</H1>
+		<div class="mb-200 flex gap-100">
 			<Button
 				v-for="(s, key) in iconSizes"
 				:key="key"
@@ -11,19 +11,19 @@
 				>{{ key }}</Button
 			>
 		</div>
-		<div class="mb-4">
+		<div class="mb-200">
 			<input
 				v-model="search"
 				type="text"
 				placeholder="Search icons..."
-				class="border-surface bg-surface-subtle focus:ring-accent-primary w-64 rounded border px-3 py-1.5 text-sm focus:ring-2 focus:outline-none"
+				class="border-surface bg-surface focus:ring-accent-primary py-020 w-3000 rounded border px-150 text-sm focus:ring-2 focus:outline-none"
 			/>
 		</div>
-		<div class="flex flex-wrap items-center gap-4">
+		<div class="flex flex-wrap items-center gap-200">
 			<div
 				v-for="(_, key) in filteredIcons"
 				:key="key"
-				class="bg-surface-subtle h-36 w-32 place-content-center text-center"
+				class="bg-surface h-2000 w-2000 place-content-center text-center"
 			>
 				<Icon
 					:type="key as string"
@@ -31,7 +31,7 @@
 					class="bg-surface hover:bg-accent-primary m-auto cursor-pointer"
 					:title="key"
 				></Icon>
-				<TruncatedText class="pt-2 text-sm text-nowrap">{{ key }}</TruncatedText>
+				<TruncatedText class="pt-100 text-sm text-nowrap">{{ key }}</TruncatedText>
 			</div>
 		</div>
 	</div>

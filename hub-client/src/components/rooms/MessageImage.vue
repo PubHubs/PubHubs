@@ -34,7 +34,7 @@
 				class="max-h-[90vh] max-w-[90vw] object-contain"
 			/>
 			<button
-				class="absolute top-4 right-4 cursor-pointer text-white hover:text-gray-300"
+				class="absolute top-200 right-200 cursor-pointer text-white hover:text-gray-300"
 				:title="t('dialog.close')"
 				@click="showFullImage = false"
 			>

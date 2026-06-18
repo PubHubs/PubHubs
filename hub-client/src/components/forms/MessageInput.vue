@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="w-full px-3 pb-3 md:px-6"
+		class="w-full px-150 pb-150 md:px-300"
 		v-bind="$attrs"
 	>
 		<!-- Timeout notification bar -->
@@ -22,10 +22,10 @@
 		<div class="relative">
 			<Popover
 				v-if="messageInput.state.popover"
-				class="absolute bottom-4"
+				class="absolute bottom-200"
 				@close="messageInput.togglePopover()"
 			>
-				<div class="flex flex-wrap items-center gap-2">
+				<div class="flex flex-wrap items-center gap-100">
 					<PopoverButton
 						icon="upload-simple"
 						data-testid="upload"
@@ -53,16 +53,23 @@
 						@click="messageInput.openSignMessage()"
 						>{{ $t('message.sign.add_signature') }}</PopoverButton
 					>
+					<PopoverButton
+						v-if="settings.isFeatureEnabled(FeatureFlag.videocalls) && room.isPrivateRoom()"
+						icon="video"
+						data-testid="videocall"
+						@click="messageInput.openVideocall()"
+						>{{ $t('message.videocall') }}</PopoverButton
+					>
 				</div>
 			</Popover>
 			<Popover
 				v-if="moderationPopover"
-				class="absolute right-0 bottom-4"
+				class="absolute right-0 bottom-200"
 				@close="moderationPopover = false"
 			>
-				<div class="flex flex-wrap items-center justify-end gap-2">
+				<div class="flex flex-wrap items-center justify-end gap-100">
 					<PopoverButton
-						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
+						v-if="roles.userIsStewardOrHigher(room.roomId) && !inThread && !room.isDirectMessageRoom()"
 						icon="megaphone-simple"
 						:class="isAnnouncementMode ? 'text-accent-steward' : ''"
 						@click="
@@ -83,7 +90,7 @@
 			/>
 			<div
 				v-if="messageInput.state.emojiPicker"
-				class="xs:right-4 absolute right-0 bottom-2 z-20 md:right-12"
+				class="xs:right-200 absolute right-0 bottom-100 z-20 md:right-600"
 			>
 				<EmojiPicker
 					@emoji-selected="clickedEmoticon"
@@ -92,7 +99,7 @@
 			</div>
 		</div>
 
-		<div class="flex max-h-[50vh] items-end justify-between gap-2">
+		<div class="flex max-h-[50vh] items-end justify-between gap-100">
 			<div class="bg-surface-base rounded-base w-full shadow">
 				<!-- In reply to -->
 				<InputModeBar
@@ -175,10 +182,17 @@
 					variant="sign"
 					@close="messageInput.closeSignMessage()"
 				/>
+				<InputModeBar
+					v-if="messageInput.state.videocall"
+					icon="video"
+					:label="$t('message.videocall')"
+					variant="videocall"
+					@close="messageInput.closeVideocall()"
+				/>
 
 				<div
 					v-if="messageInput.state.textArea"
-					class="rounded-base border-surface-elevated flex items-center gap-x-4 border-3 px-4 py-2"
+					class="rounded-base border-surface-elevated flex items-center gap-x-200 border-3 px-200 py-100"
 					:class="isInputDisabled ? 'cursor-not-allowed opacity-50' : ''"
 				>
 					<Icon
@@ -209,7 +223,7 @@
 						<MessageInputTextArea
 							ref="elTextInput"
 							v-model="valueAsString"
-							class="text-label placeholder:text-on-surface-dim max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
+							class="text-label placeholder:text-on-surface-dim max-h-2000 overflow-x-hidden border-none bg-transparent md:max-h-60"
 							:class="isInputDisabled ? 'cursor-not-allowed' : ''"
 							:placeholder="inputPlaceholder"
 							:title="$t('rooms.new_message')"
@@ -230,7 +244,7 @@
 
 					<!--Moderation tools-->
 					<button
-						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
+						v-if="roles.userIsStewardOrHigher(room.roomId) && !inThread && !room.isDirectMessageRoom()"
 						class="hover:cursor-pointer"
 						:class="moderationPopover ? 'text-accent-steward' : ''"
 						:title="$t('menu.moderation')"
@@ -285,7 +299,7 @@
 	import { setTimeout } from 'node:timers';
 	import { type PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRoute } from 'vue-router';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -327,7 +341,6 @@
 	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
-	import { UserAction } from '@hub-client/models/users/TUser';
 	import { EYiviFlow, type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
@@ -337,6 +350,7 @@
 	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	const props = defineProps({
 		room: {
@@ -364,6 +378,8 @@
 	const { t } = useI18n();
 	const user = useUser();
 	const route = useRoute();
+	const router = useRouter();
+	const videoCall = useVideoCall();
 	const roles = useRoles();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
@@ -550,6 +566,7 @@
 		if (typeof value.value === 'string' && value.value.trim().length > 0) valid = true;
 		if ((messageInput.state.poll || messageInput.state.scheduler) && messageInput.state.sendButtonEnabled) valid = true;
 		if (messageInput.state.fileAdded) valid = true;
+		if (messageInput.state.videocall) valid = true;
 		return valid;
 	}
 
@@ -715,6 +732,13 @@
 			pubhubs.addMessage(props.room.roomId, String(value.value), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
 			value.value = '';
+		} else if (messageInput.state.videocall) {
+			const text = String(value.value);
+			messageInput.closeVideocall();
+			value.value = '';
+			if (await videoCall.startCall(text || undefined)) {
+				await router.push({ name: 'videocall' });
+			}
 		} else {
 			pubhubs.submitMessage(String(value.value), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';

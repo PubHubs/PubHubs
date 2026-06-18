@@ -26,9 +26,9 @@
 	};
 
 	const sizeClass: { [key: string]: string } = {
-		default: 'h-6 w-6',
-		sm: 'h-2 w-2',
-		md: 'h-3 w-3',
-		lg: 'h-4 w-4',
+		default: 'h-300 w-300',
+		sm: 'h-100 w-100',
+		md: 'h-150 w-150',
+		lg: 'h-200 w-200',
 	};
 </script>

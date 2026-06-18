@@ -7,12 +7,12 @@
 		<p>Nobody is here yet</p>
 	</div>
 	<div v-if="focus[0] && totalRemoteStreams > 1">
-		<div class="mr-4 h-9/12 w-full overflow-x-scroll transition-all">
-			<div class="flex flex-nowrap space-x-4">
+		<div class="mr-200 h-9/12 w-full overflow-x-scroll transition-all">
+			<div class="flex flex-nowrap space-x-200">
 				<div
 					v-for="participant in props.remoteParticipants"
 					:key="getIdentity(participant)"
-					class="flex flex-shrink-0 flex-row space-x-4"
+					class="flex flex-shrink-0 flex-row space-x-200"
 				>
 					<VideoCallVideo
 						v-if="isUnfocused(participant, false)"

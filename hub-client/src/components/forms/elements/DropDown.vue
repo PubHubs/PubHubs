@@ -28,7 +28,7 @@
 			<div
 				:id="fieldId"
 				ref="element"
-				class="bg-surface outline-offset-thin outline-on-surface-dim focus:ring-accent-blue-interactive flex w-full flex-col rounded outline focus:ring-3"
+				class="bg-surface outline-offset-thin outline-on-surface-dim focus:ring-accent-blue-interactive flex w-full flex-col rounded outline-2 focus:ring-3"
 				role="combobox"
 				tabindex="0"
 			>
@@ -64,7 +64,7 @@
 									:key="index"
 								>
 									<div
-										class="bg-surface-subtle inline-block shrink-0 rounded px-100"
+										class="bg-surface inline-block shrink-0 rounded px-100"
 										role="listbox"
 									>
 										<div class="flex items-center">
@@ -90,7 +90,7 @@
 						</div>
 						<span
 							v-else
-							class="text-surface-subtle"
+							class="text-surface"
 							>{{ placeholder }}</span
 						>
 					</div>
@@ -198,7 +198,7 @@
 	const { fieldName, update } = useFormInput(props, model);
 
 	const wrapperClasses = computed(() =>
-		['form-dropdown relative flex w-full flex-col items-start justify-start', props.inline ? '' : 'mb-2 gap-050'].filter(Boolean).join(' '),
+		['form-dropdown relative flex w-full flex-col items-start justify-start', props.inline ? '' : 'mb-100 gap-050'].filter(Boolean).join(' '),
 	);
 
 	const open = ref(false);

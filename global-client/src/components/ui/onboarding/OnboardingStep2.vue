@@ -2,24 +2,24 @@
 	<OnboardingTemplate class>
 		<template #column1>
 			<OnboardingTitle />
-			<p class="mb-4 whitespace-pre-line">
+			<p class="mb-200 whitespace-pre-line">
 				{{ $t('register.use_yivi') }}
 			</p>
 			<p>{{ $t('register.start_registration') }}</p>
-			<ol class="my-4 list-outside list-decimal pl-4">
+			<ol class="my-200 list-outside list-decimal pl-200">
 				<li>{{ $t('register.overview_step1') }}</li>
 				<li>{{ $t('register.overview_step2') }}</li>
 				<li>{{ $t('register.overview_step3') }}</li>
 			</ol>
 			<p>{{ $t('register.yivi_downloaded') }}</p>
 			<Button
-				class="mt-6 mr-6 w-4000 max-w-full"
+				class="mt-300 mr-300 w-4000 max-w-full"
 				@click="emit('next')"
 			>
 				{{ $t('register.yivi_no') }}
 			</Button>
 			<Button
-				class="mt-6 mb-4 w-4000 max-w-full py-3 leading-tight"
+				class="mt-300 mb-200 w-4000 max-w-full py-150 leading-tight"
 				@click="emit('skip')"
 			>
 				{{ $t('register.yivi_yes') }}<br /><span class="text-body text-nowrap">({{ $t('register.skip_step1') }})</span>

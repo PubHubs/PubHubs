@@ -12,7 +12,7 @@
 		/>
 		<div
 			v-else
-			class="group bg-surface-elevated relative flex cursor-pointer flex-wrap items-center gap-4 rounded-full border px-2 py-1"
+			class="group bg-surface-elevated py-050 relative flex cursor-pointer flex-wrap items-center gap-200 rounded-full border px-100"
 			role="list"
 		>
 			<span
@@ -27,7 +27,7 @@
 				{{ item }}
 			</span>
 			<button
-				class="text-on-surface-dim hover:bg-accent-primary hover:text-on-accent-primary relative flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+				class="text-on-surface-dim hover:bg-accent-primary hover:text-on-accent-primary p-050 relative flex items-center justify-center rounded-md transition-all duration-300 ease-in-out hover:w-fit"
 				@click.stop="openEmojiPanel()"
 			>
 				<Icon type="plus" />

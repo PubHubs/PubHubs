@@ -15,10 +15,10 @@
 			{{ $t('roomlibrary.used_attribute') }} '{{ attributes.toString() }}' {{ $t('roomlibrary.with_value') }} '{{ displayDisclosedAttribute.toString() }}'
 		</p>
 
-		<p class="mt-2">
+		<p class="mt-100">
 			<a
 				v-if="fileUrl"
-				class="flex gap-2"
+				class="flex gap-100"
 				:download="fileName"
 				:href="fileUrl.url"
 			>

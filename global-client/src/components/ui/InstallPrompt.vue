@@ -7,38 +7,38 @@
 			class="bg-surface-base absolute inset-0 opacity-80"
 			@click="closePrompt"
 		/>
-		<div class="bg-background absolute right-0 bottom-0 left-0 flex h-fit w-full flex-col rounded-t-2xl p-2 shadow-[0_-5px_10px_rgba(0,0,0,0.2)]">
+		<div class="bg-background absolute right-0 bottom-0 left-0 flex h-fit w-full flex-col rounded-t-2xl p-100 shadow-[0_-5px_10px_rgba(0,0,0,0.2)]">
 			<Icon
-				class="absolute top-3 right-3"
+				class="absolute top-150 right-150"
 				type="x"
 				@click="closePrompt"
 			/>
-			<div class="flex items-center justify-between pr-12">
+			<div class="flex items-center justify-between pr-600">
 				<div class="flex items-center">
 					<img
 						alt="PubHubs icon"
-						class="mr-2 hidden h-10 w-10 dark:block"
+						class="mr-100 hidden h-500 w-500 dark:block"
 						:src="logoWhiteUrl"
 					/>
 					<img
 						alt="PubHubs icon"
-						class="mr-2 h-10 w-10 dark:hidden"
+						class="mr-100 h-500 w-500 dark:hidden"
 						:src="logoUrl"
 					/>
 					<H1>PubHubs</H1>
 				</div>
 				<Button
 					v-if="deferredPrompt"
-					class="rounded-3xl px-8"
+					class="rounded-3xl px-400"
 					size="sm"
 					@click="clickInstall()"
 				>
 					{{ $t('pwa.install') }}
 				</Button>
 			</div>
-			<hr class="border-on-surface-dim my-2 border-t" />
-			<div class="px-4 pt-4 pb-8">
-				<H3 class="mb-3"> {{ $t('pwa.add_app') }}! </H3>
+			<hr class="border-on-surface-dim my-100 border-t" />
+			<div class="px-200 pt-200 pb-400">
+				<H3 class="mb-150"> {{ $t('pwa.add_app') }}! </H3>
 				<p v-if="deferredPrompt">
 					{{ $t('pwa.add_manually') }}
 				</p>
@@ -89,11 +89,11 @@
 				</div>
 				<Checkbox
 					v-model="neverShowAgain"
-					class="pt-3"
+					class="pt-150"
 				>
 					{{ $t('pwa.do_not_show_again') }}
 				</Checkbox>
-				<p class="text-label-small pt-1 italic">
+				<p class="text-label-small pt-050 italic">
 					{{ $t('pwa.find_instructions') }}
 				</p>
 			</div>

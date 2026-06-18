@@ -1,9 +1,9 @@
 <template>
-	<div class="flex h-full flex-col py-4">
+	<div class="flex h-full flex-col py-200">
 		<SidebarHeader :title="t('others.search')" />
 		<!-- Search input -->
-		<div class="px-4">
-			<div class="bg-surface-sunken flex items-center gap-2 rounded-md px-3 py-2">
+		<div class="px-200">
+			<div class="bg-surface-sunken flex items-center gap-100 rounded-md px-150 py-100">
 				<Icon
 					class="text-on-surface-dim"
 					size="sm"
@@ -33,11 +33,11 @@
 
 		<!-- Search results -->
 		<div
-			class="mt-4 h-full flex-1 overflow-y-auto px-4"
+			class="mt-200 h-full flex-1 overflow-y-auto px-200"
 			data-testid="search-result"
 		>
 			<template v-if="isSearching">
-				<div class="flex items-center gap-2 p-2">
+				<div class="flex items-center gap-100 p-100">
 					<InlineSpinner />
 					<p role="status">
 						{{ t('others.searching') }}
@@ -46,7 +46,7 @@
 			</template>
 			<template v-else-if="searched && searchResults.length === 0">
 				<p
-					class="text-on-surface-dim p-2"
+					class="text-on-surface-dim p-100"
 					role="status"
 				>
 					{{ t('others.search_nothing_found') }}
@@ -64,10 +64,10 @@
 						@click.prevent="onScrollToEventId(item.event_id, item.event_threadId)"
 					>
 						<div class="hover:bg-surface-base rounded-base flex flex-col p-200">
-							<div class="flex gap-4">
+							<div class="flex gap-200">
 								<Avatar
 									:avatar-url="user.userAvatar(item.event_sender)"
-									class="h-12 w-12 shrink-0"
+									class="h-600 w-600 shrink-0"
 									:user-id="item.event_sender"
 								/>
 								<div class="flex flex-col gap-100">
@@ -77,7 +77,7 @@
 											:user-display-name="user.userDisplayName(item.event_sender)"
 										/>
 									</div>
-									<div class="flex gap-4">
+									<div class="flex gap-200">
 										<div class="min-w-0 flex-1">
 											<span
 												class="block w-full truncate text-sm"
@@ -86,9 +86,9 @@
 											</span>
 										</div>
 									</div>
-									<div class="flex gap-4">
+									<div class="flex gap-200">
 										<div class="text-on-surface-dim min-w-0 flex-1">
-											<span class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1">
+											<span class="text-label-tiny text-on-surface-dim gap-050 inline-flex items-center">
 												<EventTime
 													:timestamp="item.event_timestamp"
 													:show-date="true"
@@ -107,7 +107,7 @@
 				</div>
 			</template>
 			<template v-else>
-				<p class="text-on-surface-dim p-2">
+				<p class="text-on-surface-dim p-100">
 					{{ t('others.search_room_hint') }}
 				</p>
 			</template>
@@ -124,6 +124,7 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';

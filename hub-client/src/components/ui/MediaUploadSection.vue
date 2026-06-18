@@ -5,7 +5,7 @@
 			<p>{{ description }}</p>
 		</div>
 
-		<div class="flex h-14">
+		<div class="flex h-700">
 			<input
 				ref="fileInput"
 				:accept="accept"

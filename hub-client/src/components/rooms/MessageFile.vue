@@ -2,7 +2,7 @@
 	<div
 		v-if="authMediaUrl?.url"
 		v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadFile() }])"
-		class="bg-surface-base rounded-base border-surface-elevated flex w-fit items-center gap-2 overflow-x-hidden border-3 px-3 py-2"
+		class="bg-surface-base rounded-base border-surface-elevated flex w-fit items-center gap-100 overflow-x-hidden border-3 px-150 py-100"
 	>
 		<Icon
 			class="text-on-surface"

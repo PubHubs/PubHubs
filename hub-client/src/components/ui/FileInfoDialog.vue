@@ -6,11 +6,11 @@
 		width="max-w-full lg:max-w-[40%] min-w-[92.5%] lg:min-w-[22.5%]"
 		@close="close($event)"
 	>
-		<p class="mb-4 whitespace-pre-line">{{ $t('roomlibrary.info.name') }} {{ prepData().fileName }}</p>
-		<p class="mb-4 whitespace-pre-line">{{ $t('roomlibrary.info.uploaded_by') }} {{ props.user }}</p>
-		<p class="mb-4 whitespace-pre-line">{{ $t('roomlibrary.info.uploaded_on') }} {{ props.uploadDate.toDateString() }}</p>
-		<p class="mb-4 whitespace-pre-line">{{ $t('roomlibrary.info.type') }} {{ prepData().fileType }}</p>
-		<p class="mb-4 whitespace-pre-line">
+		<p class="mb-200 whitespace-pre-line">{{ $t('roomlibrary.info.name') }} {{ prepData().fileName }}</p>
+		<p class="mb-200 whitespace-pre-line">{{ $t('roomlibrary.info.uploaded_by') }} {{ props.user }}</p>
+		<p class="mb-200 whitespace-pre-line">{{ $t('roomlibrary.info.uploaded_on') }} {{ props.uploadDate.toDateString() }}</p>
+		<p class="mb-200 whitespace-pre-line">{{ $t('roomlibrary.info.type') }} {{ prepData().fileType }}</p>
+		<p class="mb-200 whitespace-pre-line">
 			{{ $t('roomlibrary.info.size', [prepData().fileSize]) }}
 		</p>
 	</Dialog>
