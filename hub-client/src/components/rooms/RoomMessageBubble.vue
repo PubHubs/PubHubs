@@ -631,8 +631,8 @@
 	const isLastInGroup = computed(() => props.isGrouped && !props.isFollowedByGrouped);
 
 	const actionButtonPosition = computed(() => {
-		if (isFirstInGroup.value) return 'bottom-0 mb-1';
-		if (isLastInGroup.value) return 'top-0 mt-1';
+		if (isFirstInGroup.value) return 'bottom-0 mb-050';
+		if (isLastInGroup.value) return 'top-0 mt-050';
 		return 'top-0';
 	});
 

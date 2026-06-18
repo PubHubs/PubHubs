@@ -16,10 +16,11 @@
 </template>
 
 <script lang="ts" setup>
+	// Packages
 	import { computed } from 'vue';
 
-	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	// Components
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
 	// Stores

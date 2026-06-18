@@ -1,18 +1,18 @@
 <template>
 	<div
 		v-if="isLoading"
-		class="bg-surface-low rounded-lg p-3"
+		class="bg-surface-sunken rounded p-150"
 	>
 		<p class="text-on-surface-dim text-sm italic">{{ t('state.loading') }}</p>
 	</div>
 	<div
 		v-else-if="eventData"
-		class="flex flex-col gap-2"
+		class="flex flex-col gap-100"
 	>
-		<div class="bg-surface-low rounded-lg p-3">
-			<div class="mb-2 flex items-center gap-2">
+		<div class="bg-surface-sunken rounded p-150">
+			<div class="mb-100 flex items-center gap-100">
 				<Avatar
-					class="h-8 w-8"
+					class="h-400 w-400"
 					:avatar-url="userStore.userAvatar(eventSender)"
 					:user-id="eventSender"
 				/>
@@ -25,18 +25,18 @@
 					>
 				</div>
 			</div>
-			<div class="text-on-surface pl-10">
+			<div class="text-on-surface pl-250">
 				<!-- Image message -->
 				<template v-if="messageType === 'm.image'">
 					<img
 						v-if="authMediaUrl?.url"
 						:alt="messageBody"
 						:src="authMediaUrl.url"
-						class="max-h-48 max-w-full rounded-md object-contain"
+						class="max-h-24 max-w-full rounded object-contain"
 					/>
 					<p
 						v-if="messageBody && messageBody !== messageFilename"
-						class="mt-2 text-sm wrap-break-word whitespace-pre-wrap"
+						class="mt-100 text-sm wrap-break-word whitespace-pre-wrap"
 					>
 						{{ messageBody }}
 					</p>
@@ -46,7 +46,7 @@
 				<template v-else-if="messageType === 'm.file'">
 					<div
 						v-if="authMediaUrl?.url"
-						class="bg-surface flex items-center gap-2 rounded-md p-2"
+						class="bg-surface flex items-center gap-100 rounded p-100"
 					>
 						<Icon
 							type="file"
@@ -63,7 +63,7 @@
 					</div>
 					<p
 						v-if="messageBody && messageBody !== messageFilename"
-						class="mt-2 text-sm wrap-break-word whitespace-pre-wrap"
+						class="mt-100 text-sm wrap-break-word whitespace-pre-wrap"
 					>
 						{{ messageBody }}
 					</p>
@@ -89,7 +89,7 @@
 	</div>
 	<div
 		v-else
-		class="bg-surface-low rounded-lg p-3"
+		class="bg-surface-sunken rounded p-150"
 	>
 		<p class="text-on-surface-dim text-sm italic">{{ t('admin.message_not_found') }}</p>
 	</div>

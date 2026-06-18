@@ -1,9 +1,9 @@
 <template>
-	<div class="relative flex h-full flex-col overflow-y-hidden py-4">
+	<div class="relative flex h-full flex-col overflow-y-hidden py-200">
 		<SidebarHeader :title="t('admin.report_details')" />
 		<div
 			v-if="report"
-			class="flex flex-1 flex-col gap-300 overflow-y-auto px-4 pb-16"
+			class="flex flex-1 flex-col gap-300 overflow-y-auto px-200 pb-800"
 		>
 			<!-- Message preview -->
 			<CollapsibleHeader
@@ -61,18 +61,10 @@
 			>
 				<p>{{ formattedTime }}</p>
 			</CollapsibleHeader>
-
-			<!-- Event ID -->
-			<CollapsibleHeader
-				:label="t('admin.report_event_id')"
-				:collapsible="false"
-			>
-				<p class="text-sm break-all">{{ report.event_id }}</p>
-			</CollapsibleHeader>
 		</div>
 		<div
 			v-else
-			class="flex h-full items-center justify-center px-4"
+			class="flex h-full items-center justify-center px-200"
 		>
 			<p class="text-on-surface-dim text-center italic">
 				{{ t('admin.select_report_placeholder') }}
@@ -82,7 +74,7 @@
 		<!-- FABs -->
 		<div
 			v-if="report"
-			class="absolute right-3 bottom-3 flex gap-2"
+			class="absolute right-150 bottom-150 flex gap-100"
 		>
 			<FloatingActionButton
 				:label="t('admin.go_to_message')"

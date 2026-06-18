@@ -23,7 +23,7 @@
 			v-if="showFullImage"
 			ref="lightboxRef"
 			tabindex="-1"
-			class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 outline-none"
+			class="bg-scrim/50 dark:bg-scrim/75 fixed inset-0 z-50 flex items-center justify-center outline-none"
 			@click.self="showFullImage = false"
 			@contextmenu.prevent
 			@keydown.escape="showFullImage = false"

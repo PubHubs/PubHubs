@@ -2,22 +2,22 @@
 	<!-- Mobile: card layout -->
 	<div
 		v-if="isMobile"
-		class="rounded-base bg-surface-base flex flex-col gap-4 p-4"
+		class="rounded-base bg-surface-base flex flex-col gap-200 p-200"
 		@click="$emit('click')"
 	>
-		<div class="flex flex-col gap-2">
+		<div class="flex flex-col gap-100">
 			<p class="truncate font-semibold">
 				{{ report.name || report.room_id }}
 			</p>
-			<div class="flex items-center gap-2">
-				<span class="text-on-surface-dim w-20 shrink-0 text-sm">{{ t('admin.report_against') }}:</span>
+			<div class="flex items-center gap-100">
+				<span class="text-on-surface-dim w-1000 shrink-0 text-sm">{{ t('admin.report_against') }}:</span>
 				<UserBadge
 					:user-id="report.sender"
 					size="sm"
 				/>
 			</div>
-			<div class="flex items-center gap-2">
-				<span class="text-on-surface-dim w-20 shrink-0 text-sm">{{ t('admin.report_from') }}:</span>
+			<div class="flex items-center gap-100">
+				<span class="text-on-surface-dim w-1000 shrink-0 text-sm">{{ t('admin.report_from') }}:</span>
 				<UserBadge
 					:user-id="report.user_id"
 					size="sm"

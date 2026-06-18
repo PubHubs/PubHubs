@@ -1,7 +1,7 @@
 <template>
 	<router-link
 		:to="{ name: 'manage-users', query: { userId: userId } }"
-		class="hover:bg-surface-low rounded-md p-1 transition-colors"
+		class="hover:bg-surface-elevated p-050 rounded transition-colors"
 	>
 		<UserBadge
 			:user-id="userId"

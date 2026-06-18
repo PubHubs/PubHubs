@@ -21,7 +21,7 @@
 			>
 				<div
 					v-if="chipFilters.length > 0"
-					class="flex shrink-0 flex-wrap items-center gap-2 p-[3px]"
+					class="flex shrink-0 flex-wrap items-center gap-200"
 					role="group"
 					:aria-label="t('others.search')"
 				>
@@ -108,12 +108,13 @@
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
-	// Props
+	// Types
 	interface ChipFilter {
 		label: string;
 		predicate: (item: Record<string, unknown>) => boolean;
 	}
 
+	// Props
 	const props = withDefaults(
 		defineProps<{
 			items?: Record<string, unknown>[];

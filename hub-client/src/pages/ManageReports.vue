@@ -1,22 +1,14 @@
 <template>
 	<div class="flex h-full w-full flex-col overflow-hidden">
 		<div
-			class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b px-8"
-			:class="isMobile ? 'pl-12' : 'pl-8'"
+			class="border-on-surface-disabled flex h-1000 shrink-0 items-center justify-between border-b px-400"
+			:class="isMobile ? 'pl-600' : 'pl-400'"
 		>
-			<div class="flex w-fit items-center gap-3 overflow-hidden">
+			<div class="flex w-fit items-center gap-150 overflow-hidden">
 				<Icon type="warning" />
 				<H3 class="font-headings text-h3 text-on-surface font-semibold">
 					{{ t('menu.reports') }}
 				</H3>
-			</div>
-			<div class="flex items-center gap-2">
-				<GlobalBarButton
-					type="info"
-					:selected="sidebar.activeTab.value === SidebarTab.ManageReport"
-					:title="t('admin.report_details')"
-					@click="sidebar.toggleTab(SidebarTab.ManageReport)"
-				/>
 			</div>
 		</div>
 
@@ -25,15 +17,15 @@
 				id="reports-container"
 				ref="reportsContainer"
 				class="h-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
-				:class="isMobile ? 'py-3' : 'py-4'"
+				:class="isMobile ? 'py-150' : 'py-200'"
 			>
 				<div
-					class="flex flex-col gap-y-4 pb-4"
-					:class="isMobile ? 'px-3' : 'px-4'"
+					class="flex flex-col gap-y-200 pb-200"
+					:class="isMobile ? 'px-150' : 'px-200'"
 				>
 					<!-- Search and load more -->
 					<div
-						class="flex gap-4"
+						class="flex gap-200"
 						:class="isMobile ? 'flex-col' : 'items-center justify-between'"
 					>
 						<TextField
@@ -45,7 +37,7 @@
 						/>
 						<div
 							v-if="hasMoreReports"
-							class="flex shrink-0 items-center gap-3"
+							class="flex shrink-0 items-center gap-150"
 						>
 							<span
 								v-if="!isMobile"
@@ -68,26 +60,26 @@
 
 				<!-- Reports table -->
 				<div
-					class="flex flex-col gap-4"
-					:class="isMobile ? 'px-3' : 'grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-x-0 gap-y-0'"
+					class="flex flex-col gap-200"
+					:class="isMobile ? 'px-150' : 'grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-x-0 gap-y-0'"
 				>
 					<div
 						v-if="!isMobile"
 						class="contents"
 					>
-						<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
+						<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
 							{{ t('admin.report_room') }}
 						</div>
-						<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
+						<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
 							{{ t('admin.report_sender') }}
 						</div>
-						<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
+						<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
 							{{ t('admin.report_reporter') }}
 						</div>
-						<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
+						<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
 							{{ t('admin.report_reason') }}
 						</div>
-						<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
+						<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
 							{{ t('admin.report_time') }}
 						</div>
 					</div>
@@ -105,8 +97,8 @@
 				<!-- Pagination -->
 				<div
 					v-if="totalPages > 1"
-					class="flex items-center gap-4 py-4"
-					:class="isMobile ? 'justify-start px-3' : 'justify-center px-4'"
+					class="flex items-center gap-200 py-200"
+					:class="isMobile ? 'justify-start px-150' : 'justify-center px-200'"
 				>
 					<Button
 						variant="secondary"
@@ -128,12 +120,12 @@
 				</div>
 
 				<!-- Empty state -->
-				<p
+				<div
 					v-if="filteredReports.length === 0"
-					class="text-on-surface-dim px-4 text-center"
+					class="flex h-800 items-center justify-center"
 				>
-					{{ $t('admin.empty_reports') }}
-				</p>
+					<p class="text-on-surface-dim px-200 text-center">{{ $t('admin.empty_reports') }}</p>
+				</div>
 			</div>
 
 			<RoomSidebar
@@ -152,10 +144,10 @@
 				<!-- Placeholder -->
 				<div
 					v-else
-					class="flex h-full flex-col py-4"
+					class="flex h-full flex-col py-200"
 				>
 					<SidebarHeader :title="t('admin.report_details')" />
-					<div class="flex h-full items-center justify-center px-4">
+					<div class="flex h-full items-center justify-center px-200">
 						<p class="text-on-surface-dim text-center italic">
 							{{ t('admin.select_report_placeholder') }}
 						</p>
@@ -180,7 +172,6 @@
 	import ReportListCard from '@hub-client/components/rooms/ReportListCard.vue';
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import TableRow from '@hub-client/components/rooms/TableRow.vue';
-	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import ManageReportSidebar from '@hub-client/components/ui/ManageReportSidebar.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
