@@ -503,6 +503,8 @@ const nl = {
 		secured_remove_sure: 'Weet je zeker dat je deze beveiligde kamer wilt verwijderen?',
 		secured_description: 'Attribuut Omschrijving',
 		secured_description_placeholder: 'Omschrijving van de benodigde gegevens om je bij de kamer aan te sluiten',
+		expiration_days: 'Verlooptijd (dagen)',
+		expiration_days_placeholder: 'Aantal dagen voordat gebruikers opnieuw moeten inloggen (1-365)',
 		secured_yivi_attributes: 'Yivi Attributen',
 		secured_attribute: 'Attribuut',
 		secured_values: 'Waardes',
