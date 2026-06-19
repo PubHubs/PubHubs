@@ -154,9 +154,9 @@
 		blobUrl.value?.revoke();
 	});
 
-	function dialogAction(action: DialogButtonAction) {
+	async function dialogAction(action: DialogButtonAction) {
 		if (action === DialogSubmit) {
-			submit();
+			await submit();
 		}
 	}
 
@@ -165,7 +165,6 @@
 	}
 
 	async function submit() {
-		// This check enables empty values to be submitted since dataIsChanged() method can't handle empty values conditional cal.
 		if (formState.dataIsChanged('displayName')) {
 			const newDisplayName = formState.data.displayName.value as string;
 			if (newDisplayName.length > 0 && !formState.isValidated()) return;

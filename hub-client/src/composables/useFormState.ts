@@ -80,7 +80,6 @@ const useFormState = () => {
 
 	const updateData = (key: string, value: FormDataType) => {
 		data[key].value = value;
-		const originalValue = originalData[key];
 
 		changed.value = false;
 		validated.value = true;
@@ -91,7 +90,7 @@ const useFormState = () => {
 			const value = data[key].value;
 
 			// Changed?
-			if (JSON.stringify(originalValue) !== JSON.stringify(value)) {
+			if (JSON.stringify(originalData[key].value) !== JSON.stringify(value)) {
 				changed.value = true;
 			}
 
@@ -139,7 +138,9 @@ const useFormState = () => {
 					if (data[key].validation?.min_length) {
 						const min_length = data[key].validation?.min_length as number;
 						const value = data[key].value as string;
-						if (value.length < min_length) {
+						// Skip min_length validation for empty strings when allow_empty_text is true
+						const skipForEmpty = data[key].validation?.allow_empty_text && value === '';
+						if (!skipForEmpty && value.length < min_length) {
 							isValidated = false;
 							if (data[key].show_validation === undefined || data[key].show_validation?.min_length) {
 								validationErrors.value[key] = {
