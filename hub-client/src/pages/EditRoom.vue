@@ -66,6 +66,15 @@
 					{{ t('admin.secured_description') }}
 				</TextField>
 
+				<TextField
+					v-model.number="(editRoom as TSecuredRoom).expiration_time_days"
+					class="pt-100"
+					:placeholder="t('admin.expiration_days_placeholder')"
+					:validation="{ required: true, isNumber: true, minValue: 1, maxValue: 365 }"
+				>
+					{{ t('admin.expiration_days') }}
+				</TextField>
+
 				<div>
 					<ValidateField
 						v-model="selectedAttributes"
@@ -288,6 +297,7 @@
 	const editRoom = ref<TEditRoom | TSecuredRoom>({
 		name: '',
 		accepted: {} as SecuredRoomAttributes,
+		expiration_time_days: 182,
 		topic: '',
 		type: '',
 		user_txt: '',

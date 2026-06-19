@@ -22,6 +22,7 @@ function useEditRoom() {
 		accepted: [],
 		user_txt: '',
 		type: '',
+		expiration_time_days: 182,
 	} as unknown as TSecuredRoom;
 
 	/**

@@ -503,6 +503,8 @@ const en = {
 		secured_remove_sure: 'Are you sure to delete this secured room?',
 		secured_description: 'Attributes Description',
 		secured_description_placeholder: 'Description of attributes needed to join the room',
+		expiration_days: 'Expiration time (days)',
+		expiration_days_placeholder: 'Number of days before users need to re-authenticate (1-365)',
 		secured_yivi_attributes: 'Yivi Attributes',
 		secured_attribute: 'Attribute',
 		secured_values: 'Values',
@@ -779,6 +781,7 @@ const en = {
 		min_items: ' Too few {0}, there should be min {1} items, but there are {2}',
 		max_value: '{0} is too high, the maximum value is {1}, but there are {2}',
 		min_value: '{0} needs to at least have a value of {1}, but there are {2}',
+		is_number: '{0} must be a number',
 		email: '{0} is not a valid email address',
 	},
 	bubble: {
