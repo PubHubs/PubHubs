@@ -603,7 +603,7 @@
 
 	const msgIsNotSend = computed(() => event.value.event_id!.substring(0, 1) === '~');
 
-	const canReplyInThread = computed(() => !event.value.content![RelationType.RelatesTo]);
+	const canReplyInThread = computed(() => !event.value.content?.[RelationType.RelatesTo]);
 
 	// True when this component is rendering the thread root inside the thread sidebar (vs a reply).
 	// Used by the context menu to suppress actions that would target the message you're already threading from.
@@ -618,11 +618,11 @@
 		return deletedEvent.value || containsRedactedBecause;
 	});
 
-	const isAnnouncementMessage = computed(() => event.value.content!.msgtype === PubHubsMgType.AnnouncementMessage);
-	const isWhisperMessage = computed(() => event.value.content!.msgtype === PubHubsMgType.WhisperMessage);
+	const isAnnouncementMessage = computed(() => event.value.content?.msgtype === PubHubsMgType.AnnouncementMessage);
+	const isWhisperMessage = computed(() => event.value.content?.msgtype === PubHubsMgType.WhisperMessage);
 	const isPrivilegedMessage = computed(() => isAnnouncementMessage.value || isWhisperMessage.value);
 	const whisperTargetDisplayName = computed(() => {
-		const whisperToUserId = event.value.content!.whisper_to;
+		const whisperToUserId = event.value.content?.whisper_to;
 		if (!whisperToUserId) return '';
 		return user.userDisplayName(whisperToUserId) ?? whisperToUserId;
 	});
@@ -798,12 +798,12 @@
 		}
 
 		// Copy message text
-		if (!redactedMessage.value && typeof event.value.content!.body === 'string') {
+		if (!redactedMessage.value && typeof event.value.content?.body === 'string') {
 			utility.push({
 				label: t('menu.copy_message'),
 				icon: 'copy',
 				onClick: () => {
-					const text = event.value.content!.body;
+					const text = event.value.content?.body;
 					const mb = useMessageBox();
 					if (mb.inIframe) {
 						mb.sendMessage(new MessageBoxMessage(MessageType.ClipboardWrite, text));

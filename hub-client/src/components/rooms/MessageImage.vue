@@ -42,14 +42,12 @@
 			</button>
 		</div>
 	</Teleport>
-	<!-- eslint-disable vue/no-v-html -- sanitized message body -->
-	<p
+	<!-- Message body with mention support -->
+	<MessageBodyWithMentions
 		v-if="message.body !== message.filename"
-		:class="{ 'text-on-surface-dim': deleted }"
-		class="overflow-hidden text-ellipsis"
-		v-html="message.body"
-	></p>
-	<!-- eslint-enable vue/no-v-html -->
+		:body="message.body"
+		:ph-body="message.ph_body"
+	/>
 </template>
 
 <script setup lang="ts">
@@ -59,13 +57,14 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import MessageBodyWithMentions from '@hub-client/components/rooms/MessageBodyWithMentions.vue';
 
-	// New design
-	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useImageActions } from '@hub-client/composables/useImageActions';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -75,7 +74,7 @@
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 
-	const props = defineProps<{ message: TImageMessageEventContent; deleted?: boolean }>();
+	const props = defineProps<{ message: TImageMessageEventContent }>();
 
 	const logger = createLogger('MessageImage');
 

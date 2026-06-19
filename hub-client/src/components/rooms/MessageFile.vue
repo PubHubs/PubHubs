@@ -16,13 +16,12 @@
 			{{ message.filename }}
 		</span>
 	</div>
-	<!-- eslint-disable vue/no-v-html -- sanitized message body -->
-	<p
+	<!-- Message body with mention support -->
+	<MessageBodyWithMentions
 		v-if="message.body !== message.filename"
-		:class="{ 'text-on-surface-dim': deleted }"
-		class="truncate"
-		v-html="message.body"
-	></p>
+		:body="message.body"
+		:ph-body="message.ph_body"
+	/>
 </template>
 
 <script setup lang="ts">
@@ -32,6 +31,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import MessageBodyWithMentions from '@hub-client/components/rooms/MessageBodyWithMentions.vue';
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
@@ -44,11 +44,12 @@
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	// Props
-	const props = defineProps<{ message: TFileMessageEventContent; deleted?: boolean }>();
+	const props = defineProps<{ message: TFileMessageEventContent }>();
 
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const matrixFiles = useMatrixFiles();
+
 	const authMediaUrl = ref<BlobManager>();
 
 	onMounted(async () => {
