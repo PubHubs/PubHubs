@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
+- [NEW] Message drafts in the messageInput are now saved in localstorage so the draft is recovered on reloads and room switches
 - [BUG] Fixed that line-breaks and links would not show up when sending a message with file sharing or with a user/room mention.
 - [NEW] Users can report messages, Stewards and HubAdmins can view reports in the new reports page.
 - [BUG] Fixed the hub crashing on startup after an image rebuild (`module 'lib' has no attribute 'GEN_EMAIL'`); Dockerfile now upgrades pyOpenSSL with cryptography. **Cherry-pick to stable if hotfixing**, because upon tagging the same problem will appear on stable too.

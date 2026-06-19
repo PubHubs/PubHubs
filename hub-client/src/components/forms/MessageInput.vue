@@ -296,6 +296,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import { useDebounceFn } from '@vueuse/core';
 	import { setTimeout } from 'node:timers';
 	import { type PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -333,6 +334,7 @@
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { useMessageInput } from '@hub-client/logic/messageInput';
+	import { getLocalStoreItem, setLocalStoreItem } from '@hub-client/logic/utils/localStoreClient';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	// Models
@@ -450,6 +452,13 @@
 		{ immediate: true },
 	);
 
+	// Save draft on input change (debounced)
+	watch(value, (newValue) => {
+		if (typeof newValue === 'string') {
+			saveDraft(newValue);
+		}
+	});
+
 	watch(
 		() => props.room.roomId,
 		async () => {
@@ -462,6 +471,12 @@
 				threadRoot = (await pubhubs.getEvent(props.room.roomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 			} else {
 				threadRoot = undefined;
+			}
+
+			// Load draft for new room/thread
+			const draft = await getLocalStoreItem(getDraftKey());
+			if (draft) {
+				value.value = draft;
 			}
 		},
 		{ immediate: true },
@@ -476,6 +491,10 @@
 				} else {
 					threadRoot = undefined;
 				}
+
+				// Load draft for new thread
+				const draft = await getLocalStoreItem(getDraftKey());
+				value.value = draft ?? '';
 			}
 		},
 	);
@@ -662,6 +681,7 @@
 			const powerLevel = props.room.getPowerLevel(user.userId ?? '');
 			await pubhubs.addAnnouncementMessage(props.room.roomId, String(value.value), powerLevel);
 			value.value = '';
+			clearDraft();
 			isAnnouncementMode.value = false;
 		} else if (messageActions.whisperingToUserId) {
 			const powerLevel = props.room.getPowerLevel(user.userId ?? '');
@@ -679,12 +699,15 @@
 			);
 			clearWhisperMode();
 			value.value = '';
+			clearDraft();
 		} else if (messageInput.state.poll) {
 			sendPoll();
 			value.value = '';
+			clearDraft();
 		} else if (messageInput.state.scheduler) {
 			sendScheduler();
 			value.value = '';
+			clearDraft();
 		} else if (messageInput.state.fileAdded) {
 			// `fileAdded` is the actual payload to upload.
 			// `uriForFileUpload` is only the local preview blob URL manager.
@@ -713,6 +736,7 @@
 					fileBlobOwnedByParent.value = false;
 					uriForFileUpload.value = undefined;
 					value.value = '';
+					clearDraft();
 					messageInput.cancelFileUpload();
 					messageInput.state.sendButtonEnabled = isValidMessage();
 				},
@@ -726,16 +750,19 @@
 			pubhubs.addMessage(props.room.roomId, String(value.value), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
 			value.value = '';
+			clearDraft();
 		} else if (messageInput.state.videocall) {
 			const text = String(value.value);
 			messageInput.closeVideocall();
 			value.value = '';
+			clearDraft();
 			if (await videoCall.startCall(text || undefined)) {
 				await router.push({ name: 'videocall' });
 			}
 		} else {
 			pubhubs.submitMessage(String(value.value), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';
+			clearDraft();
 		}
 	}
 
@@ -764,6 +791,7 @@
 		messageInput.state.showYiviQR = false;
 		messageInput.state.signMessage = false;
 		value.value = '';
+		clearDraft();
 	}
 
 	const createScheduler = (scheduler: Scheduler, canSend: boolean) => {
@@ -795,6 +823,25 @@
 		messageActions.whisperingToUserId = undefined;
 		messageActions.whisperingToDisplayName = undefined;
 		messageActions.whisperingToEventId = undefined;
+	}
+
+	// Draft persistence helpers
+	function getDraftKey(): string {
+		const threadId = props.room.getCurrentThreadId();
+		return threadId ? `pubhubs_draft_${props.room.roomId}_${threadId}` : `pubhubs_draft_${props.room.roomId}`;
+	}
+
+	const saveDraft = useDebounceFn(async (text: string) => {
+		const key = getDraftKey();
+		if (text.trim()) {
+			await setLocalStoreItem(key, text);
+		} else {
+			await setLocalStoreItem(key, '');
+		}
+	}, 500);
+
+	async function clearDraft(): Promise<void> {
+		await setLocalStoreItem(getDraftKey(), '');
 	}
 
 	// START workaround for #1173, that iOS app links do not work in an iframe.
