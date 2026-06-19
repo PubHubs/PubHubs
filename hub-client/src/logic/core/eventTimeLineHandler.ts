@@ -19,9 +19,10 @@ const linkTag = '<a class="message-link" target="_blank" ';
 const endLinkTag = '</a>';
 
 // Regex for replacing urls with clickable links
+// Note: Patterns exclude ~ to avoid matching into mention syntax (@name~id~)
 const removeLinkTagsPattern = /<a.*?href="([^"]*?)"[^>]*?>.*?<\/a\s*?>/gi;
-const urlPattern = /\b(?:https?|ftp):\/\/[a-z0-9-+&@#/%?=~_|!:,.;]*[a-z0-9-+&@#/%=~_|]/gim; // http://, https://, ftp://
-const pseudoUrlPattern = /(^|[^/])(www\.[\S]+(\b|$))/gim; // www. sans http:// or https://
+const urlPattern = /\b(?:https?|ftp):\/\/[a-z0-9-+&@#/%?=_|!:,.;]*[a-z0-9-+&@#/%=_|]/gim; // http://, https://, ftp://
+const pseudoUrlPattern = /(^|[^/])(www\.[a-z0-9-+&@#/%?=_|!:,.;]*[a-z0-9-+&@#/%=_|])/gim; // www. sans http:// or https://
 const emailAddressPattern = /(([a-zA-Z0-9_\-.]+)@[a-zA-Z_]+?(?:\.[a-zA-Z]{2,6}))+/gim; // Email addresses
 
 // Regex for replacing mentions (pseudonym with 2*3-6 digits, in theory the pseudonym could go up to 2*14 digits, but 6 should be good enough for this purpose)

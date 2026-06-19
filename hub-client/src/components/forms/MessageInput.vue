@@ -690,10 +690,13 @@
 			// `uriForFileUpload` is only the local preview blob URL manager.
 			const replyTo = inReplyTo.value;
 			if (replyTo) messageActions.replyingTo = undefined;
+			// Save file reference before async operation to avoid race conditions
+			const fileToUpload = messageInput.state.fileAdded;
+			const messageText = value.value as string;
 			messageInput.closeFileUpload();
 			const syntheticEvent = {
 				currentTarget: {
-					files: [messageInput.state.fileAdded],
+					files: [fileToUpload],
 				},
 			} as unknown as Event;
 			const accessToken = pubhubs.Auth.getAccessToken();
@@ -705,16 +708,7 @@
 				allTypes,
 				syntheticEvent,
 				(url) => {
-					pubhubs.addFile(
-						props.room.roomId,
-						threadRoot?.event_id,
-						undefined,
-						messageInput.state.fileAdded as File,
-						url,
-						value.value as string,
-						undefined,
-						replyTo,
-					);
+					pubhubs.addFile(props.room.roomId, threadRoot?.event_id, undefined, fileToUpload, url, messageText, undefined, replyTo);
 					uriForFileUpload.value?.revoke();
 					fileBlobOwnedByParent.value = false;
 					uriForFileUpload.value = undefined;
