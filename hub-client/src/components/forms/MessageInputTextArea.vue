@@ -10,7 +10,7 @@
 		:title="placeholder"
 		:value="modelValue"
 		@input="update(($event.target as HTMLTextAreaElement).value)"
-		@keydown.enter.exact.prevent="emit('submit')"
+		@keydown="onKeyDown"
 		@keydown.esc="cancel()"
 		@keyup="onKeyUp"
 		@paste="$emit('paste', $event)"
@@ -31,7 +31,7 @@
 		disabled: false,
 	});
 
-	const emit = defineEmits([...usedEvents, 'caretPos', 'paste']);
+	const emit = defineEmits([...usedEvents, 'caretPos', 'paste', 'navigation']);
 	const { getCaretPos } = useGetCaretPos();
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
@@ -52,6 +52,14 @@
 			nextTick(() => resize());
 		},
 	);
+
+	const navigationKeys = ['ArrowUp', 'ArrowDown', 'Tab', 'Enter'];
+
+	const onKeyDown = (e: KeyboardEvent) => {
+		if (navigationKeys.includes(e.key)) {
+			emit('navigation', e);
+		}
+	};
 
 	const onKeyUp = () => {
 		changed();
