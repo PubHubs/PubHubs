@@ -82,6 +82,7 @@
 			</Popover>
 			<MentionAutoComplete
 				v-if="messageInput.state.showMention"
+				ref="mentionAutoCompleteRef"
 				:msg="value as string"
 				:top="caretPos.top"
 				:left="caretPos.left"
@@ -239,6 +240,7 @@
 								}, 150)
 							"
 							@paste="handlePaste"
+							@navigation="handleMentionNavigation"
 						/>
 					</div>
 
@@ -412,6 +414,7 @@
 
 	const filePickerEl = ref();
 	const elTextInput = ref<InstanceType<typeof TextAreaOld> | null>(null);
+	const mentionAutoCompleteRef = ref<InstanceType<typeof MentionAutoComplete> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 	const isAnnouncementMode = ref(false);
 	const moderationPopover = ref(false);
@@ -817,6 +820,12 @@
 
 	function setCaretPos(pos: { top: number; left: number }) {
 		caretPos.value = pos;
+	}
+
+	function handleMentionNavigation(e: KeyboardEvent) {
+		if (mentionAutoCompleteRef.value?.handleNavigation(e)) {
+			e.preventDefault();
+		}
 	}
 
 	function clearWhisperMode() {
