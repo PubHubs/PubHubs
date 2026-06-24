@@ -359,6 +359,35 @@
 		outline: none;
 	}
 
+	.markdown-preview h1 {
+		@apply font-headings text-h1 font-semibold;
+	}
+
+	.markdown-preview h2 {
+		@apply font-headings text-h2 font-semibold;
+	}
+
+	.markdown-preview h1,
+	.markdown-preview h2,
+	.markdown-preview p,
+	.markdown-preview ul,
+	.markdown-preview ol {
+		@apply mb-200;
+	}
+
+	.markdown-preview ul {
+		@apply list-disc;
+	}
+	.markdown-preview ol {
+		@apply list-decimal;
+	}
+	.markdown-preview li {
+		@apply ml-200;
+	}
+	.markdown-preview a {
+		@apply text-accent-blue;
+	}
+
 	.emoji-font {
 		font-family: notocoloremoji;
 	}

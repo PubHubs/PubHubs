@@ -121,6 +121,9 @@ const en = {
 		card_3_text_1: "Great, you're almost done!",
 		card_3_text_2: 'Scan the QR code with your {0} app and share your details to log into {1}.',
 
+		video_click_to_play: 'Click to play video',
+		video_hosted_by_vimeo: 'This video is hosted by Vimeo',
+
 		yivi_explained: '{0} explained in 1,5 minutes',
 		yivi_faq: 'Frequently asked questions',
 		yivi_faq_1_question: 'What is Yivi?',
@@ -417,7 +420,7 @@ const en = {
 		icon_heading: 'Hub icon',
 		icon_description: 'A public image for this hub. Use a PNG, JPEG or SVG file, max 5 MB.',
 		save: 'Save',
-		settings_saved: 'Changes saved (refresh the page to see the changes)',
+		settings_saved: 'Changes saved',
 		error_saving_icon: 'Could not save the hub log. Please try again later.',
 		error_saving_banner: 'Could not save the hub banner. Please try again later.',
 		file_format_not_allowed: 'Filetype not allowed. Please use .png, .jpeg, .jpg or .svg files.',

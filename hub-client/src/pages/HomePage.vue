@@ -14,7 +14,7 @@
 			</div>
 		</template>
 
-		<div class="mx-auto my-800 flex w-full flex-col gap-200 px-400 md:w-4/6 md:px-0">
+		<div class="mx-auto my-800 flex w-full flex-col gap-200 px-40000 md:w-4/6 md:px-0">
 			<div class="mt-800 flex flex-col items-center gap-200">
 				<H1
 					v-if="hubSettings.hubName"
@@ -44,36 +44,22 @@
 				>
 					{{ $t('home.heading') }}
 				</H3>
-				<div
+				<MarkdownPreview
 					v-if="hubDescription"
-					class="bg-surface-base max-w-full rounded-2xl"
-				>
-					<mavon-editor
-						v-model="hubDescription"
-						:box-shadow="false"
-						default-open="preview"
-						:subfield="false"
-						:toolbars-flag="false"
-					/>
-				</div>
+					:content="hubDescription"
+					class="bg-surface-base w-full rounded-2xl px-200 py-200"
+				/>
 				<H3
 					v-if="hubContact"
 					class="p-200"
 				>
 					{{ $t('home.contact_details') }}
 				</H3>
-				<div
+				<MarkdownPreview
 					v-if="hubContact"
-					class="bg-surface-base! max-w-full rounded-2xl"
-				>
-					<mavon-editor
-						v-model="hubContact"
-						:box-shadow="false"
-						default-open="preview"
-						:subfield="false"
-						:toolbars-flag="false"
-					/>
-				</div>
+					:content="hubContact"
+					class="bg-surface-base! w-full rounded-2xl px-200 py-200"
+				/>
 			</div>
 		</div>
 	</HeaderFooter>
@@ -88,6 +74,7 @@
 	import H1 from '@hub-client/components/elements/H1.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import MarkdownPreview from '@hub-client/components/forms/elements/MarkdownPreview.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 

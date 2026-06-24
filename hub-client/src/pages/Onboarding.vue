@@ -117,18 +117,11 @@
 					<!-- House Rules -->
 					<div class="flex flex-col gap-100 overflow-y-auto">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div
+						<MarkdownPreview
 							v-if="consentText"
+							:content="consentText"
 							class="bg-surface-base rounded-3xl p-200 break-all"
-						>
-							<mavon-editor
-								v-model="consentText"
-								:box-shadow="false"
-								default-open="preview"
-								:subfield="false"
-								:toolbars-flag="false"
-							/>
-						</div>
+						/>
 					</div>
 
 					<!-- Consent Checkbox -->
@@ -272,18 +265,11 @@
 					<!-- Left Rules -->
 					<div class="flex h-full w-1/2 flex-col gap-300 overflow-y-auto px-800 pt-2000">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div
+						<MarkdownPreview
 							v-if="consentText"
+							:content="consentText"
 							class="bg-surface rounded-3xl p-200"
-						>
-							<mavon-editor
-								v-model="consentText"
-								:box-shadow="false"
-								default-open="preview"
-								:subfield="false"
-								:toolbars-flag="false"
-							/>
-						</div>
+						/>
 					</div>
 
 					<!-- Right Consent -->
@@ -339,6 +325,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
 	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+	import MarkdownPreview from '@hub-client/components/forms/elements/MarkdownPreview.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
