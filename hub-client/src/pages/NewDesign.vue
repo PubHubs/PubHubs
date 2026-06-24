@@ -355,6 +355,7 @@
 				<TextField
 					v-model="formValues.firstname"
 					placeholder="Type voornaam"
+					:validation="{ required: false }"
 					>Voornaam</TextField
 				>
 				<TextField
