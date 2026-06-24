@@ -52,10 +52,10 @@
 								class="relative flex w-full items-center justify-center"
 								:class="isMobile ? '-mb-100' : '-mb-200'"
 							>
-								<!-- Loading overlay -->
+								<!-- Loading overlay - uses yivi-web-form class to match Yivi's dimensions -->
 								<div
 									v-if="qrLoading"
-									class="absolute bottom-8 left-0 z-[40] flex h-[280px] w-full items-center justify-center rounded-lg bg-white p-8 shadow-lg after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+									class="yivi-web-form absolute bottom-400 left-1/2 z-[40] flex aspect-square min-w-[250px] -translate-x-1/2 items-center justify-center after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								>
 									<div class="flex flex-col items-center gap-2">
 										<InlineSpinner />
@@ -65,7 +65,7 @@
 								<!-- Yivi injects content here - must be empty -->
 								<div
 									id="yivi-authentication"
-									class="absolute bottom-400 left-0 z-50 w-full after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+									class="absolute bottom-400 left-1/2 z-50 -translate-x-1/2 after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								/>
 							</div>
 							<div class="flex gap-200">
