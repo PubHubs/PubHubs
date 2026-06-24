@@ -3,8 +3,6 @@ import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 // Logic
 import loglevel from 'loglevel';
-import mavonEditor from 'mavon-editor';
-import 'mavon-editor/dist/css/index.css';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
@@ -34,7 +32,6 @@ app.use(i18n);
 app.use(router);
 app.use(pinia);
 
-app.use(mavonEditor);
 app.directive('focus', focus);
 app.directive('tw-class', twClass);
 app.directive('click-outside', clickOutside);

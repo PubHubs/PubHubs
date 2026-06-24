@@ -243,13 +243,9 @@
 					>
 						<H2>{{ $t('register.yivi_explained', [$t('common.yivi')]) }}</H2>
 					</div>
-					<iframe
-						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-						allowfullscreen
-						class="aspect-video w-full object-cover shadow-xl"
-						:class="!isMobile && 'rounded-2xl'"
-						frameborder="0"
-						src="https://player.vimeo.com/video/807947893?badge=0&autopause=0&player_id=0&app_id=58479"
+					<VimeoFacade
+						video-id="807947893"
+						:rounded="!isMobile"
 						title="Vimeo video player"
 					/>
 					<FaqSection />
@@ -265,6 +261,7 @@
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
 
+	import VimeoFacade from '@global-client/components/ui/VimeoFacade.vue';
 	// Components
 	import AuthHeader from '@global-client/components/ui/onboarding/AuthHeader.vue';
 	import CarouselCard from '@global-client/components/ui/onboarding/CarouselCard.vue';

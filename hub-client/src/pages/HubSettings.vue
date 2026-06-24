@@ -12,151 +12,151 @@
 			</div>
 		</template>
 
-		<form
-			class="flex flex-col gap-400 px-400 py-200 pb-800"
-			@submit.prevent
+		<ValidatedForm
+			ref="formRef"
+			v-slot="{ isValidated }"
+			class="max-w-7000 px-400 py-200 pb-800"
 		>
-			<!-- Description -->
-			<div class="editor flex max-w-14000 flex-col gap-150">
-				<div class="gap-075 flex max-w-7000 flex-col">
-					<Label>{{ $t('hub_settings.description_heading') }}</Label>
-					<p>{{ $t('hub_settings.description_description') }}</p>
-				</div>
-				<mavon-editor
-					v-model="hubDescription"
-					:box-shadow="false"
-					language="en"
-					:placeholder="t('hub_settings.description')"
-					:toolbars="toolbarSettings"
-				/>
-			</div>
-
 			<!-- Summary -->
-			<div class="max-w-7000">
-				<TextField
-					v-model="hubSummary"
-					:placeholder="t('hub_settings.summary')"
-					:show-length="true"
-					:validation="{ maxLength: maxSummaryLength }"
-				>
-					{{ t('hub_settings.summary_heading') }}
-				</TextField>
-			</div>
+			<TextField
+				v-model="hubSummary"
+				:placeholder="t('hub_settings.summary')"
+				:validation="{ required: true }"
+			>
+				{{ t('hub_settings.summary_heading') }}
+			</TextField>
+
+			<!-- Description -->
+			<ValidateField
+				v-model="hubDescription"
+				:validation="{ required: true }"
+				name="description"
+				:help="$t('hub_settings.description_description')"
+			>
+				<Label class="mt-400">{{ $t('hub_settings.description_heading') }}</Label>
+				<MarkdownEditor
+					v-model="hubDescription"
+					:placeholder="t('hub_settings.description')"
+				/>
+			</ValidateField>
 
 			<!-- Contact -->
-			<div class="editor flex max-w-14000 flex-col gap-150">
-				<div class="gap-075 flex max-w-7000 flex-col">
-					<Label>{{ $t('hub_settings.contact_heading') }}</Label>
-					<p>{{ $t('hub_settings.contact_description') }}</p>
-				</div>
-				<mavon-editor
+			<ValidateField
+				v-model="hubContact"
+				:validation="{ required: true }"
+				name="contact"
+				:help="$t('hub_settings.contact_description')"
+			>
+				<Label class="mt-400">{{ $t('hub_settings.contact_heading') }}</Label>
+				<MarkdownEditor
 					v-model="hubContact"
-					:box-shadow="false"
-					language="en"
 					:placeholder="t('hub_settings.contact')"
-					:toolbars="toolbarSettings"
 				/>
-			</div>
+			</ValidateField>
 
 			<!-- Icon -->
-			<div class="max-w-7000">
-				<MediaUploadSection
-					:accept="'image/png,image/jpeg,image/svg+xml'"
-					:description="$t('hub_settings.icon_description')"
-					:error-text="iconErrorText"
-					:media-url="iconUrl"
-					:title="$t('hub_settings.icon_heading')"
-					@file-change="onFileChange('icon', $event)"
-					@remove="removeMedia('icon')"
-				>
-					<template #preview>
-						<HubIcon
-							class="mr-200 w-auto max-w-[70px] rounded-xl border p-200"
-							:icon-url="iconUrl"
-							:icon-url-dark="iconUrl"
-						/>
-					</template>
-				</MediaUploadSection>
-			</div>
+			<MediaUploadField
+				v-model="iconFile"
+				class="mt-400"
+				:accept="'image/png,image/jpeg,image/svg+xml'"
+				:description="$t('hub_settings.icon_description')"
+				:default-url="hubSettings.iconDefaultUrlActiveTheme"
+				:initial-url="hubSettings.iconUrlActiveTheme"
+				:max-size="MAX_HUB_ICON_SIZE"
+				:save-error="iconSaveError"
+				:title="$t('hub_settings.icon_heading')"
+				name="icon"
+			>
+				<template #preview="{ url }">
+					<HubIcon
+						class="bg-surface-base w-auto max-w-[70px] rounded-xl border p-200"
+						:icon-url="url"
+						:icon-url-dark="url"
+					/>
+				</template>
+			</MediaUploadField>
 
 			<!-- Banner -->
-			<div class="max-w-7000">
-				<MediaUploadSection
-					:accept="'image/png,image/jpeg,image/svg+xml'"
-					:description="$t('hub_settings.banner_description')"
-					:error-text="bannerErrorText"
-					:media-url="bannerUrl"
-					:title="$t('hub_settings.banner_heading')"
-					@file-change="onFileChange('banner', $event)"
-					@remove="removeMedia('banner')"
-				>
-					<template #preview>
-						<HubBanner
-							:banner-url="bannerUrl"
-							class="mr-200 rounded-xl border p-200"
-						/>
-					</template>
-				</MediaUploadSection>
-			</div>
+			<MediaUploadField
+				v-model="bannerFile"
+				class="mt-400"
+				:accept="'image/png,image/jpeg,image/svg+xml'"
+				:description="$t('hub_settings.banner_description')"
+				:default-url="hubSettings.bannerDefaultUrl"
+				:initial-url="hubSettings.bannerUrl"
+				:max-size="MAX_HUB_ICON_SIZE"
+				:save-error="bannerSaveError"
+				:title="$t('hub_settings.banner_heading')"
+				name="banner"
+			>
+				<template #preview="{ url }">
+					<HubBanner
+						:banner-url="url"
+						class="bg-surface-base rounded-xl border p-200"
+					/>
+				</template>
+			</MediaUploadField>
 
 			<!-- Consent -->
-			<div class="editor flex max-w-14000 flex-col gap-150">
-				<div class="gap-075 flex max-w-7000 flex-col">
-					<Label>{{ $t('hub_settings.consent_heading') }}</Label>
-					<p>{{ $t('hub_settings.consent_description') }}</p>
-				</div>
-				<mavon-editor
+			<ValidateField
+				v-model="hubConsent"
+				:validation="{ required: true, minLength: 50 }"
+				name="consent"
+				:help="$t('hub_settings.consent_description')"
+			>
+				<Label class="mt-400">{{ $t('hub_settings.consent_heading') }}</Label>
+				<MarkdownEditor
 					v-model="hubConsent"
-					:box-shadow="false"
-					language="en"
 					:placeholder="t('hub_settings.consent')"
-					:toolbars="toolbarSettings"
 				/>
-			</div>
-		</form>
+			</ValidateField>
 
-		<!-- Fixed save button -->
-		<div class="fixed right-500 bottom-250 z-20 flex items-center gap-200">
-			<p
-				v-if="settingsSaved"
-				class="text-on-surface-dim text-label-small"
-			>
-				{{ $t('hub_settings.settings_saved') }}
-			</p>
-			<Button
-				:disabled="!settingsChanged"
-				:loading="saving"
-				@click="saveChanges()"
-				>{{ $t('hub_settings.save') }}</Button
-			>
-		</div>
+			<div class="flex justify-end">
+				<Button
+					class="mt-400"
+					type="submit"
+					:disabled="!isValidated"
+					@click.stop.prevent="saveChanges()"
+					>{{ $t('hub_settings.save') }}</Button
+				>
+
+				<p
+					v-if="settingsSaved && !isValidated"
+					class="text-on-surface-dim text-label-small"
+				>
+					{{ $t('hub_settings.settings_saved') }}
+				</p>
+			</div>
+		</ValidatedForm>
 	</HeaderFooter>
 </template>
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onBeforeMount, onBeforeUnmount, ref, watch } from 'vue';
+	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import Button from '@hub-client/components/elements/Button.vue';
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import Label from '@hub-client/components/forms/elements/Label.vue';
+	import MarkdownEditor from '@hub-client/components/forms/elements/MarkdownEditor.vue';
+	import MediaUploadField from '@hub-client/components/forms/elements/MediaUploadField.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
+	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
+	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
-	import MediaUploadSection from '@hub-client/components/ui/MediaUploadSection.vue';
 
 	// Logic
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
-	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, toolbarSettings, useHubSettings } from '@hub-client/stores/hub-settings';
+	import { MAX_HUB_ICON_SIZE, useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const hubSettings = useHubSettings();
@@ -164,28 +164,17 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const { t } = useI18n();
 	const logger = createLogger('HubSettings');
-	const maxSummaryLength = 60;
+	const formRef = ref();
 
 	// Media files
-	const mediaFiles = ref<Record<string, File | null | undefined>>({
-		icon: undefined,
-		banner: undefined,
-	});
-
-	// Error messages
-	const iconErrorText = ref<string | undefined>(undefined);
-	const bannerErrorText = ref<string | undefined>(undefined);
+	const iconFile = ref<File | null>();
+	const bannerFile = ref<File | null>();
+	const iconSaveError = ref<string | undefined>(undefined);
+	const bannerSaveError = ref<string | undefined>(undefined);
 
 	// Settings state
-	const settingsChanged = ref(false);
 	const settingsSaved = ref(false);
 	const saving = ref(false);
-
-	// Selected URLs
-	const selectedUrls = ref<Record<string, BlobManager | null | undefined>>({
-		icon: undefined,
-		banner: undefined,
-	});
 
 	// Hub settings
 	const hubDescription = ref<string>(hubSettings.hubDescription);
@@ -206,75 +195,7 @@
 		displayHubJSON();
 	});
 
-	onBeforeUnmount(() => {
-		const urls = selectedUrls.value;
-		for (const key in urls) {
-			urls[key]?.revoke();
-		}
-	});
-
-	// Computed URLs
-	const iconUrl = computed(() => computeMediaUrl('icon'));
-	const bannerUrl = computed(() => computeMediaUrl('banner'));
-
-	function computeMediaUrl(mediaType: 'icon' | 'banner'): string {
-		const selectedUrl = selectedUrls.value[mediaType];
-		if (selectedUrl === undefined) {
-			return mediaType === 'icon' ? hubSettings.iconUrlActiveTheme : hubSettings.bannerUrl;
-		} else if (selectedUrl === null) {
-			return mediaType === 'icon' ? hubSettings.iconDefaultUrlActiveTheme : hubSettings.bannerDefaultUrl;
-		} else {
-			return selectedUrl?.url ?? '';
-		}
-	}
-
-	function onFileChange(mediaType: 'icon' | 'banner', file: File) {
-		if (!file) return;
-
-		if (!ALLOWED_HUB_ICON_TYPES.includes(file.type)) {
-			logger.info('User tried to upload file with type that is not allowed.', { type: file.type });
-			showError(mediaType, t('hub_settings.file_format_not_allowed').toString());
-			return;
-		}
-
-		if (file.size > MAX_HUB_ICON_SIZE) {
-			logger.info('User tried to upload file that is too large.', { size: file.size });
-			showError(mediaType, t('hub_settings.file_too_large').toString());
-			return;
-		}
-
-		if (mediaType === 'icon') {
-			iconErrorText.value = undefined;
-		} else {
-			bannerErrorText.value = undefined;
-		}
-
-		mediaFiles.value[mediaType] = file;
-		selectedUrls.value[mediaType]?.revoke();
-		selectedUrls.value[mediaType] = new BlobManager(file);
-		settingsChanged.value = true;
-	}
-
-	function onHubSettingsChange() {
-		const textChanged =
-			hubDescription.value !== originalDescription.value ||
-			hubSummary.value !== originalSummary.value ||
-			hubContact.value !== originalContact.value ||
-			hubConsent.value !== originalConsent.value;
-		const mediaChanged =
-			Object.values(selectedUrls.value).some((url) => url !== undefined) || Object.values(mediaFiles.value).some((file) => file !== undefined);
-		settingsChanged.value = textChanged || mediaChanged;
-	}
-
-	function removeMedia(mediaType: 'icon' | 'banner') {
-		selectedUrls.value[mediaType]?.revoke();
-		selectedUrls.value[mediaType] = null;
-		mediaFiles.value[mediaType] = null;
-		settingsChanged.value = true;
-	}
-
 	async function saveChanges() {
-		if (!settingsChanged.value) return;
 		saving.value = true;
 
 		const iconSaved = await saveMedia('icon');
@@ -285,7 +206,11 @@
 		saving.value = false;
 
 		if (settingsSaved.value) {
-			settingsChanged.value = false;
+			formRef.value?.resetForm();
+			iconFile.value = undefined;
+			bannerFile.value = undefined;
+			iconSaveError.value = undefined;
+			bannerSaveError.value = undefined;
 			originalDescription.value = hubDescription.value;
 			originalSummary.value = hubSummary.value;
 			originalContact.value = hubContact.value;
@@ -294,7 +219,6 @@
 	}
 
 	async function saveHubSettings(): Promise<boolean> {
-		// Skip if hubsettings have not changed
 		if (
 			hubDescription.value === originalDescription.value &&
 			hubSummary.value === originalSummary.value &&
@@ -332,12 +256,11 @@
 	}
 
 	async function saveMedia(mediaType: 'icon' | 'banner'): Promise<boolean> {
-		const selectedUrl = selectedUrls.value[mediaType];
-		const file = mediaFiles.value[mediaType];
+		const file = mediaType === 'icon' ? iconFile.value : bannerFile.value;
 
-		if (selectedUrl === undefined && !file) return true;
+		if (file === undefined) return true;
 
-		if (selectedUrl === null) {
+		if (file === null) {
 			try {
 				if (mediaType === 'icon') {
 					await hubSettings.deleteIcon();
@@ -346,12 +269,14 @@
 				}
 			} catch (er) {
 				logger.error(`Failed to delete ${mediaType}.`, { error: er });
-				showError(mediaType, t(mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner').toString());
+				const fallbackKey = mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner';
+				const message = er instanceof Error ? er.message : t(fallbackKey).toString();
+				if (mediaType === 'icon') iconSaveError.value = message;
+				else bannerSaveError.value = message;
 				return false;
 			}
+			return true;
 		}
-
-		if (!file) return true;
 
 		logger.info(`Saving new ${mediaType}...`);
 
@@ -363,20 +288,12 @@
 			}
 		} catch (er) {
 			const fallbackKey = mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner';
-			const backendMessage = er instanceof Error ? er.message : '';
-			showError(mediaType, backendMessage || t(fallbackKey).toString());
+			const message = er instanceof Error ? er.message : t(fallbackKey).toString();
+			logger.error(`Failed to save ${mediaType}.`, { error: er });
+			if (mediaType === 'icon') iconSaveError.value = message;
+			else bannerSaveError.value = message;
 			return false;
 		}
 		return true;
 	}
-
-	function showError(mediaType: 'icon' | 'banner', message: string) {
-		if (mediaType === 'icon') {
-			iconErrorText.value = message;
-		} else {
-			bannerErrorText.value = message;
-		}
-	}
-
-	watch([hubDescription, hubSummary, hubContact, hubConsent], onHubSettingsChange);
 </script>

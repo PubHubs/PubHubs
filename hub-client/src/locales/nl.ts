@@ -119,6 +119,9 @@ const nl = {
 		card_3_text_1: 'Top, je bent bijna klaar!',
 		card_3_text_2: 'Scan de QR-code met je {0} app en deel je gegevens om in te loggen op {1}.',
 
+		video_click_to_play: 'Klik om video af te spelen',
+		video_hosted_by_vimeo: 'Deze video wordt gehost door Vimeo',
+
 		yivi_explained: '{0} uitgelegd in 1,5 minuut',
 		yivi_faq: 'Veelgestelde vragen',
 		yivi_faq_1_question: 'Wat is Yivi?',
@@ -417,7 +420,7 @@ const nl = {
 		icon_heading: 'Hub icoon',
 		icon_description: 'Een publiekelijk zichtbare afbeelding voor deze hub. Gebruik een PNG-, JPEG- of SVG-bestand, max 5 MB.',
 		save: 'Opslaan',
-		settings_saved: 'Veranderingen opgeslagen (ververs de pagina om ze te zien).',
+		settings_saved: 'Veranderingen opgeslagen.',
 		error_saving_icon: 'Kon het hublogo niet opslaan. Probeer het later opnieuw.',
 		error_saving_banner: 'Kon de hubbanner niet opslaan. Probeer het later opnieuw.',
 		file_format_not_allowed: 'Bestandstype niet toegestaan. Gebruik .png, .jpeg, .jpg of .svg bestanden.',

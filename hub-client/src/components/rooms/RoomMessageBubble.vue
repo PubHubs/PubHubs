@@ -198,7 +198,8 @@
 									@click="resend()"
 								>
 									<Icon
-										type="arrow-counter-clockwise"
+										type="arrows-counter-clockwise"
+										size="md"
 										class="text-red"
 									/>
 								</button>
