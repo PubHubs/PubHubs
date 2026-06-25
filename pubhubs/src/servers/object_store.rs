@@ -62,19 +62,85 @@ impl<'a> TryFrom<&'a Option<ObjectStoreConfig>> for DefaultObjectStore {
             Some(c) => Cow::<'a, ObjectStoreConfig>::Borrowed(c),
         };
 
-        let (os, path) = object_store::parse_url_opts(c.url.as_ref(), c.options.iter())
-            .with_context(|| {
-                format!(
-                    "creating object store from url {} and options {}",
-                    c.url,
-                    serde_json::to_string(&c.options)
-                        .context("error while formatting error")
-                        .unwrap_or("<failed to format>".to_string())
-                )
-            })?;
+        let url = c.url.as_ref();
+
+        let (scheme, path) = object_store::ObjectStoreScheme::parse(url)
+            .with_context(|| format!("could not determine object store type from url {url}"))?;
+
+        // We disabled object_store's built-in reqwest client (see Cargo.toml), so the S3 store has
+        // no HTTP client unless we provide one.  `parse_url_opts` offers no way to inject a
+        // connector and would fail at runtime for `s3://`, so we build the S3 store ourselves and
+        // hand it our awc-based connector.  Other schemes (e.g. `memory://`) need no HTTP client
+        // and keep going through `parse_url_opts`.
+        let store: Box<object_store::DynObjectStore> = match scheme {
+            object_store::ObjectStoreScheme::AmazonS3 => {
+                let mut builder = object_store::aws::AmazonS3Builder::new()
+                    .with_url(url.to_string())
+                    .with_http_connector(crate::misc::awc_http_connector::AwcHttpConnector::new());
+
+                for (key, value) in c.options.iter() {
+                    match key
+                        .to_ascii_lowercase()
+                        .parse::<object_store::aws::AmazonS3ConfigKey>()
+                    {
+                        Ok(config_key) => {
+                            // A client option our awc connector doesn't read back would only
+                            // configure object_store's built-in HTTP client, which we replaced;
+                            // reject it rather than silently ignore an admin's setting.  The honored
+                            // set lives next to the connector that consumes it.
+                            if let object_store::aws::AmazonS3ConfigKey::Client(client_key) =
+                                &config_key
+                            {
+                                // `DefaultContentType` is a client key but not a transport option:
+                                // object_store applies it as a `Content-Type` request header, which
+                                // our connector forwards verbatim, so it works regardless of the HTTP
+                                // client.  Every other client key configures the transport we replaced.
+                                anyhow::ensure!(
+                                    matches!(
+                                        client_key,
+                                        object_store::client::ClientConfigKey::DefaultContentType
+                                    ) || crate::misc::awc_http_connector::ConnectorOptions::honors_client_config_key(
+                                        client_key
+                                    ),
+                                    "object store option {key:?} configures the HTTP client, which \
+                                     is not currently supported by the awc-based S3 connector"
+                                );
+                            }
+                            builder = builder.with_config(config_key, value);
+                        }
+                        // object_store's own parse_url_opts silently ignores unknown keys; we warn
+                        // instead, so a typo in the config surfaces.
+                        Err(_) => {
+                            log::warn!("ignoring unrecognized S3 object store option {key:?}")
+                        }
+                    }
+                }
+
+                Box::new(builder.build().with_context(|| {
+                    format!(
+                        "creating S3 object store from url {url} and options {}",
+                        serde_json::to_string(&c.options)
+                            .unwrap_or_else(|_| "<failed to format>".to_string())
+                    )
+                })?)
+            }
+
+            // Non-S3 object store
+            _ => {
+                let (store, _path) = object_store::parse_url_opts(url, c.options.iter())
+                    .with_context(|| {
+                        format!(
+                            "creating object store from url {url} and options {}",
+                            serde_json::to_string(&c.options)
+                                .unwrap_or_else(|_| "<failed to format>".to_string())
+                        )
+                    })?;
+                store
+            }
+        };
 
         Ok(Self(Box::new(object_store::prefix::PrefixStore::new(
-            os, path,
+            store, path,
         ))))
     }
 }

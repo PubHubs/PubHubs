@@ -26,7 +26,7 @@ pub struct Set {
 /// Used by the integration tests to run the servers on pre-bound, ephemeral ports, so that
 /// multiple [`Set`]s can run simultaneously.  Each listener is `try_clone`d (the file descriptor
 /// is dup'd) every time its server (re)starts — e.g. after discovery — so the originals are kept
-/// alive (by the [`Runner`], for as long as the server runs) to keep the port reserved.
+/// alive (by the `Runner`, for as long as the server runs) to keep the port reserved.
 #[derive(Default)]
 pub struct SetOpts {
     /// If set, PubHubs Central listens on this pre-bound socket instead of binding the address in
@@ -312,8 +312,8 @@ struct Runner<ServerT: Server> {
     worker_count: Option<NonZero<usize>>,
 
     /// If set, the server listens on this pre-bound socket — `try_clone`d on each (re)start —
-    /// instead of binding the address in its [`ServerConfig`].  Held here so the port stays
-    /// reserved for the server's whole lifetime.  See [`SetOpts`].
+    /// instead of binding the address in its [`ServerConfig`](crate::servers::config::ServerConfig).
+    /// Held here so the port stays reserved for the server's whole lifetime.  See [`SetOpts`].
     listener: Option<std::net::TcpListener>,
 
     /// Number of restarts (i.e. modifications applied)
@@ -339,7 +339,7 @@ struct Handles<S: Server> {
     command_receiver: mpsc::Receiver<CommandRequest<S>>,
 
     /// To check whether [Handles::shutdown] was completed before being dropped
-    drop_bomb: crate::misc::drop_ext::Bomb,
+    drop_bomb: crate::misc::drop_ext::Bomb<Box<dyn FnOnce()>>,
 }
 
 impl<S: Server> Handles<S> {
@@ -437,7 +437,7 @@ impl<S: Server> Handles<S> {
             );
         }
 
-        self.drop_bomb.diffuse();
+        self.drop_bomb.defuse();
 
         log::debug!("Shut down of {} completed", S::NAME);
 
@@ -951,7 +951,7 @@ impl<S: Server> Runner<S> {
             command_receiver,
             ph_join_handle,
             ph_shutdown_sender: Some(ph_shutdown_sender),
-            drop_bomb: crate::misc::drop_ext::Bomb::new(|| {
+            drop_bomb: crate::misc::drop_ext::Bomb::panic(|| {
                 format!("Part of {} was not shut down properly", S::NAME)
             }),
         })

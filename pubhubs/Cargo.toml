@@ -35,7 +35,14 @@ indexmap = { version = "2.11", features = [ "serde" ] }
 
 rand = { version = "0.10", features = ["sys_rng"] }
 # note: object_store is used by crates.io
-object_store = { version = "0.13", features = ["aws"] } 
+# aws-base + aws-lc-rs (instead of `aws`) to avoid pulling in reqwest and ring.
+object_store = { version = "0.14", default-features = false, features = ["aws-base", "aws-lc-rs"] }
+# Used by our awc-based object_store HttpConnector (see misc/awc_http_connector.rs); all already
+# pulled in transitively by object_store.
+http = { version = "1" }
+http-body = { version = "1" }
+async-trait = { version = "0.1" }
+async-stream = { version = "0.3" }
 
 # Yivi interaction
 qrcode = { version = "0.14", default-features = false } # we only use unicode rendering
@@ -54,9 +61,15 @@ tokio = { version = "1.47", features = ["rt", "macros", "rt-multi-thread", "sync
 tokio-stream = { version = "0.1" } # <- dev dependency of tokio itself
 url = { version="2.5", features=["serde"] }
 
-# Proxying requests to Yivi and connection check
-# default features disabled: we don't need cookies or response decompression
+# Proxying requests to Yivi and connection check, and the awc-based object_store S3 connector
+# (see misc/awc_http_connector.rs).
+# default features disabled: we don't need cookies or response decompression.  A `compress-*`
+# feature must NOT be enabled: the S3 connector forwards response bytes verbatim, and awc
+# transparently decompressing them might break object_store's Content-Length accounting.
 awc = { version = "3.8", default-features = false, features = ["rustls-0_23-webpki-roots"] }
+
+# For `actix_http::error::ParseError` in the S3 connector; awc (which pulls it in) doesn't re-export it.
+actix-http = { version = "3.13", default-features = false }
 
 # awc, object_store and reqwest all use rustls.  Adding the following features makes
 # sure we can enable the post-quantum key-exchange X25519MLKEM768 for them.

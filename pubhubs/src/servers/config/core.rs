@@ -310,9 +310,10 @@ impl Config {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct ObjectStoreConfig {
-    /// E.g. "memory:///", or file:///some/path
+    /// E.g. `memory:///` or `s3://bucket`.
     ///
-    /// For a complete list, see:
+    /// Only `memory://` and `s3://` work: we build `object_store` without its default features (see
+    /// Cargo.toml), so the other schemes it lists — including `file://` — are not compiled in:
     ///
     ///   <https://docs.rs/object_store/latest/object_store/enum.ObjectStoreScheme.html>
     pub url: UrlPwa,

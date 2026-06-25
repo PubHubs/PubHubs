@@ -1,5 +1,33 @@
 use crate::servers::Config;
 
+/// A PubHubs deployment a client command (`enter`, `stress`, ...) can contact.
+#[derive(clap::ValueEnum, Debug, Clone, Copy)]
+pub(crate) enum Environment {
+    Stable,
+    Main,
+    Local,
+}
+
+/// The PHC url to contact: the explicit `--url` override if given, otherwise `environment`'s default.
+pub(crate) fn phc_url(
+    environment: Environment,
+    url_override: &Option<url::Url>,
+) -> std::borrow::Cow<'_, url::Url> {
+    if let Some(url) = url_override {
+        return std::borrow::Cow::Borrowed(url);
+    }
+
+    std::borrow::Cow::Owned(
+        match environment {
+            Environment::Local => "http://localhost:5050",
+            Environment::Stable => "https://phc.pubhubs.net",
+            Environment::Main => "https://phc-main.pubhubs.net",
+        }
+        .parse()
+        .expect("hard-coded environment url should parse"),
+    )
+}
+
 /// Arguments shared between `admin` and `serve` commands.
 #[derive(clap::Args, Debug)]
 pub(crate) struct CommonArgs {

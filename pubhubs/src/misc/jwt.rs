@@ -329,14 +329,14 @@ pub(crate) const MAX_TIMESTAMP_SECS: u64 = 253_402_300_799;
 
 impl NumericDate {
     /// Creates a numeric date from `timestamp`, the number of seconds since the unix epoch
-    /// (ignoring leap seconds), saturating at [`MAX_TIMESTAMP_SECS`] to uphold the invariant.
+    /// (ignoring leap seconds), saturating at `MAX_TIMESTAMP_SECS` to uphold the invariant.
     pub fn new_clamp(timestamp: u64) -> Self {
         Self {
             timestamp: timestamp.min(MAX_TIMESTAMP_SECS),
         }
     }
 
-    /// Adds `secs` seconds, saturating at [`MAX_TIMESTAMP_SECS`].
+    /// Adds `secs` seconds, saturating at `MAX_TIMESTAMP_SECS`.
     pub fn add_clamp(self, secs: u64) -> Self {
         Self::new_clamp(self.timestamp.saturating_add(secs))
     }
