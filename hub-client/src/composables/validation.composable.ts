@@ -83,6 +83,8 @@ function useFieldValidation(name: string, model: { value: unknown }, validation?
 		const keys = Object.keys(validation);
 		required.value = keys.includes('required') && validation['required'] === true;
 		keys.forEach((key) => {
+			// Skip rules explicitly disabled with false (e.g. required: false)
+			if (validation[key] === false) return;
 			let rule: ValidationRule;
 			if (key === 'custom') {
 				rule = validation[key] as ValidationRule;
