@@ -9,6 +9,9 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 > Shell snippets in this file should stick to POSIX syntax so they keep working in Git Bash, MSYS, and WSL alongside Linux/macOS shells.
 
+
+---
+
 ## run
 
 > Commands for running the development environment
@@ -32,6 +35,8 @@ sh scripts/run-all.sh
 ```sh
 sh scripts/run-all-cleanup.sh
 ```
+
+---
 
 ### init
 
@@ -308,6 +313,8 @@ cd pubhubs_hub
 docker build -t pubhubs-hub .
 ```
 
+---
+
 ## lint
 
 > Format and lint source code (applies fixes)
@@ -315,6 +322,8 @@ docker build -t pubhubs-hub .
 ```sh
 npm run lint
 ```
+
+---
 
 ## check
 
