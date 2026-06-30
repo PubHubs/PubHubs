@@ -19,6 +19,11 @@ import App from '@hub-client/pages/App.vue';
 
 import { setUpi18n } from '@hub-client/i18n';
 
+if (import.meta.env.VITE_SIMULATE_BLOCKED_IDB) {
+	// Simulate a storage-blocked third-party iframe: indexedDB.open never settles.
+	window.indexedDB.open = (() => ({}) as IDBOpenDBRequest) as typeof window.indexedDB.open;
+}
+
 // Silence matrix-js-sdk's verbose HTTP logs; match our app log level
 const matrixLevel = getLogLevel() === 'debug' ? 'DEBUG' : getLogLevel() === 'info' ? 'INFO' : getLogLevel() === 'error' ? 'ERROR' : 'WARN';
 loglevel.getLogger('matrix').setLevel(matrixLevel);
