@@ -1,5 +1,5 @@
 // Packages
-import sanitize from 'sanitize-html';
+import sanitize, { type IOptions as SanitizeOptions } from 'sanitize-html';
 
 const removeHtml = (html: string): string => {
 	const parsedHTML = new DOMParser().parseFromString(html, 'text/html');
@@ -99,9 +99,18 @@ const sanitizeOptions = {
 	},
 };
 
-const sanitizeHtml = (html: string): string => {
-	html = sanitize(html, sanitizeOptions);
-	return html;
+const sanitizeHtml = (html: string, extraOptions?: SanitizeOptions): string => {
+	if (extraOptions) {
+		const merged: SanitizeOptions = {
+			...sanitizeOptions,
+			...extraOptions,
+			// Always preserve security-critical settings from the base config
+			exclusiveFilter: sanitizeOptions.exclusiveFilter,
+			transformTags: sanitizeOptions.transformTags,
+		};
+		return sanitize(html, merged);
+	}
+	return sanitize(html, sanitizeOptions);
 };
 
 // Regex patterns for URL detection

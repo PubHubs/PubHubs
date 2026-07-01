@@ -11,7 +11,7 @@ import '@hub-client/assets/tailwind.css';
 // Logic
 import { routes } from '@global-client/logic/core/routes';
 
-import { focus, twClass } from '@hub-client/logic/core/directives';
+import { focus, safeHtml, twClass } from '@hub-client/logic/core/directives';
 
 // Pages
 import App from '@global-client/pages/App.vue';
@@ -68,6 +68,7 @@ app.use(pinia);
 app.use(router);
 app.use(i18n as Parameters<typeof app.use>[0]);
 app.directive('focus', focus);
+app.directive('safe-html', safeHtml);
 app.directive('tw-class', twClass as Parameters<typeof app.directive>[1]);
 
 // Mount the app
