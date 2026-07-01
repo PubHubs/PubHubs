@@ -25,12 +25,10 @@
 				class="flex flex-col items-center gap-y-200"
 			>
 				<H1 class="text-accent-primary">{{ $t('errors.oops') }}</H1>
-				<!-- eslint-disable vue/no-v-html -- sanitized via sanitizeHtml -->
 				<h3
+					v-safe-html="t(props.errorKey, props.errorValues as string[])"
 					class="font-headings text-h3 font-semibold"
-					v-html="sanitizedErrorMessage"
 				></h3>
-				<!-- eslint-enable vue/no-v-html -->
 				<router-link :to="fromRoute || { name: 'home' }">
 					<Button
 						v-if="errorKey !== 'errors.no_hubs_found'"
@@ -59,9 +57,6 @@
 	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
 	import { useModerationRedCard } from '@hub-client/composables/moderation/red-card.composable';
 
-	// Logic
-	import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
-
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
@@ -75,8 +70,6 @@
 
 	const { redCardMembers } = useModerationRedCard(useModerationBase());
 	const userStore = useUser();
-
-	const sanitizedErrorMessage = computed(() => sanitizeHtml(t(props.errorKey, props.errorValues as string[])));
 
 	// For red card, don't go back to a room (user is banned), go home instead
 	const redCardBackRoute = computed(() => {

@@ -1,7 +1,5 @@
 // Models
 // Logic
-import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
-
 import { type TEvent } from '@hub-client/models/events/TEvent';
 import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
@@ -45,7 +43,6 @@ class EventTimeLineHandler {
 		eventContent.ph_body = this.createClickableLinks(eventContent.ph_body ?? eventContent.body ?? '');
 		eventContent.ph_body = this.addMentions(eventContent.ph_body);
 		eventContent.ph_body = this.addLineBreaks(eventContent.ph_body);
-		eventContent.ph_body = this.sanitizeEventContent(eventContent.ph_body);
 		return event;
 	}
 
@@ -70,11 +67,6 @@ class EventTimeLineHandler {
 
 	private addLineBreaks(body: string) {
 		body = body.replace(/\r?\n/g, '<br/>');
-		return body;
-	}
-
-	private sanitizeEventContent(body: string) {
-		body = sanitizeHtml(body);
 		return body;
 	}
 }

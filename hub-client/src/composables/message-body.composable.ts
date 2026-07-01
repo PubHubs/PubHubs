@@ -4,15 +4,12 @@ import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 // Composables
 import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 
-// Logic
-import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
-
 /**
  * Composable for handling message body rendering with mentions and sanitization.
  * Used by Message.vue, MessageFile.vue, and MessageImage.vue.
  *
  * @param body - The raw message body text
- * @param phBody - The pre-processed body from eventTimeLineHandler (already sanitized)
+ * @param phBody - The pre-processed body from eventTimeLineHandler
  */
 function useMessageBody(body: MaybeRefOrGetter<string | undefined>, phBody: MaybeRefOrGetter<string | undefined>) {
 	const mentionComposable = useMentionsDisplay();
@@ -33,21 +30,19 @@ function useMessageBody(body: MaybeRefOrGetter<string | undefined>, phBody: Mayb
 	const hasAnyMentions = computed(() => messageSegments.value.some((seg) => seg.type !== 'text'));
 
 	/**
-	 * Sanitized body for direct rendering when no mentions are present.
-	 * Uses ph_body if available (already sanitized), otherwise sanitizes raw body.
+	 * Body for direct rendering when no mentions are present. Sanitized at render time by v-safe-html.
+	 * Named messageBody (not sanitizedBody) because sanitization happens in the directive, not here.
 	 */
-	const sanitizedBody = computed(() => {
+	const messageBody = computed(() => {
 		const ph = toValue(phBody);
-		if (ph) {
-			return ph;
-		}
-		return sanitizeHtml(toValue(body) || '');
+		if (ph) return ph;
+		return toValue(body) || '';
 	});
 
 	return {
 		messageSegments,
 		hasAnyMentions,
-		sanitizedBody,
+		messageBody,
 	};
 }
 

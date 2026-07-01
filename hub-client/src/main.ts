@@ -10,7 +10,7 @@ import { createApp } from 'vue';
 import '@hub-client/assets/datepicker.css';
 import '@hub-client/assets/tailwind.css';
 
-import { clickOutside, contextMenu, focus, twClass } from '@hub-client/logic/core/directives';
+import { clickOutside, contextMenu, focus, safeHtml, twClass } from '@hub-client/logic/core/directives';
 import { router } from '@hub-client/logic/core/router';
 import { getLogLevel } from '@hub-client/logic/logging/Logger';
 
@@ -41,6 +41,7 @@ app.directive('focus', focus);
 app.directive('tw-class', twClass);
 app.directive('click-outside', clickOutside);
 app.directive('context-menu', contextMenu);
+app.directive('safe-html', safeHtml);
 app.component('VueDatePicker', VueDatePicker);
 
 app.mount('#app');

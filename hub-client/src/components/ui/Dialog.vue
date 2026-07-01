@@ -53,12 +53,10 @@
 						:class="props.allowOverflow ? 'overflow-visible' : 'overflow-y-auto'"
 					>
 						<slot />
-						<!-- eslint-disable vue/no-v-html -- sanitized via sanitizeHtml -->
 						<div
 							v-if="dialog.properties.content !== ''"
-							v-html="sanitizedContent"
+							v-safe-html="dialog.properties.content"
 						/>
-						<!-- eslint-enable vue/no-v-html -->
 					</div>
 					<Divider
 						v-if="dialog.properties.buttons.length > 0"
@@ -97,9 +95,6 @@
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	// Logic
-	import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
-
 	// Hub imports
 	import { type DialogButton, type DialogButtonAction, DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
@@ -135,8 +130,6 @@
 	const hasContent = computed(() => {
 		return slots['default'] || dialog.properties.content !== '';
 	});
-
-	const sanitizedContent = computed(() => sanitizeHtml(dialog.properties.content));
 
 	onUnmounted(() => {
 		dialog.hideModal();

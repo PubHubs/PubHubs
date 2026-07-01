@@ -7,12 +7,10 @@
 				class="inline"
 			>
 				<!-- Normal text segment -->
-				<!-- eslint-disable vue/no-v-html -- content escaped by textToHtml -->
 				<span
 					v-if="segment.type === 'text'"
-					v-html="textToHtml(segment.content ?? '')"
+					v-safe-html="textToHtml(segment.content ?? '')"
 				></span>
-				<!-- eslint-enable vue/no-v-html -->
 
 				<!-- User Mention segment -->
 				<span
@@ -52,12 +50,10 @@
 				</span>
 			</span>
 		</template>
-		<!-- eslint-disable vue/no-v-html -- content sanitized by useMessageBody -->
 		<span
 			v-else
-			v-html="sanitizedBody"
+			v-safe-html="messageBody"
 		></span>
-		<!-- eslint-enable vue/no-v-html -->
 	</span>
 </template>
 
@@ -102,7 +98,7 @@
 	const activeMentionCard = ref<string | null>(null);
 	const isSecured = ref(false);
 
-	const { messageSegments, hasAnyMentions, sanitizedBody } = useMessageBody(
+	const { messageSegments, hasAnyMentions, messageBody } = useMessageBody(
 		() => props.body,
 		() => props.phBody,
 	);
