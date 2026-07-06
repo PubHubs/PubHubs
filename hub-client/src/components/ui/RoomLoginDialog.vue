@@ -42,7 +42,7 @@
 
 <script lang="ts" setup>
 	// Vue
-	import { computed } from 'vue';
+	import { computed, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -77,22 +77,32 @@
 
 	const roomDescription = computed(() => {
 		if (!props.dialogOpen) return '';
-		const room = rooms.securedRoomById(props.dialogOpen);
+		const room = rooms.publicSecuredRoomMetadataById(props.dialogOpen);
 		return room?.topic ?? '-';
 	});
 
 	const requiredAttributes = computed(() => {
 		if (!props.dialogOpen) return [];
-		const room = rooms.securedRoomById(props.dialogOpen);
-		const accepted = room?.accepted;
-		if (!accepted) return [];
-		const attrKeys = Object.keys(accepted);
+		const room = rooms.publicSecuredRoomMetadataById(props.dialogOpen);
+		const attrKeys = room?.accepted ?? [];
 		const yiviAttrs = yiviStore.getAttributes(t);
 		return attrKeys.map((key) => {
 			const found = yiviAttrs.find((a) => a.attribute === key);
 			return found ? found.label : key;
 		});
 	});
+
+	// Fetch the public secured-room metadata whenever the dialog opens for a new room id.
+	// IMPORTANT: don't remove this otherwise store will not fetch data which will be available for requireAttributes & roomDescription.
+	watch(
+		() => props.dialogOpen,
+		(roomId) => {
+			if (roomId && props.secured) {
+				rooms.getSecuredRoomPublicMetadata(roomId);
+			}
+		},
+		{ immediate: true },
+	);
 
 	async function handleClose(action?: number) {
 		emit('update:dialogOpen', null);

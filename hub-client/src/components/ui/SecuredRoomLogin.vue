@@ -41,7 +41,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { onMounted, ref } from 'vue';
+	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -51,10 +51,7 @@
 	import P from '@hub-client/components/elements/P.vue';
 	import QRCode from '@hub-client/components/ui/SecuredRoomQR.vue';
 
-	// Stores
-	import { useRooms } from '@hub-client/stores/rooms';
-
-	const props = defineProps({
+	defineProps({
 		securedRoomId: {
 			type: String,
 			required: true,
@@ -64,16 +61,17 @@
 			default: true,
 		},
 	});
-	const emit = defineEmits(['success']);
-	const rooms = useRooms();
-	const { t } = useI18n();
-	const loginFail = ref(false);
 
-	onMounted(async () => await rooms.getSecuredRoomInfo(props.securedRoomId));
+	const emit = defineEmits(['success']);
+
+	const { t } = useI18n();
+
+	const loginFail = ref(false);
 
 	function closePopOver() {
 		emit('success');
 	}
+
 	function retry() {
 		loginFail.value = false;
 	}

@@ -1,6 +1,7 @@
 import json
 import traceback
 import logging
+from dataclasses import dataclass, asdict
 
 from synapse.api.errors import Codes, LoginError
 from synapse.handlers.room import RoomCreationHandler, RoomShutdownHandler
@@ -13,7 +14,7 @@ from synapse.types import Requester
 from .HubClientApiConfig import HubClientApiConfig
 from ._validation import user_validator
 from ._cors import set_allow_origin_header
-from ._constants import HUB_ADMIN
+from ._constants import HUB_ADMIN, USER
 from ._secured_rooms_class import SecuredRoom
 from ._store import HubStore
 
@@ -122,15 +123,42 @@ class NoticesServlet(DirectServeJsonResource):
         respond_with_json(request, 200, notice, True)
 
 
-# Non-admin requests for getting information about secured rooms based on room Id.
-class SecuredRoomExtraServlet(DirectServeJsonResource):
+@dataclass
+class SecuredRoomPublicMetadata:
+    room_id: str
+    name: str
+    topic: str
+    expiration_time_days: float
+    user_txt: str
+    type: str
+    accepted: list[str]
+
+    @classmethod
+    def from_secured_room(cls, room: SecuredRoom) -> "SecuredRoomPublicMetadata":
+        return cls(
+            room_id=room.room_id,
+            name=room.name,
+            topic=room.topic,
+            expiration_time_days=room.expiration_time_days,
+            user_txt=room.user_txt,
+            type=room.type,
+            accepted=list(room.accepted.keys()),
+        )
+
+
+# Public metadata about a secured room. Requires an authenticated matrix user.
+class SecuredRoomPublicMetadataServlet(DirectServeJsonResource):
     def __init__(self, store: str, module_api: ModuleApi):
         super().__init__()
         self._store = store
         self._module_api = module_api
 
-    async def _async_render_GET(self, request: SynapseRequest):
-        """Returns the Hub Notice"""
+    @user_validator(USER)
+    async def _async_render_GET(self, request: SynapseRequest, user_id: str):
+        """Return sanitised public information about a secured room.
+        This endpoint is used by the join dialog to render the chips that
+        tell the user which attributes they'll be asked to disclose.
+        """
 
         if not request.args.get(b"room_id"):
             return respond_with_json(request, 400, {})
@@ -138,5 +166,11 @@ class SecuredRoomExtraServlet(DirectServeJsonResource):
         room_id = b"".join(request.args.get(b"room_id")).decode()
 
         allowed_secured_room_info = await self._store.get_secured_room(room_id)
-        response_in_json = json.dumps(allowed_secured_room_info, default=lambda o: o.__dict__)
+
+        if allowed_secured_room_info is None:
+            respond_with_json(request, 404, {}, True)
+            return
+        
+        public_metadata = SecuredRoomPublicMetadata.from_secured_room(allowed_secured_room_info)
+        response_in_json = json.dumps(asdict(public_metadata))
         respond_with_json(request, 200, response_in_json, True)
