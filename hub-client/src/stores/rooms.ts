@@ -27,7 +27,7 @@ import {
 } from '@hub-client/models/rooms/TBaseRoom';
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
-import { type TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
+import { type TSecuredRoom, type TSecuredRoomPublicMetadata } from '@hub-client/models/rooms/TSecuredRoom';
 import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
@@ -86,8 +86,8 @@ const useRooms = defineStore('rooms', {
 			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu. TODO: split into a Map<roomId, RoomListRoom> for O(1) lookup + a sorted [name, roomId][] array for display order
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
+			publicSecuredRoomMetadata: new Map<string, TSecuredRoomPublicMetadata>(),
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: Record<string, string> } },
-			securedRoom: undefined as TSecuredRoom | undefined,
 			initialRoomsLoaded: false, // Set true after sliding sync's first Complete response. The first request uses InitialRoomList with a very large range, so every joined room is in client.getRooms() by this point; timeline data fills in afterwards via MainRoomList's widening.
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
@@ -256,7 +256,7 @@ const useRooms = defineStore('rooms', {
 		},
 
 		hasSecuredRooms(state): boolean {
-			return Object.keys(state.securedRooms).length > 0;
+			return state.securedRooms.length > 0;
 		},
 
 		// TODO sort securedRooms on adding, so sorting takes place only once
@@ -266,13 +266,14 @@ const useRooms = defineStore('rooms', {
 
 		securedRoomById: (state) => {
 			return (roomId: string): TSecuredRoom | undefined => {
-				const index = state.securedRooms.findIndex((r) => r.room_id === roomId);
-				if (index >= 0) {
-					return state.securedRooms[index];
-				} else if (state.securedRoom && roomId === state.securedRoom.room_id) {
-					return state.securedRoom;
-				}
-				return undefined;
+				return state.securedRooms.find((r) => r.room_id === roomId);
+			};
+		},
+
+		// Public lookup. Returns the narrower projection used by the join dialog.
+		publicSecuredRoomMetadataById: (state) => {
+			return (roomId: string): TSecuredRoomPublicMetadata | undefined => {
+				return state.publicSecuredRoomMetadata.get(roomId);
 			};
 		},
 
@@ -594,7 +595,7 @@ const useRooms = defineStore('rooms', {
 			this.roomNotices[roomId][user_id] = attributes;
 		},
 
-		// Needs Admin token
+		// Needs Admin token. Replaces the admin cache.
 		async fetchSecuredRooms() {
 			const result = await api_synapse.apiGET<Array<TSecuredRoom>>(api_synapse.apiURLS.securedRooms);
 			this.securedRooms = result;
@@ -605,22 +606,31 @@ const useRooms = defineStore('rooms', {
 			return await api_synapse.apiGET<TSecuredRoom>(`${api_synapse.apiURLS.stewardSecuredRooms}?room_id=${id}`);
 		},
 
-		// Non-Admin api for getting information about an individual secured room based on room ID.
-		async getSecuredRoomInfo(roomId: string): Promise<TSecuredRoom | undefined> {
-			// Check if already in the store
-			const existing = this.securedRooms.find((room) => room.room_id === roomId);
-			if (existing) {
-				this.securedRoom = existing;
-				return existing;
+		// Admin/Steward-only fetch: returns the full secured room (incl. allow-list values).
+		// Use this for the room editor.
+		async getSecuredRoomForEditor(roomId: string): Promise<TSecuredRoom | undefined> {
+			const room = await api_synapse.apiGET<TSecuredRoom>(`${api_synapse.apiURLS.stewardSecuredRooms}?room_id=${roomId}`);
+			if (!room) return undefined;
+
+			// Refresh admin cache so `securedRoomById(roomId)` reads the full data.
+			const existingIdx = this.securedRooms.findIndex((r) => r.room_id === roomId);
+			if (existingIdx >= 0) {
+				this.securedRooms[existingIdx] = room;
+			} else {
+				this.securedRooms.push(room);
 			}
+			return room;
+		},
 
-			// Otherwise, fetch from API
-			const jsonInString = await api_synapse.apiGET<string>(api_synapse.apiURLS.securedRoom + '?room_id=' + roomId);
-			const fetchedRoom = JSON.parse(jsonInString) as TSecuredRoom;
+		// Non-Admin api for public metadata of a secured room. Caches into the public Map
+		async getSecuredRoomPublicMetadata(roomId: string): Promise<TSecuredRoomPublicMetadata | undefined> {
+			const cached = this.publicSecuredRoomMetadata.get(roomId);
+			if (cached) return cached;
 
-			this.securedRooms.push(fetchedRoom);
+			const jsonInString = await api_synapse.apiGET<string>(api_synapse.apiURLS.securedRoomPublicMetadata + '?room_id=' + roomId);
+			const fetchedRoom = JSON.parse(jsonInString) as TSecuredRoomPublicMetadata;
 
-			this.securedRoom = fetchedRoom;
+			this.publicSecuredRoomMetadata.set(roomId, fetchedRoom);
 			return fetchedRoom;
 		},
 
@@ -647,6 +657,11 @@ const useRooms = defineStore('rooms', {
 			if (pidx >= 0) {
 				this.securedRooms[pidx] = room;
 			}
+			// Drop the public-metadata cache for this room so the next consumer (e.g. the
+			// join dialog's required-attribute chips) refetches and sees the updated policy.
+			// Without this, users with an already-open hub-client session keep seeing stale
+			// attribute requirements until they reload.
+			this.publicSecuredRoomMetadata.delete(modified_id);
 			// Update roomList with new name
 			if (room.name) {
 				this.setRoomListName(modified_id, room.name);
@@ -675,8 +690,9 @@ const useRooms = defineStore('rooms', {
 			// @ts-expect-error -- response type from secured rooms API is untyped
 			const deleted_id = response.deleted;
 
-			// replace securedRooms and publicRooms with new arrays
+			// replace admin/public caches with new arrays
 			this.securedRooms = this.securedRooms.filter((r) => r.room_id !== deleted_id);
+			this.publicSecuredRoomMetadata.delete(deleted_id);
 			this.publicRooms = this.publicRooms.filter((r: TPublicRoom) => r.room_id !== deleted_id);
 			this.room(deleted_id)?.setHidden(true);
 			this.setRoomListHidden(deleted_id, true);
@@ -684,13 +700,11 @@ const useRooms = defineStore('rooms', {
 		},
 
 		// Get specific TPublic or TSecured Room - The structure of the room is different from MatrixRoom.
+		// For secured rooms, returns the public-metadata projection (no admin-only fields).
 		async getTPublicOrTSecuredRoom(roomId: string) {
 			const isSecuredRoom = this.roomIsSecure(roomId);
 			if (isSecuredRoom) {
-				// Fetch secured Room
-				await this.getSecuredRoomInfo(roomId);
-				// Set the current Secured Room
-				return this.securedRoom;
+				return await this.getSecuredRoomPublicMetadata(roomId);
 			} else {
 				// We need to get information from TPublicRoom instead of room.
 				return this.getTPublicRoom(this.currentRoomId);

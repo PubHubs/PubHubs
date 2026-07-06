@@ -342,7 +342,8 @@
 		waitForServer.value = true;
 		await rooms.fetchPublicRooms();
 		if (isSecured.value) {
-			await rooms.getSecuredRoomInfo(props.id);
+			// Editor needs full allow-list values; use the admin/steward endpoint, not the redacted public one.
+			await rooms.getSecuredRoomForEditor(props.id);
 		}
 		waitForServer.value = false;
 		roomLoaded.value = true;

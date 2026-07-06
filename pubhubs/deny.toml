@@ -71,6 +71,10 @@ feature-depth = 1
 # output a note when they are encountered.
 ignore = [
     { id = "RUSTSEC-2023-0071", reason = "We use RSA signing only for testing." },
+    # Remove both once a solution is found for it. Real reason is not known so vulnerability source links are used.
+    # https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/work_items?show=eyJpaWQiOiIxOTI5IiwiZnVsbF9wYXRoIjoiaWxhYi9wdWJodWJzX2Nhbm9uaWNhbCIsImlkIjoyNzU5Nn0%3D
+    { id = "RUSTSEC-2026-0195", reason = "https://rustsec.org/advisories/RUSTSEC-2026-0195.html" },
+    { id = "RUSTSEC-2026-0194", reason = "https://rustsec.org/advisories/RUSTSEC-2026-0194.html" },
     #"RUSTSEC-0000-0000",
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
