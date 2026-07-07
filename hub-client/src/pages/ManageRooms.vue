@@ -78,7 +78,10 @@
 						</div>
 					</template>
 				</FilterableList>
-				<div class="absolute right-200 bottom-200 z-50">
+				<div
+					v-if="isAdmin"
+					class="absolute right-200 bottom-200 z-50"
+				>
 					<FloatingActionButton
 						:label="t('rooms.add_room')"
 						icon="plus"
