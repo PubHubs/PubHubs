@@ -3,7 +3,7 @@
 		<!-- Shared Header -->
 		<div
 			class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between gap-200 border-b-2"
-			:class="isMobile ? 'pl-600' : 'pl-400'"
+			:class="isMobile ? 'p-150 pl-400' : 'p-200'"
 		>
 			<!-- Left: DM title (on mobile, show conversation name when sidebar is open) -->
 			<div class="flex min-w-0 flex-1 items-center gap-150 overflow-x-hidden">
@@ -46,84 +46,90 @@
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Conversation list -->
 			<div
-				class="relative flex h-full flex-col overflow-y-auto p-150 md:p-200"
-				:class="isMobile ? 'w-full' : 'w-[360px] shrink-0'"
-				:data-loaded="!dmLoading || undefined"
+				class="flex h-full flex-col"
+				:class="isMobile ? 'w-full' : 'w-4500 shrink-0'"
 			>
-				<div
-					v-if="dmLoading && sortedPrivateRooms.length === 0"
-					class="@container flex w-full flex-col gap-200"
-				>
+				<div class="relative flex h-full flex-col overflow-hidden">
 					<div
-						v-for="n in 3"
-						:key="n"
-						class="bg-surface-base w-full animate-pulse rounded-xl p-200"
+						class="flex flex-col overflow-y-auto p-150 md:p-200"
+						:data-loaded="!dmLoading || undefined"
 					>
-						<div class="flex gap-150">
-							<div class="bg-surface-base h-600 w-600 shrink-0 rounded-full" />
-							<div class="gap-050 flex min-w-0 flex-1 flex-col">
-								<div class="bg-surface-base h-250 w-2/3 rounded" />
-								<div class="bg-surface-base hidden h-[18px] w-1/3 rounded @xs:block" />
-								<div class="bg-surface-base h-250 w-full rounded" />
+						<div
+							v-if="dmLoading && sortedPrivateRooms.length === 0"
+							class="@container flex w-full flex-col gap-200"
+						>
+							<div
+								v-for="n in 3"
+								:key="n"
+								class="bg-surface-base w-full animate-pulse rounded-xl p-200"
+							>
+								<div class="flex gap-150">
+									<div class="bg-surface-base h-600 w-600 shrink-0 rounded-full" />
+									<div class="gap-050 flex min-w-0 flex-1 flex-col">
+										<div class="bg-surface-base h-250 w-2/3 rounded" />
+										<div class="bg-surface-base hidden h-[18px] w-1/3 rounded @xs:block" />
+										<div class="bg-surface-base h-250 w-full rounded" />
+									</div>
+								</div>
 							</div>
 						</div>
-					</div>
-				</div>
-				<button
-					v-else-if="sortedPrivateRooms.length === 0"
-					class="bg-surface-base hover:bg-surface-elevated border-surface-elevated rounded-base h-1000 w-full cursor-pointer border-3 p-200 text-left"
-					@click="sidebar.toggleTab(SidebarTab.NewDM)"
-				>
-					<div class="flex items-center gap-100">
-						<div class="flex h-10 w-10 shrink-0 items-center justify-center">
-							<Icon
-								type="plus"
-								size="sm"
+						<button
+							v-else-if="sortedPrivateRooms.length === 0"
+							class="bg-surface-base hover:bg-surface-elevated border-surface-elevated rounded-base h-1000 w-full cursor-pointer border-3 p-200 text-left"
+							@click="sidebar.toggleTab(SidebarTab.NewDM)"
+						>
+							<div class="flex items-center gap-100">
+								<div class="flex h-10 w-10 shrink-0 items-center justify-center">
+									<Icon
+										type="plus"
+										size="sm"
+									/>
+								</div>
+								<p class="font-bold">{{ t('others.new_message') }}</p>
+							</div>
+						</button>
+						<div
+							class="flex w-full flex-col gap-200 transition-all duration-300 ease-in-out"
+							role="list"
+							data-testid="conversations"
+						>
+							<MessagePreview
+								v-for="entry in sortedPrivateRooms"
+								:key="entry.room.roomId"
+								v-context-menu="
+									(evt: any) =>
+										openMenu(
+											evt,
+											[
+												{
+													label: t('menu.leave_conversation'),
+													icon: 'sign-out',
+													variant: ContextVariant.delicate,
+													onClick: () => leaveConversation(entry.room),
+												},
+											],
+											entry.room.roomId,
+										)
+								"
+								:room="entry.room"
+								:unread-state="entry.unreadState"
+								:is-mobile="isMobile"
+								:active="selectedRoom?.roomId === entry.room.roomId"
+								class="hover:cursor-pointer"
+								:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-base!'"
+								role="listitem"
+								@click="openDMRoom(entry.room)"
 							/>
 						</div>
-						<p class="font-bold">{{ t('others.new_message') }}</p>
 					</div>
-				</button>
-				<div
-					class="flex w-full flex-col gap-200 transition-all duration-300 ease-in-out"
-					role="list"
-					data-testid="conversations"
-				>
-					<MessagePreview
-						v-for="entry in sortedPrivateRooms"
-						:key="entry.room.roomId"
-						v-context-menu="
-							(evt: any) =>
-								openMenu(
-									evt,
-									[
-										{
-											label: t('menu.leave_conversation'),
-											icon: 'sign-out',
-											variant: ContextVariant.delicate,
-											onClick: () => leaveConversation(entry.room),
-										},
-									],
-									entry.room.roomId,
-								)
-						"
-						:room="entry.room"
-						:unread-state="entry.unreadState"
-						:is-mobile="isMobile"
-						:active="selectedRoom?.roomId === entry.room.roomId"
-						class="hover:cursor-pointer"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-base!'"
-						role="listitem"
-						@click="openDMRoom(entry.room)"
+
+					<FloatingActionButton
+						class="absolute right-200 bottom-200"
+						:label="t('others.new_message')"
+						icon="plus"
+						@click="sidebar.toggleTab(SidebarTab.NewDM)"
 					/>
 				</div>
-
-				<FloatingActionButton
-					class="absolute right-200 bottom-200"
-					:label="t('others.new_message')"
-					icon="plus"
-					@click="sidebar.toggleTab(SidebarTab.NewDM)"
-				/>
 			</div>
 
 			<!-- Desktop: DM room shown directly (not in sidebar) -->
