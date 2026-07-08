@@ -1,7 +1,7 @@
 <template>
 	<div id="filePickerContainer">
 		<div
-			v-if="messageInput.state.fileAdded"
+			v-if="displayFile"
 			class="overflow-hidden"
 		>
 			<div class="rounded-t-base bg-accent-blue/10 border-accent-blue flex h-500 items-center justify-between gap-100 border-b px-200">
@@ -13,7 +13,8 @@
 					/>
 					<span class="text-accent-blue text-label-small shrink-0">{{ $t('file.upload_file') }}</span>
 					<span class="text-on-surface-dim text-label-small truncate">
-						{{ messageInput.state.fileAdded.name }} ({{ filters.formatBytes(messageInput.state.fileAdded.size, 2) }})
+						{{ displayFile.name }}
+						<template v-if="displayFile.size">({{ filters.formatBytes(displayFile.size, 2) }})</template>
 					</span>
 				</div>
 				<div class="flex items-center gap-100">
@@ -25,7 +26,7 @@
 					/>
 					<button
 						class="shrink-0 hover:cursor-pointer"
-						@click="removeFile()"
+						@click="displayFile.onRemove()"
 					>
 						<Icon
 							class="text-accent-blue"
@@ -36,17 +37,18 @@
 				</div>
 			</div>
 			<div
-				v-if="imageTypes.includes(messageInput.state.fileAdded?.type)"
+				v-if="imageTypes.includes(displayFile.type)"
 				class="flex justify-center px-200 pt-100 pb-200"
 			>
 				<img
-					:src="uri?.url ?? ''"
+					:src="displayFile.previewUrl"
 					class="max-h-3000 max-w-full rounded-lg"
 				/>
 			</div>
 			<div class="mt-050 flex justify-center">
 				<div class="text-on-surface-dim text-label">
-					{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})
+					{{ displayFile.name }}
+					<template v-if="displayFile.size">({{ filters.formatBytes(displayFile.size, 2) }})</template>
 				</div>
 			</div>
 		</div>
@@ -64,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-	import { type PropType, onBeforeUnmount, ref, watch } from 'vue';
+	import { type PropType, computed, onBeforeUnmount, ref, watch } from 'vue';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
@@ -97,6 +99,37 @@
 
 	const uri = ref<BlobManager>();
 	const elFileInput = ref<HTMLInputElement | null>(null);
+
+	interface DisplayFile {
+		name: string;
+		size?: number;
+		type: string;
+		previewUrl: string;
+		onRemove: () => void;
+	}
+
+	const displayFile = computed<DisplayFile | null>(() => {
+		if (props.messageInput.state.fileAdded) {
+			return {
+				name: props.messageInput.state.fileAdded.name,
+				size: props.messageInput.state.fileAdded.size,
+				type: props.messageInput.state.fileAdded.type,
+				previewUrl: uri.value?.url ?? '',
+				onRemove: removeFile,
+			};
+		}
+		if (props.messageInput.state.editingExistingFile) {
+			const ef = props.messageInput.state.editingExistingFile;
+			return {
+				name: ef.filename,
+				size: ef.size,
+				type: ef.mimetype ?? '',
+				previewUrl: ef.previewUrl,
+				onRemove: removeExistingFile,
+			};
+		}
+		return null;
+	});
 
 	// FilePicker starts as owner of the blob URL and can transfer ownership to parent.
 	const ownsBlobMemory = ref(true);
@@ -143,6 +176,11 @@
 			uri.value?.revoke();
 		}
 		props.messageInput.setFileAdded(null);
+		emit('uploadFile', undefined);
+	}
+
+	function removeExistingFile() {
+		props.messageInput.removeExistingFile();
 		emit('uploadFile', undefined);
 	}
 

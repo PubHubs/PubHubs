@@ -63,12 +63,12 @@
 				<!-- Grouped spacer with hover time -->
 				<div
 					v-else
-					class="flex w-600 shrink-0 items-center justify-center"
+					class="flex w-600 shrink-0 flex-col items-center justify-center"
 				>
 					<EventTime
 						:timestamp="event.origin_server_ts!"
 						:show-date="false"
-						class="text-on-surface-dim hidden text-[10px] group-hover:block"
+						class="text-on-surface-dim text-label-small hidden group-hover:block"
 					/>
 				</div>
 
@@ -162,6 +162,12 @@
 									:show-date="false"
 								/>
 							</span>
+
+							<!-- Edited marker -->
+							<EditedMarker
+								v-if="editedTs"
+								:timestamp="editedTs"
+							/>
 						</div>
 
 						<Suspense v-if="hasBeenVisible && inReplyToId && showWhisperReplySnippet">
@@ -263,111 +269,118 @@
 						</div>
 					</div>
 
-					<template v-if="hasBeenVisible">
-						<MessageHidden
-							v-if="(event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
-							:overridelabel="hideState.label"
-						>
-							<!-- The actual message content goes here as a slot -->
-							<PrivilegedMessageBody
-								v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
-								:event="privilegedEventContent"
-							/>
-							<MessageSigned
-								v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
-								:message="event.content!.signed_message"
-								class="max-w-[90ch]"
-							/>
-							<MessageFile
-								v-else-if="event.content!.msgtype === MsgType.File"
-								:message="event.content as TFileMessageEventContent"
-							/>
-							<MessageImage
-								v-else-if="event.content!.msgtype === MsgType.Image"
-								:message="event.content as TImageMessageEventContent"
-							/>
-							<MessageDisclosureRequest
-								v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
-								:event="event as TMessageEvent"
-								class="flex flex-col"
-							/>
-							<MessageDisclosed
-								v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
-								:message="event.content!.signed_message"
-								class="max-w-[90ch]"
-							/>
-							<VotingWidget
-								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
-								:room="room"
-								:event="event as TVotingMessageEvent"
-								@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
-								@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
-							/>
-							<MessageVideoCall
-								v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
-								:event="props.event as any"
-								:room-id="room.roomId"
-							/>
-							<Message
-								v-else
-								:event="event as TMessageEvent"
-								:deleted="redactedMessage"
-							/>
-						</MessageHidden>
+					<div class="flex items-center gap-100">
+						<template v-if="hasBeenVisible">
+							<MessageHidden
+								v-if="(event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
+								:overridelabel="hideState.label"
+							>
+								<!-- The actual message content goes here as a slot -->
+								<PrivilegedMessageBody
+									v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
+									:event="privilegedEventContent"
+								/>
+								<MessageSigned
+									v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
+									:message="event.content!.signed_message"
+									class="max-w-[90ch]"
+								/>
+								<MessageFile
+									v-else-if="event.content!.msgtype === MsgType.File"
+									:message="event.content as TFileMessageEventContent"
+								/>
+								<MessageImage
+									v-else-if="event.content!.msgtype === MsgType.Image"
+									:message="event.content as TImageMessageEventContent"
+								/>
+								<MessageDisclosureRequest
+									v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
+									:event="event as TMessageEvent"
+									class="flex flex-col"
+								/>
+								<MessageDisclosed
+									v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
+									:message="event.content!.signed_message"
+									class="max-w-[90ch]"
+								/>
+								<VotingWidget
+									v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
+									:room="room"
+									:event="event as TVotingMessageEvent"
+									@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+									@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+								/>
+								<MessageVideoCall
+									v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
+									:event="props.event as any"
+									:room-id="room.roomId"
+								/>
+								<Message
+									v-else
+									:event="event as TMessageEvent"
+									:deleted="redactedMessage"
+								/>
+							</MessageHidden>
 
-						<!-- Non-hidden messages render directly -->
-						<template v-else-if="!redactedMessage">
-							<PrivilegedMessageBody
-								v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
-								:event="privilegedEventContent"
-							/>
-							<MessageSigned
-								v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
-								:message="event.content!.signed_message"
-								class="max-w-[90ch]"
-							/>
-							<MessageFile
-								v-else-if="event.content!.msgtype === MsgType.File"
-								:message="event.content as TFileMessageEventContent"
-							/>
-							<MessageImage
-								v-else-if="event.content!.msgtype === MsgType.Image"
-								:message="event.content as TImageMessageEventContent"
-							/>
-							<MessageDisclosureRequest
-								v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
-								:event="event as TMessageEvent"
-								class="flex flex-col"
-							/>
-							<MessageDisclosed
-								v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
-								:message="event.content!.signed_message"
-								class="max-w-[90ch]"
-							/>
-							<VotingWidget
-								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
-								:room="room"
-								:event="event as TVotingMessageEvent"
-								@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
-								@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
-							/>
-							<MessageVideoCall
-								v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
-								:event="props.event as any"
-								:room-id="room.roomId"
-							/>
+							<!-- Non-hidden messages render directly -->
+							<template v-else-if="!redactedMessage">
+								<PrivilegedMessageBody
+									v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
+									:event="privilegedEventContent"
+								/>
+								<MessageSigned
+									v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
+									:message="event.content!.signed_message"
+									class="max-w-[90ch]"
+								/>
+								<MessageFile
+									v-else-if="event.content!.msgtype === MsgType.File"
+									:message="event.content as TFileMessageEventContent"
+								/>
+								<MessageImage
+									v-else-if="event.content!.msgtype === MsgType.Image"
+									:message="event.content as TImageMessageEventContent"
+								/>
+								<MessageDisclosureRequest
+									v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
+									:event="event as TMessageEvent"
+									class="flex flex-col"
+								/>
+								<MessageDisclosed
+									v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
+									:message="event.content!.signed_message"
+									class="max-w-[90ch]"
+								/>
+								<VotingWidget
+									v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
+									:room="room"
+									:event="event as TVotingMessageEvent"
+									@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+									@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+								/>
+								<MessageVideoCall
+									v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
+									:event="props.event as any"
+									:room-id="room.roomId"
+								/>
+								<Message
+									v-else
+									:event="event as TMessageEvent"
+									:deleted="redactedMessage"
+								/>
+							</template>
 							<Message
 								v-else
 								:event="event as TMessageEvent"
 								:deleted="redactedMessage"
 							/>
 						</template>
-						<Message
-							v-else
-							:event="event as TMessageEvent"
-							:deleted="redactedMessage"
+						<EditedMarker
+							v-if="editedTs && props.isGrouped"
+							:timestamp="editedTs"
+							class="text-label-small ml-2 hidden group-hover:block"
 						/>
-					</template>
+					</div>
 
 					<!-- View-thread affordance: visible when this message has thread replies and we're not already inside the thread view. -->
 					<button
@@ -424,6 +437,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import HideMessageDialog from '@hub-client/components/forms/HideMessageDialog.vue';
 	import ReportDialog from '@hub-client/components/forms/ReportDialog.vue';
+	import EditedMarker from '@hub-client/components/rooms/EditedMarker.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Message from '@hub-client/components/rooms/Message.vue';
 	import MessageDisclosed from '@hub-client/components/rooms/MessageDisclosed.vue';
@@ -505,6 +519,8 @@
 
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
+		(e: 'editMessage', event: TMessageEvent): void;
+		(e: 'editForumTopic', event: TMessageEvent): void;
 		(e: 'deleteMessage', event: TMessageEvent): void;
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
@@ -600,6 +616,9 @@
 
 	const inReplyToId = event.value.content?.[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id ?? '';
 
+	// Edit timestamp (ph_edited_ts), stamped by the TimelineManager once an m.replace edit has been applied.
+	const editedTs = computed(() => event.value.content?.ph_edited_ts);
+
 	const showReactionPanel = computed(() => props.activeReactionPanel === event.value.event_id);
 
 	const msgIsNotSend = computed(() => event.value.event_id!.substring(0, 1) === '~');
@@ -677,6 +696,10 @@
 	function onInReplyToClick() {
 		if (!inReplyToId) return;
 		emit('inReplyToClick', inReplyToId);
+	}
+
+	function onEditMessage(event: TMessageEvent) {
+		emit('editMessage', event);
 	}
 
 	function onDeleteMessage(event: TMessageEvent) {
@@ -848,6 +871,40 @@
 				icon: 'eye',
 				...(event.value.sender! === user.userId ? {} : { variant: ContextVariant.steward }),
 				onClick: () => unHideMessage(props.room.roomId, event.value.event_id!),
+			});
+		}
+
+		// Edit (only your own messages).
+		// Editing is allowed on the thread/forum posts as well.
+		if (
+			settings.isFeatureEnabled(FeatureFlag.editMessages) &&
+			([MsgType.Text, MsgType.Image, MsgType.File] as string[])
+				.concat(PubHubsMgType.AnnouncementMessage)
+				.includes(event.value.content!.msgtype as string) &&
+			!msgIsNotSend.value &&
+			event.value.sender! === user.userId &&
+			!redactedMessage.value
+		) {
+			destructive.push({
+				label: t('menu.edit_message'),
+				icon: 'pencil-simple',
+				onClick: () => onEditMessage(event.value as TMessageEvent),
+			});
+		}
+
+		// Edit forum topic root (title + description together, via a dedicated form).
+		if (
+			settings.isFeatureEnabled(FeatureFlag.editMessages) &&
+			(event.value.content!.msgtype as string) === (PubHubsMgType.ForumTopic as string) &&
+			viewingOwnThread.value &&
+			!msgIsNotSend.value &&
+			event.value.sender! === user.userId &&
+			!redactedMessage.value
+		) {
+			destructive.push({
+				label: t('menu.edit_message'),
+				icon: 'pencil-simple',
+				onClick: () => emit('editForumTopic', event.value as TMessageEvent),
 			});
 		}
 

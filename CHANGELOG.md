@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
+- [NEW] Editing of posts (text and images/files).
 - [NEW] Mentions can no be navigated with the arrow-keys, tab and selected with enter.
 - [BUG] Fixed that the mentions element would overflow and not properly follow the carot.
 - [NEW] Message drafts in the messageInput are now saved in localstorage so the draft is recovered on reloads and room switches.

@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+	import { nextTick, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -61,12 +61,8 @@
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+	import { useAuthMediaUrl } from '@hub-client/composables/useAuthMediaUrl';
 	import { useImageActions } from '@hub-client/composables/useImageActions';
-	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
-
-	// Logic
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
-	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -76,16 +72,14 @@
 
 	const props = defineProps<{ message: TImageMessageEventContent }>();
 
-	const logger = createLogger('MessageImage');
-
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
-	const matrixFiles = useMatrixFiles();
 	const imageActions = useImageActions();
 	const dialog = useDialog();
 	const showFullImage = ref(false);
 	const lightboxRef = ref<HTMLElement | null>(null);
-	const authMediaUrl = ref<BlobManager>();
+
+	const { authMediaUrl } = useAuthMediaUrl(() => props.message.url);
 
 	watch(showFullImage, async (show) => {
 		if (show) {
@@ -95,18 +89,5 @@
 		} else {
 			dialog.hideModal();
 		}
-	});
-
-	onMounted(async () => {
-		try {
-			const url = await matrixFiles.getAuthorizedMediaUrl(props.message.url);
-			authMediaUrl.value = new BlobManager(url);
-		} catch (error) {
-			logger.error('Failed to load authorized media', { url: props.message.url, error });
-		}
-	});
-
-	onBeforeUnmount(() => {
-		authMediaUrl.value?.revoke();
 	});
 </script>

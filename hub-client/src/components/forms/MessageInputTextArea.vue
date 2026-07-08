@@ -19,7 +19,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { type Ref, nextTick, ref, watch } from 'vue';
+	import { type Ref, nextTick, onMounted, ref, watch } from 'vue';
 
 	// Composables
 	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
@@ -78,9 +78,15 @@
 	 */
 	const resize = () => {
 		if (!elTextarea.value) return;
-		elTextarea.value.style.height = 'auto';
+		const el = elTextarea.value;
+		el.style.height = 'auto';
 		if (props.modelValue && props.modelValue.length > 0) {
-			elTextarea.value.style.height = elTextarea.value.scrollHeight + 'px';
+			const borderHeight = el.offsetHeight - el.clientHeight;
+			el.style.height = el.scrollHeight + borderHeight + 10 + 'px';
 		}
 	};
+
+	// Resize once on mount in case the textarea is created with content already present
+	// (e.g. mounted fresh while editing a message that was pre-filled before this component existed)
+	onMounted(() => nextTick(() => resize()));
 </script>

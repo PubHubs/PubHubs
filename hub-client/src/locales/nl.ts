@@ -256,6 +256,7 @@ const nl = {
 		audit_log: 'Audit log',
 		add_reaction: 'Reactie toevoegen',
 		copy_message: 'Bericht kopiëren',
+		edit_message: 'Bericht aanpassen',
 		delete_message: 'Verwijder bericht',
 		direct_message: 'Direct bericht',
 		whisper: 'Fluisteren',
@@ -674,6 +675,9 @@ const nl = {
 	message: {
 		send: 'Verstuur',
 		in_reply_to: 'Antwoord op:',
+		editing: 'Bericht aanpassen',
+		edited: 'Aangepast',
+		edited_at: 'Aangepast {datetime}',
 		notification: 'Nieuw bericht in hub',
 		upload_file: 'Upload',
 		reply: 'Antwoord',
