@@ -86,7 +86,9 @@ export default class TRoomThread {
 	public getEvents(): TimelineEvent[] {
 		if (!this.matrixThread) return [];
 
-		const events = this.matrixThread.liveTimeline.getEvents();
+		const events = this.matrixThread.liveTimeline
+			.getEvents()
+			.filter((event) => event.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Replace);
 
 		const threadRoomId = this.matrixThread.roomId ?? '';
 		const timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: threadRoomId, inThread: true }));

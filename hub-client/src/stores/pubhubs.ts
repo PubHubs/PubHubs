@@ -38,6 +38,7 @@ import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { SystemDefaults } from '@hub-client/models/constants';
+import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import {
 	type THideMessageContent,
@@ -363,8 +364,17 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @returns a single event based on roomId/eventId
 		 */
 		async getEvent(roomId: string, eventId: string) {
-			const response = await this.client.fetchRoomEvent(roomId, eventId);
-			return response;
+			// 1. TimelineManager._timelineEvents — applyEdits() mutates these PubHubs-owned objects.
+			const rooms = useRooms();
+			const timelineEvent = rooms.room(roomId)?.findEventById(eventId);
+			if (timelineEvent) return timelineEvent.event;
+
+			// 2. SDK room — applyEdits() mutates SDK-owned objects for events outside _timelineEvents.
+			const cachedEvent = this.client.getRoom(roomId)?.findEventById(eventId);
+			if (cachedEvent) return cachedEvent.event;
+
+			// 3. Network fallback — returns original unedited content.
+			return await this.client.fetchRoomEvent(roomId, eventId);
 		},
 
 		/**
@@ -659,6 +669,72 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		/**
+		 * Edits an existing text message using the Matrix `m.replace` standard.
+		 * Sends a new m.room.message that replaces `originalEvent` with `newText`.
+		 * @see https://spec.matrix.org/v1.8/client-server-api/#event-replacements
+		 * @param roomId
+		 * @param originalEvent the event being edited
+		 * @param newText the new message text
+		 */
+		async editMessage(roomId: string, originalEvent: TMessageEvent, newText: string) {
+			// Reuse the regular message construction (mentions, html, sanitizing) for the replacement content.
+			const newContent = await this._constructMessageContent(newText, undefined, undefined);
+			// The replacement's own relation is m.replace; the inner content must not carry a relation.
+			delete newContent[RelationType.RelatesTo];
+
+			// Preserve the original message type and any custom fields (e.g. userPL for announcements)
+			// so that non-text message types aren't silently converted to m.text by the edit.
+			const origContent = originalEvent.content as Record<string, unknown>;
+			if (origContent?.msgtype && origContent.msgtype !== MsgType.Text) {
+				(newContent as Record<string, unknown>).msgtype = origContent.msgtype;
+			}
+			if (origContent?.userPL !== undefined) {
+				(newContent as Record<string, unknown>).userPL = origContent.userPL;
+			}
+
+			const content = {
+				...newContent,
+				// Fallback body for clients that don't understand edits (Matrix convention).
+				body: '* ' + (newContent.body ?? newText),
+				'm.new_content': newContent,
+				[RelationType.RelatesTo]: {
+					rel_type: RelationType.Replace,
+					event_id: originalEvent.event_id,
+				},
+			};
+
+			await this.client.sendMessage(roomId, null, content as unknown as RoomMessageEventContent);
+		},
+
+		/**
+		 * Edits an existing image or file message using the Matrix `m.replace` standard.
+		 * @param roomId
+		 * @param originalEvent the event being edited
+		 * @param newCaption the new caption text (empty string = use filename as body)
+		 * @param file metadata for the file (mxc URL, filename, mimetype, size, msgtype)
+		 */
+		async editFileMessage(roomId: string, originalEvent: TMessageEvent, newCaption: string, file: Omit<FileEditInfo, 'previewUrl'>): Promise<void> {
+			const body = newCaption.trim() || file.filename;
+			const newContent = {
+				body,
+				filename: file.filename,
+				info: { mimetype: file.mimetype, size: file.size },
+				msgtype: file.msgtype,
+				url: file.mxcUrl,
+			};
+			const content = {
+				...newContent,
+				body: '* ' + body,
+				'm.new_content': newContent,
+				[RelationType.RelatesTo]: {
+					rel_type: RelationType.Replace,
+					event_id: originalEvent.event_id,
+				},
+			};
+			await this.client.sendMessage(roomId, null, content as unknown as RoomMessageEventContent);
+		},
+
+		/**
 		 * Adds a message to the room
 		 * @param messageContent
 		 * @param roomId
@@ -824,6 +900,32 @@ const usePubhubsStore = defineStore('pubhubs', {
 			// @ts-expect-error -- custom event type not in SDK types
 			const result = await this.client.sendEvent(roomId, PubHubsMgType.ForumTopic as unknown as keyof TimelineEvents, content);
 			logger.debug('addForumThread', result);
+		},
+
+		/**
+		 * Edits an existing forum topic's title and description using the Matrix `m.replace` standard.
+		 * @param roomId
+		 * @param originalEvent the forum topic event being edited
+		 * @param title the new title
+		 * @param description the new description
+		 */
+		async editForumThread(roomId: string, originalEvent: TMessageEvent, title: string, description: string) {
+			const newContent = {
+				msgtype: PubHubsMgType.ForumTopic,
+				body: removeHtml(title),
+				description: removeHtml(description),
+			};
+			const content = {
+				...newContent,
+				// Fallback body for clients that don't understand edits (Matrix convention).
+				body: '* ' + newContent.body,
+				'm.new_content': newContent,
+				[RelationType.RelatesTo]: {
+					rel_type: RelationType.Replace,
+					event_id: originalEvent.event_id,
+				},
+			};
+			await this.client.sendMessage(roomId, null, content as unknown as RoomMessageEventContent);
 		},
 
 		/**

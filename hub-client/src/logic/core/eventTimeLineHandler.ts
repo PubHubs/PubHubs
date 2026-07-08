@@ -30,19 +30,18 @@ class EventTimeLineHandler {
 	// Core method that will call all others
 	public transformEventContent(event: Partial<TEvent>) {
 		const eventContent = event.content as TTextMessageEventContent;
-		eventContent.ph_body = eventContent.body;
 
-		if (eventContent.msgtype === 'm.text') {
-			if (typeof eventContent.format === 'string') {
-				if (eventContent.format === 'org.matrix.custom.html' && typeof eventContent.formatted_body === 'string') {
-					eventContent.ph_body = eventContent.formatted_body;
-				}
-			}
+		// Build ph_body in a local; never read the reactive ph_body we are about to write.
+		// Reading + writing eventContent.ph_body in one pass makes any render that triggers this transform (e.g. constructing a TimelineEvent for a related m.replace edit) mutate its own dependency → recursive rendering as result.
+		let phBody = eventContent.body ?? '';
+		if (eventContent.msgtype === 'm.text' && eventContent.format === 'org.matrix.custom.html' && typeof eventContent.formatted_body === 'string') {
+			phBody = eventContent.formatted_body;
 		}
+		phBody = this.createClickableLinks(phBody);
+		phBody = this.addMentions(phBody);
+		phBody = this.addLineBreaks(phBody);
 
-		eventContent.ph_body = this.createClickableLinks(eventContent.ph_body ?? eventContent.body ?? '');
-		eventContent.ph_body = this.addMentions(eventContent.ph_body);
-		eventContent.ph_body = this.addLineBreaks(eventContent.ph_body);
+		eventContent.ph_body = phBody; // single terminal write
 		return event;
 	}
 

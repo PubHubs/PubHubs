@@ -11,6 +11,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 // Models
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
@@ -83,6 +84,8 @@ class TimelineManager {
 	private relatedEvents: TRelatedEvents[] = [];
 	// Contains related hide events
 	private hideMessageEvents: Map<string, MatrixEvent> = new Map();
+	// Latest m.replace edit event per target eventId (used to merge edited content into the original)
+	private editEvents: Map<string, MatrixEvent> = new Map();
 
 	private roomId: string;
 
@@ -215,6 +218,73 @@ class TimelineManager {
 		}
 	}
 
+	private isEditEvent(event: MatrixEvent): boolean {
+		return event.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Replace;
+	}
+
+	/** Records the latest (by ts) m.replace edit for its target event. */
+	private updateEditEvent(event: MatrixEvent): void {
+		if (!this.isEditEvent(event)) return;
+		const targetEventId = event.getContent()?.[RelationType.RelatesTo]?.event_id;
+		if (!targetEventId) return;
+		const existing = this.editEvents.get(targetEventId);
+		if (!existing || (event.getTs() ?? 0) > (existing.getTs() ?? 0)) {
+			this.editEvents.set(targetEventId, event);
+		}
+	}
+
+	/**
+	 * Applies pending m.replace edits to their target events: overwrites the original content
+	 * with `m.new_content` (preserving the original relation so replies/threads keep their context),
+	 * regenerates the processed body via a fresh TimelineEvent wrapper and stamps `ph_edited_ts`.
+	 * Mirrors applyIsDeleted. The original content is overwritten, so it is never rendered.
+	 * Targets not in the managed timeline (e.g. thread replies) are still updated via the SDK room.
+	 * @returns ids of events whose content changed, so callers can refresh other views (e.g. threads)
+	 */
+	private applyEdits(): string[] {
+		if (this.editEvents.size === 0) return [];
+		const room = this.client.getRoom(this.roomId);
+		const changedIds: string[] = [];
+
+		for (const [targetEventId, editEvent] of this.editEvents) {
+			const editTs = editEvent.getTs() ?? 0;
+
+			// Prefer the managed timeline (so we can swap the wrapper for reactivity), fall back to the SDK room.
+			const index = this._timelineEvents.findIndex((e) => e.matrixEvent.getId() === targetEventId);
+			const target = index !== -1 ? this._timelineEvents[index].matrixEvent : room?.findEventById(targetEventId);
+			if (!target) continue;
+
+			if (editEvent.getSender() !== target.getSender()) {
+				logger.warn(`Skipping edit: sender mismatch (edit from ${editEvent.getSender()}, original from ${target.getSender()})`);
+				continue;
+			}
+
+			const currentContent = target.event.content as TTextMessageEventContent | undefined;
+			// Skip when this (or a newer) edit was already applied.
+			if (currentContent?.ph_edited_ts !== undefined && currentContent.ph_edited_ts >= editTs) continue;
+
+			const newContent = editEvent.getContent()?.['m.new_content'] as TTextMessageEventContent | undefined;
+			if (!newContent) continue;
+
+			const originalRelatesTo = currentContent?.[RelationType.RelatesTo];
+			target.event.content = {
+				...newContent,
+				...(originalRelatesTo ? { [RelationType.RelatesTo]: originalRelatesTo } : {}),
+				ph_edited_ts: editTs,
+			};
+
+			if (index !== -1) {
+				// Fresh wrapper re-runs the content transform (regenerates ph_body) and changes the prop
+				// reference so the bubble re-renders.
+				this._timelineEvents[index] = new TimelineEvent({ matrixEvent: target, roomId: this.roomId });
+			}
+			changedIds.push(targetEventId);
+		}
+
+		if (changedIds.length > 0) this._timelineVersion++;
+		return changedIds;
+	}
+
 	private cleanupHideMessageEvents(): void {
 		const timelineEventIds = new Set(this.timelineEvents.map((e) => e.matrixEvent.getId()));
 		for (const targetEventId of this.hideMessageEvents.keys()) {
@@ -230,7 +300,10 @@ class TimelineManager {
 	 * @returns eventList to use in the RoomTimeline
 	 */
 	private prepareEvents(eventList: MatrixEvent[]): MatrixEvent[] {
-		eventList.forEach((e) => this.updateHideMessageEvent(e));
+		eventList.forEach((e) => {
+			this.updateHideMessageEvent(e);
+			this.updateEditEvent(e);
+		});
 		return eventList.filter((event) => this.isVisibleEvent(event.event)).sort((a, b) => a.getTs() - b.getTs());
 	}
 
@@ -242,6 +315,7 @@ class TimelineManager {
 
 		for (const eventToAdd of events) {
 			this.updateHideMessageEvent(eventToAdd);
+			this.updateEditEvent(eventToAdd);
 			if (eventToAdd.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				// Fetch thread for newly created threads that are not the currentthread and ar not yet recognized as thread in this client
 				const rootId = eventToAdd.getContent()?.[RelationType.RelatesTo]?.event_id;
@@ -321,6 +395,7 @@ class TimelineManager {
 		const newOnly = eventList.filter((x) => !existingIds.has(x.matrixEvent.getId()));
 		this.timelineEvents = [...this.timelineEvents, ...newOnly];
 
+		this.applyEdits();
 		this._timelineVersion++;
 
 		return scrollToEventId;
@@ -359,6 +434,7 @@ class TimelineManager {
 
 		this.timelineEvents = mappedEvents;
 		this.cleanupHideMessageEvents();
+		this.applyEdits();
 		this._timelineVersion++;
 
 		return mappedEvents;
@@ -372,6 +448,12 @@ class TimelineManager {
 	async loadFromSlidingSync(matrixEvents: MatrixEvent[]): Promise<string | undefined> {
 		logger.info(`Loading events from sliding sync`);
 		if (!matrixEvents || matrixEvents.length === 0) return undefined;
+
+		// m.replace edits: capture and apply synchronously here, before the visible-event early-return below
+		// (an edit-only batch filters down to zero visible events). Edits whose target is not loaded yet
+		// stay in editEvents and are applied later by applyEdits() in the add/paginate paths.
+		matrixEvents.forEach((e) => this.updateEditEvent(e));
+		this.applyEdits();
 
 		// Related Events
 		const relatedEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]);
@@ -690,6 +772,9 @@ class TimelineManager {
 					this._timelineVersion++;
 				}
 			}
+			// Replace events fetched during pagination are captured in prepareEvents but filtered from the
+			// visible list; apply them (also covers edits of events just added above).
+			this.applyEdits();
 		}
 	}
 

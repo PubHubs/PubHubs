@@ -26,7 +26,6 @@
 
 <script setup lang="ts">
 	// Packages
-	import { onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -35,10 +34,7 @@
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
-	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
-
-	// Logic
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
+	import { useAuthMediaUrl } from '@hub-client/composables/useAuthMediaUrl';
 
 	// Models
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -48,19 +44,8 @@
 
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
-	const matrixFiles = useMatrixFiles();
 
-	const authMediaUrl = ref<BlobManager>();
-
-	onMounted(async () => {
-		const url = props.message.url ? await matrixFiles.getAuthorizedMediaUrl(props.message.url) : undefined;
-		authMediaUrl.value?.revoke();
-		authMediaUrl.value = new BlobManager(url);
-	});
-
-	onBeforeUnmount(() => {
-		authMediaUrl.value?.revoke();
-	});
+	const { authMediaUrl } = useAuthMediaUrl(() => props.message.url);
 
 	function downloadFile() {
 		if (!authMediaUrl.value?.url) return;

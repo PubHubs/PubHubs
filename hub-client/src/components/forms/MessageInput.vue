@@ -102,6 +102,15 @@
 
 		<div class="flex max-h-[50vh] items-end justify-between gap-100">
 			<div class="bg-surface-base rounded-base w-full shadow">
+				<!-- Editing a message -->
+				<InputModeBar
+					v-if="messageInput.isEdit.value && messageInput.state.textArea"
+					icon="pencil-simple"
+					:label="$t('message.editing')"
+					variant="edit"
+					@close="cancelEdit()"
+				/>
+
 				<!-- In reply to -->
 				<InputModeBar
 					v-if="inReplyTo"
@@ -224,7 +233,7 @@
 						<MessageInputTextArea
 							ref="elTextInput"
 							v-model="valueAsString"
-							class="text-label placeholder:text-on-surface-dim max-h-2000 overflow-x-hidden border-none bg-transparent md:max-h-60"
+							class="text-label placeholder:text-on-surface-dim max-h-2000 overflow-x-hidden border-none bg-transparent md:max-h-3000"
 							:class="isInputDisabled ? 'cursor-not-allowed' : ''"
 							:placeholder="inputPlaceholder"
 							:title="$t('rooms.new_message')"
@@ -299,6 +308,8 @@
 <script setup lang="ts">
 	// Packages
 	import { useDebounceFn } from '@vueuse/core';
+	// Models
+	import { MsgType } from 'matrix-js-sdk';
 	import { setTimeout } from 'node:timers';
 	import { type PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -323,7 +334,7 @@
 	import YellowCardNotificationBar from '@hub-client/components/ui/YellowCardNotificationBar.vue';
 
 	// Composables
-	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { asyncFileUpload, fileUpload } from '@hub-client/composables/fileUpload';
 	import { type UserDetails } from '@hub-client/composables/mention-autocomplete.composable';
 	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
 	import { useModerationTimeout } from '@hub-client/composables/moderation/timeout.composable';
@@ -339,9 +350,9 @@
 	import { getLocalStoreItem, setLocalStoreItem } from '@hub-client/logic/utils/localStoreClient';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
-	// Models
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { RelationType } from '@hub-client/models/constants';
+	import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
 	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
@@ -373,6 +384,10 @@
 			type: Object as PropType<{ scheduler: Scheduler; eventId: string }>,
 			default: undefined,
 		},
+		editingMessage: {
+			type: Object as PropType<{ event: TMessageEvent }>,
+			default: undefined,
+		},
 	});
 
 	const emit = defineEmits(usedEvents);
@@ -401,7 +416,7 @@
 			value.value = v;
 		},
 	});
-	const { allTypes, uploadUrl } = useMatrixFiles();
+	const { allTypes, uploadUrl, imageTypes, getAuthorizedMediaUrl } = useMatrixFiles();
 
 	const pollObject = ref<Poll>(new Poll());
 	const schedulerObject = ref<Scheduler>(new Scheduler());
@@ -416,6 +431,8 @@
 	const elTextInput = ref<InstanceType<typeof TextAreaOld> | null>(null);
 	const mentionAutoCompleteRef = ref<InstanceType<typeof MentionAutoComplete> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
+	const editingOriginalEvent = ref<TMessageEvent | undefined>(undefined);
+	const editingFilePreviewBlobUrl = ref<string | undefined>();
 	const isAnnouncementMode = ref(false);
 	const moderationPopover = ref(false);
 
@@ -442,6 +459,7 @@
 
 	watch(route, () => {
 		revokeOwnedFileUploadBlob();
+		revokeEditingFilePreviewBlob();
 		reset();
 		messageInput.resetAll();
 		clearWhisperMode();
@@ -520,6 +538,42 @@
 		},
 	);
 
+	watch(
+		() => props.editingMessage,
+		async () => {
+			revokeEditingFilePreviewBlob();
+			if (!props.editingMessage?.event.event_id) return;
+			clearWhisperMode();
+			messageActions.replyingTo = undefined;
+			editingOriginalEvent.value = props.editingMessage.event;
+			const content = props.editingMessage.event.content;
+
+			if (content.msgtype === MsgType.Image || content.msgtype === MsgType.File) {
+				// Pre-fill caption: if body equals filename it was auto-set, show empty
+				value.value = content.body !== content.filename ? (content.body ?? '') : '';
+				const previewUrl = content.url ? await getAuthorizedMediaUrl(content.url) : (content.url ?? '');
+				if (previewUrl.startsWith('blob:')) {
+					editingFilePreviewBlobUrl.value = previewUrl;
+				}
+				messageInput.editMessage(props.editingMessage.event.event_id, {
+					mxcUrl: content.url ?? '',
+					previewUrl: previewUrl,
+					filename: content.filename ?? content.body ?? '',
+					mimetype: content.info?.mimetype,
+					size: content.info?.size,
+					msgtype: content.msgtype,
+				});
+			} else {
+				// Prefill with the raw text (body), not the processed ph_body html.
+				value.value = content.body ?? '';
+				messageInput.editMessage(props.editingMessage.event.event_id);
+			}
+
+			messageInput.state.sendButtonEnabled = isValidMessage();
+			nextTick(() => elTextInput.value?.$el.focus());
+		},
+	);
+
 	onMounted(async () => {
 		globalThis.addEventListener('keydown', handleKeydown);
 		reset();
@@ -533,8 +587,16 @@
 		uriForFileUpload.value = undefined;
 	}
 
+	function revokeEditingFilePreviewBlob() {
+		if (editingFilePreviewBlobUrl.value) {
+			URL.revokeObjectURL(editingFilePreviewBlobUrl.value);
+			editingFilePreviewBlobUrl.value = undefined;
+		}
+	}
+
 	onBeforeUnmount(() => {
 		revokeOwnedFileUploadBlob();
+		revokeEditingFilePreviewBlob();
 	});
 
 	onUnmounted(() => {
@@ -588,6 +650,7 @@
 		if (typeof value.value === 'string' && value.value.trim().length > 0) valid = true;
 		if ((messageInput.state.poll || messageInput.state.scheduler) && messageInput.state.sendButtonEnabled) valid = true;
 		if (messageInput.state.fileAdded) valid = true;
+		if (messageInput.state.editingExistingFile) valid = true;
 		if (messageInput.state.videocall) valid = true;
 		return valid;
 	}
@@ -674,6 +737,50 @@
 
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
+
+		// Editing any message with a new file attached (works regardless of the original msgtype,
+		// so a text post can also be turned into an image/file post).
+		if (messageInput.isEdit.value && editingOriginalEvent.value && messageInput.state.fileAdded) {
+			try {
+				await submitFileEdit(editingOriginalEvent.value, messageInput.state.fileAdded, String(value.value));
+			} finally {
+				cancelEdit();
+			}
+			return;
+		}
+
+		// Editing an existing image/file message (no new file selected).
+		if (messageInput.isEdit.value && editingOriginalEvent.value) {
+			const origMsgtype = editingOriginalEvent.value.content.msgtype;
+			if (origMsgtype === MsgType.Image || origMsgtype === MsgType.File) {
+				try {
+					if (messageInput.state.editingExistingFile) {
+						await pubhubs.editFileMessage(
+							props.room.roomId,
+							editingOriginalEvent.value,
+							String(value.value),
+							messageInput.state.editingExistingFile,
+						);
+					} else {
+						// File was removed: convert to text-only message
+						await pubhubs.editMessage(props.room.roomId, editingOriginalEvent.value, String(value.value));
+					}
+				} finally {
+					cancelEdit();
+				}
+				return;
+			}
+		}
+
+		// Editing an existing text message takes precedence (poll/scheduler edits use editMessage() below).
+		if (messageInput.isEdit.value && messageInput.state.textArea && editingOriginalEvent.value) {
+			try {
+				await pubhubs.editMessage(props.room.roomId, editingOriginalEvent.value, String(value.value));
+			} finally {
+				cancelEdit();
+			}
+			return;
+		}
 
 		if (messageInput.state.signMessage) {
 			messageInput.state.showYiviQR = true;
@@ -820,6 +927,37 @@
 
 	function setCaretPos(pos: { top: number; left: number }) {
 		caretPos.value = pos;
+	}
+
+	function cancelEdit() {
+		revokeEditingFilePreviewBlob();
+		editingOriginalEvent.value = undefined;
+		value.value = '';
+		messageInput.openTextArea();
+		messageInput.state.sendButtonEnabled = isValidMessage();
+	}
+
+	async function submitFileEdit(originalEvent: TMessageEvent, file: File, caption: string) {
+		const accessToken = pubhubs.Auth.getAccessToken();
+		if (!accessToken) return;
+		messageInput.closeFileUpload();
+		await asyncFileUpload(
+			accessToken,
+			uploadUrl,
+			file,
+			(_progress) => {},
+			async (url) => {
+				const fileInfo: Omit<FileEditInfo, 'previewUrl'> = {
+					mxcUrl: url,
+					filename: file.name,
+					mimetype: file.type,
+					size: file.size,
+					msgtype: imageTypes.includes(file.type) ? MsgType.Image : MsgType.File,
+				};
+				await pubhubs.editFileMessage(props.room.roomId, originalEvent, caption, fileInfo);
+			},
+		);
+		messageInput.cancelFileUpload();
 	}
 
 	function handleMentionNavigation(e: KeyboardEvent) {

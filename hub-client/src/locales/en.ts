@@ -255,6 +255,7 @@ const en = {
 		audit_log: 'Audit log',
 		add_reaction: 'Add reaction',
 		copy_message: 'Copy message',
+		edit_message: 'Edit message',
 		delete_message: 'Delete message',
 		direct_message: 'Direct message',
 		whisper: 'Whisper',
@@ -675,6 +676,9 @@ const en = {
 	message: {
 		send: 'Send',
 		in_reply_to: 'In reply to:',
+		editing: 'Editing message',
+		edited: 'Edited',
+		edited_at: 'Edited {datetime}',
 		notification: 'New message in hub',
 		upload_file: 'Upload',
 		reply: 'Reply',

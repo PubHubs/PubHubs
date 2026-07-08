@@ -53,6 +53,7 @@
 								:room="room"
 								@clicked-emoticon="sendEmoji"
 								@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
+								@edit-message="onEditMessage"
 								@edit-poll="onEditPoll"
 								@edit-scheduler="onEditScheduler"
 								@in-reply-to-click="onInReplyToClick"
@@ -111,6 +112,7 @@
 		<MessageInput
 			v-if="room"
 			class="shrink-0"
+			:editing-message="editingMessageProp"
 			:editing-poll="editingPollProp"
 			:editing-scheduler="editingSchedulerProp"
 			:in-thread="false"
@@ -196,6 +198,8 @@
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
 	const editingPollProp = computed(() => editingPoll.value as { poll: Poll; eventId: string } | undefined);
 	const editingSchedulerProp = computed(() => editingScheduler.value as { scheduler: Scheduler; eventId: string } | undefined);
+	const editingMessage = ref<{ event: TMessageEvent } | undefined>(undefined);
+	const editingMessageProp = computed(() => editingMessage.value as { event: TMessageEvent } | undefined);
 	const initialLoadComplete = ref(false);
 
 	const { READ_DELAY_MS, PAGINATION_COOLDOWN, SCROLL_DEBOUNCE } = TimelineScrollConstants;
@@ -446,11 +450,19 @@
 		{ deep: true },
 	);
 
+	// Edits (m.replace) mutate event content in place without changing the timeline length or current event,
+	// so they don't hit the watchers above. The room toggles threadUpdated when an edit is applied;
+	watch(
+		() => props.room.threadUpdated,
+		() => refreshTimelineVersion(),
+	);
+
 	function onlyReactionEvent(eventId: string) {
-		props.room
+		// To stop from having duplicate events
+		// Return a fresh, message-scoped array. Must not read+mutate shared reactive state during render (that caused a self-triggering render effect
+		return props.room
 			.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation })
-			.forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
-		return props.room.getCurrentEventRelatedEvents();
+			.map((reactEvent) => reactEvent.matrixEvent);
 	}
 
 	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
@@ -666,6 +678,10 @@
 
 	function onEditScheduler(scheduler: Scheduler, eventId: string) {
 		editingScheduler.value = { scheduler, eventId };
+	}
+
+	function onEditMessage(event: TMessageEvent) {
+		editingMessage.value = { event };
 	}
 
 	function toggleReactionPanel(eventId: string) {

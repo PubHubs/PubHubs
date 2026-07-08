@@ -22,7 +22,7 @@
 			<ButtonGroup class="mt-200">
 				<Button
 					variant="error"
-					@click.stop.prevent="router.back()"
+					@click.stop.prevent="emit('close')"
 					>{{ $t('dialog.cancel') }}</Button
 				>
 				<Button
@@ -38,7 +38,6 @@
 
 <script setup lang="ts">
 	import { ref } from 'vue';
-	import { useRouter } from 'vue-router';
 
 	import Button from '@hub-client/components/elements/Button.vue';
 	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
@@ -48,29 +47,32 @@
 
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
+	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
-	defineProps({
-		id: {
-			type: String,
-			required: true,
-		},
-	});
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+	const props = defineProps<{
+		id: string;
+		event?: TMessageEvent;
+	}>();
 
 	const emit = defineEmits(['close']);
 
-	const logger = createLogger('ForumCreateTopicPage');
+	const logger = createLogger('ForumThreadForm');
 
-	const router = useRouter();
-	const title = ref<string>('');
-	const description = ref<string>('');
+	const title = ref<string>(props.event?.content?.body ?? '');
+	const description = ref<string>(
+		(props.event?.content?.ph_topic_body as string | undefined) ?? (props.event?.content?.description as string | undefined) ?? '',
+	);
 
 	const submitPost = async () => {
 		try {
-			const rooms = useRooms();
 			const pubhubs = usePubhubsStore();
-			await pubhubs.addForumThread(rooms.currentRoomId, title.value, description.value);
+			if (props.event) {
+				await pubhubs.editForumThread(props.id, props.event, title.value, description.value);
+			} else {
+				await pubhubs.addForumThread(props.id, title.value, description.value);
+			}
 		} catch (error) {
 			logger.error('error in submiting forum post', { error });
 		} finally {

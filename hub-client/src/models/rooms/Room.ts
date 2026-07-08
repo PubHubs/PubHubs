@@ -96,9 +96,6 @@ export default class Room {
 
 	private roomMembers: Map<string, RoomMember> = new Map();
 
-	/** Used in reactions: Contains all related events for an event. New related event for an event only stores the last event not the history */
-	private eventMultipleRelateEvents: MatrixEvent[] = [];
-
 	private stateEvents: IStateEvent[];
 
 	constructor(matrixRoom: MatrixRoom);
@@ -228,23 +225,6 @@ export default class Room {
 				this.stateEvents.push(newEvent);
 			}
 		}
-	}
-
-	/**
-	 * Used within reactions to show only one instance of multiple together with counter
-	 */
-	public addCurrentEventToRelatedEvent(event: MatrixEvent) {
-		if (this.eventMultipleRelateEvents.indexOf(event) === -1) {
-			this.eventMultipleRelateEvents.push(event);
-		}
-	}
-
-	/**
-	 *
-	 * Used within reactions to show only one instance of multiple together with counter
-	 */
-	public getCurrentEventRelatedEvents(): MatrixEvent[] {
-		return this.eventMultipleRelateEvents;
 	}
 
 	public getFirstVisibleEventId(): string {
@@ -791,8 +771,12 @@ export default class Room {
 				this.currentThreadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
 		);
 
+		// m.replace edits (incl. of thread replies) are applied to the original event's content by the
+		// TimelineManager; toggle threadUpdated so an open thread re-renders with the edited content.
+		const editEvents = eventList.filter((event) => event.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Replace);
+
 		// Force vue reactivity for any thread change in this room, regardless of whether the affected thread is currently open
-		if (currentThreadEvents.length > 0 || otherThreadEvents.length > 0 || redactions.length > 0) {
+		if (currentThreadEvents.length > 0 || otherThreadEvents.length > 0 || redactions.length > 0 || editEvents.length > 0) {
 			this.threadUpdated = !this.threadUpdated;
 		}
 

@@ -20,6 +20,7 @@
 				:id="threadRootId"
 			>
 				<RoomMessageBubble
+					v-if="!editingForumTopic"
 					:room="room"
 					:event="rootEvent"
 					:view-from-thread="true"
@@ -27,6 +28,8 @@
 					class="room-event"
 					@in-reply-to-click="onInReplyToClick"
 					@delete-message="confirmDeleteMessage"
+					@edit-message="onEditMessage"
+					@edit-forum-topic="onEditForumTopic"
 					@reaction-panel-toggle="toggleReactionPanel"
 					@reaction-panel-close="closeReactionPanel"
 					@clicked-emoticon="sendEmoji"
@@ -39,6 +42,12 @@
 						</ForumEventBody>
 					</template>
 				</RoomMessageBubble>
+				<ForumThreadForm
+					v-else
+					:id="room.roomId"
+					:event="rootEvent.matrixEvent.event as TMessageEvent"
+					@close="editingForumTopic = false"
+				></ForumThreadForm>
 			</div>
 
 			<!-- Thread replies -->
@@ -61,6 +70,7 @@
 						@clicked-emoticon="sendEmoji"
 						@in-reply-to-click="onInReplyToClick"
 						@delete-message="confirmDeleteMessage"
+						@edit-message="onEditMessage"
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
 					>
@@ -97,6 +107,7 @@
 			class="z-10 -mt-200"
 			:room="room"
 			:in-thread="true"
+			:editing-message="editingMessageProp"
 		></MessageInput>
 	</div>
 
@@ -122,6 +133,7 @@
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
 	import ForumEventBody from '@hub-client/components/rooms/forum/ForumEventBody.vue';
+	import ForumThreadForm from '@hub-client/components/rooms/forum/ForumThreadForm.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
@@ -195,6 +207,18 @@
 	const activeReactionPanel = ref<string | null>(null);
 	const { READ_DELAY_MS } = TimelineScrollConstants;
 	const loadingEvents = ref(false);
+	const editingMessage = ref<{ event: TMessageEvent } | undefined>(undefined);
+	const editingMessageProp = computed(() => editingMessage.value as { event: TMessageEvent } | undefined);
+	const editingForumTopic = ref(false);
+
+	function onEditMessage(event: TMessageEvent) {
+		// Fresh object each time so re-editing the same message still triggers the watcher in MessageInput.
+		editingMessage.value = { event };
+	}
+
+	function onEditForumTopic() {
+		editingForumTopic.value = true;
+	}
 
 	watch(
 		() => props.room.threadUpdated,
@@ -236,12 +260,12 @@
 		closeThread();
 	});
 
-	function onlyReactionEvent(eventId: string) {
+	function onlyReactionEvent(eventId: string): MatrixEvent[] {
 		// To stop from having duplicate events
-		props.room
+		// Return a fresh, message-scoped array. Must not read+mutate shared reactive state during render (that caused a self-triggering render effect
+		return props.room
 			.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation })
-			.forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
-		return props.room.getCurrentEventRelatedEvents();
+			.map((reactEvent) => reactEvent.matrixEvent);
 	}
 
 	function setEventRef(el: Element | null | unknown) {
@@ -259,6 +283,7 @@
 	}
 
 	async function changeThreadId() {
+		editingForumTopic.value = false;
 		await getThreadEvents();
 		await nextTick();
 
