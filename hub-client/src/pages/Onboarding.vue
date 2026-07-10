@@ -3,14 +3,14 @@
 		<!-- Mobile Layout -->
 		<div
 			v-if="isMobile"
-			class="flex h-full w-full flex-col overflow-y-auto"
+			class="flex h-full w-full flex-col overflow-hidden"
 		>
 			<HubBanner
 				:banner-url="hubSettings.bannerUrl"
 				:class="'h-[20svh]! shrink-0'"
 			/>
 
-			<div class="relative flex h-full flex-col gap-400 px-200 pt-800">
+			<div class="relative flex min-h-0 flex-1 flex-col gap-400 px-200 pt-800">
 				<!-- Hub Icon -->
 				<div class="bg-surface-base p-050 absolute -top-600 h-1200 w-1200 rounded-2xl">
 					<HubIcon
@@ -20,7 +20,7 @@
 				</div>
 
 				<!-- Welcome Message -->
-				<div class="flex flex-col gap-100">
+				<div class="flex shrink-0 flex-col gap-100">
 					<H1>{{ isConsentOnly ? t('onboarding.welcome_consent') : t('onboarding.welcome', [hubName]) }}</H1>
 					<P>{{ isConsentOnly ? t('onboarding.welcome_consent_description') : t('onboarding.welcome_description') }}</P>
 				</div>
@@ -28,9 +28,9 @@
 				<!-- Step 1: Set Username -->
 				<div
 					v-if="step == 1"
-					class="flex flex-col justify-between gap-400 pb-200"
+					class="flex min-h-0 flex-1 flex-col justify-between gap-400 pb-200"
 				>
-					<div class="flex flex-col gap-400">
+					<div class="flex min-h-0 flex-1 flex-col gap-400 overflow-y-auto">
 						<!-- Username Input -->
 						<div class="flex flex-col gap-100">
 							<H2>{{ t('onboarding.username_label') }}</H2>
@@ -99,7 +99,7 @@
 					</div>
 
 					<!-- Next Button -->
-					<div class="flex w-full justify-end">
+					<div class="flex w-full shrink-0 justify-end pt-200">
 						<Button
 							class="w-fit"
 							@click="nextStep"
@@ -112,10 +112,10 @@
 				<!-- Step 2: Consent -->
 				<div
 					v-if="step === 2"
-					class="flex flex-col gap-400 pb-200"
+					class="flex min-h-0 flex-1 flex-col gap-400 pb-200"
 				>
 					<!-- House Rules -->
-					<div class="flex flex-col gap-100 overflow-y-auto">
+					<div class="flex min-h-0 flex-1 flex-col gap-100 overflow-y-auto">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
 						<MarkdownPreview
 							v-if="consentText"
@@ -125,14 +125,14 @@
 					</div>
 
 					<!-- Consent Checkbox -->
-					<div class="flex items-center gap-100">
+					<div class="flex shrink-0 items-center gap-100">
 						<Checkbox v-model="hasAgreed" />
 						<span>{{ t('onboarding.consent_text') }}</span>
 					</div>
 
 					<!-- Buttons -->
 					<div
-						class="flex gap-200"
+						class="flex shrink-0 gap-200"
 						:class="isConsentOnly ? 'justify-end' : 'justify-between'"
 					>
 						<Button

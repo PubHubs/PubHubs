@@ -20,6 +20,7 @@ export default defineConfig([
 			globals: {
 				// Injected by Vite's define plugin (see vite.config.ts)
 				_env: 'readonly',
+				__APP_VERSION__: 'readonly',
 			},
 			parserOptions: {
 				parser: tseslint.parser,

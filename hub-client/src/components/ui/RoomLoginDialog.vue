@@ -51,6 +51,9 @@
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import SecuredRoomLogin from '@hub-client/components/ui/SecuredRoomLogin.vue';
 
+	// Composables
+	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
+
 	// Stores
 	import { buttonsCancel, buttonsYesNo } from '@hub-client/stores/dialog';
 	import { useRooms } from '@hub-client/stores/rooms';
@@ -74,6 +77,7 @@
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const yiviStore = useYivi();
+	const { scrollToEnd } = useGlobalScroll();
 
 	const roomDescription = computed(() => {
 		if (!props.dialogOpen) return '';
@@ -98,6 +102,9 @@
 		() => props.dialogOpen,
 		(roomId) => {
 			if (roomId && props.secured) {
+				// On mobile the hub sits at the end of the horizontally scrolled layout; bring it
+				// into view so this dialog is visible, mirroring the other dialog side-scroll triggers.
+				scrollToEnd();
 				rooms.getSecuredRoomPublicMetadata(roomId);
 			}
 		},

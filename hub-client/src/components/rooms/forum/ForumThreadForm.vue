@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-surface-base my-400 p-200">
+	<div class="bg-surface-base my-400">
 		<ValidatedForm
 			v-slot="{ isValidated }"
 			class="p-200"
@@ -19,7 +19,7 @@
 				>{{ $t('message.forum.description') }}</TextArea
 			>
 
-			<ButtonGroup class="mt-200">
+			<ButtonGroup>
 				<Button
 					variant="error"
 					@click.stop.prevent="emit('close')"

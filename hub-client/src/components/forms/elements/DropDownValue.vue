@@ -6,7 +6,7 @@
 		<Avatar
 			v-if="avatar || avatar == ''"
 			:avatar-url="avatar"
-			class="h-300 w-300"
+			class="h-300! w-300! shrink-0"
 			:user-id="typeof value !== 'string' ? (value.value ?? '') : ''"
 		/>
 		<span

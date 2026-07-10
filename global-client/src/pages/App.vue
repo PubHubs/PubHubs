@@ -30,7 +30,9 @@
 		@close="dialog.close"
 	/>
 
-	<ContextMenu v-if="isMobile" />
+	<!-- Rendered in every viewport: on mobile it shows menus delegated from the hub iframe, on desktop
+	     it shows the global bar's own menus (e.g. unpinning a hub). -->
+	<ContextMenu />
 </template>
 
 <script lang="ts" setup>

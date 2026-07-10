@@ -41,7 +41,7 @@
 		maxLength?: number;
 		disabled?: boolean;
 	};
-	const { update, changed, cancel } = useFormInputEvents(emit, props.modelValue);
+	const { update, changed, cancel, submit } = useFormInputEvents(emit, props.modelValue);
 
 	watch(
 		() => props.modelValue,
@@ -58,6 +58,13 @@
 	const onKeyDown = (e: KeyboardEvent) => {
 		if (navigationKeys.includes(e.key)) {
 			emit('navigation', e);
+		}
+		// Plain Enter sends the message; Shift+Enter inserts a newline.
+		// Skip when a handler (e.g. mention autocomplete) already consumed the key,
+		// or while composing text with an IME.
+		if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !e.defaultPrevented) {
+			e.preventDefault();
+			submit();
 		}
 	};
 
@@ -82,7 +89,7 @@
 		el.style.height = 'auto';
 		if (props.modelValue && props.modelValue.length > 0) {
 			const borderHeight = el.offsetHeight - el.clientHeight;
-			el.style.height = el.scrollHeight + borderHeight + 10 + 'px';
+			el.style.height = el.scrollHeight + borderHeight + 'px';
 		}
 	};
 

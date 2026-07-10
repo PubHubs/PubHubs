@@ -8,6 +8,7 @@
 			<GlobalbarButton
 				type="bell"
 				:aria-label="t('notifications.heading')"
+				:title="t('notifications.heading')"
 				@click.stop="showNotifications = !showNotifications"
 			/>
 			<span class="bg-accent-red text-on-accent-red -top-050 -right-050 absolute flex h-200 w-200 items-center justify-center rounded-full text-xs">

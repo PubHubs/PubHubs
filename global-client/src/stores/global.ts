@@ -44,6 +44,7 @@ const useGlobal = defineStore('global', {
 		return {
 			loggedIn: false,
 			modalVisible: false,
+			contextMenuModalVisible: false,
 			pinnedHubs: [] as PinnedHubs,
 			hubsLoading: false,
 
@@ -53,7 +54,7 @@ const useGlobal = defineStore('global', {
 
 	getters: {
 		isModalVisible(state): boolean {
-			return state.modalVisible;
+			return state.modalVisible || state.contextMenuModalVisible;
 		},
 
 		getGlobalSettings(state): GlobalSettings {
@@ -263,6 +264,14 @@ const useGlobal = defineStore('global', {
 
 		hideModal() {
 			this.modalVisible = false;
+		},
+
+		showContextMenuModal() {
+			this.contextMenuModalVisible = true;
+		},
+
+		hideContextMenuModal() {
+			this.contextMenuModalVisible = false;
 		},
 	},
 });

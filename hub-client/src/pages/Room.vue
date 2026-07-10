@@ -79,6 +79,7 @@
 						<GlobalBarButton
 							type="magnifying-glass"
 							:selected="sidebar.activeTab.value === SidebarTab.Search"
+							:aria-label="t('others.search_room')"
 							:title="t('others.search_room')"
 							@click="sidebar.toggleTab(SidebarTab.Search)"
 						/>
@@ -88,6 +89,8 @@
 							v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)"
 							type="folder-simple"
 							:selected="sidebar.activeTab.value === SidebarTab.Library"
+							:aria-label="t('roomlibrary.library')"
+							:title="t('roomlibrary.library')"
 							@click="sidebar.toggleTab(SidebarTab.Library)"
 						/>
 
@@ -96,6 +99,8 @@
 							v-if="showVideocallButton()"
 							type="video"
 							:is-start-button="!ongoingCall"
+							:aria-label="t(ongoingCall ? 'videocall.join_button' : 'videocall.start_button')"
+							:title="t(ongoingCall ? 'videocall.join_button' : 'videocall.start_button')"
 							@click="startOrJoinVideoCall()"
 						/>
 
@@ -104,6 +109,8 @@
 							v-if="hasRoomMembers"
 							type="users"
 							:selected="sidebar.activeTab.value === SidebarTab.Members"
+							:aria-label="t('others.room_members')"
+							:title="t('others.room_members')"
 							@click="sidebar.toggleTab(SidebarTab.Members)"
 						/>
 
@@ -112,6 +119,8 @@
 							v-if="room?.getCurrentThreadId() && !room.isForumRoom()"
 							type="chat-circle"
 							:selected="sidebar.activeTab.value === SidebarTab.Thread"
+							:aria-label="t('rooms.thread')"
+							:title="t('rooms.thread')"
 							@click="sidebar.toggleTab(SidebarTab.Thread)"
 						/>
 					</RoomHeaderButtons>

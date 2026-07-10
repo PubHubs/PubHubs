@@ -5,47 +5,42 @@
 		:validation="{}"
 		:help="description"
 	>
-		<div class="flex flex-col gap-200">
-			<Label>{{ title }}</Label>
+		<Label>{{ title }}</Label>
 
-			<div class="flex h-14">
-				<input
-					:id="inputId"
-					:accept="accept"
-					class="hidden"
-					type="file"
-					@change="handleFileChange"
+		<div class="flex h-14">
+			<input
+				:id="inputId"
+				:accept="accept"
+				class="hidden"
+				type="file"
+				@change="handleFileChange"
+			/>
+
+			<div class="mr-200">
+				<slot
+					name="preview"
+					:url="previewUrl"
 				/>
-
-				<div class="mr-200">
-					<slot
-						name="preview"
-						:url="previewUrl"
-					/>
-				</div>
-
-				<div class="flex items-center gap-100">
-					<label
-						:for="inputId"
-						class="hover:text-accent-green cursor-pointer"
-					>
-						<Icon type="pencil-simple" />
-					</label>
-					<Icon
-						class="hover:text-accent-error cursor-pointer"
-						:as-button="true"
-						type="trash"
-						@click="handleRemove"
-					/>
-				</div>
 			</div>
-			<p
-				v-if="errorText"
-				class="text-red"
-			>
-				{{ errorText }}
-			</p>
+
+			<div class="flex items-center gap-100">
+				<label
+					:for="inputId"
+					class="hover:text-accent-green cursor-pointer"
+				>
+					<Icon type="pencil-simple" />
+				</label>
+				<Icon
+					class="hover:text-accent-error cursor-pointer"
+					:as-button="true"
+					type="trash"
+					@click="handleRemove"
+				/>
+			</div>
 		</div>
+		<FieldValidationError v-if="errorText">
+			{{ errorText }}
+		</FieldValidationError>
 	</ValidateField>
 </template>
 
@@ -56,6 +51,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import FieldValidationError from '@hub-client/components/forms/elements/FieldValidationError.vue';
 	import Label from '@hub-client/components/forms/elements/Label.vue';
 	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
 

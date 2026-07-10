@@ -1,8 +1,9 @@
 <template>
 	<li
 		role="menuitem"
-		:class="{ 'bg-surface-elevated text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }"
+		:class="{ 'bg-surface-elevated text-accent-blue': isActive }"
 		class="hover:bg-surface-elevated rounded-base h-fit transition-all duration-200 ease-in-out"
+		:data-rail-active="isActive || undefined"
 		@click="handleClick"
 	>
 		<router-link
@@ -83,7 +84,8 @@
 
 	const adminMenuIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
-			return props.to['name'] === router.currentRoute.value.path.split('/').pop();
+			// Room items all share the 'room' route and are matched by id in roomIsActive instead.
+			return !props.room && props.to['name'] === router.currentRoute.value.name;
 		}
 		return false;
 	});
@@ -108,6 +110,8 @@
 		const pathRoomId = router.currentRoute.value.path.split('/').pop();
 		return props.room.roomId === decodeURIComponent(pathRoomId || '');
 	});
+
+	const isActive = computed(() => roomIsActive.value || menuItemIsActive.value || adminMenuIsActive.value);
 
 	function handleClick() {
 		scrollToEnd();

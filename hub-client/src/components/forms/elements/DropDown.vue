@@ -1,5 +1,8 @@
 <template>
-	<OnClickOutside @trigger="close()">
+	<OnClickOutside
+		:options="{ ignore: [panel] }"
+		@trigger="close()"
+	>
 		<ValidateField
 			v-slot="{ id: fieldId }"
 			v-model="model"
@@ -29,8 +32,9 @@
 				:id="fieldId"
 				ref="element"
 				class="bg-surface outline-offset-thin outline-on-surface-dim focus:ring-accent-blue-interactive flex w-full flex-col rounded outline-2 focus:ring-3"
+				:class="disabled ? 'pointer-events-none opacity-50' : ''"
 				role="combobox"
-				tabindex="0"
+				:tabindex="disabled ? -1 : 0"
 			>
 				<span class="name hidden">{{ fieldName }}</span>
 				<div :class="showFilter ? 'py-075 h-500 border-b px-175' : 'h-0 overflow-hidden border-0 p-0'">
@@ -119,12 +123,15 @@
 					</div>
 				</div>
 			</div>
-
+		</ValidateField>
+		<Teleport to="body">
 			<div
 				v-show="open && filteredOptions.length > 0"
-				class="absolute top-800 z-50 flex w-full grow flex-col pb-300"
+				ref="panel"
+				class="fixed z-50 flex flex-col pb-300"
+				:style="panelStyle"
 			>
-				<div class="bg-surface-elevated outline-offset-thin rounded outline">
+				<div class="bg-surface-elevated outline-offset-thin outline-on-surface-dim rounded outline-2">
 					<DropDownOption
 						v-for="(option, index) in filteredOptions"
 						:key="index"
@@ -136,14 +143,14 @@
 					/>
 				</div>
 			</div>
-		</ValidateField>
+		</Teleport>
 	</OnClickOutside>
 </template>
 
 <script lang="ts" setup>
 	// Packages
 	import { OnClickOutside } from '@vueuse/components';
-	import { computed, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
+	import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -197,9 +204,8 @@
 	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 	const { fieldName, update } = useFormInput(props, model);
 
-	const wrapperClasses = computed(() =>
-		['form-dropdown relative flex w-full flex-col items-start justify-start', props.inline ? '' : 'mb-100 gap-050'].filter(Boolean).join(' '),
-	);
+	// ValidateField supplies the canonical stack layout; inline dropdowns sit in a row and opt out of its gap.
+	const wrapperClasses = computed(() => ['form-dropdown relative', props.inline ? 'gap-0!' : ''].filter(Boolean).join(' '));
 
 	const open = ref(false);
 	const selection = ref<FieldSelection>([]); // Selection of chosen indexes
@@ -207,10 +213,54 @@
 	const filterEl = useTemplateRef('filterInput');
 
 	const completeEl = useTemplateRef('element');
+	const panel = useTemplateRef<HTMLElement>('panel');
+	const panelStyle = ref<Record<string, string>>({});
 	onMounted(() => {
 		setItems(filteredOptions.value as Array<unknown>);
 		// Set cursor off until it is used
 		cursor.value = -1;
+	});
+
+	// Position the teleported options panel against the field. Teleporting the panel to <body> keeps it
+	// out of any overflow/scroll container (e.g. the manage-users dialog) that would otherwise clip it.
+	const updatePanelPosition = () => {
+		const field = completeEl.value;
+		if (!field) return;
+		const rect = field.getBoundingClientRect();
+		const style: Record<string, string> = {
+			left: `${rect.left}px`,
+			width: `${rect.width}px`,
+		};
+		const spaceBelow = window.innerHeight - rect.bottom;
+		const panelHeight = panel.value?.offsetHeight ?? 0;
+		// Flip above the field when the panel would otherwise run off the bottom of the viewport.
+		if (panelHeight > 0 && spaceBelow < panelHeight && rect.top > spaceBelow) {
+			style.bottom = `${window.innerHeight - rect.top}px`;
+		} else {
+			style.top = `${rect.bottom}px`;
+		}
+		panelStyle.value = style;
+	};
+
+	const repositionPanel = () => {
+		if (open.value) updatePanelPosition();
+	};
+
+	watch(open, (isOpen) => {
+		if (isOpen) {
+			updatePanelPosition();
+			nextTick(updatePanelPosition);
+			window.addEventListener('scroll', repositionPanel, true);
+			window.addEventListener('resize', repositionPanel);
+		} else {
+			window.removeEventListener('scroll', repositionPanel, true);
+			window.removeEventListener('resize', repositionPanel);
+		}
+	});
+
+	onBeforeUnmount(() => {
+		window.removeEventListener('scroll', repositionPanel, true);
+		window.removeEventListener('resize', repositionPanel);
 	});
 
 	// Keep selection in sync with model (handles both initial value and external changes)
@@ -301,6 +351,8 @@
 			if (props.filtered && filter.value.length > 0 && filtered.length > 0) {
 				open.value = true;
 			}
+			// Reposition the teleported panel when the option list size changes while open (e.g. filtering).
+			if (open.value) nextTick(updatePanelPosition);
 		},
 		{ immediate: true },
 	);
@@ -422,6 +474,7 @@
 	};
 
 	const toggle = () => {
+		if (props.disabled) return;
 		open.value = !open.value;
 	};
 

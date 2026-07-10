@@ -281,6 +281,15 @@ const useHubs = defineStore('hubs', {
 					global.hideModal();
 				});
 
+				// Dim the bar while a desktop context menu (rendered inside the hub iframe) is open.
+				// Kept separate from the dialog modal so the two never clear each other's dimming.
+				messagebox.addCallback(iframeHubId, MessageType.ContextMenuShowModal, () => {
+					global.showContextMenuModal();
+				});
+				messagebox.addCallback(iframeHubId, MessageType.ContextMenuHideModal, () => {
+					global.hideContextMenuModal();
+				});
+
 				// Store and remove access tokens when sent from the hub client
 				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
 					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content as string);

@@ -1,13 +1,19 @@
 import tailwindcss from '@tailwindcss/vite';
 import Vue from '@vitejs/plugin-vue';
+import { readFileSync } from 'node:fs';
 import { URL, fileURLToPath } from 'node:url';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
+const { version } = JSON.parse(readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'));
+
 export default defineConfig({
 	logLevel: 'warn',
 	base: '/client/',
+	define: {
+		__APP_VERSION__: JSON.stringify(version),
+	},
 	root: './',
 	server: {
 		port: 8080,

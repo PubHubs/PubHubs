@@ -18,6 +18,7 @@
 				<div
 					v-if="hubs.hub(element.hubId)"
 					class="flex h-auto justify-center gap-200"
+					@contextmenu.prevent="openHubContextMenu($event, element)"
 				>
 					<router-link
 						v-slot="{ isActive }"
@@ -78,11 +79,15 @@
 	// Hub imports
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
+	// Models
+	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
+
 	// Stores
-	import { type PinnedHubs, useGlobal } from '@global-client/stores/global';
+	import { type PinnedHub, type PinnedHubs, useGlobal } from '@global-client/stores/global';
 	import { useHubs } from '@global-client/stores/hubs';
 	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useMessageBox } from '@hub-client/stores/messagebox';
 
@@ -90,6 +95,7 @@
 	const hubs = useHubs();
 	const toggleMenu = useToggleMenu();
 	const dialog = useDialog();
+	const contextMenu = useContextMenuStore();
 	const { t } = useI18n();
 	const isDragging = ref(false);
 	const hoverOverHubremoval = ref(false);
@@ -119,8 +125,24 @@
 		toggleMenu.hideMenuAndSendToHub();
 	}
 
+	// Right-clicking a hub offers "Unpin" as a discoverable alternative to the drag-to-trash gesture.
+	function openHubContextMenu(event: MouseEvent, hub: PinnedHub) {
+		const items: MenuItem[] = [{ label: t('dialog.hub_unpin_title'), icon: 'trash', isDelicate: true, onClick: () => unpinHub(hub) }];
+		contextMenu.open(items, event.clientX, event.clientY);
+	}
+
+	async function unpinHub(hub: PinnedHub) {
+		const confirmed = Boolean(await dialog.yesno(t('dialog.hub_unpin_title'), t('dialog.hub_unpin_context'), 'global'));
+		if (!confirmed) return;
+		const index = global.pinnedHubs.findIndex((pinnedHub) => pinnedHub.hubId === hub.hubId);
+		if (index < 0) return;
+		global.removePinnedHub(index);
+		const messagebox = useMessageBox();
+		messagebox.resetMiniclient(hub.hubId);
+	}
+
 	async function confirmationHubRemoval() {
-		let removeHub = Boolean(await dialog.yesno(t('dialog.hub_unpin_title'), t('dialog.hub_unpin_context')));
+		let removeHub = Boolean(await dialog.yesno(t('dialog.hub_unpin_title'), t('dialog.hub_unpin_context'), 'global'));
 
 		if (removeHub) {
 			backupPinnedHubs.splice(0, backupPinnedHubs.length);

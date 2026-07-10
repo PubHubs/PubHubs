@@ -56,7 +56,7 @@
 					variant="primary"
 					@click="joinSecureRoom"
 				>
-					{{ t('rooms.join_secured_room') }}
+					{{ t('rooms.view_access_requirements') }}
 				</Button>
 				<Button
 					v-else
