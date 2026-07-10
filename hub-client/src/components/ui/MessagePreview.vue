@@ -3,7 +3,7 @@
 		class="rounded-base @container w-full border-3 p-200"
 		:class="
 			active
-				? 'bg-surface-base border-surface-elevated'
+				? 'bg-surface-sunken border-surface-elevated'
 				: 'bg-surface-base border-surface-elevated hover:bg-surface-elevated hover:border-surface-elevated'
 		"
 	>
