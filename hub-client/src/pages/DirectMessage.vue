@@ -29,6 +29,8 @@
 					v-if="!isMobile && selectedRoom"
 					type="magnifying-glass"
 					:selected="sidebar.activeTab.value === SidebarTab.Search"
+					:aria-label="t('others.search_conversation')"
+					:title="t('others.search_conversation')"
 					@click="sidebar.toggleTab(SidebarTab.Search)"
 				/>
 
@@ -37,6 +39,8 @@
 					v-if="!isMobile && isGroupDM"
 					type="users"
 					:selected="sidebar.activeTab.value === SidebarTab.Members"
+					:aria-label="t('others.room_members')"
+					:title="t('others.room_members')"
 					@click="sidebar.toggleTab(SidebarTab.Members)"
 				/>
 			</div>

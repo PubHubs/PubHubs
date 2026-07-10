@@ -217,6 +217,8 @@
 						data-testid="paperclip"
 						size="base"
 						variant="secondary"
+						:aria-label="$t(messageInput.state.popover ? 'dialog.close' : 'message.context_menu')"
+						:title="$t(messageInput.state.popover ? 'dialog.close' : 'message.context_menu')"
 						class="transition-transform duration-200 hover:cursor-pointer"
 						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
 						@click.stop="
@@ -236,7 +238,6 @@
 							class="text-label placeholder:text-on-surface-dim max-h-2000 overflow-x-hidden border-none bg-transparent md:max-h-3000"
 							:class="isInputDisabled ? 'cursor-not-allowed' : ''"
 							:placeholder="inputPlaceholder"
-							:title="$t('rooms.new_message')"
 							:disabled="isInputDisabled"
 							@changed="changed()"
 							@submit="submitMessage()"
@@ -268,7 +269,11 @@
 					</button>
 
 					<!-- Emoji picker -->
-					<button :class="isInputDisabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'">
+					<button
+						:class="isInputDisabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
+						:aria-label="$t('message.emoji_picker')"
+						:title="$t('message.emoji_picker')"
+					>
 						<Icon
 							type="smiley"
 							@click.stop="toggleEmojiPicker()"

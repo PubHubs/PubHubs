@@ -2,7 +2,7 @@
 	<ValidateField
 		v-slot="{ id: fieldId, validated, required, changed }"
 		v-model="model"
-		class="form-textfield gap-075 flex w-full flex-col items-start justify-start"
+		class="form-textfield"
 		:help="help"
 		:info="lenText"
 		:name="fieldName"

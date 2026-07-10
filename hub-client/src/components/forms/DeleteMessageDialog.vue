@@ -7,7 +7,7 @@
 	>
 		<ValidatedForm
 			v-slot="{ isValidated }"
-			class="flex flex-col gap-200 p-200"
+			class="p-200"
 			@submit.prevent
 		>
 			<div v-if="!user.isAdmin && (event.content.msgtype === MsgType.File || event.content.msgtype === MsgType.Image)">

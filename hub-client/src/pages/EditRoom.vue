@@ -50,12 +50,15 @@
 				v-model="editRoom.type"
 				:placeholder="t('admin.room_type_placeholder')"
 				:options="roomTypeOptions"
+				:transformer="roomTypeTransformer"
+				:disabled="!isNewRoom"
+				:help="isNewRoom ? '' : t('admin.room_type_locked')"
 				>{{ t('admin.room_type') }}
 			</DropDown>
 
 			<div
 				v-if="isSecured"
-				class="pb-200"
+				class="flex flex-col gap-100"
 			>
 				<TextField
 					v-model="editRoom.user_txt"
@@ -68,7 +71,6 @@
 
 				<TextField
 					v-model.number="(editRoom as TSecuredRoom).expiration_time_days"
-					class="pt-100"
 					:placeholder="t('admin.expiration_days_placeholder')"
 					:validation="{ required: true, isNumber: true, minValue: 1, maxValue: 365 }"
 				>
@@ -80,7 +82,7 @@
 						v-model="selectedAttributes"
 						:validation="{ required: true, custom: validateAttributes() }"
 					>
-						<Label class="pb-100">{{ t('admin.secured_yivi_attributes') }}</Label>
+						<Label>{{ t('admin.secured_yivi_attributes') }}</Label>
 						<div class="flex flex-wrap gap-200">
 							<Tabs v-slot="{ activeTab, setActiveTab }">
 								<TabHeader>
@@ -136,7 +138,7 @@
 										</DropDown>
 
 										<!-- Add values -->
-										<div class="my-100 flex grow items-end gap-100">
+										<div class="flex grow items-end gap-100">
 											<TextField
 												v-model="valuesString"
 												:placeholder="t('admin.add_tip')"
@@ -156,7 +158,7 @@
 										<!-- Values -->
 										<div
 											v-if="selectedAttributes[activeTab].accepted.length > 0"
-											class="pb-200"
+											class="gap-075 flex flex-col"
 										>
 											<Label>{{ t('admin.secured_values') }}</Label>
 
@@ -188,10 +190,7 @@
 											</div>
 										</div>
 
-										<Checkbox
-											v-model="selectedAttributes[activeTab].profile"
-											class="pb-100"
-										>
+										<Checkbox v-model="selectedAttributes[activeTab].profile">
 											{{ t('admin.secured_profile') }}
 										</Checkbox>
 									</div>
@@ -255,7 +254,7 @@
 	import { PublicRoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import type { TEditRoom } from '@hub-client/models/rooms/TEditRoom';
 	import { type TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
-	import { type FieldOptions } from '@hub-client/models/validation/TFormOption';
+	import { type FieldOption, type FieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { type ValidationRule } from '@hub-client/models/validation/TValidate';
 
 	// Stores
@@ -303,7 +302,14 @@
 		user_txt: '',
 	});
 
-	const roomTypeOptions = Object.values(PublicRoomType) as FieldOptions;
+	// Only "forum room" is offered as an explicit choice. Leaving the dropdown empty (or clearing it
+	// via the x icon) means a normal room, so there is no empty option in the list.
+	const roomTypeOptions: FieldOptions = [PublicRoomType.PH_FORUM_ROOM];
+
+	function roomTypeTransformer(value: string): FieldOption {
+		if (value === PublicRoomType.PH_FORUM_ROOM) return { label: t('admin.room_type_forum'), value };
+		return { label: value, value };
+	}
 	const roomCategoryOptions: FieldOptions = [
 		{ label: t('admin.public_room'), value: 'public' },
 		{ label: t('admin.secured_room'), value: 'secured' },

@@ -49,6 +49,10 @@
 							v-else
 							class="flex w-full items-center gap-100 rounded-md p-100"
 						>
+							<Icon
+								:type="roomIcon(room.roomId)"
+								size="sm"
+							/>
 							<span class="truncate text-sm">{{ room.name }}</span>
 						</div>
 					</template>
@@ -71,7 +75,7 @@
 		>
 			<FloatingActionButton
 				v-if="isAdmin"
-				:label="t('admin.edit_room')"
+				:label="t('admin.user_perm_heading')"
 				icon="pencil-simple"
 				@click="emit('edit')"
 			/>
@@ -98,6 +102,7 @@
 
 	import FloatingActionButton from '@hub-client/components/elements/FloatingActionButton.vue';
 	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Pill from '@hub-client/components/elements/Pill.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
@@ -113,9 +118,12 @@
 
 	// Models
 	import { type Administrator } from '@hub-client/models/hubmanagement/models/admin';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	// Props
@@ -133,6 +141,8 @@
 
 	const { t } = useI18n();
 	const user = useUser();
+	const rooms = useRooms();
+	const settings = useSettings();
 	const currentUserId = computed(() => user.userId);
 
 	const { visibleRooms } = useUserRooms(
@@ -144,6 +154,14 @@
 
 	function canManage(roomId: string) {
 		return userPowerLevel(roomId) >= UserPowerLevel.Steward;
+	}
+
+	// Same icon logic as RoomLink, for rooms rendered without a link.
+	function roomIcon(roomId: string) {
+		if (rooms.roomIsSecure(roomId)) return 'shield';
+		const entry = rooms.roomList.find((room) => room.roomId === roomId);
+		if (settings.isFeatureEnabled(FeatureFlag.forumRooms) && entry?.roomType === RoomType.PH_FORUM_ROOM) return 'chat-circle-text';
+		return 'chats-circle';
 	}
 
 	const pseudonym = computed(() => {

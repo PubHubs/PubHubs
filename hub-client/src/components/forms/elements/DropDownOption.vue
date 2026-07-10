@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="hover:border-surface-on-surface-dim hover:bg-on-surface-dim pt-050 w-full cursor-pointer border-l px-200"
+		class="hover:border-surface-on-surface-dim hover:bg-on-surface-dim text-on-surface flex min-h-500 w-full cursor-pointer items-center border-l px-200 py-100"
 		:class="{ 'border-surface-elevated bg-surface-elevated': active, 'border-surface-on-surface-dim bg-on-surface-dim!': highlighted }"
 		role="option"
 	>
@@ -9,10 +9,10 @@
 </template>
 
 <script lang="ts" setup>
-	// Models
-	// New design
+	// Components
 	import DropDownValue from '@hub-client/components/forms/elements/DropDownValue.vue';
 
+	// Models
 	import { type FieldOption } from '@hub-client/models/validation/TFormOption';
 
 	// Props

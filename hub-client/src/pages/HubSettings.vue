@@ -15,7 +15,7 @@
 		<ValidatedForm
 			ref="formRef"
 			v-slot="{ isValidated }"
-			class="max-w-7000 px-400 py-200 pb-800"
+			class="max-w-7000 gap-400! px-400 py-200 pb-800"
 		>
 			<!-- Summary -->
 			<TextField
@@ -33,7 +33,7 @@
 				name="description"
 				:help="$t('hub_settings.description_description')"
 			>
-				<Label class="mt-400">{{ $t('hub_settings.description_heading') }}</Label>
+				<Label>{{ $t('hub_settings.description_heading') }}</Label>
 				<MarkdownEditor
 					v-model="hubDescription"
 					:placeholder="t('hub_settings.description')"
@@ -47,7 +47,7 @@
 				name="contact"
 				:help="$t('hub_settings.contact_description')"
 			>
-				<Label class="mt-400">{{ $t('hub_settings.contact_heading') }}</Label>
+				<Label>{{ $t('hub_settings.contact_heading') }}</Label>
 				<MarkdownEditor
 					v-model="hubContact"
 					:placeholder="t('hub_settings.contact')"
@@ -57,7 +57,6 @@
 			<!-- Icon -->
 			<MediaUploadField
 				v-model="iconFile"
-				class="mt-400"
 				:accept="'image/png,image/jpeg,image/svg+xml'"
 				:description="$t('hub_settings.icon_description')"
 				:default-url="hubSettings.iconDefaultUrlActiveTheme"
@@ -79,7 +78,6 @@
 			<!-- Banner -->
 			<MediaUploadField
 				v-model="bannerFile"
-				class="mt-400"
 				:accept="'image/png,image/jpeg,image/svg+xml'"
 				:description="$t('hub_settings.banner_description')"
 				:default-url="hubSettings.bannerDefaultUrl"
@@ -104,7 +102,7 @@
 				name="consent"
 				:help="$t('hub_settings.consent_description')"
 			>
-				<Label class="mt-400">{{ $t('hub_settings.consent_heading') }}</Label>
+				<Label>{{ $t('hub_settings.consent_heading') }}</Label>
 				<MarkdownEditor
 					v-model="hubConsent"
 					:placeholder="t('hub_settings.consent')"
@@ -113,7 +111,6 @@
 
 			<div class="flex justify-end">
 				<Button
-					class="mt-400"
 					type="submit"
 					:disabled="!isValidated"
 					@click.stop.prevent="saveChanges()"
