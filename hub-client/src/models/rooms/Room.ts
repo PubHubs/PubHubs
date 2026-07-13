@@ -1,7 +1,7 @@
 // Packages
 import { VotingWidgetType } from '../events/voting/VotingTypes';
 import {
-	Direction,
+	type Direction,
 	EventTimeline,
 	type EventTimelineSet,
 	EventType,
@@ -717,6 +717,12 @@ export default class Room {
 		if (this.timelineManager.getEvents().length === 0) {
 			await this.loadInitialTimeline();
 		}
+
+		// The initial timeline is now established (from cache, the SDK live timeline, or the network),
+		// so stop the loading indicator. Re-entering an already-subscribed room does not trigger a fresh
+		// sliding sync delivery ("custom subscription already exists"), so we must not rely on
+		// loadFromSlidingSync alone to clear this flag or the spinner would spin forever.
+		this.syncDataReceived = true;
 	}
 
 	/**
@@ -880,18 +886,15 @@ export default class Room {
 			return; // Timeline already has events
 		}
 
-		const messagesResponse = await this.matrixRoom.client.createMessagesRequest(
-			this.roomId,
-			null,
-			1,
-			Direction.Backward,
-			this.timelineManager.getMessagesFilter(),
-		);
-
-		const lastEventId = messagesResponse.chunk[0]?.event_id;
-		if (lastEventId) {
-			await this.loadToEvent({ eventId: lastEventId });
+		// The main sliding-sync list already loaded the latest events of every room into the SDK live
+		// timeline before it is opened, so seed from those for an instant switch without any network
+		// request. Older history is filled by the scroll pagination observer. Only fetch from the
+		// network when the SDK has nothing yet (e.g. a room outside the synced list window).
+		if (this.timelineManager.seedFromLiveTimeline() > 0) {
+			return;
 		}
+
+		await this.timelineManager.loadLatestTimeline();
 	}
 
 	public isOldestMessageLoaded(): boolean {
@@ -1132,14 +1135,14 @@ export function computeUnreadState(
 	if (timelineStartTs !== undefined) {
 		if (timelineStartTs <= receiptTs) return 'read';
 		if (stored && stored.lastVisibleTs > receiptTs) return 'unread';
-		return 'unknown';
+		return 'read';
 	}
 
 	// Empty timeline — no direct evidence at all.
 	if (stored?.lastReadAllTs !== undefined) return 'read';
 	if (stored && stored.lastVisibleTs > receiptTs) return 'unread';
 	if (stored && stored.lastVisibleTs > 0 && stored.lastVisibleTs <= receiptTs) return 'read';
-	return 'unknown';
+	return 'read';
 }
 
 // #endregion

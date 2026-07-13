@@ -11,6 +11,7 @@ import { propCompare } from '@hub-client/logic/core/extensions';
 import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
@@ -441,6 +442,25 @@ const useRooms = defineStore('rooms', {
 			}
 			// Re-sort the list since name changed
 			this.roomList.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+		},
+
+		/**
+		 * Creates the pubhubs Room object synchronously from the SDK when the room is already joined
+		 * (its data was delivered by sliding sync), so it can be opened immediately without a network
+		 * join. Returns false for rooms the SDK doesn't know or the user hasn't joined yet, which then
+		 * still go through the regular join flow.
+		 */
+		ensureRoomFromSdk(roomId: string): boolean {
+			if (this.rooms[roomId]) return true;
+
+			const pubhubs = usePubhubsStore();
+			const matrixRoom = pubhubs.client.getRoom(roomId);
+			if (!matrixRoom || matrixRoom.getMyMembership() !== 'join') return false;
+
+			const listEntry = this.roomList.find((r) => r.roomId === roomId);
+			const roomType = listEntry?.roomType ?? getRoomType(matrixRoom);
+			this.initRoomsWithMatrixRoom(matrixRoom, listEntry?.name, roomType, listEntry?.stateEvents ?? []);
+			return this.rooms[roomId] !== undefined;
 		},
 
 		// add one room to the store upon initializing PubHubs

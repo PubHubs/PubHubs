@@ -23,9 +23,8 @@
 
 				<!-- Expands if the timeline height < the vieport, to top-align the content -->
 				<div class="flex h-full items-center justify-center px-200 md:px-800">
-					<InlineSpinner v-if="!props.room.syncDataReceived && reversedTimeline.length === 0" />
 					<P
-						v-else-if="props.room.syncDataReceived && reversedTimeline.length === 0"
+						v-if="props.room.syncDataReceived && reversedTimeline.length === 0"
 						class="text-on-surface-dim text-center"
 					>
 						{{ $t('rooms.no_messages_yet') }}
@@ -96,6 +95,14 @@
 					ref="topSentinel"
 					class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"
 				/>
+			</div>
+
+			<!-- Loading indicator anchored at the bottom; already fetched/cached content or the empty state stays visible while loading -->
+			<div
+				v-if="!props.room.syncDataReceived"
+				class="pointer-events-none absolute inset-x-0 bottom-200 flex justify-center"
+			>
+				<InlineSpinner />
 			</div>
 
 			<JumpToUnreadThreadButton

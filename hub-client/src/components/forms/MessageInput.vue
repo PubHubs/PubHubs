@@ -211,7 +211,7 @@
 						v-if="isInputDisabled"
 						type="plus-circle"
 						size="lg"
-						class="text-on-surface-dim cursor-not-allowed"
+						class="cursor-not-allowed opacity-50"
 					/>
 					<IconButton
 						v-else
