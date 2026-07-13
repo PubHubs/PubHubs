@@ -364,8 +364,10 @@
 	async function update(): Promise<boolean> {
 		const currentVersion = ++updateVersion;
 
-		// Fast path: room already loaded, just switch to it
-		if (rooms.roomExists(props.id)) {
+		// Fast path: room already loaded, or already joined in the SDK (from sliding sync) so it can be
+		// built synchronously. Either way, show it immediately without the full-screen loading spinner.
+		if (rooms.roomExists(props.id) || rooms.ensureRoomFromSdk(props.id)) {
+			isLoading.value = false;
 			rooms.changeRoom(props.id);
 			hubSettings.hideBar();
 			rooms.currentRoom?.initTimeline();

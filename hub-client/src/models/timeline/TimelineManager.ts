@@ -429,15 +429,92 @@ class TimelineManager {
 			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.getId(), e])).values()); // make unique
 		}
 
-		let mappedEvents = tempEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
-		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
+		return this.commitTimelineEvents(tempEvents);
+	}
 
+	/**
+	 * Maps events into the visible timeline, caps it to the window size and refreshes derived state
+	 * (hidden messages, edits, timeline version). Shared by the initial-load paths.
+	 */
+	private commitTimelineEvents(events: MatrixEvent[]): TimelineEvent[] {
+		let mappedEvents = events.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
+		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 		this.timelineEvents = mappedEvents;
 		this.cleanupHideMessageEvents();
 		this.applyEdits();
 		this._timelineVersion++;
-
 		return mappedEvents;
+	}
+
+	/**
+	 * Seeds the timeline synchronously from events already held in the SDK live timeline.
+	 *
+	 * The main sliding-sync list delivers the latest events of every room into the SDK before the
+	 * room is opened (see Room.unreadState), so on first open these are already available and we can
+	 * render immediately without a network round-trip. Older history is filled afterwards by the
+	 * scroll pagination observer.
+	 *
+	 * @returns the number of visible events that were seeded
+	 */
+	public seedFromLiveTimeline(): number {
+		const room = this.client?.getRoom(this.roomId);
+		if (!room) return 0;
+
+		// prepareEvents sorts oldest -> newest; the SDK live timeline is not guaranteed to be ordered by ts
+		const visibleEvents = this.prepareEvents(room.getLiveTimeline().getEvents());
+		if (visibleEvents.length === 0) return 0;
+
+		const committed = this.commitTimelineEvents(visibleEvents);
+
+		// The list is sorted by recency, so the newest event of the room is loaded
+		this.paginationState.lastMessageId = committed[committed.length - 1]?.matrixEvent.getId();
+
+		return visibleEvents.length;
+	}
+
+	/**
+	 * Loads the most recent messages of the room in a single backward pass from the live end.
+	 *
+	 * Used for the initial load when opening a room. It replaces the previous
+	 * "fetch newest event id -> getEventTimeline(context) -> paginate both directions" sequence,
+	 * which needed three or more sequential round-trips before the timeline could render.
+	 * Starting at the live end (token = null) and paginating only backward, this needs just enough
+	 * requests to collect `initialRoomTimelineLimit` visible events, usually a single one.
+	 */
+	public async loadLatestTimeline(): Promise<TimelineEvent[]> {
+		let collected: MatrixEvent[] = [];
+		let currentToken: string | null = null;
+		let iterations = 0;
+		let reachedEnd = false;
+
+		while (collected.length < SystemDefaults.initialRoomTimelineLimit && iterations < SystemDefaults.maxPaginationIterations && !reachedEnd) {
+			iterations++;
+			const messagesResponse = await this.client.createMessagesRequest(
+				this.roomId,
+				currentToken,
+				SystemDefaults.initialRoomTimelineLimit,
+				Direction.Backward,
+				this.MessageFilter,
+			);
+
+			const eventMapper = this.client.getEventMapper();
+			const newEvents = messagesResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+
+			// prepareEvents sorts each batch oldest -> newest, so prepending successive (older) batches keeps order
+			const visibleEvents = this.prepareEvents(newEvents);
+			collected = [...visibleEvents, ...collected];
+
+			currentToken = messagesResponse.end ?? null;
+			if (!messagesResponse.end || messagesResponse.chunk.length < SystemDefaults.initialRoomTimelineLimit) {
+				reachedEnd = true;
+				this.paginationState.firstMessageId = collected[0]?.getId();
+			}
+		}
+
+		// We started at the live end, so the newest message is loaded
+		this.paginationState.lastMessageId = collected[collected.length - 1]?.getId();
+
+		return this.commitTimelineEvents(collected);
 	}
 
 	/**

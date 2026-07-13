@@ -41,12 +41,6 @@
 							color="hub"
 							size="sm"
 						/>
-						<Badge
-							v-if="room.unreadState === 'unknown'"
-							data-testid="unknown-badge"
-							color="unknown"
-							size="sm"
-						/>
 					</span>
 				</span>
 			</MenuItem>
