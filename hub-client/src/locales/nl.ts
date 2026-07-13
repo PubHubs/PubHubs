@@ -710,6 +710,7 @@ const nl = {
 		scheduler: 'Datumprikker',
 		poll: 'Peiling',
 		videocall: 'Videogesprek',
+		videocall_in_progress: 'Er is al een gesprek gaande',
 		announcement_mode: 'Aankondiging',
 		announcement_placeholder: 'Aankondiging',
 		enable_announcement: 'Aankondiging',
