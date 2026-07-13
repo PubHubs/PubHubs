@@ -245,6 +245,7 @@
 			v-if="signingMessage && activeEventId === item.matrixEvent.event.event_id"
 			:buttons="buttonsCancel"
 			:title="$t('roomlibrary.sign_file_hash')"
+			:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 			@close="signingMessage = false"
 		>
 			<div class="flex flex-col items-center gap-200">
@@ -264,12 +265,12 @@
 </template>
 
 <script lang="ts" setup>
-	// Components
+	// Packages
 	import { type Room as MatrixRoom } from 'matrix-js-sdk';
-	// Composables
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import AvatarDisplayNameCompact from '@hub-client/components/rooms/AvatarDisplayNameCompact.vue';
@@ -287,13 +288,16 @@
 	import PullDownMenu from '@hub-client/components/ui/PullDownMenu.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
+	// Composables
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
 
+	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import filters from '@hub-client/logic/core/filters';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
+	// Models
 	import { type SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { SystemDefaults } from '@hub-client/models/constants';
@@ -302,10 +306,12 @@
 	import type Room from '@hub-client/models/rooms/Room';
 	import { EYiviFlow, type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
 
+	// Stores
 	import { buttonsCancel } from '@hub-client/stores/dialog';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
+	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	const props = defineProps<{
@@ -316,6 +322,8 @@
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const user = useUser();
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	const pubhubs = usePubhubsStore();
 	const { makeHash, deleteMedia, removeFromTimeline } = useRoomLibrary();

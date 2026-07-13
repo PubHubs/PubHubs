@@ -2,7 +2,13 @@
 	<div
 		class="form-checkbox flex items-center justify-start gap-200"
 		:class="disabled ? '' : 'cursor-pointer'"
+		role="checkbox"
+		:aria-checked="model ? 'true' : 'false'"
+		:aria-disabled="disabled || undefined"
+		:tabindex="disabled ? -1 : 0"
 		@click="toggle(disabled)"
+		@keydown.enter.prevent="toggle(disabled)"
+		@keydown.space.prevent="toggle(disabled)"
 		@focusin="setFocus(true)"
 		@focusout="setFocus(false)"
 	>
@@ -43,6 +49,8 @@
 			:checked="model"
 			:disabled="disabled"
 			type="checkbox"
+			tabindex="-1"
+			aria-hidden="true"
 			@blur="setFocus(false)"
 			@change="toggle(disabled)"
 			@focus="setFocus(true)"

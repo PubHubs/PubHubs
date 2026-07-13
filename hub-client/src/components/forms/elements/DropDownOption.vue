@@ -2,7 +2,7 @@
 	<div
 		class="hover:border-surface-on-surface-dim hover:bg-on-surface-dim text-on-surface flex min-h-500 w-full cursor-pointer items-center border-l px-200 py-100"
 		:class="{ 'border-surface-elevated bg-surface-elevated': active, 'border-surface-on-surface-dim bg-on-surface-dim!': highlighted }"
-		role="option"
+		role="menuitem"
 	>
 		<DropDownValue :value="value" />
 	</div>

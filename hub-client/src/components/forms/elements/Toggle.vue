@@ -1,8 +1,17 @@
 <template>
+	<!-- role="checkbox" (not the more precise "switch") because link-hint extensions like Vimium only
+	     treat a fixed set of roles as clickable, and "switch" isn't one of them; a switch is an ARIA
+	     checkbox subtype, so this stays valid while keeping the control hint-targetable. -->
 	<div
 		class="form-toggle flex items-center justify-start gap-200"
 		:class="disabled ? '' : 'cursor-pointer'"
+		role="checkbox"
+		:aria-checked="model ? 'true' : 'false'"
+		:aria-disabled="disabled || undefined"
+		:tabindex="disabled ? -1 : 0"
 		@click="toggle(disabled)"
+		@keydown.enter.prevent="toggle(disabled)"
+		@keydown.space.prevent="toggle(disabled)"
 		@focusin="setFocus(true)"
 		@focusout="setFocus(false)"
 	>
@@ -27,6 +36,8 @@
 			class="sr-only"
 			:disabled="disabled"
 			type="checkbox"
+			tabindex="-1"
+			aria-hidden="true"
 			:value="model"
 		/>
 

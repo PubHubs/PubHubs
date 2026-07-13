@@ -26,4 +26,5 @@
 	}
 
 	provide('toggle', toggle);
+	provide('collapsed', collapsed);
 </script>

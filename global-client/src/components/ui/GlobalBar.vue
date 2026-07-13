@@ -14,8 +14,8 @@
 						:aria-label="t('home.discover_hubs')"
 					>
 						<Icon
-							class="text-on-surface/60 transition-color h-600 w-600 duration-200"
-							:class="isExactActive ? '' : 'group-hover:text-accent-primary'"
+							class="text-accent-blue-interactive/80 transition-color h-600 w-600 duration-200"
+							:class="isExactActive ? '' : 'group-hover:text-accent-blue'"
 							:data-rail-active="isExactActive || undefined"
 							type="compass"
 						/>

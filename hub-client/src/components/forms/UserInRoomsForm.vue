@@ -2,7 +2,7 @@
 	<Dialog
 		:buttons="[]"
 		:title="$t('admin.user_perm_heading') + ' - ' + displayName"
-		:width="isMobile ? 'w-full' : 'w-[700px]'"
+		:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 		@close="emit('close')"
 	>
 		<div class="flex flex-col gap-200 pb-150">

@@ -292,6 +292,7 @@
 			v-if="messageInput.state.showYiviQR"
 			:title="$t('message.sign.heading')"
 			:buttons="signingDialogButtons"
+			:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 			@close="messageInput.state.showYiviQR = false"
 		>
 			<div
@@ -347,6 +348,7 @@
 	import { getLocalStoreItem, setLocalStoreItem } from '@hub-client/logic/utils/localStoreClient';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
+	// Models
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { RelationType } from '@hub-client/models/constants';
 	import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
@@ -364,6 +366,7 @@
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
+	// Props
 	const props = defineProps({
 		room: {
 			type: Room,
@@ -434,7 +437,7 @@
 	const moderationPopover = ref(false);
 
 	const announcementVariant = computed(() => 'steward' as const);
-
+	const isMobile = computed(() => settings.isMobileState);
 	const isInputDisabled = computed(() => isCurrentUserTimedOut.value || isCurrentUserWarned.value);
 
 	const inputPlaceholder = computed(() => {

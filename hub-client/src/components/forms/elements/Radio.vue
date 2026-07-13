@@ -1,7 +1,12 @@
 <template>
 	<div
 		class="form-radio flex w-fit cursor-pointer items-center justify-start gap-200"
+		role="radio"
+		:aria-checked="model === value ? 'true' : 'false'"
+		tabindex="0"
 		@click.stop.prevent="select(value)"
+		@keydown.enter.prevent="select(value)"
+		@keydown.space.prevent="select(value)"
 		@focusin="setFocus(true)"
 		@focusout="setFocus(false)"
 	>
@@ -30,16 +35,13 @@
 			:id="uniqueValueId"
 			class="sr-only"
 			type="radio"
+			tabindex="-1"
+			aria-hidden="true"
 			:value="model"
 		/>
 
 		<div class="pt-thin inline-flex flex-col items-start justify-center">
-			<label
-				class="text-surface-on-surface cursor-pointer justify-start"
-				:for="uniqueValueId"
-				@click.stop.prevent="select(value)"
-				><slot
-			/></label>
+			<span class="text-surface-on-surface cursor-pointer justify-start"><slot /></span>
 		</div>
 	</div>
 </template>
