@@ -136,7 +136,12 @@
 				>
 					<div
 						class="hover:bg-surface-elevated flex cursor-pointer items-center gap-200 rounded-md p-100"
+						role="button"
+						tabindex="0"
+						:aria-label="t('admin.admin_contact_title')"
 						@click="handleAdminContact"
+						@keydown.enter.prevent="handleAdminContact"
+						@keydown.space.prevent="handleAdminContact"
 					>
 						<div class="bg-accent-admin/10 flex h-600 w-600 shrink-0 items-center justify-center rounded-full">
 							<Icon
@@ -165,7 +170,13 @@
 								v-for="user in usersInLetter"
 								:key="user.userId"
 								class="hover:bg-surface-elevated flex cursor-pointer items-center gap-100 rounded-md p-100"
+								role="button"
+								tabindex="0"
+								:aria-pressed="groupPanel ? selectedUsers.includes(user.userId) : undefined"
+								:aria-label="groupPanel ? userDisplayLabel(user) : t('others.open_conversation', { name: userDisplayLabel(user) })"
 								@click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
+								@keydown.enter.prevent="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
+								@keydown.space.prevent="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user.userId)"
 							>
 								<Icon
 									v-if="groupPanel && selectedUsers.includes(user.userId)"
@@ -361,6 +372,10 @@
 
 		groupProfile.value = true;
 		hideAvatarPreview.value = true;
+	}
+
+	function userDisplayLabel(user: User): string {
+		return user.displayName || filters.extractPseudonym(user.userId);
 	}
 
 	function isUserDisplayNameInList(displayName: string | undefined): boolean {

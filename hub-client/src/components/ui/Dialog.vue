@@ -6,7 +6,6 @@
 				doAction(DialogOk);
 			}
 		"
-		@keydown.esc="doAction(DialogCancel)"
 	>
 		<!-- Scrim -->
 		<div
@@ -36,12 +35,15 @@
 							{{ dialog.properties.title }}
 						</H2>
 						<slot name="header" />
-						<Icon
+						<button
 							v-if="dialog.properties.close"
+							type="button"
 							class="-mt-050 float-right cursor-pointer hover:opacity-75"
-							type="x"
+							:aria-label="$t('dialog.close')"
 							@click="doAction(DialogCancel)"
-						/>
+						>
+							<Icon type="x" />
+						</button>
 					</div>
 					<Divider
 						v-if="hasContent"
@@ -131,7 +133,13 @@
 		return slots['default'] || dialog.properties.content !== '';
 	});
 
+	function handleGlobalKeydown(e: KeyboardEvent) {
+		// Escape dismisses the dialog regardless of where focus currently is
+		if (e.key === 'Escape') doAction(DialogCancel);
+	}
+
 	onUnmounted(() => {
+		document.removeEventListener('keydown', handleGlobalKeydown);
 		dialog.hideModal();
 	});
 
@@ -144,6 +152,7 @@
 		}
 		dialog.properties.type = props.type;
 		dialog.showModal();
+		document.addEventListener('keydown', handleGlobalKeydown);
 	});
 	watch(
 		() => props.buttons,

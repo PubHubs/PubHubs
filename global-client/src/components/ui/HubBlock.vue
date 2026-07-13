@@ -1,17 +1,24 @@
 <template>
 	<div
 		v-if="hub"
-		class="bg-surface-base border-surface-elevated rounded-base relative flex w-full max-w-full flex-col overflow-hidden border-3 hover:cursor-pointer"
-		@click="enterHub(hub)"
+		class="bg-surface-base border-surface-elevated rounded-base relative flex w-full max-w-full flex-col overflow-hidden border-3"
 	>
-		<span
+		<button
+			type="button"
+			class="focus-visible:ring-accent-blue-interactive absolute inset-0 z-10 cursor-pointer rounded-none outline-none focus-visible:ring-3 focus-visible:ring-inset"
+			:aria-label="t('home.enter_hub', { hub: hub.hubName })"
+			@click="enterHub(hub)"
+		/>
+		<button
 			v-if="contact"
+			type="button"
 			class="bg-on-surface-bright text-surface-base absolute top-100 right-100 z-50 flex cursor-pointer items-center justify-center rounded-full p-[1px]"
 			:title="copied ? t('home.contact_copied') : contact"
+			:aria-label="copied ? t('home.contact_copied') : t('home.copy_contact')"
 			@click.stop="copyContact"
 		>
 			<Icon :type="copied ? 'check' : 'info'" />
-		</span>
+		</button>
 		<div class="bg-surface-base h-1200 w-full shrink-0">
 			<HubBanner
 				:banner-url="hub.bannerUrl"

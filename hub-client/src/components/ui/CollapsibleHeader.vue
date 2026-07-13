@@ -7,7 +7,12 @@
 			<div
 				class="text-on-surface-dim flex w-full items-center gap-100"
 				:class="collapsible ? 'cursor-pointer' : ''"
+				:role="collapsible ? 'button' : undefined"
+				:tabindex="collapsible ? 0 : undefined"
+				:aria-expanded="collapsible ? !collapsed : undefined"
 				@click="collapsible && toggle()"
+				@keydown.enter.prevent="collapsible && toggle()"
+				@keydown.space.prevent="collapsible && toggle()"
 			>
 				<Icon
 					v-if="collapsible"
@@ -21,7 +26,6 @@
 					<p
 						v-if="label"
 						class="text-body-small lineline-clamp-1 w-full truncate leading-tight font-semibold first-letter:uppercase"
-						role="heading"
 					>
 						{{ label }}
 					</p>

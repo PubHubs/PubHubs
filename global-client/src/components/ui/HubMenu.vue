@@ -21,18 +21,28 @@
 					@contextmenu.prevent="openHubContextMenu($event, element)"
 				>
 					<router-link
-						v-slot="{ isActive }"
-						class="w-full"
+						v-slot="{ isActive, href, navigate }"
+						custom
 						:to="{ name: 'hub', params: { name: element.hubName } }"
 					>
-						<HubMenuHubIcon
+						<a
 							v-if="global.loggedIn || element.hubId === hubs.currentHubId"
-							:active="isActive"
-							class="text-on-surface"
-							:hub-id="element.hubId"
-							:pinned="true"
-							@click="sendToHub"
-						/>
+							class="w-full"
+							:href="href"
+							:aria-current="isActive ? 'true' : undefined"
+							:aria-disabled="isActive ? 'true' : undefined"
+							@click="
+								navigate($event);
+								sendToHub();
+							"
+						>
+							<HubMenuHubIcon
+								:active="isActive"
+								class="text-on-surface"
+								:hub-id="element.hubId"
+								:pinned="true"
+							/>
+						</a>
 					</router-link>
 				</div>
 			</template>

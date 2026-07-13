@@ -1,11 +1,18 @@
 <template>
 	<div
+		ref="cardEl"
 		class="rounded-base @container w-full border-3 p-200"
 		:class="
 			active
 				? 'bg-surface-sunken border-surface-elevated'
 				: 'bg-surface-base border-surface-elevated hover:bg-surface-elevated hover:border-surface-elevated'
 		"
+		:role="active ? undefined : 'button'"
+		:tabindex="active ? -1 : 0"
+		:aria-current="active || undefined"
+		:aria-label="cardAriaLabel"
+		@keydown.enter.prevent="activate"
+		@keydown.space.prevent="activate"
 	>
 		<div class="flex gap-150">
 			<Avatar
@@ -140,6 +147,13 @@
 
 	const userStore = useUser();
 	const { t } = useI18n();
+
+	const cardEl = ref<HTMLElement | null>(null);
+	function activate() {
+		cardEl.value?.click();
+	}
+
+	const cardAriaLabel = computed(() => t('others.open_conversation', { name: displayName.value ?? t('menu.directmsg') }));
 	const { stewardSourceRoomName } = useModerationMembership(useModerationBase());
 	const { formatMentions } = useMentionsDisplay();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);

@@ -3,7 +3,7 @@
 		<!-- Shared Header -->
 		<div
 			class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between gap-200 border-b-2"
-			:class="isMobile ? 'pl-600' : 'pl-400'"
+			:class="isMobile ? 'p-150 pl-600' : 'p-200 pl-400'"
 		>
 			<!-- Left: DM title (on mobile, show conversation name when sidebar is open) -->
 			<div class="flex min-w-0 flex-1 items-center gap-150 overflow-x-hidden">
@@ -97,33 +97,36 @@
 							role="list"
 							data-testid="conversations"
 						>
-							<MessagePreview
+							<div
 								v-for="entry in sortedPrivateRooms"
 								:key="entry.room.roomId"
-								v-context-menu="
-									(evt: any) =>
-										openMenu(
-											evt,
-											[
-												{
-													label: t('menu.leave_conversation'),
-													icon: 'sign-out',
-													variant: ContextVariant.delicate,
-													onClick: () => leaveConversation(entry.room),
-												},
-											],
-											entry.room.roomId,
-										)
-								"
-								:room="entry.room"
-								:unread-state="entry.unreadState"
-								:is-mobile="isMobile"
-								:active="selectedRoom?.roomId === entry.room.roomId"
-								class="hover:cursor-pointer"
-								:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-base!'"
 								role="listitem"
-								@click="openDMRoom(entry.room)"
-							/>
+							>
+								<MessagePreview
+									v-context-menu="
+										(evt: any) =>
+											openMenu(
+												evt,
+												[
+													{
+														label: t('menu.leave_conversation'),
+														icon: 'sign-out',
+														variant: ContextVariant.delicate,
+														onClick: () => leaveConversation(entry.room),
+													},
+												],
+												entry.room.roomId,
+											)
+									"
+									:room="entry.room"
+									:unread-state="entry.unreadState"
+									:is-mobile="isMobile"
+									:active="selectedRoom?.roomId === entry.room.roomId"
+									class="hover:cursor-pointer"
+									:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-base!'"
+									@click="openDMRoom(entry.room)"
+								/>
+							</div>
 						</div>
 					</div>
 

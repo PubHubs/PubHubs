@@ -8,17 +8,20 @@
 			v-for="item in reactionSummary"
 			:key="item.key"
 			class="bg-surface-base rounded-base"
+			role="listitem"
 		>
-			<span
+			<button
+				type="button"
 				class="group/reaction rounded-base py-050 relative inline-flex cursor-pointer items-center gap-100 px-150"
 				:class="item.hasUserReacted ? 'bg-accent-blue/30 border-accent-blue border-2' : 'border-surface-elevated border-2'"
-				role="listitem"
+				:aria-pressed="item.hasUserReacted"
+				:aria-label="$t('message.reaction_toggle', { emoji: item.key, count: item.count })"
 				:title="item.tooltipTitle"
 				@click.stop="toggleReaction(item)"
 			>
 				<span class="flex h-[1em] w-[1em] items-center justify-center">{{ item.key }}</span>
 				{{ item.count }}
-			</span>
+			</button>
 		</div>
 	</div>
 </template>

@@ -1,33 +1,43 @@
 <template>
 	<li
-		role="menuitem"
 		:class="{ 'bg-surface-elevated text-accent-blue': isActive }"
 		class="hover:bg-surface-elevated rounded-base h-fit transition-all duration-200 ease-in-out"
 		:data-rail-active="isActive || undefined"
-		@click="handleClick"
 	>
 		<router-link
+			v-slot="{ href, navigate }"
+			custom
 			:to="to"
-			class="flex items-center gap-200 px-200 py-100"
 		>
-			<Icon
-				class=""
-				:type="icon"
-				:size="iconSize"
-			/>
-			<TruncatedText class="w-full"><slot></slot></TruncatedText>
-			<Badge
-				v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unread'"
-				class="ml-auto shrink-0"
-				color="hub"
-				size="sm"
-			/>
-			<Badge
-				v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unknown'"
-				class="ml-auto shrink-0"
-				color="unknown"
-				size="sm"
-			/>
+			<a
+				class="flex items-center gap-200 px-200 py-100"
+				:href="href"
+				:aria-current="isActive ? 'true' : undefined"
+				:aria-disabled="isActive ? 'true' : undefined"
+				@click="
+					navigate($event);
+					handleClick();
+				"
+			>
+				<Icon
+					class=""
+					:type="icon"
+					:size="iconSize"
+				/>
+				<TruncatedText class="w-full"><slot></slot></TruncatedText>
+				<Badge
+					v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unread'"
+					class="ml-auto shrink-0"
+					color="hub"
+					size="sm"
+				/>
+				<Badge
+					v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unknown'"
+					class="ml-auto shrink-0"
+					color="unknown"
+					size="sm"
+				/>
+			</a>
 		</router-link>
 	</li>
 </template>

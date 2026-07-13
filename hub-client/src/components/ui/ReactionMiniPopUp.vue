@@ -12,22 +12,28 @@
 		/>
 		<div
 			v-else
-			class="group bg-surface-elevated py-050 relative flex cursor-pointer flex-wrap items-center gap-200 rounded-full border px-100"
-			role="list"
+			class="group bg-surface-elevated py-050 relative flex flex-wrap items-center gap-200 rounded-full border px-100"
+			role="group"
+			:aria-label="$t('message.quick_reactions')"
 		>
-			<span
+			<button
 				v-for="item in defaultEmojis"
 				:key="item"
-				role="listitem"
+				type="button"
+				class="cursor-pointer rounded-md transition-transform duration-150 hover:scale-125 focus-visible:scale-125"
+				:aria-label="$t('message.react_with', { emoji: item })"
 				@click="
 					sendReactEvent(item);
 					close();
 				"
 			>
 				{{ item }}
-			</span>
+			</button>
 			<button
-				class="text-on-surface-dim hover:bg-accent-primary hover:text-on-accent-primary p-050 relative flex items-center justify-center rounded-md transition-all duration-300 ease-in-out hover:w-fit"
+				type="button"
+				class="text-on-surface-dim hover:bg-accent-primary hover:text-on-accent-primary p-050 relative flex cursor-pointer items-center justify-center rounded-md transition-all duration-300 ease-in-out hover:w-fit"
+				:aria-label="$t('message.more_reactions')"
+				:title="$t('message.more_reactions')"
 				@click.stop="openEmojiPanel()"
 			>
 				<Icon type="plus" />

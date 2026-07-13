@@ -14,6 +14,8 @@
 				:id="miniClientId + '_' + hubId"
 				class="pointer-events-none h-300 w-300 border-none"
 				:src="miniclientSrc"
+				aria-hidden="true"
+				tabindex="-1"
 			/>
 		</div>
 
