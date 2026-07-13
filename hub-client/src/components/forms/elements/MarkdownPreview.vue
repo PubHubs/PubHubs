@@ -46,8 +46,13 @@
 		},
 	};
 
+	// The hub client runs inside an iframe, so links must open in a new tab instead of navigating the iframe
+	const renderer = new marked.Renderer();
+	const defaultLinkRenderer = renderer.link.bind(renderer);
+	renderer.link = (href, title, text) => defaultLinkRenderer(href, title, text).replace(/^<a /, '<a target="_blank" rel="noopener noreferrer" ');
+
 	const parsedMarkdown = computed(() => {
 		if (!props.content) return '';
-		return marked.parse(props.content, { async: false }) as string;
+		return marked.parse(props.content, { async: false, renderer }) as string;
 	});
 </script>
