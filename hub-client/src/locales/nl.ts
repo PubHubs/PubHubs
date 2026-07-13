@@ -285,6 +285,7 @@ const nl = {
 		room_members: 'Leden',
 		searching: 'Bezig met zoeken...',
 		search_nothing_found: 'Niets gevonden',
+		search_found_items: 'Aantal gevonden items:',
 		empty_users: 'Geen gebruikers om te beheren',
 		read_receipt: 'Gelezen door',
 		new_message: 'Nieuw gesprek',

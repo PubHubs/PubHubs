@@ -1282,7 +1282,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			return await this.client.searchRoomEvents({
 				term: term,
-				filter: { rooms: [searchParameters.roomId] },
+				filter: { rooms: [searchParameters.roomId], limit: 100 },
 			});
 		},
 
