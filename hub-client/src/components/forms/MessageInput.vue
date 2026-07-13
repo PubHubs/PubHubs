@@ -58,8 +58,7 @@
 						icon="video"
 						data-testid="videocall"
 						:disabled="room.isOngoingCall()"
-						:title="room.isOngoingCall() ? $t('message.videocall_in_progress') : undefined"
-						@click="messageInput.openVideocall()"
+						@click="startVideocall"
 						>{{ $t('message.videocall') }}</PopoverButton
 					>
 				</div>
@@ -193,13 +192,6 @@
 					:tooltip="$t('message.sign.signed_message_tooltip')"
 					variant="sign"
 					@close="messageInput.closeSignMessage()"
-				/>
-				<InputModeBar
-					v-if="messageInput.state.videocall"
-					icon="video"
-					:label="$t('message.videocall')"
-					variant="videocall"
-					@close="messageInput.closeVideocall()"
 				/>
 
 				<div
@@ -656,7 +648,6 @@
 		if ((messageInput.state.poll || messageInput.state.scheduler) && messageInput.state.sendButtonEnabled) valid = true;
 		if (messageInput.state.fileAdded) valid = true;
 		if (messageInput.state.editingExistingFile) valid = true;
-		if (messageInput.state.videocall) valid = true;
 		return valid;
 	}
 
@@ -682,6 +673,13 @@
 	function clickedAttachment() {
 		if (filePickerEl.value) {
 			filePickerEl.value.openFile();
+		}
+	}
+
+	async function startVideocall() {
+		messageInput.togglePopover();
+		if (await videoCall.startCall()) {
+			await router.push({ name: 'videocall' });
 		}
 	}
 
@@ -866,14 +864,6 @@
 			messageActions.replyingTo = undefined;
 			value.value = '';
 			clearDraft();
-		} else if (messageInput.state.videocall) {
-			const text = String(value.value);
-			messageInput.closeVideocall();
-			value.value = '';
-			clearDraft();
-			if (await videoCall.startCall(text || undefined)) {
-				await router.push({ name: 'videocall' });
-			}
 		} else {
 			pubhubs.submitMessage(String(value.value), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';

@@ -718,7 +718,6 @@ const en = {
 		scheduler: 'Schedule',
 		poll: 'Poll',
 		videocall: 'Video call',
-		videocall_in_progress: 'A call is already in progress',
 		announcement_mode: 'Announcement',
 		announcement_placeholder: 'Announcement',
 		enable_announcement: 'Announcement',

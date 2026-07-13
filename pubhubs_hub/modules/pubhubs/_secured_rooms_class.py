@@ -155,7 +155,16 @@ class SecuredRoom:
             "visibility": "public",
             # 100 for creator is by default, but we want some power for the server notices user to add profile attribute
             # events to the room.
-            "power_level_content_override": {"users": {user: 100, server_notices_user: 50}}
+            # Regular members (power level 0) must also be able to send the group-video-call state
+            # events, which default to Synapse's state_default (50) unless overridden here.
+            "power_level_content_override": {
+                "users": {user: 100, server_notices_user: 50},
+                "events": {
+                    "org.matrix.msc3401.call": 0,
+                    "org.matrix.msc3401.call.member": 0,
+                    "org.matrix.msc4143.rtc.member": 0,
+                },
+            }
         }
         [room_id, _room_alias, _int] = await room_creation_handler.create_room(requester, config)
 
