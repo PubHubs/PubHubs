@@ -54,9 +54,11 @@
 						>{{ $t('message.sign.add_signature') }}</PopoverButton
 					>
 					<PopoverButton
-						v-if="settings.isFeatureEnabled(FeatureFlag.videocalls) && room.isPrivateRoom()"
+						v-if="settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.isPrivateRoom() || room.isSecuredRoom())"
 						icon="video"
 						data-testid="videocall"
+						:disabled="room.isOngoingCall()"
+						:title="room.isOngoingCall() ? $t('message.videocall_in_progress') : undefined"
 						@click="messageInput.openVideocall()"
 						>{{ $t('message.videocall') }}</PopoverButton
 					>

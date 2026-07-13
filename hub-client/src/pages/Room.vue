@@ -94,16 +94,6 @@
 							@click="sidebar.toggleTab(SidebarTab.Library)"
 						/>
 
-						<!-- Video call button -->
-						<GlobalBarButton
-							v-if="showVideocallButton()"
-							type="video"
-							:is-start-button="!ongoingCall"
-							:aria-label="t(ongoingCall ? 'videocall.join_button' : 'videocall.start_button')"
-							:title="t(ongoingCall ? 'videocall.join_button' : 'videocall.start_button')"
-							@click="startOrJoinVideoCall()"
-						/>
-
 						<!-- Members -->
 						<GlobalBarButton
 							v-if="hasRoomMembers"
@@ -230,7 +220,6 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-	import useVideoCall from '@hub-client/stores/videoCall';
 
 	// Passed by the router
 	const props = defineProps({
@@ -247,7 +236,6 @@
 	const dialogStore = useDialog();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
-	const videoCall = useVideoCall();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
 	const { openMenu } = useContextMenu();
 	const sidebar = useSidebar();
@@ -257,7 +245,6 @@
 	const pubhubs = usePubhubsStore();
 	const { membershipEvents } = useModerationBase();
 
-	const ongoingCall = computed(() => room.value!.isOngoingCall());
 	const joinSecuredRoom = ref<string | null>(null);
 	const scrollToEventId = ref<string>();
 	const isLoading = ref(!rooms.roomExists(props.id));
@@ -438,24 +425,6 @@
 	function notPrivateRoom() {
 		if (!room.value) return true;
 		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
-	}
-
-	async function startOrJoinVideoCall() {
-		let connected = false;
-		if (room.value!.isOngoingCall()) {
-			connected = await videoCall.joinCall();
-			if (!connected) {
-				connected = await videoCall.startCall();
-			}
-		} else {
-			connected = await videoCall.startCall();
-		}
-		if (!connected) return;
-		await router.push({ name: 'videocall' });
-	}
-
-	function showVideocallButton(): boolean {
-		return settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.value!.isSecuredRoom() || room.value!.isPrivateRoom());
 	}
 
 	const handleKick = (roomId: string, reason?: string) => {
