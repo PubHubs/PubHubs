@@ -21,28 +21,22 @@
 						class="outline-surface-elevated h-800 w-800 rounded-full outline-3"
 					/>
 					<div class="flex gap-150">
-						<button
-							type="button"
-							class="hover:text-on-surface-dim cursor-pointer"
+						<IconButton
+							icon="arrows-clockwise"
+							variant="secondary"
+							data-testid="change-avatar"
 							:aria-label="$t('settings.change_avatar')"
+							:title="$t('settings.change_avatar')"
 							@click="fileInput?.click()"
-						>
-							<Icon
-								data-testid="change-avatar"
-								type="pencil-simple"
-							/>
-						</button>
-						<button
-							type="button"
-							class="hover:text-accent-error cursor-pointer"
+						/>
+						<IconButton
+							icon="trash"
+							variant="error"
+							data-testid="remove-avatar"
 							:aria-label="$t('settings.remove_avatar')"
+							:title="$t('settings.remove_avatar')"
 							@click="removeAvatar"
-						>
-							<Icon
-								data-testid="remove-avatar"
-								type="trash"
-							/>
-						</button>
+						/>
 					</div>
 				</div>
 			</div>
@@ -90,7 +84,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import Icon from '@hub-client/components/elements/Icon.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';

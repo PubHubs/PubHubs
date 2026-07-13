@@ -49,10 +49,10 @@
 								<p class="text-on-surface-dim leading-tight">{{ user.pseudonym ?? '' }}</p>
 							</div>
 						</div>
-						<Icon
+						<IconButton
 							data-testid="edit-userinfo"
-							type="pencil-simple"
-							class="hover:text-accent-primary cursor-pointer"
+							icon="pencil-simple"
+							variant="secondary"
 							:aria-label="t('settings.edit_profile')"
 							:title="t('settings.edit_profile')"
 							@click="handleEditUserInfo"
@@ -205,6 +205,7 @@
 	// Components
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import RoomList from '@hub-client/components/rooms/RoomList.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';

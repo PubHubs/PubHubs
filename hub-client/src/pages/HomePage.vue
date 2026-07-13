@@ -3,7 +3,7 @@
 		<template #header>
 			<div
 				class="flex h-full items-center"
-				:class="isMobile ? 'pl-200' : 'pl-0'"
+				:class="isMobile ? 'pl-400' : 'pl-200'"
 			>
 				<div class="flex w-fit items-center gap-150 overflow-hidden">
 					<Icon type="house" />

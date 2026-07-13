@@ -6,7 +6,7 @@
 		<template #header>
 			<div
 				class="flex h-full items-center gap-150"
-				:class="isMobile && 'pl-200'"
+				:class="isMobile ? 'pl-400' : 'pl-200'"
 			>
 				<Icon :type="isSecured ? 'shield' : 'chats-circle'" />
 				<H3 class="text-on-surface flex">

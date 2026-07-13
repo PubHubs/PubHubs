@@ -255,40 +255,38 @@
 					</div>
 
 					<!--Moderation tools-->
-					<button
+					<IconButton
 						v-if="roles.userIsStewardOrHigher(room.roomId) && !inThread && !room.isDirectMessageRoom()"
-						class="hover:cursor-pointer"
-						:class="moderationPopover ? 'text-accent-steward' : ''"
+						icon="circles-three-plus"
+						variant="secondary"
 						:title="$t('menu.moderation')"
+						:aria-label="$t('menu.moderation')"
+						:class="moderationPopover ? 'text-accent-steward!' : ''"
 						@click.stop="
 							moderationPopover = !moderationPopover;
 							messageInput.state.popover = false;
 						"
-					>
-						<Icon type="circles-three-plus"></Icon>
-					</button>
+					/>
 
 					<!-- Emoji picker -->
-					<button
-						:class="isInputDisabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
+					<IconButton
+						icon="smiley"
+						variant="secondary"
+						:disabled="isInputDisabled"
 						:aria-label="$t('message.emoji_picker')"
 						:title="$t('message.emoji_picker')"
-					>
-						<Icon
-							type="smiley"
-							@click.stop="toggleEmojiPicker()"
-						/>
-					</button>
+						@click.stop="toggleEmojiPicker()"
+					/>
 
 					<!-- Sendbutton -->
-					<button
-						:title="$t('message.send')"
-						:class="!messageInput.state.sendButtonEnabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
+					<IconButton
+						icon="paper-plane-right"
+						variant="secondary"
 						:disabled="!messageInput.state.sendButtonEnabled"
+						:title="$t('message.send')"
+						:aria-label="$t('message.send')"
 						@click="submitMessage"
-					>
-						<Icon type="paper-plane-right" />
-					</button>
+					/>
 				</div>
 			</div>
 		</div>

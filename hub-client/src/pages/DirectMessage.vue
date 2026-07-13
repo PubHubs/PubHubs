@@ -3,7 +3,7 @@
 		<!-- Shared Header -->
 		<div
 			class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between gap-200 border-b-2"
-			:class="isMobile ? 'p-150 pl-400' : 'p-200'"
+			:class="isMobile ? 'pl-600' : 'pl-400'"
 		>
 			<!-- Left: DM title (on mobile, show conversation name when sidebar is open) -->
 			<div class="flex min-w-0 flex-1 items-center gap-150 overflow-x-hidden">
