@@ -11,7 +11,7 @@
 					<div class="mx-100 w-1/2">
 						<h2>Microphone source</h2>
 						<VideoCallDropDown
-							value=""
+							:value="videoCall.selected_audio_device_id ?? ''"
 							:options="audioOptions"
 							:on-select="
 								(audioDevice: string) => {
@@ -23,7 +23,7 @@
 					<div class="mx-100 w-1/2">
 						<h2>Video source</h2>
 						<VideoCallDropDown
-							value=""
+							:value="videoCall.selected_video_device_id ?? ''"
 							:options="videoOptions"
 							:on-select="
 								(videoDevice: string) => {
@@ -170,6 +170,20 @@
 		});
 		videoOptions.value.unshift({ label: 'Select device', value: 'no device' });
 		optionsLoaded.value = true;
+
+		if (!videoCall.selected_audio_device_id) {
+			const defaultAudioDevice = audioDevices.find((device) => device.deviceId === 'default') ?? audioDevices[0];
+			if (defaultAudioDevice) {
+				await videoCall.changeAudioDevice(defaultAudioDevice.deviceId);
+			}
+		}
+
+		if (!videoCall.selected_video_device_id) {
+			const defaultVideoDevice = videoDevices.find((device) => device.deviceId === 'default') ?? videoDevices[0];
+			if (defaultVideoDevice) {
+				await videoCall.changeVideoDevice(defaultVideoDevice.deviceId);
+			}
+		}
 	}
 
 	//TODO see if I can combine these two arrays?
@@ -228,9 +242,16 @@
 		videoCall.livekit_room.removeAllListeners();
 	});
 
-	function goBack() {
+	async function goBack() {
 		if (!currentRoom.value) return;
-		videoCall.leaveCall();
+		// Leaving alone would only leave() the group call, never terminate()
+		// it - the room-level call state would stay "ongoing" forever with
+		// nobody left to end it.
+		if (videoCall.livekit_room?.remoteParticipants.size === 0) {
+			await videoCall.endCall();
+		} else {
+			await videoCall.leaveCall();
+		}
 		router.push({ name: 'room', params: { id: currentRoom.value.roomId } });
 	}
 

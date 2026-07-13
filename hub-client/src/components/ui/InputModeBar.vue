@@ -50,7 +50,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Props
-	type Variant = 'edit' | 'steward' | 'sign' | 'reply' | 'videocall';
+	type Variant = 'edit' | 'steward' | 'sign' | 'reply';
 
 	const props = defineProps<{
 		icon: string;
@@ -79,10 +79,6 @@
 		reply: {
 			container: 'bg-accent-green/10 border-accent-green',
 			text: 'text-accent-green',
-		},
-		videocall: {
-			container: 'bg-accent-blue-interactive/10 border-accent-blue-interactive',
-			text: 'text-accent-blue-interactive',
 		},
 	} as const;
 

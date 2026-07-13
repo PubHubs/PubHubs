@@ -1044,7 +1044,6 @@ export default class Room {
 		if (!lastVideoCallMessage || !lastVideoCallMessage.event.event_id) {
 			return undefined;
 		}
-
 		return lastVideoCallMessage;
 	}
 

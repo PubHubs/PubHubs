@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-	import { type PropType, onMounted } from 'vue';
+	import { type PropType, onMounted, watch } from 'vue';
 
 	import { type Option, type Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
@@ -42,6 +42,11 @@
 
 	setValue(props.value);
 	setOptions(props.options);
+
+	watch(
+		() => props.value,
+		(newValue) => setValue(newValue),
+	);
 
 	function updateSelect(event: Event) {
 		const target = event.target as HTMLSelectElement;
