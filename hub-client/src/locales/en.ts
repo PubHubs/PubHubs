@@ -284,6 +284,7 @@ const en = {
 		room_members: 'Members',
 		searching: 'Searching...',
 		search_nothing_found: 'No results found',
+		search_found_items: 'Number of found items:',
 		empty_users: 'No users to manage',
 		read_receipt: 'Read by',
 		new_message: 'New conversation',
