@@ -1,7 +1,6 @@
 <template>
 	<Dialog
 		:buttons="buttonsSubmitCancel"
-		:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 		:title="$t('settings.profile_title')"
 		@close="dialogAction($event)"
 	>
@@ -80,7 +79,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+	import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -108,7 +107,6 @@
 	const { t } = useI18n();
 	const user = useUser();
 	const settings = useSettings();
-	const isMobile = computed(() => settings.isMobileState);
 	const dialog = useDialog();
 	const formState = useFormState();
 	const pubhubs = usePubhubsStore();

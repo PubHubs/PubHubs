@@ -95,9 +95,7 @@ const nl = {
 		hub_card_about: 'Over',
 		heading: 'Hub beschrijving:',
 		contact_details: 'Contactgegevens:',
-		contact_copied: 'Gekopieerd naar klembord',
 		enter_hub: 'Ga naar {hub}',
-		copy_contact: 'Contactgegevens kopiëren',
 	},
 	about: {
 		title: 'Over PubHubs',
