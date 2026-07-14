@@ -1,5 +1,5 @@
 <template>
-	<div class="w-full pt-200">
+	<div class="w-full pt-200 break-words whitespace-pre-line">
 		{{ description }}
 	</div>
 </template>
@@ -9,15 +9,9 @@
 
 	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 
-	const props = withDefaults(
-		defineProps<{
-			event: TimelineEvent;
-			isFirst?: boolean;
-		}>(),
-		{
-			isFirst: false,
-		},
-	);
+	const props = defineProps<{
+		event: TimelineEvent;
+	}>();
 
 	const description = computed(() => {
 		if (props.event.matrixEvent.event.content?.ph_topic_body) return props.event.matrixEvent.event.content.ph_topic_body;

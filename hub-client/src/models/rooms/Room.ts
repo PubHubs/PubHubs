@@ -10,6 +10,7 @@ import {
 	GroupCallIntent,
 	GroupCallType,
 	type IStateEvent,
+	type IThreadBundledRelationship,
 	type MatrixClient,
 	MatrixEvent,
 	type Room as MatrixRoom,
@@ -48,6 +49,7 @@ import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { useRooms } from '@hub-client/stores/rooms';
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('Room');
@@ -71,6 +73,10 @@ export default class Room {
 	public currentThreadId: string | undefined = undefined;
 	public currentEvent: TCurrentEvent | undefined = undefined;
 	public threadUpdated: boolean = false; // toggle to indicate changed thread to vue components
+
+	// Set after the first sliding-sync timeline is processed; used by ForumRoomTimeline
+	// to show a loading indicator instead of "no threads" during the initial fetch.
+	public timelineReady: boolean = false;
 
 	/** Whether the first sliding sync response has been received for this room's subscription */
 	public syncDataReceived: boolean = false;
@@ -814,8 +820,23 @@ export default class Room {
 		const nonCurrentThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
 
 		this.timelineManager.loadFromSlidingSync(nonCurrentThreadEvents).then((scrollToEventId) => {
+			if (!this.timelineReady) {
+				this.timelineReady = true;
+			}
 			if (scrollToEventId) {
 				this.setCurrentEvent({ eventId: scrollToEventId });
+			}
+			// Seed reply counts from server-bundled m.thread data, for threads this client has not
+			// opened yet. Once a thread is loaded, TRoomThread owns the count: it excludes deleted
+			// replies, which the bundled count still includes, so seeding over it would revive them.
+			const roomsStore = useRooms();
+			for (const event of this.timelineManager.getEvents()) {
+				const eventId = event.matrixEvent.getId();
+				if (!eventId || roomsStore.threadLengths[this.roomId]?.[eventId] !== undefined) continue;
+				const bundled = event.matrixEvent.getServerAggregatedRelation<IThreadBundledRelationship>('m.thread');
+				if (bundled?.count != null) {
+					roomsStore.setThreadLength(this.roomId, eventId, bundled.count);
+				}
 			}
 		});
 	}

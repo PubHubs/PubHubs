@@ -33,6 +33,7 @@
 				<textarea
 					v-if="type === 'textarea'"
 					:id="fieldId"
+					ref="elTextarea"
 					v-model="model"
 					:aria-invalid="!validated && changed ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
@@ -43,10 +44,12 @@
 							: 'outline-on-surface-dim focus:outline-accent-blue-interactive',
 						icon ? 'pl-600!' : '',
 						rightIcon ? 'pr-600!' : '',
+						autoGrow ? 'max-h-[40vh] resize-none overflow-y-auto' : '',
 					]"
 					:disabled="disabled"
 					:name="fieldName"
 					:placeholder="placeholder"
+					:rows="rows"
 					@input="update()"
 				/>
 				<input
@@ -76,7 +79,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onMounted, ref, useAttrs, watch } from 'vue';
+	import { computed, nextTick, onMounted, ref, useAttrs, watch } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -95,6 +98,8 @@
 	// Props
 	const props = withDefaults(
 		defineProps<{
+			// Only for type="textarea": grow with the text instead of scrolling inside a fixed box
+			autoGrow?: boolean;
 			disabled?: boolean;
 			help?: string;
 			icon?: string;
@@ -103,11 +108,14 @@
 			placeholder?: string;
 			rightIcon?: string;
 			rightIconClass?: string;
+			// Only for type="textarea": the height it starts at, and with autoGrow shrinks back to
+			rows?: number;
 			showLength?: boolean;
 			type?: string;
 			validation?: FieldValidations;
 		}>(),
 		{
+			autoGrow: false,
 			disabled: false,
 			help: '',
 			icon: undefined,
@@ -116,6 +124,7 @@
 			placeholder: '',
 			rightIcon: undefined,
 			rightIconClass: '',
+			rows: undefined,
 			showLength: false,
 			type: 'text',
 			validation: undefined,
@@ -129,6 +138,7 @@
 	const attrs = useAttrs();
 	const model = defineModel<string | number>();
 	const modelLen = ref(0);
+	const elTextarea = ref<HTMLTextAreaElement | null>(null);
 
 	const logger = createLogger('TextField');
 	const { slotDefault, fieldName, update } = useFormInput(props, model);
@@ -155,9 +165,19 @@
 		return modelLen.value + ' / ' + maxLen.value;
 	});
 
+	// Height is driven by the content, so reset it before measuring: scrollHeight only ever grows
+	// while the box is at its old height, which would make the field ratchet up and never shrink.
+	const resizeToContent = () => {
+		const el = elTextarea.value;
+		if (!props.autoGrow || !el) return;
+		el.style.height = 'auto';
+		el.style.height = `${el.scrollHeight}px`;
+	};
+
 	// Lifecycle
 	watch(model, () => {
 		calculateLen();
+		nextTick(resizeToContent);
 	});
 
 	onMounted(() => {
@@ -169,5 +189,6 @@
 			}
 		}
 		calculateLen();
+		resizeToContent();
 	});
 </script>

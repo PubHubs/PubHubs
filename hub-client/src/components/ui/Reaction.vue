@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex flex-wrap gap-100"
+		class="flex flex-wrap items-center gap-100"
 		data-testid="reactions"
 		role="list"
 	>

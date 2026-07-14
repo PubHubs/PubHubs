@@ -4,10 +4,7 @@
 		class="flex h-full w-full flex-col pt-200"
 		data-testid="thread-sidekick"
 	>
-		<SidebarHeader
-			v-if="!isForum"
-			:title="t('rooms.thread')"
-		/>
+		<SidebarHeader :title="t('rooms.thread')" />
 		<!-- Thread message list -->
 		<div
 			ref="elScrollContainer"
@@ -20,7 +17,6 @@
 				:id="threadRootId"
 			>
 				<RoomMessageBubble
-					v-if="!editingForumTopic"
 					:room="room"
 					:event="rootEvent"
 					:view-from-thread="true"
@@ -29,37 +25,21 @@
 					@in-reply-to-click="onInReplyToClick"
 					@delete-message="confirmDeleteMessage"
 					@edit-message="onEditMessage"
-					@edit-forum-topic="onEditForumTopic"
 					@reaction-panel-toggle="toggleReactionPanel"
 					@reaction-panel-close="closeReactionPanel"
 					@clicked-emoticon="sendEmoji"
-				>
-					<template #bottom>
-						<ForumEventBody
-							v-if="isForum"
-							:event="rootEvent"
-						>
-						</ForumEventBody>
-					</template>
-				</RoomMessageBubble>
-				<ForumThreadForm
-					v-else
-					:id="room.roomId"
-					:event="rootEvent.matrixEvent.event as TMessageEvent"
-					@close="editingForumTopic = false"
-				></ForumThreadForm>
+				></RoomMessageBubble>
 			</div>
 
 			<!-- Thread replies -->
 			<div
-				v-for="(item, index) in filteredEvents"
+				v-for="item in filteredEvents"
 				:key="item.matrixEvent.event.event_id"
 			>
 				<div
 					:id="item.matrixEvent.event.event_id"
 					:ref="setEventRef"
 					class="rounded-md"
-					:class="{ 'pl-800': isForum && index > 0, 'mb-400': isForum && index === 0 }"
 				>
 					<RoomMessageBubble
 						:room="room"
@@ -73,16 +53,7 @@
 						@edit-message="onEditMessage"
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
-					>
-						<template #bottom>
-							<ForumEventBody
-								v-if="isForum"
-								:is-first="index === 0"
-								:event="item"
-							>
-							</ForumEventBody>
-						</template>
-					</RoomMessageBubble>
+					></RoomMessageBubble>
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-100 px-800">
@@ -132,8 +103,6 @@
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
-	import ForumEventBody from '@hub-client/components/rooms/forum/ForumEventBody.vue';
-	import ForumThreadForm from '@hub-client/components/rooms/forum/ForumThreadForm.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
@@ -156,12 +125,10 @@
 
 	const props = withDefaults(
 		defineProps<{
-			isForum?: boolean;
 			room: Room;
 			scrollToEventId?: string | undefined;
 		}>(),
 		{
-			isForum: false,
 			scrollToEventId: undefined,
 		},
 	);
@@ -209,15 +176,10 @@
 	const loadingEvents = ref(false);
 	const editingMessage = ref<{ event: TMessageEvent } | undefined>(undefined);
 	const editingMessageProp = computed(() => editingMessage.value as { event: TMessageEvent } | undefined);
-	const editingForumTopic = ref(false);
 
 	function onEditMessage(event: TMessageEvent) {
 		// Fresh object each time so re-editing the same message still triggers the watcher in MessageInput.
 		editingMessage.value = { event };
-	}
-
-	function onEditForumTopic() {
-		editingForumTopic.value = true;
 	}
 
 	watch(
@@ -283,7 +245,6 @@
 	}
 
 	async function changeThreadId() {
-		editingForumTopic.value = false;
 		await getThreadEvents();
 		await nextTick();
 
@@ -407,22 +368,10 @@
 	}
 
 	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
-		if (timelineEvent.isDeleted || (timelineEvent.matrixEvent && timelineEvent.matrixEvent.isRedacted())) return false;
-		const messageEventId = timelineEvent.matrixEvent.event.event_id;
-		if (!messageEventId) return false;
-
-		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
-			const relatesTo = event.getContent()[RelationType.RelatesTo];
-			// Check if this reaction relates to the target message
-			return relatesTo && relatesTo.event_id === messageEventId;
-		});
-
-		if (reactionEvent) {
-			const relatesTo = reactionEvent.getContent()[RelationType.RelatesTo];
-			return !!relatesTo?.key;
-		}
-
-		return false;
+		if (timelineEvent.isDeleted || timelineEvent.matrixEvent?.isRedacted()) return false;
+		const eventId = timelineEvent.matrixEvent.event.event_id;
+		if (!eventId) return false;
+		return onlyReactionEvent(eventId).some((event) => !!event.getContent()[RelationType.RelatesTo]?.key);
 	}
 
 	function setupEventIntersectionObserver() {
