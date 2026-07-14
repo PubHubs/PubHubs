@@ -12,8 +12,7 @@
 			<a
 				class="flex items-center gap-200 px-200 py-100"
 				:href="href"
-				:aria-current="isActive ? 'true' : undefined"
-				:aria-disabled="isActive ? 'true' : undefined"
+				:aria-current="isActive ? 'page' : undefined"
 				@click="
 					navigate($event);
 					handleClick();
