@@ -28,15 +28,8 @@
 						@click="router.push({ name: 'direct-msg' })"
 					/>
 					<Icon
-						v-if="rooms.currentRoom.isForumRoom() && props.topicId"
-						type="caret-left"
-						data-testid="back"
-						class="cursor-pointer"
-						@click="router.push({ name: 'room', params: { id: rooms.currentRoomId } })"
-					/>
-					<Icon
-						v-else-if="notPrivateRoom()"
-						:type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'"
+						v-if="notPrivateRoom()"
+						:type="rooms.currentRoom.isSecuredRoom() ? 'shield' : rooms.currentRoom.isForumRoom() ? 'chat-circle-text' : 'chats-circle'"
 					/>
 					<div
 						v-context-menu="
@@ -75,36 +68,39 @@
 				<!-- Right: Sidebar controls -->
 				<div class="flex items-center gap-100">
 					<RoomHeaderButtons>
-						<!-- Search -->
-						<GlobalBarButton
-							type="magnifying-glass"
-							:selected="sidebar.activeTab.value === SidebarTab.Search"
-							:aria-label="t('others.search_room')"
-							:title="t('others.search_room')"
-							@click="sidebar.toggleTab(SidebarTab.Search)"
-						/>
+						<!-- Sidebar toggles (hidden on forum feed) -->
+						<template v-if="!room?.isForumRoom() || props.topicId">
+							<!-- Search -->
+							<GlobalBarButton
+								type="magnifying-glass"
+								:selected="sidebar.activeTab.value === SidebarTab.Search"
+								:aria-label="t('others.search_room')"
+								:title="t('others.search_room')"
+								@click="sidebar.toggleTab(SidebarTab.Search)"
+							/>
 
-						<!-- Room library -->
-						<GlobalBarButton
-							v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)"
-							type="folder-simple"
-							:selected="sidebar.activeTab.value === SidebarTab.Library"
-							:aria-label="t('roomlibrary.library')"
-							:title="t('roomlibrary.library')"
-							@click="sidebar.toggleTab(SidebarTab.Library)"
-						/>
+							<!-- Room library -->
+							<GlobalBarButton
+								v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)"
+								type="folder-simple"
+								:selected="sidebar.activeTab.value === SidebarTab.Library"
+								:aria-label="t('roomlibrary.library')"
+								:title="t('roomlibrary.library')"
+								@click="sidebar.toggleTab(SidebarTab.Library)"
+							/>
 
-						<!-- Members -->
-						<GlobalBarButton
-							v-if="hasRoomMembers"
-							type="users"
-							:selected="sidebar.activeTab.value === SidebarTab.Members"
-							:aria-label="t('others.room_members')"
-							:title="t('others.room_members')"
-							@click="sidebar.toggleTab(SidebarTab.Members)"
-						/>
+							<!-- Members -->
+							<GlobalBarButton
+								v-if="hasRoomMembers"
+								type="users"
+								:selected="sidebar.activeTab.value === SidebarTab.Members"
+								:aria-label="t('others.room_members')"
+								:title="t('others.room_members')"
+								@click="sidebar.toggleTab(SidebarTab.Members)"
+							/>
+						</template>
 
-						<!-- Thread tab (shown when a thread is selected) -->
+						<!-- Thread tab (shown when a thread is selected, never in forum) -->
 						<GlobalBarButton
 							v-if="room?.getCurrentThreadId() && !room.isForumRoom()"
 							type="chat-circle"
@@ -128,14 +124,20 @@
 						:last-read-event-id="lastReadEventId"
 					/>
 					<ForumRoomTimeline
-						v-if="room && room.isForumRoom()"
+						v-if="room && room.isForumRoom() && !props.topicId"
 						:room="room"
-						:topic-id="topicId"
+					/>
+					<ForumPostView
+						v-if="room && room.isForumRoom() && props.topicId"
+						:room="room"
+						:topic-id="props.topicId"
+						:event-id-to-scroll="scrollToEventId"
 					/>
 				</div>
 
-				<!-- Room sidebar -->
+				<!-- Room sidebar (hidden on forum feed, shown on post view) -->
 				<RoomSidebar
+					v-if="!room?.isForumRoom() || props.topicId"
 					:active-tab="sidebar.activeTab.value"
 					:is-mobile="sidebar.isMobile.value ?? false"
 				>
@@ -195,6 +197,7 @@
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
+	import ForumPostView from '@hub-client/components/rooms/forum/ForumPostView.vue';
 	import ForumRoomTimeline from '@hub-client/components/rooms/forum/ForumRoomTimeline.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
@@ -298,7 +301,8 @@
 		() => sidebar.isOpen.value,
 		(isOpen) => {
 			// Only clear thread when transitioning from open to closed
-			if (isOpen === false && room.value) {
+			// Skip for forum post view -- it manages its own thread ID via topicId
+			if (isOpen === false && room.value && !(room.value.isForumRoom() && props.topicId)) {
 				room.value.setCurrentThreadId(undefined);
 				sidebar.clearSearchState();
 			}
@@ -406,6 +410,18 @@
 
 	async function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
 		if (!room.value) return;
+
+		// A forum room has no thread sidebar: a comment lives inside a post, and its threadId is that
+		// post (a hit on the post itself has none). Open the post and let ForumPostView highlight it.
+		if (room.value.isForumRoom()) {
+			const postId = ev.threadId ?? ev.eventId;
+			scrollToEventId.value = ev.eventId;
+			if (props.topicId !== postId) {
+				await router.push({ name: 'room', params: { id: props.id, topicId: postId } });
+			}
+			return;
+		}
+
 		// if there is a threadId and this is a valid id in the room: set the current threadId
 
 		if (ev.threadId && ev.threadId !== ev.eventId) {

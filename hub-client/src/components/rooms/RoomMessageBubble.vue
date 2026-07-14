@@ -219,7 +219,7 @@
 							<!-- Reaction Button -->
 							<button
 								v-if="!redactedMessage"
-								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-focus-within:flex group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_emoji')"
 								@click.stop="emit('reactionPanelToggle', event.event_id!)"
 							>
@@ -229,7 +229,7 @@
 							<!-- Reply Button -->
 							<button
 								v-if="!msgIsNotSend && !redactedMessage"
-								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-focus-within:flex group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply')"
 								@click="reply"
 							>
@@ -247,7 +247,7 @@
 									!redactedMessage &&
 									!props.room.isDirectMessageRoom()
 								"
-								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-focus-within:flex group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_in_thread')"
 								@click="replyInThread"
 							>
@@ -260,7 +260,7 @@
 							<!-- Context Menu Button -->
 							<button
 								v-if="!redactedMessage"
-								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-focus-within:flex group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.context_menu')"
 								@click.stop="openMenu($event, getContextMenuItems(), event.event_id!)"
 							>
@@ -520,7 +520,6 @@
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
 		(e: 'editMessage', event: TMessageEvent): void;
-		(e: 'editForumTopic', event: TMessageEvent): void;
 		(e: 'deleteMessage', event: TMessageEvent): void;
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
@@ -683,6 +682,8 @@
 	 */
 	function showReplySnippet(msgType: string): boolean {
 		if (isWhisperMessage.value) return false;
+		// Forum comments render nested under the comment they reply to, so a snippet is redundant
+		if (props.viewFromThread && props.room.isForumRoom()) return false;
 		if (props.viewFromThread) {
 			if (msgType === MsgType.Image || msgType === MsgType.File) {
 				return false;
@@ -889,22 +890,6 @@
 				label: t('menu.edit_message'),
 				icon: 'pencil-simple',
 				onClick: () => onEditMessage(event.value as TMessageEvent),
-			});
-		}
-
-		// Edit forum topic root (title + description together, via a dedicated form).
-		if (
-			settings.isFeatureEnabled(FeatureFlag.editMessages) &&
-			(event.value.content!.msgtype as string) === (PubHubsMgType.ForumTopic as string) &&
-			viewingOwnThread.value &&
-			!msgIsNotSend.value &&
-			event.value.sender! === user.userId &&
-			!redactedMessage.value
-		) {
-			destructive.push({
-				label: t('menu.edit_message'),
-				icon: 'pencil-simple',
-				onClick: () => emit('editForumTopic', event.value as TMessageEvent),
 			});
 		}
 

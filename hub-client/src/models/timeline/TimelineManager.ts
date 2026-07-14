@@ -82,6 +82,7 @@ class TimelineManager {
 
 	/** Contains all related events: reactions, annotations etc. */
 	private relatedEvents: TRelatedEvents[] = [];
+	private _relatedEventsMap: Map<string, TRelatedEvents> | null = null;
 	// Contains related hide events
 	private hideMessageEvents: Map<string, MatrixEvent> = new Map();
 	// Latest m.replace edit event per target eventId (used to merge edited content into the original)
@@ -343,6 +344,8 @@ class TimelineManager {
 				} else {
 					if (relatesToEvent) {
 						this.relatedEvents.push({ eventId: relatesToEvent, isFetched: false, relatedEvents: [eventToAdd] });
+						// A new entry changes the lookup itself; entries already in it are mutated in place
+						this._relatedEventsMap = null;
 					}
 				}
 			}
@@ -350,9 +353,10 @@ class TimelineManager {
 	}
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
-		return (
-			this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })) ?? []
-		);
+		if (!this._relatedEventsMap) {
+			this._relatedEventsMap = new Map(this.relatedEvents.map((x) => [x.eventId, x]));
+		}
+		return this._relatedEventsMap.get(eventId)?.relatedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })) ?? [];
 	}
 
 	// Gets related events, either all (defined in this.relatedEventTypes) or of one specific type and or contenttype (for instance EvenType.Reaction, RelationType.Annotation)

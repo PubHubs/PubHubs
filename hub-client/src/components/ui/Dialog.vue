@@ -38,7 +38,7 @@
 						<button
 							v-if="dialog.properties.close"
 							type="button"
-							class="-mt-050 float-right cursor-pointer hover:opacity-75"
+							class="float-right cursor-pointer hover:opacity-75"
 							:aria-label="$t('dialog.close')"
 							@click="doAction(DialogCancel)"
 						>

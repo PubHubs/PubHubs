@@ -473,21 +473,10 @@
 	}
 
 	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
-		if (timelineEvent.isDeleted || (timelineEvent.matrixEvent && timelineEvent.matrixEvent.isRedacted())) return false;
-		const messageEventId = timelineEvent.matrixEvent.event.event_id;
-		if (!messageEventId) return false;
-
-		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
-			const relatesTo = event.getContent()[RelationType.RelatesTo];
-			return relatesTo && relatesTo.event_id === messageEventId;
-		});
-
-		if (reactionEvent) {
-			const relatesTo = reactionEvent.getContent()[RelationType.RelatesTo];
-			return relatesTo?.key ? true : false;
-		}
-
-		return false;
+		if (timelineEvent.isDeleted || timelineEvent.matrixEvent?.isRedacted()) return false;
+		const eventId = timelineEvent.matrixEvent.event.event_id;
+		if (!eventId) return false;
+		return onlyReactionEvent(eventId).some((event) => !!event.getContent()[RelationType.RelatesTo]?.key);
 	}
 
 	async function sendEmoji(emoji: string, eventId: string) {
