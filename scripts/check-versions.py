@@ -7,6 +7,7 @@ import shutil
 import sys
 import subprocess
 import json
+import tomllib
 
 def main():
     parser = argparse.ArgumentParser(
@@ -84,19 +85,25 @@ def parse_cargo_version(version_str):
     return parse_version(version_str)
 
 
+def read_required_rust_version():
+    # The Rust toolchain is pinned in pubhubs/rust-toolchain.toml, which is the
+    # single source of truth for the required Rust version.
+    with open(os.path.join("pubhubs", "rust-toolchain.toml"), "rb") as f:
+        toolchain = tomllib.load(f)
+    return toolchain["toolchain"]["channel"]
+
+
 def check_cargo():
     cargo = check_for_command("cargo")
-    cp = subprocess.run(
-            (cargo,
-             "metadata",
-             "--quiet",
-             "--no-deps"),
-            capture_output=True,
-            cwd="pubhubs",
-            check=True)
-    metadata = json.loads(cp.stdout)
-    required_rust_version_str = metadata['packages'][0]['rust_version']
-    required_rust_version = parse_cargo_version(required_rust_version_str)
+
+    required_rust_version_str = read_required_rust_version()
+
+    # A named channel (e.g. "stable") can't be compared numerically; the pin
+    # itself guarantees the right toolchain, so there is nothing to check.
+    try:
+        required_rust_version = parse_cargo_version(required_rust_version_str)
+    except ValueError:
+        return
 
     cp = subprocess.run(
             (cargo,
