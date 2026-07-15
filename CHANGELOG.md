@@ -25,9 +25,6 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed that there was no indication that the yivi qr code was being loaded on the global-client login page.
 - [BUG] Fixed that the yes button for the join room pop up was not responsive.
 
-- _internal_ Test the registration flow and login flow for the pubhubs card including normal phone settings, and with battery saver on. Also test the registration flow via the obtain/reobtain button in yivi. If no issues arise set phCard in settings.ts to true for stable.
-- _NOTE:_ We could not activate the phCard last time as Frans got yivi errors when obtaining/reobtaining cards.
-
 ## 4 June 2026 - v3.4.0
 
 - [NEW] User room warnings have been updated to show up above the message input bar.
