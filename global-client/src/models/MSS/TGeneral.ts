@@ -40,7 +40,6 @@ export type EnterStartResp = {
 	state: string;
 	nonce: string;
 	hhpp_signature_scheme?: string;
-	hub_mac_key?: string;
 };
 
 export type HubEnterStartResp = Result<EnterStartResp, ErrorCode>;

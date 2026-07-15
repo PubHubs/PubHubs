@@ -2,7 +2,7 @@
 	<ValidateField
 		v-slot="{ id: fieldId, validated, required, changed }"
 		v-model="model"
-		class="form-textfield"
+		class="form-textfield gap-075 flex w-full flex-col items-start justify-start"
 		:help="help"
 		:info="lenText"
 		:name="fieldName"
@@ -18,13 +18,13 @@
 			>
 				<Icon
 					v-if="icon"
-					class="text-on-surface-dim absolute top-1/2 left-100 -translate-y-1/2"
+					class="text-on-surface-dim absolute top-1/2 left-2 -translate-y-1/2"
 					size="sm"
 					:type="icon"
 				/>
 				<Icon
 					v-if="rightIcon"
-					class="text-on-surface-dim absolute top-1/2 right-100 -translate-y-1/2"
+					class="text-on-surface-dim absolute top-1/2 right-2 -translate-y-1/2"
 					:class="rightIconClass"
 					size="sm"
 					:type="rightIcon"
@@ -33,23 +33,18 @@
 				<textarea
 					v-if="type === 'textarea'"
 					:id="fieldId"
-					ref="elTextarea"
 					v-model="model"
 					:aria-invalid="!validated && changed ? 'true' : undefined"
 					:aria-required="required ? 'true' : undefined"
-					class="bg-surface outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline-2 focus:outline-3"
+					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline-2 focus:outline-3"
 					:class="[
-						!validated && changed
-							? 'outline-accent-error focus:outline-on-accent-error'
-							: 'outline-on-surface-dim focus:outline-accent-blue-interactive',
-						icon ? 'pl-600!' : '',
-						rightIcon ? 'pr-600!' : '',
-						autoGrow ? 'max-h-[40vh] resize-none overflow-y-auto' : '',
+						!validated && changed ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
+						icon ? 'pl-12!' : '',
+						rightIcon ? 'pr-12!' : '',
 					]"
 					:disabled="disabled"
 					:name="fieldName"
 					:placeholder="placeholder"
-					:rows="rows"
 					@input="update()"
 				/>
 				<input
@@ -60,11 +55,9 @@
 					:aria-required="required ? 'true' : undefined"
 					class="bg-surface-base outline-offset-thin disabled:bg-surface-base! w-full justify-start rounded px-175 py-100 outline-2 focus:outline-3"
 					:class="[
-						!validated && changed
-							? 'outline-accent-error focus:outline-on-accent-error'
-							: 'outline-on-surface-dim focus:outline-accent-blue-interactive',
-						icon ? 'pl-600!' : '',
-						rightIcon ? 'pr-600!' : '',
+						!validated && changed ? 'outline-accent-error focus:outline-on-accent-error' : 'outline-on-surface-dim focus:outline-button-blue',
+						icon ? 'pl-12!' : '',
+						rightIcon ? 'pr-12!' : '',
 					]"
 					:disabled="disabled"
 					:name="fieldName"
@@ -79,7 +72,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, nextTick, onMounted, ref, useAttrs, watch } from 'vue';
+	import { computed, onMounted, ref, useAttrs, watch } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -98,8 +91,6 @@
 	// Props
 	const props = withDefaults(
 		defineProps<{
-			// Only for type="textarea": grow with the text instead of scrolling inside a fixed box
-			autoGrow?: boolean;
 			disabled?: boolean;
 			help?: string;
 			icon?: string;
@@ -108,14 +99,11 @@
 			placeholder?: string;
 			rightIcon?: string;
 			rightIconClass?: string;
-			// Only for type="textarea": the height it starts at, and with autoGrow shrinks back to
-			rows?: number;
 			showLength?: boolean;
 			type?: string;
 			validation?: FieldValidations;
 		}>(),
 		{
-			autoGrow: false,
 			disabled: false,
 			help: '',
 			icon: undefined,
@@ -124,7 +112,6 @@
 			placeholder: '',
 			rightIcon: undefined,
 			rightIconClass: '',
-			rows: undefined,
 			showLength: false,
 			type: 'text',
 			validation: undefined,
@@ -138,7 +125,6 @@
 	const attrs = useAttrs();
 	const model = defineModel<string | number>();
 	const modelLen = ref(0);
-	const elTextarea = ref<HTMLTextAreaElement | null>(null);
 
 	const logger = createLogger('TextField');
 	const { slotDefault, fieldName, update } = useFormInput(props, model);
@@ -165,19 +151,9 @@
 		return modelLen.value + ' / ' + maxLen.value;
 	});
 
-	// Height is driven by the content, so reset it before measuring: scrollHeight only ever grows
-	// while the box is at its old height, which would make the field ratchet up and never shrink.
-	const resizeToContent = () => {
-		const el = elTextarea.value;
-		if (!props.autoGrow || !el) return;
-		el.style.height = 'auto';
-		el.style.height = `${el.scrollHeight}px`;
-	};
-
 	// Lifecycle
 	watch(model, () => {
 		calculateLen();
-		nextTick(resizeToContent);
 	});
 
 	onMounted(() => {
@@ -189,6 +165,5 @@
 			}
 		}
 		calculateLen();
-		resizeToContent();
 	});
 </script>

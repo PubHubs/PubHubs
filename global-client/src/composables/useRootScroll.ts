@@ -2,22 +2,15 @@
  * Layout root scroll helpers.
  */
 const SCROLL_DURATION = 150;
+let _isProgrammaticScroll = false;
 let animationFrameId: number | null = null;
 
-/**
- * The layout root scrolls smoothly and snaps mandatorily (see App.vue), and both of those act on
- * every scrollLeft this animation writes: the browser re-animates towards each intermediate value,
- * and resolves it to the nearest snap point, which for the first frames is still the one being left
- * behind. That drags the scroll back to where it started, halfway through. So while driving the
- * scroll ourselves, switch both off, and hand them back once we land on the target.
- */
 const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
 	if (animationFrameId !== null) {
 		cancelAnimationFrame(animationFrameId);
 	}
-	element.style.scrollBehavior = 'auto';
-	element.style.scrollSnapType = 'none';
 
+	_isProgrammaticScroll = true;
 	const startLeft = element.scrollLeft;
 	const distance = targetLeft - startLeft;
 	const startTime = performance.now();
@@ -35,9 +28,7 @@ const smoothScrollTo = (element: HTMLElement, targetLeft: number) => {
 			animationFrameId = requestAnimationFrame(animateScroll);
 		} else {
 			animationFrameId = null;
-			// Back to the stylesheet's smooth scrolling and snapping, from the snap point we landed on
-			element.style.scrollBehavior = '';
-			element.style.scrollSnapType = '';
+			_isProgrammaticScroll = false;
 		}
 	};
 

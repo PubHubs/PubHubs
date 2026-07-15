@@ -1,7 +1,7 @@
 // Packages
 import { VotingWidgetType } from '../events/voting/VotingTypes';
 import {
-	type Direction,
+	Direction,
 	EventTimeline,
 	type EventTimelineSet,
 	EventType,
@@ -10,7 +10,6 @@ import {
 	GroupCallIntent,
 	GroupCallType,
 	type IStateEvent,
-	type IThreadBundledRelationship,
 	type MatrixClient,
 	MatrixEvent,
 	type Room as MatrixRoom,
@@ -49,7 +48,6 @@ import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-import { useRooms } from '@hub-client/stores/rooms';
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('Room');
@@ -74,10 +72,6 @@ export default class Room {
 	public currentEvent: TCurrentEvent | undefined = undefined;
 	public threadUpdated: boolean = false; // toggle to indicate changed thread to vue components
 
-	// Set after the first sliding-sync timeline is processed; used by ForumRoomTimeline
-	// to show a loading indicator instead of "no threads" during the initial fetch.
-	public timelineReady: boolean = false;
-
 	/** Whether the first sliding sync response has been received for this room's subscription */
 	public syncDataReceived: boolean = false;
 
@@ -101,6 +95,9 @@ export default class Room {
 	private matrixFiles = useMatrixFiles();
 
 	private roomMembers: Map<string, RoomMember> = new Map();
+
+	/** Used in reactions: Contains all related events for an event. New related event for an event only stores the last event not the history */
+	private eventMultipleRelateEvents: MatrixEvent[] = [];
 
 	private stateEvents: IStateEvent[];
 
@@ -231,6 +228,23 @@ export default class Room {
 				this.stateEvents.push(newEvent);
 			}
 		}
+	}
+
+	/**
+	 * Used within reactions to show only one instance of multiple together with counter
+	 */
+	public addCurrentEventToRelatedEvent(event: MatrixEvent) {
+		if (this.eventMultipleRelateEvents.indexOf(event) === -1) {
+			this.eventMultipleRelateEvents.push(event);
+		}
+	}
+
+	/**
+	 *
+	 * Used within reactions to show only one instance of multiple together with counter
+	 */
+	public getCurrentEventRelatedEvents(): MatrixEvent[] {
+		return this.eventMultipleRelateEvents;
 	}
 
 	public getFirstVisibleEventId(): string {
@@ -723,12 +737,6 @@ export default class Room {
 		if (this.timelineManager.getEvents().length === 0) {
 			await this.loadInitialTimeline();
 		}
-
-		// The initial timeline is now established (from cache, the SDK live timeline, or the network),
-		// so stop the loading indicator. Re-entering an already-subscribed room does not trigger a fresh
-		// sliding sync delivery ("custom subscription already exists"), so we must not rely on
-		// loadFromSlidingSync alone to clear this flag or the spinner would spin forever.
-		this.syncDataReceived = true;
 	}
 
 	/**
@@ -783,12 +791,8 @@ export default class Room {
 				this.currentThreadId !== event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
 		);
 
-		// m.replace edits (incl. of thread replies) are applied to the original event's content by the
-		// TimelineManager; toggle threadUpdated so an open thread re-renders with the edited content.
-		const editEvents = eventList.filter((event) => event.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Replace);
-
 		// Force vue reactivity for any thread change in this room, regardless of whether the affected thread is currently open
-		if (currentThreadEvents.length > 0 || otherThreadEvents.length > 0 || redactions.length > 0 || editEvents.length > 0) {
+		if (currentThreadEvents.length > 0 || otherThreadEvents.length > 0 || redactions.length > 0) {
 			this.threadUpdated = !this.threadUpdated;
 		}
 
@@ -820,23 +824,8 @@ export default class Room {
 		const nonCurrentThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
 
 		this.timelineManager.loadFromSlidingSync(nonCurrentThreadEvents).then((scrollToEventId) => {
-			if (!this.timelineReady) {
-				this.timelineReady = true;
-			}
 			if (scrollToEventId) {
 				this.setCurrentEvent({ eventId: scrollToEventId });
-			}
-			// Seed reply counts from server-bundled m.thread data, for threads this client has not
-			// opened yet. Once a thread is loaded, TRoomThread owns the count: it excludes deleted
-			// replies, which the bundled count still includes, so seeding over it would revive them.
-			const roomsStore = useRooms();
-			for (const event of this.timelineManager.getEvents()) {
-				const eventId = event.matrixEvent.getId();
-				if (!eventId || roomsStore.threadLengths[this.roomId]?.[eventId] !== undefined) continue;
-				const bundled = event.matrixEvent.getServerAggregatedRelation<IThreadBundledRelationship>('m.thread');
-				if (bundled?.count != null) {
-					roomsStore.setThreadLength(this.roomId, eventId, bundled.count);
-				}
 			}
 		});
 	}
@@ -907,15 +896,18 @@ export default class Room {
 			return; // Timeline already has events
 		}
 
-		// The main sliding-sync list already loaded the latest events of every room into the SDK live
-		// timeline before it is opened, so seed from those for an instant switch without any network
-		// request. Older history is filled by the scroll pagination observer. Only fetch from the
-		// network when the SDK has nothing yet (e.g. a room outside the synced list window).
-		if (this.timelineManager.seedFromLiveTimeline() > 0) {
-			return;
-		}
+		const messagesResponse = await this.matrixRoom.client.createMessagesRequest(
+			this.roomId,
+			null,
+			1,
+			Direction.Backward,
+			this.timelineManager.getMessagesFilter(),
+		);
 
-		await this.timelineManager.loadLatestTimeline();
+		const lastEventId = messagesResponse.chunk[0]?.event_id;
+		if (lastEventId) {
+			await this.loadToEvent({ eventId: lastEventId });
+		}
 	}
 
 	public isOldestMessageLoaded(): boolean {
@@ -1065,6 +1057,7 @@ export default class Room {
 		if (!lastVideoCallMessage || !lastVideoCallMessage.event.event_id) {
 			return undefined;
 		}
+
 		return lastVideoCallMessage;
 	}
 
@@ -1155,14 +1148,14 @@ export function computeUnreadState(
 	if (timelineStartTs !== undefined) {
 		if (timelineStartTs <= receiptTs) return 'read';
 		if (stored && stored.lastVisibleTs > receiptTs) return 'unread';
-		return 'read';
+		return 'unknown';
 	}
 
 	// Empty timeline — no direct evidence at all.
 	if (stored?.lastReadAllTs !== undefined) return 'read';
 	if (stored && stored.lastVisibleTs > receiptTs) return 'unread';
 	if (stored && stored.lastVisibleTs > 0 && stored.lastVisibleTs <= receiptTs) return 'read';
-	return 'read';
+	return 'unknown';
 }
 
 // #endregion

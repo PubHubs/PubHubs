@@ -12,8 +12,6 @@ use crate::misc::jwt;
 use crate::servers::Constellation;
 use crate::servers::yivi;
 
-use super::common::{self, Environment};
-
 use api::phc::user::AuthToken;
 
 /// Wrapper around `Vec<Handle>` that parses from a `|`-separated list of handles
@@ -115,6 +113,13 @@ pub struct EnterArgs {
     register_only_with_unique_attrs: bool,
 }
 
+#[derive(clap::ValueEnum, Debug, Clone, Copy)]
+enum Environment {
+    Stable,
+    Main,
+    Local,
+}
+
 impl EnterArgs {
     pub fn run(mut self, _spec: &mut clap::Command) -> Result<()> {
         env_logger::init();
@@ -130,7 +135,19 @@ impl EnterArgs {
     }
 
     fn url(&self) -> std::borrow::Cow<'_, url::Url> {
-        common::phc_url(self.environment, &self.url)
+        if let Some(url) = &self.url {
+            return std::borrow::Cow::Borrowed(url);
+        }
+
+        std::borrow::Cow::Owned(
+            match self.environment {
+                Environment::Local => "http://localhost:5050",
+                Environment::Stable => "https://phc.pubhubs.net",
+                Environment::Main => "https://phc-main.pubhubs.net",
+            }
+            .parse()
+            .unwrap(),
+        )
     }
 
     async fn confirm(&self, msg: &str) {
@@ -210,7 +227,6 @@ impl EnterArgs {
             state: hub_state,
             nonce: hub_nonce,
             hhpp_signature_scheme,
-            hub_mac_key,
         } = client
             .query_with_retry::<api::hub::EnterStartEP, _, _>(&hub_info.url, api::NoPayload)
             .await
@@ -234,7 +250,6 @@ impl EnterArgs {
                     hub_nonce,
                     hub: hub_info.id,
                     ppp,
-                    hub_mac_key,
                 },
             )
             .with_retry()

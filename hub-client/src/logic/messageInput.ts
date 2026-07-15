@@ -2,7 +2,6 @@
 import { computed, reactive } from 'vue';
 
 // Models
-import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
 import { type Poll, type Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 
 // This is used on multiple messageinputs at the same time, so we need to create a new instance of it for each message input.
@@ -19,7 +18,6 @@ function useMessageInput() {
 		showYiviQR: false,
 		fileDialog: false,
 		fileAdded: null as File | null,
-		editingExistingFile: null as FileEditInfo | null,
 		poll: false,
 		pollObject: null as Poll | null,
 		scheduler: false,
@@ -40,7 +38,6 @@ function useMessageInput() {
 		state.showYiviQR = false;
 		state.fileDialog = false;
 		state.fileAdded = null;
-		state.editingExistingFile = null;
 		state.poll = false;
 		state.pollObject = null;
 		state.scheduler = false;
@@ -113,17 +110,6 @@ function useMessageInput() {
 		state.textArea = false;
 	}
 
-	function editMessage(editEventId: string, existingFile?: FileEditInfo) {
-		resetAll();
-		state.editEventId = editEventId;
-		state.textArea = true;
-		state.editingExistingFile = existingFile ?? null;
-	}
-
-	function removeExistingFile() {
-		state.editingExistingFile = null;
-	}
-
 	function openScheduler() {
 		resetAll();
 		state.textArea = false;
@@ -161,8 +147,6 @@ function useMessageInput() {
 		openPoll,
 		closePoll,
 		editPoll,
-		editMessage,
-		removeExistingFile,
 		openScheduler,
 		closeScheduler,
 		editScheduler,

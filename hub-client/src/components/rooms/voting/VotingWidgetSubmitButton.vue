@@ -1,5 +1,5 @@
 <template>
-	<div class="flex justify-end p-100">
+	<div class="flex justify-end p-2">
 		<Button
 			:disabled="disabled"
 			@click="submit()"

@@ -1,10 +1,8 @@
 // Packages
-import type { IOptions as SanitizeOptions } from 'sanitize-html';
 import { twMerge } from 'tailwind-merge';
 import { type DirectiveBinding, type VNode } from 'vue';
 
 // Logic
-import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 const logger = createLogger('Directives');
@@ -132,95 +130,5 @@ const contextMenu = {
 	},
 };
 
-// ──────────────────────────────────────────────────────────────────────────────
-// v-safe-html directive
-//
-// Replacement for v-html that automatically sanitizes before rendering.
-// Sanitization only for elements that are insinde the viewport (IntersectionObserver + a 400 px buffer).
-// Raw HTML is kept in memory outside the DOM to avoid creating other possible XSS problems.
-//
-// Usage:
-//   v-safe-html="rawHtmlString"
-//   v-safe-html="{ html: rawHtmlString, options: customSanitizeOptions }"
-// ──────────────────────────────────────────────────────────────────────────────
-
-type SafeHtmlValue = string | { html: string; options?: SanitizeOptions };
-
-const pendingContent = new WeakMap<Element, SafeHtmlValue>();
-
-let _observer: IntersectionObserver | null = null;
-const getObserver = (): IntersectionObserver | null => {
-	if (_observer) return _observer;
-	if (typeof IntersectionObserver === 'undefined') return null;
-	_observer = new IntersectionObserver(
-		(entries) => {
-			for (const entry of entries) {
-				if (!entry.isIntersecting) continue;
-				const el = entry.target as HTMLElement;
-				const pending = pendingContent.get(el);
-				if (pending !== undefined) {
-					el.innerHTML = applySanitize(pending);
-					pendingContent.delete(el);
-				}
-				_observer!.unobserve(el);
-			}
-		},
-		{ rootMargin: '400px 0px' },
-	);
-	return _observer;
-};
-
-const applySanitize = (value: SafeHtmlValue): string => {
-	if (typeof value === 'string') return sanitizeHtml(value);
-	const { html, options } = value;
-	return sanitizeHtml(html, options);
-};
-
-const getHtml = (value: SafeHtmlValue | null | undefined): string => {
-	if (!value) return '';
-	return typeof value === 'string' ? value : value.html;
-};
-
-const applyToElement = (el: HTMLElement, value: SafeHtmlValue, visible = false) => {
-	const obs = getObserver();
-	if (!obs || visible) {
-		el.innerHTML = applySanitize(value);
-		return;
-	}
-	const rect = el.getBoundingClientRect();
-	const nearViewport = rect.bottom > -400 && rect.top < window.innerHeight + 400;
-	if (nearViewport) {
-		el.innerHTML = applySanitize(value);
-	} else {
-		el.innerHTML = '';
-		pendingContent.set(el, value);
-		obs.observe(el);
-	}
-};
-
-const safeHtml = {
-	mounted(el: HTMLElement, binding: DirectiveBinding<SafeHtmlValue>) {
-		applyToElement(el, binding.value);
-	},
-	updated(el: HTMLElement, binding: DirectiveBinding<SafeHtmlValue>) {
-		const oldHtml = getHtml(binding.oldValue);
-		const newHtml = getHtml(binding.value);
-		const oldOptions = typeof binding.oldValue === 'object' ? binding.oldValue?.options : undefined;
-		const newOptions = typeof binding.value === 'object' ? binding.value?.options : undefined;
-		if (newHtml === oldHtml && newOptions === oldOptions) return;
-		if (pendingContent.has(el)) {
-			pendingContent.set(el, binding.value);
-		} else {
-			applyToElement(el, binding.value, true);
-		}
-	},
-	unmounted(el: HTMLElement) {
-		if (pendingContent.has(el)) {
-			getObserver()?.unobserve(el);
-			pendingContent.delete(el);
-		}
-	},
-};
-
 // Exports
-export { focus, twClass, clickOutside, contextMenu, SafeHtmlValue, safeHtml };
+export { focus, twClass, clickOutside, contextMenu };

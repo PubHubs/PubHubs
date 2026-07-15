@@ -1,5 +1,5 @@
 <template>
-	<div class="gap-050 flex items-center wrap-break-word">
+	<div class="flex items-center gap-1 break-words">
 		<div class="overflow-hidden text-ellipsis">
 			{{ body }}
 		</div>
@@ -36,7 +36,7 @@
 	const callEnded = ref(false);
 	const hasEndCallReference = ref(false);
 	const duration = ref<string | undefined>(undefined);
-	const body = computed(() => props.event.content?.body ?? '');
+	const body = ref<string>(props.event.content.body ?? 'Loading...');
 	const currentRoom = rooms.currentRoom;
 	const timeLine = computed(() => (!hasEndCallReference.value ? currentRoom?.getTimeline() : null));
 
@@ -63,7 +63,8 @@
 			const newContent = event.event.content as TMessageEventContent;
 			if (props.event.event_id !== event.event.event_id && newContent.msgtype === PubHubsMgType.VideoCallEnded) {
 				callEnded.value = true;
-				duration.value = calculateDuration(props.event.content?.timestamp ?? 0, newContent.timestamp);
+				duration.value = calculateDuration(props.event.content.timestamp, newContent.timestamp);
+				body.value = `Videocall ended`;
 				hasEndCallReference.value = true;
 				return;
 			}

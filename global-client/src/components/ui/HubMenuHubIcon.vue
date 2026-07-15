@@ -3,26 +3,25 @@
 	<div
 		v-if="hub"
 		class="group relative z-0 block h-full w-full cursor-pointer rounded-xl text-center transition-all ease-in-out"
+		:class="{ 'border-surface-elevated border-4': active }"
 		:title="hub?.name"
-		:data-rail-active="active || undefined"
 	>
 		<div
+			class="absolute top-1/3 -right-2 -z-10 h-4 w-4 rotate-45"
+			:class="{ 'border-surface-elevated bg-surface-elevated border-t-4 border-r-4': active }"
+		/>
+		<div
 			v-show="hub && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)"
-			class="-top-050 -right-050 absolute z-10"
+			class="absolute -top-1 -right-1 z-10"
 		>
 			<iframe
 				:id="miniClientId + '_' + hubId"
 				class="pointer-events-none h-300 w-300 border-none"
 				:src="miniclientSrc"
-				aria-hidden="true"
-				tabindex="-1"
 			/>
 		</div>
 
-		<!-- Inactive hubs are dimmed so the active one stands out; they brighten on hover to read as switch targets. -->
 		<HubIcon
-			class="transition-opacity duration-200"
-			:class="active ? '' : 'opacity-60 group-hover:opacity-100'"
 			:hub-name="hub.name"
 			:icon-url="hub.iconUrlLight"
 			:icon-url-dark="hub.iconUrlDark"

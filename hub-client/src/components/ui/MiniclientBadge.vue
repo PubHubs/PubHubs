@@ -16,6 +16,12 @@
 			size="sm"
 			data-testid="miniclient-badge"
 		/>
+		<Badge
+			v-if="unreadState === 'unknown'"
+			color="unknown"
+			size="sm"
+			data-testid="miniclient-unknown-badge"
+		/>
 	</div>
 </template>
 

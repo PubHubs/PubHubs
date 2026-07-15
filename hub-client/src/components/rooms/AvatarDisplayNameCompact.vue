@@ -1,6 +1,6 @@
 <template>
 	<span
-		class="gap-050 flex items-center"
+		class="flex items-center gap-1"
 		:title="pseudonym"
 	>
 		<Icon

@@ -44,7 +44,6 @@ const useGlobal = defineStore('global', {
 		return {
 			loggedIn: false,
 			modalVisible: false,
-			contextMenuModalVisible: false,
 			pinnedHubs: [] as PinnedHubs,
 			hubsLoading: false,
 
@@ -54,7 +53,7 @@ const useGlobal = defineStore('global', {
 
 	getters: {
 		isModalVisible(state): boolean {
-			return state.modalVisible || state.contextMenuModalVisible;
+			return state.modalVisible;
 		},
 
 		getGlobalSettings(state): GlobalSettings {
@@ -156,7 +155,7 @@ const useGlobal = defineStore('global', {
 			}
 		},
 
-		async logout(message?: { key: string; values?: string[] }) {
+		async logout() {
 			this.loggedIn = false;
 
 			const mss = useMSS();
@@ -164,10 +163,7 @@ const useGlobal = defineStore('global', {
 
 			// TODO: find a way router can be part of a store that TypeScript swallows.
 			// @ts-expect-error -- router is injected as plugin, not in store type
-			await this.router.replace({
-				name: 'login',
-				query: message ? { message: message.key, messageValues: message.values?.join(',') } : undefined,
-			});
+			await this.router.replace({ name: 'login' });
 		},
 
 		// Will be called after each relevant change in state (watched in App.vue)
@@ -264,14 +260,6 @@ const useGlobal = defineStore('global', {
 
 		hideModal() {
 			this.modalVisible = false;
-		},
-
-		showContextMenuModal() {
-			this.contextMenuModalVisible = true;
-		},
-
-		hideContextMenuModal() {
-			this.contextMenuModalVisible = false;
 		},
 	},
 });

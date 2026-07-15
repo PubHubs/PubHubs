@@ -10,8 +10,7 @@ import type { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 
 const visibleEventTypes: string[] = [EventType.RoomMessage];
 const invisibleMessageTypes: string[] = [MsgType.Notice];
-// m.replace edits are never rendered as their own bubble; their content is merged into the original event.
-const invisibleRelatesToTypes: string[] = [RelationType.Thread, RelationType.Replace];
+const invisibleRelatesToTypes: string[] = [RelationType.Thread];
 
 /**
  * Determines whether an event is "visible": rendered in the timeline and

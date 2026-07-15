@@ -2,7 +2,7 @@
 	<div
 		v-if="authMediaUrl?.url"
 		v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadFile() }])"
-		class="bg-surface-base rounded-base border-surface-elevated flex w-fit items-center gap-100 overflow-x-hidden border-3 px-150 py-100"
+		class="bg-surface-base rounded-base border-surface-elevated flex w-fit items-center gap-2 overflow-x-hidden border-3 px-3 py-2"
 	>
 		<Icon
 			class="text-on-surface"
@@ -16,36 +16,50 @@
 			{{ message.filename }}
 		</span>
 	</div>
-	<!-- Message body with mention support -->
-	<MessageBodyWithMentions
+	<!-- eslint-disable vue/no-v-html -- sanitized message body -->
+	<p
 		v-if="message.body !== message.filename"
-		:body="message.body"
-		:ph-body="message.ph_body"
-	/>
+		:class="{ 'text-on-surface-dim': deleted }"
+		class="truncate"
+		v-html="message.body"
+	></p>
 </template>
 
 <script setup lang="ts">
 	// Packages
+	import { onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import MessageBodyWithMentions from '@hub-client/components/rooms/MessageBodyWithMentions.vue';
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
-	import { useAuthMediaUrl } from '@hub-client/composables/useAuthMediaUrl';
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Logic
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 
 	// Models
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	// Props
-	const props = defineProps<{ message: TFileMessageEventContent }>();
+	const props = defineProps<{ message: TFileMessageEventContent; deleted?: boolean }>();
 
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
+	const matrixFiles = useMatrixFiles();
+	const authMediaUrl = ref<BlobManager>();
 
-	const { authMediaUrl } = useAuthMediaUrl(() => props.message.url);
+	onMounted(async () => {
+		const url = props.message.url ? await matrixFiles.getAuthorizedMediaUrl(props.message.url) : undefined;
+		authMediaUrl.value?.revoke();
+		authMediaUrl.value = new BlobManager(url);
+	});
+
+	onBeforeUnmount(() => {
+		authMediaUrl.value?.revoke();
+	});
 
 	function downloadFile() {
 		if (!authMediaUrl.value?.url) return;

@@ -52,9 +52,7 @@ describe('Dialog.vue Test', () => {
 
 		expect(wrapper.emitted('close')).toBeUndefined();
 
-		// Esc is handled by a global listener so it works regardless of where focus is
-		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-		await flushPromises();
+		await wrapper.trigger('keydown', { key: 'Escape' });
 
 		expect(wrapper.emitted('close')).toHaveLength(1);
 		expect(wrapper.emitted('close')).toHaveProperty([0]);

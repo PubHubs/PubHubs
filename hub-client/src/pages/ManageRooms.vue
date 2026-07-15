@@ -6,23 +6,23 @@
 	/>
 	<div class="flex h-full w-full flex-col overflow-hidden">
 		<div
-			class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between border-b-2 px-400"
-			:class="isMobile ? 'pl-600' : 'pl-400'"
+			class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b px-8"
+			:class="isMobile ? 'pl-12' : 'pl-8'"
 		>
-			<div class="flex w-fit items-center gap-150 overflow-hidden">
+			<div class="flex w-fit items-center gap-3 overflow-hidden">
 				<Icon type="chats-circle" />
 				<H3 class="font-headings text-h3 text-on-surface font-semibold">
 					{{ t('menu.admin_tools_rooms') }}
 				</H3>
 			</div>
-			<div class="flex items-center gap-100" />
+			<div class="flex items-center gap-2" />
 		</div>
 
 		<div class="flex flex-1 overflow-hidden">
 			<div
 				id="manage-rooms-container"
 				class="relative h-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
-				:class="isMobile ? 'py-150' : 'py-200'"
+				:class="isMobile ? 'py-3' : 'py-4'"
 			>
 				<FilterableList
 					:filter-keys="['name']"
@@ -34,26 +34,26 @@
 				>
 					<template #filtered="{ items }">
 						<div
-							class="flex flex-col gap-200"
-							:class="isMobile ? 'px-150' : 'grid grid-cols-[1fr_1fr_auto_auto_auto] gap-x-0 gap-y-0'"
+							class="flex flex-col gap-4"
+							:class="isMobile ? 'px-3' : 'grid grid-cols-[1fr_1fr_auto_auto_auto] gap-x-0 gap-y-0'"
 						>
 							<div
 								v-if="!isMobile"
 								class="contents"
 							>
-								<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
+								<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
 									{{ t('admin.name') }}
 								</div>
-								<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
+								<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
 									{{ t('admin.topic') }}
 								</div>
-								<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
+								<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
 									{{ t('admin.room_type') }}
 								</div>
-								<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
+								<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
 									{{ t('rooms.yivi_attributes') }}
 								</div>
-								<div class="text-on-surface-dim border-surface-base border-b px-200 py-100 text-sm font-semibold">
+								<div class="text-on-surface-dim border-surface-base border-b px-4 py-2 text-sm font-semibold">
 									{{ t('rooms.member_count') }}
 								</div>
 							</div>
@@ -78,10 +78,7 @@
 						</div>
 					</template>
 				</FilterableList>
-				<div
-					v-if="isAdmin"
-					class="absolute right-200 bottom-200 z-50"
-				>
+				<div class="absolute right-4 bottom-4 z-50">
 					<FloatingActionButton
 						:label="t('rooms.add_room')"
 						icon="plus"
@@ -103,6 +100,7 @@
 					@edit="editSelectedRoom"
 					@remove="removeSelectedRoom"
 					@promote="promoteSelectedRoom"
+					@navigate-to-user="navigateToUser"
 				/>
 			</RoomSidebar>
 		</div>
@@ -159,6 +157,7 @@
 		removeSelectedRoom,
 		promoteSelectedRoom,
 		goToSelectedRoom,
+		navigateToUser,
 		selectRoom,
 		closeForm,
 		itemRoomId,

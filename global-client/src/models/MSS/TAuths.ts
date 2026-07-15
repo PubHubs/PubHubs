@@ -54,11 +54,11 @@ type AuthTask = {
 		yivi_requestor_url: string;
 	};
 };
-export type YiviWaitForResultResp = { Success: { disclosure: string } } | 'PleaseRestartAuth' | 'SessionGone';
+export type YiviWaitForResultResp = { Success: { disclosure: string } } | { PleaseRestartAuth: string } | { SessionGone: string };
 
 export type YiviReleaseNextSessionResp = { Success: Record<string, never> } | 'PleaseRestartAuth' | 'SessionGone' | 'YiviServerGone' | 'TooEarly';
 
-export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string; stale_after?: number };
+export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string; stale_after: number };
 
 export type CardResp = { Success: CardRespSuccess } | 'PleaseRetryWithNewCardPseud';
 
@@ -66,11 +66,7 @@ export type CardRespSuccess = { attr: string; issuance_request: string; yivi_req
 
 export type CardReq = { card_pseud_package: { card_pseud: number; registration_date?: number }; comment: string };
 
-export type StartResp =
-	| { Success: StartRespSuccess }
-	| { UnknownAttrType: string }
-	| { SourceNotAvailableFor: string }
-	| 'ChainedSessionsTemporarilyUnavailable';
+export type StartResp = { Success: StartRespSuccess } | { UnknownAttrType: string } | { SourceNotAvailableFor: string };
 
 export type StartRespSuccess = { task: AuthTask; state: Array<number> };
 

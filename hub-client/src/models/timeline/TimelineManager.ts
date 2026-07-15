@@ -11,7 +11,6 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 // Models
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
@@ -82,11 +81,8 @@ class TimelineManager {
 
 	/** Contains all related events: reactions, annotations etc. */
 	private relatedEvents: TRelatedEvents[] = [];
-	private _relatedEventsMap: Map<string, TRelatedEvents> | null = null;
 	// Contains related hide events
 	private hideMessageEvents: Map<string, MatrixEvent> = new Map();
-	// Latest m.replace edit event per target eventId (used to merge edited content into the original)
-	private editEvents: Map<string, MatrixEvent> = new Map();
 
 	private roomId: string;
 
@@ -219,73 +215,6 @@ class TimelineManager {
 		}
 	}
 
-	private isEditEvent(event: MatrixEvent): boolean {
-		return event.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Replace;
-	}
-
-	/** Records the latest (by ts) m.replace edit for its target event. */
-	private updateEditEvent(event: MatrixEvent): void {
-		if (!this.isEditEvent(event)) return;
-		const targetEventId = event.getContent()?.[RelationType.RelatesTo]?.event_id;
-		if (!targetEventId) return;
-		const existing = this.editEvents.get(targetEventId);
-		if (!existing || (event.getTs() ?? 0) > (existing.getTs() ?? 0)) {
-			this.editEvents.set(targetEventId, event);
-		}
-	}
-
-	/**
-	 * Applies pending m.replace edits to their target events: overwrites the original content
-	 * with `m.new_content` (preserving the original relation so replies/threads keep their context),
-	 * regenerates the processed body via a fresh TimelineEvent wrapper and stamps `ph_edited_ts`.
-	 * Mirrors applyIsDeleted. The original content is overwritten, so it is never rendered.
-	 * Targets not in the managed timeline (e.g. thread replies) are still updated via the SDK room.
-	 * @returns ids of events whose content changed, so callers can refresh other views (e.g. threads)
-	 */
-	private applyEdits(): string[] {
-		if (this.editEvents.size === 0) return [];
-		const room = this.client.getRoom(this.roomId);
-		const changedIds: string[] = [];
-
-		for (const [targetEventId, editEvent] of this.editEvents) {
-			const editTs = editEvent.getTs() ?? 0;
-
-			// Prefer the managed timeline (so we can swap the wrapper for reactivity), fall back to the SDK room.
-			const index = this._timelineEvents.findIndex((e) => e.matrixEvent.getId() === targetEventId);
-			const target = index !== -1 ? this._timelineEvents[index].matrixEvent : room?.findEventById(targetEventId);
-			if (!target) continue;
-
-			if (editEvent.getSender() !== target.getSender()) {
-				logger.warn(`Skipping edit: sender mismatch (edit from ${editEvent.getSender()}, original from ${target.getSender()})`);
-				continue;
-			}
-
-			const currentContent = target.event.content as TTextMessageEventContent | undefined;
-			// Skip when this (or a newer) edit was already applied.
-			if (currentContent?.ph_edited_ts !== undefined && currentContent.ph_edited_ts >= editTs) continue;
-
-			const newContent = editEvent.getContent()?.['m.new_content'] as TTextMessageEventContent | undefined;
-			if (!newContent) continue;
-
-			const originalRelatesTo = currentContent?.[RelationType.RelatesTo];
-			target.event.content = {
-				...newContent,
-				...(originalRelatesTo ? { [RelationType.RelatesTo]: originalRelatesTo } : {}),
-				ph_edited_ts: editTs,
-			};
-
-			if (index !== -1) {
-				// Fresh wrapper re-runs the content transform (regenerates ph_body) and changes the prop
-				// reference so the bubble re-renders.
-				this._timelineEvents[index] = new TimelineEvent({ matrixEvent: target, roomId: this.roomId });
-			}
-			changedIds.push(targetEventId);
-		}
-
-		if (changedIds.length > 0) this._timelineVersion++;
-		return changedIds;
-	}
-
 	private cleanupHideMessageEvents(): void {
 		const timelineEventIds = new Set(this.timelineEvents.map((e) => e.matrixEvent.getId()));
 		for (const targetEventId of this.hideMessageEvents.keys()) {
@@ -301,10 +230,7 @@ class TimelineManager {
 	 * @returns eventList to use in the RoomTimeline
 	 */
 	private prepareEvents(eventList: MatrixEvent[]): MatrixEvent[] {
-		eventList.forEach((e) => {
-			this.updateHideMessageEvent(e);
-			this.updateEditEvent(e);
-		});
+		eventList.forEach((e) => this.updateHideMessageEvent(e));
 		return eventList.filter((event) => this.isVisibleEvent(event.event)).sort((a, b) => a.getTs() - b.getTs());
 	}
 
@@ -316,7 +242,6 @@ class TimelineManager {
 
 		for (const eventToAdd of events) {
 			this.updateHideMessageEvent(eventToAdd);
-			this.updateEditEvent(eventToAdd);
 			if (eventToAdd.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				// Fetch thread for newly created threads that are not the currentthread and ar not yet recognized as thread in this client
 				const rootId = eventToAdd.getContent()?.[RelationType.RelatesTo]?.event_id;
@@ -344,8 +269,6 @@ class TimelineManager {
 				} else {
 					if (relatesToEvent) {
 						this.relatedEvents.push({ eventId: relatesToEvent, isFetched: false, relatedEvents: [eventToAdd] });
-						// A new entry changes the lookup itself; entries already in it are mutated in place
-						this._relatedEventsMap = null;
 					}
 				}
 			}
@@ -353,10 +276,9 @@ class TimelineManager {
 	}
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
-		if (!this._relatedEventsMap) {
-			this._relatedEventsMap = new Map(this.relatedEvents.map((x) => [x.eventId, x]));
-		}
-		return this._relatedEventsMap.get(eventId)?.relatedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })) ?? [];
+		return (
+			this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.roomId })) ?? []
+		);
 	}
 
 	// Gets related events, either all (defined in this.relatedEventTypes) or of one specific type and or contenttype (for instance EvenType.Reaction, RelationType.Annotation)
@@ -399,7 +321,6 @@ class TimelineManager {
 		const newOnly = eventList.filter((x) => !existingIds.has(x.matrixEvent.getId()));
 		this.timelineEvents = [...this.timelineEvents, ...newOnly];
 
-		this.applyEdits();
 		this._timelineVersion++;
 
 		return scrollToEventId;
@@ -433,92 +354,14 @@ class TimelineManager {
 			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.getId(), e])).values()); // make unique
 		}
 
-		return this.commitTimelineEvents(tempEvents);
-	}
-
-	/**
-	 * Maps events into the visible timeline, caps it to the window size and refreshes derived state
-	 * (hidden messages, edits, timeline version). Shared by the initial-load paths.
-	 */
-	private commitTimelineEvents(events: MatrixEvent[]): TimelineEvent[] {
-		let mappedEvents = events.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
+		let mappedEvents = tempEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
+
 		this.timelineEvents = mappedEvents;
 		this.cleanupHideMessageEvents();
-		this.applyEdits();
 		this._timelineVersion++;
+
 		return mappedEvents;
-	}
-
-	/**
-	 * Seeds the timeline synchronously from events already held in the SDK live timeline.
-	 *
-	 * The main sliding-sync list delivers the latest events of every room into the SDK before the
-	 * room is opened (see Room.unreadState), so on first open these are already available and we can
-	 * render immediately without a network round-trip. Older history is filled afterwards by the
-	 * scroll pagination observer.
-	 *
-	 * @returns the number of visible events that were seeded
-	 */
-	public seedFromLiveTimeline(): number {
-		const room = this.client?.getRoom(this.roomId);
-		if (!room) return 0;
-
-		// prepareEvents sorts oldest -> newest; the SDK live timeline is not guaranteed to be ordered by ts
-		const visibleEvents = this.prepareEvents(room.getLiveTimeline().getEvents());
-		if (visibleEvents.length === 0) return 0;
-
-		const committed = this.commitTimelineEvents(visibleEvents);
-
-		// The list is sorted by recency, so the newest event of the room is loaded
-		this.paginationState.lastMessageId = committed[committed.length - 1]?.matrixEvent.getId();
-
-		return visibleEvents.length;
-	}
-
-	/**
-	 * Loads the most recent messages of the room in a single backward pass from the live end.
-	 *
-	 * Used for the initial load when opening a room. It replaces the previous
-	 * "fetch newest event id -> getEventTimeline(context) -> paginate both directions" sequence,
-	 * which needed three or more sequential round-trips before the timeline could render.
-	 * Starting at the live end (token = null) and paginating only backward, this needs just enough
-	 * requests to collect `initialRoomTimelineLimit` visible events, usually a single one.
-	 */
-	public async loadLatestTimeline(): Promise<TimelineEvent[]> {
-		let collected: MatrixEvent[] = [];
-		let currentToken: string | null = null;
-		let iterations = 0;
-		let reachedEnd = false;
-
-		while (collected.length < SystemDefaults.initialRoomTimelineLimit && iterations < SystemDefaults.maxPaginationIterations && !reachedEnd) {
-			iterations++;
-			const messagesResponse = await this.client.createMessagesRequest(
-				this.roomId,
-				currentToken,
-				SystemDefaults.initialRoomTimelineLimit,
-				Direction.Backward,
-				this.MessageFilter,
-			);
-
-			const eventMapper = this.client.getEventMapper();
-			const newEvents = messagesResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
-
-			// prepareEvents sorts each batch oldest -> newest, so prepending successive (older) batches keeps order
-			const visibleEvents = this.prepareEvents(newEvents);
-			collected = [...visibleEvents, ...collected];
-
-			currentToken = messagesResponse.end ?? null;
-			if (!messagesResponse.end || messagesResponse.chunk.length < SystemDefaults.initialRoomTimelineLimit) {
-				reachedEnd = true;
-				this.paginationState.firstMessageId = collected[0]?.getId();
-			}
-		}
-
-		// We started at the live end, so the newest message is loaded
-		this.paginationState.lastMessageId = collected[collected.length - 1]?.getId();
-
-		return this.commitTimelineEvents(collected);
 	}
 
 	/**
@@ -529,12 +372,6 @@ class TimelineManager {
 	async loadFromSlidingSync(matrixEvents: MatrixEvent[]): Promise<string | undefined> {
 		logger.info(`Loading events from sliding sync`);
 		if (!matrixEvents || matrixEvents.length === 0) return undefined;
-
-		// m.replace edits: capture and apply synchronously here, before the visible-event early-return below
-		// (an edit-only batch filters down to zero visible events). Edits whose target is not loaded yet
-		// stay in editEvents and are applied later by applyEdits() in the add/paginate paths.
-		matrixEvents.forEach((e) => this.updateEditEvent(e));
-		this.applyEdits();
 
 		// Related Events
 		const relatedEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]);
@@ -853,9 +690,6 @@ class TimelineManager {
 					this._timelineVersion++;
 				}
 			}
-			// Replace events fetched during pagination are captured in prepareEvents but filtered from the
-			// visible list; apply them (also covers edits of events just added above).
-			this.applyEdits();
 		}
 	}
 

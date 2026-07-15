@@ -2,13 +2,13 @@
 	<div class="flex">
 		<UserDisplayName
 			v-if="showDisplayname"
-			class="mr-100 ml-300"
+			class="mr-2 ml-6"
 			:user-display-name="user.userDisplayName(userId)"
 			:user-id="userId"
 		/>
 		<Avatar
 			:avatar-url="user.userAvatar(userId)"
-			class="h-300 w-300 border"
+			class="h-6 w-6 border"
 			:title="displayName"
 			:user-id="userId"
 		/>

@@ -53,13 +53,13 @@ describe('computeUnreadState', () => {
 			expect(computeUnreadState(10, __, 20, stored(15))).toBe('unread');
 		});
 
-		test('blind spot + stored covered by receipt → read', () => {
-			expect(computeUnreadState(10, __, 20, stored(5))).toBe('read');
-			expect(computeUnreadState(10, __, 20, stored(10))).toBe('read');
+		test('blind spot + stored covered by receipt → unknown', () => {
+			expect(computeUnreadState(10, __, 20, stored(5))).toBe('unknown');
+			expect(computeUnreadState(10, __, 20, stored(10))).toBe('unknown');
 		});
 
-		test('blind spot + no stored data → read', () => {
-			expect(computeUnreadState(10, __, 20, __)).toBe('read');
+		test('blind spot + no stored data → unknown', () => {
+			expect(computeUnreadState(10, __, 20, __)).toBe('unknown');
 		});
 
 		test('room creation (timelineStartTs=0) → read', () => {
@@ -84,9 +84,9 @@ describe('computeUnreadState', () => {
 			expect(computeUnreadState(0, __, __, stored(0, 50))).toBe('read');
 		});
 
-		test('no stored data → read', () => {
-			expect(computeUnreadState(0, __, __, __)).toBe('read');
-			expect(computeUnreadState(10, __, __, __)).toBe('read');
+		test('no stored data → unknown', () => {
+			expect(computeUnreadState(0, __, __, __)).toBe('unknown');
+			expect(computeUnreadState(10, __, __, __)).toBe('unknown');
 		});
 	});
 

@@ -65,13 +65,7 @@ class Events {
 	 */
 
 	eventRoomTimeline(event: MatrixEvent, _toStartOfTimeline: boolean | undefined) {
-		// Process text, file, image, and emote messages through the timeline handler
-		// to convert newlines to <br/>, URLs to clickable links, and sanitize HTML
-		const msgtype = event.event.content?.msgtype;
-		if (
-			event.event.type === EventType.RoomMessage &&
-			(msgtype === MsgType.Text || msgtype === MsgType.File || msgtype === MsgType.Image || msgtype === MsgType.Emote)
-		) {
+		if (event.event.type === EventType.RoomMessage && event.event.content?.msgtype === MsgType.Text) {
 			event.event = this.eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
 

@@ -1,0 +1,69 @@
+<template>
+	<div>
+		<div class="flex justify-items-stretch">
+			<div class="grow">
+				<slot name="title" />
+			</div>
+			<div>
+				<Icon
+					class="cursor-pointer"
+					:class="iconClass"
+					:type="icon"
+					@click="toggle()"
+				/>
+			</div>
+		</div>
+		<div>
+			<slot
+				name="content"
+				:state="toggleState"
+			/>
+		</div>
+	</div>
+</template>
+
+<script lang="ts" setup>
+	// Packages
+	import { computed, ref } from 'vue';
+
+	// Assets
+	import { icons } from '@hub-client/assets/icons';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	const props = defineProps({
+		icon: {
+			type: String,
+			default: 'edit',
+			validator(value: string) {
+				return Object.keys(icons).includes(value);
+			},
+		},
+		color: {
+			type: String,
+			default: 'text-black dark:text-white',
+		},
+		activeColor: {
+			type: String,
+			default: 'text-red',
+		},
+	});
+
+	const iconClass = computed(() => {
+		if (toggleState.value) {
+			return props.activeColor;
+		}
+		return props.color;
+	});
+
+	const toggleState = ref(false);
+
+	function toggle() {
+		if (toggleState.value) {
+			toggleState.value = false;
+		} else {
+			toggleState.value = true;
+		}
+	}
+</script>

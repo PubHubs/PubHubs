@@ -1,13 +1,13 @@
 <template>
-	<div class="relative flex h-full flex-col overflow-y-hidden py-200">
+	<div class="relative flex h-full flex-col overflow-y-hidden py-4">
 		<SidebarHeader :title="displayName ? (userId === currentUserId ? `${displayName} ${t('admin.you_suffix')}` : displayName) : t('admin.user_details')" />
 		<div
 			v-if="userId"
-			class="flex flex-1 flex-col gap-300 overflow-y-auto px-200 pb-800"
+			class="flex flex-1 flex-col gap-300 overflow-y-auto px-4 pb-16"
 		>
 			<!-- User info card -->
 			<div class="bg-surface-base rounded-base border-surface-elevated flex flex-col gap-200 border-3 p-200">
-				<div class="flex items-center gap-150">
+				<div class="flex items-center gap-3">
 					<Avatar
 						:avatar-url="user.userAvatar(userId)"
 						:user-id="userId"
@@ -36,32 +36,20 @@
 					<template #right>
 						<Pill :value="visibleRooms.length" />
 					</template>
-					<template
+					<div
 						v-for="room in visibleRooms"
 						:key="room.roomId"
+						class="hover:bg-surface-low flex w-full cursor-pointer items-center gap-2 rounded-md p-2"
+						@click="emit('navigateToRoom', room.roomId)"
 					>
-						<RoomLink
-							v-if="canManage(room.roomId)"
-							:room-id="room.roomId"
-							:name="room.name"
-						/>
-						<div
-							v-else
-							class="flex w-full items-center gap-100 rounded-md p-100"
-						>
-							<Icon
-								:type="roomIcon(room.roomId)"
-								size="sm"
-							/>
-							<span class="truncate text-sm">{{ room.name }}</span>
-						</div>
-					</template>
+						<span class="truncate text-sm">{{ room.name }}</span>
+					</div>
 				</CollapsibleHeader>
 			</div>
 		</div>
 		<div
 			v-else
-			class="flex h-full items-center justify-center px-200"
+			class="flex h-full items-center justify-center px-4"
 		>
 			<p class="text-on-surface-dim text-center italic">
 				{{ t('admin.select_user_placeholder') }}
@@ -71,11 +59,11 @@
 		<!-- FABs -->
 		<div
 			v-if="userId"
-			class="absolute right-150 bottom-150 flex gap-100"
+			class="absolute right-3 bottom-3 flex gap-2"
 		>
 			<FloatingActionButton
 				v-if="isAdmin"
-				:label="t('admin.user_perm_heading')"
+				:label="t('admin.edit_room')"
 				icon="pencil-simple"
 				@click="emit('edit')"
 			/>
@@ -102,15 +90,12 @@
 
 	import FloatingActionButton from '@hub-client/components/elements/FloatingActionButton.vue';
 	// Components
-	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Pill from '@hub-client/components/elements/Pill.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
-	import RoomLink from '@hub-client/components/ui/RoomLink.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
-	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useUserRooms } from '@hub-client/composables/useUserRooms';
 
 	// Logic
@@ -118,12 +103,8 @@
 
 	// Models
 	import { type Administrator } from '@hub-client/models/hubmanagement/models/admin';
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
-	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Stores
-	import { useRooms } from '@hub-client/stores/rooms';
-	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
 	// Props
@@ -137,32 +118,17 @@
 	const emit = defineEmits<{
 		edit: [];
 		disclose: [];
+		navigateToRoom: [roomId: string];
 	}>();
 
 	const { t } = useI18n();
 	const user = useUser();
-	const rooms = useRooms();
-	const settings = useSettings();
 	const currentUserId = computed(() => user.userId);
 
 	const { visibleRooms } = useUserRooms(
 		computed(() => props.userId),
 		computed(() => props.isAdmin),
 	);
-
-	const { userPowerLevel } = useRoles();
-
-	function canManage(roomId: string) {
-		return userPowerLevel(roomId) >= UserPowerLevel.Steward;
-	}
-
-	// Same icon logic as RoomLink, for rooms rendered without a link.
-	function roomIcon(roomId: string) {
-		if (rooms.roomIsSecure(roomId)) return 'shield';
-		const entry = rooms.roomList.find((room) => room.roomId === roomId);
-		if (settings.isFeatureEnabled(FeatureFlag.forumRooms) && entry?.roomType === RoomType.PH_FORUM_ROOM) return 'chat-circle-text';
-		return 'chats-circle';
-	}
 
 	const pseudonym = computed(() => {
 		if (!props.userId) return '';

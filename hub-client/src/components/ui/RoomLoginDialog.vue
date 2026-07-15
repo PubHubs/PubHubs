@@ -13,7 +13,7 @@
 
 			<div
 				v-if="props.secured && requiredAttributes.length > 0"
-				class="my-200 flex flex-wrap gap-150"
+				class="my-4 flex flex-wrap gap-3"
 			>
 				<Chip
 					v-for="attr in requiredAttributes"
@@ -24,14 +24,14 @@
 			</div>
 			<P
 				v-if="roomDescription"
-				class="my-200"
+				class="my-4"
 			>
 				{{ roomDescription }}
 			</P>
 
 			<SecuredRoomLogin
 				v-if="props.secured"
-				class="relative left-1/2 mb-1000 w-max -translate-x-1/2 transform"
+				class="relative left-1/2 mb-24 w-max -translate-x-1/2 transform"
 				:secured-room-id="props.dialogOpen"
 				:show-close="false"
 				@success="handleClose"
@@ -42,7 +42,7 @@
 
 <script lang="ts" setup>
 	// Vue
-	import { computed, watch } from 'vue';
+	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -50,9 +50,6 @@
 	import P from '@hub-client/components/elements/P.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import SecuredRoomLogin from '@hub-client/components/ui/SecuredRoomLogin.vue';
-
-	// Composables
-	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
 
 	// Stores
 	import { buttonsCancel, buttonsYesNo } from '@hub-client/stores/dialog';
@@ -71,24 +68,24 @@
 	const emit = defineEmits<{
 		(e: 'update:dialogOpen', value: string | null): void;
 		(e: 'close'): void;
-		(e: 'confirm'): void;
 	}>();
 
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const yiviStore = useYivi();
-	const { scrollToEnd } = useGlobalScroll();
 
 	const roomDescription = computed(() => {
 		if (!props.dialogOpen) return '';
-		const room = rooms.publicSecuredRoomMetadataById(props.dialogOpen);
+		const room = rooms.securedRoomById(props.dialogOpen);
 		return room?.topic ?? '-';
 	});
 
 	const requiredAttributes = computed(() => {
 		if (!props.dialogOpen) return [];
-		const room = rooms.publicSecuredRoomMetadataById(props.dialogOpen);
-		const attrKeys = room?.accepted ?? [];
+		const room = rooms.securedRoomById(props.dialogOpen);
+		const accepted = room?.accepted;
+		if (!accepted) return [];
+		const attrKeys = Object.keys(accepted);
 		const yiviAttrs = yiviStore.getAttributes(t);
 		return attrKeys.map((key) => {
 			const found = yiviAttrs.find((a) => a.attribute === key);
@@ -96,27 +93,8 @@
 		});
 	});
 
-	// Fetch the public secured-room metadata whenever the dialog opens for a new room id.
-	// IMPORTANT: don't remove this otherwise store will not fetch data which will be available for requireAttributes & roomDescription.
-	watch(
-		() => props.dialogOpen,
-		(roomId) => {
-			if (roomId && props.secured) {
-				// On mobile the hub sits at the end of the horizontally scrolled layout; bring it
-				// into view so this dialog is visible, mirroring the other dialog side-scroll triggers.
-				scrollToEnd();
-				rooms.getSecuredRoomPublicMetadata(roomId);
-			}
-		},
-		{ immediate: true },
-	);
-
-	async function handleClose(action?: number) {
+	async function handleClose() {
 		emit('update:dialogOpen', null);
 		emit('close');
-		// action === 1 means "Yes" was clicked (for non-secured rooms)
-		if (action === 1) {
-			emit('confirm');
-		}
 	}
 </script>

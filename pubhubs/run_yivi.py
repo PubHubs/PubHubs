@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-#
+# 
 # Needs to be run from the pubhubs directory
 import sys
 import argparse
 import subprocess
 import os.path
-import shutil
 import socket
 
 def main():
@@ -16,13 +15,9 @@ def main():
     parser.add_argument("--port", type=int, help="use this port in the --url passed to yivi",
                         default=8189)
     parser.add_argument("--url", help="pass this --url to yivi (--host and --port are ignored)")
-    parser.add_argument("--irma-path", help="path to yivi (or legacy irma) binary; autodetected if not set")
+    parser.add_argument("--irma-path", help="path to irma binary", default="irma")
 
     args = parser.parse_args()
-
-    # Prefer the current 'yivi' binary, fall back to the legacy 'irma' name.
-    if args.irma_path is None:
-        args.irma_path = shutil.which("yivi") or shutil.which("irma") or "yivi"
 
     # Yivi does not always detect the host's network address correctly,
     # so we do this for yivi instead
@@ -39,14 +34,7 @@ def main():
         print()
         sys.exit(1)
 
-    # The legacy 'irma' binary is invoked as `irma server ...`; the current
-    # 'yivi' binary wraps it as `yivi irma server ...`.
-    if os.path.basename(args.irma_path).startswith("irma"):
-        server_cmd = (args.irma_path, "server")
-    else:
-        server_cmd = (args.irma_path, "irma", "server")
-
-    yivi_args = server_cmd + (
+    yivi_args = (args.irma_path, "server",
                 "-c", "yivi.toml",
                 "-v",
                 "--sse",
@@ -57,9 +45,9 @@ def main():
         result = subprocess.run(yivi_args)
     except FileNotFoundError as e:
         print()
-        print(f"error:  could not find 'yivi' (or legacy 'irma') binary at {args.irma_path}")
+        print(f"error:  could not find 'irma' binary at {args.irma_path}")
         print()
-        print("for instructions on installing 'yivi', see: ")
+        print("for instructions on installing 'irma', see: ")
         print(" https://github.com/privacybydesign/irmago")
         print()
         sys.exit(1)

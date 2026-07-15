@@ -19,27 +19,28 @@ const CONFIG_FILE_PATH: &str = "pubhubs.default.toml";
 
 static SETUP_ONCE: std::sync::Once = std::sync::Once::new();
 
-/// Initializes logging once.  Each [`main_integration_test`] runs the servers (and the mock hub)
-/// on freshly bound, ephemeral ports, so multiple instances can run simultaneously without
-/// clashing on ports.
-fn setup() {
+/// Lock to make sure only one test runs at once.  This prevents tests from using the same ports.
+static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+async fn setup() -> tokio::sync::MutexGuard<'static, ()> {
     SETUP_ONCE.call_once(|| {
         env_logger::init();
     });
+    LOCK.lock().await
 }
 
 #[tokio::test]
 async fn main_once() {
-    setup();
+    let _lock_guard = setup().await;
     main_integration_test().await
 }
 
 #[tokio::test]
 #[ignore]
 async fn main_100() {
-    setup();
+    let _lock_guard = setup().await;
 
-    for _i in 1..=100 {
+    for _i in 1..100 {
         main_integration_test().await
     }
 }
@@ -101,13 +102,7 @@ async fn main_integration_test() {
         
         [requestor_creds]
         name = "ph_auths"
-        key.hs256 = "c2VjcmV0"  # = "secret"
-
-        [chained_sessions]
-        # Low cap so the chained-session capacity test can reach it without creating thousands of
-        # sessions.  The other chained-session tests only ever hold one session at a time.
-        max_sessions = 2
-        "#,
+        key.hs256 = "c2VjcmV0""#, // = "secret"
     )
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
@@ -125,60 +120,7 @@ async fn main_integration_test() {
         .unwrap()
         .server_key = Some(yivi_server_sk.to_verifying_key());
 
-    // Pick free ports on demand so that multiple instances of this test can run simultaneously.
-    //
-    // Each server (and the mock hub) gets a freshly bound loopback socket; we read back the
-    // OS-assigned port, point the matching URL at it, and hand the listener to the server.  The
-    // listeners are held — by the servers' `Runner`s and by the `MockHub` — for the servers'
-    // whole lifetime, so the ports stay reserved (no probe-then-rebind race).  The advertised URL
-    // must carry the same port the socket is bound to: the URLs are dialed directly and are
-    // hashed into the constellation, so all servers must agree on them up front.
-    let bind_ephemeral =
-        || std::net::TcpListener::bind(("127.0.0.1", 0)).expect("failed to bind an ephemeral port");
-    let phc_listener = bind_ephemeral();
-    let transcryptor_listener = bind_ephemeral();
-    let auths_listener = bind_ephemeral();
-    let hub_listener = bind_ephemeral();
-
-    // `127.0.0.1` is a literal IP, so the url is already free of host aliases (`phc_url` in
-    // particular is not dealiased again after we overwrite it here).
-    let loopback_url = |listener: &std::net::TcpListener,
-                        path: &str|
-     -> pubhubs::servers::config::host_aliases::UrlPwa {
-        let port = listener.local_addr().unwrap().port();
-        format!("http://127.0.0.1:{port}{path}")
-            .parse::<url::Url>()
-            .unwrap()
-            .into()
-    };
-
-    // Only the advertised urls need the chosen ports; the bind ports in the per-server config are
-    // unused, since each server is handed its pre-bound listener below.
-    config.phc_url = loopback_url(&phc_listener, "/");
-    {
-        let phc = config.phc.as_mut().unwrap();
-        phc.transcryptor_url = loopback_url(&transcryptor_listener, "/");
-        phc.auths_url = loopback_url(&auths_listener, "/");
-        // The mock hub serves testhub0; find it rather than assuming the config's hub ordering.
-        let testhub0 = phc
-            .hubs
-            .iter_mut()
-            .find(|hub| {
-                hub.handles
-                    .iter()
-                    .any(|handle| handle.as_str() == "testhub0")
-            })
-            .expect("testhub0 missing from the default config's hubs");
-        testhub0.url = loopback_url(&hub_listener, "/_synapse/client/");
-    }
-
-    let set_opts = servers::SetOpts {
-        phc_listener: Some(phc_listener),
-        transcryptor_listener: Some(transcryptor_listener),
-        auths_listener: Some(auths_listener),
-    };
-
-    let (set, shutdown_sender) = servers::Set::new_opts(&config, set_opts).unwrap();
+    let (set, shutdown_sender) = servers::Set::new(&config).unwrap();
 
     tokio::join!(
         async {
@@ -187,7 +129,6 @@ async fn main_integration_test() {
                     config,
                     jwt::HS256(admin_key.into_inner().into_vec()),
                     yivi_server_sk,
-                    hub_listener,
                 ))
                 .await;
             drop(shutdown_sender); // causes the servers to stop
@@ -203,7 +144,6 @@ async fn main_integration_test_local(
     config: servers::Config,
     admin_key: jwt::HS256,
     yivi_server_sk: yivi::SigningKey,
-    hub_listener: std::net::TcpListener,
 ) {
     let client = client::Client::builder()
         .agent(client::Agent::IntegrationTest)
@@ -248,7 +188,7 @@ async fn main_integration_test_local(
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
                 if let Some(ref constellation) = constellation_maybe
-                    && constellation.transcryptor_encap_key_id != t_encap_key_id
+                    && constellation.transcryptor_encap_key_id.as_ref() != Some(&t_encap_key_id)
                 {
                     log::debug!(
                         "stable constellation has old transcryptor encapsulation key still"
@@ -294,7 +234,7 @@ async fn main_integration_test_local(
             .map(Option::flatten) // Now Result<Option<Constellation>>
             .map(|constellation_maybe| {
                 if let Some(ref constellation) = constellation_maybe
-                    && constellation.phc_verifying_key != phc_vk
+                    && constellation.phc_verifying_key.as_ref() != Some(&phc_vk)
                 {
                     log::debug!("stable constellation has old phc signing key still");
                     return None;
@@ -373,7 +313,7 @@ async fn main_integration_test_local(
     // Run mock test hub
     let testhub = welcome_resp.hubs[&"testhub0".parse().unwrap()].clone();
 
-    let mock_hub = MockHub::new(testhub.clone(), constellation.clone(), hub_listener);
+    let mock_hub = MockHub::new(testhub.clone(), constellation.clone());
 
     let mut js = tokio::task::JoinSet::new();
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
@@ -400,7 +340,15 @@ async fn main_integration_test_local(
     // check that the ticket is valid
     ticket
         .clone()
-        .open(&constellation.phc_verifying_key.decode().unwrap(), None)
+        .open(
+            &constellation
+                .phc_verifying_key
+                .as_ref()
+                .unwrap()
+                .decode()
+                .unwrap(),
+            None,
+        )
         .unwrap();
 
     // Exercise the HubPingEP demo endpoint against every server.
@@ -525,63 +473,6 @@ async fn main_integration_test_local(
         attrs
             .get::<handle::Handle>(&"phone".parse().unwrap())
             .is_some()
-    );
-
-    // Test that chained sessions beyond the configured maximum (max_sessions = 2 in the test
-    // config) are refused with ChainedSessionsTemporarilyUnavailable.  These started sessions are
-    // left pending (no yivi server ever calls in), so each keeps occupying a slot.
-    let auth_start_chained_req = || api::auths::AuthStartReq {
-        source: attr::Source::Yivi,
-        attr_types: vec!["email".parse().unwrap()],
-        attr_type_choices: Default::default(),
-        yivi_chained_session: true,
-        yivi_chained_session_drip: false,
-    };
-    for _ in 0..2 {
-        let resp = client
-            .query_with_retry::<api::auths::AuthStartEP, _, _>(
-                &constellation.auths_url,
-                &auth_start_chained_req(),
-            )
-            .await
-            .unwrap();
-        assert!(
-            matches!(resp, api::auths::AuthStartResp::Success { .. }),
-            "chained session below the cap should be granted, got {resp:?}"
-        );
-    }
-    let resp = client
-        .query_with_retry::<api::auths::AuthStartEP, _, _>(
-            &constellation.auths_url,
-            &auth_start_chained_req(),
-        )
-        .await
-        .unwrap();
-    assert!(
-        matches!(
-            resp,
-            api::auths::AuthStartResp::ChainedSessionsTemporarilyUnavailable
-        ),
-        "chained session exceeding the cap should be refused, got {resp:?}"
-    );
-
-    // Once the sessions' validity (10 minutes by default) elapses they expire, freeing their
-    // slots, so a new chained session is granted again.  No HTTP request is in flight while time
-    // is paused, so awc's request timeout cannot fire during the jump.
-    tokio::time::pause();
-    tokio::time::advance(Duration::from_secs(11 * 60)).await;
-    tokio::time::resume();
-
-    let resp = client
-        .query_with_retry::<api::auths::AuthStartEP, _, _>(
-            &constellation.auths_url,
-            &auth_start_chained_req(),
-        )
-        .await
-        .unwrap();
-    assert!(
-        matches!(resp, api::auths::AuthStartResp::Success { .. }),
-        "chained session should be granted again after the earlier ones expired, got {resp:?}"
     );
 
     // Retrieve attribute key for email
@@ -1013,7 +904,6 @@ async fn main_integration_test_local(
         state: hub_state,
         nonce: hub_nonce,
         hhpp_signature_scheme,
-        hub_mac_key,
     } = client
         .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
         .with_retry()
@@ -1028,7 +918,6 @@ async fn main_integration_test_local(
                 hub_nonce,
                 hub: mock_hub.context.info.id,
                 ppp,
-                hub_mac_key,
             },
         )
         .with_retry()
@@ -1091,7 +980,6 @@ async fn main_integration_test_local(
         state: hub_state,
         nonce: hub_nonce,
         hhpp_signature_scheme,
-        hub_mac_key,
     } = client
         .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
         .with_retry()
@@ -1106,7 +994,6 @@ async fn main_integration_test_local(
                 hub_nonce,
                 hub: mock_hub.context.info.id,
                 ppp,
-                hub_mac_key,
             },
         )
         .with_retry()
@@ -1177,23 +1064,17 @@ struct MockHubContext {
     pub info: hub::BasicInfo,
     pub sk: api::SigningKey,
     pub constellation: servers::Constellation,
-    pub mac_key: api::hub::HubMacKey,
 }
 
 impl MockHub {
-    fn new(
-        info: hub::BasicInfo,
-        constellation: servers::Constellation,
-        listener: std::net::TcpListener,
-    ) -> Self {
+    fn new(info: hub::BasicInfo, constellation: servers::Constellation) -> Self {
         let context = Arc::new(MockHubContext {
             info,
             sk: api::SigningKey::generate().unwrap(),
             constellation,
-            mac_key: api::hub::HubMacKey::random(),
         });
 
-        let server_builder = actix_web::HttpServer::new({
+        let mut server_builder = actix_web::HttpServer::new({
             let context = context.clone();
             move || {
                 actix_web::App::new()
@@ -1213,14 +1094,24 @@ impl MockHub {
             }
         });
 
-        // The mock hub never restarts, so we hand the pre-bound listener straight to actix.  One
-        // worker is plenty for a mock and keeps the thread count bounded when several test
-        // instances run concurrently (actix defaults to one worker per logical CPU).
-        let actix_server = server_builder
-            .workers(1)
-            .listen(listener)
-            .expect("failed to listen on pre-bound mock hub socket")
-            .run();
+        let host = context.info.url.host().unwrap();
+
+        let port = context
+            .info
+            .url
+            .port()
+            .expect("testhub info url has no port");
+
+        // NOTE: bind((contect.info.url.host_str().unwrap(), port)) does not work for IPv6
+        // addresses, because for them host_str will include `[` and `]`
+        server_builder = match host {
+            url::Host::Domain(string) => server_builder.bind((string, port)),
+            url::Host::Ipv4(ipv4) => server_builder.bind((ipv4, port)),
+            url::Host::Ipv6(ipv6) => server_builder.bind((ipv6, port)),
+        }
+        .unwrap_or_else(|err| panic!("failed to bind to {host}:{port}: {err:#}"));
+
+        let actix_server = server_builder.run();
         let actix_server_handle = actix_server.handle();
 
         Self {
@@ -1645,18 +1536,16 @@ async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_
         verifying_key: Some(context.sk.verifying_key().encode()),
         hub_version: "n/a".to_owned(),
         hub_client_url: "http://example.com".parse().unwrap(),
-        database_engine: api::hub::DatabaseEngine::Sqlite3,
         dynamic: None,
     }))
 }
 
-async fn handle_enter_start(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
+async fn handle_enter_start(_context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
     web::Json(api::Result::Ok(api::hub::EnterStartResp {
         state: api::hub::EnterState::from(B64UU::from(serde_bytes::ByteBuf::from(b"state"))),
         nonce: api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce"))),
         // the mock hub verifies the hybrid composite (see `handle_enter_complete`)
         hhpp_signature_scheme: api::sso::HhppSignatureScheme::HybridInterim,
-        hub_mac_key: Some(context.mac_key.clone()),
     }))
 }
 
@@ -1675,10 +1564,15 @@ async fn handle_enter_complete(
         hashed_hub_pseudonym,
         pp_issued_at: _pp_issued_at,
         hub_nonce,
-        hub_id_mac,
     } = hhpp
         .open(
-            &context.constellation.phc_verifying_key.decode().unwrap(),
+            &context
+                .constellation
+                .phc_verifying_key
+                .as_ref()
+                .unwrap()
+                .decode()
+                .unwrap(),
             Some(&context.constellation),
         )
         .unwrap();
@@ -1687,8 +1581,6 @@ async fn handle_enter_complete(
         hub_nonce,
         api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce")))
     );
-
-    assert_eq!(hub_id_mac, Some(context.mac_key.mac(&context.info.id)));
 
     web::Json(api::Result::Ok(api::hub::EnterCompleteResp::Entered {
         access_token: base16ct::lower::encode_string(hashed_hub_pseudonym.as_bytes().as_slice()),

@@ -1,17 +1,12 @@
 <template>
-	<div class="flex shrink-0 items-center justify-between gap-200 px-200 pb-200">
-		<div class="flex min-w-0 items-center gap-200">
-			<slot name="left" />
-			<slot>
-				<h3 class="text-on-surface text-md line-clamp-1 min-w-0 truncate font-semibold first-letter:uppercase">
-					{{ title }}
-				</h3>
-			</slot>
-		</div>
+	<div class="flex shrink-0 items-center justify-between gap-4 px-4 pb-4">
+		<h3 class="text-on-surface text-md line-clamp-1 min-w-0 truncate font-semibold first-letter:uppercase">
+			{{ title }}
+		</h3>
 		<button
 			v-if="!isMobile"
 			:aria-label="t('dialog.close')"
-			class="text-on-surface-dim hover:text-on-surface hover:bg-surface-elevated p-050 rounded-md transition-colors hover:cursor-pointer"
+			class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer"
 			:title="t('dialog.close')"
 			@click="
 				sidebar.close();
@@ -42,7 +37,7 @@
 
 	// Props
 	defineProps<{
-		title?: string;
+		title: string;
 	}>();
 
 	const emit = defineEmits<{

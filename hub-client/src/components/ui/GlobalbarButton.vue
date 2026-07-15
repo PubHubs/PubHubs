@@ -1,12 +1,9 @@
 <template>
 	<div
-		class="hover:bg-surface-elevated focus-visible:ring-accent-blue-interactive rounded-base p-100 outline-none hover:cursor-pointer focus-visible:ring-3"
-		:class="selected ? 'bg-surface-elevated' : 'bg-surface-base'"
+		class="hover:bg-on-surface-variant hover:text-background rounded-base p-2 hover:cursor-pointer"
+		:class="selected ? 'bg-surface-high' : 'bg-background'"
 		role="button"
-		tabindex="0"
 		@click="handleClick"
-		@keydown.enter="handleClick"
-		@keydown.space.prevent="handleClick"
 	>
 		<Icon
 			:size="size"

@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-row gap-100">
+	<div class="flex flex-row gap-2">
 		<Avatar
 			:avatar-url="user.userAvatar(otherUser?.userId ?? '')"
 			icon="users"

@@ -1,27 +1,32 @@
 <template>
 	<div
 		role="article"
-		class="bg-surface-base border-surface-elevated rounded-base @container flex w-full flex-col justify-between gap-200 border-3 p-300 shadow"
+		class="bg-surface-base border-surface-elevated rounded-base @container flex w-full flex-col justify-between gap-4 border-3 p-6 shadow"
 	>
-		<div class="flex items-center gap-100">
-			<Icon
-				v-if="isSecured"
-				type="shield"
-			/>
-			<Icon
-				v-else-if="isForumRoom()"
-				type="chat-circle-text"
-			/>
+		<div class="flex items-center justify-between gap-2">
 			<H2 class="line-clamp-2">{{ room.name }}</H2>
+			<div
+				v-if="isSecured"
+				class="bg-button-blue text-on-button-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
+				:title="t('admin.secured_room')"
+			>
+				<Icon type="shield"></Icon>
+			</div>
+			<div
+				v-else-if="isForumRoom()"
+				class="bg-button-blue text-on-button-blue rounded-base flex h-fit shrink-0 items-center justify-center px-2 py-1"
+			>
+				<Icon type="chat-circle-text"></Icon>
+			</div>
 		</div>
 
-		<div class="h-800">
+		<div class="h-16">
 			<P class="line-clamp-2">{{ room.topic }}</P>
 		</div>
 
-		<div class="flex w-full flex-col gap-200 @sm:flex-row @sm:items-end @sm:justify-between">
-			<div class="text-on-surface-dim text-label flex flex-wrap items-center gap-100">
-				<div class="flex items-center gap-100">
+		<div class="flex w-full flex-col gap-4 @sm:flex-row @sm:items-end @sm:justify-between">
+			<div class="text-on-surface-dim text-label flex flex-wrap items-center gap-2">
+				<div class="flex items-center gap-2">
 					<Icon
 						type="user"
 						size="sm"
@@ -30,7 +35,7 @@
 				</div>
 				<div
 					v-if="timestamp"
-					class="flex items-center gap-100"
+					class="flex items-center gap-2"
 				>
 					<Icon
 						type="clock"
@@ -56,7 +61,7 @@
 					variant="primary"
 					@click="joinSecureRoom"
 				>
-					{{ t('rooms.view_access_requirements') }}
+					{{ t('rooms.join_secured_room') }}
 				</Button>
 				<Button
 					v-else

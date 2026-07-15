@@ -3,7 +3,7 @@
 		v-if="loading"
 		class="flex h-full flex-col items-center justify-center"
 	>
-		<P class="p-200">
+		<P class="p-4">
 			{{ $t('common.loading') }}
 		</P>
 		<InlineSpinner size="lg" />
@@ -21,8 +21,8 @@
 				:class="isMobile ? 'flex-col' : 'flex-row'"
 			>
 				<div
-					class="bg-surface-sunken/50 flex shrink-0 items-center justify-center"
-					:class="isMobile ? 'h-2/5 w-full px-600' : 'h-full w-1/2 px-2000'"
+					class="bg-surface-low flex shrink-0 items-center justify-center"
+					:class="isMobile ? 'h-2/5 w-full px-12' : 'h-full w-1/2 px-36'"
 				>
 					<figure class="h-auto w-full">
 						<img
@@ -32,43 +32,29 @@
 					</figure>
 				</div>
 				<div
-					class="flex flex-col items-center justify-center gap-300"
-					:class="isMobile ? 'h-3/5 w-full p-200' : 'h-full w-1/2'"
+					class="flex flex-col items-center justify-center gap-6"
+					:class="isMobile ? 'h-3/5 w-full py-6' : 'h-full w-1/2'"
 				>
-					<div
-						class="flex flex-col gap-300"
-						:class="!isMobile && 'max-w-1/2'"
-					>
-						<div class="flex flex-col gap-200">
+					<div class="flex flex-col gap-6">
+						<div class="flex flex-col gap-4">
 							<H1>
 								{{ $t('common.app_name') }}
-								{{ $t('login.login') }}
+								{{ $t('login.global_login') }}
 							</H1>
 							<P>{{ $t('register.have_account', [$t('common.app_name')]) }}</P>
 						</div>
-						<div class="flex flex-col gap-200">
+						<div class="flex flex-col gap-4">
 							<div
 								v-show="show"
 								class="relative flex w-full items-center justify-center"
-								:class="isMobile ? '-mb-100' : '-mb-200'"
+								:class="isMobile ? '-mb-2' : '-mb-4'"
 							>
-								<!-- Loading overlay - uses yivi-web-form class to match Yivi's dimensions -->
-								<div
-									v-if="qrLoading"
-									class="yivi-web-form absolute bottom-400 left-1/2 z-[40] flex aspect-square min-w-[250px] -translate-x-1/2 items-center justify-center after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
-								>
-									<div class="flex flex-col items-center gap-2">
-										<InlineSpinner />
-										<P class="text-on-surface-dim text-sm">{{ $t('login.loading_yivi') }}</P>
-									</div>
-								</div>
-								<!-- Yivi injects content here - must be empty -->
 								<div
 									id="yivi-authentication"
-									class="absolute bottom-400 left-1/2 z-50 -translate-x-1/2 after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								/>
 							</div>
-							<div class="flex gap-200">
+							<div class="flex gap-4">
 								<Button
 									variant="secondary"
 									@click="loginMSS()"
@@ -83,24 +69,17 @@
 								</router-link>
 							</div>
 						</div>
+					</div>
 
-						<!-- Info message (e.g., from logout) -->
-						<div
-							v-if="message"
-							class="items-top bg-surface text-accent-primary border-surface-elevated mt-200 flex w-3/4 w-full flex-row items-center gap-x-200 rounded border-3 px-200 py-400 break-normal"
-						>
-							<Icon type="info" />
-							<P>{{ $t(message.key, message.values) }}</P>
-						</div>
-
-						<!-- Error message -->
-						<div
-							v-if="error"
-							class="items-top bg-surface text-accent-error border-surface-elevated mt-200 flex w-3/4 w-fit w-full flex-row gap-x-200 rounded border-3 px-200 py-400 break-normal"
-						>
-							<Icon type="warning" />
-							<P>{{ $t(error.key, error.values) }}</P>
-						</div>
+					<div
+						v-if="error"
+						class="items-top bg-surface-low text-accent-error m-8 flex w-3/4 flex-row gap-x-4 rounded-xl px-4 py-8 break-normal"
+					>
+						<Icon
+							class="mt-1"
+							type="warning"
+						/>
+						<P> {{ $t(error.key, error.values) }}</P>
 					</div>
 				</div>
 			</div>
@@ -152,18 +131,9 @@
 
 	const show = ref<boolean>(false);
 	const loading = ref<boolean>(true);
-	const qrLoading = ref<boolean>(false);
 	const error = ref();
 
 	const isMobile = computed(() => settings.isMobileState);
-
-	// Check for message passed via query params (e.g., from logout)
-	const message = computed(() => {
-		const key = route.query.message?.toString();
-		if (!key) return null;
-		const values = route.query.messageValues?.toString().split(',').filter(Boolean) || [];
-		return { key, values };
-	});
 
 	onMounted(async () => {
 		try {
@@ -181,45 +151,22 @@
 
 		if (loginMethod === loginMethods.Yivi) {
 			show.value = !show.value;
-			if (show.value) {
-				qrLoading.value = true;
-				watchForYiviContent();
-			}
 		}
 		try {
 			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.Login);
 			if (errorMessage) {
 				error.value = errorMessage;
 				show.value = false;
-				qrLoading.value = false;
 				return;
 			}
 			show.value = false;
-			qrLoading.value = false;
 			const redirectPath = route.query.redirect?.toString() || '/';
 			router.replace(redirectPath);
 		} catch (error) {
 			router.replace({ name: 'error' });
 			show.value = false;
-			qrLoading.value = false;
 			logger.error('Error during MSS login', { error });
 		}
-	}
-
-	function watchForYiviContent() {
-		const yiviEl = document.getElementById('yivi-authentication');
-		if (!yiviEl) return;
-
-		const observer = new MutationObserver(() => {
-			// Wait for actual QR code (canvas or svg) not just the text
-			const hasQrCode = yiviEl.querySelector('canvas, svg');
-			if (hasQrCode) {
-				qrLoading.value = false;
-				observer.disconnect();
-			}
-		});
-
-		observer.observe(yiviEl, { childList: true, subtree: true });
 	}
 
 	window.addEventListener('pageshow', () => (show.value = false));

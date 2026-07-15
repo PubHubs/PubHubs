@@ -10,10 +10,8 @@
 			:validated="validated"
 		/>
 
-		<!-- Rendered whenever the field could ever show help, a counter, or an error, so the row's
-		     height is reserved up front and appearing errors don't push the layout around. -->
 		<FieldInfoBox
-			v-if="props.help || props.info || props.validation"
+			v-if="props.help || (!validated && changed)"
 			:info="info"
 		>
 			<FieldHelperText v-if="props.help && !(!validated && changed)">
@@ -98,9 +96,7 @@
 	);
 
 	const fieldClass = computed(() => {
-		// The canonical field stack (label → control → helper/error) lives here so every field type
-		// shares the same label-to-control spacing instead of each consumer supplying its own.
-		let c = 'flex w-full flex-col items-start justify-start gap-075 max-w-[' + fixedWidth.value + 'px]';
+		let c = 'max-w-[' + fixedWidth.value + 'px]'; // Max Width
 		if (validated.value) {
 			c += ' validated';
 		}

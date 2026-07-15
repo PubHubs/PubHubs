@@ -1,20 +1,20 @@
 <template>
-	<div class="mt-200 flex flex-col gap-400 px-200">
-		<div class="flex items-center gap-200">
-			<div class="bg-accent-primary text-on-accent-primary flex aspect-square h-300 w-300 items-center justify-center rounded-full">
+	<div class="mt-4 flex flex-col gap-8 px-4">
+		<div class="flex items-center gap-4">
+			<div class="bg-accent-primary text-on-accent-primary flex aspect-square h-6 w-6 items-center justify-center rounded-full">
 				<span class="text-label-small font-semibold">i</span>
 			</div>
 			<H2>{{ $t('register.yivi_faq') }}</H2>
 		</div>
-		<div class="flex flex-col gap-200">
+		<div class="flex flex-col gap-4">
 			<div
 				v-for="(item, index) in faqs"
 				:key="index"
-				class="bg-surface-base border-surface-elevated flex w-full flex-col gap-100 rounded border-3"
+				class="bg-surface-low flex w-full flex-col gap-2 rounded-2xl"
 			>
 				<div
-					class="flex w-full justify-between rounded px-200 py-100 font-semibold hover:cursor-pointer"
-					:class="openIndex === index && 'border-surface-elevated/50 border-b-3'"
+					class="flex w-full justify-between rounded-2xl px-4 py-2 font-semibold hover:cursor-pointer"
+					:class="openIndex === index && 'bg-surface'"
 					@click="toggle(index)"
 				>
 					<span>{{ item.question }}</span>
@@ -22,7 +22,7 @@
 				</div>
 				<div
 					v-if="openIndex === index"
-					class="p-200"
+					class="p-4"
 				>
 					{{ item.answer }}
 				</div>

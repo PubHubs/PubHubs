@@ -29,7 +29,6 @@ impl App {
         let running_state = app.running_state_or_please_retry()?;
 
         let hubs: HashMap<handle::Handle, hub::BasicInfo> = app
-            .shared
             .hubs
             .values()
             .map(|hub| (hub.handles.preferred().clone(), hub.clone()))
@@ -663,7 +662,7 @@ impl App {
         }
 
         let iat = jwt::NumericDate::now();
-        let exp = iat.add_clamp(self.auth_token_validity.as_secs());
+        let exp = iat + self.auth_token_validity;
         Ok(Ok(AuthTokenPackage {
             expires: exp,
             auth_token: AuthTokenInner {
@@ -805,8 +804,10 @@ pub struct UserState {
     #[serde(default)]
     pub registration_date: Option<api::NumericDate>,
 
-    /// Randomly generated identifier used to generate hub pseudonyms for this user, ElGamal
-    /// encrypted under the PubHubs master encryption key (`x_T x_PHC B`).
+    /// Randomly generated and by [`Constellation::master_enc_key`] elgamal encrypted
+    /// identifier used to generate hub pseudonyms for this user.
+    ///
+    /// [`Constellation::master_enc_key`]: crate::servers::constellation::Inner::master_enc_key
     pub polymorphic_pseudonym: elgamal::Triple,
 
     /// Whether this account is banned

@@ -1,7 +1,7 @@
 <template>
 	<Dialog
 		:title="capitalize($t('moderation.remove_from_room'))"
-		:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
+		:width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'"
 		class="z-50"
 		@close="close()"
 	>

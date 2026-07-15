@@ -1,7 +1,6 @@
 <template>
 	<div class="pt-050 gap-050 flex w-full items-baseline">
-		<!-- min-h reserves one line of text so a validation error appearing doesn't shift the layout. -->
-		<div class="text-label-small min-h-[1lh] grow">
+		<div class="grow">
 			<slot />
 		</div>
 		<div

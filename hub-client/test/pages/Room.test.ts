@@ -48,9 +48,6 @@ describe('Room.vue Test', () => {
 		// Mark initial rooms as loaded so waitForInitialRoomsLoaded() resolves
 		rooms.initialRoomsLoaded = true;
 
-		// The SDK doesn't have the room, so the synchronous fast-path is skipped and the join flow runs
-		pubhubs.client.getRoom = vi.fn().mockReturnValue(undefined);
-
 		// User is not a member of the room
 		pubhubs.isUserRoomMember = vi.fn().mockResolvedValue(false);
 

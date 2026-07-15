@@ -46,18 +46,18 @@ const validateMessageFunctions: { [key: string]: (...args: unknown[]) => unknown
 	},
 
 	minLength: (value: unknown, min: unknown, keyTranslation: unknown): ValidationMessage => {
-		const v = value as string | undefined;
-		return { translationKey: 'validation.min_length', parameters: [keyTranslation as string, min as number, v?.length ?? 0] };
+		const v = value as string;
+		return { translationKey: 'validation.min_length', parameters: [keyTranslation as string, min as number, v.length] };
 	},
 
 	maxLength: (value: unknown, max: unknown, keyTranslation: unknown): ValidationMessage => {
-		const v = value as string | undefined;
-		return { translationKey: 'validation.max_length', parameters: [keyTranslation as string, max as number, v?.length ?? 0] };
+		const v = value as string;
+		return { translationKey: 'validation.max_length', parameters: [keyTranslation as string, max as number, v.length] };
 	},
 
 	maxItems: (value: unknown, max: unknown, keyTranslation: unknown): ValidationMessage => {
-		const v = value as unknown[] | undefined;
-		return { translationKey: 'validation.max_items', parameters: [keyTranslation as string, max as number, v?.length ?? 0] };
+		const v = value as unknown[];
+		return { translationKey: 'validation.max_items', parameters: [keyTranslation as string, max as number, v.length] };
 	},
 
 	minValue: (value: unknown, min: unknown, keyTranslation: unknown): ValidationMessage => {
@@ -81,10 +81,8 @@ function useFieldValidation(name: string, model: { value: unknown }, validation?
 
 	if (validation) {
 		const keys = Object.keys(validation);
-		required.value = keys.includes('required') && validation['required'] === true;
+		required.value = keys.includes('required');
 		keys.forEach((key) => {
-			// Skip rules explicitly disabled with false (e.g. required: false)
-			if (validation[key] === false) return;
 			let rule: ValidationRule;
 			if (key === 'custom') {
 				rule = validation[key] as ValidationRule;

@@ -14,12 +14,11 @@ export default class Transcryptor {
 		this._trApi = tr_api(transcryptorUrl);
 	}
 
-	async ehppEP({ nonce, id, ppp, hubMacKey }: { nonce: string; id: string; ppp: string; hubMacKey?: string }) {
+	async ehppEP(nonce: string, id: string, ppp: string) {
 		const requestPayload: EhpppReq = {
 			hub_nonce: nonce,
 			hub: id,
 			ppp,
-			hub_mac_key: hubMacKey,
 		};
 		const okEhppResp = await handleErrors<EhppResp>(() =>
 			this._trApi.api<TrEhppResp>(this._trApi.apiURLS.encryptedHubPseudonymPackage, requestOptions<EhpppReq>(requestPayload)),

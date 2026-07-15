@@ -310,10 +310,9 @@ impl Config {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct ObjectStoreConfig {
-    /// E.g. `memory:///` or `s3://bucket`.
+    /// E.g. "memory:///", or file:///some/path
     ///
-    /// Only `memory://` and `s3://` work: we build `object_store` without its default features (see
-    /// Cargo.toml), so the other schemes it lists — including `file://` — are not compiled in:
+    /// For a complete list, see:
     ///
     ///   <https://docs.rs/object_store/latest/object_store/enum.ObjectStoreScheme.html>
     pub url: UrlPwa,
@@ -463,14 +462,6 @@ pub mod auths {
         #[serde(default = "default_auth_window")]
         pub auth_window: core::time::Duration,
 
-        /// Maximum number of attribute types a single [`api::auths::AuthStartReq`] may request,
-        /// and the maximum number of alternatives allowed per attribute type
-        /// (see [`api::auths::AuthStartReq::attr_type_choices`]).
-        ///
-        /// Bounds the work an anonymous authentication-start request can trigger.
-        #[serde(default = "default_max_attr_types_per_req")]
-        pub max_attr_types_per_req: usize,
-
         /// Used to derive attribute keys (see [`api::auths::AttrKeysEP`])
         ///
         /// Randomly generated when not set.  When changed, users loose access to all data
@@ -487,10 +478,6 @@ pub mod auths {
     fn default_auth_window() -> core::time::Duration {
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
         // to their Yivi app
-    }
-
-    fn default_max_attr_types_per_req() -> usize {
-        4
     }
 
     impl ExtraConfig {

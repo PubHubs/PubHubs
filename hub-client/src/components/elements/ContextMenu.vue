@@ -3,7 +3,7 @@
 		<!-- Desktop backdrop -->
 		<div
 			v-if="store.isOpen && !isMobile"
-			class="bg-scrim/50 dark:bg-scrim/75 fixed inset-0 z-9998"
+			class="fixed inset-0 z-9998 bg-transparent"
 			@pointerdown.prevent.stop="store.close"
 			@click.prevent.stop
 		/>
@@ -12,7 +12,7 @@
 		<div
 			v-if="store.isOpen && !isMobile"
 			ref="menuRef"
-			class="bg-surface-elevated fixed z-9999 flex w-fit max-w-4000 min-w-1000 flex-col rounded shadow-2xl"
+			class="bg-surface-elevated rounded-base fixed z-9999 flex w-fit max-w-4000 min-w-1000 flex-col shadow-xl"
 			:style="{ left: `${pos.x}px`, top: `${pos.y}px` }"
 			role="menu"
 			data-testid="contextmenu"
@@ -25,7 +25,7 @@
 			>
 				<div
 					v-if="item.divider"
-					class="bg-on-surface-dim my-50 h-px shrink-0"
+					class="bg-surface-low my-50 h-px shrink-0"
 				/>
 				<ContextMenuItem
 					v-else
@@ -50,7 +50,7 @@
 		>
 			<div
 				v-if="store.isOpen && isMobile"
-				class="bg-scrim/50 dark:bg-scrim/75 fixed inset-0 z-9998"
+				class="fixed inset-0 z-9998 bg-black/40"
 				@pointerdown.prevent.stop="store.close"
 				@click.prevent.stop
 			/>
@@ -81,7 +81,7 @@
 				>
 					<div
 						v-if="item.divider"
-						class="bg-on-surface-dim my-100 h-px shrink-0"
+						class="bg-surface-low my-100 h-px shrink-0"
 					/>
 					<ContextMenuItem
 						v-else
@@ -125,6 +125,7 @@
 	const pos = ref({ x: 0, y: 0 });
 
 	// Positioning (desktop only)
+
 	const clampPosition = (x: number, y: number) => {
 		if (!menuRef.value) return { x, y };
 
@@ -165,6 +166,7 @@
 	};
 
 	// Keyboard navigation
+
 	const focusNextEnabled = (buttons: HTMLButtonElement[], currentIndex: number, direction: 1 | -1) => {
 		const len = buttons.length;
 		let index = currentIndex;
@@ -206,6 +208,7 @@
 	};
 
 	// Lifecycle
+
 	watch(
 		() => store.isOpen,
 		async (open) => {

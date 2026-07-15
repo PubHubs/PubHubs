@@ -11,20 +11,6 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
-
-## 15 June 2026 - v3.5.0
-
-- [NEW] Editing of posts (text and images/files).
-- [NEW] Mentions can now be navigated with the arrow-keys, tab and selected with enter.
-- [NEW] Message drafts in the messageInput are now saved in localstorage so the draft is recovered on reloads and room switches.
-- [NEW] Users can report messages, Stewards and HubAdmins can view reports in the new reports page.
-- [NEW] The logout now directly goes to the login page, replacing the logout dialog pop up.
-- [BUG] Fixed that the mentions element would overflow and not properly follow the carot.
-- [BUG] Fixed that line-breaks and links would not show up when sending a message with file sharing or with a user/room mention.
-- [BUG] Fixed the hub crashing on startup after an image rebuild (`module 'lib' has no attribute 'GEN_EMAIL'`); Dockerfile now upgrades pyOpenSSL with cryptography. **Cherry-pick to stable if hotfixing**, because upon tagging the same problem will appear on stable too.
-- [BUG] Fixed that there was no indication that the yivi qr code was being loaded on the global-client login page.
-- [BUG] Fixed that the yes button for the join room pop up was not responsive.
-
 ## 4 June 2026 - v3.4.0
 
 - [NEW] User room warnings have been updated to show up above the message input bar.
@@ -45,6 +31,7 @@ _Please add a brief description of any changes and any migrations to be performe
       must be removed before the migration can be re-attempted.
     - Opting out from this migration is possible by passing `--no-replace-sqlite3-by-postgres`
       to the hub container's entrypoint.
+- _internal_ Test the registration flow and login flow for the pubhubs card including normal phone settings, and with battery saver on. Also test the registration flow via the obtain/reobtain button in yivi. If no issues arise set phCard in settings.ts to true for stable.
 
 ## 28 April 2026 - v3.3.0
 
@@ -71,6 +58,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Memberlist is again shown
 - [BUG] Icon reply for root of thread disabled in thread timeline
 - [BUG] Removed timeout for reading of hubs for debugging
+    - _internal_ (remove me after merge): uncomment []
 
 ## 06 February 2026 - v3.2.0
 

@@ -96,7 +96,7 @@ impl CardValidFor {
             })
             .collect();
 
-        let unix_epoch = api::NumericDate::new_clamp(0);
+        let unix_epoch = api::NumericDate::new(0);
 
         'epoch_present: {
             if let Some(hcv) = list.front()
@@ -132,7 +132,7 @@ pub struct HistoricCardValidFor {
 impl Default for HistoricCardValidFor {
     fn default() -> Self {
         Self {
-            starting_epoch: yivi::Epoch::default(),
+            starting_epoch: yivi::Epoch::with_seqnr(0),
             value: core::time::Duration::from_secs(2 * 7 * 24 * 3600), // two weeks
         }
     }
@@ -273,7 +273,20 @@ impl App {
             comment,
         } = req.into_inner();
 
-        let card_pseudonym_package = match cpp_signed.open(&running_state.phc_verifying_key, None) {
+        let Some(phc_verifying_key) = running_state
+            .constellation
+            .phc_verifying_key
+            .as_ref()
+            .and_then(|vk| vk.decode().ok())
+        else {
+            log::warn!(
+                "cannot verify card-pseudonym package: constellation has no (valid) \
+                 phc_verifying_key yet"
+            );
+            return Err(api::ErrorCode::InternalError);
+        };
+
+        let card_pseudonym_package = match cpp_signed.open(&phc_verifying_key, None) {
             Ok(cpp) => cpp,
             Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                 return Err(api::ErrorCode::InternalError);
@@ -329,26 +342,23 @@ mod tests {
 
         assert_eq!(cvf.now(), core::time::Duration::from_hours(5 * 24 * 7));
         assert_eq!(
-            cvf.at(api::NumericDate::try_from(
+            cvf.at(api::NumericDate::from(
                 humantime::parse_rfc3339_weak("1980-01-01 00:00:00").unwrap()
-            )
-            .unwrap()),
+            )),
             core::time::Duration::from_hours(4 * 24 * 7)
         );
         assert_eq!(
-            cvf.at(api::NumericDate::try_from(
+            cvf.at(api::NumericDate::from(
                 // start of epoch 512
                 humantime::parse_rfc3339_weak("1979-12-27T00:00:00").unwrap()
-            )
-            .unwrap()),
+            )),
             core::time::Duration::from_hours(4 * 24 * 7)
         );
         assert_eq!(
-            cvf.at(api::NumericDate::try_from(
+            cvf.at(api::NumericDate::from(
                 // the second before epoch 512 starts
                 humantime::parse_rfc3339_weak("1979-12-26T23:59:59").unwrap()
-            )
-            .unwrap()),
+            )),
             core::time::Duration::from_hours(2 * 24 * 7)
         );
     }

@@ -4,8 +4,8 @@
 		class="flex w-full flex-col"
 	>
 		<div
-			class="flex flex-col gap-y-200 pb-200"
-			:class="isMobile ? 'px-150' : 'px-200'"
+			class="flex flex-col gap-y-4 pb-4"
+			:class="isMobile ? 'px-3' : 'px-4'"
 		>
 			<TextField
 				v-model="search"
@@ -14,37 +14,27 @@
 				:placeholder="placeholderText"
 			/>
 
-			<!-- Chip filter buttons and actions -->
+			<!-- Chip filter buttons -->
 			<div
-				v-if="chipFilters.length > 0 || $slots.actions"
-				class="flex items-start justify-between gap-200"
+				v-if="chipFilters.length > 0"
+				class="flex shrink-0 gap-4 overflow-x-scroll p-[3px] whitespace-nowrap"
+				:class="isMobile ? '-mr-4' : 'mr-0'"
+				role="group"
+				:aria-label="t('others.search')"
 			>
-				<div
-					v-if="chipFilters.length > 0"
-					class="flex shrink-0 flex-wrap items-center gap-200"
-					role="group"
-					:aria-label="t('others.search')"
+				<Button
+					v-for="chip in chipFilters"
+					:key="chip.label"
+					:aria-label="chip.label"
+					:aria-pressed="activeChips.has(chip.label)"
+					:icon="activeChips.has(chip.label) ? 'check' : undefined"
+					:variant="activeChips.has(chip.label) ? 'primary' : 'secondary'"
+					size="sm"
+					type="button"
+					@click="toggleChip(chip.label)"
 				>
-					<Button
-						v-for="chip in chipFilters"
-						:key="chip.label"
-						:aria-label="chip.label"
-						:aria-pressed="activeChips.has(chip.label)"
-						:icon="activeChips.has(chip.label) ? 'check' : undefined"
-						:variant="activeChips.has(chip.label) ? 'primary' : 'secondary'"
-						size="sm"
-						type="button"
-						@click="toggleChip(chip.label)"
-					>
-						{{ chip.label }}
-					</Button>
-				</div>
-				<div
-					v-if="$slots.actions"
-					class="shrink-0"
-				>
-					<slot name="actions" />
-				</div>
+					{{ chip.label }}
+				</Button>
 			</div>
 		</div>
 
@@ -56,8 +46,8 @@
 			/>
 			<div
 				v-if="totalPages > 1"
-				class="flex items-center gap-200 py-200"
-				:class="isMobile ? 'justify-start px-150' : 'justify-center px-200'"
+				class="flex items-center gap-4 py-4"
+				:class="isMobile ? 'justify-start px-3' : 'justify-center px-4'"
 			>
 				<Button
 					variant="secondary"
@@ -80,7 +70,7 @@
 		</template>
 		<template v-else-if="search.length > 0 || activeChips.size > 0">
 			<p
-				class="text-on-surface-dim text-center"
+				class="text-on-surface-variant text-center"
 				role="status"
 			>
 				{{ t('others.search_nothing_found') }}
@@ -88,7 +78,7 @@
 		</template>
 		<p
 			v-else-if="emptyText && items.length === 0"
-			class="text-on-surface-dim text-center"
+			class="text-on-surface-variant text-center"
 			role="status"
 		>
 			{{ emptyText }}
@@ -108,13 +98,12 @@
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
-	// Types
+	// Props
 	interface ChipFilter {
 		label: string;
 		predicate: (item: Record<string, unknown>) => boolean;
 	}
 
-	// Props
 	const props = withDefaults(
 		defineProps<{
 			items?: Record<string, unknown>[];

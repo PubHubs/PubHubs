@@ -15,7 +15,7 @@ logger = logging.getLogger(os.path.basename(__file__))
 
 def main():
     parser = argparse.ArgumentParser(description="Checks which hubs are online, "
-                                     "what version they are running, and what database engine they are using.")
+                                     "and what version they are running")
 
     parser.add_argument('-e', '--environment', 
                         default="stable",
@@ -79,23 +79,21 @@ class Program:
                     hub_info = hub_info["Ok"]
                 hub['hub_info'] = hub_info 
                 logger.debug(f"{info_url}: {hub_info}")
-        except (urllib.error.URLError, TimeoutError) as e:
-            logger.warning(f'failed to get {info_url}: {e}')
-            # URLError carries a .reason; a bare read-timeout TimeoutError does not.
-            hub['hub_info'] = { 'error': getattr(e, 'reason', e) }
+        except urllib.error.URLError as e:
+            logger.warn(f'failed to get {info_url}: {e}')
+            hub['hub_info'] = { 'error': e }
 
     def print_hub_info(self):
         max_uri_len = max([len(hub['url']) for hub in self._hubs.values()])
-        max_version_len = max([len(hub['hub_info'].get('hub_version','')) for hub in self._hubs.values()])
 
         for hub in self._hubs.values():
             hub_info = hub['hub_info']
             msg = None
             if 'error' in hub_info:
-                msg = hub_info['error']
+                msg = hub_info['error'].reason
                 prefix = tc.ERROR
             else:
-                msg = hub_info['hub_version'].ljust(max_version_len+2) + hub_info.get('database_engine', 'n/a')
+                msg = hub_info['hub_version']
                 prefix = tc.OK
             print(f"{prefix}{hub['url'].ljust(max_uri_len+1)} {msg}{tc.END}")
 

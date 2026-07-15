@@ -84,13 +84,14 @@ Now you're ready to start developing.
 PubHubs consists of two main components:
 
 1. `Pubhubs Central`, which manages the global login
-    - [./pubhubs](./pubhubs/) folder contains the backend
-    - [./global-client](./global-client/) folder contains the client
+
+   - [./pubhubs](./pubhubs/) folder contains the backend
+   - [./global-client](./global-client/) folder contains the client
 
 2. The `Hubs`, which run the Synapse server and Matrix client
-    - [/pubhubs_hub](./pubhubs_hub/) folder contains the synapse server
-        - [/pubhubs_hub/testhub[0-4]](./pubhubs_hub/testhub0) folders contain the test hubs
-    - [/hub-client](./hub-client/) folder contains the hub client
+   - [/pubhubs_hub](./pubhubs_hub/) folder contains the synapse server
+     - [/pubhubs_hub/testhub[0-4]](./pubhubs_hub/testhub0) folders contain the test hubs
+   - [/hub-client](./hub-client/) folder contains the hub client
 
 To run the local development, you need to run six things locally:
 
@@ -106,13 +107,6 @@ You can run these all at once in the following way:
 ```sh
 mask run all
 ```
-
-> [!INFO]
-> If you want to specify the url to use for Yivi, for example when unable to connect because of network restrictions, you can do the following:
->
-> ```sh
-> YIVI_HOST=192.168.0.2 mask run all
-> ```
 
 Alternatively, if you are only making changes to the hub, you can run the hub client against our [staging server](https://main.pubhubs.ihub.ru.nl). To do so, you can run:
 
@@ -149,21 +143,20 @@ quit;
 If the hub is using PostgreSQL instead of SQLite3, use the following instead:
 
 ```sh
-docker exec -it pubhubs-testhub0 sudo -u postgres psql hub # For testhub0
+docker exec pubhubs-testhub0 sudo -u postgres psql hub
 
-# Inside psql
-UPDATE users SET admin = 1; # Note that this will make all the existing users admin, use 'WHERE' to specify
+-- Inside psql
+UPDATE users SET admin = 1; -- Note that this will make all the existing users admin, use 'WHERE' to specify
 
-# Afterwards, quit with:
+-- Afterwards, quit with:
 \q
 ```
 
-After doing this, restart the hub server, or close `mask run all` and run it again to gain admin access.
+After doing this, restart the hub server, or close `mask run all` and run it again.
 
 ### 6. Solutions for common issues
 
 - If Yivi cannot communicate with your local development setup, disable your firewall.
-- If Yivi still doesn't communicate with your local development, and you are on eduroam, you might have to use a VPN such as Tailscale to connect your development machine and your phone.
 - Is you run into CORS issues, disable HTPPS-only in your browser.
 
 ---

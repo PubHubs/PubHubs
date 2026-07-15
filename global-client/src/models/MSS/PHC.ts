@@ -16,6 +16,12 @@ import * as TPHC from '@global-client/models/MSS/TPHC';
 // Stores
 import { useGlobal } from '@global-client/stores/global';
 
+import { DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
+import { useSettings } from '@hub-client/stores/settings';
+
+// Other
+import { setLanguage, setUpi18n } from '@hub-client/i18n';
+
 const logger = createLogger('PHCServer');
 
 export default class PHCServer {
@@ -56,8 +62,23 @@ export default class PHCServer {
 	}
 
 	triggerLogoutProcedure() {
+		const dialog = useDialog();
 		const global = useGlobal();
-		global.logout({ key: 'login.login_again' });
+		const i18n = setUpi18n();
+		const language = useSettings().language;
+		setLanguage(i18n, language);
+		const { t } = i18n.global;
+		dialog.confirm(t('login.not_logged_in'), t('login.login_again'), 'global');
+		dialog.addCallback(DialogOk, async () => {
+			await global.logout();
+			dialog.removeCallback(DialogOk);
+			dialog.removeCallback(DialogCancel);
+		});
+		dialog.addCallback(DialogCancel, async () => {
+			await global.logout();
+			dialog.removeCallback(DialogCancel);
+			dialog.removeCallback(DialogOk);
+		});
 	}
 
 	// #region Global client login
@@ -234,10 +255,9 @@ export default class PHCServer {
 	/**
 	 * Call the refreshEP to refresh an (expired) authToken.
 	 *
-	 * @returns true if token was successfully refreshed, false if user needs to re-authenticate (triggers logout)
 	 * @throws Will throw an error if the request to refresh the authToken was denied (for example because the user is logging in with a banned attribute).
 	 */
-	async refreshEP(): Promise<boolean> {
+	async refreshEP() {
 		assert.isNotNull(this._authToken, 'An (expired) authToken is needed to call the refreshEP.');
 		const options = {
 			headers: { Authorization: this._authToken },
@@ -246,7 +266,6 @@ export default class PHCServer {
 		const okRefreshResp = await handleErrors<TPHC.RefreshResp>(() => this._phcAPI.api<TPHC.PHCRefreshResp>(this._phcAPI.apiURLS.refresh, options));
 		if (okRefreshResp === 'ReobtainAuthToken') {
 			this.triggerLogoutProcedure();
-			return false;
 		} else if ('Denied' in okRefreshResp) {
 			switch (okRefreshResp.Denied) {
 				case TPHC.AuthTokenDeniedReason.Banned:
@@ -258,21 +277,9 @@ export default class PHCServer {
 			}
 		} else if ('Success' in okRefreshResp) {
 			this._setAuthToken(okRefreshResp.Success);
-			return true;
 		} else {
 			throw new Error('Unknown response from the refresh endpoint.');
 		}
-	}
-
-	/**
-	 * Attempts to refresh the auth token and retry an operation.
-	 * Use this when receiving RetryWithNewAuthToken from an endpoint.
-	 *
-	 * @returns true if token was refreshed (caller should retry), false if logout was triggered
-	 */
-	private async _refreshAndRetry(): Promise<boolean> {
-		logger.info('Received RetryWithNewAuthToken, attempting to refresh token...');
-		return await this.refreshEP();
 	}
 
 	private async _getAuthToken(): Promise<string | undefined> {
@@ -567,27 +574,21 @@ export default class PHCServer {
 	/**
 	 * Request the state of the current user.
 	 *
-	 * @returns The state of the current user, or undefined if logout was triggered.
+	 * @returns Either a message to retry with an updated token or the state of the current user.
 	 */
 	public async stateEP() {
-		const maxRetries = 1;
-		for (let attempt = 0; attempt <= maxRetries; attempt++) {
-			const options = {
-				headers: { Authorization: (await this._getAuthToken()) ?? '' },
-				method: 'GET',
-			};
-			const okStateResp = await handleErrors<TPHC.StateResp>(() => this._phcAPI.api<TPHC.PHCStateResp>(this._phcAPI.apiURLS.state, options));
-			if (okStateResp === 'RetryWithNewAuthToken') {
-				if (attempt < maxRetries && (await this._refreshAndRetry())) {
-					continue; // Retry with new token
-				}
-				return; // Logout was triggered or max retries reached
-			} else if ('State' in okStateResp) {
-				this._userStateObjects = okStateResp.State.stored_objects;
-				return okStateResp.State;
-			} else {
-				throw new Error('Unknown response from the state endpoint.');
-			}
+		const options = {
+			headers: { Authorization: (await this._getAuthToken()) ?? '' },
+			method: 'GET',
+		};
+		const okStateResp = await handleErrors<TPHC.StateResp>(() => this._phcAPI.api<TPHC.PHCStateResp>(this._phcAPI.apiURLS.state, options));
+		if (okStateResp === 'RetryWithNewAuthToken') {
+			this.triggerLogoutProcedure();
+		} else if ('State' in okStateResp) {
+			this._userStateObjects = okStateResp.State.stored_objects;
+			return okStateResp.State;
+		} else {
+			throw new Error('Unknown response from the state endpoint.');
 		}
 	}
 
@@ -630,10 +631,7 @@ export default class PHCServer {
 
 	private async _getObjectDetails(handle: string): Promise<TPHC.UserObjectDetails | undefined> {
 		if (this._userStateObjects === undefined) {
-			const state = await this.stateEP();
-			if (!state) {
-				return undefined; // Auth failed, logout already triggered
-			}
+			await this.stateEP();
 		}
 
 		assert.isDefined(this._userStateObjects, 'Could not retrieve the user state.');
@@ -685,7 +683,6 @@ export default class PHCServer {
 	 */
 	private async _newObjectEP(handle: string, object: Uint8Array): Promise<boolean | undefined> {
 		const maxAttempts = 3;
-		let tokenRefreshed = false;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
 			const options = {
 				method: 'POST',
@@ -700,16 +697,13 @@ export default class PHCServer {
 			);
 			switch (newObjectResp) {
 				case 'PleaseRetry':
-					if (attempts === maxAttempts - 1) {
+					if (attempts === maxAttempts) {
 						throw new Error('Max attemps for RetryFromStart were passed.');
 					}
 					continue;
 				case 'RetryWithNewAuthToken':
-					if (!tokenRefreshed && (await this._refreshAndRetry())) {
-						tokenRefreshed = true;
-						continue; // Retry with new token
-					}
-					return; // Logout was triggered or already retried
+					this.triggerLogoutProcedure();
+					return;
 				case 'MissingHash': {
 					// There is already an object stored under this handle, so use overwriteObjectEP instead
 					const existingObject = await this.getUserObject(handle);
@@ -752,7 +746,6 @@ export default class PHCServer {
 	private async _overwriteObjectEP(handle: string, overwriteHash: string, object: Uint8Array): Promise<boolean | undefined> {
 		const maxAttempts = 3;
 		let hash = overwriteHash;
-		let tokenRefreshed = false;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
 			const options = {
 				method: 'POST',
@@ -767,16 +760,13 @@ export default class PHCServer {
 			);
 			switch (overwriteObjectResp) {
 				case 'PleaseRetry':
-					if (attempts === maxAttempts - 1) {
+					if (attempts === maxAttempts) {
 						throw new Error('Max attemps for RetryFromStart were passed');
 					}
 					continue;
 				case 'RetryWithNewAuthToken':
-					if (!tokenRefreshed && (await this._refreshAndRetry())) {
-						tokenRefreshed = true;
-						continue; // Retry with new token
-					}
-					return; // Logout was triggered or already retried
+					this.triggerLogoutProcedure();
+					return;
 				case 'MissingHash':
 					throw new Error('Unexpected response MissingHash for a newObjectEP request.');
 				case 'NotFound':
@@ -858,56 +848,41 @@ export default class PHCServer {
 
 	// #region Hub Login
 
-	async pppEP(): Promise<string | undefined> {
-		const maxRetries = 1;
-		for (let attempt = 0; attempt <= maxRetries; attempt++) {
-			const options = {
-				headers: { Authorization: (await this._getAuthToken()) ?? '' },
-				method: 'POST',
-			};
-			const okPppResp = await handleErrors<TPHC.PppResp>(() =>
-				this._phcAPI.api<TPHC.PHCPppResp>(this._phcAPI.apiURLS.polymorphicPseudonymPackage, options),
-			);
-			if (okPppResp === 'RetryWithNewAuthToken') {
-				if (attempt < maxRetries && (await this._refreshAndRetry())) {
-					continue; // Retry with new token
-				}
-				return; // Logout was triggered or max retries reached
-			} else if ('Success' in okPppResp) {
-				return okPppResp.Success;
-			} else {
-				throw new Error('Unknown response from the ppp endpoint.');
-			}
+	async pppEP() {
+		const options = {
+			headers: { Authorization: (await this._getAuthToken()) ?? '' },
+			method: 'POST',
+		};
+		const okPppResp = await handleErrors<TPHC.PppResp>(() => this._phcAPI.api<TPHC.PHCPppResp>(this._phcAPI.apiURLS.polymorphicPseudonymPackage, options));
+		if (okPppResp === 'RetryWithNewAuthToken') {
+			this.triggerLogoutProcedure();
+		} else if ('Success' in okPppResp) {
+			return okPppResp.Success;
+		} else {
+			throw new Error('Unknown response from the ppp endpoint.');
 		}
 	}
 
-	async hhppEP(sealedEhpp: string, hhppSignatureScheme?: string): Promise<string | 'RetryWithNewPpp' | undefined> {
-		const maxRetries = 1;
-		for (let attempt = 0; attempt <= maxRetries; attempt++) {
-			const hhppReq: TPHC.HhppReq = { ehpp: sealedEhpp, hhpp_signature_scheme: hhppSignatureScheme };
-			const options = {
-				body: JSON.stringify(hhppReq),
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: (await this._getAuthToken()) ?? '',
-				},
-				method: 'POST',
-			};
-			const okHhppResp = await handleErrors<TPHC.HhppResp>(() =>
-				this._phcAPI.api<TPHC.PHCHhppResp>(this._phcAPI.apiURLS.hashedHubPseudonymPackage, options),
-			);
-			if (okHhppResp === 'RetryWithNewPpp') {
-				return okHhppResp;
-			} else if (okHhppResp === 'RetryWithNewAuthToken') {
-				if (attempt < maxRetries && (await this._refreshAndRetry())) {
-					continue; // Retry with new token
-				}
-				return; // Logout was triggered or max retries reached
-			} else if ('Success' in okHhppResp) {
-				return okHhppResp.Success;
-			} else {
-				throw new Error('Unknown response from the hhpp endpoint.');
-			}
+	async hhppEP(sealedEhpp: string, hhppSignatureScheme?: string) {
+		const hhppReq: TPHC.HhppReq = { ehpp: sealedEhpp, hhpp_signature_scheme: hhppSignatureScheme };
+		const options = {
+			body: JSON.stringify(hhppReq),
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: (await this._getAuthToken()) ?? '',
+			},
+			method: 'POST',
+		};
+		const okHhppResp = await handleErrors<TPHC.HhppResp>(() => this._phcAPI.api<TPHC.PHCHhppResp>(this._phcAPI.apiURLS.hashedHubPseudonymPackage, options));
+		if (okHhppResp === 'RetryWithNewPpp') {
+			return okHhppResp;
+		} else if (okHhppResp === 'RetryWithNewAuthToken') {
+			this.triggerLogoutProcedure();
+			return;
+		} else if ('Success' in okHhppResp) {
+			return okHhppResp.Success;
+		} else {
+			throw new Error('Unknown response from the hhpp endpoint.');
 		}
 	}
 

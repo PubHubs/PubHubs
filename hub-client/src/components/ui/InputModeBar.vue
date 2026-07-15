@@ -1,6 +1,5 @@
 <template>
 	<div
-		data-testid="input-mode-bar"
 		class="rounded-t-base flex h-500 items-center justify-between gap-100 border-b px-200"
 		:class="containerClass"
 	>
@@ -50,7 +49,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	// Props
-	type Variant = 'edit' | 'steward' | 'sign' | 'reply';
+	type Variant = 'steward' | 'sign' | 'reply';
 
 	const props = defineProps<{
 		icon: string;
@@ -64,10 +63,6 @@
 	}>();
 
 	const variantStyles = {
-		edit: {
-			container: 'bg-accent-blue/10 border-accent-blue',
-			text: 'text-accent-blue',
-		},
 		steward: {
 			container: 'bg-accent-steward/10 border-accent-steward',
 			text: 'text-accent-steward',

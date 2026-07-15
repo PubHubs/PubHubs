@@ -1,8 +1,8 @@
 <template>
-	<div class="bg-surface rounded-base relative min-h-full overflow-hidden">
+	<div class="bg-surface-subtle rounded-base relative min-h-full overflow-hidden">
 		<div class="relative">
 			<div class="bg-on-surface-dim absolute top-0 left-0 h-[50%] w-full" />
-			<div class="relative z-10 flex items-end justify-between px-200 py-200">
+			<div class="relative z-10 flex items-end justify-between px-4 py-4">
 				<Avatar
 					:avatar-url="userStore.userAvatar(userId ? userId : event.sender)"
 					class="rounded-full object-cover shadow-md ring-2 ring-white ring-offset-1"
@@ -10,10 +10,10 @@
 				/>
 				<div
 					v-if="userStore.userId !== (userId ? userId : event.sender) && props.room?.getPowerLevel(userId ? userId : event.sender) !== 50"
-					class="bg-surface-base mb-100 rounded-md p-[2%]"
+					class="bg-surface-low mb-2 rounded-md p-[2%]"
 				>
 					<Button
-						class="bg-on-surface-dim cursor-pointer"
+						class="bg-on-surface-variant cursor-pointer"
 						@click.once="userStore.goToUserRoom(userId ? userId : event.sender)"
 					>
 						<Icon type="envelope" />
@@ -25,7 +25,7 @@
 			:room-id="event.room_id"
 			:user="userId ? userId : event.sender"
 		/>
-		<div class="py-050 px-200">
+		<div class="px-4 py-1">
 			<UserDisplayName
 				:choose-color="false"
 				:show-display-name="false"

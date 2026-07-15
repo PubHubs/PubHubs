@@ -1,5 +1,4 @@
 //! Miscellaneous
-pub mod awc_http_connector;
 pub mod crypto;
 pub mod drop_ext;
 pub mod error;

@@ -9,11 +9,11 @@
 			</div>
 		</template>
 		<template #column2>
-			<div class="mb-500 flex justify-center">
+			<div class="mb-10 flex justify-center">
 				<div class="flex flex-col items-center lg:items-start">
 					<H1>{{ $t('register.welcome') }}</H1>
 					<Button
-						class="mt-300"
+						class="mt-6"
 						@click="emit('next')"
 					>
 						{{ $t('register.register') }}

@@ -36,7 +36,6 @@ impl Cli {
                 Commands::Tools(args) => run_args!(args, "tools"),
                 Commands::Admin(args) => run_args!(args, "admin"),
                 Commands::Enter(args) => run_args!(args, "enter"),
-                Commands::Stress(args) => run_args!(args, "stress"),
                 Commands::Doc(args) => run_args!(args, "doc"),
             },
         }
@@ -56,9 +55,6 @@ enum Commands {
 
     /// Enter pubhubs (and a hub) returning pubhubs (and Synapse) access token(s)
     Enter(pubhubs::cli::EnterArgs),
-
-    /// Load/stress-test a running PubHubs deployment
-    Stress(pubhubs::cli::StressArgs),
 
     /// Like `cargo doc`, but with KaTeX header injected to render math
     Doc(pubhubs::cli::DocArgs),

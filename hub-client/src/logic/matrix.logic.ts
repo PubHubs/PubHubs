@@ -16,15 +16,15 @@ import { MatrixEventType, SlidingSyncOptions, SystemDefaults } from '@hub-client
 Main mechanism for sliding sync
 
 First collect all rooms by an initialroomlist that asks for all the rooms with Name, Memberdata and a timeline segment
-These rooms are loaded into the RoomList of the rooms store and displayed in the menu.
-For each room the last message is saved. When a room is clicked in the menu, the last message is taken as the base for the timelineManager of the room
+These rooms are loaded into the RoomList of the rooms store and displayed in the menu. 
+For each room the last message is saved. When a room is clicked in the menu, the last message is taken as the base for the timelineManager of the room 
 and the room is subscribed to for further syncing.
 
 As soon as the roomlist is loaded the initial list is removed and replaced by a list that for now handles most basic syncing: ask for the recent rooms the full data
 
 After that: only the current room is subscribed to. And unsubscribed when the user turns to another room
 
-In order to receive events in the subscription there always needs to be a list with a timeline_limit active, because a current bug in matrix
+In order to receive events in the subscription there always needs to be a list with a timeline_limit active, because a current bug in matrix 
 lets the timeline_limit of the subscription be overwritten by the one in the list.
  */
 
@@ -52,7 +52,7 @@ const MainRoomList: MSC3575List = {
 		[EventType.RoomMember, MSC3575_STATE_KEY_LAZY],
 		['*', '*'],
 	],
-	timeline_limit: 10, // enough events so at least one is usually a visible message for unread computation; increased from 1
+	timeline_limit: 1, // cannot be SystemDefaults.initialRoomTimelineLimit, that is used in the timelinemanager// We need the timeline events, this is for subsequent syncing
 };
 
 // Put Roomlists in map for easy handling

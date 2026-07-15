@@ -1,6 +1,6 @@
 <template>
 	<Button
-		class="m-100"
+		class="m-2"
 		:class="isStartButton ? '' : 'animate-pulse'"
 		:variant="isStartButton ? 'primary' : 'error'"
 		icon="video"

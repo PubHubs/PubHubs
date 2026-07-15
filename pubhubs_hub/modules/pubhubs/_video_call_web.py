@@ -4,15 +4,13 @@ import os
 from urllib.parse import urlparse
 
 from livekit import api
-from synapse.api.constants import EventTypes
 from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.http.servlet import parse_string
 from synapse.http.site import SynapseRequest
 from synapse.module_api import ModuleApi
 
-from ._constants import LIVEKIT_API_KEY_DEFAULT, LIVEKIT_API_SECRET_DEFAULT, LIVEKIT_URL, ROOM_ADMIN
+from ._constants import LIVEKIT_API_KEY_DEFAULT, LIVEKIT_API_SECRET_DEFAULT, LIVEKIT_URL
 from ._store import HubStore
-from ._validation import get_user_power_level
 
 logger = logging.getLogger(__name__)
 
@@ -84,25 +82,6 @@ class VideoCallServlet(DirectServeJsonResource):
         self.store = store
         self.module_api = api
 
-    async def _may_use_video_call(self, user_id: str, room_id: str) -> bool:
-        """Only secured rooms require the Yivi-disclosure allow-list check —
-        same distinction as the user_may_join_room spam-checker hook in HubClientApi.py.
-
-        Room admins (e.g. the room creator) are auto-joined at room creation and never
-        go through Yivi disclosure, so they never get a row in allowed_to_join_room.
-        Exempt them by power level instead of requiring a grant that can't exist for them.
-        """
-        secured_room = await self.store.get_secured_room(room_id)
-        if not secured_room:
-            return True
-
-        room_state = await self.module_api.get_room_state(room_id, [(EventTypes.PowerLevels, "")])
-        power_levels_event = room_state.get((EventTypes.PowerLevels, ""))
-        if power_levels_event and get_user_power_level(user_id, power_levels_event.content) >= ROOM_ADMIN:
-            return True
-
-        return await self.store.is_allowed(user_id, room_id)
-
     async def _async_render_GET(self, request: SynapseRequest):
         """Get an access token"""
 
@@ -113,7 +92,7 @@ class VideoCallServlet(DirectServeJsonResource):
 
         room_name = parse_string(request, "room_id")
 
-        if not await self._may_use_video_call(user.authenticated_entity, room_name):
+        if not await self.store.is_allowed(user.authenticated_entity, room_name):
             respond_with_json(request, 403, {"error": "User is not allowed to join this room"}, True)
             return
 
@@ -129,9 +108,10 @@ class VideoCallServlet(DirectServeJsonResource):
 
         room_name = parse_string(request, "room_id")
 
-        if not await self._may_use_video_call(user.authenticated_entity, room_name):
+        if not await self.store.is_allowed(user.authenticated_entity, room_name):
             respond_with_json(request, 403, {"error": "User is not allowed to join this room"}, True)
             return
+
 
         try:
             asyncio.get_event_loop().run_until_complete(_create_room(room_name=room_name))

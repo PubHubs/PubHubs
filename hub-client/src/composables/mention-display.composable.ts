@@ -49,18 +49,14 @@ export function useMentionsDisplay() {
 		const mentions: MentionMatch[] = [];
 
 		// Matches: @displayName~userId~ or #displayName~roomId~
-		// The (?:^|\s) ensures @ or # is at start of string or after whitespace,
-		// preventing matches inside URLs like https://example.com/#/path
-		const mentionRegex = /(?:^|\s)([@#])([^~]+)~([^~]+)~/g;
+		const mentionRegex = /([@#])([^~]+)~([^~]+)~/g;
 
 		let match;
 		while ((match = mentionRegex.exec(body))) {
 			const marker = match[1] as '@' | '#';
 			const id = match[3];
-			// Adjust start position: if match starts with whitespace, the actual mention starts 1 char later
-			const matchStart = match.index;
-			const start = match[0].startsWith(' ') || match[0].startsWith('\t') || match[0].startsWith('\n') ? matchStart + 1 : matchStart;
-			const end = matchStart + match[0].length;
+			const start = match.index;
+			const end = start + match[0].length;
 
 			// Validate
 			const tokenName = marker === '#' ? rooms.getTPublicRoom(id)?.name : pubhubs.client.getUser(id)?.rawDisplayName;

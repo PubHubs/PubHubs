@@ -10,14 +10,14 @@
 			<!-- Shared Header -->
 			<div
 				v-else
-				class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between gap-200 border-b-2"
-				:class="isMobile ? 'p-150 pl-600' : 'p-200 pl-400'"
+				class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8"
+				:class="isMobile ? 'pl-12' : 'pl-8'"
 				data-testid="roomheader"
 			>
 				<!-- Left: Room info -->
 				<div
 					v-if="rooms.currentRoom"
-					class="relative flex min-w-0 flex-1 items-center gap-150 overflow-hidden"
+					class="relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden"
 					data-testid="roomtype"
 				>
 					<Icon
@@ -28,8 +28,15 @@
 						@click="router.push({ name: 'direct-msg' })"
 					/>
 					<Icon
-						v-if="notPrivateRoom()"
-						:type="rooms.currentRoom.isSecuredRoom() ? 'shield' : rooms.currentRoom.isForumRoom() ? 'chat-circle-text' : 'chats-circle'"
+						v-if="rooms.currentRoom.isForumRoom() && props.topicId"
+						type="caret-left"
+						data-testid="back"
+						class="cursor-pointer"
+						@click="router.push({ name: 'room', params: { id: rooms.currentRoomId } })"
+					/>
+					<Icon
+						v-else-if="notPrivateRoom()"
+						:type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'"
 					/>
 					<div
 						v-context-menu="
@@ -37,9 +44,9 @@
 								? (evt: any) => openMenu(evt, [{ label: t('menu.copy_room_url'), icon: 'copy', onClick: () => copyRoomUrl() }])
 								: undefined
 						"
-						class="group relative min-w-0 overflow-hidden"
+						class="group relative"
 					>
-						<H3 class="text-on-surface flex min-w-0">
+						<H3 class="text-on-surface flex">
 							<TruncatedText class="font-headings font-semibold">
 								<PrivateRoomHeader
 									v-if="room?.isPrivateRoom()"
@@ -66,47 +73,45 @@
 				</div>
 
 				<!-- Right: Sidebar controls -->
-				<div class="flex items-center gap-100">
+				<div class="flex items-center gap-2">
 					<RoomHeaderButtons>
-						<!-- Sidebar toggles (hidden on forum feed) -->
-						<template v-if="!room?.isForumRoom() || props.topicId">
-							<!-- Search -->
-							<GlobalBarButton
-								type="magnifying-glass"
-								:selected="sidebar.activeTab.value === SidebarTab.Search"
-								:aria-label="t('others.search_room')"
-								:title="t('others.search_room')"
-								@click="sidebar.toggleTab(SidebarTab.Search)"
-							/>
+						<!-- Search -->
+						<GlobalBarButton
+							type="magnifying-glass"
+							:selected="sidebar.activeTab.value === SidebarTab.Search"
+							:title="t('others.search_room')"
+							@click="sidebar.toggleTab(SidebarTab.Search)"
+						/>
 
-							<!-- Room library -->
-							<GlobalBarButton
-								v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)"
-								type="folder-simple"
-								:selected="sidebar.activeTab.value === SidebarTab.Library"
-								:aria-label="t('roomlibrary.library')"
-								:title="t('roomlibrary.library')"
-								@click="sidebar.toggleTab(SidebarTab.Library)"
-							/>
+						<!-- Room library -->
+						<GlobalBarButton
+							v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)"
+							type="folder-simple"
+							:selected="sidebar.activeTab.value === SidebarTab.Library"
+							@click="sidebar.toggleTab(SidebarTab.Library)"
+						/>
 
-							<!-- Members -->
-							<GlobalBarButton
-								v-if="hasRoomMembers"
-								type="users"
-								:selected="sidebar.activeTab.value === SidebarTab.Members"
-								:aria-label="t('others.room_members')"
-								:title="t('others.room_members')"
-								@click="sidebar.toggleTab(SidebarTab.Members)"
-							/>
-						</template>
+						<!-- Video call button -->
+						<GlobalBarButton
+							v-if="showVideocallButton()"
+							type="video"
+							:is-start-button="!ongoingCall"
+							@click="startOrJoinVideoCall()"
+						/>
 
-						<!-- Thread tab (shown when a thread is selected, never in forum) -->
+						<!-- Members -->
+						<GlobalBarButton
+							v-if="hasRoomMembers"
+							type="users"
+							:selected="sidebar.activeTab.value === SidebarTab.Members"
+							@click="sidebar.toggleTab(SidebarTab.Members)"
+						/>
+
+						<!-- Thread tab (shown when a thread is selected) -->
 						<GlobalBarButton
 							v-if="room?.getCurrentThreadId() && !room.isForumRoom()"
 							type="chat-circle"
 							:selected="sidebar.activeTab.value === SidebarTab.Thread"
-							:aria-label="t('rooms.thread')"
-							:title="t('rooms.thread')"
 							@click="sidebar.toggleTab(SidebarTab.Thread)"
 						/>
 					</RoomHeaderButtons>
@@ -124,20 +129,14 @@
 						:last-read-event-id="lastReadEventId"
 					/>
 					<ForumRoomTimeline
-						v-if="room && room.isForumRoom() && !props.topicId"
+						v-if="room && room.isForumRoom()"
 						:room="room"
-					/>
-					<ForumPostView
-						v-if="room && room.isForumRoom() && props.topicId"
-						:room="room"
-						:topic-id="props.topicId"
-						:event-id-to-scroll="scrollToEventId"
+						:topic-id="topicId"
 					/>
 				</div>
 
-				<!-- Room sidebar (hidden on forum feed, shown on post view) -->
+				<!-- Room sidebar -->
 				<RoomSidebar
-					v-if="!room?.isForumRoom() || props.topicId"
 					:active-tab="sidebar.activeTab.value"
 					:is-mobile="sidebar.isMobile.value ?? false"
 				>
@@ -197,7 +196,6 @@
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
 	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
-	import ForumPostView from '@hub-client/components/rooms/forum/ForumPostView.vue';
 	import ForumRoomTimeline from '@hub-client/components/rooms/forum/ForumRoomTimeline.vue';
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
@@ -223,6 +221,7 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	// Passed by the router
 	const props = defineProps({
@@ -239,6 +238,7 @@
 	const dialogStore = useDialog();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
+	const videoCall = useVideoCall();
 	const { copyCurrentRoomUrl: copyRoomUrl } = useClipboard();
 	const { openMenu } = useContextMenu();
 	const sidebar = useSidebar();
@@ -248,6 +248,7 @@
 	const pubhubs = usePubhubsStore();
 	const { membershipEvents } = useModerationBase();
 
+	const ongoingCall = computed(() => room.value!.isOngoingCall());
 	const joinSecuredRoom = ref<string | null>(null);
 	const scrollToEventId = ref<string>();
 	const isLoading = ref(!rooms.roomExists(props.id));
@@ -301,8 +302,7 @@
 		() => sidebar.isOpen.value,
 		(isOpen) => {
 			// Only clear thread when transitioning from open to closed
-			// Skip for forum post view -- it manages its own thread ID via topicId
-			if (isOpen === false && room.value && !(room.value.isForumRoom() && props.topicId)) {
+			if (isOpen === false && room.value) {
 				room.value.setCurrentThreadId(undefined);
 				sidebar.clearSearchState();
 			}
@@ -355,10 +355,8 @@
 	async function update(): Promise<boolean> {
 		const currentVersion = ++updateVersion;
 
-		// Fast path: room already loaded, or already joined in the SDK (from sliding sync) so it can be
-		// built synchronously. Either way, show it immediately without the full-screen loading spinner.
-		if (rooms.roomExists(props.id) || rooms.ensureRoomFromSdk(props.id)) {
-			isLoading.value = false;
+		// Fast path: room already loaded, just switch to it
+		if (rooms.roomExists(props.id)) {
 			rooms.changeRoom(props.id);
 			hubSettings.hideBar();
 			rooms.currentRoom?.initTimeline();
@@ -410,18 +408,6 @@
 
 	async function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
 		if (!room.value) return;
-
-		// A forum room has no thread sidebar: a comment lives inside a post, and its threadId is that
-		// post (a hit on the post itself has none). Open the post and let ForumPostView highlight it.
-		if (room.value.isForumRoom()) {
-			const postId = ev.threadId ?? ev.eventId;
-			scrollToEventId.value = ev.eventId;
-			if (props.topicId !== postId) {
-				await router.push({ name: 'room', params: { id: props.id, topicId: postId } });
-			}
-			return;
-		}
-
 		// if there is a threadId and this is a valid id in the room: set the current threadId
 
 		if (ev.threadId && ev.threadId !== ev.eventId) {
@@ -443,6 +429,24 @@
 	function notPrivateRoom() {
 		if (!room.value) return true;
 		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
+	}
+
+	async function startOrJoinVideoCall() {
+		let connected = false;
+		if (room.value!.isOngoingCall()) {
+			connected = await videoCall.joinCall();
+			if (!connected) {
+				connected = await videoCall.startCall();
+			}
+		} else {
+			connected = await videoCall.startCall();
+		}
+		if (!connected) return;
+		await router.push({ name: 'videocall' });
+	}
+
+	function showVideocallButton(): boolean {
+		return settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.value!.isSecuredRoom() || room.value!.isPrivateRoom());
 	}
 
 	const handleKick = (roomId: string, reason?: string) => {

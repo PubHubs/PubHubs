@@ -8,13 +8,13 @@ import { useRoles } from '@hub-client/composables/roles.composable';
 import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 // Logic
-import { APIService } from '@hub-client/logic/core/apiService';
+import { APIService } from '@hub-client/logic/core/apiHubManagement';
 import { router } from '@hub-client/logic/core/router';
 import { getRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 // Models
 import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
-import { DirectRooms, type RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { DirectRooms, type RoomType, type TBaseRoom } from '@hub-client/models/rooms/TBaseRoom';
 import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
@@ -104,7 +104,7 @@ export function useManageRooms() {
 			const count = roomMemberCount(r.room_id) ?? (r as { num_joined_members?: number }).num_joined_members;
 			return { ...r, _roomType: 'secured', num_joined_members: count };
 		});
-		const allRooms = [...publicRooms, ...securedRooms];
+		const allRooms: (TBaseRoom & { _roomType: string; num_joined_members?: number })[] = [...publicRooms, ...securedRooms];
 		if (isAdmin.value) return allRooms;
 
 		const existingIds = new Set(allRooms.map((r) => r.room_id));
@@ -229,6 +229,10 @@ export function useManageRooms() {
 		router.push({ name: 'room', params: { id: selectedRoomId.value } });
 	}
 
+	function navigateToUser(userId: string) {
+		router.push({ name: 'manage-users', query: { userId } });
+	}
+
 	function selectRoom(roomId: string, roomName: string) {
 		if (sidebar.activeTab.value === SidebarTab.ManageRoom && selectedRoomId.value === roomId) {
 			sidebar.close();
@@ -256,6 +260,7 @@ export function useManageRooms() {
 		removeSelectedRoom,
 		promoteSelectedRoom,
 		goToSelectedRoom,
+		navigateToUser,
 		selectRoom,
 		closeForm,
 		itemRoomId,

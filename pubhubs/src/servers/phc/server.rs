@@ -60,16 +60,8 @@ impl servers::Details for Details {
         })
     }
 
-    fn create_extra_shared_state(config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
-        let mut hubs: crate::map::Map<hub::BasicInfo> = Default::default();
-
-        for basic_hub_info in config.phc.as_ref().unwrap().hubs.iter() {
-            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone().into()) {
-                anyhow::bail!("two hubs are known as {hub_or_id}");
-            }
-        }
-
-        Ok(ExtraSharedState { hubs })
+    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+        Ok(ExtraSharedState {})
     }
 
     fn create_extra_server_state(_config: &servers::Config) -> anyhow::Result<()> {
@@ -77,16 +69,14 @@ impl servers::Details for Details {
     }
 }
 
-pub struct ExtraSharedState {
-    /// Immutable hub registry, built once from config and shared by all apps.
-    pub hubs: crate::map::Map<hub::BasicInfo>,
-}
+pub struct ExtraSharedState {}
 
 pub struct App {
     pub base: AppBase<Server>,
     pub transcryptor_url: url::Url,
     pub auths_url: url::Url,
     pub global_client_url: url::Url,
+    pub hubs: crate::map::Map<hub::BasicInfo>,
     pub master_enc_key_part: elgamal::PrivateKey,
     pub attr_id_secret: Box<[u8]>,
     pub auth_token_secret: crypto::SealingKey,
@@ -233,56 +223,56 @@ impl crate::servers::App<Server> for App {
 
         let current_rs = self.running_state.as_ref();
 
-        let (transcryptor_encap_key_id, transcryptor_ss_encap, t_ss) = Self::encap_or_reuse(
-            servers::Name::Transcryptor,
-            tdi.encap_key.as_ref(),
-            current_rs.map(|rs| {
-                (
-                    &rs.constellation.transcryptor_encap_key_id,
-                    &rs.constellation.transcryptor_ss_encap,
-                    &rs.t_ss,
-                )
-            }),
-        )?;
+        let t_prior = current_rs.and_then(|rs| {
+            let id = rs.constellation.transcryptor_encap_key_id.as_ref()?;
+            let ct = rs.constellation.transcryptor_ss_encap.as_ref()?;
+            Some((id, ct, &rs.t_ss))
+        });
+        let (transcryptor_encap_key_id, transcryptor_ss_encap, t_ss) =
+            Self::encap_or_reuse(tdi.encap_key.as_ref(), t_prior)?;
 
-        let (auths_encap_key_id, auths_ss_encap, auths_ss) = Self::encap_or_reuse(
-            servers::Name::AuthenticationServer,
-            asdi.encap_key.as_ref(),
-            current_rs.map(|rs| {
-                (
-                    &rs.constellation.auths_encap_key_id,
-                    &rs.constellation.auths_ss_encap,
-                    &rs.auths_ss,
-                )
-            }),
-        )?;
+        let auths_prior = current_rs.and_then(|rs| {
+            let id = rs.constellation.auths_encap_key_id.as_ref()?;
+            let ct = rs.constellation.auths_ss_encap.as_ref()?;
+            Some((id, ct, &rs.auths_ss))
+        });
+        let (auths_encap_key_id, auths_ss_encap, auths_ss) =
+            Self::encap_or_reuse(asdi.encap_key.as_ref(), auths_prior)?;
 
         let new_constellation_inner = constellation::Inner {
+            // placeholder; the real master encryption key `x_PHC x_T B` is held off-wire in PHC's
+            // running state (derived from the transcryptor's sealed master key part)
+            master_enc_key: Some(elgamal::PublicKey::zero()),
+            // placeholder; superseded by `transcryptor_master_enc_key_part_hash`
+            transcryptor_master_enc_key_part: Some(elgamal::PublicKey::zero()),
             // the transcryptor publishes the hash of `x_T B` in its discovery info
-            transcryptor_master_enc_key_part_hash: tdi.master_enc_key_part_hash.ok_or_else(
-                || {
-                    log::error!("transcryptor's discovery info has no master_enc_key_part_hash");
-                    api::ErrorCode::InternalError
-                },
-            )?,
-            phc_master_enc_key_part_hash: phcrypto::master_enc_key_part_hash(
+            transcryptor_master_enc_key_part_hash: tdi.master_enc_key_part_hash,
+            phc_master_enc_key_part_hash: Some(phcrypto::master_enc_key_part_hash(
                 self.master_enc_key_part.public_key(),
-            ),
+            )),
             global_client_url: self.global_client_url.clone(),
             phc_url: self.phc_url.clone(),
             // PHC's ed25519 public key (the `ed` half), so pre-hybrid hubs can verify the EdDSA HHPP.
             phc_jwt_key: crate::misc::serde_ext::ByteArray::from(
-                self.shared.signing_key.verifying_key().ed25519_bytes(),
+                self.signing_key.verifying_key().ed25519_bytes(),
             )
             .into(),
-            phc_verifying_key: self.shared.verifying_key_bytes.clone(),
+            phc_verifying_key: Some(self.verifying_key_bytes.clone()),
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            phc_enc_key: Some(elgamal::PublicKey::zero()),
             transcryptor_url: self.transcryptor_url.clone(),
+            transcryptor_jwt_key: api::DeprecatedJwtKey::default(),
             // cloned (not moved) so `tdi` stays whole for `master_enc_key_from_sealed_part` below
             transcryptor_verifying_key: tdi.verifying_key.clone(),
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            transcryptor_enc_key: Some(elgamal::PublicKey::zero()),
             transcryptor_encap_key_id,
             transcryptor_ss_encap,
             auths_url: self.auths_url.clone(),
+            auths_jwt_key: api::DeprecatedJwtKey::default(),
             auths_verifying_key: asdi.verifying_key.clone(),
+            // placeholder value - enc_key is not used to create shared secrets anymore
+            auths_enc_key: Some(elgamal::PublicKey::zero()),
             auths_encap_key_id,
             auths_ss_encap,
             ph_version: self.version.clone(),
@@ -569,7 +559,7 @@ impl HubCacheUpdater {
             unpublished_updates: Cell::new(false),
         });
 
-        for basic_hub_info in app.shared.hubs.values() {
+        for basic_hub_info in app.hubs.values() {
             localset.spawn_local(hcu.clone().handle_hub(basic_hub_info.clone()));
         }
 
@@ -740,36 +730,35 @@ impl App {
         )))
     }
 
-    /// Encapsulate a fresh shared secret against the encapsulation key in `peer`'s discovery info
-    /// (error if it omits one), reusing `prior`'s ciphertext and secret when `peer`'s encapsulation
-    /// key is unchanged.
     fn encap_or_reuse(
-        peer: servers::Name,
         peer_encap_key: Option<&kem::EncapKeyBytes>,
         prior: Option<(&id::Id, &kem::CiphertextBytes, &kem::SharedSecret)>,
-    ) -> api::Result<(id::Id, kem::CiphertextBytes, kem::SharedSecret)> {
-        let peer_encap_key = peer_encap_key.ok_or_else(|| {
-            log::error!("{peer}'s discovery info has no encapsulation key");
-            api::ErrorCode::InternalError
-        })?;
+    ) -> api::Result<(
+        Option<id::Id>,
+        Option<kem::CiphertextBytes>,
+        kem::SharedSecret,
+    )> {
+        let Some(ek_bytes) = peer_encap_key else {
+            return Ok((None, None, kem::SharedSecret::random()));
+        };
 
-        let new_id = peer_encap_key.id();
+        let new_id = ek_bytes.id();
 
         if let Some((prev_id, prev_ct, prev_ss)) = prior
             && *prev_id == new_id
         {
-            return Ok((*prev_id, prev_ct.clone(), prev_ss.clone()));
+            return Ok((Some(*prev_id), Some(prev_ct.clone()), prev_ss.clone()));
         }
 
-        let ek = peer_encap_key.decode().map_err(|_| {
-            log::error!("failed to decode {peer}'s encap_key");
+        let ek = ek_bytes.decode().map_err(|_| {
+            log::error!("failed to decode peer encap_key");
             api::ErrorCode::InternalError
         })?;
         let (ct, ss) = ek.encap().map_err(|_| {
-            log::error!("failed to encapsulate for {peer}");
+            log::error!("failed to encapsulate for peer");
             api::ErrorCode::InternalError
         })?;
-        Ok((new_id, ct, ss))
+        Ok((Some(new_id), Some(ct), ss))
     }
 }
 
@@ -779,6 +768,7 @@ pub struct AppCreator {
     pub transcryptor_url: url::Url,
     pub auths_url: url::Url,
     pub global_client_url: url::Url,
+    pub hubs: crate::map::Map<hub::BasicInfo>,
     pub master_enc_key_part: elgamal::PrivateKey,
     pub attr_id_secret: Box<[u8]>,
     pub auth_token_secret: crypto::SealingKey,
@@ -827,6 +817,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             global_client_url: self.global_client_url,
+            hubs: self.hubs,
             master_enc_key_part: self.master_enc_key_part,
             attr_id_secret: self.attr_id_secret,
             auth_token_secret: self.auth_token_secret,
@@ -846,7 +837,15 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        let mut hubs: crate::map::Map<hub::BasicInfo> = Default::default();
+
         let xconf = &config.phc.as_ref().unwrap();
+
+        for basic_hub_info in xconf.hubs.iter() {
+            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone().into()) {
+                anyhow::bail!("two hubs are known as {hub_or_id}");
+            }
+        }
 
         let master_enc_key_part: elgamal::PrivateKey = xconf
             .master_enc_key_part
@@ -867,6 +866,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
             auths_url: xconf.auths_url.as_ref().clone(),
             global_client_url: xconf.global_client_url.as_ref().clone(),
+            hubs,
             master_enc_key_part,
             attr_id_secret: <serde_bytes::ByteBuf as Clone>::clone(
                 xconf

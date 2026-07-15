@@ -28,11 +28,6 @@ export interface TBaseMessageEventContent {
 	body?: string;
 	// Custom body type, which has all the processed body or formatted body content, for use in our components
 	ph_body?: string;
-	// Matrix m.replace edit: the replacement content (https://spec.matrix.org/v1.8/client-server-api/#event-replacements)
-	'm.new_content'?: TBaseMessageEventContent;
-	// Custom marker (origin_server_ts of the latest edit) set by TimelineManager once an edit has been applied.
-	// Used both to render the "(edited)" label and for idempotency.
-	ph_edited_ts?: number;
 	userPL?: number;
 	whisper_to?: string;
 	msgtype:

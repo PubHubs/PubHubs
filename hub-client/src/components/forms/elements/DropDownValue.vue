@@ -1,12 +1,12 @@
 <template>
 	<span
-		class="inline-flex max-h-300 w-full items-center justify-start gap-100 truncate overflow-hidden"
+		class="inline-flex max-h-300 w-full items-center justify-start gap-2 truncate overflow-hidden"
 		:title="label"
 	>
 		<Avatar
 			v-if="avatar || avatar == ''"
 			:avatar-url="avatar"
-			class="h-300! w-300! shrink-0"
+			class="h-300 w-300"
 			:user-id="typeof value !== 'string' ? (value.value ?? '') : ''"
 		/>
 		<span

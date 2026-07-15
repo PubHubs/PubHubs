@@ -1,8 +1,8 @@
 <template>
-	<div class="flex h-full flex-1 flex-col items-center justify-between gap-100 overflow-y-auto md:gap-200">
+	<div class="flex h-full flex-1 flex-col items-center justify-between gap-2 overflow-y-auto md:gap-4">
 		<InlineSpinner v-if="global.loggedIn && global.hubsLoading" />
 		<draggable
-			class="list-group flex w-full flex-1 flex-col gap-100 overflow-x-hidden p-200"
+			class="list-group flex w-full flex-1 flex-col gap-2 overflow-x-hidden p-4"
 			:delay="300"
 			:delay-on-touch-only="true"
 			ghost-class="hub-drag-ghost"
@@ -17,44 +17,34 @@
 			<template #item="{ element }">
 				<div
 					v-if="hubs.hub(element.hubId)"
-					class="flex h-auto justify-center gap-200"
-					@contextmenu.prevent="openHubContextMenu($event, element)"
+					class="flex h-auto justify-center gap-4"
 				>
 					<router-link
-						v-slot="{ isActive, href, navigate }"
-						custom
+						v-slot="{ isActive }"
+						class="w-full"
 						:to="{ name: 'hub', params: { name: element.hubName } }"
 					>
-						<a
+						<HubMenuHubIcon
 							v-if="global.loggedIn || element.hubId === hubs.currentHubId"
-							class="w-full"
-							:href="href"
-							:aria-current="isActive ? 'true' : undefined"
-							:aria-disabled="isActive ? 'true' : undefined"
-							@click="
-								navigate($event);
-								sendToHub();
-							"
-						>
-							<HubMenuHubIcon
-								:active="isActive"
-								class="text-on-surface"
-								:hub-id="element.hubId"
-								:pinned="true"
-							/>
-						</a>
+							:active="isActive"
+							class="text-on-surface"
+							:hub-id="element.hubId"
+							:pinned="true"
+							@click="sendToHub"
+						/>
 					</router-link>
 				</div>
 			</template>
 		</draggable>
 		<div
-			class="relative h-600 max-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out"
-			:class="{ 'max-h-600': isDragging }"
+			class="relative h-12 max-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out"
+			:class="{ 'max-h-12': isDragging }"
 		>
 			<div class="absolute grid h-full w-full items-center justify-center">
 				<Icon
-					:class="[hoverOverHubremoval ? 'text-on-accent-red' : 'text-accent-red']"
-					class="p-050 rounded-md"
+					:class="[hoverOverHubremoval ? 'text-on-accent-error' : 'text-accent-error']"
+					class="rounded-md p-1"
+					size="lg"
 					type="trash"
 				/>
 			</div>
@@ -89,15 +79,11 @@
 	// Hub imports
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
-	// Models
-	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
-
 	// Stores
-	import { type PinnedHub, type PinnedHubs, useGlobal } from '@global-client/stores/global';
+	import { type PinnedHubs, useGlobal } from '@global-client/stores/global';
 	import { useHubs } from '@global-client/stores/hubs';
 	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
-	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useMessageBox } from '@hub-client/stores/messagebox';
 
@@ -105,7 +91,6 @@
 	const hubs = useHubs();
 	const toggleMenu = useToggleMenu();
 	const dialog = useDialog();
-	const contextMenu = useContextMenuStore();
 	const { t } = useI18n();
 	const isDragging = ref(false);
 	const hoverOverHubremoval = ref(false);
@@ -135,24 +120,8 @@
 		toggleMenu.hideMenuAndSendToHub();
 	}
 
-	// Right-clicking a hub offers "Unpin" as a discoverable alternative to the drag-to-trash gesture.
-	function openHubContextMenu(event: MouseEvent, hub: PinnedHub) {
-		const items: MenuItem[] = [{ label: t('dialog.hub_unpin_title'), icon: 'trash', isDelicate: true, onClick: () => unpinHub(hub) }];
-		contextMenu.open(items, event.clientX, event.clientY);
-	}
-
-	async function unpinHub(hub: PinnedHub) {
-		const confirmed = Boolean(await dialog.yesno(t('dialog.hub_unpin_title'), t('dialog.hub_unpin_context'), 'global'));
-		if (!confirmed) return;
-		const index = global.pinnedHubs.findIndex((pinnedHub) => pinnedHub.hubId === hub.hubId);
-		if (index < 0) return;
-		global.removePinnedHub(index);
-		const messagebox = useMessageBox();
-		messagebox.resetMiniclient(hub.hubId);
-	}
-
 	async function confirmationHubRemoval() {
-		let removeHub = Boolean(await dialog.yesno(t('dialog.hub_unpin_title'), t('dialog.hub_unpin_context'), 'global'));
+		let removeHub = Boolean(await dialog.yesno(t('dialog.hub_unpin_title'), t('dialog.hub_unpin_context')));
 
 		if (removeHub) {
 			backupPinnedHubs.splice(0, backupPinnedHubs.length);

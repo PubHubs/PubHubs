@@ -32,8 +32,8 @@
           pkgs = import nixpkgs { inherit system; };
         in
         {
-          yivi = pkgs.callPackage ./packages/yivi.nix { };
-          default = pkgs.callPackage ./packages/yivi.nix { };
+          irmago = pkgs.callPackage ./packages/irmago.nix { };
+          default = pkgs.callPackage ./packages/irmago.nix { };
         }
       );
 
@@ -75,7 +75,7 @@
               ]
               ++ [
                 # Custom packages
-                (pkgs.callPackage ./packages/yivi.nix { }) # 1.0.0
+                (pkgs.callPackage ./packages/irmago.nix { }) # 0.19.1
               ];
           };
         }

@@ -1,15 +1,15 @@
 <template>
 	<div
 		v-click-outside="close"
-		class="bg-surface-base rounded-base border-surface-elevated flex h-[30rem] w-full max-w-[30rem] flex-col border-3 p-200 shadow"
+		class="bg-surface-base rounded-base border-surface-elevated flex h-[30rem] w-full max-w-[30rem] flex-col border-3 p-4 shadow"
 	>
 		<input
 			v-model="searchQuery"
-			class="bg-background text-on-surface text-label placeholder:text-on-surface-dim rounded-base w-full border-none p-100"
+			class="bg-background text-on-surface text-label placeholder:text-on-surface-dim rounded-base w-full border-none p-2"
 			:placeholder="$t('others.search')"
 			type="text"
 		/>
-		<div class="flex flex-row justify-between border-b py-150">
+		<div class="flex flex-row justify-between border-b py-3">
 			<template
 				v-for="(image, index) in imageList"
 				:key="index"
@@ -18,6 +18,7 @@
 					v-if="index !== 1"
 					class="cursor-pointer"
 					:class="{ 'border-b-2': selectedGroup === index }"
+					size="md"
 					:type="image"
 					@click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)"
 				/>
@@ -27,7 +28,7 @@
 			{{ $t('emoji.' + groupLabel()) }}
 		</p>
 
-		<div class="scrollbar emoji-font flex flex-wrap gap-100 overflow-y-auto pr-100">
+		<div class="scrollbar emoji-font flex flex-wrap gap-2 overflow-y-auto pr-2">
 			<span
 				v-for="emoji in filterEmojis"
 				:key="emoji.hexcode"

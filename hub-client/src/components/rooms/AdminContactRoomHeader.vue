@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-row gap-100">
+	<div class="flex flex-row gap-2">
 		<Avatar
 			:avatar-url="undefined"
 			:icon="'users'"
@@ -11,7 +11,7 @@
 			<p class="text-label-small flex leading-tight">
 				{{ props.room.getRoomMembers() }}
 				<Icon
-					class="mr-050"
+					class="mr-1"
 					type="user"
 				/>
 			</p>

@@ -3,6 +3,8 @@ import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 // Logic
 import loglevel from 'loglevel';
+import mavonEditor from 'mavon-editor';
+import 'mavon-editor/dist/css/index.css';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
@@ -10,7 +12,7 @@ import { createApp } from 'vue';
 import '@hub-client/assets/datepicker.css';
 import '@hub-client/assets/tailwind.css';
 
-import { clickOutside, contextMenu, focus, safeHtml, twClass } from '@hub-client/logic/core/directives';
+import { clickOutside, contextMenu, focus, twClass } from '@hub-client/logic/core/directives';
 import { router } from '@hub-client/logic/core/router';
 import { getLogLevel } from '@hub-client/logic/logging/Logger';
 
@@ -18,11 +20,6 @@ import { getLogLevel } from '@hub-client/logic/logging/Logger';
 import App from '@hub-client/pages/App.vue';
 
 import { setUpi18n } from '@hub-client/i18n';
-
-if (import.meta.env.VITE_SIMULATE_BLOCKED_IDB) {
-	// Simulate a storage-blocked third-party iframe: indexedDB.open never settles.
-	window.indexedDB.open = (() => ({}) as IDBOpenDBRequest) as typeof window.indexedDB.open;
-}
 
 // Silence matrix-js-sdk's verbose HTTP logs; match our app log level
 const matrixLevel = getLogLevel() === 'debug' ? 'DEBUG' : getLogLevel() === 'info' ? 'INFO' : getLogLevel() === 'error' ? 'ERROR' : 'WARN';
@@ -37,11 +34,11 @@ app.use(i18n);
 app.use(router);
 app.use(pinia);
 
+app.use(mavonEditor);
 app.directive('focus', focus);
 app.directive('tw-class', twClass);
 app.directive('click-outside', clickOutside);
 app.directive('context-menu', contextMenu);
-app.directive('safe-html', safeHtml);
 app.component('VueDatePicker', VueDatePicker);
 
 app.mount('#app');

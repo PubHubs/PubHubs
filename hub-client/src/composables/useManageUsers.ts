@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { onBeforeRouteLeave, useRoute } from 'vue-router';
 
 // Composables
+import { useRoles } from '@hub-client/composables/roles.composable';
 import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 // Logic
@@ -29,6 +30,7 @@ export function useManageUsers() {
 	const rooms = useRooms();
 	const route = useRoute();
 	const sidebar = useSidebar();
+	const { userPowerLevel } = useRoles();
 
 	const hubUsers = ref<TUserAccount[]>([]);
 	const selectedUserById = ref<string>();
@@ -45,24 +47,6 @@ export function useManageUsers() {
 		(tab) => {
 			if (tab === SidebarTab.None) {
 				selectedUserById.value = undefined;
-			}
-		},
-	);
-
-	function selectUserFromQuery(userId: string) {
-		if (hubUsers.value.length === 0) return;
-		const target = hubUsers.value.find((u) => u.name === userId);
-		if (target) {
-			selectUser(target.name, target.displayname);
-		}
-		router.replace({ query: {} });
-	}
-
-	watch(
-		() => route.query.userId,
-		(userId) => {
-			if (userId && typeof userId === 'string') {
-				selectUserFromQuery(userId);
 			}
 		},
 	);
@@ -162,12 +146,22 @@ export function useManageUsers() {
 			cachedRoomListLength = rooms.roomList.length;
 			hubUsers.value = cachedHubUsers;
 		}
-		// Handle userId query param now that hubUsers is populated
 		const targetUserId = route.query.userId as string | undefined;
 		if (targetUserId) {
-			selectUserFromQuery(targetUserId);
+			const target = hubUsers.value.find((u) => u.name === targetUserId);
+			if (target) {
+				selectUser(target.name, target.displayname);
+			}
 		}
 	});
+
+	function navigateToRoom(roomId: string) {
+		if (userPowerLevel(roomId) >= UserPowerLevel.Steward) {
+			router.push({ name: 'manage-rooms', query: { roomId } });
+		} else {
+			router.push({ name: 'room', params: { id: roomId } });
+		}
+	}
 
 	function selectUser(userId: string, displayName: string) {
 		if (sidebar.activeTab.value === SidebarTab.ManageUser && selectedUserById.value === userId) {
@@ -197,6 +191,7 @@ export function useManageUsers() {
 		openAskDisclosureForm,
 		openDisclosureForSelectedUser,
 		closeAskDisclosureForm,
+		navigateToRoom,
 		selectUser,
 	};
 }

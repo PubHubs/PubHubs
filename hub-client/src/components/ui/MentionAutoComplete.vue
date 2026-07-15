@@ -2,15 +2,14 @@
 	<div
 		v-if="isVisible"
 		ref="elContainer"
-		class="scrollbar bg-surface fixed max-h-2500 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg"
+		class="scrollbar bg-surface fixed max-h-52 overflow-x-hidden overflow-y-auto rounded-lg shadow-lg"
 		:style="getStyle()"
 	>
 		<ul>
 			<li
 				v-for="(item, index) in filteredItems"
 				:key="index"
-				class="group flex cursor-pointer items-center gap-100 px-200"
-				:class="index === selectedIndex ? 'bg-surface-elevated' : 'hover:bg-surface-elevated'"
+				class="group hover:bg-surface-high flex cursor-pointer items-center gap-2 px-4"
 				@click.stop="clickedItem(item)"
 			>
 				<Avatar
@@ -18,7 +17,7 @@
 					:avatar-url="userStore.userAvatar(item.userId)"
 					:user-id="item.userId"
 				/>
-				<div class="flex max-w-3000 flex-col items-center py-100">
+				<div class="flex max-w-3000 flex-col items-center py-2">
 					<TruncatedText :title="getDisplayName(item)">
 						{{ getDisplayName(item) }}
 					</TruncatedText>
@@ -32,7 +31,7 @@
 </template>
 
 <script lang="ts" setup>
-	import { nextTick, ref, watch } from 'vue';
+	import { ref } from 'vue';
 
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	// Components
@@ -53,67 +52,21 @@
 	const emit = defineEmits(['click']);
 	const userStore = useUser();
 	const elContainer = ref<HTMLElement | null>(null);
-	const selectedIndex = ref(0);
 
 	const { marker, isVisible, filteredItems, selectItem, shortId, getDisplayName, getId, isUser } = useMentionAutocomplete(
 		() => props.msg,
 		() => props.room,
 	);
 
-	watch(filteredItems, () => {
-		selectedIndex.value = 0;
-	});
-
 	function clickedItem(item: UserDetails | TPublicRoom) {
 		const result = selectItem(item);
 		emit('click', result.item, result.marker);
 	}
 
-	function scrollSelectedIntoView() {
-		nextTick(() => {
-			const listItems = elContainer.value?.querySelectorAll('li');
-			listItems?.[selectedIndex.value]?.scrollIntoView({ block: 'nearest' });
-		});
-	}
-
-	/**
-	 * Handles keyboard navigation events from parent.
-	 * @returns true if the event was handled and should be prevented
-	 */
-	function handleNavigation(e: KeyboardEvent): boolean {
-		if (!isVisible.value || filteredItems.value.length === 0) {
-			return false;
-		}
-
-		switch (e.key) {
-			case 'ArrowUp':
-				selectedIndex.value = selectedIndex.value > 0 ? selectedIndex.value - 1 : filteredItems.value.length - 1;
-				scrollSelectedIntoView();
-				return true;
-			case 'Tab':
-			case 'ArrowDown':
-				selectedIndex.value = selectedIndex.value < filteredItems.value.length - 1 ? selectedIndex.value + 1 : 0;
-				scrollSelectedIntoView();
-				return true;
-			case 'Enter':
-				clickedItem(filteredItems.value[selectedIndex.value]);
-				return true;
-			default:
-				return false;
-		}
-	}
-
-	defineExpose({ handleNavigation, isVisible });
-
 	function getStyle() {
 		if (!elContainer.value) return;
-		const menuWidth = elContainer.value.clientWidth;
-		const padding = 16;
-		const maxLeft = window.innerWidth - menuWidth - padding;
-		const clampedLeft = Math.max(padding, Math.min(props.left, maxLeft));
-
 		return {
-			left: `${clampedLeft}px`,
+			left: `${props.left}px`,
 			top: `${props.top - 40 - elContainer.value.clientHeight}px`,
 		};
 	}

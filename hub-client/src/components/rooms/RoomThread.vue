@@ -1,14 +1,17 @@
 <template>
 	<div
 		ref="elThreadTimeline"
-		class="flex h-full w-full flex-col pt-200"
+		class="flex h-full w-full flex-col pt-4"
 		data-testid="thread-sidekick"
 	>
-		<SidebarHeader :title="t('rooms.thread')" />
+		<SidebarHeader
+			v-if="!isForum"
+			:title="t('rooms.thread')"
+		/>
 		<!-- Thread message list -->
 		<div
 			ref="elScrollContainer"
-			class="flex-1 overflow-y-scroll pb-200"
+			class="flex-1 overflow-y-scroll pb-4"
 			style="overflow-anchor: none"
 		>
 			<!-- Root event -->
@@ -24,22 +27,30 @@
 					class="room-event"
 					@in-reply-to-click="onInReplyToClick"
 					@delete-message="confirmDeleteMessage"
-					@edit-message="onEditMessage"
 					@reaction-panel-toggle="toggleReactionPanel"
 					@reaction-panel-close="closeReactionPanel"
 					@clicked-emoticon="sendEmoji"
-				></RoomMessageBubble>
+				>
+					<template #bottom>
+						<ForumEventBody
+							v-if="isForum"
+							:event="rootEvent"
+						>
+						</ForumEventBody>
+					</template>
+				</RoomMessageBubble>
 			</div>
 
 			<!-- Thread replies -->
 			<div
-				v-for="item in filteredEvents"
+				v-for="(item, index) in filteredEvents"
 				:key="item.matrixEvent.event.event_id"
 			>
 				<div
 					:id="item.matrixEvent.event.event_id"
 					:ref="setEventRef"
 					class="rounded-md"
+					:class="{ 'pl-800': isForum && index > 0, 'mb-400': isForum && index === 0 }"
 				>
 					<RoomMessageBubble
 						:room="room"
@@ -50,13 +61,21 @@
 						@clicked-emoticon="sendEmoji"
 						@in-reply-to-click="onInReplyToClick"
 						@delete-message="confirmDeleteMessage"
-						@edit-message="onEditMessage"
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
-					></RoomMessageBubble>
+					>
+						<template #bottom>
+							<ForumEventBody
+								v-if="isForum"
+								:is-first="index === 0"
+								:event="item"
+							>
+							</ForumEventBody>
+						</template>
+					</RoomMessageBubble>
 
 					<!-- Reaction display for message -->
-					<div class="flex flex-wrap gap-100 px-800">
+					<div class="flex flex-wrap gap-2 px-20">
 						<Reaction
 							v-if="reactionExistsForMessage(item as TimelineEvent)"
 							:react-event="onlyReactionEvent(item.matrixEvent.event.event_id ?? '')"
@@ -75,10 +94,9 @@
 		<!-- Thread input -->
 		<MessageInput
 			v-if="room"
-			class="z-10 -mt-200"
+			class="z-10 -mt-4"
 			:room="room"
 			:in-thread="true"
-			:editing-message="editingMessageProp"
 		></MessageInput>
 	</div>
 
@@ -103,6 +121,7 @@
 	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
 	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
 	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
+	import ForumEventBody from '@hub-client/components/rooms/forum/ForumEventBody.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Reaction from '@hub-client/components/ui/Reaction.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
@@ -125,10 +144,12 @@
 
 	const props = withDefaults(
 		defineProps<{
+			isForum?: boolean;
 			room: Room;
 			scrollToEventId?: string | undefined;
 		}>(),
 		{
+			isForum: false,
 			scrollToEventId: undefined,
 		},
 	);
@@ -174,13 +195,6 @@
 	const activeReactionPanel = ref<string | null>(null);
 	const { READ_DELAY_MS } = TimelineScrollConstants;
 	const loadingEvents = ref(false);
-	const editingMessage = ref<{ event: TMessageEvent } | undefined>(undefined);
-	const editingMessageProp = computed(() => editingMessage.value as { event: TMessageEvent } | undefined);
-
-	function onEditMessage(event: TMessageEvent) {
-		// Fresh object each time so re-editing the same message still triggers the watcher in MessageInput.
-		editingMessage.value = { event };
-	}
 
 	watch(
 		() => props.room.threadUpdated,
@@ -222,12 +236,12 @@
 		closeThread();
 	});
 
-	function onlyReactionEvent(eventId: string): MatrixEvent[] {
+	function onlyReactionEvent(eventId: string) {
 		// To stop from having duplicate events
-		// Return a fresh, message-scoped array. Must not read+mutate shared reactive state during render (that caused a self-triggering render effect
-		return props.room
+		props.room
 			.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation })
-			.map((reactEvent) => reactEvent.matrixEvent);
+			.forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
+		return props.room.getCurrentEventRelatedEvents();
 	}
 
 	function setEventRef(el: Element | null | unknown) {
@@ -368,10 +382,22 @@
 	}
 
 	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
-		if (timelineEvent.isDeleted || timelineEvent.matrixEvent?.isRedacted()) return false;
-		const eventId = timelineEvent.matrixEvent.event.event_id;
-		if (!eventId) return false;
-		return onlyReactionEvent(eventId).some((event) => !!event.getContent()[RelationType.RelatesTo]?.key);
+		if (timelineEvent.isDeleted || (timelineEvent.matrixEvent && timelineEvent.matrixEvent.isRedacted())) return false;
+		const messageEventId = timelineEvent.matrixEvent.event.event_id;
+		if (!messageEventId) return false;
+
+		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
+			const relatesTo = event.getContent()[RelationType.RelatesTo];
+			// Check if this reaction relates to the target message
+			return relatesTo && relatesTo.event_id === messageEventId;
+		});
+
+		if (reactionEvent) {
+			const relatesTo = reactionEvent.getContent()[RelationType.RelatesTo];
+			return !!relatesTo?.key;
+		}
+
+		return false;
 	}
 
 	function setupEventIntersectionObserver() {

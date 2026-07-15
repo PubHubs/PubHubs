@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex flex-wrap items-center gap-100"
+		class="flex flex-wrap gap-2"
 		data-testid="reactions"
 		role="list"
 	>
@@ -8,20 +8,17 @@
 			v-for="item in reactionSummary"
 			:key="item.key"
 			class="bg-surface-base rounded-base"
-			role="listitem"
 		>
-			<button
-				type="button"
-				class="group/reaction rounded-base py-050 relative inline-flex cursor-pointer items-center gap-100 px-150"
+			<span
+				class="group/reaction rounded-base relative inline-flex cursor-pointer items-center gap-2 px-3 py-1"
 				:class="item.hasUserReacted ? 'bg-accent-blue/30 border-accent-blue border-2' : 'border-surface-elevated border-2'"
-				:aria-pressed="item.hasUserReacted"
-				:aria-label="$t('message.reaction_toggle', { emoji: item.key, count: item.count })"
+				role="listitem"
 				:title="item.tooltipTitle"
 				@click.stop="toggleReaction(item)"
 			>
 				<span class="flex h-[1em] w-[1em] items-center justify-center">{{ item.key }}</span>
 				{{ item.count }}
-			</button>
+			</span>
 		</div>
 	</div>
 </template>

@@ -1,7 +1,6 @@
 import json
 import traceback
 import logging
-from dataclasses import dataclass, asdict
 
 from synapse.api.errors import Codes, LoginError
 from synapse.handlers.room import RoomCreationHandler, RoomShutdownHandler
@@ -12,9 +11,14 @@ from synapse.module_api import ModuleApi
 from synapse.types import Requester
 
 from .HubClientApiConfig import HubClientApiConfig
-from ._validation import user_validator
+from ._validation import user_validator, assert_is_admin, assert_has_power_level
+from ._errors import InsufficientPowerLevelError
 from ._cors import set_allow_origin_header
-from ._constants import HUB_ADMIN, USER
+from ._constants import (
+    USER,
+    STEWARD,
+    HUB_ADMIN,
+)
 from ._secured_rooms_class import SecuredRoom
 from ._store import HubStore
 
@@ -38,14 +42,22 @@ class SecuredRoomsServlet(DirectServeJsonResource):
         self._room_creation_handler = room_creation_handler
         self._room_shutdown_handler = room_shutdown_handler
 
-    @user_validator(HUB_ADMIN)
+    @user_validator(USER)
     async def _async_render_GET(self, request: SynapseRequest, user_id: str):
-        """List all secured rooms. Admin only."""
+        """List all secured rooms."""
         set_allow_origin_header(request, self._config.allowed_origins)
 
-        rooms = await self._store.get_secured_rooms()
-        rooms = [room.to_dict() for room in rooms]
-        respond_with_json(request, 200, rooms, True)
+        try:
+            await assert_has_power_level(request, user_id, self._module_api, STEWARD)
+            room_id = self.get_room_id_from_request(request)
+            room = await self._store.get_secured_room(room_id)
+            respond_with_json(request, 200, room.to_dict(), True)
+        except InsufficientPowerLevelError:
+            # Fallback to admin check
+            await assert_is_admin(user_id, request, self._module_api)
+            rooms = await self._store.get_secured_rooms()
+            rooms = [room.to_dict() for room in rooms]
+            respond_with_json(request, 200, rooms, True)
 
     @user_validator(HUB_ADMIN)
     async def _async_render_POST(self, request: SynapseRequest, user_id: str):
@@ -66,26 +78,31 @@ class SecuredRoomsServlet(DirectServeJsonResource):
         respond_with_json(request, 200, new_room.to_dict(), True)
 
 
-    @user_validator(HUB_ADMIN)
+    @user_validator(USER)
     async def _async_render_PUT(self, request: SynapseRequest, user_id: str):
-        """Update a secured room with the newly send options, will match on the room_id. Admin only."""
-        set_allow_origin_header(request, self._config.allowed_origins)
-
+        """Update a secured room with the newly send options, will match on the room_id"""
+        # Put request contains a body with the updated room options
         request_body = parse_json_object_from_request(request)
         updated_room = SecuredRoom(**request_body)
-
+        # First check whether the user is a steward, fall back to admin check
+        try:
+            await assert_has_power_level(request, user_id, self._module_api, STEWARD, updated_room.room_id)
+        except InsufficientPowerLevelError:
+            await assert_is_admin(user_id, request, self._module_api)
+    
+        
         current_room = await self._store.get_secured_room(updated_room.room_id)
         if current_room:
             if current_room.type.value != updated_room.type.value:
-                respond_with_json(request, 400, {"errors": "Cannot update room type after creation"}, True)
+                respond_with_json(request, 400, {"errors": f"Can't update room type after creation"}, True)
                 return
 
             await current_room.update_name(updated_room.name, self._module_api, user_id)
             await current_room.update_topic(updated_room.topic, self._module_api, user_id)
             await self._store.update_secured_room(updated_room)
-            respond_with_json(request, 200, {"modified": updated_room.room_id}, True)
+            respond_with_json(request, 200, {"modified": f"{updated_room.room_id}"}, True)
         else:
-            respond_with_json(request, 400, {"errors": "No room with that id"}, True)
+            respond_with_json(request, 400, {"errors": f"No room with that id"}, True)
 
 
     # Will shut down the room as well.
@@ -111,6 +128,18 @@ class SecuredRoomsServlet(DirectServeJsonResource):
         else:
             respond_with_json(request, 400, {"errors": f"No room with that id"}, True)
 
+    def get_room_id_from_request(self, request):
+        if isinstance(request, dict):  # Test case scenario where request is a dict
+            room_id_bytes = request.get(b'room_id', [None])[0]
+        else:  # Normal case where request has 'args' attribute
+            room_id_bytes = request.args.get(b'room_id', [None])[0]
+
+        if room_id_bytes:
+            return room_id_bytes.decode('utf-8')
+
+        return None
+
+
 class NoticesServlet(DirectServeJsonResource):
     def __init__(self, server_notices_user: str):
         super().__init__()
@@ -123,42 +152,15 @@ class NoticesServlet(DirectServeJsonResource):
         respond_with_json(request, 200, notice, True)
 
 
-@dataclass
-class SecuredRoomPublicMetadata:
-    room_id: str
-    name: str
-    topic: str
-    expiration_time_days: float
-    user_txt: str
-    type: str
-    accepted: list[str]
-
-    @classmethod
-    def from_secured_room(cls, room: SecuredRoom) -> "SecuredRoomPublicMetadata":
-        return cls(
-            room_id=room.room_id,
-            name=room.name,
-            topic=room.topic,
-            expiration_time_days=room.expiration_time_days,
-            user_txt=room.user_txt,
-            type=room.type,
-            accepted=list(room.accepted.keys()),
-        )
-
-
-# Public metadata about a secured room. Requires an authenticated matrix user.
-class SecuredRoomPublicMetadataServlet(DirectServeJsonResource):
+# Non-admin requests for getting information about secured rooms based on room Id.
+class SecuredRoomExtraServlet(DirectServeJsonResource):
     def __init__(self, store: str, module_api: ModuleApi):
         super().__init__()
         self._store = store
         self._module_api = module_api
 
-    @user_validator(USER)
-    async def _async_render_GET(self, request: SynapseRequest, user_id: str):
-        """Return sanitised public information about a secured room.
-        This endpoint is used by the join dialog to render the chips that
-        tell the user which attributes they'll be asked to disclose.
-        """
+    async def _async_render_GET(self, request: SynapseRequest):
+        """Returns the Hub Notice"""
 
         if not request.args.get(b"room_id"):
             return respond_with_json(request, 400, {})
@@ -166,11 +168,5 @@ class SecuredRoomPublicMetadataServlet(DirectServeJsonResource):
         room_id = b"".join(request.args.get(b"room_id")).decode()
 
         allowed_secured_room_info = await self._store.get_secured_room(room_id)
-
-        if allowed_secured_room_info is None:
-            respond_with_json(request, 404, {}, True)
-            return
-        
-        public_metadata = SecuredRoomPublicMetadata.from_secured_room(allowed_secured_room_info)
-        response_in_json = json.dumps(asdict(public_metadata))
+        response_in_json = json.dumps(allowed_secured_room_info, default=lambda o: o.__dict__)
         respond_with_json(request, 200, response_in_json, True)

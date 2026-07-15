@@ -31,7 +31,7 @@ impl App {
 
         let nonce_inner = PpNonceInner {
             user_id: user_state.id,
-            not_valid_after: now.add_clamp(app.pp_nonce_validity.as_secs()),
+            not_valid_after: now + app.pp_nonce_validity,
             issued_at: now,
         };
 
@@ -65,7 +65,6 @@ impl App {
             encrypted_hub_pseudonym,
             hub_nonce,
             phc_nonce,
-            hub_id_mac,
         }) = req.ehpp.open(&running_state.t_sealing_secret)
         else {
             log::debug!("invalid Ehpp submitted to Hhpp endpoint");
@@ -112,7 +111,6 @@ impl App {
             hashed_hub_pseudonym,
             pp_issued_at,
             hub_nonce,
-            hub_id_mac,
         };
 
         // Sign with the key the hub can verify (see `HhppSignatureScheme`): the ed25519 component
@@ -120,13 +118,13 @@ impl App {
         // `pp_nonce_validity` (TODO: a dedicated config field for the HHPP's validity?).
         let signed = match hhpp_signature_scheme {
             HhppSignatureScheme::Ed25519 => api::Signed::new_opts(
-                app.shared.signing_key.ed25519_signing_key(),
+                app.signing_key.ed25519_signing_key(),
                 &hhpp,
                 app.pp_nonce_validity,
                 Some(&running_state.constellation),
             )?,
             HhppSignatureScheme::HybridInterim => api::Signed::new_opts(
-                &app.shared.signing_key,
+                &app.signing_key,
                 &hhpp,
                 app.pp_nonce_validity,
                 Some(&running_state.constellation),

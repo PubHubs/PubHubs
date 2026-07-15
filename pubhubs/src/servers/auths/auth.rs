@@ -40,24 +40,6 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         }
 
-        // Bound the work (and the size of the signed disclosure request and sealed state) that an
-        // anonymous request can trigger; a real request asks for only a few attribute types.
-        let max = app.max_attr_types_per_req;
-        if req.attr_types.len() > max
-            || req.attr_type_choices.len() > max
-            || req
-                .attr_type_choices
-                .iter()
-                .any(|choices| choices.len() > max)
-        {
-            log::debug!(
-                "rejecting AuthStartReq: it requests more than {max} attribute types (or alternatives \
-                 per type); this limit is set by the authentication server's `max_attr_types_per_req` \
-                 config option"
-            );
-            return Err(api::ErrorCode::BadRequest);
-        }
-
         let attr_type_choices = if req.attr_type_choices.is_empty() {
             req.attr_types.into_iter().map(|at| vec![at]).collect()
         } else {
@@ -67,7 +49,7 @@ impl App {
         let state = AuthState {
             source: req.source,
             attr_type_choices,
-            exp: api::NumericDate::now().add_clamp(app.auth_window.as_secs()),
+            exp: api::NumericDate::now() + app.auth_window,
             yivi_chained_session: None,
             yivi_ati2at: Default::default(),
         };
@@ -210,15 +192,8 @@ impl App {
                 let csc = app.chained_sessions_ctl_or_bad_request()?;
                 let running_state = app.running_state_or_internal_error()?;
 
-                let Some(chained_session_id) = csc.create_session().await? else {
-                    log::debug!(
-                        "refusing yivi chained session: authentication server at its chained-session capacity"
-                    );
-                    return Ok(api::auths::AuthStartResp::ChainedSessionsTemporarilyUnavailable);
-                };
-
                 state.yivi_chained_session = Some(ChainedSessionSetup {
-                    id: chained_session_id,
+                    id: csc.create_session().await?,
                     drip: yivi_chained_session_drip,
                 });
 
