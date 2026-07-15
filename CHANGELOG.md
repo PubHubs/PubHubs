@@ -11,6 +11,9 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changes not merged to stable yet
 
+
+## 15 June 2026 - v3.5.0
+
 - [NEW] Editing of posts (text and images/files).
 - [NEW] Mentions can now be navigated with the arrow-keys, tab and selected with enter.
 - [NEW] Message drafts in the messageInput are now saved in localstorage so the draft is recovered on reloads and room switches.
@@ -21,6 +24,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed the hub crashing on startup after an image rebuild (`module 'lib' has no attribute 'GEN_EMAIL'`); Dockerfile now upgrades pyOpenSSL with cryptography. **Cherry-pick to stable if hotfixing**, because upon tagging the same problem will appear on stable too.
 - [BUG] Fixed that there was no indication that the yivi qr code was being loaded on the global-client login page.
 - [BUG] Fixed that the yes button for the join room pop up was not responsive.
+
 - _internal_ Test the registration flow and login flow for the pubhubs card including normal phone settings, and with battery saver on. Also test the registration flow via the obtain/reobtain button in yivi. If no issues arise set phCard in settings.ts to true for stable.
 - _NOTE:_ We could not activate the phCard last time as Frans got yivi errors when obtaining/reobtaining cards.
 
