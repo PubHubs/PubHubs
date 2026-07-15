@@ -626,24 +626,13 @@ macro_rules! wrap_dalek_type {
 /// forms are what travel on the wire and in config.  See [`crate::common::dsa`].
 pub use crate::common::dsa::{SigningKey, SigningKeyBytes, VerifyingKey, VerifyingKeyBytes};
 
-/// Placeholder for the deprecated ed25519 `*_jwt_key` constellation/discovery fields.
+/// An ed25519 public key, hex-encoded.
 ///
-/// Ignored on read; serializes to a fixed all-zero ed25519 verifying key in hex (32 zero bytes), so
-/// pre-hybrid peers — which still require those fields and parse them as ed25519 keys — can
-/// deserialize our messages.  The all-zero encoding decodes to a valid ed25519 point, so those
-/// peers accept it; nothing reads it.  Verification now uses the hybrid `*_verifying_key` fields.
-/// (Validity and the exact wire bytes are pinned by the `deprecated_jwt_key_placeholder_decodes`
-/// test.)
+/// The constellation's `phc_jwt_key`: the `ed` half of PHC's [`VerifyingKeyBytes`], kept on the
+/// wire so pre-v3.4.0 hubs (predating the hybrid migration) can still verify the classical EdDSA
+/// HHPP.
 ///
-/// TODO: remove together with the `*_jwt_key` fields once v3.3.0 and earlier are out of rotation.
-pub type DeprecatedJwtKey = serde_ext::Placeholder<bytes_wrapper::B16<serde_ext::ByteArray<32>>>;
-
-/// An ed25519 public key, hex-encoded (the historical `*_jwt_key` wire form: a 64-char hex string).
-///
-/// Used for the constellation's `phc_jwt_key`, which — unlike the other now-deprecated `*_jwt_key`
-/// fields ([`DeprecatedJwtKey`]) — still carries a *real* key: PHC's ed25519 public key (the `ed`
-/// half of its [`VerifyingKeyBytes`]), so hubs predating the hybrid migration can verify the
-/// classical EdDSA HHPP.
+/// TODO: remove once all hubs are on >=v3.4.0 (see scripts/check-hubs.py).
 pub type Ed25519VerifyingKeyHex = bytes_wrapper::B16<serde_ext::ByteArray<32>>;
 
 wrap_dalek_type! {
@@ -667,47 +656,6 @@ impl Scalar {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn deprecated_jwt_key_placeholder_decodes() {
-        // The placeholder we emit for the deprecated `*_jwt_key` fields: 32 zero bytes, hex-encoded.
-        const PLACEHOLDER: &str =
-            "0000000000000000000000000000000000000000000000000000000000000000";
-
-        // It serializes to exactly that hex string ...
-        assert_eq!(
-            serde_json::to_value(DeprecatedJwtKey::default()).unwrap(),
-            serde_json::json!(PLACEHOLDER),
-        );
-
-        // ... and is a valid ed25519 verifying key, so pre-hybrid peers (which still parse the
-        // `*_jwt_key` fields as ed25519 keys) accept it.
-        let bytes: [u8; 32] = base16ct::lower::decode_vec(PLACEHOLDER)
-            .unwrap()
-            .try_into()
-            .unwrap();
-        assert!(ed25519_dalek::VerifyingKey::from_bytes(&bytes).is_ok());
-    }
-
-    /// `DeprecatedJwtKey` must (de)serialize correctly next to a `#[serde(flatten)]` sibling, as in
-    /// [`DiscoveryInfoResp`] / [`constellation::Inner`](crate::servers::constellation::Inner) — the
-    /// buffered flatten path is the awkward case for an ignore-the-value field.
-    #[test]
-    fn deprecated_jwt_key_with_flatten() {
-        #[derive(Serialize, Deserialize)]
-        struct Inner {
-            x: u32,
-        }
-        #[derive(Serialize, Deserialize)]
-        struct Outer {
-            #[serde(default)]
-            jwt_key: DeprecatedJwtKey,
-            #[serde(flatten)]
-            inner: Inner,
-        }
-        let parsed: Outer = serde_json::from_str(r#"{"jwt_key":"deadbeef","x":7}"#).unwrap();
-        assert_eq!(parsed.inner.x, 7);
-    }
 
     #[test]
     fn serde_scalar() {

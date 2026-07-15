@@ -3,16 +3,16 @@
 		<!-- Mobile Layout -->
 		<div
 			v-if="isMobile"
-			class="flex h-full w-full flex-col overflow-y-auto"
+			class="flex h-full w-full flex-col overflow-hidden"
 		>
 			<HubBanner
 				:banner-url="hubSettings.bannerUrl"
 				:class="'h-[20svh]! shrink-0'"
 			/>
 
-			<div class="relative flex h-full flex-col gap-8 px-4 pt-20">
+			<div class="relative flex min-h-0 flex-1 flex-col gap-400 px-200 pt-800">
 				<!-- Hub Icon -->
-				<div class="bg-surface-low absolute -top-12 h-24 w-24 rounded-2xl p-[3px]">
+				<div class="bg-surface-base p-050 absolute -top-600 h-1200 w-1200 rounded-2xl">
 					<HubIcon
 						:icon-url="hubSettings.iconUrlLight"
 						:icon-url-dark="hubSettings.iconUrlDark"
@@ -20,7 +20,7 @@
 				</div>
 
 				<!-- Welcome Message -->
-				<div class="flex flex-col gap-2">
+				<div class="flex shrink-0 flex-col gap-100">
 					<H1>{{ isConsentOnly ? t('onboarding.welcome_consent') : t('onboarding.welcome', [hubName]) }}</H1>
 					<P>{{ isConsentOnly ? t('onboarding.welcome_consent_description') : t('onboarding.welcome_description') }}</P>
 				</div>
@@ -28,18 +28,18 @@
 				<!-- Step 1: Set Username -->
 				<div
 					v-if="step == 1"
-					class="flex flex-col justify-between gap-8 pb-4"
+					class="flex min-h-0 flex-1 flex-col justify-between gap-400 pb-200"
 				>
-					<div class="flex flex-col gap-8">
+					<div class="flex min-h-0 flex-1 flex-col gap-400 overflow-y-auto">
 						<!-- Username Input -->
-						<div class="flex flex-col gap-2">
+						<div class="flex flex-col gap-100">
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
-							<div class="flex gap-4">
+							<div class="flex gap-200">
 								<TextField
 									v-model="inputValue"
 									class="placeholder-on-surface-dim! text-label h-10"
-									:validation="{ maxLength: 24 }"
+									:validation="{ minLength: 3, maxLength: settings.getDisplayNameMaxLength }"
 									:placeholder="pseudonym"
 								/>
 								<Button @click="fileInput!.click()">
@@ -53,7 +53,7 @@
 									@change="handleFileUpload"
 								/>
 							</div>
-							<p class="text-on-surface-variant italic">
+							<p class="text-on-surface italic">
 								{{ t('onboarding.username_disclaimer') }}
 							</p>
 						</div>
@@ -61,12 +61,12 @@
 						<!-- Preview Message -->
 						<div
 							v-if="isUsernameChanged"
-							class="flex flex-col gap-2"
+							class="flex flex-col gap-100"
 						>
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="bg-surface-low flex w-full items-center gap-6 rounded-xl p-4 xl:w-1/2">
+							<div class="bg-surface-base flex w-full items-center gap-300 rounded-xl p-200 xl:w-1/2">
 								<div
-									class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
+									class="flex aspect-square h-600 w-600 shrink-0 items-center justify-center overflow-hidden rounded-full"
 									:class="textColor(color(user.userId!))"
 								>
 									<img
@@ -80,8 +80,8 @@
 										type="user"
 									/>
 								</div>
-								<div class="flex flex-col gap-2">
-									<div class="flex items-center gap-2">
+								<div class="flex flex-col gap-100">
+									<div class="flex items-center gap-100">
 										<span
 											v-if="inputValue"
 											:class="`${textColor(color(user.userId!))} text-label truncate font-semibold`"
@@ -99,7 +99,7 @@
 					</div>
 
 					<!-- Next Button -->
-					<div class="flex w-full justify-end">
+					<div class="flex w-full shrink-0 justify-end pt-200">
 						<Button
 							class="w-fit"
 							@click="nextStep"
@@ -112,39 +112,32 @@
 				<!-- Step 2: Consent -->
 				<div
 					v-if="step === 2"
-					class="flex flex-col gap-8 pb-4"
+					class="flex min-h-0 flex-1 flex-col gap-400 pb-200"
 				>
 					<!-- House Rules -->
-					<div class="flex flex-col gap-2 overflow-y-auto">
+					<div class="flex min-h-0 flex-1 flex-col gap-100 overflow-y-auto">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div
+						<MarkdownPreview
 							v-if="consentText"
-							class="bg-surface-low rounded-3xl p-4 break-all"
-						>
-							<mavon-editor
-								v-model="consentText"
-								:box-shadow="false"
-								default-open="preview"
-								:subfield="false"
-								:toolbars-flag="false"
-							/>
-						</div>
+							:content="consentText"
+							class="bg-surface-base rounded-3xl p-200 break-all"
+						/>
 					</div>
 
 					<!-- Consent Checkbox -->
-					<div class="flex items-center gap-2">
+					<div class="flex shrink-0 items-center gap-100">
 						<Checkbox v-model="hasAgreed" />
 						<span>{{ t('onboarding.consent_text') }}</span>
 					</div>
 
 					<!-- Buttons -->
 					<div
-						class="flex gap-4"
+						class="flex shrink-0 gap-200"
 						:class="isConsentOnly ? 'justify-end' : 'justify-between'"
 					>
 						<Button
 							v-if="!isConsentOnly"
-							class="text-on-surface-variant w-fit px-0"
+							class="text-on-surface w-fit px-0"
 							variant="tertiary"
 							@click="prevStep"
 						>
@@ -171,10 +164,10 @@
 				<!-- Step 1 -->
 				<div
 					v-if="step === 1"
-					class="bg-surface-low flex w-full flex-col overflow-hidden rounded-3xl lg:flex-row"
+					class="bg-surface-base flex w-full flex-col overflow-hidden rounded-3xl lg:flex-row"
 				>
 					<!-- Left Image -->
-					<div class="flex h-[250px] w-full flex-col gap-6 overflow-y-auto lg:h-auto lg:w-1/2">
+					<div class="flex h-[250px] w-full flex-col gap-300 overflow-y-auto lg:h-auto lg:w-1/2">
 						<figure class="h-full w-full">
 							<img
 								alt="Placeholder"
@@ -185,16 +178,16 @@
 					</div>
 
 					<!-- Right Form -->
-					<div class="bg-surface flex h-full w-full flex-col gap-6 overflow-y-auto px-16 py-16 lg:w-1/2 lg:py-32">
-						<div class="flex flex-col gap-2">
+					<div class="bg-surface flex h-full w-full flex-col gap-300 overflow-y-auto px-800 py-800 lg:w-1/2 lg:py-2000">
+						<div class="flex flex-col gap-100">
 							<H1>{{ t('onboarding.welcome', [hubName]) }}</H1>
 							<P>{{ t('onboarding.welcome_description') }}</P>
 						</div>
 
-						<div class="flex flex-col gap-2">
+						<div class="flex flex-col gap-100">
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
-							<div class="flex gap-4">
+							<div class="flex gap-200">
 								<TextField
 									v-model="inputValue"
 									class="placeholder-on-surface-dim! text-label h-10"
@@ -211,7 +204,7 @@
 									@change="handleFileUpload"
 								/>
 							</div>
-							<p class="text-on-surface-variant italic">
+							<p class="text-on-surface italic">
 								{{ t('onboarding.username_disclaimer') }}
 							</p>
 						</div>
@@ -219,12 +212,12 @@
 						<!-- Message Preview -->
 						<div
 							v-if="isUsernameChanged"
-							class="flex flex-col gap-2"
+							class="flex flex-col gap-100"
 						>
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="bg-background flex w-full items-center gap-6 rounded-xl p-4">
+							<div class="bg-background flex w-full items-center gap-300 rounded-xl p-200">
 								<div
-									class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
+									class="flex aspect-square h-600 w-600 shrink-0 items-center justify-center overflow-hidden rounded-full"
 									:class="textColor(color(user.userId!))"
 								>
 									<img
@@ -238,8 +231,8 @@
 										type="user"
 									/>
 								</div>
-								<div class="flex flex-col gap-2">
-									<div class="flex flex-wrap items-center gap-2">
+								<div class="flex flex-col gap-100">
+									<div class="flex flex-wrap items-center gap-100">
 										<span
 											v-if="inputValue"
 											:class="`${textColor(color(user.userId!))} text-label truncate font-semibold break-all`"
@@ -267,40 +260,33 @@
 				<!-- Step 2 -->
 				<div
 					v-if="step === 2"
-					class="bg-surface-low flex w-full overflow-hidden rounded-3xl"
+					class="bg-surface flex w-full overflow-hidden rounded-3xl"
 				>
 					<!-- Left Rules -->
-					<div class="flex h-full w-1/2 flex-col gap-6 overflow-y-auto px-16 pt-32">
+					<div class="flex h-full w-1/2 flex-col gap-300 overflow-y-auto px-800 pt-2000">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div
+						<MarkdownPreview
 							v-if="consentText"
-							class="bg-surface-low rounded-3xl p-4"
-						>
-							<mavon-editor
-								v-model="consentText"
-								:box-shadow="false"
-								default-open="preview"
-								:subfield="false"
-								:toolbars-flag="false"
-							/>
-						</div>
+							:content="consentText"
+							class="bg-surface rounded-3xl p-200"
+						/>
 					</div>
 
 					<!-- Right Consent -->
-					<div class="bg-surface flex h-full w-1/2 flex-col gap-6 overflow-y-auto px-16 py-32">
+					<div class="bg-surface flex h-full w-1/2 flex-col gap-300 overflow-y-auto px-800 py-2000">
 						<Button
 							v-if="!isConsentOnly"
-							class="text-on-surface-variant w-fit px-0"
+							class="text-on-surface w-fit px-0"
 							variant="tertiary"
 							@click="prevStep"
 						>
 							{{ t('forms.back') }}
 						</Button>
-						<div class="flex flex-col gap-2">
+						<div class="flex flex-col gap-100">
 							<H1>{{ isConsentOnly ? t('onboarding.welcome_consent') : t('onboarding.welcome', [hubName]) }}</H1>
 							<P>{{ isConsentOnly ? t('onboarding.welcome_consent_description') : t('onboarding.welcome_description') }}</P>
 						</div>
-						<div class="flex items-center gap-4">
+						<div class="flex items-center gap-200">
 							<Checkbox v-model="hasAgreed" />
 							<span>{{ t('onboarding.consent_text') }}</span>
 						</div>
@@ -315,7 +301,7 @@
 				</div>
 
 				<!-- Mascot -->
-				<figure class="absolute -right-16 -bottom-12 hidden w-64 md:w-48 lg:block xl:-right-24 xl:w-auto">
+				<figure class="absolute -right-800 -bottom-600 hidden w-3000 md:w-2500 lg:block xl:-right-1200 xl:w-auto">
 					<img
 						alt="PubHubs mascotte"
 						src="../assets/mascotte.svg"
@@ -339,6 +325,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
 	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+	import MarkdownPreview from '@hub-client/components/forms/elements/MarkdownPreview.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
@@ -348,8 +335,8 @@
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
@@ -406,16 +393,24 @@
 
 		const errorMsg = t('errors.file_upload');
 
-		try {
-			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, async (mxUrl) => {
+		fileUpload(
+			errorMsg,
+			accessToken,
+			uploadUrl,
+			imageTypes,
+			syntheticEvent,
+			async (mxUrl) => {
 				avatarMxcUrl.value = mxUrl;
 				if (avatarMxcUrl.value) {
 					await user.setAvatarUrl(avatarMxcUrl.value);
 				}
-			});
-		} catch (error) {
-			logger.error('Error uploading avatar:', error);
-		}
+			},
+			() => {
+				// On error: reset file selection so user can try again
+				selectedAvatarFile.value = null;
+				logger.error('Error uploading avatar');
+			},
+		);
 	};
 
 	// Consent handling
@@ -444,7 +439,11 @@
 			}
 
 			if (inputValue.value !== '') {
-				await user.setDisplayName(inputValue.value);
+				if (inputValue.value.length < 3) {
+					logger.warn('Display name too short, skipping');
+				} else {
+					await user.setDisplayName(inputValue.value);
+				}
 			}
 
 			if (selectedAvatarFile.value) {

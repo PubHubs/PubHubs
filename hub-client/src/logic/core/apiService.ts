@@ -2,6 +2,7 @@
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 
 // Models
+import { type TEventReportDetail, type TEventReportsResponse } from '@hub-client/models/events/TEventReport';
 import { type TState } from '@hub-client/models/events/TStateEvent';
 import { type AccessToken } from '@hub-client/models/hubmanagement/types/authType';
 import { type RoomMembers } from '@hub-client/models/hubmanagement/types/roomMembers';
@@ -37,8 +38,32 @@ export class APIService {
 		return await api_synapse.apiGET<TState>(`${api_synapse.apiURLS.roomsAPIV1}${roomId}/state`);
 	}
 
-	static async adminGetReports(): Promise<TState> {
-		return await api_synapse.apiGET<TState>(`${api_synapse.apiURLS.reports}`);
+	/**
+	 * Fetch event reports. Admins get all reports, stewards get reports for their rooms.
+	 * @param isAdmin Whether the user is an admin
+	 * @param from Pagination token
+	 * @param limit Max results to return
+	 */
+	static async fetchReports(isAdmin: boolean, from?: number, limit = 100): Promise<TEventReportsResponse> {
+		const endpoint = isAdmin ? api_synapse.apiURLS.eventReports : api_synapse.apiURLS.stewardReports;
+		const fromParam = from !== undefined ? `&from=${from}` : '';
+		return await api_synapse.apiGET<TEventReportsResponse>(`${endpoint}?limit=${limit}${fromParam}`);
+	}
+
+	/**
+	 * Fetch a single event report with full details including event_json.
+	 * @param reportId The report ID to fetch
+	 */
+	static async fetchReportDetail(reportId: number): Promise<TEventReportDetail> {
+		return await api_synapse.apiGET<TEventReportDetail>(`${api_synapse.apiURLS.eventReports}/${reportId}`);
+	}
+
+	/**
+	 * Delete an event report. Only admins can delete reports.
+	 * @param reportId The report ID to delete
+	 */
+	static async deleteReport(reportId: number): Promise<void> {
+		await api_synapse.apiDELETE(`${api_synapse.apiURLS.eventReports}/${reportId}`);
 	}
 
 	/**

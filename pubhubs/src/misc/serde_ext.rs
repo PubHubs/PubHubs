@@ -160,6 +160,12 @@ pub mod bytes_wrapper {
         }
     }
 
+    impl<T: zeroize::Zeroize, O> zeroize::Zeroize for BytesWrapper<T, O> {
+        fn zeroize(&mut self) {
+            self.inner.zeroize()
+        }
+    }
+
     /// Determines how exactly [`BytesWrapper`] should wrap the underlying type.
     pub trait Options {
         /// How this type is encoded (e.g. base16, base64, etc.)
@@ -909,6 +915,12 @@ impl<const N: usize> From<ByteArray<N>> for [u8; N] {
 impl<const N: usize> Default for ByteArray<N> {
     fn default() -> Self {
         Self { inner: [0u8; N] }
+    }
+}
+
+impl<const N: usize> zeroize::Zeroize for ByteArray<N> {
+    fn zeroize(&mut self) {
+        self.inner.zeroize()
     }
 }
 

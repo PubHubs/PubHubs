@@ -1,9 +1,20 @@
 <template>
 	<div
-		class="rounded-base @container w-full border-3 p-4"
-		:class="active ? 'bg-surface-base border-surface-elevated' : 'bg-surface-low border-surface-base hover:bg-surface-base hover:border-surface-elevated'"
+		ref="cardEl"
+		class="rounded-base @container w-full border-3 p-200"
+		:class="
+			active
+				? 'bg-surface-elevated border-surface-elevated'
+				: 'bg-surface-base border-surface-elevated hover:bg-surface-elevated hover:border-surface-elevated'
+		"
+		:role="active ? undefined : 'button'"
+		:tabindex="active ? -1 : 0"
+		:aria-current="active || undefined"
+		:aria-label="cardAriaLabel"
+		@keydown.enter.prevent="activate"
+		@keydown.space.prevent="activate"
 	>
-		<div class="flex gap-3">
+		<div class="flex gap-150">
 			<Avatar
 				:avatar-url="avatarOverrideUrl"
 				class="shrink-0"
@@ -11,9 +22,9 @@
 				:user-id="displayUserId"
 			/>
 
-			<div class="flex min-w-0 flex-1 flex-col gap-1">
+			<div class="gap-050 flex min-w-0 flex-1 flex-col">
 				<!-- Name + Timestamp -->
-				<div class="flex items-baseline gap-2">
+				<div class="flex items-baseline gap-100">
 					<UserDisplayName
 						v-if="displayUserId"
 						class="min-w-0 flex-1"
@@ -45,10 +56,10 @@
 				</p>
 
 				<!-- Message preview + Unread badge -->
-				<div class="flex items-center gap-2">
+				<div class="flex items-center gap-100">
 					<div
 						v-if="room.hasMessages()"
-						class="text-on-surface-dim flex min-w-0 flex-1 items-center gap-1 truncate"
+						class="text-on-surface gap-050 flex min-w-0 flex-1 items-center truncate"
 					>
 						<Icon
 							v-if="preview.icon"
@@ -60,7 +71,7 @@
 					</div>
 					<p
 						v-else
-						class="text-on-surface-dim min-w-0 flex-1 truncate"
+						class="text-on-surfacem min-w-0 flex-1 truncate"
 					>
 						{{ t('rooms.no_messages_yet') }}
 					</p>
@@ -136,6 +147,13 @@
 
 	const userStore = useUser();
 	const { t } = useI18n();
+
+	const cardEl = ref<HTMLElement | null>(null);
+	function activate() {
+		cardEl.value?.click();
+	}
+
+	const cardAriaLabel = computed(() => t('others.open_conversation', { name: displayName.value ?? t('menu.directmsg') }));
 	const { stewardSourceRoomName } = useModerationMembership(useModerationBase());
 	const { formatMentions } = useMentionsDisplay();
 	const avatarOverrideUrl = ref<string | undefined>(undefined);

@@ -1,5 +1,5 @@
 // Packages
-import { EventType, type IStateEvent, type MatrixClient, type MatrixEvent, type Room as MatrixRoom, RoomEvent } from 'matrix-js-sdk';
+import { EventType, HttpApiEvent, type IStateEvent, type MatrixClient, type MatrixEvent, type Room as MatrixRoom, RoomEvent } from 'matrix-js-sdk';
 import {
 	type MSC3575List,
 	type MSC3575RoomData,
@@ -19,6 +19,7 @@ import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { DirectRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 // Stores
+import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
 
@@ -37,6 +38,7 @@ class MatrixService {
 	private roomsCount: number = 0; // number of rooms returned by sliding sync
 	private roomsUpperRange: number = SystemDefaults.mainRoomListRange; // current number of the upper range of the roomlist
 	private initialRoomLoading: boolean = true; // Are we fetching the first roomlist with only memberdata? (vs the main roomlist with all data)
+	private isReauthenticating: boolean = false; // Prevents multiple re-authentication attempts
 
 	/**
 	 * Construct a MatrixService instance.
@@ -81,6 +83,9 @@ class MatrixService {
 		// Trigger Vue reactivity for unread badges when timeline events arrive or receipts change.
 		this.client.on(RoomEvent.Timeline, this.roomUnreadNotifications);
 		this.client.on(RoomEvent.Receipt, this.roomUnreadNotifications);
+
+		// Handle session logout (401 with M_UNKNOWN_TOKEN) - trigger re-authentication
+		this.client.on(HttpApiEvent.SessionLoggedOut, this.handleSessionLoggedOut);
 
 		try {
 			// Pass our SlidingSync instance to startClient so the SDK creates a SlidingSyncSdk
@@ -200,6 +205,21 @@ class MatrixService {
 	// #endregion
 
 	// #region Event handlers
+
+	/**
+	 * Handles session logout events from the Matrix SDK.
+	 * This occurs when the server returns 401 with M_UNKNOWN_TOKEN, indicating the access token is invalid.
+	 * Triggers re-authentication by notifying the global client to remove the token.
+	 */
+	private handleSessionLoggedOut = () => {
+		// Prevent multiple re-authentication attempts
+		if (this.isReauthenticating) return;
+		this.isReauthenticating = true;
+
+		logger.warn('Session logged out - access token is invalid, triggering re-authentication');
+		this.stopSync();
+		useMessageBox().sendMessage(new Message(MessageType.RemoveAccessToken));
+	};
 
 	/**
 	 * Creates a promise from joining a room and putting it in the roomsStore

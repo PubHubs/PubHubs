@@ -19,7 +19,7 @@ ROOM_ADMIN = 100
 HUB_ADMIN = 999  # Above 100, admin check is performed
 
 ## Secured Room Expiry related constants.
-DEFAULT_EXPIRATION_TIME_DAYS = 90     # X: After 'X' days, user needs to login with QR code.
+DEFAULT_EXPIRATION_TIME_DAYS = 182    # X: After 'X' days, user needs to login with QR code. Default is half a year.
 DEFAULT_EXPIRATION_TIME_DAYS_WARNING = 7  # Y: After 'X - Y' days, user will be warned about the expiration.
 METHOD_POLLING_INTERVAL = 86400000  # 86400000 milliseconds is 24 hours. Every day executes a method.
 

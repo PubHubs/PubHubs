@@ -15,8 +15,24 @@ from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.http.site import SynapseRequest
 from synapse.handlers.oidc import UserAttributeDict
 from synapse.module_api.errors import ConfigError
+from synapse.api.errors import SynapseError, Codes
 
 logger = logging.getLogger(__name__)
+
+
+async def register_under_fresh_pseudonym(local_pseudonym, register_user):
+    """Register a Matrix user under the first of `local_pseudonym`'s short pseudonyms that is still
+    free.  `register_user(localpart)` registers the user and returns their mxid, or raises
+    SynapseError(USER_IN_USE) when `localpart` is already taken — on which we move on to the next
+    short pseudonym.  Raises RuntimeError if every short pseudonym is already taken."""
+    for localpart in PseudonymHelper.short_pseudonyms(local_pseudonym):
+        try:
+            return await register_user(localpart)
+        except SynapseError as err:
+            if err.errcode == Codes.USER_IN_USE:
+                continue
+            raise
+    raise RuntimeError("all short pseudonyms already taken (!?)")
 
 class Pseudonym:
     def __init__(self, config: dict, api: ModuleApi):

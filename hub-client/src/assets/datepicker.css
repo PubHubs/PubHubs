@@ -1,10 +1,10 @@
 .dp__theme_dark {
 	--dp-background-color: var(--background);
-	--dp-border-color: var(--surface-high);
+	--dp-border-color: var(--surface-base);
 	--dp-menu-border-color: var(--background);
 	--dp-text-color: var(--on-surface);
-	--dp-range-between-dates-background-color: var(--surface-high);
-	--dp-range-between-border-color: var(--surface-high);
+	--dp-range-between-dates-background-color: var(--surface-base);
+	--dp-range-between-border-color: var(--surface-base);
 	--dp-range-between-dates-text-color: var(--on-surface);
 }
 

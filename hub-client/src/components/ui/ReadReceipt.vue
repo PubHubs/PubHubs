@@ -1,11 +1,11 @@
 <template>
 	<span
 		v-if="numOfUsersRead > 0"
-		class="text-label -m-2.5 px-2.5 py-1.5 font-medium dark:text-white"
+		class="text-label font-medium dark:text-white"
 	>
 		<!-- Tick icon  -->
 		<Icon
-			class="mb-1 inline"
+			class="mb-050 inline"
 			size="sm"
 			type="check-circle"
 		/>
@@ -16,13 +16,13 @@
 		<!-- Icon of single user or two users depending on the number of users -->
 		<Icon
 			v-if="numOfUsersRead === 1"
-			class="mb-1 inline"
+			class="mb-050 inline"
 			size="sm"
 			type="user"
 		/>
 		<Icon
 			v-if="numOfUsersRead > 1"
-			class="mb-1 inline"
+			class="mb-050 inline"
 			size="sm"
 			type="users"
 		/>

@@ -87,7 +87,13 @@ const useMSS = defineStore('mss', {
 			if (isRegistering && cardFeature) {
 				startYiviAuthentication(yiviUrl, disclosure_request);
 				const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
-				if (!(ResultResponse.Success in jwt)) throw new Error('Restart authentication please');
+				if (jwt === 'PleaseRestartAuth') {
+					throw new Error('Something went wrong; please start again at AuthStartEP.');
+				} else if (jwt === 'SessionGone') {
+					throw new Error('The session has expired or was already completed.');
+				} else if (typeof jwt !== 'object' || !(ResultResponse.Success in jwt)) {
+					throw new Error('Unexpected response from YiviWaitForResultEP');
+				}
 				proof = { Yivi: jwt.Success };
 			} else {
 				const disclosure = await startYiviAuthentication(yiviUrl, disclosure_request);
@@ -110,22 +116,35 @@ const useMSS = defineStore('mss', {
 			const { entered, errorMessage } = await this.phcServer.enter(additional, enterMode, identifyingAttr, registerOnlyWithUniqueAttrs);
 			if (!entered) return errorMessage;
 
-			// Load updated state
+			// 9. Issue a Pubhubs card if registering a new account
+			// The Yivi server has been waiting since step 4 (disclosure) and will timeout after ~5 seconds.
+			// If card issuance fails due to network error (e.g., battery saver),
+			// we return a warning so the user can retry card issuance separately.
+			if (isRegistering && cardFeature) {
+				const comment = 'via\n' + attributeValues.join('\n');
+				try {
+					const { cardAttr, errorMessage: cardError } = await this.issueCard(true, comment, identifyingAttr);
+					if (cardAttr) identifying['ph_card'] = cardAttr;
+					else warningMessage = cardError;
+				} catch (error) {
+					// Card issuance failed (likely network error from battery saver)
+					// Return warning so user can retry card issuance from the UI
+					if (error instanceof TypeError && error.message.includes('NetworkError')) {
+						warningMessage = { key: 'YiviServerGone', values: [comment] };
+					} else {
+						throw error;
+					}
+				}
+			}
+
+			// 10. Load updated state (moved after card issuance to reduce Yivi wait time)
 			await this.phcServer.stateEP();
 			// Load Secret objects
 			const userSecret = await this.phcServer.getUserSecretObject();
 			const objectDetails = userSecret?.details ?? null;
 			const userSecretObject = userSecret?.object ?? null;
 
-			// 9. Issue a Pubhubs card if registering a new account
-			if (isRegistering && cardFeature) {
-				const comment = 'via\n' + attributeValues.join('\n');
-				const { cardAttr, errorMessage } = await this.issueCard(true, comment, identifyingAttr);
-				if (cardAttr) identifying['ph_card'] = cardAttr;
-				else warningMessage = errorMessage;
-			}
-
-			// 10. Get attribute Key Response
+			// 11. Get attribute Key Response
 			const attrKeyReq: AuthAttrKeyReq = this.buildAttributeKeyRequest(identifying, userSecretObject);
 			const attrKeyResp = await authServer.attrKeysEP(attrKeyReq);
 
@@ -134,7 +153,7 @@ const useMSS = defineStore('mss', {
 				return { key: 'errors.retry_with_new_attr' };
 			}
 
-			// 11. Store user secret objects
+			// 12. Store user secret objects
 			if (ResultResponse.Success in attrKeyResp) {
 				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, identifying, userSecretObject, objectDetails);
 			}
@@ -151,7 +170,7 @@ const useMSS = defineStore('mss', {
 				const sealedPPP = await this.phcServer.pppEP();
 				assert.isDefined(sealedPPP, 'Something went wrong, sealedPPP should be defined.');
 				const transcryptor = await this.getTranscryptor();
-				const sealedEhpp = await transcryptor.ehppEP(enterStartResp.nonce, id, sealedPPP);
+				const sealedEhpp = await transcryptor.ehppEP({ nonce: enterStartResp.nonce, id, ppp: sealedPPP, hubMacKey: enterStartResp.hub_mac_key });
 
 				if (sealedEhpp === 'RetryWithNewPpp' && attempt < maxAttempts) {
 					continue;
@@ -246,7 +265,7 @@ const useMSS = defineStore('mss', {
 		},
 
 		async getTranscryptor(): Promise<{
-			ehppEP: (nonce: string, id: string, ppp: string) => Promise<string>;
+			ehppEP: (args: { nonce: string; id: string; ppp: string; hubMacKey?: string }) => Promise<string>;
 		}> {
 			if (!this._transcryptor) {
 				await this.initializeServers();

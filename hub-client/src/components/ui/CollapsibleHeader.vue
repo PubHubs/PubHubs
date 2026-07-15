@@ -1,14 +1,19 @@
 <template>
 	<div
-		class="flex flex-col gap-2"
+		class="flex flex-col gap-100"
 		:title="title"
 	>
-		<div
-			class="flex items-center justify-between"
-			:class="collapsible ? 'cursor-pointer' : ''"
-			@click="collapsible && toggle()"
-		>
-			<div class="text-on-surface-dim flex items-center gap-2">
+		<div class="flex items-center justify-between gap-200">
+			<div
+				class="text-on-surface-dim flex w-full items-center gap-100"
+				:class="collapsible ? 'cursor-pointer' : ''"
+				:role="collapsible ? 'button' : undefined"
+				:tabindex="collapsible ? 0 : undefined"
+				:aria-expanded="collapsible ? !collapsed : undefined"
+				@click="collapsible && toggle()"
+				@keydown.enter.prevent="collapsible && toggle()"
+				@keydown.space.prevent="collapsible && toggle()"
+			>
 				<Icon
 					v-if="collapsible"
 					class="transition-transform duration-200"
@@ -20,20 +25,19 @@
 				<slot name="header">
 					<p
 						v-if="label"
-						class="text-body-small truncate leading-tight font-semibold first-letter:uppercase"
-						role="heading"
+						class="text-body-small lineline-clamp-1 w-full truncate leading-tight font-semibold first-letter:uppercase"
 					>
 						{{ label }}
 					</p>
 				</slot>
 			</div>
-			<div class="flex items-center gap-2">
+			<div class="flex items-center gap-100">
 				<slot name="right" />
 			</div>
 		</div>
 		<div
 			v-show="!collapsible || !collapsed"
-			class="mt-2"
+			class="mt-100"
 		>
 			<slot />
 		</div>

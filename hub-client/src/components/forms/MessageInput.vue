@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="w-full px-3 pb-3 md:px-6"
+		class="w-full px-150 pb-150 md:px-300"
 		v-bind="$attrs"
 	>
 		<!-- Timeout notification bar -->
@@ -22,10 +22,10 @@
 		<div class="relative">
 			<Popover
 				v-if="messageInput.state.popover"
-				class="absolute bottom-4"
+				class="absolute bottom-200"
 				@close="messageInput.togglePopover()"
 			>
-				<div class="flex flex-wrap items-center gap-2">
+				<div class="flex flex-wrap items-center gap-100">
 					<PopoverButton
 						icon="upload-simple"
 						data-testid="upload"
@@ -53,16 +53,24 @@
 						@click="messageInput.openSignMessage()"
 						>{{ $t('message.sign.add_signature') }}</PopoverButton
 					>
+					<PopoverButton
+						v-if="settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.isPrivateRoom() || room.isSecuredRoom())"
+						icon="video"
+						data-testid="videocall"
+						:disabled="room.isOngoingCall()"
+						@click="startVideocall"
+						>{{ $t('message.videocall') }}</PopoverButton
+					>
 				</div>
 			</Popover>
 			<Popover
 				v-if="moderationPopover"
-				class="absolute right-0 bottom-4"
+				class="absolute right-0 bottom-200"
 				@close="moderationPopover = false"
 			>
-				<div class="flex flex-wrap items-center justify-end gap-2">
+				<div class="flex flex-wrap items-center justify-end gap-100">
 					<PopoverButton
-						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
+						v-if="roles.userIsStewardOrHigher(room.roomId) && !inThread && !room.isDirectMessageRoom()"
 						icon="megaphone-simple"
 						:class="isAnnouncementMode ? 'text-accent-steward' : ''"
 						@click="
@@ -75,6 +83,7 @@
 			</Popover>
 			<MentionAutoComplete
 				v-if="messageInput.state.showMention"
+				ref="mentionAutoCompleteRef"
 				:msg="value as string"
 				:top="caretPos.top"
 				:left="caretPos.left"
@@ -83,7 +92,7 @@
 			/>
 			<div
 				v-if="messageInput.state.emojiPicker"
-				class="xs:right-4 absolute right-0 bottom-2 z-20 md:right-12"
+				class="xs:right-200 absolute right-0 bottom-100 z-20 md:right-600"
 			>
 				<EmojiPicker
 					@emoji-selected="clickedEmoticon"
@@ -92,8 +101,17 @@
 			</div>
 		</div>
 
-		<div class="flex max-h-[50vh] items-end justify-between gap-2">
+		<div class="flex max-h-[50vh] items-end justify-between gap-100">
 			<div class="bg-surface-base rounded-base w-full shadow">
+				<!-- Editing a message -->
+				<InputModeBar
+					v-if="messageInput.isEdit.value && messageInput.state.textArea"
+					icon="pencil-simple"
+					:label="$t('message.editing')"
+					variant="edit"
+					@close="cancelEdit()"
+				/>
+
 				<!-- In reply to -->
 				<InputModeBar
 					v-if="inReplyTo"
@@ -178,14 +196,14 @@
 
 				<div
 					v-if="messageInput.state.textArea"
-					class="rounded-base border-surface-elevated flex items-center gap-x-4 border-3 px-4 py-2"
+					class="rounded-base border-surface-elevated flex items-center gap-x-200 border-3 px-200 py-100"
 					:class="isInputDisabled ? 'cursor-not-allowed opacity-50' : ''"
 				>
 					<Icon
 						v-if="isInputDisabled"
 						type="plus-circle"
 						size="lg"
-						class="text-on-surface-dim cursor-not-allowed"
+						class="cursor-not-allowed opacity-50"
 					/>
 					<IconButton
 						v-else
@@ -193,6 +211,8 @@
 						data-testid="paperclip"
 						size="base"
 						variant="secondary"
+						:aria-label="$t(messageInput.state.popover ? 'dialog.close' : 'message.context_menu')"
+						:title="$t(messageInput.state.popover ? 'dialog.close' : 'message.context_menu')"
 						class="transition-transform duration-200 hover:cursor-pointer"
 						:class="messageInput.state.popover ? 'rotate-90' : 'rotate-0'"
 						@click.stop="
@@ -203,16 +223,15 @@
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<!-- Wrapper div captures Enter key to prevent submission when timed out -->
 					<div
-						class="grow"
+						class="flex grow items-center"
 						@keydown.enter.exact.capture="preventSubmitWhenTimedOut"
 					>
 						<MessageInputTextArea
 							ref="elTextInput"
 							v-model="valueAsString"
-							class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
+							class="text-label placeholder:text-on-surface-dim max-h-2000 overflow-x-hidden border-none bg-transparent md:max-h-3000"
 							:class="isInputDisabled ? 'cursor-not-allowed' : ''"
 							:placeholder="inputPlaceholder"
-							:title="$t('rooms.new_message')"
 							:disabled="isInputDisabled"
 							@changed="changed()"
 							@submit="submitMessage()"
@@ -225,40 +244,43 @@
 								}, 150)
 							"
 							@paste="handlePaste"
+							@navigation="handleMentionNavigation"
 						/>
 					</div>
 
 					<!--Moderation tools-->
-					<button
-						v-if="roles.userHasPermissionForAction(UserAction.RoomAnnouncement, room.roomId) && !inThread && !room.isDirectMessageRoom()"
-						class="hover:cursor-pointer"
-						:class="moderationPopover ? 'text-accent-steward' : ''"
+					<IconButton
+						v-if="roles.userIsStewardOrHigher(room.roomId) && !inThread && !room.isDirectMessageRoom()"
+						icon="circles-three-plus"
+						variant="secondary"
 						:title="$t('menu.moderation')"
+						:aria-label="$t('menu.moderation')"
+						:class="moderationPopover ? 'text-accent-steward!' : ''"
 						@click.stop="
 							moderationPopover = !moderationPopover;
 							messageInput.state.popover = false;
 						"
-					>
-						<Icon type="circles-three-plus"></Icon>
-					</button>
+					/>
 
 					<!-- Emoji picker -->
-					<button :class="isInputDisabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'">
-						<Icon
-							type="smiley"
-							@click.stop="toggleEmojiPicker()"
-						/>
-					</button>
+					<IconButton
+						icon="smiley"
+						variant="secondary"
+						:disabled="isInputDisabled"
+						:aria-label="$t('message.emoji_picker')"
+						:title="$t('message.emoji_picker')"
+						@click.stop="toggleEmojiPicker()"
+					/>
 
 					<!-- Sendbutton -->
-					<button
-						:title="$t('message.send')"
-						:class="!messageInput.state.sendButtonEnabled ? 'opacity-50 hover:cursor-not-allowed' : 'hover:cursor-pointer'"
+					<IconButton
+						icon="paper-plane-right"
+						variant="secondary"
 						:disabled="!messageInput.state.sendButtonEnabled"
+						:title="$t('message.send')"
+						:aria-label="$t('message.send')"
 						@click="submitMessage"
-					>
-						<Icon type="paper-plane-right" />
-					</button>
+					/>
 				</div>
 			</div>
 		</div>
@@ -270,6 +292,7 @@
 			v-if="messageInput.state.showYiviQR"
 			:title="$t('message.sign.heading')"
 			:buttons="signingDialogButtons"
+			:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 			@close="messageInput.state.showYiviQR = false"
 		>
 			<div
@@ -282,10 +305,13 @@
 
 <script setup lang="ts">
 	// Packages
+	import { useDebounceFn } from '@vueuse/core';
+	// Models
+	import { MsgType } from 'matrix-js-sdk';
 	import { setTimeout } from 'node:timers';
 	import { type PropType, computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRoute } from 'vue-router';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -306,7 +332,7 @@
 	import YellowCardNotificationBar from '@hub-client/components/ui/YellowCardNotificationBar.vue';
 
 	// Composables
-	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { asyncFileUpload, fileUpload } from '@hub-client/composables/fileUpload';
 	import { type UserDetails } from '@hub-client/composables/mention-autocomplete.composable';
 	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
 	import { useModerationTimeout } from '@hub-client/composables/moderation/timeout.composable';
@@ -319,15 +345,16 @@
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { useMessageInput } from '@hub-client/logic/messageInput';
+	import { getLocalStoreItem, setLocalStoreItem } from '@hub-client/logic/utils/localStoreClient';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	// Models
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { RelationType } from '@hub-client/models/constants';
+	import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
 	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
-	import { UserAction } from '@hub-client/models/users/TUser';
 	import { EYiviFlow, type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
@@ -337,7 +364,9 @@
 	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
+	// Props
 	const props = defineProps({
 		room: {
 			type: Room,
@@ -355,6 +384,10 @@
 			type: Object as PropType<{ scheduler: Scheduler; eventId: string }>,
 			default: undefined,
 		},
+		editingMessage: {
+			type: Object as PropType<{ event: TMessageEvent }>,
+			default: undefined,
+		},
 	});
 
 	const emit = defineEmits(usedEvents);
@@ -364,6 +397,8 @@
 	const { t } = useI18n();
 	const user = useUser();
 	const route = useRoute();
+	const router = useRouter();
+	const videoCall = useVideoCall();
 	const roles = useRoles();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
@@ -381,7 +416,7 @@
 			value.value = v;
 		},
 	});
-	const { allTypes, uploadUrl } = useMatrixFiles();
+	const { allTypes, uploadUrl, imageTypes, getAuthorizedMediaUrl } = useMatrixFiles();
 
 	const pollObject = ref<Poll>(new Poll());
 	const schedulerObject = ref<Scheduler>(new Scheduler());
@@ -394,12 +429,15 @@
 
 	const filePickerEl = ref();
 	const elTextInput = ref<InstanceType<typeof TextAreaOld> | null>(null);
+	const mentionAutoCompleteRef = ref<InstanceType<typeof MentionAutoComplete> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
+	const editingOriginalEvent = ref<TMessageEvent | undefined>(undefined);
+	const editingFilePreviewBlobUrl = ref<string | undefined>();
 	const isAnnouncementMode = ref(false);
 	const moderationPopover = ref(false);
 
 	const announcementVariant = computed(() => 'steward' as const);
-
+	const isMobile = computed(() => settings.isMobileState);
 	const isInputDisabled = computed(() => isCurrentUserTimedOut.value || isCurrentUserWarned.value);
 
 	const inputPlaceholder = computed(() => {
@@ -421,6 +459,7 @@
 
 	watch(route, () => {
 		revokeOwnedFileUploadBlob();
+		revokeEditingFilePreviewBlob();
 		reset();
 		messageInput.resetAll();
 		clearWhisperMode();
@@ -433,6 +472,13 @@
 		},
 		{ immediate: true },
 	);
+
+	// Save draft on input change (debounced)
+	watch(value, (newValue) => {
+		if (typeof newValue === 'string') {
+			saveDraft(newValue);
+		}
+	});
 
 	watch(
 		() => props.room.roomId,
@@ -447,6 +493,12 @@
 			} else {
 				threadRoot = undefined;
 			}
+
+			// Load draft for new room/thread
+			const draft = await getLocalStoreItem(getDraftKey());
+			if (draft) {
+				value.value = draft;
+			}
 		},
 		{ immediate: true },
 	);
@@ -460,6 +512,10 @@
 				} else {
 					threadRoot = undefined;
 				}
+
+				// Load draft for new thread
+				const draft = await getLocalStoreItem(getDraftKey());
+				value.value = draft ?? '';
 			}
 		},
 	);
@@ -482,6 +538,42 @@
 		},
 	);
 
+	watch(
+		() => props.editingMessage,
+		async () => {
+			revokeEditingFilePreviewBlob();
+			if (!props.editingMessage?.event.event_id) return;
+			clearWhisperMode();
+			messageActions.replyingTo = undefined;
+			editingOriginalEvent.value = props.editingMessage.event;
+			const content = props.editingMessage.event.content;
+
+			if (content.msgtype === MsgType.Image || content.msgtype === MsgType.File) {
+				// Pre-fill caption: if body equals filename it was auto-set, show empty
+				value.value = content.body !== content.filename ? (content.body ?? '') : '';
+				const previewUrl = content.url ? await getAuthorizedMediaUrl(content.url) : (content.url ?? '');
+				if (previewUrl.startsWith('blob:')) {
+					editingFilePreviewBlobUrl.value = previewUrl;
+				}
+				messageInput.editMessage(props.editingMessage.event.event_id, {
+					mxcUrl: content.url ?? '',
+					previewUrl: previewUrl,
+					filename: content.filename ?? content.body ?? '',
+					mimetype: content.info?.mimetype,
+					size: content.info?.size,
+					msgtype: content.msgtype,
+				});
+			} else {
+				// Prefill with the raw text (body), not the processed ph_body html.
+				value.value = content.body ?? '';
+				messageInput.editMessage(props.editingMessage.event.event_id);
+			}
+
+			messageInput.state.sendButtonEnabled = isValidMessage();
+			nextTick(() => elTextInput.value?.$el.focus());
+		},
+	);
+
 	onMounted(async () => {
 		globalThis.addEventListener('keydown', handleKeydown);
 		reset();
@@ -495,8 +587,16 @@
 		uriForFileUpload.value = undefined;
 	}
 
+	function revokeEditingFilePreviewBlob() {
+		if (editingFilePreviewBlobUrl.value) {
+			URL.revokeObjectURL(editingFilePreviewBlobUrl.value);
+			editingFilePreviewBlobUrl.value = undefined;
+		}
+	}
+
 	onBeforeUnmount(() => {
 		revokeOwnedFileUploadBlob();
+		revokeEditingFilePreviewBlob();
 	});
 
 	onUnmounted(() => {
@@ -550,6 +650,7 @@
 		if (typeof value.value === 'string' && value.value.trim().length > 0) valid = true;
 		if ((messageInput.state.poll || messageInput.state.scheduler) && messageInput.state.sendButtonEnabled) valid = true;
 		if (messageInput.state.fileAdded) valid = true;
+		if (messageInput.state.editingExistingFile) valid = true;
 		return valid;
 	}
 
@@ -575,6 +676,13 @@
 	function clickedAttachment() {
 		if (filePickerEl.value) {
 			filePickerEl.value.openFile();
+		}
+	}
+
+	async function startVideocall() {
+		messageInput.togglePopover();
+		if (await videoCall.startCall()) {
+			await router.push({ name: 'videocall' });
 		}
 	}
 
@@ -636,6 +744,50 @@
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 
+		// Editing any message with a new file attached (works regardless of the original msgtype,
+		// so a text post can also be turned into an image/file post).
+		if (messageInput.isEdit.value && editingOriginalEvent.value && messageInput.state.fileAdded) {
+			try {
+				await submitFileEdit(editingOriginalEvent.value, messageInput.state.fileAdded, String(value.value));
+			} finally {
+				cancelEdit();
+			}
+			return;
+		}
+
+		// Editing an existing image/file message (no new file selected).
+		if (messageInput.isEdit.value && editingOriginalEvent.value) {
+			const origMsgtype = editingOriginalEvent.value.content.msgtype;
+			if (origMsgtype === MsgType.Image || origMsgtype === MsgType.File) {
+				try {
+					if (messageInput.state.editingExistingFile) {
+						await pubhubs.editFileMessage(
+							props.room.roomId,
+							editingOriginalEvent.value,
+							String(value.value),
+							messageInput.state.editingExistingFile,
+						);
+					} else {
+						// File was removed: convert to text-only message
+						await pubhubs.editMessage(props.room.roomId, editingOriginalEvent.value, String(value.value));
+					}
+				} finally {
+					cancelEdit();
+				}
+				return;
+			}
+		}
+
+		// Editing an existing text message takes precedence (poll/scheduler edits use editMessage() below).
+		if (messageInput.isEdit.value && messageInput.state.textArea && editingOriginalEvent.value) {
+			try {
+				await pubhubs.editMessage(props.room.roomId, editingOriginalEvent.value, String(value.value));
+			} finally {
+				cancelEdit();
+			}
+			return;
+		}
+
 		if (messageInput.state.signMessage) {
 			messageInput.state.showYiviQR = true;
 			await nextTick();
@@ -645,6 +797,7 @@
 			const powerLevel = props.room.getPowerLevel(user.userId ?? '');
 			await pubhubs.addAnnouncementMessage(props.room.roomId, String(value.value), powerLevel);
 			value.value = '';
+			clearDraft();
 			isAnnouncementMode.value = false;
 		} else if (messageActions.whisperingToUserId) {
 			const powerLevel = props.room.getPowerLevel(user.userId ?? '');
@@ -662,50 +815,62 @@
 			);
 			clearWhisperMode();
 			value.value = '';
+			clearDraft();
 		} else if (messageInput.state.poll) {
 			sendPoll();
 			value.value = '';
+			clearDraft();
 		} else if (messageInput.state.scheduler) {
 			sendScheduler();
 			value.value = '';
+			clearDraft();
 		} else if (messageInput.state.fileAdded) {
 			// `fileAdded` is the actual payload to upload.
 			// `uriForFileUpload` is only the local preview blob URL manager.
 			const replyTo = inReplyTo.value;
 			if (replyTo) messageActions.replyingTo = undefined;
+			// Save file reference before async operation to avoid race conditions
+			const fileToUpload = messageInput.state.fileAdded;
+			const messageText = value.value as string;
 			messageInput.closeFileUpload();
 			const syntheticEvent = {
 				currentTarget: {
-					files: [messageInput.state.fileAdded],
+					files: [fileToUpload],
 				},
 			} as unknown as Event;
 			const accessToken = pubhubs.Auth.getAccessToken();
 			if (!accessToken) return;
-			fileUpload(t('errors.file_upload'), accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
-				pubhubs.addFile(
-					props.room.roomId,
-					threadRoot?.event_id,
-					undefined,
-					messageInput.state.fileAdded as File,
-					url,
-					value.value as string,
-					undefined,
-					replyTo,
-				);
-				uriForFileUpload.value?.revoke();
-				fileBlobOwnedByParent.value = false;
-				uriForFileUpload.value = undefined;
-				value.value = '';
-				messageInput.cancelFileUpload();
-				messageInput.state.sendButtonEnabled = isValidMessage();
-			});
+			fileUpload(
+				t('errors.file_upload'),
+				accessToken,
+				uploadUrl,
+				allTypes,
+				syntheticEvent,
+				(url) => {
+					pubhubs.addFile(props.room.roomId, threadRoot?.event_id, undefined, fileToUpload, url, messageText, undefined, replyTo);
+					uriForFileUpload.value?.revoke();
+					fileBlobOwnedByParent.value = false;
+					uriForFileUpload.value = undefined;
+					value.value = '';
+					clearDraft();
+					messageInput.cancelFileUpload();
+					messageInput.state.sendButtonEnabled = isValidMessage();
+				},
+				() => {
+					// On error: reset state so user can try again
+					messageInput.cancelFileUpload();
+					messageInput.state.sendButtonEnabled = isValidMessage();
+				},
+			);
 		} else if (messageActions.replyingTo && inReplyTo.value) {
 			pubhubs.addMessage(props.room.roomId, String(value.value), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
 			value.value = '';
+			clearDraft();
 		} else {
 			pubhubs.submitMessage(String(value.value), props.room.roomId, threadRoot, inReplyTo.value);
 			value.value = '';
+			clearDraft();
 		}
 	}
 
@@ -734,6 +899,7 @@
 		messageInput.state.showYiviQR = false;
 		messageInput.state.signMessage = false;
 		value.value = '';
+		clearDraft();
 	}
 
 	const createScheduler = (scheduler: Scheduler, canSend: boolean) => {
@@ -761,10 +927,66 @@
 		caretPos.value = pos;
 	}
 
+	function cancelEdit() {
+		revokeEditingFilePreviewBlob();
+		editingOriginalEvent.value = undefined;
+		value.value = '';
+		messageInput.openTextArea();
+		messageInput.state.sendButtonEnabled = isValidMessage();
+	}
+
+	async function submitFileEdit(originalEvent: TMessageEvent, file: File, caption: string) {
+		const accessToken = pubhubs.Auth.getAccessToken();
+		if (!accessToken) return;
+		messageInput.closeFileUpload();
+		await asyncFileUpload(
+			accessToken,
+			uploadUrl,
+			file,
+			(_progress) => {},
+			async (url) => {
+				const fileInfo: Omit<FileEditInfo, 'previewUrl'> = {
+					mxcUrl: url,
+					filename: file.name,
+					mimetype: file.type,
+					size: file.size,
+					msgtype: imageTypes.includes(file.type) ? MsgType.Image : MsgType.File,
+				};
+				await pubhubs.editFileMessage(props.room.roomId, originalEvent, caption, fileInfo);
+			},
+		);
+		messageInput.cancelFileUpload();
+	}
+
+	function handleMentionNavigation(e: KeyboardEvent) {
+		if (mentionAutoCompleteRef.value?.handleNavigation(e)) {
+			e.preventDefault();
+		}
+	}
+
 	function clearWhisperMode() {
 		messageActions.whisperingToUserId = undefined;
 		messageActions.whisperingToDisplayName = undefined;
 		messageActions.whisperingToEventId = undefined;
+	}
+
+	// Draft persistence helpers
+	function getDraftKey(): string {
+		const threadId = props.room.getCurrentThreadId();
+		return threadId ? `pubhubs_draft_${props.room.roomId}_${threadId}` : `pubhubs_draft_${props.room.roomId}`;
+	}
+
+	const saveDraft = useDebounceFn(async (text: string) => {
+		const key = getDraftKey();
+		if (text.trim()) {
+			await setLocalStoreItem(key, text);
+		} else {
+			await setLocalStoreItem(key, '');
+		}
+	}, 500);
+
+	async function clearDraft(): Promise<void> {
+		await setLocalStoreItem(getDraftKey(), '');
 	}
 
 	// START workaround for #1173, that iOS app links do not work in an iframe.

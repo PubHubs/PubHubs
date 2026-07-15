@@ -9,6 +9,9 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 > Shell snippets in this file should stick to POSIX syntax so they keep working in Git Bash, MSYS, and WSL alongside Linux/macOS shells.
 
+
+---
+
 ## run
 
 > Commands for running the development environment
@@ -32,6 +35,8 @@ sh scripts/run-all.sh
 ```sh
 sh scripts/run-all-cleanup.sh
 ```
+
+---
 
 ### init
 
@@ -222,19 +227,12 @@ Every command below is structured as `mask run hub <subcommand>`
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
-**OPTIONS**
-
-- host
-  - flags: --host
-  - type: string
-  - desc: Override the networkhost the hub advertises to yivi (e.g. a Tailscale IP). Falls back to YIVI_HOST.
-
 ```sh
 echo "Running testhub${n}"
 
 cd pubhubs_hub
 hub_host="${host:-${YIVI_HOST:-}}"
-python3 start_testhub.py "${n}" ${hub_host:+--networkhost "$hub_host"}
+python3 start_testhub.py "${n}"
 ```
 
 #### client (n)
@@ -315,6 +313,8 @@ cd pubhubs_hub
 docker build -t pubhubs-hub .
 ```
 
+---
+
 ## lint
 
 > Format and lint source code (applies fixes)
@@ -322,6 +322,8 @@ docker build -t pubhubs-hub .
 ```sh
 npm run lint
 ```
+
+---
 
 ## check
 

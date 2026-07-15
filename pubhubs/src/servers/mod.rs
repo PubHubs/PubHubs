@@ -17,7 +17,7 @@ pub use config::Config;
 pub use constellation::Constellation;
 pub use macros::for_all_servers;
 pub(super) use run::Handle;
-pub use run::Set;
+pub use run::{Set, SetOpts};
 pub use server::Name;
 pub(super) use server::{
     App, AppBase, AppCreator, AppCreatorBase, Command, Details, DiscoverVerdict, Server, ServerImpl,

@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="gap-050 relative mb-2 flex w-full min-w-4000 flex-col items-start justify-start"
+		class="gap-050 relative mb-100 flex w-full min-w-4000 flex-col items-start justify-start"
 		:help="help"
 		:name="fieldName"
 		:validation="validation"
@@ -24,7 +24,7 @@
 			v-if="result.length > 0 && hasFocus"
 			class="absolute top-800 z-50 flex w-full grow flex-col pb-300"
 		>
-			<div class="bg-surface-low outline-offset-thin rounded outline">
+			<div class="bg-surface-elevated outline-offset-thin rounded outline">
 				<DropDownOption
 					v-for="(item, index) in result"
 					:key="index"

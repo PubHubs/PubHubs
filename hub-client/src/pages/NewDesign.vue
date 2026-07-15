@@ -355,6 +355,7 @@
 				<TextField
 					v-model="formValues.firstname"
 					placeholder="Type voornaam"
+					:validation="{ required: false }"
 					>Voornaam</TextField
 				>
 				<TextField
@@ -410,7 +411,7 @@
 					</RadioGroup>
 				</div>
 
-				<div class="flex gap-12">
+				<div class="flex gap-600">
 					<div>
 						<Checkbox v-model="formValues.option1">Option 1</Checkbox>
 						<Checkbox v-model="formValues.option2">Option 2</Checkbox>

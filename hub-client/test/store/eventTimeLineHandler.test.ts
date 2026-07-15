@@ -71,10 +71,10 @@ describe('EventTimeLineHandler', () => {
 			expect(TestEvent.content.body.indexOf('<span class="message-mention')).toBe(-1);
 			// expect(content.ph_body.match(/<span class="message-mention/g).length).toBe(3);
 
-			// Sanitized
-			expect(content.ph_body.indexOf('<script')).toBe(-1); // no scripts
-			expect(content.ph_body.indexOf('<iframe')).toBe(-1); // no iframes
-			expect(content.ph_body.indexOf('<img')).toBe(-1); // no images
+			// Sanitized - not needed -> moved to v-safe-html directive
+			// expect(content.ph_body.indexOf('<script')).toBe(-1); // no scripts
+			// expect(content.ph_body.indexOf('<iframe')).toBe(-1); // no iframes
+			// expect(content.ph_body.indexOf('<img')).toBe(-1); // no images
 		});
 	});
 });

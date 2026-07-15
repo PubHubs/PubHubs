@@ -158,6 +158,7 @@ use crate::api::*;
 use serde::{Deserialize, Serialize};
 
 use crate::common::elgamal;
+use crate::id;
 use crate::misc::jwt;
 
 /// Returned (in sealed form) by [`phc::user::PppEP`], needed for  [`tr::EhppEP`].
@@ -173,8 +174,11 @@ pub struct PolymorphicPseudonymPackage {
 having_message_code!(PolymorphicPseudonymPackage, Ppp);
 
 /// Returned (in sealed form) by [`tr::EhppEP`], needed for [`phc::user::HhppEP`].
+///
+/// NB: travels inside [`Sealed`], which uses postcard (positional, no field names): field order
+/// and presence ARE the wire format — `serde(default)`, `skip_serializing_if` and
+/// `deny_unknown_fields` all have no effect here.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
 pub struct EncryptedHubPseudonymPackage {
     /// Hub pseudonym `g_H Id_U`, elgamal encrypted for `x_PHC`.
     pub encrypted_hub_pseudonym: elgamal::Triple,
@@ -184,6 +188,10 @@ pub struct EncryptedHubPseudonymPackage {
 
     /// Nonce, from [`PolymorphicPseudonymPackage::nonce`]
     pub phc_nonce: phc::user::PpNonce,
+
+    /// HMAC binding the hub id the transcryptor pseudonymised for; see [`hub::HubMacKey::mac`].
+    /// `None` when [`EhppReq::hub_mac_key`](tr::EhppReq::hub_mac_key) was absent.
+    pub hub_id_mac: Option<id::Id>,
 }
 
 having_message_code!(EncryptedHubPseudonymPackage, Ehpp);
@@ -201,6 +209,11 @@ pub struct HashedHubPseudonymPackage {
 
     /// Nonce, from [`hub::EnterStartEP`]
     pub hub_nonce: hub::EnterNonce,
+
+    /// HMAC binding the hub id, copied through from [`EncryptedHubPseudonymPackage::hub_id_mac`]; see
+    /// [`hub::HubMacKey::mac`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hub_id_mac: Option<id::Id>,
 }
 
 impl Signable for HashedHubPseudonymPackage {

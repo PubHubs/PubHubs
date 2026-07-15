@@ -3,10 +3,35 @@ import * as sdk from 'matrix-js-sdk';
 import { type ICreateClientOpts, type MatrixClient } from 'matrix-js-sdk';
 
 import { CONFIG } from '@hub-client/logic/logging/Config';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { useUser } from '@hub-client/stores/user';
+
+const logger = createLogger('Authentication');
+
+// IndexedDB.open() can hang indefinitely (no success, no error) when the browser
+// blocks cross-site storage and this hub runs as a third-party iframe. Cap the
+// wait so a blocked store can't stall login forever.
+const INDEXEDDB_STARTUP_TIMEOUT_MS = 4000;
+
+/** Reject if the promise doesn't settle within `ms`. The original promise keeps running. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	return new Promise<T>((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error(`Operation timed out after ${ms} ms`)), ms);
+		promise.then(
+			(value) => {
+				clearTimeout(timer);
+				resolve(value);
+			},
+			(error) => {
+				clearTimeout(timer);
+				reject(error);
+			},
+		);
+	});
+}
 
 class Authentication {
 	private user = useUser();
@@ -87,6 +112,26 @@ class Authentication {
 	// }
 
 	/**
+	 * Create the matrix sync store. Prefers IndexedDB for an on-disk sync cache,
+	 * but falls back to an in-memory store when IndexedDB is unavailable, blocked,
+	 * or unresponsive (its open() can hang silently in a storage-blocked iframe).
+	 * With the in-memory store the hub still loads; it just re-syncs from scratch
+	 * each session instead of using a persisted cache.
+	 */
+	private async _createSyncStore(): Promise<ICreateClientOpts['store']> {
+		try {
+			const indexedDBStore = new sdk.IndexedDBStore({ indexedDB: window.indexedDB, dbName: `pubhubs-db-${this.user.userId}` });
+			await withTimeout(indexedDBStore.startup(), INDEXEDDB_STARTUP_TIMEOUT_MS);
+			return indexedDBStore;
+		} catch (error) {
+			logger.warn('IndexedDB sync store unavailable (blocked or unresponsive); falling back to in-memory store', { error });
+			const memoryStore = new sdk.MemoryStore();
+			await memoryStore.startup();
+			return memoryStore;
+		}
+	}
+
+	/**
 	 * Actual login method
 	 */
 
@@ -102,15 +147,12 @@ class Authentication {
 
 		auth.timelineSupport = true;
 
-		// create store for indexedDB caching
-		const indexedDBStore = new sdk.IndexedDBStore({ indexedDB: window.indexedDB, dbName: `pubhubs-db-${this.user.userId}` });
 		// Video call information supplied to synapse client about starting the video call.
 		const videoCallInfo = { deviceId: 'template', useE2eForGroupCall: true, useLivekitForGroupCalls: true };
-		const authWithVideoCallInfo = { ...auth, ...videoCallInfo, store: indexedDBStore };
+		const store = await this._createSyncStore();
+		const authWithVideoCallInfo = { ...auth, ...videoCallInfo, store };
 
 		this.client = sdk.createClient(authWithVideoCallInfo);
-
-		await indexedDBStore.startup();
 
 		if (this.client.baseUrl === this.baseUrl) {
 			if (newToken === 'true' && auth.accessToken && auth.userId) {

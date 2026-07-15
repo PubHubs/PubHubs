@@ -2,13 +2,13 @@
 	<div
 		ref="popover"
 		v-click-outside="close"
-		class="rounded-base z-40"
+		class="rounded-base z-100"
 		:style="style"
 		role="toolbar"
 	>
 		<IconButton
 			v-if="showClosingCross"
-			class="absolute top-2 right-2"
+			class="absolute top-100 right-100"
 			size="base"
 			icon="x"
 			@click="close()"
@@ -47,13 +47,13 @@
 
 	onMounted(() => {
 		nextTick(() => {
-			const split = Math.floor(window.innerHeight / 2);
+			// The popover is anchored to the input bar with `bottom` and opens upward. Only flip it to
+			// open downward when opening upward would actually push it off the top of the viewport.
+			// When flipping we must clear the `bottom` anchor: leaving both `top` and `bottom` set inside
+			// the zero-height container collapses the popover's height to 0, which hid it entirely.
 			const popoverY = popover.value?.getBoundingClientRect().top ?? 0;
-			const popoverSize = popover.value?.clientHeight ?? 0;
-			let adjust = 0;
-			if (popoverY < split) {
-				adjust = popoverSize;
-				style.value += 'top:' + adjust + 'px;';
+			if (popoverY < 0) {
+				style.value += 'top: 0; bottom: auto;';
 			}
 		});
 	});

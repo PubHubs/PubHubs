@@ -1,8 +1,8 @@
 <template>
-	<div class="flex flex-col gap-1 wrap-break-word">
+	<div class="gap-050 flex flex-col wrap-break-word">
 		<!-- Deleted Message -->
 		<template v-if="deleted">
-			<div class="flex flex-row items-center gap-1">
+			<div class="gap-050 flex flex-row items-center">
 				<Icon
 					class="text-on-surface-dim"
 					size="sm"
@@ -15,116 +15,48 @@
 			<!-- Reason shown only to original poster -->
 			<p
 				v-if="deletedBySteward && redactionReason && (isOriginalPoster || roles.userIsStewardOrHigher(props.event.room_id))"
-				class="text-on-surface-dim ml-5 overflow-hidden text-sm text-ellipsis italic"
+				class="text-on-surface-dim ml-250 overflow-hidden text-sm text-ellipsis italic"
 			>
 				{{ t('message.delete.reason') }}: {{ redactionReason }}
 			</p>
 		</template>
 
-		<!-- Message with Mentions -->
-		<div
-			v-else-if="hasAnyMentions"
-			class="relative max-w-[90ch] text-ellipsis"
-		>
-			<P
-				v-for="(segment, index) in messageSegments"
-				:key="index"
-				class="inline"
-			>
-				<!-- Normal text segment -->
-				<span v-if="segment.type === 'text'">{{ segment.content }}</span>
-
-				<!-- User Mention segment -->
-				<span
-					v-else-if="segment.type === 'user' && segment.tokenId"
-					v-context-menu="
-						(evt: any) =>
-							openMenu(evt, [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])
-					"
-					class="no-callout text-accent-primary cursor-pointer select-none"
-					@click.once="userStore.goToUserRoom(segment.tokenId)"
-					>{{ segment.content }}
-				</span>
-
-				<!-- Room Mention segment -->
-				<span
-					v-else-if="segment.type === 'room' && segment.tokenId && segment.id"
-					v-context-menu="
-						(evt: any) =>
-							openMenu(evt, [{ label: t('menu.join_room'), icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId!, segment.id!) }])
-					"
-					class="no-callout relative select-none"
-					@click="joinIfMember(segment.tokenId, segment.id)"
-				>
-					<span class="text-accent-primary cursor-pointer">{{ segment.content }}</span>
-					<div v-if="activeMentionCard === segment.id && segment.tokenId">
-						<RoomLoginDialog
-							v-if="segment.type === 'room'"
-							:dialog-open="segment.tokenId"
-							message="rooms.join_sure"
-							:message-values="[]"
-							:secured="isSecured"
-							title="rooms.join_room"
-							@close="activeMentionCard = null"
-						/>
-					</div>
-				</span>
-			</P>
-		</div>
-
-		<!-- Regular Message -->
-		<!-- eslint-disable vue/no-v-html -- content sanitized by eventTimeLineHandler -->
-		<p
+		<!-- Message Body (with or without mentions) -->
+		<MessageBodyWithMentions
 			v-else
-			class="overflow-hidden text-ellipsis"
-			v-html="messageContent"
+			:body="event.content.body"
+			:ph-body="event.content.ph_body"
 		/>
-		<!-- eslint-enable vue/no-v-html -->
 	</div>
 </template>
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, ref } from 'vue';
+	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import P from '@hub-client/components/elements/P.vue';
-	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
+	import MessageBodyWithMentions from '@hub-client/components/rooms/MessageBodyWithMentions.vue';
 
-	// New design
-	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
-	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
-
-	//Logic
-	import { router } from '@hub-client/logic/core/router';
 
 	// Models
 	import { Redaction } from '@hub-client/models/constants';
 	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
 	// Stores
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
 	const props = defineProps<{
-		event: TMessageEvent;
 		deleted: boolean;
+		event: TMessageEvent;
 	}>();
 
-	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
-	const roomsStore = useRooms();
 	const userStore = useUser();
 	const roles = useRoles();
-	const pubhubs = usePubhubsStore();
-	const activeMentionCard = ref<string | null>(null);
-	const isSecured = ref<boolean>(false);
-	const mentionComposable = useMentionsDisplay();
 
 	const redactedBecause = computed(() => props.event.unsigned?.redacted_because);
 	const deletedBySteward = computed(() => {
@@ -140,40 +72,4 @@
 		}
 		return reason;
 	});
-
-	// Regular message content (for non-deleted, non-mention messages)
-	const messageContent = computed(() => {
-		const content = props.event.content as Record<string, unknown>;
-		return content.ph_body ?? content.formatted_body ?? content.body ?? '';
-	});
-
-	/**
-	 * Parse message body into segments with mentions replaced by displayName
-	 */
-	const messageSegments = computed(() => {
-		if (props.deleted) return [];
-
-		const body = props.event.content.body || '';
-		const mentions = mentionComposable.parseMentions(body);
-
-		return mentionComposable.buildSegments(body, mentions);
-	});
-
-	const hasAnyMentions = computed(() => {
-		return messageSegments.value.some((seg) => seg.type !== 'text');
-	});
-
-	async function joinIfMember(roomId: string, segmentId: string) {
-		const userId = userStore.userId;
-		if (userId) {
-			const userIsMember = await pubhubs.isUserRoomMember(userId, roomId);
-			if (userIsMember) {
-				await router.push({ name: 'room', params: { id: roomId } });
-			} else {
-				activeMentionCard.value = segmentId;
-				await roomsStore.fetchPublicRooms();
-				isSecured.value = roomsStore.publicRoomIsSecure(roomId);
-			}
-		}
-	}
 </script>

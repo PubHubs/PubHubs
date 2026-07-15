@@ -1,14 +1,14 @@
 <template>
-	<div class="bg-surface-low relative z-50 h-full w-full shrink-0 overflow-y-auto md:w-[33%]">
+	<div class="bg-surface-base relative z-50 h-full w-full shrink-0 overflow-y-auto md:w-[33%]">
 		<SideKickHeader>
 			<span>{{ title }}</span>
 			<Icon
-				class="hover:text-accent-red absolute right-2 cursor-pointer"
+				class="hover:text-accent-red absolute right-100 cursor-pointer"
 				type="x"
 				@click="close()"
 			/>
 		</SideKickHeader>
-		<div class="mt-4 flex flex-col p-3">
+		<div class="mt-200 flex flex-col p-150">
 			<slot />
 		</div>
 	</div>

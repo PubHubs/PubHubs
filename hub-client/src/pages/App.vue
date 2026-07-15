@@ -54,9 +54,8 @@
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 
-	// New design
-	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Stores
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { type HubInformation } from '@hub-client/stores/hub-settings';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -220,20 +219,31 @@
 				hubSettings.mobileHubMenu = true;
 			});
 
-			// Listen to close sidebar message from global client
-			// If sidebar is open, close it. If not, request scroll to start.
+			// Listen to the back message from the global client (the mobile back arrow).
+			// Back priority: an open sidebar closes first, then an open forum post goes
+			// back to the post feed, otherwise scroll back to the start.
 			messagebox.addCallback('parentFrame', MessageType.CloseSidebar, () => {
 				const sidebar = useSidebar();
 				if (sidebar.isOpen.value) {
 					sidebar.close();
-				} else {
-					scrollToStart();
+					return;
 				}
+				const route = router.currentRoute.value;
+				if (route.name === 'room' && route.params.topicId && rooms.currentRoom?.isForumRoom()) {
+					router.push({ name: 'room', params: { id: route.params.id as string } });
+					return;
+				}
+				scrollToStart();
 			});
 
 			// Receive context menu selection from global-client
 			messagebox.addCallback('parentFrame', MessageType.ContextMenuSelect, (message: Message) => {
 				useContextMenuStore().selectByIndex(message.content as number);
+			});
+
+			// Receive context menu close from global-client (mobile)
+			messagebox.addCallback('parentFrame', MessageType.ContextMenuClose, () => {
+				useContextMenuStore().close();
 			});
 
 			// Ask for hubinformation

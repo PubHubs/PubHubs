@@ -1,0 +1,11 @@
+{
+  "name": "transcryptor",
+  "self_check_code": "selfcheck-tr",
+  "version": "test-version",
+  "phc_url": "https://phc.example.test/",
+  "verifying_key": {"ed":"AA==","ml":"AQ=="},
+  "master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "master_enc_key_part_sealed": "AAAA",
+  "encap_key": {"ml":"AA==","ec":"AQ=="},
+  "constellation": { "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+}

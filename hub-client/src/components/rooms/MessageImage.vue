@@ -16,13 +16,14 @@
 		:src="authMediaUrl.url"
 		class="rounded-base border-surface-elevated max-h-[25rem] w-xs cursor-pointer border-3 object-contain"
 		@click.stop="showFullImage = true"
+		@touchstart.stop
 	/>
 	<Teleport to="body">
 		<div
 			v-if="showFullImage"
 			ref="lightboxRef"
 			tabindex="-1"
-			class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 outline-none"
+			class="bg-scrim/50 dark:bg-scrim/75 fixed inset-0 z-50 flex items-center justify-center outline-none"
 			@click.self="showFullImage = false"
 			@contextmenu.prevent
 			@keydown.escape="showFullImage = false"
@@ -33,7 +34,7 @@
 				class="max-h-[90vh] max-w-[90vw] object-contain"
 			/>
 			<button
-				class="absolute top-4 right-4 cursor-pointer text-white hover:text-gray-300"
+				class="absolute top-200 right-200 cursor-pointer text-white hover:text-gray-300"
 				:title="t('dialog.close')"
 				@click="showFullImage = false"
 			>
@@ -41,32 +42,27 @@
 			</button>
 		</div>
 	</Teleport>
-	<!-- eslint-disable vue/no-v-html -- sanitized message body -->
-	<p
+	<!-- Message body with mention support -->
+	<MessageBodyWithMentions
 		v-if="message.body !== message.filename"
-		:class="{ 'text-on-surface-dim': deleted }"
-		class="overflow-hidden text-ellipsis"
-		v-html="message.body"
-	></p>
-	<!-- eslint-enable vue/no-v-html -->
+		:body="message.body"
+		:ph-body="message.ph_body"
+	/>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+	import { nextTick, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import MessageBodyWithMentions from '@hub-client/components/rooms/MessageBodyWithMentions.vue';
 
-	// New design
-	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+	import { useAuthMediaUrl } from '@hub-client/composables/useAuthMediaUrl';
 	import { useImageActions } from '@hub-client/composables/useImageActions';
-	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
-
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
-	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
 	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -74,18 +70,16 @@
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
 
-	const props = defineProps<{ message: TImageMessageEventContent; deleted?: boolean }>();
-
-	const logger = createLogger('MessageImage');
+	const props = defineProps<{ message: TImageMessageEventContent }>();
 
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
-	const matrixFiles = useMatrixFiles();
 	const imageActions = useImageActions();
 	const dialog = useDialog();
 	const showFullImage = ref(false);
 	const lightboxRef = ref<HTMLElement | null>(null);
-	const authMediaUrl = ref<BlobManager>();
+
+	const { authMediaUrl } = useAuthMediaUrl(() => props.message.url);
 
 	watch(showFullImage, async (show) => {
 		if (show) {
@@ -95,18 +89,5 @@
 		} else {
 			dialog.hideModal();
 		}
-	});
-
-	onMounted(async () => {
-		try {
-			const url = await matrixFiles.getAuthorizedMediaUrl(props.message.url);
-			authMediaUrl.value = new BlobManager(url);
-		} catch (error) {
-			logger.error('Failed to load authorized media', { url: props.message.url, error });
-		}
-	});
-
-	onBeforeUnmount(() => {
-		authMediaUrl.value?.revoke();
 	});
 </script>

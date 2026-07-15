@@ -1,7 +1,5 @@
 // Models
 // Logic
-import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
-
 import { type TEvent } from '@hub-client/models/events/TEvent';
 import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
@@ -19,9 +17,10 @@ const linkTag = '<a class="message-link" target="_blank" ';
 const endLinkTag = '</a>';
 
 // Regex for replacing urls with clickable links
+// Note: Patterns exclude ~ to avoid matching into mention syntax (@name~id~)
 const removeLinkTagsPattern = /<a.*?href="([^"]*?)"[^>]*?>.*?<\/a\s*?>/gi;
-const urlPattern = /\b(?:https?|ftp):\/\/[a-z0-9-+&@#/%?=~_|!:,.;]*[a-z0-9-+&@#/%=~_|]/gim; // http://, https://, ftp://
-const pseudoUrlPattern = /(^|[^/])(www\.[\S]+(\b|$))/gim; // www. sans http:// or https://
+const urlPattern = /\b(?:https?|ftp):\/\/[a-z0-9-+&@#/%?=_|!:,.;]*[a-z0-9-+&@#/%=_|]/gim; // http://, https://, ftp://
+const pseudoUrlPattern = /(^|[^/])(www\.[a-z0-9-+&@#/%?=_|!:,.;]*[a-z0-9-+&@#/%=_|])/gim; // www. sans http:// or https://
 const emailAddressPattern = /(([a-zA-Z0-9_\-.]+)@[a-zA-Z_]+?(?:\.[a-zA-Z]{2,6}))+/gim; // Email addresses
 
 // Regex for replacing mentions (pseudonym with 2*3-6 digits, in theory the pseudonym could go up to 2*14 digits, but 6 should be good enough for this purpose)
@@ -31,20 +30,18 @@ class EventTimeLineHandler {
 	// Core method that will call all others
 	public transformEventContent(event: Partial<TEvent>) {
 		const eventContent = event.content as TTextMessageEventContent;
-		eventContent.ph_body = eventContent.body;
 
-		if (eventContent.msgtype === 'm.text') {
-			if (typeof eventContent.format === 'string') {
-				if (eventContent.format === 'org.matrix.custom.html' && typeof eventContent.formatted_body === 'string') {
-					eventContent.ph_body = eventContent.formatted_body;
-				}
-			}
+		// Build ph_body in a local; never read the reactive ph_body we are about to write.
+		// Reading + writing eventContent.ph_body in one pass makes any render that triggers this transform (e.g. constructing a TimelineEvent for a related m.replace edit) mutate its own dependency → recursive rendering as result.
+		let phBody = eventContent.body ?? '';
+		if (eventContent.msgtype === 'm.text' && eventContent.format === 'org.matrix.custom.html' && typeof eventContent.formatted_body === 'string') {
+			phBody = eventContent.formatted_body;
 		}
+		phBody = this.createClickableLinks(phBody);
+		phBody = this.addMentions(phBody);
+		phBody = this.addLineBreaks(phBody);
 
-		eventContent.ph_body = this.createClickableLinks(eventContent.ph_body ?? eventContent.body ?? '');
-		eventContent.ph_body = this.addMentions(eventContent.ph_body);
-		eventContent.ph_body = this.addLineBreaks(eventContent.ph_body);
-		eventContent.ph_body = this.sanitizeEventContent(eventContent.ph_body);
+		eventContent.ph_body = phBody; // single terminal write
 		return event;
 	}
 
@@ -69,11 +66,6 @@ class EventTimeLineHandler {
 
 	private addLineBreaks(body: string) {
 		body = body.replace(/\r?\n/g, '<br/>');
-		return body;
-	}
-
-	private sanitizeEventContent(body: string) {
-		body = sanitizeHtml(body);
 		return body;
 	}
 }

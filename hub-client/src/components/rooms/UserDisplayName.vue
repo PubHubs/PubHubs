@@ -1,6 +1,6 @@
 <template>
 	<span
-		class="flex items-center gap-x-2 truncate"
+		class="flex items-center gap-x-100 truncate"
 		:title="displayTitle"
 	>
 		<!-- Display Name -->

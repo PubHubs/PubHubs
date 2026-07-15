@@ -1,12 +1,12 @@
 <template>
 	<HeaderFooter
 		bg-bar-low="bg-background"
-		bg-bar-medium="bg-surface-low"
+		bg-bar-medium="bg-surface-base"
 	>
 		<template #header>
 			<div
-				class="flex h-full items-center gap-3"
-				:class="isMobile && 'pl-4'"
+				class="flex h-full items-center gap-150"
+				:class="isMobile ? 'pl-400' : 'pl-200'"
 			>
 				<Icon :type="isSecured ? 'shield' : 'chats-circle'" />
 				<H3 class="text-on-surface flex">
@@ -50,12 +50,15 @@
 				v-model="editRoom.type"
 				:placeholder="t('admin.room_type_placeholder')"
 				:options="roomTypeOptions"
+				:transformer="roomTypeTransformer"
+				:disabled="!isNewRoom"
+				:help="isNewRoom ? '' : t('admin.room_type_locked')"
 				>{{ t('admin.room_type') }}
 			</DropDown>
 
 			<div
 				v-if="isSecured"
-				class="pb-200"
+				class="flex flex-col gap-100"
 			>
 				<TextField
 					v-model="editRoom.user_txt"
@@ -66,12 +69,20 @@
 					{{ t('admin.secured_description') }}
 				</TextField>
 
+				<TextField
+					v-model.number="(editRoom as TSecuredRoom).expiration_time_days"
+					:placeholder="t('admin.expiration_days_placeholder')"
+					:validation="{ required: true, isNumber: true, minValue: 1, maxValue: 365 }"
+				>
+					{{ t('admin.expiration_days') }}
+				</TextField>
+
 				<div>
 					<ValidateField
 						v-model="selectedAttributes"
 						:validation="{ required: true, custom: validateAttributes() }"
 					>
-						<Label class="pb-100">{{ t('admin.secured_yivi_attributes') }}</Label>
+						<Label>{{ t('admin.secured_yivi_attributes') }}</Label>
 						<div class="flex flex-wrap gap-200">
 							<Tabs v-slot="{ activeTab, setActiveTab }">
 								<TabHeader>
@@ -84,7 +95,7 @@
 										<button
 											v-if="selectedAttributes.length > 1"
 											type="button"
-											class="text-button-red ml-050 -mr-100 cursor-pointer"
+											class="text-accent-red-interactive ml-050 -mr-100 cursor-pointer"
 											tabindex="-1"
 											:title="t('admin.remove_attribute')"
 											@click.stop="
@@ -119,7 +130,7 @@
 									>
 										<DropDown
 											v-model="selectedAttributes[activeTab].label"
-											class="text-label placeholder:text-surface-subtle"
+											class="text-label placeholder:text-on-surface-dim"
 											:filtered="true"
 											:options="yiviAttributes"
 										>
@@ -127,7 +138,7 @@
 										</DropDown>
 
 										<!-- Add values -->
-										<div class="my-100 flex grow items-end gap-100">
+										<div class="flex grow items-end gap-100">
 											<TextField
 												v-model="valuesString"
 												:placeholder="t('admin.add_tip')"
@@ -147,7 +158,7 @@
 										<!-- Values -->
 										<div
 											v-if="selectedAttributes[activeTab].accepted.length > 0"
-											class="pb-200"
+											class="gap-075 flex flex-col"
 										>
 											<Label>{{ t('admin.secured_values') }}</Label>
 
@@ -163,7 +174,7 @@
 													{{ value }}
 													<button
 														type="button"
-														class="group-hover:text-button-red cursor-pointer"
+														class="group-hover:text-accent-red-interactive cursor-pointer"
 														:title="t('admin.remove_value')"
 														@click="
 															selectedAttributes[activeTab].accepted.splice(index, 1);
@@ -179,10 +190,7 @@
 											</div>
 										</div>
 
-										<Checkbox
-											v-model="selectedAttributes[activeTab].profile"
-											class="pb-100"
-										>
+										<Checkbox v-model="selectedAttributes[activeTab].profile">
 											{{ t('admin.secured_profile') }}
 										</Checkbox>
 									</div>
@@ -195,7 +203,7 @@
 		</ValidatedForm>
 
 		<!-- Fixed action buttons -->
-		<div class="fixed right-10 bottom-5 z-20 flex items-center gap-200">
+		<div class="fixed right-500 bottom-250 z-20 flex items-center gap-200">
 			<Button
 				variant="error"
 				@click.stop.prevent="back()"
@@ -246,7 +254,7 @@
 	import { PublicRoomType } from '@hub-client/models/rooms/TBaseRoom';
 	import type { TEditRoom } from '@hub-client/models/rooms/TEditRoom';
 	import { type TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
-	import { type FieldOptions } from '@hub-client/models/validation/TFormOption';
+	import { type FieldOption, type FieldOptions } from '@hub-client/models/validation/TFormOption';
 	import { type ValidationRule } from '@hub-client/models/validation/TValidate';
 
 	// Stores
@@ -288,12 +296,20 @@
 	const editRoom = ref<TEditRoom | TSecuredRoom>({
 		name: '',
 		accepted: {} as SecuredRoomAttributes,
+		expiration_time_days: 182,
 		topic: '',
 		type: '',
 		user_txt: '',
 	});
 
-	const roomTypeOptions = Object.values(PublicRoomType) as FieldOptions;
+	// Only "forum room" is offered as an explicit choice. Leaving the dropdown empty (or clearing it
+	// via the x icon) means a normal room, so there is no empty option in the list.
+	const roomTypeOptions: FieldOptions = [PublicRoomType.PH_FORUM_ROOM];
+
+	function roomTypeTransformer(value: string): FieldOption {
+		if (value === PublicRoomType.PH_FORUM_ROOM) return { label: t('admin.room_type_forum'), value };
+		return { label: value, value };
+	}
 	const roomCategoryOptions: FieldOptions = [
 		{ label: t('admin.public_room'), value: 'public' },
 		{ label: t('admin.secured_room'), value: 'secured' },
@@ -332,7 +348,8 @@
 		waitForServer.value = true;
 		await rooms.fetchPublicRooms();
 		if (isSecured.value) {
-			await rooms.getSecuredRoomInfo(props.id);
+			// Editor needs full allow-list values; use the admin/steward endpoint, not the redacted public one.
+			await rooms.getSecuredRoomForEditor(props.id);
 		}
 		waitForServer.value = false;
 		roomLoaded.value = true;

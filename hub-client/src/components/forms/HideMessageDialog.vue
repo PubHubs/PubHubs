@@ -1,7 +1,7 @@
 <template>
 	<Dialog
 		:title="capitalize($t('moderation.hide_message'))"
-		:width="isMobile ? 'px-8 w-full' : 'w-[600px] px-8'"
+		:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 		class="z-50"
 		@close="close()"
 	>

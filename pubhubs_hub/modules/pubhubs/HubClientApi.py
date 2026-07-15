@@ -8,12 +8,13 @@ from twisted.web.server import Request
 
 from ._yivi_proxy import ProxyServlet
 from ._video_call_web import VideoCallServlet
-from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomExtraServlet
+from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomPublicMetadataServlet
 from ._store import HubStore
 from ._web import JoinServlet
 from ._constants import  METHOD_POLLING_INTERVAL, CLIENT_URL, GLOBAL_CLIENT_URL
 from .HubResource import HubResource
 from .HubClientApiConfig import HubClientApiConfig
+from ._steward import StewardResource
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -124,11 +125,16 @@ class HubClientApi(object):
 
         api.register_web_resource("/_synapse/client/notices", NoticesServlet(self._config.server_notices_user))
 
-        api.register_web_resource("/_synapse/client/srextra", SecuredRoomExtraServlet(self.store, self.module_api))
+        api.register_web_resource(
+            "/_synapse/client/secured_room/public_metadata",
+            SecuredRoomPublicMetadataServlet(self.store, self.module_api),
+        )
 
         api.register_web_resource("/_synapse/client/hub", HubResource(api, self._config, self.store))
-        
+
         api.register_web_resource("/_synapse/client/videocall", VideoCallServlet( self._config,  self.store, self.module_api))
+
+        api.register_web_resource("/_synapse/client/steward", StewardResource(api, self._config, self.store))
 
         api.register_spam_checker_callbacks(user_may_join_room=self.joining)
 

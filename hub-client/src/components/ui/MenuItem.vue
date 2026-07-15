@@ -1,32 +1,42 @@
 <template>
 	<li
-		role="menuitem"
-		:class="{ 'bg-surface-low text-accent-blue': roomIsActive || menuItemIsActive || adminMenuIsActive }"
-		class="hover:bg-surface-low rounded-base h-fit transition-all duration-200 ease-in-out"
-		@click="handleClick"
+		:class="{ 'bg-surface-elevated text-accent-blue': isActive }"
+		class="hover:bg-surface-elevated rounded-base h-fit transition-all duration-200 ease-in-out"
+		:data-rail-active="isActive || undefined"
 	>
 		<router-link
+			v-slot="{ href, navigate }"
+			custom
 			:to="to"
-			class="flex items-center gap-4 px-4 py-2"
 		>
-			<Icon
-				class=""
-				:type="icon"
-				:size="iconSize"
-			/>
-			<TruncatedText class="w-full"><slot></slot></TruncatedText>
-			<Badge
-				v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unread'"
-				class="ml-auto shrink-0"
-				color="hub"
-				size="sm"
-			/>
-			<Badge
-				v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unknown'"
-				class="ml-auto shrink-0"
-				color="unknown"
-				size="sm"
-			/>
+			<a
+				class="flex items-center gap-200 px-200 py-100"
+				:href="href"
+				:aria-current="isActive ? 'page' : undefined"
+				@click="
+					navigate($event);
+					handleClick();
+				"
+			>
+				<Icon
+					class=""
+					:type="icon"
+					:size="iconSize"
+				/>
+				<TruncatedText class="w-full"><slot></slot></TruncatedText>
+				<Badge
+					v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unread'"
+					class="ml-auto shrink-0"
+					color="hub"
+					size="sm"
+				/>
+				<Badge
+					v-if="typeof to === 'object' && to !== null && 'name' in to && to.name === 'direct-msg' && dmUnreadState === 'unknown'"
+					class="ml-auto shrink-0"
+					color="unknown"
+					size="sm"
+				/>
+			</a>
 		</router-link>
 	</li>
 </template>
@@ -83,7 +93,8 @@
 
 	const adminMenuIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
-			return props.to['name'] === router.currentRoute.value.path.split('/').pop();
+			// Room items all share the 'room' route and are matched by id in roomIsActive instead.
+			return !props.room && props.to['name'] === router.currentRoute.value.name;
 		}
 		return false;
 	});
@@ -108,6 +119,8 @@
 		const pathRoomId = router.currentRoute.value.path.split('/').pop();
 		return props.room.roomId === decodeURIComponent(pathRoomId || '');
 	});
+
+	const isActive = computed(() => roomIsActive.value || menuItemIsActive.value || adminMenuIsActive.value);
 
 	function handleClick() {
 		scrollToEnd();

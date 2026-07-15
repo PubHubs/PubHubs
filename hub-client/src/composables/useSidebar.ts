@@ -11,6 +11,7 @@ import { useSettings } from '@hub-client/stores/settings';
 export enum SidebarTab {
 	DirectMessage = 'dm',
 	Library = 'library',
+	ManageReport = 'manage-report',
 	ManageRoom = 'manage-room',
 	ManageUser = 'manage-user',
 	Members = 'members',
