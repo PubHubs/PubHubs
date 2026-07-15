@@ -5,7 +5,7 @@ use std::ops::Deref;
 use sha2::digest::Digest;
 
 use crate::api;
-use crate::common::{elgamal, kem, secret};
+use crate::common::{kem, secret};
 use crate::id;
 use crate::phcrypto;
 use crate::servers;
@@ -54,124 +54,47 @@ impl Deref for Constellation {
 pub struct Inner {
     pub transcryptor_url: url::Url,
 
-    /// Deprecated ed25519 jwt key, kept for wire compatibility; see [`api::DeprecatedJwtKey`].
-    /// Superseded by [`transcryptor_verifying_key`](Self::transcryptor_verifying_key).
-    #[serde(default)]
-    pub transcryptor_jwt_key: api::DeprecatedJwtKey,
-
     /// The transcryptor's hybrid post-quantum verifying key, used to verify its JWTs and signatures.
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub transcryptor_verifying_key: Option<api::VerifyingKeyBytes>,
-
-    /// Formerly the transcryptor's ElGamal encryption key, now superseded by the post-quantum KEM
-    /// (see [`transcryptor_ss_encap`]).  A placeholder zero pubkey for now; the `Option` lets a
-    /// future version omit it.
-    ///
-    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
-    /// rotation.
-    ///
-    /// [`transcryptor_ss_encap`]: Self::transcryptor_ss_encap
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub transcryptor_enc_key: Option<elgamal::PublicKey>,
-
-    /// Formerly `x_T B` (the transcryptor's master encryption key part), so the transcryptor could
-    /// check that the correct keypart was used; now a placeholder zero pubkey, superseded by
-    /// [`transcryptor_master_enc_key_part_hash`].  The `Option` lets a future version omit it.
-    ///
-    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
-    /// rotation.
-    ///
-    /// [`transcryptor_master_enc_key_part_hash`]: Self::transcryptor_master_enc_key_part_hash
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub transcryptor_master_enc_key_part: Option<elgamal::PublicKey>,
+    pub transcryptor_verifying_key: api::VerifyingKeyBytes,
 
     /// Hash of the transcryptor's master encryption key part `x_T B`, so the transcryptor can check
     /// that the correct keypart was used without `x_T B` being exposed in the clear.
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub transcryptor_master_enc_key_part_hash: Option<id::Id>,
+    pub transcryptor_master_enc_key_part_hash: id::Id,
 
     /// [`kem::EncapKeyBytes::id`] of the transcryptor's encapsulation key.
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub transcryptor_encap_key_id: Option<id::Id>,
+    pub transcryptor_encap_key_id: id::Id,
 
     /// Shared secret PHC encapsulated against the transcryptor's encap key.
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub transcryptor_ss_encap: Option<kem::CiphertextBytes>,
+    pub transcryptor_ss_encap: kem::CiphertextBytes,
 
     pub phc_url: url::Url,
 
-    /// PHC's ed25519 public key, hex-encoded.  Unlike the other (now placeholder) `*_jwt_key`
-    /// fields, this still carries a *real* key — the `ed` half of
-    /// [`phc_verifying_key`](Self::phc_verifying_key) — so hubs predating the hybrid migration can
-    /// verify the classical EdDSA HHPP.
+    /// PHC's ed25519 public key (the `ed` half of [`phc_verifying_key`](Self::phc_verifying_key)),
+    /// hex-encoded.  Kept on the wire so hubs predating the hybrid migration can verify the classical
+    /// EdDSA HHPP; see [`api::Ed25519VerifyingKeyHex`].
+    ///
+    /// TODO: remove once all hubs are on >=v3.4.0 (see scripts/check-hubs.py).
     #[serde(default)]
     pub phc_jwt_key: api::Ed25519VerifyingKeyHex,
 
     /// PHC's hybrid post-quantum verifying key, used to verify its JWTs and signatures.
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub phc_verifying_key: Option<api::VerifyingKeyBytes>,
-
-    /// Formerly PHC's ElGamal encryption key; placeholder zero pubkey, see [`transcryptor_enc_key`].
-    ///
-    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
-    /// rotation.
-    ///
-    /// [`transcryptor_enc_key`]: Self::transcryptor_enc_key
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub phc_enc_key: Option<elgamal::PublicKey>,
+    pub phc_verifying_key: api::VerifyingKeyBytes,
 
     /// Hash of PHC's master encryption key part `x_PHC B`.  Published so that a change of PHC's
     /// part churns the constellation id (the real master key is held off-wire by PHC).
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub phc_master_enc_key_part_hash: Option<id::Id>,
+    pub phc_master_enc_key_part_hash: id::Id,
 
     pub auths_url: url::Url,
 
-    /// Deprecated ed25519 jwt key, kept for wire compatibility; see [`api::DeprecatedJwtKey`].
-    /// Superseded by [`auths_verifying_key`](Self::auths_verifying_key).
-    #[serde(default)]
-    pub auths_jwt_key: api::DeprecatedJwtKey,
-
     /// The authentication server's hybrid post-quantum verifying key, used to verify its JWTs and
-    /// signatures.  Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out
-    /// of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub auths_verifying_key: Option<api::VerifyingKeyBytes>,
-
-    /// Formerly the authentication server's ElGamal encryption key; placeholder zero pubkey, see
-    /// [`transcryptor_enc_key`].
-    ///
-    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
-    /// rotation.
-    ///
-    /// [`transcryptor_enc_key`]: Self::transcryptor_enc_key
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub auths_enc_key: Option<elgamal::PublicKey>,
+    /// signatures.
+    pub auths_verifying_key: api::VerifyingKeyBytes,
 
     /// [`kem::EncapKeyBytes::id`] of the authentication server's encapsulation key.
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub auths_encap_key_id: Option<id::Id>,
+    pub auths_encap_key_id: id::Id,
 
     /// Shared secret PHC encapsulated against the authentication server's encap key.
-    /// Only `None` in v3.3.0 and earlier; drop the `Option` once those versions are out of rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub auths_ss_encap: Option<kem::CiphertextBytes>,
-
-    /// Formerly the public master encryption key `x_T x_PHC B`; now a placeholder zero pubkey kept
-    /// off the public wire (PHC holds the real value in its running state, derived from the
-    /// transcryptor's sealed master key part).  The `Option` lets a future version omit it.
-    ///
-    /// TODO: remove this field entirely once v3.3.0 and earlier (which require it) are out of
-    /// rotation.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub master_enc_key: Option<elgamal::PublicKey>,
+    pub auths_ss_encap: kem::CiphertextBytes,
 
     pub global_client_url: url::Url,
 
@@ -188,12 +111,11 @@ trait DigestExt: Sized {
     /// A 1/0 presence byte, followed by the length-prefixed bytes when present.
     fn chain_opt(self, bytes: Option<&[u8]>) -> Self;
 
-    /// A 1/0 presence byte, followed by both length-prefixed ciphertext halves when present.
-    fn chain_opt_ct(self, ct: Option<&kem::CiphertextBytes>) -> Self;
+    /// Both length-prefixed ciphertext halves (ML-KEM ‖ EC).
+    fn chain_ct(self, ct: &kem::CiphertextBytes) -> Self;
 
-    /// A 1/0 presence byte, followed by both length-prefixed halves (ed25519 ‖ ML-DSA) of a hybrid
-    /// verifying key when present.
-    fn chain_opt_vk(self, vk: Option<&api::VerifyingKeyBytes>) -> Self;
+    /// Both length-prefixed halves (ed25519 ‖ ML-DSA) of a hybrid verifying key.
+    fn chain_vk(self, vk: &api::VerifyingKeyBytes) -> Self;
 }
 
 impl DigestExt for sha2::Sha256 {
@@ -209,24 +131,14 @@ impl DigestExt for sha2::Sha256 {
         }
     }
 
-    fn chain_opt_ct(self, ct: Option<&kem::CiphertextBytes>) -> Self {
-        match ct {
-            Some(ct) => self
-                .chain_update([1u8])
-                .chain_varlen(ct.ml.as_ref())
-                .chain_varlen(ct.ec.as_ref()),
-            None => self.chain_update([0u8]),
-        }
+    fn chain_ct(self, ct: &kem::CiphertextBytes) -> Self {
+        self.chain_varlen(ct.ml.as_ref())
+            .chain_varlen(ct.ec.as_ref())
     }
 
-    fn chain_opt_vk(self, vk: Option<&api::VerifyingKeyBytes>) -> Self {
-        match vk {
-            Some(vk) => self
-                .chain_update([1u8])
-                .chain_varlen(vk.ed.as_ref())
-                .chain_varlen(vk.ml.as_ref()),
-            None => self.chain_update([0u8]),
-        }
+    fn chain_vk(self, vk: &api::VerifyingKeyBytes) -> Self {
+        self.chain_varlen(vk.ed.as_ref())
+            .chain_varlen(vk.ml.as_ref())
     }
 }
 
@@ -262,15 +174,8 @@ impl Inner {
 
             ph_version,
 
-            // deprecated - will soon be removed
-            transcryptor_jwt_key: _,
+            // not hashed: this is the `ed` half of `phc_verifying_key`, already covered above.
             phc_jwt_key: _,
-            auths_jwt_key: _,
-            transcryptor_enc_key: _,
-            transcryptor_master_enc_key_part: _,
-            phc_enc_key: _,
-            auths_enc_key: _,
-            master_enc_key: _,
         } = self;
 
         // NOTE: it would be easier to serialize self using, say, serde_json, and then hash that,
@@ -278,33 +183,30 @@ impl Inner {
         // string.
         //
         // Framing (see `DigestExt`): fixed-length fields (32-byte id hashes) are hashed directly;
-        // variable-length fields are length-prefixed (`chain_varlen`); optional fields — including
-        // the hybrid verifying keys (`chain_opt_vk`) — get a 1/0 presence byte
-        // (`chain_opt`/`chain_opt_ct`/`chain_opt_vk`).  So a variable field's bytes can't be borrowed
-        // by an adjacent field, and an absent field is not read as an empty one.
+        // variable-length fields, and the two halves of each hybrid verifying key / KEM ciphertext,
+        // are length-prefixed (`chain_varlen`/`chain_vk`/`chain_ct`) so one field's bytes can't be
+        // read as part of an adjacent one.  The only optional field is `ph_version` (`chain_opt`, a
+        // 1/0 presence byte).
 
         sha2::Sha256::new()
             // Hash-format version - BUMP THIS on any change to the framing or fields below, so the
             // change always alters the constellation id.  (Only PHC computes the id; peers compare.)
-            // v2: jwt keys became hybrid post-quantum (ed25519 ‖ ML-DSA); the ed25519 `*_jwt_key`
-            // fields are deprecated placeholders, no longer hashed.
-            .chain_update(2u16.to_be_bytes())
+            // v2: jwt keys became hybrid post-quantum (ed25519 ‖ ML-DSA).
+            // v3: dropped the deprecated enc_key / master_enc_key / `*_jwt_key` placeholder fields,
+            // and the verifying-key / KEM / master-key-part-hash fields are no longer optional.
+            .chain_update(3u16.to_be_bytes())
             .chain_varlen(transcryptor_url.as_str().as_bytes())
-            .chain_opt_vk(transcryptor_verifying_key.as_ref())
-            .chain_opt(
-                transcryptor_master_enc_key_part_hash
-                    .as_ref()
-                    .map(id::Id::as_slice),
-            )
-            .chain_opt(transcryptor_encap_key_id.as_ref().map(id::Id::as_slice))
-            .chain_opt_ct(transcryptor_ss_encap.as_ref())
+            .chain_vk(transcryptor_verifying_key)
+            .chain_update(transcryptor_master_enc_key_part_hash.as_slice())
+            .chain_update(transcryptor_encap_key_id.as_slice())
+            .chain_ct(transcryptor_ss_encap)
             .chain_varlen(phc_url.as_str().as_bytes())
-            .chain_opt_vk(phc_verifying_key.as_ref())
-            .chain_opt(phc_master_enc_key_part_hash.as_ref().map(id::Id::as_slice))
+            .chain_vk(phc_verifying_key)
+            .chain_update(phc_master_enc_key_part_hash.as_slice())
             .chain_varlen(auths_url.as_str().as_bytes())
-            .chain_opt_vk(auths_verifying_key.as_ref())
-            .chain_opt(auths_encap_key_id.as_ref().map(id::Id::as_slice))
-            .chain_opt_ct(auths_ss_encap.as_ref())
+            .chain_vk(auths_verifying_key)
+            .chain_update(auths_encap_key_id.as_slice())
+            .chain_ct(auths_ss_encap)
             .chain_varlen(global_client_url.as_str().as_bytes())
             .chain_opt(ph_version.as_ref().map(|v| v.as_bytes()))
     }

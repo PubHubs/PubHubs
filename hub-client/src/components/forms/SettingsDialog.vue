@@ -2,12 +2,11 @@
 	<Dialog
 		:buttons="buttonsSubmitCancel"
 		:title="$t('settings.profile_title')"
-		width="w-full md:w-2/6"
 		@close="dialogAction($event)"
 	>
 		<form @submit.prevent="submit">
-			<div class="mb-4 flex flex-col md:flex-row md:items-start">
-				<label class="text-gray w-2/6 shrink-0 pt-1 font-semibold">{{ $t('settings.avatar') }}</label>
+			<div class="mb-200 flex flex-col md:flex-row md:items-start">
+				<label class="text-gray pt-050 w-2/6 shrink-0 font-semibold">{{ $t('settings.avatar') }}</label>
 				<input
 					ref="fileInput"
 					accept="image/png, image/jpeg, image/svg"
@@ -15,42 +14,36 @@
 					type="file"
 					@change="chooseAvatar($event)"
 				/>
-				<div class="flex items-center gap-4">
+				<div class="flex items-center gap-200">
 					<Avatar
 						:avatar-url="blobUrl?.url"
 						class="outline-surface-elevated h-800 w-800 rounded-full outline-3"
 					/>
-					<div class="flex gap-3">
-						<button
-							type="button"
-							class="hover:text-on-surface-variant cursor-pointer"
+					<div class="flex gap-150">
+						<IconButton
+							icon="arrows-clockwise"
+							variant="secondary"
+							data-testid="change-avatar"
 							:aria-label="$t('settings.change_avatar')"
+							:title="$t('settings.change_avatar')"
 							@click="fileInput?.click()"
-						>
-							<Icon
-								data-testid="change-avatar"
-								type="pencil-simple"
-							/>
-						</button>
-						<button
-							type="button"
-							class="hover:text-accent-error cursor-pointer"
+						/>
+						<IconButton
+							icon="trash"
+							variant="error"
+							data-testid="remove-avatar"
 							:aria-label="$t('settings.remove_avatar')"
+							:title="$t('settings.remove_avatar')"
 							@click="removeAvatar"
-						>
-							<Icon
-								data-testid="remove-avatar"
-								type="trash"
-							/>
-						</button>
+						/>
 					</div>
 				</div>
 			</div>
 
-			<div class="mb-4 flex flex-col md:flex-row md:items-start">
+			<div class="mb-200 flex flex-col md:flex-row md:items-start">
 				<label
 					for="displayname"
-					class="text-gray w-2/6 shrink-0 pt-1 font-semibold"
+					class="text-gray pt-050 w-2/6 shrink-0 font-semibold"
 					>{{ $t('settings.displayname') }}</label
 				>
 				<TextField
@@ -64,10 +57,10 @@
 				/>
 			</div>
 
-			<div class="mb-4 flex flex-col md:flex-row md:items-start">
-				<label class="text-gray w-2/6 shrink-0 pt-1 font-semibold">{{ $t('settings.userId') }}</label>
+			<div class="mb-200 flex flex-col md:flex-row md:items-start">
+				<label class="text-gray pt-050 w-2/6 shrink-0 font-semibold">{{ $t('settings.userId') }}</label>
 				<div
-					class="text-on-surface-dim text-body p-1 text-lg italic"
+					class="text-on-surface-dim text-body p-050 text-lg italic"
 					:title="$t('settings.userId_description')"
 				>
 					{{ user.userId }}
@@ -76,7 +69,7 @@
 
 			<div
 				v-if="formState.message.value !== ''"
-				class="bg-green-dark mt-2 rounded-lg p-2 text-white"
+				class="bg-green-dark mt-100 rounded-lg p-100 text-white"
 			>
 				{{ formState.message }}
 			</div>
@@ -90,18 +83,18 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import Icon from '@hub-client/components/elements/Icon.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Composables
 	import { fileUpload } from '@hub-client/composables/fileUpload';
-	import { type FormDataType, useFormState } from '@hub-client/composables/useFormState';
+	import { useFormState } from '@hub-client/composables/useFormState';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	// Logic
+	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
@@ -126,7 +119,14 @@
 
 	formState.setData({
 		displayName: {
-			value: user.userDisplayName(user.userId ?? '') as string,
+			value: user.userDisplayName(user.userId ?? '') ?? '',
+			validation: {
+				min_length: 3,
+				max_length: settings.getDisplayNameMaxLength,
+				allow_empty_text: true,
+				allow_empty_number: true,
+				allow_empty_object: true,
+			},
 		},
 	});
 
@@ -139,7 +139,7 @@
 
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());
-		formState.data.displayName.value = user.userDisplayName(user.userId ?? '') as FormDataType;
+		formState.data.displayName.value = user.userDisplayName(user.userId ?? '') ?? '';
 		blobUrl.value = new BlobManager(user.userAvatar(user.userId ?? ''));
 	});
 
@@ -147,9 +147,9 @@
 		blobUrl.value?.revoke();
 	});
 
-	function dialogAction(action: DialogButtonAction) {
+	async function dialogAction(action: DialogButtonAction) {
 		if (action === DialogSubmit) {
-			submit();
+			await submit();
 		}
 	}
 
@@ -158,9 +158,9 @@
 	}
 
 	async function submit() {
-		// This check enables empty values to be submitted since dataIsChanged() method can't handle empty values conditional cal.
 		if (formState.dataIsChanged('displayName')) {
 			const newDisplayName = formState.data.displayName.value as string;
+			if (newDisplayName.length > 0 && !formState.isValidated()) return;
 			await user.setDisplayName(newDisplayName);
 			formState.setMessage(t('settings.displayname_changed', [newDisplayName]));
 			formState.updateData('displayName', newDisplayName);
@@ -193,12 +193,23 @@
 		} as unknown as Event;
 		if (accessToken) {
 			const errorMsg = t('errors.file_upload');
-			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, (mxUrl) => {
-				avatarMxcUrl.value = mxUrl;
-				if (avatarMxcUrl.value !== undefined) {
-					user.setAvatarUrl(avatarMxcUrl.value);
-				}
-			});
+			fileUpload(
+				errorMsg,
+				accessToken,
+				uploadUrl,
+				imageTypes,
+				syntheticEvent,
+				(mxUrl) => {
+					avatarMxcUrl.value = mxUrl;
+					if (avatarMxcUrl.value !== undefined) {
+						user.setAvatarUrl(avatarMxcUrl.value);
+					}
+				},
+				() => {
+					// On error: reset file selection so user can try again
+					fileInfo.value = undefined;
+				},
+			);
 		} else {
 			logger.error('Access Token is invalid for File upload.');
 		}

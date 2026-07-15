@@ -23,7 +23,7 @@
 	);
 
 	const calcClass = computed(() => {
-		if (props.disabled && !props.colorwhen) return 'bg-surface-high text-white';
+		if (props.disabled && !props.colorwhen) return 'bg-surface-base text-on-surface-dim';
 		if (props.colorwhen) return props.color;
 		return props.color + ' opacity-25 hover:opacity-100';
 	});

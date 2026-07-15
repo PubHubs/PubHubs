@@ -20,10 +20,14 @@ export default defineConfig({
 			if (log.includes('Failed to resolve directive')) return false;
 		},
 	},
+	optimizeDeps: {
+		exclude: ['vue-i18n'],
+	},
 	resolve: {
 		alias: {
 			'@hub-client': fileURLToPath(new URL('./src', import.meta.url)),
 			process: 'process/browser',
+			'vue-i18n': 'vue-i18n/dist/vue-i18n.esm-bundler.js',
 		},
 	},
 	build: {

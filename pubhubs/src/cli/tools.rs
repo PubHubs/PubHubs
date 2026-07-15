@@ -44,9 +44,9 @@ struct YiviEpochArgs {
 impl YiviEpochArgs {
     fn run(self) -> Result<()> {
         let epoch = if let Some(nr) = self.nr {
-            crate::servers::yivi::Epoch::with_seqnr(nr)
+            crate::servers::yivi::Epoch::with_seqnr(nr)?
         } else if let Some(at) = self.at {
-            let nd: crate::api::NumericDate = at.into();
+            let nd: crate::api::NumericDate = at.try_into()?;
             crate::servers::yivi::Epoch::from(nd)
         } else {
             crate::servers::yivi::Epoch::current()

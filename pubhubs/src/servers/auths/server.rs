@@ -42,16 +42,10 @@ impl servers::Details for Details {
         constellation: &Constellation,
         _seed: &(),
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let ss_encap = constellation.auths_ss_encap.as_ref().ok_or_else(|| {
-            anyhow::anyhow!(
-                "constellation contains no shared secret encapsulated for us; \
-                 check_constellation should have rejected it"
-            )
-        })?;
         let phc_ss = server
             .extra()
             .decap_key
-            .decap(ss_encap)
+            .decap(&constellation.auths_ss_encap)
             .map_err(|_| anyhow::anyhow!("decapsulating shared secret from PHC failed"))?;
 
         Ok(ExtraRunningState {
@@ -61,8 +55,16 @@ impl servers::Details for Details {
         })
     }
 
-    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
-        Ok(ExtraSharedState {})
+    fn create_extra_shared_state(config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+        let mut attribute_types: map::Map<attr::Type> = Default::default();
+
+        for attr_type in config.auths.as_ref().unwrap().attribute_types.iter() {
+            if let Some(handle_or_id) = attribute_types.insert_new(attr_type.clone()) {
+                anyhow::bail!("two attribute types are known as {handle_or_id}");
+            }
+        }
+
+        Ok(ExtraSharedState { attribute_types })
     }
 
     fn create_extra_server_state(config: &servers::Config) -> anyhow::Result<ExtraServerState> {
@@ -77,7 +79,10 @@ impl servers::Details for Details {
     }
 }
 
-pub struct ExtraSharedState {}
+pub struct ExtraSharedState {
+    /// Immutable attribute-type registry, built once from config and shared by all apps.
+    pub attribute_types: map::Map<attr::Type>,
+}
 
 pub struct ExtraServerState {
     pub(super) decap_key: kem::DecapKey,
@@ -102,10 +107,10 @@ pub struct ExtraRunningState {
 /// Authentication server per-thread [`App`] that handles incoming requests.
 pub struct App {
     pub base: AppBase<Server>,
-    pub attribute_types: map::Map<attr::Type>,
     pub yivi: Option<YiviCtx>,
     pub auth_state_secret: crypto::SealingKey,
     pub auth_window: core::time::Duration,
+    pub max_attr_types_per_req: usize,
     pub attr_key_secret: Vec<u8>,
     pub chained_sessions_ctl: Option<ChainedSessionsCtl>,
     pub encap_key: kem::EncapKeyBytes,
@@ -145,7 +150,7 @@ impl App {
         &'s self,
         attr_type_handle: &handle::Handle,
     ) -> Option<&'s attr::Type> {
-        self.attribute_types.get(attr_type_handle)
+        self.shared.attribute_types.get(attr_type_handle)
     }
 }
 
@@ -215,6 +220,7 @@ impl App {
     /// Implements [`api::auths::WelcomeEP`].
     fn cached_handle_welcome(app: &Self) -> api::Result<api::auths::WelcomeResp> {
         let attr_types: HashMap<handle::Handle, attr::Type> = app
+            .shared
             .attribute_types
             .values()
             .map(|attr_type| (attr_type.handles.preferred().clone(), attr_type.clone()))
@@ -270,23 +276,16 @@ impl crate::servers::App<Server> for App {
 
                     // These fields we don't care about:
                     auths_url: _,
-                    auths_jwt_key: _, // deprecated placeholder
-                    auths_enc_key: _,
                     auths_ss_encap: _,
-                    transcryptor_jwt_key: _,
                     transcryptor_verifying_key: _,
-                    transcryptor_enc_key: _,
                     transcryptor_url: _,
-                    transcryptor_master_enc_key_part: _,
                     transcryptor_master_enc_key_part_hash: _,
                     transcryptor_encap_key_id: _,
                     transcryptor_ss_encap: _,
                     phc_jwt_key: _,
                     phc_verifying_key: _,
-                    phc_enc_key: _,
                     phc_master_enc_key_part_hash: _,
                     phc_url: _,
-                    master_enc_key: _,
                     global_client_url: _,
                     ph_version: _, // (already checked)
                 },
@@ -296,11 +295,11 @@ impl crate::servers::App<Server> for App {
 
         // PHC must have encapsulated against our current encapsulation key; otherwise reject so that
         // discovery re-runs and PHC (re)publishes a matching ciphertext.
-        if *auths_encap_key_id != Some(self.encap_key.id()) {
+        if *auths_encap_key_id != self.encap_key.id() {
             return false;
         }
 
-        auths_verifying_key.as_ref() == Some(&self.verifying_key_bytes)
+        auths_verifying_key == &self.shared.verifying_key_bytes
     }
 
     fn encap_key(&self) -> Option<&kem::EncapKeyBytes> {
@@ -319,10 +318,10 @@ impl crate::servers::App<Server> for App {
 #[derive(Clone)]
 pub struct AppCreator {
     base: AppCreatorBase<Server>,
-    attribute_types: map::Map<attr::Type>,
     yivi: Option<YiviCtx>,
     auth_state_secret: crypto::SealingKey,
     auth_window: core::time::Duration,
+    max_attr_types_per_req: usize,
     attr_key_secret: Vec<u8>,
     chained_sessions_ctl: Option<ChainedSessionsCtl>,
     encap_key: kem::EncapKeyBytes,
@@ -352,14 +351,6 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         let xconf = &config.auths.as_ref().unwrap();
 
-        let mut attribute_types: crate::map::Map<attr::Type> = Default::default();
-
-        for attr_type in xconf.attribute_types.iter() {
-            if let Some(handle_or_id) = attribute_types.insert_new(attr_type.clone()) {
-                anyhow::bail!("two attribute types are known as {handle_or_id}");
-            }
-        }
-
         if let Some(cfg) = xconf.yivi.as_ref() {
             anyhow::ensure!(
                 !matches!(cfg.requestor_creds.key, yivi::SigningKey::RS256(_)),
@@ -381,6 +372,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         let auth_window = xconf.auth_window;
 
+        let max_attr_types_per_req = xconf.max_attr_types_per_req;
+
         let attr_key_secret = xconf
             .attr_key_secret
             .as_ref()
@@ -401,10 +394,10 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         Ok(Self {
             base,
-            attribute_types,
             yivi,
             auth_state_secret,
             auth_window,
+            max_attr_types_per_req,
             attr_key_secret,
             chained_sessions_ctl,
             encap_key,
@@ -419,10 +412,10 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     ) -> App {
         App {
             base: AppBase::new(self.base, handle, generation),
-            attribute_types: self.attribute_types,
             yivi: self.yivi,
             auth_state_secret: self.auth_state_secret,
             auth_window: self.auth_window,
+            max_attr_types_per_req: self.max_attr_types_per_req,
             attr_key_secret: self.attr_key_secret,
             chained_sessions_ctl: self.chained_sessions_ctl,
             encap_key: self.encap_key,

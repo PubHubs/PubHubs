@@ -1,5 +1,8 @@
 <template>
-	<OnClickOutside @trigger="close()">
+	<OnClickOutside
+		:options="{ ignore: [panel] }"
+		@trigger="close()"
+	>
 		<ValidateField
 			v-slot="{ id: fieldId }"
 			v-model="model"
@@ -28,9 +31,13 @@
 			<div
 				:id="fieldId"
 				ref="element"
-				class="bg-surface outline-offset-thin outline-on-surface-dim focus:ring-button-blue flex w-full flex-col rounded outline focus:ring-3"
+				class="bg-surface outline-offset-thin outline-on-surface-dim focus:ring-accent-blue-interactive flex w-full flex-col rounded outline-2 focus:ring-3"
+				:class="disabled ? 'pointer-events-none opacity-50' : ''"
 				role="combobox"
-				tabindex="0"
+				aria-haspopup="menu"
+				:aria-expanded="open"
+				:tabindex="disabled ? -1 : 0"
+				@click.self="toggle()"
 			>
 				<span class="name hidden">{{ fieldName }}</span>
 				<div :class="showFilter ? 'py-075 h-500 border-b px-175' : 'h-0 overflow-hidden border-0 p-0'">
@@ -55,30 +62,34 @@
 						@click.stop="toggle"
 					>
 						<div v-if="model !== undefined && model !== null && model !== ''">
+							<!-- overflow-y-hidden: this strip only scrolls horizontally. Without it, overflow-x-auto
+							     makes the browser compute overflow-y to auto, and tall (icon) chips overflow
+							     max-h-300 vertically, so link-hint extensions like Vimium wrongly hint it as a
+							     scrollable region. -->
 							<div
 								v-if="multiple"
-								class="gap-050 no-scrollbar flex max-h-300 flex-nowrap items-center overflow-x-auto"
+								class="gap-050 no-scrollbar flex max-h-300 flex-nowrap items-center overflow-x-auto overflow-y-hidden"
 							>
 								<template
 									v-for="(item, index) in modelAsArray"
 									:key="index"
 								>
-									<div
-										class="bg-surface-subtle inline-block shrink-0 rounded px-100"
-										role="listbox"
-									>
+									<div class="bg-surface inline-block shrink-0 rounded px-100">
 										<div class="flex items-center">
 											<div class="grow">
 												<DropDownValue :value="transform(item)" />
 											</div>
-											<div class="ml-100">
+											<button
+												type="button"
+												class="ml-100 flex cursor-pointer items-center"
+												:aria-label="$t('others.deselect')"
+												@click.stop="removeItem(index as number)"
+											>
 												<Icon
-													class=""
 													size="sm"
 													type="x"
-													@click.stop="removeItem(index as number)"
 												/>
-											</div>
+											</button>
 										</div>
 									</div>
 								</template>
@@ -90,23 +101,28 @@
 						</div>
 						<span
 							v-else
-							class="text-surface-subtle"
+							class="text-on-surface-dim"
 							>{{ placeholder }}</span
 						>
 					</div>
 					<div class="pr-050 flex shrink-0 items-center">
-						<div
+						<button
 							v-if="showClear"
-							class="dropdown-remove-all mr-150 cursor-pointer bg-transparent"
+							type="button"
+							class="dropdown-remove-all mr-150 flex cursor-pointer items-center bg-transparent"
+							:aria-label="$t('others.clear_selection')"
 							@click.stop="resetAll()"
 						>
 							<Icon
 								class="h-200 w-200"
 								type="x"
 							/>
-						</div>
-						<div
-							class="dropdown-toggler pl-050 cursor-pointer border-l bg-transparent"
+						</button>
+						<button
+							type="button"
+							class="dropdown-toggler pl-050 flex cursor-pointer items-center border-l bg-transparent"
+							:aria-label="$t('others.toggle_options')"
+							:aria-expanded="open"
 							@click.stop="toggle"
 						>
 							<Icon
@@ -115,16 +131,23 @@
 								weight="fill"
 								size="sm"
 							/>
-						</div>
+						</button>
 					</div>
 				</div>
 			</div>
-
+		</ValidateField>
+		<Teleport to="body">
 			<div
 				v-show="open && filteredOptions.length > 0"
-				class="absolute top-800 z-50 flex w-full grow flex-col pb-300"
+				ref="panel"
+				class="fixed z-50 flex flex-col pb-300"
+				:style="panelStyle"
 			>
-				<div class="bg-surface-low outline-offset-thin rounded outline">
+				<div
+					class="bg-surface-elevated outline-offset-thin outline-on-surface-dim overflow-x-hidden overflow-y-auto rounded outline-2"
+					role="menu"
+					:style="{ maxHeight: panelMaxHeight }"
+				>
 					<DropDownOption
 						v-for="(option, index) in filteredOptions"
 						:key="index"
@@ -136,14 +159,14 @@
 					/>
 				</div>
 			</div>
-		</ValidateField>
+		</Teleport>
 	</OnClickOutside>
 </template>
 
 <script lang="ts" setup>
 	// Packages
 	import { OnClickOutside } from '@vueuse/components';
-	import { computed, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
+	import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRaw, useTemplateRef, watch } from 'vue';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -197,9 +220,8 @@
 	const { setItems, cursor, cursorDown, cursorUp } = useKeyStrokes();
 	const { fieldName, update } = useFormInput(props, model);
 
-	const wrapperClasses = computed(() =>
-		['form-dropdown relative flex w-full flex-col items-start justify-start', props.inline ? '' : 'mb-2 gap-050'].filter(Boolean).join(' '),
-	);
+	// ValidateField supplies the canonical stack layout; inline dropdowns sit in a row and opt out of its gap.
+	const wrapperClasses = computed(() => ['form-dropdown relative', props.inline ? 'gap-0!' : ''].filter(Boolean).join(' '));
 
 	const open = ref(false);
 	const selection = ref<FieldSelection>([]); // Selection of chosen indexes
@@ -207,10 +229,62 @@
 	const filterEl = useTemplateRef('filterInput');
 
 	const completeEl = useTemplateRef('element');
+	const panel = useTemplateRef<HTMLElement>('panel');
+	const panelStyle = ref<Record<string, string>>({});
+	const panelMaxHeight = ref('');
 	onMounted(() => {
 		setItems(filteredOptions.value as Array<unknown>);
 		// Set cursor off until it is used
 		cursor.value = -1;
+	});
+
+	// Position the teleported options panel against the field. Teleporting the panel to <body> keeps it
+	// out of any overflow/scroll container (e.g. the manage-users dialog) that would otherwise clip it.
+	const updatePanelPosition = () => {
+		const field = completeEl.value;
+		if (!field) return;
+		const rect = field.getBoundingClientRect();
+		// Small gap between the field and the options panel, plus breathing room from the viewport edge.
+		const gap = 8;
+		const viewportMargin = 16;
+		const spaceBelow = window.innerHeight - rect.bottom - gap - viewportMargin;
+		const spaceAbove = rect.top - gap - viewportMargin;
+		const style: Record<string, string> = {
+			left: `${rect.left}px`,
+			width: `${rect.width}px`,
+		};
+		// Prefer opening below the field. Only flip above when there is too little room below to be
+		// usable and there is clearly more room above; the panel scrolls internally to fit its height.
+		const minUsableSpace = 160;
+		if (spaceBelow < minUsableSpace && spaceAbove > spaceBelow) {
+			style.bottom = `${window.innerHeight - rect.top + gap}px`;
+			panelMaxHeight.value = `${Math.max(0, spaceAbove)}px`;
+		} else {
+			style.top = `${rect.bottom + gap}px`;
+			panelMaxHeight.value = `${Math.max(0, spaceBelow)}px`;
+		}
+		panelStyle.value = style;
+	};
+
+	const repositionPanel = () => {
+		if (open.value) updatePanelPosition();
+	};
+
+	watch(open, (isOpen) => {
+		if (isOpen) {
+			updatePanelPosition();
+			nextTick(updatePanelPosition);
+			window.addEventListener('scroll', repositionPanel, true);
+			window.addEventListener('resize', repositionPanel);
+		} else {
+			window.removeEventListener('scroll', repositionPanel, true);
+			window.removeEventListener('resize', repositionPanel);
+		}
+	});
+
+	onBeforeUnmount(() => {
+		window.removeEventListener('scroll', repositionPanel, true);
+		window.removeEventListener('resize', repositionPanel);
 	});
 
 	// Keep selection in sync with model (handles both initial value and external changes)
@@ -301,6 +375,8 @@
 			if (props.filtered && filter.value.length > 0 && filtered.length > 0) {
 				open.value = true;
 			}
+			// Reposition the teleported panel when the option list size changes while open (e.g. filtering).
+			if (open.value) nextTick(updatePanelPosition);
 		},
 		{ immediate: true },
 	);
@@ -422,6 +498,7 @@
 	};
 
 	const toggle = () => {
+		if (props.disabled) return;
 		open.value = !open.value;
 	};
 

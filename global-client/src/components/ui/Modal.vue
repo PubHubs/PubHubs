@@ -1,7 +1,7 @@
 <template>
 	<div
 		v-if="show"
-		class="bg-surface-high absolute top-0 z-10 h-full w-[80px] opacity-80"
+		class="bg-scrim/50 dark:bg-scrim/75 absolute top-0 z-10 h-full w-[80px]"
 	/>
 	<slot />
 </template>

@@ -1,12 +1,12 @@
 <template>
 	<div
-		class="bg-ph-background-2 z-10 h-20 w-40 max-w-0 overflow-hidden rounded-md transition-all duration-300 ease-in-out"
+		class="bg-ph-background-2 z-10 h-800 w-2000 max-w-0 overflow-hidden rounded-md transition-all duration-300 ease-in-out"
 		:class="classObject"
 		@click="closeBubble"
 	>
-		<div class="relative flex h-full w-full items-center p-2">
+		<div class="relative flex h-full w-full items-center p-100">
 			<Icon
-				class="absolute top-1 right-1 w-fit hover:cursor-pointer"
+				class="top-050 right-050 absolute w-fit hover:cursor-pointer"
 				size="xs"
 				type="x"
 			/>
@@ -36,7 +36,7 @@
 	const userHidBubble = ref(false);
 
 	const classObject = computed(() => ({
-		'max-w-40 overflow-visible border': props.showBubble && !userHidBubble.value,
+		'max-w-2000 overflow-visible border': props.showBubble && !userHidBubble.value,
 	}));
 
 	function closeBubble() {

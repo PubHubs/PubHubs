@@ -7,7 +7,7 @@
 	</div>
 	<div
 		v-show="!collapsed"
-		class="-z-10 mt-2"
+		class="-z-10 mt-100"
 	>
 		<slot
 			:collapsed="collapsed"
@@ -26,4 +26,5 @@
 	}
 
 	provide('toggle', toggle);
+	provide('collapsed', collapsed);
 </script>

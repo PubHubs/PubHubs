@@ -4,14 +4,14 @@
 			v-if="!connectInputs"
 			class="flex h-full flex-col items-center justify-center dark:text-white"
 		>
-			<h1 class="mb-8 text-6xl font-bold">Starting video call</h1>
+			<h1 class="mb-400 text-6xl font-bold">Starting video call</h1>
 			<div class="flex flex-col items-center justify-center text-center">
 				<VideoCallPreview />
 				<div class="flex w-1/2 items-center justify-center">
-					<div class="mx-2 w-1/2">
+					<div class="mx-100 w-1/2">
 						<h2>Microphone source</h2>
 						<VideoCallDropDown
-							value=""
+							:value="videoCall.selected_audio_device_id ?? ''"
 							:options="audioOptions"
 							:on-select="
 								(audioDevice: string) => {
@@ -20,10 +20,10 @@
 							"
 						/>
 					</div>
-					<div class="mx-2 w-1/2">
+					<div class="mx-100 w-1/2">
 						<h2>Video source</h2>
 						<VideoCallDropDown
-							value=""
+							:value="videoCall.selected_video_device_id ?? ''"
 							:options="videoOptions"
 							:on-select="
 								(videoDevice: string) => {
@@ -33,7 +33,7 @@
 						/>
 					</div>
 				</div>
-				<div class="flex justify-center gap-2 pt-2">
+				<div class="flex justify-center gap-100 pt-100">
 					<!-- TODO add language variables -->
 					<Button
 						variant="primary"
@@ -60,7 +60,7 @@
 		>
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<div class="relative flex h-full w-full flex-col overflow-hidden">
-					<div class="absolute top-4 right-4 z-10">
+					<div class="absolute top-200 right-200 z-500">
 						<Button
 							variant="secondary"
 							@click="toggleParticipantList"
@@ -72,7 +72,7 @@
 							>{{ showChat ? 'Hide chat' : 'Show chat' }}</Button
 						>
 					</div>
-					<div class="flex-grow">
+					<div class="grow">
 						<VideoCallVideoCarrousel :remote-participants="remotes" />
 					</div>
 				</div>
@@ -90,7 +90,7 @@
 
 				<div
 					v-if="selfView"
-					class="absolute right-4 bottom-20"
+					class="absolute right-200 bottom-800"
 					:class="{ 'mr-[33%]': showParticipants || showChat }"
 				>
 					<VideoCallVideo
@@ -170,6 +170,20 @@
 		});
 		videoOptions.value.unshift({ label: 'Select device', value: 'no device' });
 		optionsLoaded.value = true;
+
+		if (!videoCall.selected_audio_device_id) {
+			const defaultAudioDevice = audioDevices.find((device) => device.deviceId === 'default') ?? audioDevices[0];
+			if (defaultAudioDevice) {
+				await videoCall.changeAudioDevice(defaultAudioDevice.deviceId);
+			}
+		}
+
+		if (!videoCall.selected_video_device_id) {
+			const defaultVideoDevice = videoDevices.find((device) => device.deviceId === 'default') ?? videoDevices[0];
+			if (defaultVideoDevice) {
+				await videoCall.changeVideoDevice(defaultVideoDevice.deviceId);
+			}
+		}
 	}
 
 	//TODO see if I can combine these two arrays?
@@ -228,9 +242,16 @@
 		videoCall.livekit_room.removeAllListeners();
 	});
 
-	function goBack() {
+	async function goBack() {
 		if (!currentRoom.value) return;
-		videoCall.leaveCall();
+		// Leaving alone would only leave() the group call, never terminate()
+		// it - the room-level call state would stay "ongoing" forever with
+		// nobody left to end it.
+		if (videoCall.livekit_room?.remoteParticipants.size === 0) {
+			await videoCall.endCall();
+		} else {
+			await videoCall.leaveCall();
+		}
 		router.push({ name: 'room', params: { id: currentRoom.value.roomId } });
 	}
 

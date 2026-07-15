@@ -23,7 +23,7 @@ describe('api_synapse', () => {
 		expect(api_synapse.apiURLS.securedRooms).toBe('http://testing/_synapse/client/secured_rooms');
 		expect(api_synapse.apiURLS.roomsAPIV2).toBe('http://testing/_synapse/admin/v2/rooms/');
 		expect(api_synapse.apiURLS.usersAPIV1).toBe('http://testing/_synapse/admin/v1/users/');
-		expect(api_synapse.apiURLS.securedRoom).toBe('http://testing/_synapse/client/srextra');
+		expect(api_synapse.apiURLS.securedRoomPublicMetadata).toBe('http://testing/_synapse/client/secured_room/public_metadata');
 		expect(api_synapse.apiURLS.notice).toBe('http://testing/_synapse/client/notices');
 		expect(api_synapse.apiURLS.usersAPIV3).toBe('http://testing/_synapse/admin/v3/users/');
 		expect(api_synapse.apiURLS.roomsAPIV1).toBe('http://testing/_synapse/admin/v1/rooms/');

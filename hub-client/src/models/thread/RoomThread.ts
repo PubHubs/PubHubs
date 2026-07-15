@@ -1,6 +1,6 @@
 // Packages
 import { TimelineEvent } from '../events/TimelineEvent';
-import { Direction, type MatrixClient, type MatrixEvent, type Thread, ThreadEvent } from 'matrix-js-sdk';
+import { Direction, EventType, type MatrixClient, type MatrixEvent, type Thread, ThreadEvent } from 'matrix-js-sdk';
 import { nextTick } from 'vue';
 
 import { Redaction, RelationType } from '@hub-client/models/constants';
@@ -65,6 +65,10 @@ export default class TRoomThread {
 		} while (from);
 		this.getEvents();
 		this.eventsFetched = true;
+		const room = useRooms().room(this.roomId);
+		if (room) {
+			room.threadUpdated = !room.threadUpdated;
+		}
 	}
 
 	/**
@@ -86,7 +90,9 @@ export default class TRoomThread {
 	public getEvents(): TimelineEvent[] {
 		if (!this.matrixThread) return [];
 
-		const events = this.matrixThread.liveTimeline.getEvents();
+		const events = this.matrixThread.liveTimeline
+			.getEvents()
+			.filter((event) => event.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Replace);
 
 		const threadRoomId = this.matrixThread.roomId ?? '';
 		const timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: threadRoomId, inThread: true }));
@@ -105,8 +111,19 @@ export default class TRoomThread {
 		});
 
 		// set the length and then update the thread-length in the roomsstore
+		// Only actual replies count: reactions, redactions and redacted events are excluded
 		const rooms = useRooms();
-		this._length = Math.max(0, timelineEvents.filter((e) => !e.isDeleted && e.matrixEvent.event.event_id !== this.eventId).length);
+		this._length = Math.max(
+			0,
+			timelineEvents.filter(
+				(e) =>
+					!e.isDeleted &&
+					!e.matrixEvent.isRedacted() &&
+					e.matrixEvent.getType() !== EventType.Reaction &&
+					e.matrixEvent.getType() !== EventType.RoomRedaction &&
+					e.matrixEvent.event.event_id !== this.eventId,
+			).length,
+		);
 		rooms.setThreadLength(this.matrixThread.roomId, this.eventId, this.length);
 
 		// sort events by localTimestamp

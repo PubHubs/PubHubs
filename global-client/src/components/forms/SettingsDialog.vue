@@ -4,7 +4,7 @@
 		:title="$t('settings.title')"
 		type="global"
 	>
-		<div class="flex flex-col gap-2">
+		<div class="flex flex-col gap-100">
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.theme') }}</Label>
 				<ButtonGroup :combined="true">
@@ -72,7 +72,7 @@
 				class="flex"
 			>
 				<Icon
-					class="mt-[3px] mr-1 shrink-0"
+					class="mr-050 mt-[3px] shrink-0"
 					size="sm"
 					type="warning"
 				/>
@@ -93,7 +93,7 @@
 				v-if="promptInfo"
 				class="flex"
 			>
-				<div class="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2">
+				<div class="mr-050 flex h-250 w-250 shrink-0 items-center justify-center rounded-full border-2">
 					<Icon
 						size="xs"
 						type="info"

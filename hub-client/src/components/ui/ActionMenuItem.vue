@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="hover:bg-surface-subtle cursor-pointer rounded-md p-2"
+		class="hover:bg-surface cursor-pointer rounded-md p-100"
 		role="menuitem"
 	>
 		<slot />

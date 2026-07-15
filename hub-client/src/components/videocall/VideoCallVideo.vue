@@ -1,10 +1,10 @@
 <template>
 	<div
-		class="relative m-2 flex aspect-video flex-col justify-center rounded-md p-2"
+		class="relative m-100 flex aspect-video flex-col justify-center rounded-md p-100"
 		:class="[props.size, isSpeaking ? 'bg-accent-primary' : 'bg-black']"
 		@click="toggleFocus"
 	>
-		<div class="bg-opacity-50 absolute top-4 left-4 rounded-md bg-black px-2 py-1">
+		<div class="bg-opacity-50 py-050 absolute top-200 left-200 rounded-md bg-black px-100">
 			<UserDisplayName
 				class="text-sm text-white"
 				:user-id="participantUserId"
@@ -37,7 +37,7 @@
 			</div>
 			<div
 				v-if="!participant.isMicrophoneEnabled || isLocallyMuted"
-				class="bg-opacity-50 absolute bottom-4 left-4 rounded-full bg-black p-1"
+				class="bg-opacity-50 p-050 absolute bottom-200 left-200 rounded-full bg-black"
 			>
 				<Icon
 					type="microphone_mute"

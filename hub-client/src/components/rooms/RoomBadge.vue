@@ -1,7 +1,7 @@
 <template>
 	<span
 		v-if="shouldShowBadge"
-		class="text-label-tiny text-on-surface rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-2 border-2 uppercase"
+		class="text-label-tiny rounded-base px-075 py-025 pt-025 flex items-center justify-center gap-100 border-2 uppercase"
 		:class="badgeClasses"
 		data-testid="event-badges"
 		:title="badgeTitle"
@@ -87,8 +87,8 @@
 	});
 
 	const badgeClasses = computed(() => {
-		if (isRoomSteward.value) return 'border-accent-steward';
-		if (isExpert.value) return 'border-on-surface-dim';
-		return 'border-on-surface-dim';
+		if (isRoomSteward.value) return 'border-accent-steward text-accent-steward';
+		if (isExpert.value) return 'border-on-surface-dim text-on-surface-dim';
+		return 'border-on-surface-dim text-on-surface-dim';
 	});
 </script>

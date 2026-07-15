@@ -1,7 +1,7 @@
 <template>
 	<div
 		v-if="shouldShowScrollBack && isMobile && !global.isModalVisible"
-		class="absolute top-0 left-0 flex h-[80px] items-center p-4 select-none"
+		class="absolute top-0 left-0 flex h-[80px] items-center p-200 select-none"
 		@click="handleBackClick()"
 	>
 		<Icon

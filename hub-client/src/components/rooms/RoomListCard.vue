@@ -2,11 +2,11 @@
 	<!-- Mobile: card layout -->
 	<div
 		v-if="isMobile"
-		class="rounded-base bg-surface-base flex flex-col gap-2 p-4"
+		class="rounded-base bg-surface-base flex flex-col gap-100 p-200"
 		:title="roomId"
 		@click="$emit('click')"
 	>
-		<div class="flex items-center gap-3">
+		<div class="flex items-center gap-150">
 			<Icon
 				:type="roomType === 'public' ? 'chats-circle' : 'shield'"
 				class="shrink-0"
@@ -21,7 +21,7 @@
 		>
 			{{ topic }}
 		</p>
-		<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+		<div class="gap-y-050 flex flex-wrap items-baseline gap-x-200 text-sm">
 			<span>
 				<span class="text-on-surface-dim">{{ t('admin.room_type') }}: </span>
 				<span class="first-letter:uppercase">{{ roomTypeDisplay }}</span>
@@ -40,7 +40,7 @@
 	<!-- Desktop: grid cells (each is a direct child of the parent grid) -->
 	<template v-else>
 		<TableRowCell
-			class="flex min-w-0 items-center gap-2"
+			class="flex min-w-0 items-center gap-100"
 			:title="name"
 		>
 			<Icon
@@ -68,10 +68,10 @@
 			</span>
 		</TableRowCell>
 		<TableRowCell
-			class="flex items-center gap-2"
+			class="flex items-center gap-100"
 			:title="yiviAttributes ? yiviAttributeNames : '-'"
 		>
-			<span class="flex shrink-0 items-center gap-1">
+			<span class="gap-050 flex shrink-0 items-center">
 				<p
 					v-if="yiviAttributes"
 					class="first-letter:uppercase"
@@ -82,10 +82,10 @@
 			</span>
 		</TableRowCell>
 		<TableRowCell
-			class="flex items-center gap-2"
+			class="flex items-center gap-100"
 			:title="numJoinedMembers !== undefined ? String(numJoinedMembers) : '-'"
 		>
-			<span class="flex shrink-0 items-center gap-1">
+			<span class="gap-050 flex shrink-0 items-center">
 				<p v-if="numJoinedMembers !== undefined">{{ numJoinedMembers }}</p>
 				<p v-else>-</p>
 			</span>

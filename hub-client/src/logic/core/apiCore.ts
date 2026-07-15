@@ -39,6 +39,7 @@ class Api {
 	etag: string;
 	accessToken: string;
 	options: AllApiOptions;
+	private onUnauthorized?: () => void;
 
 	constructor(baseURL: string, urls: ApiUrls) {
 		this.baseURL = baseURL;
@@ -68,6 +69,14 @@ class Api {
 		this.accessToken = token;
 	}
 
+	/**
+	 * Set a callback to be invoked when a 401 Unauthorized response is received.
+	 * This is used to trigger re-authentication when the access token is invalid.
+	 */
+	setOnUnauthorized(callback: () => void) {
+		this.onUnauthorized = callback;
+	}
+
 	fetchEtagFromHeaders(headers: Headers): string {
 		if (headers.get('etag')) {
 			this.etag = headers.get('etag') as string;
@@ -82,6 +91,10 @@ class Api {
 		// console.log(url);
 		const response = await fetch(url, options as RequestInit);
 		if (!response.ok) {
+			// Handle 401 Unauthorized - trigger re-authentication
+			if (response.status === 401 && this.onUnauthorized) {
+				this.onUnauthorized();
+			}
 			try {
 				const result = await response.text();
 				const json = JSON.parse(result) as ApiErrorResponse;
@@ -172,6 +185,10 @@ class Api {
 		});
 
 		if (!response.ok) {
+			// Handle 401 Unauthorized - trigger re-authentication
+			if (response.status === 401 && this.onUnauthorized) {
+				this.onUnauthorized();
+			}
 			// The backend returns a JSON body like {"message": "File type not allowed."}.
 			// Surface that message so callers can show the specific reason to the user.
 			let message = '';

@@ -81,7 +81,8 @@ build-pubhubs-image:
     # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
     # a bit more history until we hit our tag's commit.
-    - until git describe --tags; do git fetch --deepen 10; done
+    # This used to work witout gc.auto-0 and maintnance.auto=false, but after a git update(?) this broke, causing the deepen loop to only run twice.
+    - until git describe --tags; do git -c gc.auto=0 -c maintnance.auto=false fetch --deepen 10; done
     - cd pubhubs
     - docker build --build-arg PH_VERSION="$(git describe --tags)" -f Dockerfile -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}

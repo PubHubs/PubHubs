@@ -20,6 +20,16 @@ logging.basicConfig(
 
 logger = logging.getLogger()
 
+
+def sqlite3_path_in(config: dict):
+    """The sqlite3 database path configured in a parsed homeserver config, or None when the
+    configured database engine is not sqlite3."""
+    db = config.get('database') or {}
+    if db.get('name') != 'sqlite3':
+        return None
+    return (db.get('args') or {}).get('database')
+
+
 class CheckEnvironment(Enum):
     DEVELOPMENT = "dont change"
     PRODUCTION = "change"
@@ -90,11 +100,10 @@ class UpdateConfig:
         },
     }
 
-    def __init__(self, config_env: str, hub_client_url, hub_server_url, hub_server_url_for_yivi, global_client_url,
+    def __init__(self, config_env: str, hub_client_url, hub_server_url, global_client_url,
                  replace_sqlite3_by_postgres, server_name):
         self._hub_client_url = hub_client_url
         self._hub_server_url = hub_server_url
-        self._hub_server_url_for_yivi = hub_server_url_for_yivi
         self._global_client_url = global_client_url
         self._replace_sqlite3_by_postgres = replace_sqlite3_by_postgres
         self._server_name = server_name
@@ -134,25 +143,13 @@ class UpdateConfig:
                     continue
                 module['config']['client_url'] = self._hub_client_url
 
-        if self._hub_server_url_for_yivi != None:
-            hsufy = self._hub_server_url_for_yivi
-            if not hsufy.endswith("/"):
-                hsufy += "/"
-                # The HubClientApi does not properly join paths to this url.
-            for module in homeserver['modules']:
-                if module['module'] != "conf.modules.pubhubs.HubClientApi":
-                    continue
-                module['config']['public_yivi_url'] = hsufy
-
         if self._global_client_url != None:
             for module in homeserver['modules']:
                 if module['module'] != "conf.modules.pubhubs.HubClientApi":
                     continue
                 module['config']['global_client_url'] = self._global_client_url
 
-        db = homeserver.get('database', {})
-        if db.get('name') == 'sqlite3':
-            self._sqlite3_path = db.get('args', {}).get('database')
+        self._sqlite3_path = sqlite3_path_in(homeserver)
 
         if self._replace_sqlite3_by_postgres:
             self._maybe_replace_sqlite3_by_postgres(homeserver)
@@ -568,8 +565,8 @@ def main():
     run(args.input_file, args.output_file, args.environment)
 
 
-def run(input_file, output_file, environment, 
-        hub_client_url=None, hub_server_url=None, hub_server_url_for_yivi=None, global_client_url=None,
+def run(input_file, output_file, environment,
+        hub_client_url=None, hub_server_url=None, global_client_url=None,
         replace_sqlite3_by_postgres=None, server_name=None):
 
     homeserver_file_path = input_file
@@ -577,10 +574,9 @@ def run(input_file, output_file, environment,
     config_env = environment if environment!="" else 'production'
 
     # Update config homeserver, output as homeserver.live
-    update_config_module = UpdateConfig(config_env, 
-                                        hub_client_url=hub_client_url, 
-                                        hub_server_url=hub_server_url, 
-                                        hub_server_url_for_yivi=hub_server_url_for_yivi, 
+    update_config_module = UpdateConfig(config_env,
+                                        hub_client_url=hub_client_url,
+                                        hub_server_url=hub_server_url,
                                         global_client_url=global_client_url,
                                         replace_sqlite3_by_postgres=replace_sqlite3_by_postgres,
                                         server_name=server_name)

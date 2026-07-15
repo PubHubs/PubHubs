@@ -21,7 +21,7 @@
 	<g i:extraneous="self">
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_1_" x="76.628" y="55.782" transform="matrix(-0.9684 -0.2494 0.2494 -0.9684 152.8105 145.2043)" width="17.949" height="14.282"/>
 			</defs>
 			<clipPath id="SVGID_2_">
@@ -85,7 +85,7 @@
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_5_" x="126.458" y="26.661" transform="matrix(-0.9494 -0.3141 0.3141 -0.9494 259.7686 121.6162)" width="26.445" height="26.445"/>
 			</defs>
 			<clipPath id="SVGID_6_">
@@ -98,7 +98,7 @@
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_7_" x="61.481" y="34.236" transform="matrix(-0.4583 -0.8888 0.8888 -0.4583 66.7551 135.6032)" width="26.444" height="26.443"/>
 			</defs>
 			<clipPath id="SVGID_8_">
@@ -110,7 +110,7 @@
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_9_" x="3.575" y="103.149" transform="matrix(-0.4582 -0.8888 0.8888 -0.4582 -80.6028 177.7695)" width="20.6" height="20.601"/>
 			</defs>
 			<clipPath id="SVGID_10_">
@@ -122,7 +122,7 @@
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_11_" x="43.923" y="121.181" transform="matrix(-0.4582 -0.8888 0.8888 -0.4582 -37.7941 239.9264)" width="20.601" height="20.602"/>
 			</defs>
 			<clipPath id="SVGID_12_">
@@ -134,7 +134,7 @@
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_13_" x="11.224" y="39.955" transform="matrix(-0.4582 -0.8888 0.8888 -0.4582 -13.28 92.4153)" width="20.6" height="20.601"/>
 			</defs>
 			<clipPath id="SVGID_14_">
@@ -146,7 +146,7 @@
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_15_" x="87.323" y="3.575" transform="matrix(-0.4582 -0.8889 0.8889 -0.4582 130.0198 107.0052)" width="20.601" height="20.601"/>
 			</defs>
 			<clipPath id="SVGID_16_">
@@ -158,7 +158,7 @@
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_17_" x="30.27" y="70.923" transform="matrix(-0.4583 -0.8888 0.8888 -0.4583 -12.461 156.8498)" width="22.601" height="22.599"/>
 			</defs>
 			<clipPath id="SVGID_18_">
@@ -170,7 +170,7 @@
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_19_" x="83.178" y="65.759" transform="matrix(-0.4583 -0.8888 0.8888 -0.4583 71.9765 207.453)" width="32.065" height="32.064"/>
 			</defs>
 			<clipPath id="SVGID_20_">
@@ -188,7 +188,7 @@
 			<clipPath id="SVGID_22_">
 				<use xlink:href="#SVGID_21_"  overflow="visible"/>
 			</clipPath>
-			
+
 				<line clip-path="url(#SVGID_22_)" fill="none" stroke="#FFFFFF" stroke-width="2" x1="81.86" y1="39.132" x2="94.212" y2="21.033"/>
 		</g>
 		<g>
@@ -228,7 +228,7 @@
 			<clipPath id="SVGID_30_">
 				<use xlink:href="#SVGID_29_"  overflow="visible"/>
 			</clipPath>
-			
+
 				<line clip-path="url(#SVGID_30_)" fill="none" stroke="#FFFFFF" stroke-width="2" x1="85.118" y1="87.02" x2="22.591" y2="110.216"/>
 		</g>
 		<g>
@@ -248,12 +248,12 @@
 			<clipPath id="SVGID_34_">
 				<use xlink:href="#SVGID_33_"  overflow="visible"/>
 			</clipPath>
-			
+
 				<line clip-path="url(#SVGID_34_)" fill="none" stroke="#FFFFFF" stroke-width="2" x1="109.652" y1="70.979" x2="131.188" y2="48.678"/>
 		</g>
 		<g>
 			<defs>
-				
+
 					<rect id="SVGID_35_" x="119.258" y="93.133" transform="matrix(-0.4582 -0.8888 0.8888 -0.4582 96.9897 265.9847)" width="20.601" height="20.6"/>
 			</defs>
 			<clipPath id="SVGID_36_">
@@ -270,7 +270,7 @@
 			<clipPath id="SVGID_38_">
 				<use xlink:href="#SVGID_37_"  overflow="visible"/>
 			</clipPath>
-			
+
 				<line clip-path="url(#SVGID_38_)" fill="none" stroke="#FFFFFF" stroke-width="2" x1="51.881" y1="82.145" x2="84.18" y2="81.904"/>
 		</g>
 	</g>

@@ -22,7 +22,7 @@ impl App {
         log::debug!("user {} retrieved registration pseudonym", user_state.id);
 
         Ok(CardPseudResp::Success(api::Signed::new(
-            &app.signing_key,
+            &app.shared.signing_key,
             &CardPseudPackage {
                 card_pseud: user_state.card_id(),
                 registration_date: user_state.registration_date,

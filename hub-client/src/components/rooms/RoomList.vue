@@ -22,29 +22,23 @@
 				:to="{ name: 'room', params: { id: room.roomId } }"
 				:room="room"
 				class="no-callout group inline-block w-full select-none"
-				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-low!'"
+				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && 'bg-surface-elevated!'"
 				:icon="menuIcon(room)"
 				@click="hubSettings.hideBar()"
 			>
-				<span class="flex w-full items-center justify-between gap-4">
+				<span class="flex w-full items-center justify-between gap-200">
 					<TruncatedText>
 						<RoomName :room="room" />
 					</TruncatedText>
 
 					<span
 						v-if="settings.isFeatureEnabled(FeatureFlag.notifications) && showsUnreadState(room.roomType)"
-						class="flex items-center gap-1 transition-all duration-200 ease-in-out"
+						class="gap-050 flex items-center transition-all duration-200 ease-in-out"
 					>
 						<Badge
 							v-if="room.unreadState === 'unread'"
 							data-testid="unread-badge"
 							color="hub"
-							size="sm"
-						/>
-						<Badge
-							v-if="room.unreadState === 'unknown'"
-							data-testid="unknown-badge"
-							color="unknown"
 							size="sm"
 						/>
 					</span>
@@ -88,7 +82,7 @@
 						messageValues = notification.message_values;
 					"
 				>
-					<span class="flex w-full items-center justify-between gap-4">
+					<span class="flex w-full items-center justify-between gap-200">
 						<TruncatedText>
 							<span>{{ notification.message_values[0] }}</span>
 						</TruncatedText>
@@ -191,8 +185,8 @@
 			scrollToEnd();
 			const leaveMsg = await leaveMessageContext(roomId);
 			if (DirectRooms.includes(room.roomType as RoomType)) {
-				if (await dialog.okcancel(t('rooms.hide_sure'))) {
-					await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
+				if (await dialog.okcancel(t('rooms.leave_dm_sure'))) {
+					await pubhubs.leaveDMRoom(room);
 					await router.replace({ name: 'home' });
 				}
 			} else if (await dialog.okcancel(t(leaveMsg))) {

@@ -3,7 +3,7 @@ import { type ISendEventResponse } from 'matrix-js-sdk';
 import { type RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 
 // Logic
-import { APIService } from '@hub-client/logic/core/apiHubManagement';
+import { APIService } from '@hub-client/logic/core/apiService';
 
 // Models
 import { type IRoomManagement } from '@hub-client/models/hubmanagement/interfaces/IRoomManagement';

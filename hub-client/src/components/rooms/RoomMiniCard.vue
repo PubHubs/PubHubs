@@ -1,7 +1,7 @@
 <template>
-	<div class="bg-surface-subtle relative min-h-full overflow-hidden rounded-md">
+	<div class="bg-surface relative min-h-full overflow-hidden rounded-md">
 		<div class="relative">
-			<div class="relative z-10 flex flex-row items-center justify-around px-4 py-4">
+			<div class="relative z-10 flex flex-row items-center justify-around px-200 py-200">
 				<Icon type="chats-circle" />
 				<Button @click="join(props.roomId)"> Join Room </Button>
 			</div>

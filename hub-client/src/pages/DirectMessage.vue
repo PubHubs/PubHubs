@@ -2,19 +2,13 @@
 	<div class="flex h-full flex-col">
 		<!-- Shared Header -->
 		<div
-			class="border-on-surface-disabled flex h-[80px] shrink-0 items-center justify-between border-b p-8"
-			:class="isMobile ? 'pl-12' : 'pl-8'"
+			class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between gap-200 border-b-2"
+			:class="isMobile ? 'p-150 pl-600' : 'p-200 pl-400'"
 		>
 			<!-- Left: DM title (on mobile, show conversation name when sidebar is open) -->
-			<div class="flex w-fit items-center gap-3 overflow-hidden">
-				<Icon
-					type="chat-circle-text"
-					:class="isMobile && 'hidden'"
-				/>
-				<H3
-					class="text-on-surface flex"
-					:class="isMobile ? 'gap-2' : 'gap-4'"
-				>
+			<div class="flex min-w-0 flex-1 items-center gap-150 overflow-x-hidden">
+				<Icon type="chat-circle-text" />
+				<H3 class="text-on-surface w-full min-w-0">
 					<TruncatedText class="font-headings text-h3 font-semibold">
 						<span v-if="isMobile && sidebar.isOpen.value && sidebar.selectedDMRoom.value">
 							{{ mobileConversationTitle }}
@@ -28,13 +22,15 @@
 			<!-- Right: Buttons (hidden on mobile when sidebar is open) -->
 			<div
 				v-if="!isMobile || !sidebar.isOpen.value"
-				class="flex items-center gap-2"
+				class="flex items-center gap-100"
 			>
 				<!-- Search button (desktop only, when room is selected) -->
 				<GlobalBarButton
 					v-if="!isMobile && selectedRoom"
 					type="magnifying-glass"
 					:selected="sidebar.activeTab.value === SidebarTab.Search"
+					:aria-label="t('others.search_conversation')"
+					:title="t('others.search_conversation')"
 					@click="sidebar.toggleTab(SidebarTab.Search)"
 				/>
 
@@ -43,23 +39,9 @@
 					v-if="!isMobile && isGroupDM"
 					type="users"
 					:selected="sidebar.activeTab.value === SidebarTab.Members"
+					:aria-label="t('others.room_members')"
+					:title="t('others.room_members')"
 					@click="sidebar.toggleTab(SidebarTab.Members)"
-				/>
-
-				<!-- Video call button (when room is selected and feature enabled) -->
-				<GlobalBarButton
-					v-if="selectedRoom && showVideocallButton()"
-					type="video"
-					:is-start-button="!ongoingCall"
-					@click="startOrJoinVideoCall()"
-				/>
-
-				<!-- New message button -->
-				<GlobalBarButton
-					type="plus"
-					:selected="sidebar.activeTab.value === SidebarTab.NewDM"
-					:title="t('others.new_message')"
-					@click="sidebar.toggleTab(SidebarTab.NewDM)"
 				/>
 			</div>
 		</div>
@@ -68,75 +50,91 @@
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Conversation list -->
 			<div
-				class="flex h-full flex-col overflow-y-auto p-3 md:p-4"
-				:class="isMobile ? 'w-full' : 'w-[360px] shrink-0'"
-				:data-loaded="!dmLoading || undefined"
+				class="flex h-full flex-col"
+				:class="isMobile ? 'w-full' : 'w-4500 shrink-0'"
 			>
-				<div
-					v-if="dmLoading && sortedPrivateRooms.length === 0"
-					class="@container flex w-full flex-col gap-4"
-				>
+				<div class="relative flex h-full flex-col overflow-hidden">
 					<div
-						v-for="n in 3"
-						:key="n"
-						class="bg-surface-low w-full animate-pulse rounded-xl p-4"
+						class="flex flex-col overflow-y-auto p-150 md:p-200"
+						:data-loaded="!dmLoading || undefined"
 					>
-						<div class="flex gap-3">
-							<div class="bg-surface-base h-12 w-12 shrink-0 rounded-full" />
-							<div class="flex min-w-0 flex-1 flex-col gap-1">
-								<div class="bg-surface-base h-5 w-2/3 rounded" />
-								<div class="bg-surface-base hidden h-[18px] w-1/3 rounded @xs:block" />
-								<div class="bg-surface-base h-5 w-full rounded" />
+						<div
+							v-if="dmLoading && sortedPrivateRooms.length === 0"
+							class="@container flex w-full flex-col gap-200"
+						>
+							<div
+								v-for="n in 3"
+								:key="n"
+								class="bg-surface-base w-full animate-pulse rounded-xl p-200"
+							>
+								<div class="flex gap-150">
+									<div class="bg-surface-base h-600 w-600 shrink-0 rounded-full" />
+									<div class="gap-050 flex min-w-0 flex-1 flex-col">
+										<div class="bg-surface-base h-250 w-2/3 rounded" />
+										<div class="bg-surface-base hidden h-[18px] w-1/3 rounded @xs:block" />
+										<div class="bg-surface-base h-250 w-full rounded" />
+									</div>
+								</div>
+							</div>
+						</div>
+						<button
+							v-else-if="sortedPrivateRooms.length === 0"
+							class="bg-surface-base hover:bg-surface-elevated border-surface-elevated rounded-base h-1000 w-full cursor-pointer border-3 p-200 text-left"
+							@click="sidebar.toggleTab(SidebarTab.NewDM)"
+						>
+							<div class="flex items-center gap-100">
+								<div class="flex h-10 w-10 shrink-0 items-center justify-center">
+									<Icon
+										type="plus"
+										size="sm"
+									/>
+								</div>
+								<p class="font-bold">{{ t('others.new_message') }}</p>
+							</div>
+						</button>
+						<div
+							class="flex w-full flex-col gap-200 transition-all duration-300 ease-in-out"
+							role="list"
+							data-testid="conversations"
+						>
+							<div
+								v-for="entry in sortedPrivateRooms"
+								:key="entry.room.roomId"
+								role="listitem"
+							>
+								<MessagePreview
+									v-context-menu="
+										(evt: any) =>
+											openMenu(
+												evt,
+												[
+													{
+														label: t('menu.leave_conversation'),
+														icon: 'sign-out',
+														variant: ContextVariant.delicate,
+														onClick: () => leaveConversation(entry.room),
+													},
+												],
+												entry.room.roomId,
+											)
+									"
+									:room="entry.room"
+									:unread-state="entry.unreadState"
+									:is-mobile="isMobile"
+									:active="selectedRoom?.roomId === entry.room.roomId"
+									class="hover:cursor-pointer"
+									:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-base!'"
+									@click="openDMRoom(entry.room)"
+								/>
 							</div>
 						</div>
 					</div>
-				</div>
-				<button
-					v-else-if="sortedPrivateRooms.length === 0"
-					class="bg-surface-base hover:bg-surface-elevated border-surface-elevated rounded-base h-1000 w-full cursor-pointer border-3 p-4 text-left"
-					@click="sidebar.toggleTab(SidebarTab.NewDM)"
-				>
-					<div class="flex items-center gap-2">
-						<div class="flex h-10 w-10 shrink-0 items-center justify-center">
-							<Icon
-								type="plus"
-								size="sm"
-							/>
-						</div>
-						<p class="font-bold">{{ t('others.new_message') }}</p>
-					</div>
-				</button>
-				<div
-					class="flex w-full flex-col gap-4 transition-all duration-300 ease-in-out"
-					role="list"
-					data-testid="conversations"
-				>
-					<MessagePreview
-						v-for="entry in sortedPrivateRooms"
-						:key="entry.room.roomId"
-						v-context-menu="
-							(evt: any) =>
-								openMenu(
-									evt,
-									[
-										{
-											label: t('menu.leave_conversation'),
-											icon: 'eye-slash',
-											variant: ContextVariant.delicate,
-											onClick: () => leaveConversation(entry.room),
-										},
-									],
-									entry.room.roomId,
-								)
-						"
-						:room="entry.room"
-						:unread-state="entry.unreadState"
-						:is-mobile="isMobile"
-						:active="selectedRoom?.roomId === entry.room.roomId"
-						class="hover:cursor-pointer"
-						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === entry.room.roomId && 'bg-surface-low!'"
-						role="listitem"
-						@click="openDMRoom(entry.room)"
+
+					<FloatingActionButton
+						class="absolute right-200 bottom-200"
+						:label="t('others.new_message')"
+						icon="plus"
+						@click="sidebar.toggleTab(SidebarTab.NewDM)"
 					/>
 				</div>
 			</div>
@@ -144,7 +142,7 @@
 			<!-- Desktop: DM room shown directly (not in sidebar) -->
 			<div
 				v-if="!isMobile && selectedRoom"
-				class="border-on-surface-disabled flex min-w-0 flex-1 border-l"
+				class="border-on-surface-disabled/25 flex min-w-0 flex-1 border-l-2"
 			>
 				<DirectMessageRoom
 					:key="selectedRoom.roomId"
@@ -181,7 +179,7 @@
 			<!-- Desktop: Empty state when no room selected -->
 			<div
 				v-if="!isMobile && !selectedRoom && sortedPrivateRooms.length > 0"
-				class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l"
+				class="border-on-surface-disabled/25 text-on-surface-dim flex flex-1 items-center justify-center border-l-2"
 			>
 				{{ t('others.select_conversation') }}
 			</div>
@@ -189,7 +187,7 @@
 			<!-- Desktop: Placeholder when no conversations exist yet -->
 			<div
 				v-if="!isMobile && !dmLoading && sortedPrivateRooms.length === 0"
-				class="border-on-surface-disabled text-on-surface-dim flex flex-1 items-center justify-center border-l"
+				class="border-on-surface-disabled/25 text-on-surface-dim flex flex-1 items-center justify-center border-l-2"
 			>
 				{{ t('others.start_new_conversation') }}
 			</div>
@@ -234,6 +232,7 @@
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
+	import FloatingActionButton from '@hub-client/components/elements/FloatingActionButton.vue';
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -263,9 +262,8 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { type Room, useRooms } from '@hub-client/stores/rooms';
-	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
-	import useVideoCall from '@hub-client/stores/videoCall';
 
 	const { openMenu } = useContextMenu();
 	const contextMenuStore = useContextMenuStore();
@@ -276,7 +274,6 @@
 	const userStore = useUser();
 	const { t } = useI18n();
 	const sidebar = useSidebar();
-	const videoCall = useVideoCall();
 
 	const router = useRouter();
 	const route = useRoute();
@@ -296,15 +293,6 @@
 	const sortedPrivateRooms = computed<PrivateRoomEntry[]>(() => {
 		return rooms.loadedPrivateRooms
 			.filter((r) => rooms.rooms[r.roomId])
-			.filter((r) => {
-				const room = rooms.rooms[r.roomId] as Room;
-				if (!room) return false;
-				if (room.hasMessages()) return true;
-				if (selectedRoom.value?.roomId === r.roomId) return true;
-				if (sidebar.selectedDMRoom.value?.roomId === r.roomId) return true;
-				if (sidebar.lastDMRoomId.value === r.roomId) return true;
-				return false;
-			})
 			.map((r) => ({ room: rooms.rooms[r.roomId] as Room, unreadState: r.unreadState }))
 			.sort((a, b) => {
 				const selectedRoomId = selectedRoom.value?.roomId ?? sidebar.selectedDMRoom.value?.roomId;
@@ -421,8 +409,8 @@
 	}
 
 	async function leaveConversation(room: Room) {
-		if (await dialog.okcancel(t('rooms.hide_sure'))) {
-			await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
+		if (await dialog.okcancel(t('rooms.leave_dm_sure'))) {
+			await pubhubs.leaveDMRoom(room);
 			if (selectedRoom.value?.roomId === room.roomId) {
 				selectedRoom.value = null;
 			}
@@ -432,26 +420,5 @@
 
 	function onScrollToEventId(ev: { eventId: string; threadId?: string }) {
 		scrollToEventId.value = ev.eventId;
-	}
-
-	const ongoingCall = computed(() => selectedRoom.value?.isOngoingCall() ?? false);
-
-	function showVideocallButton(): boolean {
-		if (!selectedRoom.value) return false;
-		return settings.isFeatureEnabled(FeatureFlag.videocalls) && selectedRoom.value.isPrivateRoom();
-	}
-
-	async function startOrJoinVideoCall() {
-		let connected = false;
-		if (selectedRoom.value?.isOngoingCall()) {
-			connected = await videoCall.joinCall();
-			if (!connected) {
-				connected = await videoCall.startCall();
-			}
-		} else {
-			connected = await videoCall.startCall();
-		}
-		if (!connected) return;
-		await router.push({ name: 'videocall' });
 	}
 </script>

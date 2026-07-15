@@ -1,7 +1,7 @@
 <template>
 	<div
 		:aria-selected="isActive"
-		class="tabs-tab border-on-surface-disabled text-on-surface-dim focus:ring-button-blue z-20 min-h-550 cursor-pointer rounded-t border border-b-0 px-200 focus:ring-3 focus:outline-none"
+		class="tabs-tab border-on-surface-disabled/25 text-on-surface-dim focus:ring-accent-blue-interactive z-20 min-h-550 cursor-pointer rounded-t border-2 border-b-0 px-200 focus:ring-3 focus:outline-none"
 		:class="[isActive ? 'bg-surface-background text-on-surface' : value !== undefined ? 'bg-transparent opacity-50' : 'bg-transparent']"
 		role="tab"
 		:tabindex="isActive ? -1 : 0"

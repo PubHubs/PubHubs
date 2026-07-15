@@ -7,8 +7,9 @@
 			ref="elReactionPopUp"
 			class="group flex flex-col"
 			:class="[
-				props.isGrouped ? 'pt-1!' : 'pt-4!',
-				props.isFollowedByGrouped ? 'pb-1!' : 'pb-4!',
+				!isAnnouncementMessage && 'hover:bg-surface-sunken/75',
+				props.isGrouped ? 'pt-050!' : 'pt-200!',
+				props.isFollowedByGrouped ? 'pb-050!' : 'pb-200!',
 				getMessageContainerClasses,
 				!isPrivilegedMessage && !redactedMessage && 'border-l-transparent',
 				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y',
@@ -22,13 +23,18 @@
 		>
 			<!-- Message Container -->
 			<div
-				class="relative flex w-full gap-4 py-0!"
-				:class="[getMessageContainerClasses, isMobile ? 'px-2' : 'px-5']"
+				class="relative flex w-full gap-200"
+				:class="[
+					getMessageContainerClasses,
+					isMobile ? 'px-100' : 'px-250',
+					props.isGrouped ? 'py-050!' : 'py-100!',
+					!props.isFollowedByGrouped && 'pb-100!',
+				]"
 			>
 				<!-- Reaction Panel -->
 				<div
 					v-if="showReactionPanel && hasBeenVisible"
-					:class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']"
+					:class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-400']"
 				>
 					<ReactionMiniPopUp
 						:event-id="event.event_id!"
@@ -51,25 +57,25 @@
 				<!-- Avatar placeholder -->
 				<div
 					v-else-if="!props.isGrouped"
-					class="bg-surface-base flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
+					class="bg-surface-base flex aspect-square h-600 w-600 shrink-0 items-center justify-center overflow-hidden rounded-full"
 				></div>
 
 				<!-- Grouped spacer with hover time -->
 				<div
 					v-else
-					class="flex w-12 shrink-0 items-center justify-center"
+					class="flex w-600 shrink-0 flex-col items-center justify-center"
 				>
 					<EventTime
 						:timestamp="event.origin_server_ts!"
 						:show-date="false"
-						class="text-on-surface-dim hidden text-[10px] group-hover:block"
+						class="text-on-surface-dim text-label-small hidden group-hover:block"
 					/>
 				</div>
 
 				<!-- Message and Actions -->
 				<div
 					:class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }"
-					class="min-w-0"
+					class="text-on-surface-bright min-w-0"
 				>
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<!-- Message Snippet -->
@@ -77,14 +83,14 @@
 							<MessageSnippet
 								v-if="inReplyToId && showReplySnippet(event.content!.msgtype!)"
 								:event-id="inReplyToId"
-								class="mb-2"
+								class="mb-100"
 								:show-in-reply-to="true"
 								:room="room"
 								:hidden-message-label="replyHideState.label"
 								@click="onInReplyToClick"
 							/>
 							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
+								<div class="flex items-center gap-150 rounded-md px-100">
 									<p>{{ t('state.loading_message') }}</p>
 								</div>
 							</template>
@@ -92,7 +98,7 @@
 
 						<div
 							v-if="!props.isGrouped"
-							class="mb-2 flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+							class="gap-y-050 mb-100 flex w-full min-w-0 flex-wrap items-center gap-x-100"
 						>
 							<UserDisplayName
 								:user-id="event.sender!"
@@ -111,7 +117,7 @@
 							<!-- Announcement -->
 							<span
 								v-if="isAnnouncementMessage && !redactedMessage"
-								class="inline-flex items-center gap-1 leading-none"
+								class="gap-050 inline-flex items-center leading-none"
 								:class="
 									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
@@ -124,7 +130,7 @@
 							<!-- Whisper -->
 							<span
 								v-if="isWhisperMessage && !redactedMessage && event.sender! !== user.userId"
-								class="inline-flex items-center gap-1 leading-none"
+								class="gap-050 inline-flex items-center leading-none"
 								:class="
 									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
@@ -135,7 +141,7 @@
 							</span>
 							<span
 								v-if="isWhisperMessage && !redactedMessage && event.sender === user.userId && event.content!.whisper_to"
-								class="inline-flex items-center gap-1 leading-none"
+								class="gap-050 inline-flex items-center leading-none"
 								:class="
 									props.room.getPowerLevel(event.sender!) === 100
 										? 'text-accent-steward'
@@ -146,7 +152,7 @@
 							</span>
 
 							<!-- Timestamp -->
-							<span class="text-label-tiny text-on-surface-dim inline-flex items-center gap-1">
+							<span class="text-label-tiny text-on-surface-dim gap-050 inline-flex items-center">
 								<EventTime
 									:timestamp="event.origin_server_ts!"
 									:show-date="true"
@@ -156,19 +162,25 @@
 									:show-date="false"
 								/>
 							</span>
+
+							<!-- Edited marker -->
+							<EditedMarker
+								v-if="editedTs"
+								:timestamp="editedTs"
+							/>
 						</div>
 
 						<Suspense v-if="hasBeenVisible && inReplyToId && showWhisperReplySnippet">
 							<MessageSnippet
 								:event-id="inReplyToId"
-								class="mb-2"
+								class="mb-100"
 								:show-in-reply-to="true"
 								:room="room"
 								:hidden-message-label="replyHideState.label"
 								@click="onInReplyToClick"
 							/>
 							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
+								<div class="flex items-center gap-150 rounded-md px-100">
 									<p>{{ t('state.loading_message') }}</p>
 								</div>
 							</template>
@@ -181,32 +193,33 @@
 					>
 						<!-- Message Action Buttons -->
 						<div
-							class="bg-surface-elevated rounded-base absolute right-0 flex"
+							class="rounded-base bg-background absolute right-0 flex shadow"
 							:class="actionButtonPosition"
 						>
 							<template v-if="timerReady && !deleteMessageDialog">
 								<button
 									v-if="msgIsNotSend && connection.isOn"
-									class="mb-1 ml-2"
+									class="mb-050 ml-100"
 									:title="t('errors.resend')"
 									@click="resend()"
 								>
 									<Icon
-										type="arrow-counter-clockwise"
+										type="arrows-counter-clockwise"
+										size="md"
 										class="text-red"
 									/>
 								</button>
 								<Icon
 									v-if="msgIsNotSend && !connection.isOn"
 									type="wifi-slash"
-									class="text-red mb-1 ml-2"
+									class="text-red mb-050 ml-100"
 								/>
 							</template>
 
 							<!-- Reaction Button -->
 							<button
 								v-if="!redactedMessage"
-								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-focus-within:flex group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_emoji')"
 								@click.stop="emit('reactionPanelToggle', event.event_id!)"
 							>
@@ -216,7 +229,7 @@
 							<!-- Reply Button -->
 							<button
 								v-if="!msgIsNotSend && !redactedMessage"
-								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-focus-within:flex group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply')"
 								@click="reply"
 							>
@@ -229,24 +242,25 @@
 									!deleteMessageDialog &&
 									!viewFromThread &&
 									canReplyInThread &&
+									threadReplyCount <= 0 &&
 									!msgIsNotSend &&
 									!redactedMessage &&
 									!props.room.isDirectMessageRoom()
 								"
-								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-focus-within:flex group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.reply_in_thread')"
 								@click="replyInThread"
 							>
 								<Icon
 									type="chat-circle"
-									size="md"
+									size="base"
 								/>
 							</button>
 
 							<!-- Context Menu Button -->
 							<button
 								v-if="!redactedMessage"
-								class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary hidden items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out group-hover:flex hover:w-fit hover:cursor-pointer"
+								class="text-accent-primary hover:bg-accent-primary hover:text-on-accent-primary p-050 hidden items-center justify-center rounded-md transition-all duration-300 ease-in-out group-focus-within:flex group-hover:flex hover:w-fit hover:cursor-pointer"
 								:title="t('message.context_menu')"
 								@click.stop="openMenu($event, getContextMenuItems(), event.event_id!)"
 							>
@@ -255,117 +269,124 @@
 						</div>
 					</div>
 
-					<template v-if="hasBeenVisible">
-						<MessageHidden
-							v-if="(event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
-							:overridelabel="hideState.label"
-						>
-							<!-- The actual message content goes here as a slot -->
-							<PrivilegedMessageBody
-								v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
-								:event="privilegedEventContent"
-							/>
-							<MessageSigned
-								v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
-								:message="event.content!.signed_message"
-								class="max-w-[90ch]"
-							/>
-							<MessageFile
-								v-else-if="event.content!.msgtype === MsgType.File"
-								:message="event.content as TFileMessageEventContent"
-							/>
-							<MessageImage
-								v-else-if="event.content!.msgtype === MsgType.Image"
-								:message="event.content as TImageMessageEventContent"
-							/>
-							<MessageDisclosureRequest
-								v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
-								:event="event as TMessageEvent"
-								class="flex flex-col"
-							/>
-							<MessageDisclosed
-								v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
-								:message="event.content!.signed_message"
-								class="max-w-[90ch]"
-							/>
-							<VotingWidget
-								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
-								:room="room"
-								:event="event as TVotingMessageEvent"
-								@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
-								@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
-							/>
-							<MessageVideoCall
-								v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
-								:event="props.event as any"
-								:room-id="room.roomId"
-							/>
-							<Message
-								v-else
-								:event="event as TMessageEvent"
-								:deleted="redactedMessage"
-							/>
-						</MessageHidden>
+					<div class="flex items-center gap-100">
+						<template v-if="hasBeenVisible">
+							<MessageHidden
+								v-if="(event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
+								:overridelabel="hideState.label"
+							>
+								<!-- The actual message content goes here as a slot -->
+								<PrivilegedMessageBody
+									v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
+									:event="privilegedEventContent"
+								/>
+								<MessageSigned
+									v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
+									:message="event.content!.signed_message"
+									class="max-w-[90ch]"
+								/>
+								<MessageFile
+									v-else-if="event.content!.msgtype === MsgType.File"
+									:message="event.content as TFileMessageEventContent"
+								/>
+								<MessageImage
+									v-else-if="event.content!.msgtype === MsgType.Image"
+									:message="event.content as TImageMessageEventContent"
+								/>
+								<MessageDisclosureRequest
+									v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
+									:event="event as TMessageEvent"
+									class="flex flex-col"
+								/>
+								<MessageDisclosed
+									v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
+									:message="event.content!.signed_message"
+									class="max-w-[90ch]"
+								/>
+								<VotingWidget
+									v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
+									:room="room"
+									:event="event as TVotingMessageEvent"
+									@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+									@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+								/>
+								<MessageVideoCall
+									v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
+									:event="props.event as any"
+									:room-id="room.roomId"
+								/>
+								<Message
+									v-else
+									:event="event as TMessageEvent"
+									:deleted="redactedMessage"
+								/>
+							</MessageHidden>
 
-						<!-- Non-hidden messages render directly -->
-						<template v-else-if="!redactedMessage">
-							<PrivilegedMessageBody
-								v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
-								:event="privilegedEventContent"
-							/>
-							<MessageSigned
-								v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
-								:message="event.content!.signed_message"
-								class="max-w-[90ch]"
-							/>
-							<MessageFile
-								v-else-if="event.content!.msgtype === MsgType.File"
-								:message="event.content as TFileMessageEventContent"
-							/>
-							<MessageImage
-								v-else-if="event.content!.msgtype === MsgType.Image"
-								:message="event.content as TImageMessageEventContent"
-							/>
-							<MessageDisclosureRequest
-								v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
-								:event="event as TMessageEvent"
-								class="flex flex-col"
-							/>
-							<MessageDisclosed
-								v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
-								:message="event.content!.signed_message"
-								class="max-w-[90ch]"
-							/>
-							<VotingWidget
-								v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
-								:room="room"
-								:event="event as TVotingMessageEvent"
-								@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
-								@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
-							/>
-							<MessageVideoCall
-								v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
-								:event="props.event as any"
-								:room-id="room.roomId"
-							/>
+							<!-- Non-hidden messages render directly -->
+							<template v-else-if="!redactedMessage">
+								<PrivilegedMessageBody
+									v-if="isPrivilegedMessage && !DirectRooms.includes(room.getType() as RoomType)"
+									:event="privilegedEventContent"
+								/>
+								<MessageSigned
+									v-else-if="event.content!.msgtype === PubHubsMgType.SignedMessage"
+									:message="event.content!.signed_message"
+									class="max-w-[90ch]"
+								/>
+								<MessageFile
+									v-else-if="event.content!.msgtype === MsgType.File"
+									:message="event.content as TFileMessageEventContent"
+								/>
+								<MessageImage
+									v-else-if="event.content!.msgtype === MsgType.Image"
+									:message="event.content as TImageMessageEventContent"
+								/>
+								<MessageDisclosureRequest
+									v-else-if="event.content!.msgtype === PubHubsMgType.AskDisclosureMessage"
+									:event="event as TMessageEvent"
+									class="flex flex-col"
+								/>
+								<MessageDisclosed
+									v-else-if="event.content!.msgtype === PubHubsMgType.DisclosedMessage"
+									:message="event.content!.signed_message"
+									class="max-w-[90ch]"
+								/>
+								<VotingWidget
+									v-else-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content!.msgtype === PubHubsMgType.VotingWidget"
+									:room="room"
+									:event="event as TVotingMessageEvent"
+									@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+									@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+								/>
+								<MessageVideoCall
+									v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
+									:event="props.event as any"
+									:room-id="room.roomId"
+								/>
+								<Message
+									v-else
+									:event="event as TMessageEvent"
+									:deleted="redactedMessage"
+								/>
+							</template>
 							<Message
 								v-else
 								:event="event as TMessageEvent"
 								:deleted="redactedMessage"
 							/>
 						</template>
-						<Message
-							v-else
-							:event="event as TMessageEvent"
-							:deleted="redactedMessage"
+						<EditedMarker
+							v-if="editedTs && props.isGrouped"
+							:timestamp="editedTs"
+							class="text-label-small ml-2 hidden group-hover:block"
 						/>
-					</template>
+					</div>
 
 					<!-- View-thread affordance: visible when this message has thread replies and we're not already inside the thread view. -->
 					<button
 						v-if="threadReplyCount > 0 && !viewFromThread && !redactedMessage && !room.isDirectMessageRoom() && !room.isForumRoom()"
 						type="button"
-						class="text-accent-primary hover:text-accent-primary/80 text-label-small mt-2 inline-flex items-center gap-1 hover:cursor-pointer hover:underline"
+						class="text-accent-primary hover:text-accent-primary/80 text-label-small gap-050 mt-100 inline-flex items-center hover:cursor-pointer hover:underline"
 						@click="replyInThread"
 					>
 						<Icon
@@ -378,7 +399,7 @@
 
 					<div
 						v-if="$slots.bottom || $slots.extras"
-						class="flex items-end justify-between gap-4"
+						class="flex items-end justify-between gap-200"
 					>
 						<!-- Extra slot bottom: forum stuff -->
 						<slot name="bottom"></slot>
@@ -397,6 +418,11 @@
 				@close="hideMessageDialog.visible = false"
 				@submit="onHideMessageDialogSubmit"
 			></HideMessageDialog>
+			<ReportDialog
+				v-if="reportDialog.visible"
+				@close="reportDialog.visible = false"
+				@submit="onReportDialogSubmit"
+			></ReportDialog>
 		</div>
 	</div>
 </template>
@@ -410,6 +436,8 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import HideMessageDialog from '@hub-client/components/forms/HideMessageDialog.vue';
+	import ReportDialog from '@hub-client/components/forms/ReportDialog.vue';
+	import EditedMarker from '@hub-client/components/rooms/EditedMarker.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import Message from '@hub-client/components/rooms/Message.vue';
 	import MessageDisclosed from '@hub-client/components/rooms/MessageDisclosed.vue';
@@ -429,6 +457,7 @@
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+	import { useModerationCreateReport } from '@hub-client/composables/moderation/create-report.composable';
 	import { useModerationHideMessage } from '@hub-client/composables/moderation/hide-message.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
@@ -457,6 +486,7 @@
 	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
+	import { Message as MessageBoxMessage, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -489,6 +519,7 @@
 
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
+		(e: 'editMessage', event: TMessageEvent): void;
 		(e: 'deleteMessage', event: TMessageEvent): void;
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
@@ -560,6 +591,7 @@
 		}
 	});
 	const { unHideMessage, hideMessageDialog, onHideMessageDialogSubmit, openHideMessageDialog } = useModerationHideMessage();
+	const { reportDialog, openReportDialog, onReportDialogSubmit } = useModerationCreateReport();
 
 	/**
 	 * Different types can be passed in props.event, this selects the event property from each type
@@ -583,11 +615,14 @@
 
 	const inReplyToId = event.value.content?.[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id ?? '';
 
+	// Edit timestamp (ph_edited_ts), stamped by the TimelineManager once an m.replace edit has been applied.
+	const editedTs = computed(() => event.value.content?.ph_edited_ts);
+
 	const showReactionPanel = computed(() => props.activeReactionPanel === event.value.event_id);
 
 	const msgIsNotSend = computed(() => event.value.event_id!.substring(0, 1) === '~');
 
-	const canReplyInThread = computed(() => !event.value.content![RelationType.RelatesTo]);
+	const canReplyInThread = computed(() => !event.value.content?.[RelationType.RelatesTo]);
 
 	// True when this component is rendering the thread root inside the thread sidebar (vs a reply).
 	// Used by the context menu to suppress actions that would target the message you're already threading from.
@@ -602,11 +637,11 @@
 		return deletedEvent.value || containsRedactedBecause;
 	});
 
-	const isAnnouncementMessage = computed(() => event.value.content!.msgtype === PubHubsMgType.AnnouncementMessage);
-	const isWhisperMessage = computed(() => event.value.content!.msgtype === PubHubsMgType.WhisperMessage);
+	const isAnnouncementMessage = computed(() => event.value.content?.msgtype === PubHubsMgType.AnnouncementMessage);
+	const isWhisperMessage = computed(() => event.value.content?.msgtype === PubHubsMgType.WhisperMessage);
 	const isPrivilegedMessage = computed(() => isAnnouncementMessage.value || isWhisperMessage.value);
 	const whisperTargetDisplayName = computed(() => {
-		const whisperToUserId = event.value.content!.whisper_to;
+		const whisperToUserId = event.value.content?.whisper_to;
 		if (!whisperToUserId) return '';
 		return user.userDisplayName(whisperToUserId) ?? whisperToUserId;
 	});
@@ -615,17 +650,16 @@
 	const isLastInGroup = computed(() => props.isGrouped && !props.isFollowedByGrouped);
 
 	const actionButtonPosition = computed(() => {
-		if (isFirstInGroup.value) return 'bottom-0 mb-1';
-		if (isLastInGroup.value) return 'top-0 mt-1';
+		if (isFirstInGroup.value) return 'bottom-0 mb-050';
+		if (isLastInGroup.value) return 'top-0 mt-050';
 		return 'top-0';
 	});
 
 	const getMessageContainerClasses = computed(() => {
 		const baseClasses = {
-			'p-2 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
+			'p-100 transition-all duration-150 ease-in-out': !props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
-			'bg-surface-low!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === event.value.event_id,
-			'group-hover:bg-surface-low! hover:bg-surface-low!': !isPrivilegedMessage.value || redactedMessage.value,
+			'bg-surface-sunken!': contextMenuStore.isOpen && contextMenuStore.currentTargetId === event.value.event_id,
 		};
 
 		if (!isPrivilegedMessage.value || redactedMessage.value) {
@@ -648,6 +682,8 @@
 	 */
 	function showReplySnippet(msgType: string): boolean {
 		if (isWhisperMessage.value) return false;
+		// Forum comments render nested under the comment they reply to, so a snippet is redundant
+		if (props.viewFromThread && props.room.isForumRoom()) return false;
 		if (props.viewFromThread) {
 			if (msgType === MsgType.Image || msgType === MsgType.File) {
 				return false;
@@ -661,6 +697,10 @@
 	function onInReplyToClick() {
 		if (!inReplyToId) return;
 		emit('inReplyToClick', inReplyToId);
+	}
+
+	function onEditMessage(event: TMessageEvent) {
+		emit('editMessage', event);
 	}
 
 	function onDeleteMessage(event: TMessageEvent) {
@@ -783,11 +823,28 @@
 		}
 
 		// Copy message text
-		if (!redactedMessage.value && typeof event.value.content!.body === 'string') {
+		if (!redactedMessage.value && typeof event.value.content?.body === 'string') {
 			utility.push({
 				label: t('menu.copy_message'),
 				icon: 'copy',
-				onClick: () => navigator.clipboard.writeText(event.value.content!.body),
+				onClick: () => {
+					const text = event.value.content?.body;
+					const mb = useMessageBox();
+					if (mb.inIframe) {
+						mb.sendMessage(new MessageBoxMessage(MessageType.ClipboardWrite, text));
+					} else {
+						navigator.clipboard.writeText(text);
+					}
+				},
+			});
+		}
+
+		// Report message (only for other users' messages)
+		if (!redactedMessage.value && event.value.sender !== user.userId && !props.room.isDirectMessageRoom()) {
+			utility.push({
+				label: capitalize(t('moderation.report_message')),
+				icon: 'warning',
+				onClick: () => openReportDialog(props.room.roomId, event.value.event_id!),
 			});
 		}
 
@@ -815,6 +872,24 @@
 				icon: 'eye',
 				...(event.value.sender! === user.userId ? {} : { variant: ContextVariant.steward }),
 				onClick: () => unHideMessage(props.room.roomId, event.value.event_id!),
+			});
+		}
+
+		// Edit (only your own messages).
+		// Editing is allowed on the thread/forum posts as well.
+		if (
+			settings.isFeatureEnabled(FeatureFlag.editMessages) &&
+			([MsgType.Text, MsgType.Image, MsgType.File] as string[])
+				.concat(PubHubsMgType.AnnouncementMessage)
+				.includes(event.value.content!.msgtype as string) &&
+			!msgIsNotSend.value &&
+			event.value.sender! === user.userId &&
+			!redactedMessage.value
+		) {
+			destructive.push({
+				label: t('menu.edit_message'),
+				icon: 'pencil-simple',
+				onClick: () => onEditMessage(event.value as TMessageEvent),
 			});
 		}
 

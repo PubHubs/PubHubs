@@ -12,7 +12,7 @@
 			<div
 				v-for="vote in yesVotes"
 				:key="vote.userId"
-				class="mr-2 flex gap-2"
+				class="mr-100 flex gap-100"
 			>
 				<UserDisplayName
 					:user-id="vote.userId"
@@ -32,7 +32,7 @@
 			<div
 				v-for="vote in maybeVotes"
 				:key="vote.userId"
-				class="mr-2 flex gap-2"
+				class="mr-100 flex gap-100"
 			>
 				<UserDisplayName
 					:user-id="vote.userId"
@@ -52,7 +52,7 @@
 			<div
 				v-for="(vote, index) in noVotes"
 				:key="index"
-				class="mr-2 flex gap-2"
+				class="mr-100 flex gap-100"
 			>
 				<UserDisplayName
 					:user-id="vote.userId"

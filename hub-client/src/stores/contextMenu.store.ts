@@ -62,16 +62,27 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 				title,
 			}));
 			messagebox.sendMessage(new Message(MessageType.ContextMenuOpen, { items: serialized, x: clientX, y: clientY, targetId }));
-		} else {
-			isOpen.value = true;
-			disableWheelScroll();
+		} else if (messagebox.inIframe) {
+			// On desktop the menu renders locally inside the hub iframe, so its scrim only covers the
+			// iframe. Ask the global-client to dim the global bar too. This uses a dedicated modal flag
+			// (not the dialog one) so a dialog opened from a menu item keeps the bar dimmed after close.
+			messagebox.sendMessage(new Message(MessageType.ContextMenuShowModal));
 		}
+
+		isOpen.value = true;
+		disableWheelScroll();
 	}
 
 	function close() {
 		isOpen.value = false;
 		items.value = [];
 		currentTargetId.value = null;
+
+		const messagebox = useMessageBox();
+		const settings = useSettings();
+		if (messagebox.inIframe && !settings.isMobileState) {
+			messagebox.sendMessage(new Message(MessageType.ContextMenuHideModal));
+		}
 
 		enableWheelScroll();
 	}

@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-clip rounded-full"
+		class="flex aspect-square h-600 w-600 shrink-0 items-center justify-center overflow-clip rounded-full"
 		:class="[avatarColor, stewardRing]"
 	>
 		<img
@@ -69,9 +69,9 @@
 	}
 
 	function getAvatarColor(): string {
-		if (!props.userId) return 'bg-surface-high';
+		if (!props.userId) return 'bg-surface-base';
 
-		if (!props.userId && !user.displayName) return 'bg-surface-high';
+		if (!props.userId && !user.displayName) return 'bg-surface-base';
 		if (!props.userId && user.displayName) return bgColor(color(props.userId));
 
 		return bgColor(color(props.userId));

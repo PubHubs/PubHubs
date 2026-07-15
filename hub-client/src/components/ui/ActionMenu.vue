@@ -17,7 +17,7 @@
 		</div>
 		<div
 			v-show="open"
-			class="menu-menu bg-surface absolute -mt-6 ml-6 rounded-md"
+			class="menu-menu bg-surface absolute -mt-300 ml-300 rounded-md"
 			:style="style"
 			@click.stop="close"
 		>

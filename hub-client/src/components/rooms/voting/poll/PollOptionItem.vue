@@ -4,12 +4,12 @@
 		:class="!showVotes && 'h-800'"
 	>
 		<div
-			class="flex h-full min-h-600 justify-between px-200 py-100"
+			class="flex h-full min-h-600 justify-between gap-100 px-200 py-100"
 			role="link"
 			:class="!closed && 'cursor-pointer'"
 			@click="$emit('vote', option.id)"
 		>
-			<div class="flex items-center gap-2">
+			<div class="flex min-w-0 items-center gap-100">
 				<div
 					v-if="hasUserVotedOnThisOption"
 					class="flex-none"
@@ -22,7 +22,7 @@
 				</div>
 				<div
 					v-else
-					class="relative"
+					class="relative flex-none"
 					:class="!closed && 'group/check'"
 				>
 					<Icon
@@ -36,19 +36,27 @@
 						type="check-circle"
 					/>
 				</div>
-				<div class="flex items-center gap-1">
-					<span>{{ option.title }}</span>
-					<span v-if="showVotes">({{ votes.length }}&nbsp;{{ $t('message.voting.plural_votes', votes.length) }})</span>
+				<div class="gap-050 flex min-w-0 items-center">
+					<span
+						class="truncate"
+						:title="option.title"
+						>{{ option.title }}</span
+					>
+					<span
+						v-if="showVotes"
+						class="shrink-0"
+						>({{ votes.length }}&nbsp;{{ $t('message.voting.plural_votes', votes.length) }})</span
+					>
 				</div>
 			</div>
 			<div
 				v-if="showVotesBeforeVoting || hasUserVotedOnThisOption || hasUserVotedOnOtherOption"
-				class="flex flex-wrap items-center gap-2"
+				class="flex items-center gap-100"
 			>
 				<Avatar
 					v-for="userId in userIds.slice(0).slice(-3)"
 					:key="userId"
-					class="h-full max-h-12 w-auto max-sm:hidden"
+					class="h-full max-h-600 w-auto max-sm:hidden"
 					:avatar-url="user.userAvatar(userId)"
 					:user-id="userId"
 				/>

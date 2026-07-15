@@ -539,6 +539,282 @@ class HubStore:
             user_id
         )
         
+    async def get_event_reports_for_room(
+        self,
+        room_id: str,
+        start: int = 0,
+        limit: int = 100,
+        backwards: bool = True,
+    ) -> tuple[list[dict], int]:
+        """Get paginated event reports for a specific room.
+
+        Args:
+            room_id: The room to get reports for
+            start: Pagination offset
+            limit: Maximum number of results
+            backwards: If True, return newest first; if False, oldest first
+
+        Returns:
+            Tuple of (list of report dicts, total count)
+        """
+        return await self.get_event_reports_for_rooms([room_id], start, limit, backwards)
+
+    async def get_event_reports_for_rooms(
+        self,
+        room_ids: list[str],
+        start: int = 0,
+        limit: int = 100,
+        backwards: bool = True,
+    ) -> tuple[list[dict], int]:
+        """Get paginated event reports for multiple rooms.
+
+        Args:
+            room_ids: List of room IDs to get reports for
+            start: Pagination offset
+            limit: Maximum number of results
+            backwards: If True, return newest first; if False, oldest first
+
+        Returns:
+            Tuple of (list of report dicts, total count)
+        """
+        if not room_ids:
+            return [], 0
+
+        def get_event_reports_for_rooms_txn(
+            txn: LoggingTransaction,
+            room_ids_txn: list[str],
+            start_txn: int,
+            limit_txn: int,
+            backwards_txn: bool,
+        ) -> tuple[list[dict], int]:
+            order = "DESC" if backwards_txn else "ASC"
+            placeholders = ",".join("?" * len(room_ids_txn))
+
+            # Get total count
+            txn.execute(
+                f"""
+                SELECT COUNT(*) FROM event_reports
+                WHERE room_id IN ({placeholders})
+                """,
+                room_ids_txn,
+            )
+            total = txn.fetchone()[0]
+
+            # Get paginated results
+            txn.execute(
+                f"""
+                SELECT
+                    er.id,
+                    er.received_ts,
+                    er.room_id,
+                    er.event_id,
+                    er.user_id,
+                    er.content,
+                    events.sender,
+                    room_stats_state.canonical_alias,
+                    room_stats_state.name
+                FROM event_reports AS er
+                LEFT JOIN events ON events.event_id = er.event_id
+                LEFT JOIN room_stats_state ON room_stats_state.room_id = er.room_id
+                WHERE er.room_id IN ({placeholders})
+                ORDER BY er.received_ts {order}
+                LIMIT ?
+                OFFSET ?
+                """,
+                (*room_ids_txn, limit_txn, start_txn),
+            )
+
+            reports = []
+            for row in txn:
+                try:
+                    content = json.loads(row[5]) if row[5] else {}
+                    score = content.get("score")
+                    reason = content.get("reason")
+                except Exception:
+                    logger.error(f"Unable to parse json from event_reports: {row[0]}")
+                    continue
+
+                reports.append(
+                    {
+                        "id": row[0],
+                        "received_ts": row[1],
+                        "room_id": row[2],
+                        "event_id": row[3],
+                        "user_id": row[4],
+                        "score": score,
+                        "reason": reason,
+                        "sender": row[6],
+                        "canonical_alias": row[7],
+                        "name": row[8],
+                    }
+                )
+
+            return reports, total
+
+        return await self._module_api.run_db_interaction(
+            "get_event_reports_for_rooms",
+            get_event_reports_for_rooms_txn,
+            room_ids,
+            start,
+            limit,
+            backwards,
+        )
+
+    async def get_event_report(self, report_id: int) -> Optional[dict]:
+        """Get a single event report by ID.
+
+        Args:
+            report_id: The ID of the report
+
+        Returns:
+            Report dict or None if not found
+        """
+
+        def get_event_report_txn(
+            txn: LoggingTransaction,
+            report_id_txn: int,
+        ) -> Optional[dict]:
+            txn.execute(
+                """
+                SELECT
+                    er.id,
+                    er.received_ts,
+                    er.room_id,
+                    er.event_id,
+                    er.user_id,
+                    er.content,
+                    events.sender,
+                    room_stats_state.canonical_alias,
+                    room_stats_state.name,
+                    event_json.json AS event_json
+                FROM event_reports AS er
+                LEFT JOIN events ON events.event_id = er.event_id
+                LEFT JOIN event_json ON event_json.event_id = er.event_id
+                LEFT JOIN room_stats_state ON room_stats_state.room_id = er.room_id
+                WHERE er.id = ?
+                """,
+                (report_id_txn,),
+            )
+
+            row = txn.fetchone()
+            if not row:
+                return None
+
+            try:
+                content = json.loads(row[5]) if row[5] else {}
+                event_json_data = json.loads(row[9]) if row[9] else None
+            except Exception:
+                logger.error(f"Unable to parse json from event_reports: {row[0]}")
+                content = {}
+                event_json_data = None
+
+            return {
+                "id": row[0],
+                "received_ts": row[1],
+                "room_id": row[2],
+                "event_id": row[3],
+                "user_id": row[4],
+                "score": content.get("score"),
+                "reason": content.get("reason"),
+                "sender": row[6],
+                "canonical_alias": row[7],
+                "name": row[8],
+                "event_json": event_json_data,
+            }
+
+        return await self._module_api.run_db_interaction(
+            "get_event_report",
+            get_event_report_txn,
+            report_id,
+        )
+
+    async def delete_event_report(self, report_id: int) -> bool:
+        """Delete an event report by ID.
+
+        Args:
+            report_id: The ID of the report to delete
+
+        Returns:
+            True if deleted, False if not found
+        """
+
+        def delete_event_report_txn(
+            txn: LoggingTransaction,
+            report_id_txn: int,
+        ) -> bool:
+            txn.execute(
+                """
+                DELETE FROM event_reports WHERE id = ?
+                """,
+                (report_id_txn,),
+            )
+            return txn.rowcount > 0
+
+        return await self._module_api.run_db_interaction(
+            "delete_event_report",
+            delete_event_report_txn,
+            report_id,
+        )
+
+    async def get_rooms_with_power_level(
+        self,
+        user_id: str,
+        min_power_level: int,
+    ) -> list[str]:
+        """Get all rooms where a user has at least the specified power level.
+
+        Args:
+            user_id: The user ID to check
+            min_power_level: The minimum power level required
+
+        Returns:
+            List of room IDs where the user has the required power level
+        """
+
+        def get_rooms_with_power_level_txn(
+            txn: LoggingTransaction,
+            user_id_txn: str,
+            min_power_level_txn: int,
+        ) -> list[str]:
+            # Get all rooms the user is a member of along with power levels JSON
+            txn.execute(
+                """
+                SELECT rm.room_id, ej.json
+                FROM room_memberships rm
+                INNER JOIN current_state_events cse
+                    ON cse.room_id = rm.room_id
+                    AND cse.type = 'm.room.power_levels'
+                    AND cse.state_key = ''
+                INNER JOIN event_json ej
+                    ON ej.event_id = cse.event_id
+                WHERE rm.user_id = ?
+                AND rm.membership = 'join'
+                """,
+                (user_id_txn,),
+            )
+
+            rooms_with_power = []
+            for room_id, power_levels_json in txn.fetchall():
+                try:
+                    event_json = json.loads(power_levels_json)
+                    content = event_json.get("content", {})
+                    users = content.get("users", {})
+                    user_power = users.get(user_id_txn, content.get("users_default", 0))
+                    if user_power >= min_power_level_txn:
+                        rooms_with_power.append(room_id)
+                except (json.JSONDecodeError, KeyError):
+                    continue
+
+            return rooms_with_power
+
+        return await self._module_api.run_db_interaction(
+            "get_rooms_with_power_level",
+            get_rooms_with_power_level_txn,
+            user_id,
+            min_power_level,
+        )
+
+
 def tuple_to_room(room) -> SecuredRoom:
     logger.info(f"Tuple looks like  {room}")
     (room_id, name, topic, accepted, expiration_time_days, user_txt, type) = room

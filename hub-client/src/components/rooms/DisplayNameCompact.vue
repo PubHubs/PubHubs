@@ -1,6 +1,6 @@
 <template>
 	<span
-		class="flex items-center gap-1"
+		class="gap-050 flex items-center"
 		:title="pseudonym"
 	>
 		<span v-if="userDisplayName">{{ userDisplayName }}</span>

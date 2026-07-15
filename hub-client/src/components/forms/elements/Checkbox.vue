@@ -2,7 +2,13 @@
 	<div
 		class="form-checkbox flex items-center justify-start gap-200"
 		:class="disabled ? '' : 'cursor-pointer'"
+		role="checkbox"
+		:aria-checked="model ? 'true' : 'false'"
+		:aria-disabled="disabled || undefined"
+		:tabindex="disabled ? -1 : 0"
 		@click="toggle(disabled)"
+		@keydown.enter.prevent="toggle(disabled)"
+		@keydown.space.prevent="toggle(disabled)"
 		@focusin="setFocus(true)"
 		@focusout="setFocus(false)"
 	>
@@ -10,12 +16,12 @@
 			<div
 				v-if="!model"
 				class="bg-surface-base outline-offset-thin outline-on-surface-dim h-200 w-200 rounded outline"
-				:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
+				:class="{ 'ring-accent-blue-interactive ring-3': hasFocus, 'opacity-50': disabled }"
 			/>
 			<div
 				v-else
 				class="bg-on-accent-blue outline-accent-on-blue p-thin outline-offset-thin flex h-200 w-200 flex-col items-center justify-center rounded outline"
-				:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
+				:class="{ 'ring-accent-blue-interactive ring-3': hasFocus, 'opacity-50': disabled }"
 			>
 				<div class="relative h-150 w-150 overflow-hidden rounded">
 					<div class="outline-accent-blue h-075 top-025 left-025 absolute w-125">
@@ -43,6 +49,8 @@
 			:checked="model"
 			:disabled="disabled"
 			type="checkbox"
+			tabindex="-1"
+			aria-hidden="true"
 			@blur="setFocus(false)"
 			@change="toggle(disabled)"
 			@focus="setFocus(true)"

@@ -5,7 +5,7 @@
 			<div class="relative grow">
 				<button
 					v-if="option.status === 'empty'"
-					class="bg-surface-base outline-offset-thin outline-on-surface-dim focus:outline-button-blue w-full justify-start rounded px-175 py-100 text-left outline-2 focus:outline-3"
+					class="bg-surface-base outline-offset-thin outline-on-surface-dim focus:outline-accent-blue-interactive w-full justify-start rounded px-175 py-100 text-left outline-2 focus:outline-3"
 				>
 					<VueDatePicker
 						id="schedulerDatePickerInput"
@@ -32,7 +32,7 @@
 				</button>
 				<div
 					v-else-if="option.status === 'filled'"
-					class="bg-surface-base outline-offset-thin outline-on-surface-dim focus-within:outline-button-blue flex w-full items-center rounded px-175 py-100 outline-2 focus-within:outline-3"
+					class="bg-surface-base outline-offset-thin outline-on-surface-dim focus-within:outline-accent-blue-interactive flex w-full items-center rounded px-175 py-100 outline-2 focus-within:outline-3"
 				>
 					<VueDatePicker
 						v-model="date"

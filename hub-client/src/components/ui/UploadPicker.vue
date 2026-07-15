@@ -1,6 +1,6 @@
 <template>
 	<button
-		class="m-2 flex flex-col items-center"
+		class="m-100 flex flex-col items-center"
 		@click="click"
 	>
 		<Icon

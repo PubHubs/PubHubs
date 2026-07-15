@@ -6,12 +6,11 @@
 				doAction(DialogOk);
 			}
 		"
-		@keydown.esc="doAction(DialogCancel)"
 	>
 		<!-- Scrim -->
 		<div
 			v-if="dialog.properties.modal"
-			class="bg-surface-high absolute h-full w-full opacity-80"
+			class="bg-scrim/50 dark:bg-scrim/75 absolute h-full w-full"
 		/>
 
 		<!-- Dialog -->
@@ -27,40 +26,47 @@
 				:class="isMobile && dialog.properties.type != 'global' ? 'w-[calc(50vw+40px)]' : 'w-full'"
 			>
 				<div
-					class="bg-surface-low shadow-surface-high flex max-h-full flex-col justify-between gap-1 rounded-md p-4 shadow-xl md:m-4"
+					class="bg-surface-base rounded-base border-surface-elevated gap-050 flex max-h-full flex-col justify-between border-3 shadow-2xl"
 					:class="width"
 					@click.stop
 				>
-					<div class="flex w-full items-center justify-between">
+					<div class="flex w-full items-center justify-between p-200">
 						<H2 v-if="dialog.properties.title !== ''">
 							{{ dialog.properties.title }}
 						</H2>
 						<slot name="header" />
-						<Icon
+						<button
 							v-if="dialog.properties.close"
-							class="float-right -mt-1 cursor-pointer hover:opacity-75"
-							type="x"
+							type="button"
+							class="float-right cursor-pointer hover:opacity-75"
+							:aria-label="$t('dialog.close')"
 							@click="doAction(DialogCancel)"
-						/>
+						>
+							<Icon type="x" />
+						</button>
 					</div>
-					<Divider v-if="hasContent" />
+					<Divider
+						v-if="hasContent"
+						class="my-0!"
+					/>
 					<div
 						v-if="hasContent"
-						class="h-full py-1 pr-4 text-left"
+						class="pb-050 h-full p-200 pr-200 text-left"
 						:class="props.allowOverflow ? 'overflow-visible' : 'overflow-y-auto'"
 					>
 						<slot />
-						<!-- eslint-disable vue/no-v-html -- sanitized via sanitizeHtml -->
 						<div
 							v-if="dialog.properties.content !== ''"
-							v-html="sanitizedContent"
+							v-safe-html="dialog.properties.content"
 						/>
-						<!-- eslint-enable vue/no-v-html -->
 					</div>
-					<Divider v-if="dialog.properties.buttons.length > 0" />
+					<Divider
+						v-if="dialog.properties.buttons.length > 0"
+						class="my-0!"
+					/>
 					<div
 						v-if="dialog.properties.buttons.length > 0"
-						class="flex w-full flex-row-reverse justify-start gap-2"
+						class="flex w-full flex-row-reverse justify-start gap-100 p-200"
 					>
 						<div
 							v-for="(button, index) in dialog.properties.buttons"
@@ -90,9 +96,6 @@
 	import Divider from '@hub-client/components/elements/Divider.vue';
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-
-	// Logic
-	import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 
 	// Hub imports
 	import { type DialogButton, type DialogButtonAction, DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
@@ -130,9 +133,13 @@
 		return slots['default'] || dialog.properties.content !== '';
 	});
 
-	const sanitizedContent = computed(() => sanitizeHtml(dialog.properties.content));
+	function handleGlobalKeydown(e: KeyboardEvent) {
+		// Escape dismisses the dialog regardless of where focus currently is
+		if (e.key === 'Escape') doAction(DialogCancel);
+	}
 
 	onUnmounted(() => {
+		document.removeEventListener('keydown', handleGlobalKeydown);
 		dialog.hideModal();
 	});
 
@@ -145,6 +152,7 @@
 		}
 		dialog.properties.type = props.type;
 		dialog.showModal();
+		document.addEventListener('keydown', handleGlobalKeydown);
 	});
 	watch(
 		() => props.buttons,

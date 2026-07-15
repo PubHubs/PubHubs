@@ -10,10 +10,9 @@ import os
 
 from .HubClientApiConfig import HubClientApiConfig
 from ._store import HubStore
-from ._validation import assert_is_admin, user_validator, assert_has_power_level
-from ._errors import InsufficientPowerLevelError
+from ._validation import user_validator
 from ._cors import set_allow_origin_header
-from ._constants import USER, STEWARD
+from ._constants import USER
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
@@ -167,37 +166,27 @@ class HubDataResource(DirectServeJsonResource):
 			case "consent":
 
 				accepted_consent_version = body.get("version")
-				
+
 				if not accepted_consent_version:
 					respond_with_json(request, 400, {"error": "Missing required version parameter"})
 					return
-				
+
 				try:
 					accepted_consent_version_int = int(accepted_consent_version)
 				except:
 					respond_with_json(request, 400, {"error": "Version parameter should be a value that can be converted to an integer"})
 					return
-				
+
 				try:
 					await self._hub_store.set_user_consent_version( accepted_consent_version_int, user_id )
 
 					response = {
 						"success": True, }
-					
+
 				except Exception as e:
 					logger.error(f"Error recording consent: {e}")
 					respond_with_json(request, 500, {"error": "Failed to record consent"})
 					return
-			case 'removed_from_secured_room':
-				room_id = body.get('room_id')
-				try:
-					await assert_has_power_level(request, user_id, self._module_api, STEWARD, room_id)
-				except InsufficientPowerLevelError:
-					# If not a steward, check if hub admin
-					await assert_is_admin(user_id, request, self._module_api)
-				await self._hub_store.remove_users_from_secured_room(room_id)
-				response = {
-						"success": True, }
 			case 'remove_allowed_join_room_row':
 				room_id = body.get('room_id')
 				await self._hub_store.remove_allowed_join_room_row(room_id, user_id)

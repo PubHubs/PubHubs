@@ -45,8 +45,6 @@ const defaultUser = {} as User;
 type State = {
 	client: MatrixClient | undefined; // Store can also communicate with synapse for writes.
 	userId: string | null;
-	_avatarUrl: string | undefined; // In case of authorized media: this is the url of the cached blob
-	_displayName: string | undefined | null;
 	usersProfile: Map<string, UserProfile>; // Key-value pairs of users. Key=UserId.
 	administrator: Administrator | null;
 	isAdministrator: boolean;
@@ -61,8 +59,6 @@ const useUser = defineStore('user', {
 	state: (): State => ({
 		client: undefined,
 		userId: null,
-		_avatarUrl: undefined,
-		_displayName: undefined,
 		administrator: null,
 		usersProfile: new Map<string, UserProfile>(),
 		isAdministrator: false,
@@ -91,12 +87,12 @@ const useUser = defineStore('user', {
 			return isAdministrator;
 		},
 
-		avatarUrl({ _avatarUrl }): string | undefined {
-			return _avatarUrl;
+		avatarUrl(state): string | undefined {
+			return state.userId ? state.usersProfile.get(state.userId)?.avatarUrl : undefined;
 		},
 
-		displayName({ _displayName }): string | null | undefined {
-			return _displayName;
+		displayName(state): string | null | undefined {
+			return state.userId ? state.usersProfile.get(state.userId)?.displayName : undefined;
 		},
 
 		pseudonym({ userId }): string {
@@ -154,16 +150,22 @@ const useUser = defineStore('user', {
 					memberToUpdate?.displayName !== member.content.displayname ||
 					memberToUpdate?.contentAvatarUrl !== member.content.avatar_url
 				) {
-					// Revoke old avatar blob URL before replacing
-					if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
-						URL.revokeObjectURL(memberToUpdate.avatarUrl);
+					const profile: UserProfile = {};
+
+					if (memberToUpdate?.displayName !== member.content.displayname) {
+						profile.displayName = member.content.displayname ?? undefined;
 					}
-					const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
-					const profile: UserProfile = {
-						displayName: member.content.displayname ?? undefined,
-						avatarUrl: avatarUrl,
-						contentAvatarUrl: member.content.avatar_url,
-					};
+
+					if (memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
+						// Revoke old avatar blob URL before replacing
+						if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
+							URL.revokeObjectURL(memberToUpdate.avatarUrl);
+						}
+						const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
+						profile.avatarUrl = avatarUrl;
+						profile.contentAvatarUrl = member.content.avatar_url;
+					}
+
 					this.setUserProfile(member.sender, profile);
 				}
 			});
@@ -178,28 +180,67 @@ const useUser = defineStore('user', {
 
 		async setDisplayName(name: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
-			this._displayName = name;
-			this.client.setDisplayName(name);
+			try {
+				await this.client.setDisplayName(name);
+			} catch (error) {
+				logger.error('Failed to set display name on server', error);
+				return;
+			}
+			if (this.userId) {
+				const existing = this.usersProfile.get(this.userId) ?? {};
+				this.setUserProfile(this.userId, { ...existing, displayName: name });
+			}
 		},
 
 		async setAvatarUrl(avatarUrl: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
 
-			// Revoke old avatar blob URL before replacing
-			if (this._avatarUrl?.startsWith('blob:')) {
-				URL.revokeObjectURL(this._avatarUrl);
+			const { getAuthorizedMediaUrl } = useMatrixFiles();
+			const authorizedUrl = await getAuthorizedMediaUrl(avatarUrl);
+
+			try {
+				await this.client.setAvatarUrl(avatarUrl);
+			} catch (error) {
+				logger.error('Failed to set avatar on server', error);
+				return;
 			}
 
-			const { getAuthorizedMediaUrl } = useMatrixFiles();
-			this._avatarUrl = await getAuthorizedMediaUrl(avatarUrl);
-			this.client.setAvatarUrl(avatarUrl);
+			// Revoke old avatar blob URL before replacing
+			const oldAvatar = this.userId ? this.usersProfile.get(this.userId)?.avatarUrl : undefined;
+			if (oldAvatar?.startsWith('blob:')) {
+				URL.revokeObjectURL(oldAvatar);
+			}
+
+			if (this.userId) {
+				const existing = this.usersProfile.get(this.userId) ?? {};
+				this.setUserProfile(this.userId, { ...existing, contentAvatarUrl: avatarUrl, avatarUrl: authorizedUrl });
+			}
 		},
 
 		// Profile setter method for me.
 		// This method is used during login of me.
-		setProfile(profile: { avatar_url?: string; displayname?: string }) {
-			if (profile.avatar_url !== undefined) this.setAvatarUrl(profile.avatar_url);
-			if (profile.displayname !== undefined) this.setDisplayName(profile.displayname);
+		async setProfile(profile: { avatar_url?: string; displayname?: string }) {
+			if (!this.userId) return;
+
+			const existing = this.usersProfile.get(this.userId) ?? {};
+			const profileData: UserProfile = { ...existing };
+
+			if (profile.displayname !== undefined) {
+				profileData.displayName = profile.displayname;
+			}
+
+			if (profile.avatar_url !== undefined) {
+				const { getAuthorizedMediaUrl } = useMatrixFiles();
+				const authorizedUrl = await getAuthorizedMediaUrl(profile.avatar_url);
+				const oldAvatar = this.usersProfile.get(this.userId)?.avatarUrl;
+				if (oldAvatar?.startsWith('blob:')) {
+					URL.revokeObjectURL(oldAvatar);
+				}
+				profileData.avatarUrl = authorizedUrl;
+				profileData.contentAvatarUrl = profile.avatar_url;
+			}
+
+			this.setUserProfile(this.userId, profileData);
 		},
 
 		// Profile setter method for all users.

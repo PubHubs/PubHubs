@@ -57,7 +57,15 @@
 		fields.value = fields.value.filter((field) => field.fieldId !== fieldId);
 	};
 
+	const resetForm = () => {
+		fields.value.forEach((f) => {
+			f.changed = false;
+		});
+	};
+
 	provide('addField', addField);
 	provide('removeField', removeField);
 	provide('formDisabled', props.disabled);
+
+	defineExpose({ resetForm });
 </script>

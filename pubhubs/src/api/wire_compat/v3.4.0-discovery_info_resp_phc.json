@@ -1,0 +1,26 @@
+{
+  "name": "phc",
+  "self_check_code": "selfcheck-phc",
+  "version": "test-version",
+  "phc_url": "https://phc.example.test/",
+  "verifying_key": {"ed":"AA==","ml":"AQ=="},
+  "constellation": {
+    "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "created_at": 1700000000,
+    "transcryptor_url": "https://tr.example.test/",
+    "transcryptor_verifying_key": {"ed":"AA==","ml":"AQ=="},
+    "transcryptor_master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "transcryptor_encap_key_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "transcryptor_ss_encap": {"ml":"AA==","ec":"AQ=="},
+    "phc_url": "https://phc.example.test/",
+    "phc_jwt_key": "0000000000000000000000000000000000000000000000000000000000000000",
+    "phc_verifying_key": {"ed":"AA==","ml":"AQ=="},
+    "phc_master_enc_key_part_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "auths_url": "https://auths.example.test/",
+    "auths_verifying_key": {"ed":"AA==","ml":"AQ=="},
+    "auths_encap_key_id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "auths_ss_encap": {"ml":"AA==","ec":"AQ=="},
+    "global_client_url": "https://gc.example.test/",
+    "ph_version": "test-version"
+  }
+}

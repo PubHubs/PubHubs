@@ -153,7 +153,16 @@ export default class AuthenticationServer {
 			this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
 		const okAuthStartResp = await handleErrors<TAuths.StartResp>(authStartRespFn);
 
-		if ('UnknownAttrType' in okAuthStartResp) {
+		// String variants are handled before the `in` checks below: `'x' in <string primitive>` throws
+		// a TypeError, so narrowing strings away first keeps `in` operating only on objects.
+		if (okAuthStartResp === 'ChainedSessionsTemporarilyUnavailable') {
+			// TODO: the auth server is at its concurrent chained-session limit. Rather than surfacing
+			// this to the user, we could fall back to the non-chained card-issuance flow (retry
+			// authStartEP with yivi_chained_session=false, at the cost of a second Yivi QR scan).
+			throw new Error('The authentication server is temporarily busy with card issuance; please try again in a moment.');
+		} else if (typeof okAuthStartResp === 'string') {
+			throw new Error(`Unexpected string response in authStartEP: ${okAuthStartResp}`);
+		} else if ('UnknownAttrType' in okAuthStartResp) {
 			throw new Error(`Unknown attribute handle: ${okAuthStartResp.UnknownAttrType}`);
 		} else if ('SourceNotAvailableFor' in okAuthStartResp) {
 			throw new Error(`Source ${requestBody.source} not available for attribute: ${okAuthStartResp.SourceNotAvailableFor}`);

@@ -1,7 +1,7 @@
 <template>
 	<div class="relative">
 		<div
-			class="bg-blue hover:bg-blue-dark relative z-10 flex cursor-pointer justify-items-stretch rounded-md p-2 text-white"
+			class="bg-blue hover:bg-blue-dark relative z-10 flex cursor-pointer justify-items-stretch rounded-md p-100 text-white"
 			@click="toggle()"
 		>
 			<div>
@@ -13,7 +13,7 @@
 		</div>
 		<div
 			v-show="!collapsed"
-			class="-z-10 -mt-2 rounded-md border p-2"
+			class="-z-10 -mt-100 rounded-md border p-100"
 		>
 			<slot />
 		</div>

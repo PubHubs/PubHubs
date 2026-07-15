@@ -15,7 +15,7 @@ export type MenuItem = ContextMenuItemProps & {
 };
 
 export enum ContextVariant {
-	delicate = 'text-button-red',
+	delicate = 'text-accent-red-interactive',
 	yellow = 'text-accent-yellow',
 	steward = 'text-accent-steward',
 }

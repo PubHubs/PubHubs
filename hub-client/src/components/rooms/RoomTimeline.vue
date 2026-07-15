@@ -22,10 +22,9 @@
 				/>
 
 				<!-- Expands if the timeline height < the vieport, to top-align the content -->
-				<div class="flex h-full items-center justify-center px-4 md:px-16">
-					<InlineSpinner v-if="!props.room.syncDataReceived && reversedTimeline.length === 0" />
+				<div class="flex h-full items-center justify-center px-200 md:px-800">
 					<P
-						v-else-if="props.room.syncDataReceived && reversedTimeline.length === 0"
+						v-if="props.room.syncDataReceived && reversedTimeline.length === 0"
 						class="text-on-surface-dim text-center"
 					>
 						{{ $t('rooms.no_messages_yet') }}
@@ -53,6 +52,7 @@
 								:room="room"
 								@clicked-emoticon="sendEmoji"
 								@delete-message="confirmDeleteMessage(item.matrixEvent.event as TMessageEvent, item.isThreadRoot)"
+								@edit-message="onEditMessage"
 								@edit-poll="onEditPoll"
 								@edit-scheduler="onEditScheduler"
 								@in-reply-to-click="onInReplyToClick"
@@ -62,11 +62,11 @@
 								<template #reactions>
 									<div
 										v-if="reactionExistsForMessage(item)"
-										class="mt-2 mb-1 flex flex-wrap gap-2"
-										:class="isMobile ? 'px-2' : 'px-5'"
+										class="mb-050 mt-100 flex flex-wrap gap-100"
+										:class="isMobile ? 'px-100' : 'px-250'"
 									>
 										<Reaction
-											class="pl-16"
+											class="pl-800"
 											:message-event-id="item.matrixEvent.event.event_id!"
 											:react-event="onlyReactionEvent(item.matrixEvent.event.event_id!)"
 										/>
@@ -85,7 +85,7 @@
 				<!-- Room created indicator-->
 				<div
 					v-if="oldestEventIsLoaded"
-					class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-2 flex w-fit items-center justify-center gap-2 border uppercase"
+					class="text-label-tiny border-on-surface-dim text-on-surface rounded-base px-075 py-025 pt-050 mx-auto my-100 flex w-fit items-center justify-center gap-100 border uppercase"
 				>
 					{{ $t('rooms.roomCreated') }}
 				</div>
@@ -95,6 +95,14 @@
 					ref="topSentinel"
 					class="pointer-events-none mt-0! h-[1px] shrink-0 opacity-0"
 				/>
+			</div>
+
+			<!-- Loading indicator anchored at the bottom; already fetched/cached content or the empty state stays visible while loading -->
+			<div
+				v-if="!props.room.syncDataReceived"
+				class="pointer-events-none absolute inset-x-0 bottom-200 flex justify-center"
+			>
+				<InlineSpinner />
 			</div>
 
 			<JumpToUnreadThreadButton
@@ -110,7 +118,8 @@
 
 		<MessageInput
 			v-if="room"
-			class="z-10 shrink-0"
+			class="shrink-0"
+			:editing-message="editingMessageProp"
 			:editing-poll="editingPollProp"
 			:editing-scheduler="editingSchedulerProp"
 			:in-thread="false"
@@ -196,6 +205,8 @@
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
 	const editingPollProp = computed(() => editingPoll.value as { poll: Poll; eventId: string } | undefined);
 	const editingSchedulerProp = computed(() => editingScheduler.value as { scheduler: Scheduler; eventId: string } | undefined);
+	const editingMessage = ref<{ event: TMessageEvent } | undefined>(undefined);
+	const editingMessageProp = computed(() => editingMessage.value as { event: TMessageEvent } | undefined);
 	const initialLoadComplete = ref(false);
 
 	const { READ_DELAY_MS, PAGINATION_COOLDOWN, SCROLL_DEBOUNCE } = TimelineScrollConstants;
@@ -446,29 +457,26 @@
 		{ deep: true },
 	);
 
+	// Edits (m.replace) mutate event content in place without changing the timeline length or current event,
+	// so they don't hit the watchers above. The room toggles threadUpdated when an edit is applied;
+	watch(
+		() => props.room.threadUpdated,
+		() => refreshTimelineVersion(),
+	);
+
 	function onlyReactionEvent(eventId: string) {
-		props.room
+		// To stop from having duplicate events
+		// Return a fresh, message-scoped array. Must not read+mutate shared reactive state during render (that caused a self-triggering render effect
+		return props.room
 			.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation })
-			.forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
-		return props.room.getCurrentEventRelatedEvents();
+			.map((reactEvent) => reactEvent.matrixEvent);
 	}
 
 	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
-		if (timelineEvent.isDeleted || (timelineEvent.matrixEvent && timelineEvent.matrixEvent.isRedacted())) return false;
-		const messageEventId = timelineEvent.matrixEvent.event.event_id;
-		if (!messageEventId) return false;
-
-		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
-			const relatesTo = event.getContent()[RelationType.RelatesTo];
-			return relatesTo && relatesTo.event_id === messageEventId;
-		});
-
-		if (reactionEvent) {
-			const relatesTo = reactionEvent.getContent()[RelationType.RelatesTo];
-			return relatesTo?.key ? true : false;
-		}
-
-		return false;
+		if (timelineEvent.isDeleted || timelineEvent.matrixEvent?.isRedacted()) return false;
+		const eventId = timelineEvent.matrixEvent.event.event_id;
+		if (!eventId) return false;
+		return onlyReactionEvent(eventId).some((event) => !!event.getContent()[RelationType.RelatesTo]?.key);
 	}
 
 	async function sendEmoji(emoji: string, eventId: string) {
@@ -666,6 +674,10 @@
 
 	function onEditScheduler(scheduler: Scheduler, eventId: string) {
 		editingScheduler.value = { scheduler, eventId };
+	}
+
+	function onEditMessage(event: TMessageEvent) {
+		editingMessage.value = { event };
 	}
 
 	function toggleReactionPanel(eventId: string) {

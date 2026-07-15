@@ -83,9 +83,14 @@ enum MessageType {
 	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
 	BarHide = 'visibilityBar-hide',
 	EventChange = 'eventchange',
-	CloseSidebar = 'closesidebar', // Close the sidebar in the hub client
+	CloseSidebar = 'closesidebar', // Back navigation in the hub client: close an open forum post or sidebar, else scroll back
 	ContextMenuOpen = 'contextmenu-open', // Hub asks global to show a context menu
 	ContextMenuSelect = 'contextmenu-select', // Global sends selected item index back to hub
+	ContextMenuClose = 'contextmenu-close', // Global notifies hub that the context menu was dismissed
+	ContextMenuShowModal = 'contextmenu-modal-show', // Hub asks global to dim the bar while a desktop context menu (rendered in the hub iframe) is open
+	ContextMenuHideModal = 'contextmenu-modal-hide', // Hub asks global to stop dimming the bar
+
+	ClipboardWrite = 'clipboard-write', // Hub asks global to write text to clipboard (top-level frame has clipboard access; iframes may not)
 
 	// Per-hub key-value store persisted in the global client's localStorage.
 	// The hub client's own localStorage is unreliable (blocked in third-party

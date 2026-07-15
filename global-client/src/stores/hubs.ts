@@ -281,6 +281,15 @@ const useHubs = defineStore('hubs', {
 					global.hideModal();
 				});
 
+				// Dim the bar while a desktop context menu (rendered inside the hub iframe) is open.
+				// Kept separate from the dialog modal so the two never clear each other's dimming.
+				messagebox.addCallback(iframeHubId, MessageType.ContextMenuShowModal, () => {
+					global.showContextMenuModal();
+				});
+				messagebox.addCallback(iframeHubId, MessageType.ContextMenuHideModal, () => {
+					global.hideContextMenuModal();
+				});
+
 				// Store and remove access tokens when sent from the hub client
 				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
 					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content as string);
@@ -300,12 +309,31 @@ const useHubs = defineStore('hubs', {
 						y,
 						targetId,
 					);
+
+					// When the context menu is dismissed (scrim click, escape, or item
+					// selection), notify the hub so it can clear the message highlight.
+					const unsubscribe = contextMenu.$subscribe(() => {
+						if (!contextMenu.isOpen) {
+							messagebox.sendMessage(new Message(MessageType.ContextMenuClose), iframeHubId);
+							unsubscribe();
+						}
+					});
 				});
 
-				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, () => {
+				// Write to clipboard from the top-level frame (clipboard API is
+				// unreliable from inside cross-origin iframes on mobile Safari).
+				messagebox.addCallback(iframeHubId, MessageType.ClipboardWrite, (message: Message) => {
+					const text = message.content as string;
+					navigator.clipboard.writeText(text).catch((err) => {
+						logger.error('Failed to write to clipboard:', err);
+					});
+				});
+
+				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, async () => {
 					global.removeAccessToken(this.currentHubId);
-					// So far this message is not yet used but the hub clients.
-					// This will happen if the client says it's unhappy with its' token so refresh the page to reflect current state.
+					// Save settings to persist the token removal before reloading
+					await global.saveGlobalSettings();
+					// Reload to trigger re-authentication with fresh credentials
 					location.reload();
 				});
 			}

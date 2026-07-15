@@ -1,6 +1,6 @@
 <template>
 	<div class="flex h-full w-full flex-col">
-		<div class="mb-10 aspect-video w-8/12 self-center bg-black">
+		<div class="mb-500 aspect-video w-8/12 self-center bg-black">
 			<video
 				ref="videoEl"
 				muted

@@ -1,0 +1,12 @@
+{
+  "name": "auths",
+  "self_check_code": "selfcheck-auths",
+  "version": "test-version",
+  "phc_url": "https://phc.example.test/",
+  "jwt_key": "0000000000000000000000000000000000000000000000000000000000000000",
+  "verifying_key": {"ed":"AA==","ml":"AQ=="},
+  "enc_key": "e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76",
+  "master_enc_key_part": null,
+  "encap_key": {"ml":"AA==","ec":"AQ=="},
+  "constellation": null
+}

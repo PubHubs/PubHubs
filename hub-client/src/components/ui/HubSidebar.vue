@@ -4,39 +4,42 @@
 		:class="isMobile && !hubSettings.isSolo ? 'w-[calc(50%-40px)]!' : 'flex max-w-[280px]'"
 	>
 		<template #header>
-			<div class="flex h-full w-full items-center justify-between gap-4">
+			<div class="flex h-full w-full items-center justify-between gap-200">
 				<div
 					v-context-menu="(evt: Event) => openMenu(evt as MouseEvent, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])"
-					class="group relative flex min-w-0 items-center gap-2"
+					class="group relative flex min-w-0 items-center gap-100"
 				>
 					<H2 class="font-headings text-h2 text-on-surface truncate font-semibold">{{ hubSettings.hubName }}</H2>
 				</div>
-				<div class="flex items-center gap-2">
-					<GlobalbarButton
-						v-if="isModerator && !showModerationMenu"
-						:selected="showModerationMenu"
-						:aria-label="t(showModerationMenu ? 'menu.close_admin_menu' : 'menu.admin_tools')"
-						type="circles-three-plus"
-						@click="toggleModerationMenu"
-					/>
+				<div class="flex items-center gap-100">
 					<Notification />
 				</div>
 			</div>
 		</template>
 
 		<div
-			class="flex flex-col gap-8 p-3 md:p-4"
+			ref="menuRoot"
+			class="relative flex flex-col gap-400 p-150 md:p-200"
 			role="menu"
 		>
+			<!-- Active-destination pill on the sidebar rail, mirroring the global bar's. It lives inside
+			     the scroll content, so it moves along with scrolling and only its target position within
+			     the content needs measuring. -->
+			<div
+				v-show="pill.visible"
+				aria-hidden="true"
+				class="bg-accent-primary w-075 pointer-events-none absolute left-0 -translate-y-1/2 rounded-r-full transition-all duration-200 ease-in-out"
+				:style="{ top: `${pill.top}px`, height: `${pill.height}px` }"
+			/>
 			<template v-if="!showModerationMenu">
-				<section class="flex flex-col gap-4">
+				<section class="flex flex-col gap-200">
 					<div
-						class="bg-surface text-hub-text rounded-base border-surface-elevated flex h-1000 items-center justify-between overflow-hidden border-3 p-4"
+						class="bg-surface text-hub-text rounded-base border-surface-elevated flex h-1000 items-center justify-between overflow-hidden border-3 p-200"
 						role="complementary"
 					>
-						<div class="flex w-full items-center gap-2 truncate">
+						<div class="flex w-full items-center gap-100 truncate">
 							<Avatar
-								:avatar-url="user.userAvatar(user.userId!) ?? user.avatarUrl"
+								:avatar-url="user.avatarUrl"
 								:user-id="user.userId!"
 							/>
 							<div class="flex h-fit w-full flex-col overflow-hidden">
@@ -46,10 +49,12 @@
 								<p class="text-on-surface-dim leading-tight">{{ user.pseudonym ?? '' }}</p>
 							</div>
 						</div>
-						<Icon
+						<IconButton
 							data-testid="edit-userinfo"
-							type="pencil-simple"
-							class="hover:text-accent-primary cursor-pointer"
+							icon="pencil-simple"
+							variant="secondary"
+							:aria-label="t('settings.edit_profile')"
+							:title="t('settings.edit_profile')"
 							@click="handleEditUserInfo"
 						/>
 					</div>
@@ -64,6 +69,22 @@
 							@click="hubSettings.hideBar()"
 							>{{ t(item.key) }}</MenuItem
 						>
+						<!-- Entry into the moderation menu. Styled like a MenuItem, but only swaps the
+						     sidebar to that menu; pages are picked from there, so it does not navigate. -->
+						<li
+							v-if="isModerator"
+							class="hover:bg-surface-elevated rounded-base h-fit transition-all duration-200 ease-in-out"
+							role="menuitem"
+						>
+							<button
+								class="flex w-full items-center gap-200 px-200 py-100 hover:cursor-pointer"
+								type="button"
+								@click="showModerationMenu = true"
+							>
+								<Icon type="circles-three-plus" />
+								<span class="w-full truncate text-left">{{ t('menu.moderation') }}</span>
+							</button>
+						</li>
 					</Menu>
 				</section>
 
@@ -88,7 +109,7 @@
 			<template v-else>
 				<!-- Back button -->
 				<button
-					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled -m-3 flex items-center gap-2 border-b p-3 transition-colors hover:cursor-pointer md:-m-4 md:p-4"
+					class="text-on-surface-dim hover:bg-surface-base border-on-surface-disabled/25 -m-150 flex items-center gap-100 border-b-2 p-150 transition-colors hover:cursor-pointer md:-m-200 md:p-200"
 					type="button"
 					@click="showModerationMenu = false"
 				>
@@ -130,22 +151,25 @@
 				</CollapsibleHeader>
 
 				<!-- Moderation -->
-				<!-- <CollapsibleHeader :label="t('menu.moderation')">
+				<CollapsibleHeader
+					v-if="isModerator"
+					:label="t('menu.moderation')"
+				>
 					<Menu>
 						<MenuItem
-							:to="{ name: 'nop' }"
+							:to="{ name: 'reports' }"
 							icon="warning"
 							@click="hubSettings.hideBar()"
 							>{{ t('menu.reports') }}</MenuItem
 						>
-						<MenuItem
+						<!-- <MenuItem
 							:to="{ name: 'nop' }"
 							icon="file"
 							@click="hubSettings.hideBar()"
 							>{{ t('menu.audit_log') }}</MenuItem
-						>
+						> -->
 					</Menu>
-				</CollapsibleHeader> -->
+				</CollapsibleHeader>
 
 				<!-- Manage -->
 				<CollapsibleHeader
@@ -174,17 +198,17 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, ref, watch } from 'vue';
+	import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
 	// Components
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import RoomList from '@hub-client/components/rooms/RoomList.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
-	import GlobalbarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import Menu from '@hub-client/components/ui/Menu.vue';
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
@@ -225,7 +249,7 @@
 
 	const route = useRoute();
 	// INFO: when adding a page to the moderation sidebar, update the routes
-	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'editroom']);
+	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'reports', 'editroom']);
 	const showModerationMenu = ref(moderationRoutes.has(route.name as string));
 
 	watch(
@@ -247,9 +271,37 @@
 		if (!canModerate) showModerationMenu.value = false;
 	});
 
-	function toggleModerationMenu() {
-		showModerationMenu.value = !showModerationMenu.value;
+	// Rail pill, mirroring the global bar's: aligns to whichever MenuItem carries `data-rail-active`.
+	// Positions are measured relative to menuRoot; since the pill scrolls with the content, scrolling
+	// needs no handling. The ResizeObserver catches layout shifts (collapsed sections, list changes).
+	const menuRoot = ref<HTMLElement | null>(null);
+	const pill = reactive({ visible: false, top: 0, height: 0 });
+	let menuResizeObserver: ResizeObserver | undefined;
+
+	function updatePill() {
+		const root = menuRoot.value;
+		const itemRect = root?.querySelector<HTMLElement>('[data-rail-active]')?.getBoundingClientRect();
+		if (!root || !itemRect || itemRect.height === 0) {
+			pill.visible = false;
+			return;
+		}
+		pill.height = Math.round(itemRect.height * 0.6);
+		pill.top = itemRect.top - root.getBoundingClientRect().top + itemRect.height / 2;
+		pill.visible = true;
 	}
+
+	watch(
+		() => route.fullPath,
+		() => nextTick(updatePill),
+	);
+
+	onMounted(() => {
+		nextTick(updatePill);
+		menuResizeObserver = new ResizeObserver(() => updatePill());
+		if (menuRoot.value) menuResizeObserver.observe(menuRoot.value);
+	});
+
+	onBeforeUnmount(() => menuResizeObserver?.disconnect());
 
 	function handleEditUserInfo() {
 		scrollToEnd();

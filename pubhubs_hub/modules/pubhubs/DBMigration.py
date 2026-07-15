@@ -42,7 +42,7 @@ class DBMigration(object):
         # Migration rules
         
         
-        column_info = ("expiration_time_days", "TEXT NOT NULL DEFAULT 90")
+        column_info = ("expiration_time_days", "TEXT NOT NULL DEFAULT 182")
         run_in_background(self.migration.modify, 'secured_rooms',  column_info) 
         
         # Migration related things
