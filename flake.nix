@@ -3,10 +3,14 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    { nixpkgs, ... }:
+    { nixpkgs, rust-overlay, ... }:
     let
       # Define the supported systems
       systems = [
@@ -41,7 +45,13 @@
       devShells = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ rust-overlay.overlays.default ];
+          };
+          # Pinned to match ./rust-toolchain.toml so Nix, CI (rustup) and local all
+          # build on the identical rustc.
+          rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./pubhubs/rust-toolchain.toml;
         in
         {
           default = pkgs.mkShell {
@@ -58,12 +68,9 @@
                 # Python
                 python3 # 3.13.12
 
-                # Rust
-                cargo # 1.94
+                # Rust (pinned via ./rust-toolchain.toml)
+                rustToolchain
                 cargo-watch # 8.5.3
-                clippy # 0.1.94
-                rustc # 1.94
-                rustfmt # 1.8.0
 
                 # Other
                 android-tools # 35.0.2
