@@ -109,6 +109,23 @@ const defaultSettings: Settings = {
 	 * Please also write down which should be enabled on main and which on stable.
 	 */
 	featureFlags: {
+		stable: {
+			signedMessages: true,
+			dateSplitter: true,
+			notifications: true,
+			deleteMessages: true,
+			editMessages: true,
+			hubSettings: true,
+			authenticatedMedia: true,
+			unreadCounter: true,
+			videocalls: false,
+			roomLibrary: true,
+			votingWidget: true,
+			forumRooms: true,
+			consent: true,
+			phCard: true,
+			whisper: false,
+		},
 		main: {
 			signedMessages: true,
 			dateSplitter: true,
@@ -125,23 +142,6 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: true,
-		},
-		stable: {
-			signedMessages: true,
-			dateSplitter: true,
-			notifications: true,
-			deleteMessages: true,
-			editMessages: true,
-			hubSettings: true,
-			authenticatedMedia: true,
-			unreadCounter: true,
-			videocalls: false,
-			roomLibrary: true,
-			votingWidget: true,
-			forumRooms: true,
-			consent: true,
-			phCard: false,
-			whisper: false,
 		},
 		local: {
 			signedMessages: true,
