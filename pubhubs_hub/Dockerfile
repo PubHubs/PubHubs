@@ -28,7 +28,7 @@ RUN pip install --no-cache-dir livekit-api
 # one.  Keep in sync with the floor in requirements.txt.  The hub refuses to start without it.
 # Also upgrade pyOpenSSL: cryptography>=49 removed the _lib.GEN_EMAIL binding that the base image's
 # older pyOpenSSL references at import ("AttributeError: module 'lib' has no attribute 'GEN_EMAIL'").
-RUN pip install --no-cache-dir 'cryptography>=48.0.0' 'pyOpenSSL>=26.3.0'
+RUN pip install --no-cache-dir --upgrade 'cryptography>=48.0.0' 'pyOpenSSL>=26.3.0'
 
 RUN apt-get update && \
 	apt-get install -y -q postgresql sudo && \
