@@ -29,6 +29,7 @@ fn setup() {
 }
 
 #[tokio::test]
+#[ignore] // temporarily disabled: requires demo credentials, see pubhubs.default.toml
 async fn main_once() {
     setup();
     main_integration_test().await
