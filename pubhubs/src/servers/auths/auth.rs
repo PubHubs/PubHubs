@@ -134,7 +134,7 @@ impl App {
                     log::error!("failed to form registration source yivi attribute: {err:?}");
                     api::ErrorCode::InternalError
                 })?,
-            value: Some(self.registration_source(yivi).to_owned()),
+            value: None, // TODO: temporarily disabled for testing obtain flow
         });
 
         Ok(result)
