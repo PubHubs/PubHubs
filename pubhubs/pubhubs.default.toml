@@ -31,7 +31,7 @@ name = "local-development"
 key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
 
 [auths.yivi.card]
-type = "demo"
+type = "real"
 # registration_source = "app.pubhubs.net"
 
 # How long is the pubhubs card valid, and was it valid historically?
@@ -66,7 +66,7 @@ name = "Email address"
 bannable = false
 identifying = true
 sources = [
-	{ yivi.attr_type_id = "irma-demo.sidn-pbdf.email.email" },
+	{ yivi.attr_type_id = "pbdf.sidn-pbdf.email.email" },
 ]
 
 [[auths.attribute_types]]
@@ -76,7 +76,7 @@ name = "Phone number"
 bannable = true
 identifying = false
 sources = [
-	{ yivi.attr_type_id = "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" },
+	{ yivi.attr_type_id = "pbdf.sidn-pbdf.mobilenumber.mobilenumber" },
 ]
 
 [[auths.attribute_types]]
@@ -87,7 +87,7 @@ bannable = false
 identifying = true
 not_addable_by_default = true
 sources = [
-	{ yivi.attr_type_id = "irma-demo.PubHubs.account.id" },
+	{ yivi.attr_type_id = "pbdf.PubHubs.account.id" },
 ]
 
 [transcryptor]
