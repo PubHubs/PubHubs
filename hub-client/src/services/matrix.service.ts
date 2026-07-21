@@ -281,8 +281,7 @@ class MatrixService {
 				}
 
 				// Get the invite state
-				// For now we only use invites for direct messages so we can automatically join
-				// In the future perhaps show roomdata and ask to be joined?
+				// Auto-join DM invites so the user can immediately see messages
 				const inviteState = roomData.invite_state;
 				if (inviteState) {
 					const roomType = inviteState.find((x) => x.type === EventType.RoomCreate)?.content?.type;
@@ -295,7 +294,14 @@ class MatrixService {
 								x.content?.[MatrixType.MemberShip] === MatrixType.Invite,
 						);
 						invites.forEach(() => {
-							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state));
+							// Actually join the room to accept the invite
+							// Extract server from room ID (e.g., "!abc:server.com" -> "server.com")
+							const serverName = roomId.split(':')[1];
+							joinPromises.push(
+								this.client.joinRoom(roomId, { viaServers: serverName ? [serverName] : undefined }).then(() => {
+									return this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state);
+								}),
+							);
 						});
 					}
 				}

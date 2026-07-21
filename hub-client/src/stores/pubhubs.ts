@@ -426,7 +426,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const roomId = (rooms[index] as unknown as Room).roomId;
 				const room = this.client.getRoom(roomId);
 				if (!room) continue;
-				const roomMembers = room.getMembers();
+				// Consider members who have joined or are invited (not left/banned)
+				const roomMembers = room.getMembers().filter((member) => member.membership === 'join' || member.membership === 'invite');
 				const roomMemberIds = roomMembers.map((member) => member.userId);
 				roomMemberIds.sort();
 				const found = JSON.stringify(memberIds.sort()) === JSON.stringify(roomMemberIds);
@@ -472,11 +473,14 @@ const usePubhubsStore = defineStore('pubhubs', {
 				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
 			}
 
-			// Reuse existing room only if user is still a member
+			// Reuse existing room if user is a member, or join if invited
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
-				const isMember = await this.isUserRoomMember(me.userId, existingRoomId);
-				if (isMember) {
-					const rooms = useRooms();
+				const rooms = useRooms();
+				const existingRoom = this.client.getRoom(existingRoomId);
+				const myMembership = existingRoom?.getMember(me.userId)?.membership;
+
+				if (myMembership === 'join') {
+					// Already a member - reuse the room
 					let name = rooms.room(existingRoomId)?.name;
 					if (name) {
 						name = updatePrivateRoomName(name, me.userId, false);
@@ -486,32 +490,33 @@ const usePubhubsStore = defineStore('pubhubs', {
 					await this.renameRoom(existingRoomId, name);
 					rooms.setRoomListHidden(existingRoomId, false);
 					return { room_id: existingRoomId };
+				} else if (myMembership === 'invite') {
+					// Invited but not joined - accept the invite
+					await this.client.joinRoom(existingRoomId);
+					rooms.setRoomListHidden(existingRoomId, false);
+					return { room_id: existingRoomId };
 				}
-				// User is not a member anymore - fall through to create a new room
+				// User has left or was banned - fall through to create a new room
 			}
 
-			// Create new room
-			if (existingRoomId === false) {
-				const privateRoomName = createNewPrivateRoomName([me.userId, ...otherUsers]);
-				const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
+			// Create new room (either no existing room found, or user left the existing room)
+			const privateRoomName = createNewPrivateRoomName([me.userId, ...otherUsers]);
+			const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
 
-				const room = await this.createRoom({
-					preset: Preset.TrustedPrivateChat,
-					name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
-					visibility: Visibility.Private,
-					invite: otherUsers,
-					is_direct: true,
-					creation_content: { type: roomType },
-					topic: `PRIVATE: ${me.userId}, ${otherUsers.join(', ')}`,
-					initial_state: [
-						{ type: 'm.room.history_visibility', state_key: '', content: { history_visibility: 'shared' } },
-						{ type: 'm.room.guest_access', state_key: '', content: { guest_access: 'forbidden' } },
-					],
-				});
-				return room;
-			}
-
-			return null;
+			const room = await this.createRoom({
+				preset: Preset.TrustedPrivateChat,
+				name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
+				visibility: Visibility.Private,
+				invite: otherUsers,
+				is_direct: true,
+				creation_content: { type: roomType },
+				topic: `PRIVATE: ${me.userId}, ${otherUsers.join(', ')}`,
+				initial_state: [
+					{ type: 'm.room.history_visibility', state_key: '', content: { history_visibility: 'shared' } },
+					{ type: 'm.room.guest_access', state_key: '', content: { guest_access: 'forbidden' } },
+				],
+			});
+			return room;
 		},
 
 		async renameRoom(roomId: string, name: string) {
