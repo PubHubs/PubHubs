@@ -8,8 +8,7 @@
 		<pre
 			v-if="!folded"
 			class="font-mono"
-			>{{ JSON.stringify(json, null, 2) }}</pre
-		>
+			>{{ JSON.stringify(json, null, 2) }}</pre>
 	</div>
 </template>
 

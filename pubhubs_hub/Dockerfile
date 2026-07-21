@@ -7,15 +7,15 @@
 FROM golang:trixie AS yivi_build
 
 WORKDIR /irmago
-RUN git clone https://github.com/privacybydesign/irmago . --branch v0.19.2 --depth 1
-RUN GO111MODULE=auto go install ./irma
-
+RUN git clone https://github.com/privacybydesign/irmago . --branch v1.1.1 --depth 1
+# Since v1.x the CLI is the `yivi` binary; the old `irma` command is now the `yivi irma` subcommand.
+RUN go install ./yivi
 
 ## FINAL CONTAINER STAGE
 
-FROM ghcr.io/element-hq/synapse:v1.153.0
+FROM ghcr.io/element-hq/synapse:v1.156.0
 
-COPY --from=yivi_build /go/bin/irma /usr/bin/irma
+COPY --from=yivi_build /go/bin/yivi /usr/bin/yivi
 COPY --from=livekit/livekit-server:latest /livekit-server /usr/bin/livekit-server
 COPY --chmod=755 config/local/livekit.local.yaml /conf/livekit.local.yaml
 

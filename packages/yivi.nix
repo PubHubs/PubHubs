@@ -5,17 +5,18 @@
 pkgs.buildGoModule rec {
   pname = "irmago";
   # To update, change the version number below and replace the hash
-  version = "1.0.0";
+  version = "1.1.1";
 
   src = pkgs.fetchFromGitHub {
     owner = "privacybydesign";
     repo = "irmago";
     tag = "v${version}";
     # To get the hash of a new version, do `nix hash convert --hash-algo sha256 $(nix-prefetch-url --unpack https://github.com/privacybydesign/irmago/archive/refs/tags/v1.x.x.tar.gz 2>/dev/null)`
-    hash = "sha256-ZV8H4WNxIIfkk5KYQdbbOEfyjI1vbI+WkdHBH6P4010=";
+    hash = "sha256-nuyq2b+X0GFhLFkUyM+iAX7HtVltLxhTPwCPvq7DDF0=";
   };
 
-  vendorHash = "sha256-d2whPQmcUAFGbuSztBB7yZTuAlQyIQEnWGDnwbcPMxE=";
+  # To get the new vendor hash, change the hash to `sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=` and run `nix build ./#yivi`. You will get promted with the right hash.
+  vendorHash = "sha256-64eEtU4qtowODc+Wax5kbe5EO2JTnBw9bJDomiqlA44=";
 
   subPackages = [ "yivi" ];
 
