@@ -10,7 +10,7 @@ livekit-api>=1.0.2
 # its optional [oidc] extra, so the hub must pin it itself (the Core.py HHPP path no longer uses it).
 authlib>=0.15.1
 # Use the same version as the docker image is built from
-matrix-synapse==1.153.0
+matrix-synapse==1.156.0
 
 # Transitive dependencies of synapse that the hub does not import directly; copied from
 # synapse's pyproject.toml to pin the same minimal versions. Keep in sync with the latest

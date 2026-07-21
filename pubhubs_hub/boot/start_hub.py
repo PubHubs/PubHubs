@@ -250,11 +250,11 @@ class Program:
         self._start("livekit", ("/usr/bin/livekit-server",
                         "--config", livekit_config_path))
 
-        self._start("yivi", ("/usr/bin/irma",
+        self._start("yivi", ("/usr/bin/yivi",
+                        "irma",
                         "server",
                         "--issue-perms", "*",
                         "--production",
-                        "--no-email",
                         "--no-tls",
                         "--sse",
                         "--allow-unsigned-callbacks",
