@@ -61,7 +61,6 @@ import { type Poll, type Scheduler } from '@hub-client/models/events/voting/Voti
 import type Room from '@hub-client/models/rooms/Room';
 import { type RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TSearchParameters } from '@hub-client/models/search/TSearch';
-import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { useConnection } from '@hub-client/stores/connection';
@@ -1510,34 +1509,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
-		},
-
-		async initialiseVideoCallPowerLevels(roomId: string) {
-			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
-			powerLevels.events = powerLevels.events || {};
-			powerLevels.events['org.matrix.msc3401.call.member'] = UserPowerLevel.User;
-			powerLevels.events['org.matrix.msc3401.call'] = UserPowerLevel.User;
-			await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
-		},
-
-		async initialiseTimeoutPowerLevels(roomId: string) {
-			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
-			powerLevels.events = powerLevels.events || {};
-			// Steward power level (50) required to issue timeouts
-			if (powerLevels.events['pubhubs.timeout'] === undefined) {
-				powerLevels.events['pubhubs.timeout'] = UserPowerLevel.Steward;
-				await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
-			}
-		},
-
-		async initialiseYellowCardPowerLevels(roomId: string) {
-			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
-			powerLevels.events = powerLevels.events || {};
-			// Power level 0 allows any user to send (users can dismiss their own warnings)
-			if (powerLevels.events['pubhubs.yellow_card'] === undefined) {
-				powerLevels.events['pubhubs.yellow_card'] = 0;
-				await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
-			}
 		},
 
 		addEndCallListener() {

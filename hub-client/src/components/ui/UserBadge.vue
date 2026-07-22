@@ -1,5 +1,5 @@
 <template>
-	<div class="flex items-center gap-200">
+	<div class="flex min-w-0 items-center gap-200">
 		<Avatar
 			class="shrink-0"
 			:class="avatarSize"
@@ -7,11 +7,14 @@
 			:user-id="userId"
 		/>
 		<UserDisplayName
+			class="min-w-0"
 			:user-id="userId"
 			:user-display-name="userStore.userDisplayName(userId)"
 			:enable-d-m="false"
 		/>
-		<slot />
+		<div class="shrink-0">
+			<slot />
+		</div>
 	</div>
 </template>
 
