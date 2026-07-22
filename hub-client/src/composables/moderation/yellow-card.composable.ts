@@ -75,9 +75,6 @@ function useModerationYellowCard(base: ReturnType<typeof useModerationBase>) {
 	};
 
 	const issueYellowCard = async (roomId: string, userId: string, reason: string): Promise<void> => {
-		// Initialize power levels for yellow card event if needed
-		await pubhubsStore.initialiseYellowCardPowerLevels(roomId);
-
 		const now = Date.now();
 		const currentWarnings = { ...getCurrentYellowCards() };
 

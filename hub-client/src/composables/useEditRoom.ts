@@ -5,6 +5,7 @@ import { Visibility } from 'matrix-js-sdk';
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TEditRoom, type TEditRoomFormAttributes } from '@hub-client/models/rooms/TEditRoom';
 import { type SecuredRoomAttributes } from '@hub-client/models/rooms/TSecuredRoom';
+import { UserPowerLevel } from '@hub-client/models/users/TUser';
 import { type Attribute } from '@hub-client/models/yivi/Tyivi';
 
 // Logic
@@ -36,6 +37,15 @@ function useEditRoom() {
 				visibility: Visibility.Public,
 				creation_content: {
 					type: room.type === '' ? undefined : room.type,
+				},
+				power_level_content_override: {
+					events: {
+						'pubhubs.timeout': UserPowerLevel.Steward,
+						'pubhubs.yellow_card': UserPowerLevel.User,
+						'org.matrix.msc3401.call': UserPowerLevel.User,
+						'org.matrix.msc3401.call.member': UserPowerLevel.User,
+						'org.matrix.msc4143.rtc.member': UserPowerLevel.User,
+					},
 				},
 			};
 			await pubhubsStore.createRoom(newRoomOptions);

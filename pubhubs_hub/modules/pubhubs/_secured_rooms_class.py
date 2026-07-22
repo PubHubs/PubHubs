@@ -9,7 +9,7 @@ from synapse.handlers.room import RoomCreationHandler
 from synapse.module_api import ModuleApi
 from synapse.types import create_requester
 
-from ._constants import ROOM_ID, DEFAULT_EXPIRATION_TIME_DAYS
+from ._constants import ROOM_ID, DEFAULT_EXPIRATION_TIME_DAYS, ROOM_ADMIN, STEWARD, USER
 import logging
 
 logger = logging.getLogger(__name__)
@@ -155,14 +155,14 @@ class SecuredRoom:
             "visibility": "public",
             # 100 for creator is by default, but we want some power for the server notices user to add profile attribute
             # events to the room.
-            # Regular members (power level 0) must also be able to send the group-video-call state
-            # events, which default to Synapse's state_default (50) unless overridden here.
             "power_level_content_override": {
-                "users": {user: 100, server_notices_user: 50},
+                "users": {user: ROOM_ADMIN, server_notices_user: STEWARD},
                 "events": {
-                    "org.matrix.msc3401.call": 0,
-                    "org.matrix.msc3401.call.member": 0,
-                    "org.matrix.msc4143.rtc.member": 0,
+                    "pubhubs.timeout": STEWARD,
+                    "pubhubs.yellow_card": USER,
+                    "org.matrix.msc3401.call": USER,
+                    "org.matrix.msc3401.call.member": USER,
+                    "org.matrix.msc4143.rtc.member": USER,
                 },
             }
         }
