@@ -46,6 +46,11 @@ export function useMentionsDisplay() {
 	function parseMentions(body: string): MentionMatch[] {
 		if (!body) return [];
 
+		// Trigger room loading if body contains # and rooms aren't loaded
+		if (body.includes('#') && rooms.publicRooms.length === 0) {
+			rooms.fetchPublicRooms();
+		}
+
 		const mentions: MentionMatch[] = [];
 
 		// Matches: @displayName~userId~ or #displayName~roomId~
