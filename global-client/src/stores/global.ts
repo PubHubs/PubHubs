@@ -45,6 +45,10 @@ const useGlobal = defineStore('global', {
 			loggedIn: false,
 			modalVisible: false,
 			contextMenuModalVisible: false,
+			// Mirrors the active hub's back state (MessageType.BackState): the hub closes a sidebar or
+			// an open forum post itself, so a back swipe must not scroll the hub out of view instead.
+			// Defaults to false, so a hub that never reports leaves the scroll behaviour as it was.
+			hubCanGoBack: false,
 			pinnedHubs: [] as PinnedHubs,
 			hubsLoading: false,
 
@@ -272,6 +276,10 @@ const useGlobal = defineStore('global', {
 
 		hideContextMenuModal() {
 			this.contextMenuModalVisible = false;
+		},
+
+		setHubCanGoBack(canGoBack: boolean) {
+			this.hubCanGoBack = canGoBack;
 		},
 	},
 });

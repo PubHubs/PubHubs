@@ -197,6 +197,11 @@ const useHubs = defineStore('hubs', {
 				//The hub has changed: set it up
 				assert.isDefined(this.currentHub, 'Current hub is not initialized');
 
+				// The new hub reports its own back state as soon as it connects. Until then assume it has
+				// nothing to close: a stale `true` from the previous hub would lock the horizontal scroll
+				// with no way left to unlock it.
+				global.setHubCanGoBack(false);
+
 				// Start conversation with hub frame and sync latest settings
 				await messagebox.startCommunication(this.currentHub.url, iframeHubId);
 
@@ -279,6 +284,13 @@ const useHubs = defineStore('hubs', {
 				});
 				messagebox.addCallback(iframeHubId, MessageType.DialogHideModal, () => {
 					global.hideModal();
+				});
+
+				// The hub tells us whether it will consume a back action itself (an open sidebar or forum
+				// post). While it does, the layout must not scroll the hub out of view on a back swipe:
+				// the hub handles that swipe. See MessageType.BackState and App.vue.
+				messagebox.addCallback(iframeHubId, MessageType.BackState, (message: Message) => {
+					global.setHubCanGoBack(message.content === true);
 				});
 
 				// Dim the bar while a desktop context menu (rendered inside the hub iframe) is open.
