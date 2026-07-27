@@ -43,8 +43,9 @@
 
 	// Composables
 	import { useUnreadAggregate } from '@hub-client/composables/unreadAggregate.composable';
-	import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
+	import { useBackNavigation } from '@hub-client/composables/useBackNavigation';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
+	import { useSwipeBack } from '@hub-client/composables/useSwipeBack';
 
 	// Logic
 	import { PubHubsInvisibleMsgType, PubHubsMgType } from '@hub-client/logic/core/events';
@@ -80,7 +81,38 @@
 	const setupReady = ref(false);
 	const pendingRouteFromParent = ref<RouteParamValue | null>(null);
 	const isMobile = computed(() => settings.isMobileState);
-	const { scrollToStart } = useGlobalScroll();
+
+	// Going back is the same action however it is triggered: the global client's back arrow
+	// (MessageType.CloseSidebar, below) and a swipe to the right both run back().
+	//
+	// The gesture is only ours while the hub has something to close, which is exactly when the global
+	// client locks its horizontal scroll for us. With nothing left to close it leaves the scroll to
+	// the finger, and letting that scroll run is already what back() would do: return to the menu.
+	// Handling the swipe in both places at once would have the two race over the same gesture.
+	const { canGoBack, back } = useBackNavigation();
+	const sidebar = useSidebar();
+	useSwipeBack(back, () => isMobile.value === true && canGoBack.value);
+
+	// A sidebar belongs to the page that opened it. Pages that open one do not all close it again on
+	// their way out (ManageRooms and ManageUsers never do, DirectMessage only when leaving to a room),
+	// so a tab could stay open behind us: an empty sidebar panel on a page that has no sidebar, and,
+	// worse, a canGoBack that stays true and leaves the global client's horizontal scroll locked with
+	// nothing left to actually go back to. Closing it here holds that invariant for every page at once.
+	// Not on param changes, only on a different page: a forum post opening within the same room route
+	// keeps its sidebar.
+	watch(
+		() => router.currentRoute.value.name,
+		() => sidebar.closeInstantly(),
+	);
+
+	// The global client cannot see a swipe that happens over the hub iframe, so it does not know
+	// whether to let it scroll the hub out of view or to leave it to the hub. Tell it. Sending only
+	// starts once the messagebox is connected (see onMounted), before that sendMessage is a no-op.
+	watch(canGoBack, (value) => sendBackState(value));
+
+	function sendBackState(value: boolean) {
+		messagebox.sendMessage(new Message(MessageType.BackState, value));
+	}
 
 	// Aggregate unread state for this hub. The composable hydrates the
 	// persisted cache and keeps `unreadState` in sync with unreadCountVersion
@@ -219,22 +251,12 @@
 				hubSettings.mobileHubMenu = true;
 			});
 
-			// Listen to the back message from the global client (the mobile back arrow).
-			// Back priority: an open sidebar closes first, then an open forum post goes
-			// back to the post feed, otherwise scroll back to the start.
-			messagebox.addCallback('parentFrame', MessageType.CloseSidebar, () => {
-				const sidebar = useSidebar();
-				if (sidebar.isOpen.value) {
-					sidebar.close();
-					return;
-				}
-				const route = router.currentRoute.value;
-				if (route.name === 'room' && route.params.topicId && rooms.currentRoom?.isForumRoom()) {
-					router.push({ name: 'room', params: { id: route.params.id as string } });
-					return;
-				}
-				scrollToStart();
-			});
+			// The mobile back arrow in the global client. Same action as the back swipe, see useBackNavigation.
+			messagebox.addCallback('parentFrame', MessageType.CloseSidebar, () => back());
+
+			// Now that the messagebox is connected, give the global client a definitive starting value
+			// instead of letting it rely on its own default.
+			sendBackState(canGoBack.value);
 
 			// Receive context menu selection from global-client
 			messagebox.addCallback('parentFrame', MessageType.ContextMenuSelect, (message: Message) => {
