@@ -10,7 +10,9 @@ const { version } = JSON.parse(readFileSync(fileURLToPath(new URL('./package.jso
 
 export default defineConfig({
 	logLevel: 'warn',
-	base: '/client/',
+	// The web app is served under /client/ by the hub server. The Capacitor native app
+	// serves it from the origin root, so its build overrides this with PUBHUBS_BASE=/.
+	base: process.env.PUBHUBS_BASE ?? '/client/',
 	define: {
 		__APP_VERSION__: JSON.stringify(version),
 	},

@@ -342,7 +342,7 @@ const useHubs = defineStore('hubs', {
 });
 
 function sendNotification(hubName: string) {
-	const img = '/client/img/icons/favicon-32x32.png';
+	const img = `${import.meta.env.BASE_URL}img/icons/favicon-32x32.png`;
 	const i18n = setUpi18n();
 	const language = useSettings().language;
 	setLanguage(i18n, language);
