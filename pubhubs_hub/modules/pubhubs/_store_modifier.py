@@ -4,7 +4,7 @@ import logging
 import re
 from synapse.module_api import ModuleApi
 from synapse.storage.database import LoggingTransaction
-from .database_commands import database_commands
+from ._database_commands import database_commands
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 

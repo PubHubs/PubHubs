@@ -14,8 +14,8 @@ from ._web import JoinServlet
 from ._spam_checker import SpamChecker
 from ._cors import modify_set_clickjacking_protection_headers, modify_set_cors_headers
 from ._constants import METHOD_POLLING_INTERVAL, CLIENT_URL, GLOBAL_CLIENT_URL
-from .HubResource import HubResource
-from .HubClientApiConfig import HubClientApiConfig
+from ._hub_resource import HubResource
+from ._hub_client_api_config import HubClientApiConfig
 from ._steward import StewardResource
 
 
