@@ -15,6 +15,9 @@ from pubhubs._web import YiviResult
 from pubhubs._secured_rooms_class import SecuredRoom, PubHubsSecuredRoomType
 from pubhubs._secured_rooms_web import SecuredRoomsServlet
 from pubhubs.HubClientApiConfig import HubClientApiConfig
+from pubhubs._spam_checker import SpamChecker
+from pubhubs._constants import EXPERT_VERIFICATION_MSGTYPE, EXPERT
+from synapse.api.constants import EventTypes
 
 
 class FakeNoticesManager:
@@ -306,13 +309,32 @@ class Fuser:
     user = User()
 
 
+class FakePowerLevelsEvent:
+    def __init__(self, content):
+        self.content = content
+
+
+class FakeSpamEvent:
+    def __init__(self, sender, room_id, msgtype, event_type="m.room.message"):
+        self.sender = sender
+        self.room_id = room_id
+        self.type = event_type
+        self.content = {"msgtype": msgtype}
+
+
 class FakeModuleApi:
-    def __init__(self, allAdmins=False):
+    def __init__(self, allAdmins=False, power_levels_content=None):
         self.msg_count = 0
         self.allAdmins = allAdmins
+        self.power_levels_content = power_levels_content
 
     _hs = FakeHs()
     public_baseurl = "http://public/"
+
+    async def get_room_state(self, room_id, types):
+        if self.power_levels_content is None:
+            return {}
+        return {(EventTypes.PowerLevels, ""): FakePowerLevelsEvent(self.power_levels_content)}
 
     async def get_user_by_req(self, request):
         return Fuser()
@@ -326,13 +348,13 @@ class FakeModuleApi:
     def read_templates(self, files, folder):
         return None
 
-    def register_spam_checker_callbacks(self, user_may_join_room):
+    def register_spam_checker_callbacks(self, user_may_join_room=None, check_event_for_spam=None):
         return None
 
     async def update_room_membership(self, action_user, user, room, type):
         pass
 
-    async def looping_background_call(self, remove_user, polling_interval):
+    def looping_background_call(self, remove_user, polling_interval):
         pass
 
 
@@ -372,18 +394,18 @@ class TestAsync(IsolatedAsyncioTestCase):
         )
 
         # Join a room that is secured and not already allowed
-        result = await joiner.joining("@some_user:domain", "some_id", None)
+        result = await joiner.spam_checker.user_may_join_room("@some_user:domain", "some_id", None)
 
         self.assertEqual(result, False)
 
         # Join a room that is not secured
-        result = await joiner.joining("@some_user:domain", "some_other_id", None)
+        result = await joiner.spam_checker.user_may_join_room("@some_user:domain", "some_other_id", None)
 
         self.assertEqual(result, True)
-        
+
         joiner = HubClientApi(valid_config, api, FakeStore(isAllowed=True), is_test=True)
         # Join a room that is secured and already allowed
-        result = await joiner.joining("@some_user:domain", "some_id", None)
+        result = await joiner.spam_checker.user_may_join_room("@some_user:domain", "some_id", None)
 
         self.assertEqual(result, True)
 
@@ -494,9 +516,76 @@ class TestAsync(IsolatedAsyncioTestCase):
             servlet._async_render_PUT,
         ]:
 
-        # These requests are empty which throws invalid json error. 
+        # These requests are empty which throws invalid json error.
         # For now, we suppress the error that happens from synapse side.
         # TODO A better test case would be to mock the request and test the body.
 
             with self.assertRaises((AttributeError, PermissionError)):
                 await method({})
+
+
+class TestSpamChecker(IsolatedAsyncioTestCase):
+    async def test_ignores_non_message_events(self):
+        api = FakeModuleApi(power_levels_content={"users": {"@user:domain": 0}})
+        checker = SpamChecker(api, FakeStore())
+
+        event = FakeSpamEvent("@user:domain", "room_id", EXPERT_VERIFICATION_MSGTYPE, event_type="m.room.member")
+        result = await checker.check_event_for_spam(event)
+
+        self.assertEqual(result, False)
+
+    async def test_ignores_other_message_types(self):
+        api = FakeModuleApi(power_levels_content={"users": {"@user:domain": 0}})
+        checker = SpamChecker(api, FakeStore())
+
+        event = FakeSpamEvent("@user:domain", "room_id", "m.text")
+        result = await checker.check_event_for_spam(event)
+
+        self.assertEqual(result, False)
+
+    async def test_blocks_sender_below_expert_power_level(self):
+        api = FakeModuleApi(power_levels_content={"users": {"@user:domain": EXPERT - 1}})
+        checker = SpamChecker(api, FakeStore())
+
+        event = FakeSpamEvent("@user:domain", "room_id", EXPERT_VERIFICATION_MSGTYPE)
+        result = await checker.check_event_for_spam(event)
+
+        self.assertIsInstance(result, str)
+
+    async def test_allows_sender_at_expert_power_level(self):
+        api = FakeModuleApi(power_levels_content={"users": {"@user:domain": EXPERT}})
+        checker = SpamChecker(api, FakeStore())
+
+        event = FakeSpamEvent("@user:domain", "room_id", EXPERT_VERIFICATION_MSGTYPE)
+        result = await checker.check_event_for_spam(event)
+
+        self.assertEqual(result, False)
+
+    async def test_falls_back_to_users_default_when_sender_not_listed(self):
+        # Sender has no explicit entry in `users`, but the room's users_default grants expert power level.
+        api = FakeModuleApi(power_levels_content={"users": {}, "users_default": EXPERT})
+        checker = SpamChecker(api, FakeStore())
+
+        event = FakeSpamEvent("@user:domain", "room_id", EXPERT_VERIFICATION_MSGTYPE)
+        result = await checker.check_event_for_spam(event)
+
+        self.assertEqual(result, False)
+
+    async def test_blocks_unlisted_sender_when_no_users_default(self):
+        # Sender has no explicit entry and no users_default is set, so it must default to power level 0.
+        api = FakeModuleApi(power_levels_content={"users": {}})
+        checker = SpamChecker(api, FakeStore())
+
+        event = FakeSpamEvent("@user:domain", "room_id", EXPERT_VERIFICATION_MSGTYPE)
+        result = await checker.check_event_for_spam(event)
+
+        self.assertIsInstance(result, str)
+
+    async def test_blocks_when_no_power_levels_state(self):
+        api = FakeModuleApi(power_levels_content=None)
+        checker = SpamChecker(api, FakeStore())
+
+        event = FakeSpamEvent("@user:domain", "room_id", EXPERT_VERIFICATION_MSGTYPE)
+        result = await checker.check_event_for_spam(event)
+
+        self.assertIsInstance(result, str)

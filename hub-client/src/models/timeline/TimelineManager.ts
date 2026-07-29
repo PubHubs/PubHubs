@@ -11,6 +11,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 // Models
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TExpertVerificationMessageContent } from '@hub-client/models/events/TExpertEvent';
 import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
@@ -85,6 +86,8 @@ class TimelineManager {
 	private _relatedEventsMap: Map<string, TRelatedEvents> | null = null;
 	// Contains related hide events
 	private hideMessageEvents: Map<string, MatrixEvent> = new Map();
+	// Contains expert verification events: targetEventId -> array of verification events (multiple experts can verify)
+	private expertVerificationEvents: Map<string, MatrixEvent[]> = new Map();
 	// Latest m.replace edit event per target eventId (used to merge edited content into the original)
 	private editEvents: Map<string, MatrixEvent> = new Map();
 
@@ -123,6 +126,7 @@ class TimelineManager {
 		PubHubsMgType.VotingWidgetPickOption,
 		EventType.Reaction,
 		PubHubsMgType.HideMessage,
+		PubHubsMgType.ExpertVerification,
 	]);
 
 	constructor(roomId: string, client: MatrixClient) {
@@ -295,6 +299,75 @@ class TimelineManager {
 		}
 	}
 
+	private isExpertVerificationEvent(event: MatrixEvent): boolean {
+		return event.getContent()?.msgtype === PubHubsMgType.ExpertVerification;
+	}
+
+	/**
+	 * Updates expert verification events map.
+	 * For each expert, keeps only the latest verification/unverification event per target message.
+	 * An unverify event removes the expert's verification.
+	 */
+	private updateExpertVerificationEvent(event: MatrixEvent): void {
+		if (!this.isExpertVerificationEvent(event)) return;
+		const content = event.getContent() as TExpertVerificationMessageContent;
+		const targetEventId = content?.[RelationType.RelatesTo]?.event_id;
+		const relType = content?.[RelationType.RelatesTo]?.rel_type;
+		if (!targetEventId) return;
+
+		const senderId = event.getSender();
+		if (!senderId) return;
+
+		const existing = this.expertVerificationEvents.get(targetEventId) ?? [];
+
+		// Find existing event from same sender
+		const senderEventIndex = existing.findIndex((e) => e.getSender() === senderId);
+
+		if (relType === RelationType.ExpertUnverify) {
+			// Unverify: remove the sender's verification if it exists and is older
+			if (senderEventIndex !== -1) {
+				const existingEvent = existing[senderEventIndex];
+				if ((event.getTs() ?? 0) > (existingEvent.getTs() ?? 0)) {
+					existing.splice(senderEventIndex, 1);
+					if (existing.length === 0) {
+						this.expertVerificationEvents.delete(targetEventId);
+					} else {
+						this.expertVerificationEvents.set(targetEventId, existing);
+					}
+				}
+			}
+			// If no existing verification from this sender, the unverify has no effect
+		} else if (relType === RelationType.ExpertVerify) {
+			// Verify: add or update the sender's verification
+			if (senderEventIndex !== -1) {
+				const existingEvent = existing[senderEventIndex];
+				if ((event.getTs() ?? 0) > (existingEvent.getTs() ?? 0)) {
+					existing[senderEventIndex] = event;
+				}
+			} else {
+				existing.push(event);
+			}
+			this.expertVerificationEvents.set(targetEventId, existing);
+		}
+	}
+
+	private cleanupExpertVerificationEvents(): void {
+		const timelineEventIds = new Set(this.timelineEvents.map((e) => e.matrixEvent.getId()));
+		for (const targetEventId of this.expertVerificationEvents.keys()) {
+			if (!timelineEventIds.has(targetEventId)) {
+				this.expertVerificationEvents.delete(targetEventId);
+			}
+		}
+	}
+
+	/**
+	 * Get all verification events for a target message.
+	 * Returns an array of verification events (one per expert who verified).
+	 */
+	public getVerifications(eventId: string): MatrixEvent[] {
+		return this.expertVerificationEvents.get(eventId) ?? [];
+	}
+
 	/**
 	 * Prepares the events for use in the room timeline: filters isVisible and sorts
 	 * @param eventList eventlist coming from Sliding sync, to be prepared for use
@@ -303,6 +376,7 @@ class TimelineManager {
 	private prepareEvents(eventList: MatrixEvent[]): MatrixEvent[] {
 		eventList.forEach((e) => {
 			this.updateHideMessageEvent(e);
+			this.updateExpertVerificationEvent(e);
 			this.updateEditEvent(e);
 		});
 		return eventList.filter((event) => this.isVisibleEvent(event.event)).sort((a, b) => a.getTs() - b.getTs());
@@ -316,6 +390,7 @@ class TimelineManager {
 
 		for (const eventToAdd of events) {
 			this.updateHideMessageEvent(eventToAdd);
+			this.updateExpertVerificationEvent(eventToAdd);
 			this.updateEditEvent(eventToAdd);
 			if (eventToAdd.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				// Fetch thread for newly created threads that are not the currentthread and ar not yet recognized as thread in this client
@@ -445,6 +520,7 @@ class TimelineManager {
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 		this.timelineEvents = mappedEvents;
 		this.cleanupHideMessageEvents();
+		this.cleanupExpertVerificationEvents();
 		this.applyEdits();
 		this._timelineVersion++;
 		return mappedEvents;
@@ -818,6 +894,7 @@ class TimelineManager {
 		if (!timeline) {
 			this.timelineEvents = [];
 			this.hideMessageEvents.clear();
+			this.expertVerificationEvents.clear();
 			this._timelineVersion++;
 		} else {
 			// Snapshot timelineEvents IDs before fetching
@@ -850,6 +927,7 @@ class TimelineManager {
 					}
 
 					this.cleanupHideMessageEvents();
+					this.cleanupExpertVerificationEvents();
 					this._timelineVersion++;
 				}
 			}

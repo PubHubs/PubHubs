@@ -63,6 +63,8 @@ enum RelationType {
 	EventId = 'event_id',
 	Hide = 'hide',
 	UnHide = 'unhide',
+	ExpertVerify = 'pubhubs.expert_verify',
+	ExpertUnverify = 'pubhubs.expert_unverify',
 }
 
 // Redaction strings that are not included in Matrix enums

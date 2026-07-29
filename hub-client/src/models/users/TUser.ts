@@ -52,11 +52,12 @@ enum UserAction {
 	Kick = 'Kick',
 	Ban = 'Ban',
 	Timeout = 'Timeout',
+	VerifyMessage = 'VerifyMessage',
 }
 
 const UserRoleActionsOwn = {
 	[UserRole.User]: [UserAction.MessageSteward],
-	[UserRole.Expert]: [],
+	[UserRole.Expert]: [UserAction.VerifyMessage],
 	[UserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement, UserAction.Kick, UserAction.Ban, UserAction.Timeout],
 	[UserRole.SuperSteward]: [UserAction.Invite],
 	[UserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel],

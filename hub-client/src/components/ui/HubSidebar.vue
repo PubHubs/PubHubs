@@ -162,6 +162,12 @@
 							@click="hubSettings.hideBar()"
 							>{{ t('menu.reports') }}</MenuItem
 						>
+						<MenuItem
+							:to="{ name: 'manage-roles' }"
+							icon="user-circle-check"
+							@click="hubSettings.hideBar()"
+							>{{ t('menu.admin_tools_roles') }}</MenuItem
+						>
 						<!-- <MenuItem
 							:to="{ name: 'nop' }"
 							icon="file"
@@ -249,7 +255,7 @@
 
 	const route = useRoute();
 	// INFO: when adding a page to the moderation sidebar, update the routes
-	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'reports', 'editroom']);
+	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'manage-roles', 'reports', 'editroom']);
 	const showModerationMenu = ref(moderationRoutes.has(route.name as string));
 
 	watch(

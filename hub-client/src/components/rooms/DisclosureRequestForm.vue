@@ -19,6 +19,14 @@
 				>{{ $t('admin.ask_disclosure_user_title') }}</DropDown
 			>
 			<DropDown
+				v-model="form.purpose"
+				:transformer="dropDownData.transformPurpose"
+				:options="purposeOptions"
+				:filtered="false"
+				:validation="{ required: true }"
+				>{{ $t('admin.ask_disclosure_purpose_title') }}</DropDown
+			>
+			<DropDown
 				v-model="form.attributes"
 				:transformer="dropDownData.transformYiviAttribute"
 				:options="yiviAttributes"
@@ -66,18 +74,19 @@
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
 	import DropDown from '@hub-client/components/forms/elements/DropDown.vue';
 	import TextArea from '@hub-client/components/forms/elements/TextArea.vue';
 	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
-	// Components
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
+	// Composables
 	import { useDropDownData } from '@hub-client/composables/DropDownData.composable';
 
 	// Models
-	import { type AskDisclosure, type AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
+	import { type AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
 	import { type TUserAccount } from '@hub-client/models/users/TUser';
 	import { type Attribute } from '@hub-client/models/yivi/Tyivi';
 
@@ -86,32 +95,34 @@
 	import { type TPublicRoom } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 
+	// Props
 	const props = defineProps<{
 		user: TUserAccount;
 	}>();
+
 	const emit = defineEmits(['close']);
+
 	const pubhubsStore = usePubhubsStore();
 	const dropDownData = useDropDownData();
 
 	const { t } = useI18n();
 	const roomOptions = ref<TPublicRoom[]>([]);
 	const userOptions = ref<TUserAccount[]>([]);
+	const purposeOptions = dropDownData.purposeOptions();
 	const yiviAttributes = dropDownData.yiviAttributes();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
-	const defaultPrivateRoom = { room_id: '', name: t('admin.private_room') };
-
-	const form = ref<AskDisclosure>({
-		user: { name: '' },
+	const form = ref({
+		user: { name: '' } as { name: string; displayname?: string },
 		message: '',
 		attributes: [yiviAttributes[0]], // e-mail
-		where_room: defaultPrivateRoom,
+		where_room: { room_id: '', name: '' },
+		purpose: purposeOptions[0],
 	});
 
 	onBeforeMount(async () => {
 		roomOptions.value = await dropDownData.publicRoomList();
-		roomOptions.value = [defaultPrivateRoom, ...roomOptions.value];
 		userOptions.value = await dropDownData.userList();
 
 		form.value.user = {
@@ -134,6 +145,7 @@
 			replyToRoomId: form.value.where_room.room_id,
 			message: form.value.message,
 			attributes: form.value.attributes.map((item: Attribute) => item.attribute),
+			purpose: form.value.purpose.value,
 		};
 		// Message is duplicated in body and in 'result' object.
 		await pubhubsStore.addAskDisclosureMessage(roomId, result.message, result);

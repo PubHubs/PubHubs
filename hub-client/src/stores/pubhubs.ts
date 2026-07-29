@@ -40,6 +40,7 @@ import { Redaction, RelationType, imageTypes } from '@hub-client/models/constant
 import { SystemDefaults } from '@hub-client/models/constants';
 import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TExpertVerificationMessageContent, type TExpertVerificationType } from '@hub-client/models/events/TExpertEvent';
 import {
 	type THideMessageContent,
 	type TMentions,
@@ -823,6 +824,46 @@ const usePubhubsStore = defineStore('pubhubs', {
 			};
 			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
 		},
+
+		async addExpertVerificationMessage(
+			roomId: string,
+			targetEventId: string,
+			verificationType: TExpertVerificationType,
+			credentials: string,
+			specializations?: string[],
+			verificationNote?: string,
+			sources?: string[],
+		): Promise<void> {
+			const content: TExpertVerificationMessageContent = {
+				msgtype: PubHubsMgType.ExpertVerification,
+				body: `Expert verification: ${verificationType}`,
+				verification_type: verificationType,
+				credentials,
+				specializations,
+				verification_note: verificationNote,
+				sources,
+				'm.relates_to': {
+					rel_type: RelationType.ExpertVerify,
+					event_id: targetEventId,
+				},
+			};
+			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+		},
+
+		async removeExpertVerificationMessage(roomId: string, targetEventId: string): Promise<void> {
+			const content: TExpertVerificationMessageContent = {
+				msgtype: PubHubsMgType.ExpertVerification,
+				body: 'Expert verification removed',
+				verification_type: 'verified', // Type doesn't matter for unverify
+				credentials: '',
+				'm.relates_to': {
+					rel_type: RelationType.ExpertUnverify,
+					event_id: targetEventId,
+				},
+			};
+			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+		},
+
 		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {
 			const content = {
 				msgtype: PubHubsMgType.AnnouncementMessage,

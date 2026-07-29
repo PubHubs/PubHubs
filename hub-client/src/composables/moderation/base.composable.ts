@@ -3,6 +3,7 @@ import { type Ref, computed, unref } from 'vue';
 import { getRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 import { type RoomMemberStateEvent } from '@hub-client/models/rooms/RoomMember';
+import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 import { type Room, useRooms } from '@hub-client/stores/rooms';
@@ -59,9 +60,8 @@ function useModerationBase(room?: Ref<Room | undefined> | Room) {
 		if (!currentRoom) return [];
 		if (currentRoom.isDirectMessageRoom() && !currentRoom.isGroupRoom()) return [...new Set(allMembers.value)];
 
-		const powerUserIds = powerMembers.value.map((user) => user.userId);
-
-		return allMembers.value.filter((id) => !powerUserIds.includes(id));
+		// Exclude users with power level >= Expert (25)
+		return allMembers.value.filter((id) => currentRoom.getPowerLevel(id) < UserPowerLevel.Expert);
 	});
 
 	const stewards = computed(() => powerMembers.value.filter((user) => user.powerLevel >= UserPowerLevel.Steward));
@@ -74,6 +74,20 @@ function useModerationBase(room?: Ref<Room | undefined> | Room) {
 		return currentRoom.getStateMember();
 	});
 
+	// Functions
+	const contactSteward = () => {
+		const currentRoom = getCurrentRoom();
+		if (!currentRoom) return [];
+		const stewardIds = stewards.value.map((steward) => steward.userId);
+		roomStore.createStewardRoomOrModify(currentRoom.roomId, stewardIds);
+	};
+
+	const stewardSourceRoomName = (room: Room): string => {
+		if (room.getType() !== RoomType.PH_MESSAGE_STEWARD_CONTACT) return '';
+		const sourceRoomId = room.name.split(',')[0];
+		return roomStore.roomList.find((r) => r.roomId === sourceRoomId)?.name ?? roomStore.fetchRoomById(sourceRoomId)?.name ?? '';
+	};
+
 	return {
 		// Helpers
 		getCurrentRoom,
@@ -84,6 +98,9 @@ function useModerationBase(room?: Ref<Room | undefined> | Room) {
 		stewards,
 		admins,
 		membershipEvents,
+		// Functions
+		contactSteward,
+		stewardSourceRoomName,
 	};
 }
 

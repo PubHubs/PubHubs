@@ -696,6 +696,10 @@ export default class Room {
 		return this.timelineManager.getRelatedEvents(eventId);
 	}
 
+	public getVerifications(eventId: string): MatrixEvent[] {
+		return this.timelineManager.getVerifications(eventId);
+	}
+
 	public getRelatedEventsByType(eventId: string, options: RelatedEventsOptions = {}): TimelineEvent[] {
 		return this.timelineManager.getRelatedEventsByType(eventId, options);
 	}
