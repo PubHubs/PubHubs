@@ -1,17 +1,19 @@
 import logging
 import os
+
 import synapse
 from synapse.logging.context import run_in_background
 from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
-from twisted.web.server import Request
 
 from ._yivi_proxy import ProxyServlet
 from ._video_call_web import VideoCallServlet
 from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomPublicMetadataServlet
 from ._store import HubStore
 from ._web import JoinServlet
-from ._constants import  METHOD_POLLING_INTERVAL, CLIENT_URL, GLOBAL_CLIENT_URL
+from ._spam_checker import SpamChecker
+from ._cors import modify_set_clickjacking_protection_headers, modify_set_cors_headers
+from ._constants import METHOD_POLLING_INTERVAL, CLIENT_URL, GLOBAL_CLIENT_URL
 from .HubResource import HubResource
 from .HubClientApiConfig import HubClientApiConfig
 from ._steward import StewardResource
@@ -19,52 +21,6 @@ from ._steward import StewardResource
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
-
-# TODO: move this to some more general spot
-def modify_set_clickjacking_protection_headers(original, global_client_url: str):
-    """
-    This function returns a changed form of `synapse.http.server.set_clickjacking_protection_headers`.
-    This allows embedding the page asking the user to agree to the hub's terms and conditions.
-    It is a bit hacky. And we hope it will become configurable in Synapse.
-
-    Args:
-        original: The original clickjacking protection function.
-        global_client_url: The global client url the terms and conditions can be allowed in.
-    """
-
-    def modified(request: Request):
-        original(request)
-        if request.path in (
-            b"/_synapse/client/new_user_consent",
-            b"/_synapse/client/oidc/callback",
-            b"/_synapse/client/sso_register",
-        ):
-            request.responseHeaders.removeHeader(b"X-Frame-Options")
-            request.setHeader(b"Content-Security-Policy", f"frame-ancestors {global_client_url};".encode())
-
-    return modified
-
-
-def modify_set_cors_headers(original):
-    """
-    This function returns a changed form of `synapse.http.server.set_cors_headers`.
-    This allows the Yivi SSE endpoint to be proxied since it asks for the "Cache-Control" header to be allowed.
-    For this endpoint it's fine to allow this.
-    It is a bit hacky. And we hope it will become configurable in Synapse.
-
-    Args:
-        original: The original allowed cors header function.
-    """
-
-    def modified(request: Request):
-        original(request)
-        if request.path.endswith(b"/frontend/statusevents"):
-            request.setHeader(
-                b"Access-Control-Allow-Headers",
-                b"X-Requested-With, Content-Type, Authorization, Date, Cache-Control",
-            )
-
-    return modified
 
 class HubClientApi(object):
     """
@@ -136,25 +92,11 @@ class HubClientApi(object):
 
         api.register_web_resource("/_synapse/client/steward", StewardResource(api, self._config, self.store))
 
-        api.register_spam_checker_callbacks(user_may_join_room=self.joining)
-
-
-    async def joining(self, user: str, room: str, invited: bool) -> bool:
-        """The hook for:
-        https://matrix-org.github.io/synapse/v1.48/modules/spam_checker_callbacks.html#user_may_join_room
-        Will check if user is allowed to join the room (correct attributes revealed through Yivi) if not will create the
-        waiting room if it doesn't exist or refresh the waiting room token if it's expired.
-        """
-        logger.debug(
-            f"hi I am the joining method user is '{user}' and I want to join '{room}' config is '{self._config}'"
+        self.spam_checker = SpamChecker(api, self.store)
+        api.register_spam_checker_callbacks(
+            user_may_join_room=self.spam_checker.user_may_join_room,
+            check_event_for_spam=self.spam_checker.check_event_for_spam,
         )
-
-        secured_room = await self.store.get_secured_room(room)
-        if secured_room:
-            return await self.store.is_allowed(user, room)
-
-        # Fallthrough other rooms which are not set to have to reveal anything
-        return True
 
     def _create_media_dir(self, media_dir_path: str) -> str:
         # A hack to make the tests work. We don't test anything that requires media_dir_path to exist at the moment.

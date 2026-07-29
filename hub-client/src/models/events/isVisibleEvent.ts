@@ -44,6 +44,9 @@ export function isVisibleEvent(event: Partial<TBaseEvent>, currentUserId: string
 	// Hide-message moderation events mark another event as hidden; they are never themselves rendered.
 	if (content?.msgtype === PubHubsMgType.HideMessage) return false;
 
+	// Expert verification messages are related events; they are never themselves rendered.
+	if (content?.msgtype === PubHubsMgType.ExpertVerification) return false;
+
 	const relatesToRelType = content?.[RelationType.RelatesTo]?.rel_type;
 	if (relatesToRelType && invisibleRelatesToTypes.includes(relatesToRelType)) return false;
 

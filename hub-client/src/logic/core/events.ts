@@ -41,6 +41,7 @@ enum PubHubsMsgType {
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
 	ForumTopic = MatrixEventType.RoomMessage, // 'm.room.message',
 	HideMessage = 'pubhubs.hide_message',
+	ExpertVerification = 'pubhubs.expert_verification',
 }
 
 enum PubHubsInvisibleMsgType {
