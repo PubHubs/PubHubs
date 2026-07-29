@@ -3,7 +3,7 @@ from unittest import TestCase
 import sys
 
 sys.path.append("modules")
-from pubhubs._HubMediaResource import (
+from pubhubs._hub_media_resource import (
     HubMediaResource,
     ALLOWED_HUB_MEDIA_TYPES,
     MAX_HUB_MEDIA_SIZE,

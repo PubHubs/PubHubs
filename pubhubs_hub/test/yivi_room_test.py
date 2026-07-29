@@ -14,7 +14,7 @@ from pubhubs import HubClientApi
 from pubhubs._web import YiviResult
 from pubhubs._secured_rooms_class import SecuredRoom, PubHubsSecuredRoomType
 from pubhubs._secured_rooms_web import SecuredRoomsServlet
-from pubhubs.HubClientApiConfig import HubClientApiConfig
+from pubhubs._hub_client_api_config import HubClientApiConfig
 from pubhubs._spam_checker import SpamChecker
 from pubhubs._constants import EXPERT_VERIFICATION_MSGTYPE, EXPERT
 from synapse.api.constants import EventTypes
