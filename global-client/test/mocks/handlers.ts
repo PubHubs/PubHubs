@@ -34,10 +34,31 @@ export const handlers = [
 					global_client_url: 'http://testdomain',
 					ph_version: 'someVersion',
 				},
+				// PHC advertises hub urls with the `/_synapse/client/` path attached, see
+				// `BasicInfo::url` in pubhubs/src/hub.rs. Keep these in that shape, so clients
+				// stripping the prefix before appending an endpoint stay covered.
 				hubs: {
-					testhub0: { handles: ['testhub0', 'testhub0_alias'], name: 'TestHub0', description: 'Test Hub Zero', url: 'http://hubtest0/', id: 'testhub0id' },
-					testhub1: { handles: ['testhub1', 'testhub1_alias'], name: 'TestHub1', description: 'Test Hub One', url: 'http://hubtest1/', id: 'testhub1id' },
-					testhub2: { handles: ['testhub2', 'testhub2_alias'], name: 'TestHub2', description: 'Test Hub Two', url: 'http://hubtest2/', id: 'testhub2id' },
+					testhub0: {
+						handles: ['testhub0', 'testhub0_alias'],
+						name: 'TestHub0',
+						description: 'Test Hub Zero',
+						url: 'http://hubtest0/_synapse/client/',
+						id: 'testhub0id',
+					},
+					testhub1: {
+						handles: ['testhub1', 'testhub1_alias'],
+						name: 'TestHub1',
+						description: 'Test Hub One',
+						url: 'http://hubtest1/_synapse/client/',
+						id: 'testhub1id',
+					},
+					testhub2: {
+						handles: ['testhub2', 'testhub2_alias'],
+						name: 'TestHub2',
+						description: 'Test Hub Two',
+						url: 'http://hubtest2/_synapse/client',
+						id: 'testhub2id',
+					},
 				},
 			},
 		};
@@ -120,13 +141,19 @@ export const handlers = [
 	http.post('http://testdomain/.ph/user/obj/by-handle/usersecretbackup', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecretBackup = body;
-		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 } } } }, { status: 200 });
+		return HttpResponse.json(
+			{ Ok: { Stored: { object_details: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 } } } },
+			{ status: 200 },
+		);
 	}),
 
 	http.post('http://testdomain/.ph/user/obj/by-hash/usersecretbackup/userSecretBackupHash', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecretBackup = body;
-		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 } } } }, { status: 200 });
+		return HttpResponse.json(
+			{ Ok: { Stored: { object_details: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 } } } },
+			{ status: 200 },
+		);
 	}),
 
 	http.get('http://testdomain/.ph/user/obj/by-hash/userSecretHash/userSecretHmac', () => {

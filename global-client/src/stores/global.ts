@@ -222,19 +222,19 @@ const useGlobal = defineStore('global', {
 			const mss = useMSS();
 			const hubsStore = useHubs();
 			const data = await mss.getHubs();
-			const hubPromises = data.map((item) =>
-				mss
-					.getHubInfo(item.url)
+			const hubPromises = data.map((item) => {
+				const serverUrl = item.url.replace(/\/_synapse\/client\/?$/, '/');
+				return mss
+					.getHubInfo(serverUrl)
 					.then((hubInfo) => {
-						const serverUrl = item.url.replace(/\/_synapse\/client/, '');
 						const hub = new Hub(item.id, item.name, hubInfo.hub_client_url, serverUrl, item.description);
 						// Add the hub to the store here already so an offline hub cant delay the loading of online hubs.
 						hubsStore.addHub(hub);
 					})
 					.catch((error) => {
 						this.logger.error(`Could not fetch hub info for hub '${item.name}' with url ${item.url}: ${error.message}`);
-					}),
-			);
+					});
+			});
 			await Promise.all(hubPromises);
 			this.hubsLoading = false;
 		},
