@@ -48,6 +48,7 @@ enum MatrixEventType {
 	RoomReceipt = 'm.room.receipt',
 	RoomReadMarker = 'm.room.read_markers',
 	YellowCard = 'pubhubs.yellow_card',
+	YellowCardAccepted = 'pubhubs.yellow_card_accepted', // Room account data, see TYellowCardAcceptedContent
 	Timeout = 'pubhubs.timeout',
 }
 

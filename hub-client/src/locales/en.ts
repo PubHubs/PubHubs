@@ -610,6 +610,7 @@ const en = {
 		yellow_card_info: 'you have received a yellow card as a warning for this room. reason: ',
 		issue_yellow_card: 'issue a yellow card',
 		issue_yellow_card_info: 'the member will receive a warning',
+		revoke_yellow_card: 'revoke yellow card',
 		red_card: 'red card',
 		red_card_info: 'you have received a red card and are no longer able to enter this room. reason: ',
 		issue_red_card: 'issue a red card',

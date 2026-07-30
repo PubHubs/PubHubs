@@ -2,7 +2,6 @@ type TYellowCardEntry = {
 	reason: string;
 	issued_by: string; // User ID of issuer
 	issued_at: number; // Unix timestamp (ms)
-	dismissed: boolean; // Whether user has acknowledged
 };
 
 type TYellowCardEventContent = {
@@ -19,4 +18,14 @@ type TYellowCardStateEvent = {
 	room_id: string;
 };
 
-export { TYellowCardEntry, TYellowCardEventContent, TYellowCardStateEvent };
+/**
+ * Room account data of the warned user, recording that they acknowledged their warning.
+ * Acceptance is kept out of the state event so that only stewards need write access to the
+ * warnings themselves. The timestamp identifies which warning was accepted, so a warning
+ * issued after an earlier acceptance shows up again.
+ */
+type TYellowCardAcceptedContent = {
+	issued_at: number; // `issued_at` of the accepted warning
+};
+
+export { TYellowCardAcceptedContent, TYellowCardEntry, TYellowCardEventContent, TYellowCardStateEvent };

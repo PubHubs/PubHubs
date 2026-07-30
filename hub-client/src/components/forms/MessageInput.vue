@@ -15,7 +15,7 @@
 		<YellowCardNotificationBar
 			v-if="isCurrentUserWarned && currentUserYellowCardInfo"
 			:reason="currentUserYellowCardInfo.reason"
-			@dismiss="onDismissYellowCard"
+			@accept="onAcceptYellowCard"
 		/>
 
 		<!-- Floating -->
@@ -407,7 +407,7 @@
 	const messageInput = useMessageInput();
 	const base = useModerationBase();
 	const { isCurrentUserTimedOut, currentUserTimeoutInfo, refreshTimeoutStatus } = useModerationTimeout(base);
-	const { isCurrentUserWarned, currentUserYellowCardInfo, dismissYellowCard } = useModerationYellowCard(base);
+	const { isCurrentUserWarned, currentUserYellowCardInfo, acceptYellowCard } = useModerationYellowCard(base);
 
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const valueAsString = computed({
@@ -661,8 +661,8 @@
 		messageInput.state.sendButtonEnabled = isValidMessage();
 	}
 
-	async function onDismissYellowCard() {
-		await dismissYellowCard(props.room.roomId);
+	async function onAcceptYellowCard() {
+		await acceptYellowCard(props.room.roomId);
 	}
 
 	function preventSubmitWhenTimedOut(event: KeyboardEvent) {

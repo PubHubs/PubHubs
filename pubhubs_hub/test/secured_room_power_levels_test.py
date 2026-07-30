@@ -1,14 +1,21 @@
-"""Regression test: secured rooms must let regular members write the Matrix
-state events a group video call needs (org.matrix.msc3401.call and its
-member event, plus the newer org.matrix.msc4143.rtc.member), not just the
-room creator. Without an explicit power level override these default to
-Synapse's state_default (50), which a regular joined member (0) can't meet.
+"""Regression tests for the power levels a secured room is created with.
+
+Two opposite requirements are covered here:
+
+- Regular members must be able to write the Matrix state events a group video call
+  needs (org.matrix.msc3401.call and its member event, plus the newer
+  org.matrix.msc4143.rtc.member). Without an explicit power level override these
+  default to Synapse's state_default (50), which a regular member (0) can't meet.
+- Sanctions (pubhubs.timeout, pubhubs.yellow_card) must NOT be writable by regular
+  members, otherwise anyone can forge or clear their own and others' sanctions by
+  sending the state event directly.
 """
 
 import sys
 from unittest import IsolatedAsyncioTestCase
 
 sys.path.append("modules")
+from pubhubs._constants import STEWARD
 from pubhubs._secured_rooms_class import SecuredRoom, PubHubsSecuredRoomType
 
 CREATOR = "@creator:example.org"
@@ -18,6 +25,11 @@ VIDEO_CALL_EVENT_TYPES = {
     "org.matrix.msc3401.call",
     "org.matrix.msc3401.call.member",
     "org.matrix.msc4143.rtc.member",
+}
+
+SANCTION_EVENT_TYPES = {
+    "pubhubs.timeout",
+    "pubhubs.yellow_card",
 }
 
 
@@ -63,6 +75,27 @@ class SecuredRoomPowerLevelsTest(IsolatedAsyncioTestCase):
                 events_override[event_type],
                 0,
                 f"{event_type} must be sendable by a regular member (power level 0)",
+            )
+
+    async def test_sanction_event_types_require_steward(self):
+        room = SecuredRoom(
+            name="secured",
+            topic="secured",
+            accepted={"something": {"profile": True, "accepted_values": []}},
+            user_txt="",
+            type=PubHubsSecuredRoomType.MESSAGES,
+        )
+        handler = FakeRoomCreationHandler()
+
+        await room.matrix_create(FakeModuleApi(), handler, CREATOR, SERVER_NOTICES_USER)
+
+        events_override = handler.captured_config["power_level_content_override"].get("events", {})
+        for event_type in SANCTION_EVENT_TYPES:
+            self.assertIn(event_type, events_override, f"{event_type} must have an explicit power level override")
+            self.assertGreaterEqual(
+                events_override[event_type],
+                STEWARD,
+                f"{event_type} is a sanction and must not be sendable below steward level",
             )
 
     async def test_creator_and_server_notices_user_levels_unchanged(self):
