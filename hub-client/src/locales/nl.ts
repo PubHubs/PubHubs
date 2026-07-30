@@ -610,6 +610,7 @@ const nl = {
 		yellow_card_info: 'je hebt een gele kaart ontvangen als waarschuwing voor deze kamer. reden: ',
 		issue_yellow_card: 'geef een gele kaart',
 		issue_yellow_card_info: 'het lid ontvangt een waarschuwing',
+		revoke_yellow_card: 'gele kaart intrekken',
 		red_card: 'rode kaart',
 		red_card_info: 'je hebt een rode kaart ontvangen en kan deze kamer niet meer betreden. reden: ',
 		issue_red_card: 'geef een rode kaart',

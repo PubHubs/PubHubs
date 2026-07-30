@@ -41,7 +41,9 @@ function useEditRoom() {
 				power_level_content_override: {
 					events: {
 						'pubhubs.timeout': UserPowerLevel.Steward,
-						'pubhubs.yellow_card': UserPowerLevel.User,
+						// Warnings are a sanction: only stewards may write them, otherwise a member can
+						// forge or clear warnings by sending the state event themselves.
+						'pubhubs.yellow_card': UserPowerLevel.Steward,
 						'org.matrix.msc3401.call': UserPowerLevel.User,
 						'org.matrix.msc3401.call.member': UserPowerLevel.User,
 						'org.matrix.msc4143.rtc.member': UserPowerLevel.User,

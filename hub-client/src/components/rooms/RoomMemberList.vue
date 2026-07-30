@@ -329,7 +329,8 @@
 			})
 			.map((userId) => ({ userId }));
 	});
-	const { activeYellowCards, yellowCardDialog, openYellowCardDialog, onYellowCardDialogSubmit } = useModerationYellowCard(base);
+	const { activeYellowCards, yellowCardDialog, openYellowCardDialog, onYellowCardDialogSubmit, revokeYellowCard, isUserWarned } =
+		useModerationYellowCard(base);
 	const { redCardMembers, revokedRedCardMembers, redCardDialog, openRedCardDialog, onRedCardDialogSubmit, revokeRedCard } = useModerationRedCard(base);
 	const { kickDialog, openKickDialog, onKickDialogSubmit } = useModerationKick();
 	const { timeoutDialog, activeTimeouts, isUserTimedOut, canTimeoutUser, refreshTimeoutStatus, revokeTimeout, openTimeoutDialog, onTimeoutDialogSubmit } =
@@ -471,6 +472,17 @@
 		if (memberId === user.user?.userId || props.disableDM) return [];
 		const stewardActions: MenuItem[] = [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
+
+		// Acceptance of a warning is private to the warned member, so a warning only leaves the
+		// sanctioned members list when a steward withdraws it.
+		if (roles.userHasPermissionForAction(UserAction.Kick) && isUserWarned(memberId)) {
+			stewardActions.push({
+				label: capitalize(t('moderation.revoke_yellow_card')),
+				icon: 'arrows-counter-clockwise',
+				onClick: () => revokeYellowCard(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
+			});
+		}
 
 		if (roles.userHasPermissionForAction(UserAction.Ban)) {
 			stewardActions.push({
