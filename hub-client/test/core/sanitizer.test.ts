@@ -2,7 +2,7 @@
 import { describe, expect, test } from 'vitest';
 
 // Logic
-import { removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+import { escapeHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 
 describe('removeHTML', () => {
 	test('remove HTML', () => {
@@ -10,6 +10,18 @@ describe('removeHTML', () => {
 		const clean = removeHtml(source);
 		expect(clean).not.toEqual(source);
 		expect(clean).toEqual('Blatest');
+	});
+});
+
+describe('escapeHtml', () => {
+	test('escapes markup characters', () => {
+		expect(escapeHtml('<b>a & b</b>')).toEqual('&lt;b&gt;a &amp; b&lt;/b&gt;');
+	});
+
+	test('an unclosed tag survives sanitizing', () => {
+		// `<H|` parses as a tag that only ends at the next `>`, so unescaped it would swallow the rest.
+		const source = 'Predicate("100<H| + -50<T|") >= obs1';
+		expect(sanitizeHtml(escapeHtml(source))).toEqual('Predicate("100&lt;H| + -50&lt;T|") &gt;= obs1');
 	});
 });
 

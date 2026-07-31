@@ -30,7 +30,7 @@ import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { router } from '@hub-client/logic/core/router';
-import { hasHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+import { removeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
@@ -617,16 +617,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			threadRoot: TMessageEvent | undefined,
 			inReplyTo: TMessageEvent | undefined,
 		): Promise<TTextMessageEventContent> {
-			let content = undefined;
-
-			// Set body of content
-			const cleanText = hasHtml(text);
-			if (typeof cleanText === 'string') {
-				const html = sanitizeHtml(text);
-				content = ContentHelpers.makeHtmlMessage(cleanText, html) as TTextMessageEventContent;
-			} else {
-				content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
-			}
+			// The message input is a plain text field, so the text is sent verbatim as a plain text
+			// message. Never infer "the user meant markup" from the presence of `<`: code, math and
+			// generics (`Vec<T>`, `100<H|`, `a<b`) would be silently deleted, because the HTML parser
+			// swallows everything from `<` up to the next `>` as a bogus tag.
+			// Escaping for rendering happens downstream (eventTimeLineHandler / textToHtml).
+			const content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
 
 			// Set mention
 			await this._addUserMentionsToMessageContent(content);

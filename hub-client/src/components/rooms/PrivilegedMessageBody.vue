@@ -1,13 +1,16 @@
 <template>
 	<div class="wrap-break-words gap-050 flex flex-row items-center">
-		<p
-			v-safe-html="props.event.body ?? ''"
-			class="overflow-hidden text-ellipsis"
+		<MessageBodyWithMentions
+			:body="props.event.body"
+			:ph-body="props.event.ph_body"
 		/>
 	</div>
 </template>
 
 <script lang="ts" setup>
+	// Components
+	import MessageBodyWithMentions from '@hub-client/components/rooms/MessageBodyWithMentions.vue';
+
 	// Models
 	import { type TAnnouncementMessageEventContent, type TWhisperMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
