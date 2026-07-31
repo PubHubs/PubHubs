@@ -66,12 +66,19 @@ class Events {
 	 */
 
 	eventRoomTimeline(event: MatrixEvent, _toStartOfTimeline: boolean | undefined) {
-		// Process text, file, image, and emote messages through the timeline handler
-		// to convert newlines to <br/>, URLs to clickable links, and sanitize HTML
+		// Process messages with a user authored body through the timeline handler, so they all get the
+		// same treatment: escaping of plain text, newlines to <br/>, URLs to clickable links.
+		// Announcements and whispers are included: their body is typed in the same message input, so
+		// leaving them out meant their text was rendered raw (and truncated at the first `<`).
 		const msgtype = event.event.content?.msgtype;
 		if (
 			event.event.type === EventType.RoomMessage &&
-			(msgtype === MsgType.Text || msgtype === MsgType.File || msgtype === MsgType.Image || msgtype === MsgType.Emote)
+			(msgtype === MsgType.Text ||
+				msgtype === MsgType.File ||
+				msgtype === MsgType.Image ||
+				msgtype === MsgType.Emote ||
+				msgtype === PubHubsMsgType.AnnouncementMessage ||
+				msgtype === PubHubsMsgType.WhisperMessage)
 		) {
 			event.event = this.eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
