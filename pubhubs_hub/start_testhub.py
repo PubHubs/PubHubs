@@ -84,7 +84,13 @@ def main():
                     "--rm",
                     "--name", f"pubhubs-testhub{args.number}",
                     "-p", f"{8008+args.number}:8008",
-                    "-p", f"{7880}:7880",
+                    # Publish LiveKit's signalling port on the host loopback only. The dev
+                    # LiveKit uses a key committed to the source tree, so it must not be
+                    # reachable from other machines. Binding LiveKit itself to 127.0.0.1
+                    # would break this: docker forwards published ports to the container's
+                    # eth0, not its loopback, so we restrict exposure on the host side here.
+                    # localhost:7880 (what the token endpoint hands the browser) still works.
+                    "-p", "127.0.0.1:7880:7880",
                     "-v", f"{os.path.join(".","modules")}:/conf/modules:ro",
                     "-v", f"{os.path.join(".","boot")}:/conf/boot:ro",
                     "-v", f"{os.path.join(".",f"testhub{args.number}")}:/data:rw",
