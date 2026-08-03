@@ -13,6 +13,15 @@ _Please add a brief description of any changes and any migrations to be performe
 
 - [BUG] Fixed that only one local testhub could be started at a time: every hub published LiveKit on the fixed host port 7880, so a second `mask run hub server <n>` failed with "port is already allocated". Each hub `n` now runs its LiveKit on `7880+n`, both inside and outside the container, so video calls work in several hubs at once.
 - [BUG] Fixed that the receiver of a video call never got a join button: the call message showed only "Duration: Unknown" with no body text. `RoomMessageBubble` handed `MessageVideoCall` the raw event wrapper instead of its unwrapped `event` computed, so `event_id` was `undefined` and every incoming call was treated as an older, already-ended one.
+- [NEW] Introducing expert users that can set their credentials via synapse account details and add context to messages. Expert users are appointed by stewards or room admins via a new roles page.
+- [NEW] The Pubhubs Central Yivi email and phone-number login will be replaced with the Yivi Pubhubs Card login.
+- [BUG] Fixed that stewards could not apply timeouts or warnings because room power levels were not set yet.
+- [BUG] Fixed that after leaving a direct message room with a another user, it was not possible to make a new direct message room with that user.
+- [BUG] Fixed a broken synapse module endpoint pattern that was only accepted by synapse because they had a bug in their url pattern acceptence that has been fixed in the latest synapse version.
+- [BUG] Fixed that the Global Bar info (Questionmark Icon) was showing the wrong version of Pubhubs.
+- [BUG] Fixed that room mentions did not immediately work on page reload.
+- [BUG] Fixed that code examples could not be sent properly because they would be catched as invalid html.
+- [BUG] Fixed that any user could send a warning to any other users, which was a potential grieve risk.
 
 ## 15 June 2026 - v3.5.0
 
@@ -77,7 +86,7 @@ _Please add a brief description of any changes and any migrations to be performe
 ## 06 February 2026 - v3.2.0
 
 - [NEW] Room timeline scrolling experience is optimized
-- [NEW] Reintroduced Pubhubs card for login
+- [NEW, behind feature flag for now] Reintroduced Pubhubs card for login
 - [NEW] New permissions/roles for different types of users (in client).
 - [NEW] Backend: adds the option to check for a reused phone number during registration
 - [NEW] Backend: authentication publishes historic pubhubs card validity duration values
