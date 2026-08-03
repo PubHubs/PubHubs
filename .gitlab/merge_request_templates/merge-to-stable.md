@@ -5,7 +5,7 @@ Before merging to stable:
 - [ ] Run the PubHubs e2e test (https://gitlab.science.ru.nl/pubhubs/pubhubs-e2e-test)
 - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
 - [ ] Scan through all changes in merge request to see if there is any issue.
-- [ ] Set the new version number ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
+- [ ] Set the new version number ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md) and in the package.json in the root folder. **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
 - [ ] Before proceeding with the following steps please check that the pipeline has been succeeded.
 - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
 
@@ -56,8 +56,7 @@ Test by hand:
     - [ ] Merge stable back into main. Do this on your machine, not via a gitlab merge request (which will make an extra commit leading to out-of-sync main and stable). To check if main and stable are merged correctly, go to the [repository graph](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/network/main?ref_type=heads) and check if main and stable are pointing to the same commit. See the screenshot below. (If you already merged the updated dependencies to main, main will be ahead of stable)
 
     ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
-    - [ ] Update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd). Please wait with merging this, see instruction below.
-    - [ ] Merge the branch with the updated dependencies to main. We do this now because otherwise the main and stable will not point to the same commit as shown in the repository graph.
+    - [ ] Update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd).
     - [ ] Check this list and cleanup items with due date passed, and add due dates to items that are not in active development anymore.
 
     - [ ] If Frans Lammers is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) to pull the latest updates with the following email:
