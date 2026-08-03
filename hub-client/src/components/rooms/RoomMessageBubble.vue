@@ -312,7 +312,7 @@
 								/>
 								<MessageVideoCall
 									v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
-									:event="props.event as any"
+									:event="videoCallEvent"
 									:room-id="room.roomId"
 								/>
 								<Message
@@ -360,7 +360,7 @@
 								/>
 								<MessageVideoCall
 									v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
-									:event="props.event as any"
+									:event="videoCallEvent"
 									:room-id="room.roomId"
 								/>
 								<Message
@@ -498,7 +498,7 @@
 	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	import { RelationType } from '@hub-client/models/constants';
 	import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-	import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { type TMessageEvent, type TMessageEventContent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TAnnouncementMessageEventContent, type TWhisperMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -653,6 +653,11 @@
 		if (props.event instanceof MatrixEvent) return props.event.event;
 		return props.event as TMessageEvent<TMessageEventContent>;
 	});
+
+	// MessageVideoCall identifies the call by event_id and reads content.timestamp, so it needs the
+	// unwrapped event above - handing it props.event leaves both undefined for the TimelineEvent and
+	// MatrixEvent shapes, which made every incoming call look like an already-ended one.
+	const videoCallEvent = computed(() => event.value as TMessageEvent<TVideoCallMessageEventContent>);
 
 	const deletedEvent = computed(() => {
 		if (props.event instanceof TimelineEvent) return props.event.isDeleted;

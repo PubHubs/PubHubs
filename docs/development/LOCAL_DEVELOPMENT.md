@@ -61,7 +61,13 @@ mask run hub server 0   # Hub server 0 (port 8008)
 mask run hub client 0   # Hub client 0 (port 8001)
 ```
 
-You can run multiple hub servers/clients by changing the number (0-4).
+You can run multiple hub servers/clients by changing the number (0-4). Each hub `n` gets its own
+ports: Synapse on `8008+n`, hub client on `8001+n`, and its bundled LiveKit on `7880+n` (loopback
+only), so several hubs can run at the same time with working video calls in each.
+
+A freshly started hub shows up in the global client as "This hub is under construction" for a while:
+the hub block probes the hub before letting you enter, and the hub needs time to bring up postgres,
+run migrations and start listening. Wait for it rather than treating it as a fault.
 
 ### Development against staging
 
