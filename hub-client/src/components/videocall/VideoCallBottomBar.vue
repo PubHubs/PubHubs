@@ -32,12 +32,19 @@
 				@click="toggleSelfView"
 				>{{ selfView ? 'Hide self view' : 'Show self view' }}</Button
 			>
+			<Button
+				variant="primary"
+				:title="t('videocall.fullscreen_tooltip')"
+				@click="$emit('toggle-fullscreen')"
+				>{{ isFullscreen ? t('videocall.exit_fullscreen') : t('videocall.fullscreen') }}</Button
+			>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
 	import { ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
 	import Button from '@hub-client/components/elements/Button.vue';
@@ -48,8 +55,14 @@
 
 	const props = defineProps<{
 		currentRoom: Room;
+		isFullscreen: boolean;
 	}>();
 
+	defineEmits<{
+		(e: 'toggle-fullscreen'): void;
+	}>();
+
+	const { t } = useI18n();
 	const videoCall = useVideoCall();
 	const router = useRouter();
 	const muteAudio = ref(false);

@@ -913,6 +913,9 @@ const nl = {
 	videocall: {
 		start_button: 'Start videogesprek',
 		join_button: 'Neem deel aan videogesprek',
+		fullscreen: 'Volledig scherm',
+		exit_fullscreen: 'Volledig scherm sluiten',
+		fullscreen_tooltip: 'Volledig scherm in-/uitschakelen (Shift+F)',
 	},
 	roles: {
 		details: 'Rol details',

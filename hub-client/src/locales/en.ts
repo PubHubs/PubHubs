@@ -914,6 +914,9 @@ const en = {
 	videocall: {
 		start_button: 'Start video call',
 		join_button: 'Join video call',
+		fullscreen: 'Fullscreen',
+		exit_fullscreen: 'Exit fullscreen',
+		fullscreen_tooltip: 'Toggle fullscreen (Shift+F)',
 	},
 	roles: {
 		details: 'Role details',
