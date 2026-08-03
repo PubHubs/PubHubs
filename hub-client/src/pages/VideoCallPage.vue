@@ -1,5 +1,8 @@
 <template>
-	<div class="dark:bg-gray-middle h-full w-full">
+	<div
+		ref="callContainer"
+		class="dark:bg-gray-middle h-full w-full"
+	>
 		<div
 			v-if="!connectInputs"
 			class="flex h-full flex-col items-center justify-center dark:text-white"
@@ -101,7 +104,11 @@
 					></VideoCallVideo>
 				</div>
 			</div>
-			<VideoCallBottomBar :current-room="currentRoom" />
+			<VideoCallBottomBar
+				:current-room="currentRoom"
+				:is-fullscreen="isFullscreen"
+				@toggle-fullscreen="toggleFullscreen"
+			/>
 		</div>
 	</div>
 </template>
@@ -122,13 +129,19 @@
 
 	import { type Options } from '@hub-client/composables/useFormInputEvents';
 
+	import { createLogger } from '@hub-client/logic/logging/Logger';
+
 	import { useRooms } from '@hub-client/stores/rooms';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
 	const videoCall = useVideoCall();
 	const router = useRouter();
 	const rooms = useRooms();
+	const logger = createLogger('VideoCallPage');
 	const selfView = computed(() => videoCall.selfView);
+
+	const callContainer = ref<HTMLElement | null>(null);
+	const isFullscreen = ref(false);
 
 	let audioOptions = ref<Options>([]);
 	let videoOptions = ref<Options>([]);
@@ -221,7 +234,37 @@
 		videoCall.livekit_room.on('trackUnmuted', () => syncRemoteParticipants());
 	}
 
+	async function toggleFullscreen() {
+		try {
+			if (document.fullscreenElement) {
+				await document.exitFullscreen();
+			} else {
+				await callContainer.value?.requestFullscreen();
+			}
+		} catch (error) {
+			logger.error('Could not toggle fullscreen', { error });
+		}
+	}
+
+	function handleFullscreenChange() {
+		isFullscreen.value = !!document.fullscreenElement;
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		// Don't hijack the key while the user is typing (e.g. in-call chat thread).
+		const target = event.target as HTMLElement | null;
+		if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+			return;
+		}
+		if (event.shiftKey && event.key.toLowerCase() === 'f') {
+			event.preventDefault();
+			void toggleFullscreen();
+		}
+	}
+
 	onMounted(async () => {
+		document.addEventListener('fullscreenchange', handleFullscreenChange);
+		document.addEventListener('keydown', handleKeydown);
 		await findDevices();
 		setupLivekitListeners();
 	});
@@ -238,6 +281,11 @@
 	);
 
 	onUnmounted(async () => {
+		document.removeEventListener('fullscreenchange', handleFullscreenChange);
+		document.removeEventListener('keydown', handleKeydown);
+		if (document.fullscreenElement) {
+			void document.exitFullscreen().catch((error) => logger.error('Could not exit fullscreen on unmount', { error }));
+		}
 		if (!videoCall.livekit_room) return;
 		videoCall.livekit_room.removeAllListeners();
 	});
