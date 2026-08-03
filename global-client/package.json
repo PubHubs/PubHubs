@@ -1,6 +1,5 @@
 {
 	"name": "@pubhubs/global-client",
-	"version": "3.2.2",
 	"type": "module",
 	"private": true,
 	"scripts": {
@@ -57,4 +56,3 @@
 	"_id": "@",
 	"readme": "ERROR: No README data found!"
 }
-
