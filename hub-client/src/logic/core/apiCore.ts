@@ -7,6 +7,7 @@ type ApiOptions = {
 	method: string;
 	body?: string | Uint8Array;
 	headers?: Record<string, string>;
+	signal?: AbortSignal;
 };
 
 type AllApiOptions = {
@@ -131,8 +132,12 @@ class Api {
 		}
 	}
 
-	async apiGET<T>(url: string): Promise<T> {
-		return this.api<T>(url, this.options.GET);
+	/**
+	 * @param signal aborts the request; pass `AbortSignal.timeout(ms)` to give a call a deadline.
+	 *   Without one a request that never gets a response stays pending for the lifetime of the page.
+	 */
+	async apiGET<T>(url: string, signal?: AbortSignal): Promise<T> {
+		return this.api<T>(url, { ...this.options.GET, signal });
 	}
 
 	async apiPOST<T>(url: string, data: unknown): Promise<T> {
