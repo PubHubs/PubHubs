@@ -38,8 +38,10 @@ class HubStore:
         """
 
         def create_tables_txn(txn: LoggingTransaction) -> None:
-            # No functionality yet for expired Yivi attributes, now able to join room forever.
-            # Make some background check for it see: https://github.com/matrix-org/synapse-email-account-validity for an example.
+            # Access expires after the room's expiration_time_days: the `remove_from_room` sweep
+            # (scheduled from HubClientApi) marks them user_expired and kicks the user, and the
+            # row is kept until dismissed so the client can notify them.  Both columns are added
+            # by DBMigration rather than here.
             # WARNING!  When adding a new table, make sure you consider modifying the
             #           sqlite3 -> postgres migration code in start_hub.py.
             
@@ -105,6 +107,11 @@ class HubStore:
     async def is_allowed(self, user_id: str, room_id: str) -> bool:
         """Check whether a user is allowed to join a room.
 
+        Access that has been marked expired (by `remove_from_room` or
+        `remove_users_from_secured_room`) no longer counts: the row is kept around to
+        drive the "you were removed from a secured room" notification, but the user has
+        to disclose their attributes again before being let back in.
+
         :param user_id: The user that wants to join the room
         :param room_id: The room the user wants to join
         :return: a boolean indicating whether the user is allowed
@@ -116,7 +123,8 @@ class HubStore:
                 room_id_txn: str) -> bool:
             txn.execute(
                 """
-                SELECT * FROM allowed_to_join_room WHERE user_id = ? AND room_id = ?
+                SELECT * FROM allowed_to_join_room
+                WHERE user_id = ? AND room_id = ? AND user_expired = 0
                 """,
                 (user_id_txn, room_id_txn),
             )
