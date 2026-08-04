@@ -325,6 +325,26 @@ npm run lint
 
 ---
 
+## test
+
+> Run tests
+
+### hub
+
+> Run the hub's Synapse module tests
+
+Needs the Nix dev shell (`nix develop`) for the `synapse` and `livekit` imports, or
+`pip install -r pubhubs_hub/requirements.txt` in a virtualenv.
+
+```sh
+set -e
+
+cd pubhubs_hub
+python3 -m unittest discover -p '*_test.py'
+```
+
+---
+
 ## check
 
 > Check source code without modifying it
