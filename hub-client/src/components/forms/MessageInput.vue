@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="w-full px-150 pb-150 md:px-300"
+		class="relative z-10 w-full px-150 pb-150 md:px-300"
 		v-bind="$attrs"
 	>
 		<!-- Timeout notification bar -->
