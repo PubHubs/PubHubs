@@ -110,7 +110,7 @@
 	// Packages
 	import { type PropType, computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRouter } from 'vue-router';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import Badge from '@hub-client/components/elements/Badge.vue';
@@ -156,6 +156,7 @@
 	const hubSettings = useHubSettings();
 	const notifications = useNotifications();
 	const { t } = useI18n();
+	const route = useRoute();
 	const router = useRouter();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
@@ -187,7 +188,7 @@
 			if (DirectRooms.includes(room.roomType as RoomType)) {
 				if (await dialog.okcancel(t('rooms.leave_dm_sure'))) {
 					await pubhubs.leaveDMRoom(room);
-					await router.replace({ name: 'home' });
+					await leaveCurrentRoomView(roomId);
 				}
 			} else if (await dialog.okcancel(t(leaveMsg))) {
 				// Message should changed based on who (admin) is leaving the room and under which condition.
@@ -197,8 +198,16 @@
 				if (isSecure) {
 					notifications.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
 				}
-				await router.replace({ name: 'home' });
+				await leaveCurrentRoomView(roomId);
 			}
+		}
+	}
+
+	// Only leave the current view when it shows the room that was left, so leaving a room from
+	// another room or page keeps the user where they are.
+	async function leaveCurrentRoomView(roomId: string) {
+		if (route.params.id === roomId) {
+			await router.replace({ name: 'home' });
 		}
 	}
 
