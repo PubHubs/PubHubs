@@ -1,5 +1,6 @@
 // Packages
 import { Direction, EventTimeline, EventType, Filter, type IRoomEvent, type MatrixClient, type MatrixEvent } from 'matrix-js-sdk';
+import { shallowReactive } from 'vue';
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -86,8 +87,9 @@ class TimelineManager {
 	private _relatedEventsMap: Map<string, TRelatedEvents> | null = null;
 	// Contains related hide events
 	private hideMessageEvents: Map<string, MatrixEvent> = new Map();
-	// Contains expert verification events: targetEventId -> array of verification events (multiple experts can verify)
-	private expertVerificationEvents: Map<string, MatrixEvent[]> = new Map();
+	// Contains expert verification events: targetEventId -> array of verification events (multiple experts can verify).
+	// Reactive, because the badges are rendered from a computed per message bubble
+	private expertVerificationEvents = shallowReactive(new Map<string, MatrixEvent[]>());
 	// Latest m.replace edit event per target eventId (used to merge edited content into the original)
 	private editEvents: Map<string, MatrixEvent> = new Map();
 
@@ -323,37 +325,34 @@ class TimelineManager {
 		// Find existing event from same sender
 		const senderEventIndex = existing.findIndex((e) => e.getSender() === senderId);
 
+		// An expert only ever acts on their own verification, and only a newer event supersedes it.
+		const supersedesOwn = senderEventIndex === -1 || (event.getTs() ?? 0) > (existing[senderEventIndex].getTs() ?? 0);
+		if (!supersedesOwn) return;
+
 		if (relType === RelationType.ExpertUnverify) {
-			// Unverify: remove the sender's verification if it exists and is older
-			if (senderEventIndex !== -1) {
-				const existingEvent = existing[senderEventIndex];
-				if ((event.getTs() ?? 0) > (existingEvent.getTs() ?? 0)) {
-					existing.splice(senderEventIndex, 1);
-					if (existing.length === 0) {
-						this.expertVerificationEvents.delete(targetEventId);
-					} else {
-						this.expertVerificationEvents.set(targetEventId, existing);
-					}
-				}
-			}
-			// If no existing verification from this sender, the unverify has no effect
-		} else if (relType === RelationType.ExpertVerify) {
-			// Verify: add or update the sender's verification
-			if (senderEventIndex !== -1) {
-				const existingEvent = existing[senderEventIndex];
-				if ((event.getTs() ?? 0) > (existingEvent.getTs() ?? 0)) {
-					existing[senderEventIndex] = event;
-				}
+			// If there is no verification from this sender, the unverify has no effect
+			if (senderEventIndex === -1) return;
+
+			const remaining = existing.filter((_, index) => index !== senderEventIndex);
+			if (remaining.length === 0) {
+				this.expertVerificationEvents.delete(targetEventId);
 			} else {
-				existing.push(event);
+				this.expertVerificationEvents.set(targetEventId, remaining);
 			}
-			this.expertVerificationEvents.set(targetEventId, existing);
+		} else if (relType === RelationType.ExpertVerify) {
+			const updated = [...existing];
+			if (senderEventIndex === -1) {
+				updated.push(event);
+			} else {
+				updated[senderEventIndex] = event;
+			}
+			this.expertVerificationEvents.set(targetEventId, updated);
 		}
 	}
 
 	private cleanupExpertVerificationEvents(): void {
 		const timelineEventIds = new Set(this.timelineEvents.map((e) => e.matrixEvent.getId()));
-		for (const targetEventId of this.expertVerificationEvents.keys()) {
+		for (const targetEventId of [...this.expertVerificationEvents.keys()]) {
 			if (!timelineEventIds.has(targetEventId)) {
 				this.expertVerificationEvents.delete(targetEventId);
 			}

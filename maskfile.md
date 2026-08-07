@@ -329,6 +329,29 @@ npm run lint
 
 > Run tests
 
+### all
+
+> Run every test suite: the clients, the hub's Synapse modules and PubHubs Central
+
+```sh
+set -e
+
+mask test client
+mask test hub
+mask test servers
+```
+
+### client
+
+> Run the global and hub client tests (Vitest)
+
+```sh
+set -e
+
+npm run test:run --workspace=global-client
+npm run test:run --workspace=hub-client
+```
+
 ### hub
 
 > Run the hub's Synapse module tests
@@ -341,6 +364,20 @@ set -e
 
 cd pubhubs_hub
 python3 -m unittest discover -p '*_test.py'
+```
+
+### servers
+
+> Run the PubHubs Central tests (Rust)
+
+Needs the Nix dev shell (`nix develop`) for `cargo`. Linting lives in `mask check`, so this
+runs the tests only.
+
+```sh
+set -e
+
+cd pubhubs
+cargo test
 ```
 
 ---

@@ -1013,6 +1013,10 @@ const nl = {
 		sources_label: 'Bronnen (één per regel)',
 		sources_display_label: 'Bronnen:',
 		source_placeholder: 'https://voorbeeld.nl/bron',
+		// Failures
+		verify_failed: 'Je beoordeling kon niet worden verzonden. Probeer het opnieuw.',
+		remove_verification_failed: 'Je beoordeling kon niet worden verwijderd. Probeer het opnieuw.',
+		profile_save_failed: 'Je expertprofiel kon niet worden opgeslagen. Probeer het opnieuw.',
 	},
 };
 

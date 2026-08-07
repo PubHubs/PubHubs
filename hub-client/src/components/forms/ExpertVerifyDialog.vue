@@ -102,6 +102,13 @@
 					@keydown.esc.stop
 				/>
 			</div>
+			<P
+				v-if="props.error"
+				class="text-error mt-100 text-sm"
+				role="alert"
+			>
+				{{ props.error }}
+			</P>
 			<ButtonGroup>
 				<Button
 					variant="error"
@@ -121,13 +128,14 @@
 
 <script setup lang="ts">
 	// Packages
+	// Components
 	import { computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
+	import P from '@hub-client/components/elements/P.vue';
 	import Label from '@hub-client/components/forms/elements/Label.vue';
 	import TextArea from '@hub-client/components/forms/elements/TextArea.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
@@ -143,6 +151,7 @@
 
 	// Types
 	type Props = {
+		error?: string;
 		eventId: string;
 		initialNote?: string;
 		initialSources?: string[];
@@ -151,6 +160,7 @@
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
+		error: undefined,
 		initialNote: undefined,
 		initialSources: undefined,
 		initialVerificationType: undefined,

@@ -72,6 +72,13 @@
 				@keydown.esc.stop
 				>{{ $t('expert.institution') }}</TextField
 			>
+			<P
+				v-if="props.error"
+				class="text-error mt-100 text-sm"
+				role="alert"
+			>
+				{{ props.error }}
+			</P>
 			<ButtonGroup>
 				<Button
 					variant="error"
@@ -98,6 +105,7 @@
 	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import P from '@hub-client/components/elements/P.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
@@ -108,6 +116,15 @@
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useSettings } from '@hub-client/stores/settings';
+
+	// Types
+	type Props = {
+		error?: string;
+	};
+
+	const props = withDefaults(defineProps<Props>(), {
+		error: undefined,
+	});
 
 	const emit = defineEmits<{
 		close: [];

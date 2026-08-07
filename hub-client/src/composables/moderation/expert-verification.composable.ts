@@ -1,14 +1,15 @@
 import { type MatrixEvent } from 'matrix-js-sdk';
-import { computed, reactive, ref, watch } from 'vue';
-
-import { type useModerationBase } from '@hub-client/composables/moderation/base.composable';
+import { type Ref, computed, reactive, unref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 import { type TExpertProfileContent, type TExpertVerificationMessageContent, type TExpertVerificationType } from '@hub-client/models/events/TExpertEvent';
 import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
+import { useDialog } from '@hub-client/stores/dialog';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { type Room, useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
 
 // Account data event type for expert profile
@@ -30,28 +31,20 @@ type TVerificationInfo = {
 	verified_at: number;
 };
 
-// Shared cache for expert profiles (userId -> profile with timestamp)
-// Module-level so it's shared across all component instances
-type CacheEntry = {
-	profile: TExpertProfileContent | null;
-	timestamp: number;
-};
-const expertProfileCache = ref<Record<string, CacheEntry>>({});
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
 /**
- * Check if a cache entry is still valid (not expired).
+ * @param room The room to act in; falls back to the room currently in view when omitted.
  */
-const isCacheValid = (entry: CacheEntry | undefined): boolean => {
-	if (!entry) return false;
-	return Date.now() - entry.timestamp < CACHE_TTL_MS;
-};
-
-function useExpertVerification(base: ReturnType<typeof useModerationBase>) {
+function useExpertVerification(room?: Ref<Room | undefined> | Room) {
 	// Stores
 	const pubhubsStore = usePubhubsStore();
 	const userStore = useUser();
-	const { getCurrentRoom } = base;
+	const roomStore = useRooms();
+	const dialogStore = useDialog();
+
+	const { t } = useI18n();
+
+	// Helpers
+	const getCurrentRoom = () => unref(room) ?? roomStore.currentRoom;
 
 	// Reactive state (per-component instance)
 	const verifyDialog = reactive<{
@@ -62,6 +55,7 @@ function useExpertVerification(base: ReturnType<typeof useModerationBase>) {
 		initialVerificationType?: TExpertVerificationType;
 		initialNote?: string;
 		initialSources?: string[];
+		error?: string;
 	}>({
 		visible: false,
 		roomId: '',
@@ -69,14 +63,17 @@ function useExpertVerification(base: ReturnType<typeof useModerationBase>) {
 		initialVerificationType: undefined,
 		initialNote: undefined,
 		initialSources: undefined,
+		error: undefined,
 	});
 
 	const logger = createLogger('expert-verification');
 
 	const expertProfileDialog = reactive<{
 		visible: boolean;
+		error?: string;
 	}>({
 		visible: false,
+		error: undefined,
 	});
 
 	// Computed
@@ -126,42 +123,10 @@ function useExpertVerification(base: ReturnType<typeof useModerationBase>) {
 	};
 
 	/**
-	 * Load the current user's expert profile into cache.
-	 * Called when user is identified as an expert.
-	 */
-	const loadCurrentUserProfile = async (): Promise<void> => {
-		const userId = userStore.user?.userId;
-		if (!userId) return;
-
-		// Only load if not already in cache or cache is expired
-		const existingEntry = expertProfileCache.value[userId];
-		if (isCacheValid(existingEntry)) return;
-
-		const profile = await getMyExpertProfile();
-		expertProfileCache.value[userId] = { profile: profile ?? null, timestamp: Date.now() };
-	};
-
-	// Watch for when current user becomes an expert and load their profile
-	watch(
-		isCurrentUserExpert,
-		(isExpert) => {
-			if (isExpert) {
-				loadCurrentUserProfile();
-			}
-		},
-		{ immediate: true },
-	);
-
-	/**
 	 * Set expert profile in account data for the current user.
 	 */
 	const setMyExpertProfile = async (profile: TExpertProfileContent): Promise<void> => {
 		await pubhubsStore.client.setAccountData(EXPERT_PROFILE_EVENT_TYPE, profile);
-		// Update cache for current user
-		const userId = userStore.user?.userId;
-		if (userId) {
-			expertProfileCache.value[userId] = { profile, timestamp: Date.now() };
-		}
 	};
 
 	/**
@@ -252,8 +217,14 @@ function useExpertVerification(base: ReturnType<typeof useModerationBase>) {
 	};
 
 	const removeVerification = async (roomId: string, eventId: string): Promise<void> => {
-		// Send unverify message using the store method
-		await pubhubsStore.removeExpertVerificationMessage(roomId, eventId);
+		try {
+			// Send unverify message using the store method
+			await pubhubsStore.removeExpertVerificationMessage(roomId, eventId);
+		} catch (error) {
+			// Runs straight off the message context menu, so there is no dialog of ours to report in.
+			logger.error('Failed to remove verification:', error);
+			dialogStore.confirm(t('expert.remove_verification_failed'));
+		}
 	};
 
 	const openVerifyDialog = (
@@ -266,6 +237,7 @@ function useExpertVerification(base: ReturnType<typeof useModerationBase>) {
 		verifyDialog.initialVerificationType = initialValues?.verificationType;
 		verifyDialog.initialNote = initialValues?.note;
 		verifyDialog.initialSources = initialValues?.sources;
+		verifyDialog.error = undefined;
 		verifyDialog.visible = true;
 	};
 
@@ -276,33 +248,41 @@ function useExpertVerification(base: ReturnType<typeof useModerationBase>) {
 		verifyDialog.initialVerificationType = undefined;
 		verifyDialog.initialNote = undefined;
 		verifyDialog.initialSources = undefined;
+		verifyDialog.error = undefined;
 	};
 
 	const onVerifyDialogSubmit = async (verificationType: TExpertVerificationType, note?: string, sources?: string[]) => {
+		// Clear the previous attempt's message, so a retry that fails again still reads as a change.
+		verifyDialog.error = undefined;
 		try {
 			await verifyMessage(verifyDialog.roomId, verifyDialog.eventId, verificationType, note, sources);
 			closeVerifyDialog();
 		} catch (error) {
 			logger.error('Failed to submit verification:', error);
-			// Don't close dialog on error so user can retry
+			// Keep the dialog open so the user can retry, but say why it did not go through.
+			verifyDialog.error = t('expert.verify_failed');
 		}
 	};
 
 	const openExpertProfileDialog = () => {
+		expertProfileDialog.error = undefined;
 		expertProfileDialog.visible = true;
 	};
 
 	const closeExpertProfileDialog = () => {
 		expertProfileDialog.visible = false;
+		expertProfileDialog.error = undefined;
 	};
 
 	const onExpertProfileDialogSubmit = async (profile: TExpertProfileContent) => {
+		expertProfileDialog.error = undefined;
 		try {
 			await setMyExpertProfile(profile);
 			closeExpertProfileDialog();
 		} catch (error) {
 			logger.error('Failed to save expert profile:', error);
-			// Don't close dialog on error so user can retry
+			// Keep the dialog open so the user can retry, but say why it did not go through.
+			expertProfileDialog.error = t('expert.profile_save_failed');
 		}
 	};
 
