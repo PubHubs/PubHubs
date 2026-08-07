@@ -23,6 +23,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed that code examples could not be sent properly because they would be catched as invalid html.
 - [BUG] Fixed that any user could send a warning to any other users, which was a potential grieve risk.
 - [BUG] Fixed that expired users could rejoin a secured room via the synapse api without disclosing their yivi attributes again.
+- [BUG] Fixed that leaving a room from the roomlist rerouted a user to the homepage no matter on what page the user was.
 
 ## 15 June 2026 - v3.5.0
 
