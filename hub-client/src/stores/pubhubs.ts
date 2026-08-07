@@ -26,6 +26,7 @@ import { useMatrix } from '@hub-client/composables/matrix.composable';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
+import { APIService } from '@hub-client/logic/core/apiService';
 import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
@@ -808,6 +809,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 		},
 
+		/**
+		 * Send a message that PubHubs reads back off the timeline itself rather than rendering as a
+		 * message of its own. Goes over the client-server API to skip the matrix-js-sdk's local echo,
+		 * which such a message cannot survive -- see `APIService.sendRoomMessage` for why.
+		 */
+		async sendMessageWithoutLocalEcho(roomId: string, content: object): Promise<void> {
+			await APIService.sendRoomMessage(roomId, content, this.client.makeTxnId());
+		},
+
 		async addVisibilityMessage(roomId: string, targetEventId: string, hide: boolean, label?: string) {
 			const content: THideMessageContent = {
 				msgtype: PubHubsMgType.HideMessage,
@@ -818,7 +828,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				},
 				ph_hidden_label: label,
 			};
-			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+			await this.sendMessageWithoutLocalEcho(roomId, content);
 		},
 
 		async addExpertVerificationMessage(
@@ -843,7 +853,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					event_id: targetEventId,
 				},
 			};
-			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+			await this.sendMessageWithoutLocalEcho(roomId, content);
 		},
 
 		async removeExpertVerificationMessage(roomId: string, targetEventId: string): Promise<void> {
@@ -857,7 +867,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					event_id: targetEventId,
 				},
 			};
-			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+			await this.sendMessageWithoutLocalEcho(roomId, content);
 		},
 
 		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {

@@ -432,6 +432,7 @@
 			></ReportDialog>
 			<ExpertVerifyDialog
 				v-if="verifyDialog.visible && isCurrentUserExpert"
+				:error="verifyDialog.error"
 				:room-id="verifyDialog.roomId"
 				:event-id="verifyDialog.eventId"
 				:initial-verification-type="verifyDialog.initialVerificationType"
@@ -443,6 +444,7 @@
 			></ExpertVerifyDialog>
 			<ExpertProfileDialog
 				v-if="expertProfileDialog.visible"
+				:error="expertProfileDialog.error"
 				@close="closeExpertProfileDialog()"
 				@submit="onExpertProfileDialogSubmit"
 			></ExpertProfileDialog>
@@ -483,7 +485,6 @@
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
-	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
 	import { useModerationCreateReport } from '@hub-client/composables/moderation/create-report.composable';
 	import { useExpertVerification } from '@hub-client/composables/moderation/expert-verification.composable';
 	import { useModerationHideMessage } from '@hub-client/composables/moderation/hide-message.composable';
@@ -622,7 +623,6 @@
 	const { reportDialog, openReportDialog, onReportDialogSubmit } = useModerationCreateReport();
 
 	// Expert verification
-	const moderationBase = useModerationBase(computed(() => props.room));
 	const {
 		verifyDialog,
 		expertProfileDialog,
@@ -637,7 +637,7 @@
 		openExpertProfileDialog,
 		closeExpertProfileDialog,
 		onExpertProfileDialogSubmit,
-	} = useExpertVerification(moderationBase);
+	} = useExpertVerification(computed(() => props.room));
 
 	const allVerificationInfo = computed(() => {
 		const eventId = event.value.event_id;

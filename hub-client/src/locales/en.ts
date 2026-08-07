@@ -1014,6 +1014,10 @@ const en = {
 		sources_label: 'Sources (one per line)',
 		sources_display_label: 'Sources:',
 		source_placeholder: 'https://example.com/source',
+		// Failures
+		verify_failed: 'Your assessment could not be sent. Please try again.',
+		remove_verification_failed: 'Your assessment could not be removed. Please try again.',
+		profile_save_failed: 'Your expert profile could not be saved. Please try again.',
 	},
 };
 

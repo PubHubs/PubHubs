@@ -247,6 +247,7 @@
 		<!-- Expert profile dialog (for editing own profile) -->
 		<ExpertProfileDialog
 			v-if="expertProfileDialog.visible"
+			:error="expertProfileDialog.error"
 			@close="closeExpertProfileDialog()"
 			@submit="onExpertProfileDialogSubmit"
 		/>
@@ -337,7 +338,7 @@
 		useModerationTimeout(base);
 	const { canWhisperFromContextMenu, startWhisperToMember } = useModerationWhisper();
 	const { expertProfileDialog, isCurrentUserExpert, openExpertProfileDialog, closeExpertProfileDialog, onExpertProfileDialogSubmit } =
-		useExpertVerification(base);
+		useExpertVerification();
 
 	const numberOfSanctionedMembers = computed(
 		() => redCardMembers.value.length + activeYellowCards.value.length + revokedRedCardMembers.value.length + activeTimeouts.value.length,
