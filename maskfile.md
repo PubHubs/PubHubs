@@ -291,6 +291,75 @@ Uses `pidcat` (or falls back to `adb logcat`) with the app package name.
 adb logcat --pid="$(adb shell pidof -s nl.pubhubs.client 2>/dev/null || echo 0)" 2>/dev/null | head -c 50000
 ```
 
+### ios
+
+> Commands for iOS development
+
+#### capacitor
+
+> Commands for the Capacitor native iOS app
+
+All commands assume you are on macOS with Xcode and CocoaPods installed.
+
+##### build
+
+> Build the web app and sync to the native project
+
+```sh
+npm run cap:sync
+```
+
+##### copy
+
+> Copy web assets to the native project without rebuilding
+
+Useful when Vite is running in dev mode and you want to refresh the app on device.
+```sh
+npm run build:global:native && npx cap copy ios
+```
+
+##### sync
+
+> Sync native plugins and copy web assets (no web build)
+
+Run after adding a new Capacitor plugin to `package.json`.
+```sh
+npx cap sync ios
+```
+
+##### update
+
+> Update native plugins to match `package.json`
+
+Run after upgrading Capacitor plugin versions.
+```sh
+npx cap update ios
+```
+
+##### open
+
+> Open the iOS project in Xcode
+
+```sh
+npx cap open ios
+```
+
+##### run
+
+> Build the web app and run on a connected iOS device or simulator
+
+```sh
+npm run cap:run:ios
+```
+
+##### doctor
+
+> Check Capacitor setup (Xcode, CocoaPods, dependencies, config)
+
+```sh
+npx cap doctor ios
+```
+
 ### hub
 
 > Commands for running the hub
