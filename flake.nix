@@ -48,25 +48,26 @@
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ rust-overlay.overlays.default ];
+            config = {
+              allowUnfree = true;
+              android_sdk.accept_license = true;
+            };
           };
+
           # Pinned to match ./rust-toolchain.toml so Nix, CI (rustup) and local all
           # build on the identical rustc.
           rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./pubhubs/rust-toolchain.toml;
 
-          # Python with the dependencies the hub modules import, so `mask test hub` runs
-          # the Synapse module tests without a virtualenv.  Keep in sync with the direct
-          # dependencies in ./pubhubs_hub/requirements.txt, which is what the hub's Docker
-          # image installs; synapse's own transitive dependencies come along with it.
-          pythonEnv = pkgs.python3.withPackages (ps: [
-            # matrix-synapse is packaged as an application rather than a library;
-            # toPythonModule exposes its `synapse` package to `import`.
-            (ps.toPythonModule pkgs.matrix-synapse-unwrapped) # 1.156.0
-            ps.authlib # 1.7.2
-            ps.cryptography # 49.0.0
-            ps.livekit-api # 1.1.0
-            ps.pyopenssl # 26.3.0
-            ps.twisted # 26.4.0
-          ]);
+          # Compose Android SDK for Capacitor builds.
+          # Versions match global-client/android/variables.gradle.
+          androidSdk = pkgs.androidenv.composeAndroidPackages {
+            platformVersions = [ "35" "36" ];
+            buildToolsVersions = [ "35.0.0" ];
+            includeEmulator = false;
+            includeSources = false;
+            includeSystemImages = false;
+            includeNDK = false;
+          };
         in
         {
           default = pkgs.mkShell {
@@ -80,15 +81,19 @@
                 # Node
                 nodejs # 24.13.0
 
-                # Python (provides python3, plus the hub's Synapse dependencies)
-                pythonEnv # 3.14.6
+                # Python
+                python3 # 3.13.12
 
                 # Rust (pinned via ./rust-toolchain.toml)
                 rustToolchain
                 cargo-watch # 8.5.3
 
+                # Android / Capacitor
+                android-tools # 35.0.2 — adb, fastboot
+                androidSdk.androidsdk
+                openjdk21
+
                 # Other
-                android-tools # 35.0.2
                 mask # 0.11.7
                 openssl # 3.6.1
                 pkg-config # 0.29.2
@@ -99,6 +104,11 @@
                 # Custom packages
                 (pkgs.callPackage ./packages/yivi.nix { }) # 1.0.0
               ];
+
+            # Android SDK tooling expects these environment variables.
+            ANDROID_SDK_ROOT = "${androidSdk.androidsdk}/libexec/android-sdk";
+            ANDROID_HOME = "${androidSdk.androidsdk}/libexec/android-sdk";
+            JAVA_HOME = "${pkgs.openjdk21}";
           };
         }
       );

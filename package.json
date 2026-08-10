@@ -13,12 +13,16 @@
 		"dev:global": "npm run dev --workspace=global-client",
 		"dev:hub": "npm run dev --workspace=hub-client",
 		"build:global": "npm run build --workspace=global-client",
+		"build:global:native": "PUBHUBS_BASE=/ npm run build --workspace=global-client",
 		"build:hub": "npm run build --workspace=hub-client",
 		"lint": "prettier --config .prettierrc --write --ignore-unknown \"global-client/src/**/*.{ts,vue,js}\" \"hub-client/src/**/*.{ts,vue,js}\" && eslint --fix global-client/src hub-client/src",
 		"check": "npm run check:format && npm run check:lint && npm run check:types",
 		"check:format": "prettier --config .prettierrc --check --ignore-unknown \"global-client/src/**/*.{ts,vue,js}\" \"hub-client/src/**/*.{ts,vue,js}\"",
 		"check:lint": "eslint --max-warnings 0 global-client/src hub-client/src",
-		"check:types": "npm run type-check --workspace=hub-client && npm run type-check --workspace=global-client"
+		"check:types": "npm run type-check --workspace=hub-client && npm run type-check --workspace=global-client",
+		"cap:sync": "npm run build:global:native && npx cap sync",
+		"cap:open:android": "npx cap open android",
+		"cap:run:android": "npm run build:global:native && npx cap run android"
 	},
 	"lint-staged": {
 		"global-client/src/**/*.{ts,vue,js}": [
@@ -31,6 +35,9 @@
 		]
 	},
 	"devDependencies": {
+		"@capacitor/android": "^8.4.2",
+		"@capacitor/cli": "^8.4.2",
+		"@capacitor/core": "^8.4.2",
 		"@eslint-community/eslint-plugin-eslint-comments": "^4",
 		"@eslint/js": "^9",
 		"@trivago/prettier-plugin-sort-imports": "^6.0.0",
