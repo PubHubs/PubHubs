@@ -28,6 +28,27 @@
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
+			<!-- Dev-only: matches this machine's networkhost.ip in pubhubs/pubhubs.toml.
+			     PHC hands out MSS/hub URLs built from that alias (not "localhost"), so ATS
+			     needs an explicit exception for it too. Update this if networkhost.ip
+			     changes (e.g. switching networks) — see pubhubs/pubhubs.toml. -->
+			<key>145.137.183.102</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
+		</dict>
 	</dict>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

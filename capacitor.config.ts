@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
 		hostname: 'localhost',
 		androidScheme: 'http',
 		iosScheme: 'capacitor',
-		allowNavigation: ['localhost:8008', 'localhost:8009', 'localhost:8010', 'localhost:8011', 'localhost:8012'],
+		allowNavigation: ['localhost'],
 	},
 	android: {
 		buildOptions: {
