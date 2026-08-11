@@ -107,6 +107,7 @@
                 android-tools # 35.0.2 — adb, fastboot
                 androidSdk.androidsdk
                 openjdk21
+                android-studio
 
                 # Other
                 mask # 0.11.7
