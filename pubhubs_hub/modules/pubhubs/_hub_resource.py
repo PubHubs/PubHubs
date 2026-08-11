@@ -2,11 +2,11 @@ from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource
 import logging
 
-from .HubClientApiConfig import HubClientApiConfig
+from ._hub_client_api_config import HubClientApiConfig
 from ._store import HubStore
-from ._HubMediaResource import HubMediaResource
-from ._HubSettingsResource import HubSettingsResource
-from ._HubDataResource import HubDataResource
+from ._hub_media_resource import HubMediaResource
+from ._hub_settings_resource import HubSettingsResource
+from ._hub_data_resource import HubDataResource
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 

@@ -147,7 +147,6 @@
 												{{ t('admin.add_value') }}
 											</TextField>
 											<Button
-												class="mb-050"
 												:title="t('admin.add')"
 												@click="addUniqueValue(activeTab)"
 											>

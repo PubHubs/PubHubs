@@ -298,9 +298,17 @@ class MatrixService {
 							// Extract server from room ID (e.g., "!abc:server.com" -> "server.com")
 							const serverName = roomId.split(':')[1];
 							joinPromises.push(
-								this.client.joinRoom(roomId, { viaServers: serverName ? [serverName] : undefined }).then(() => {
-									return this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state);
-								}),
+								this.client
+									.joinRoom(roomId, { viaServers: serverName ? [serverName] : undefined })
+									.then(() => {
+										return this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state);
+									})
+									// Contain the failure to this one room: these promises are awaited together, and a
+									// rejection would skip marking the rooms as loaded, leaving the client stuck on its
+									// loading state over a single unjoinable invite (a rate limit, a forgotten room).
+									.catch((err) => {
+										logger.error('Could not accept direct message invite', { roomId, err });
+									}),
 							);
 						});
 					}

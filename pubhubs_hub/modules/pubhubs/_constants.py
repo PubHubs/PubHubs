@@ -14,6 +14,7 @@ PUBLIC_YIVI_URL = 'public_yivi_url'
 # Power Levels
 GUEST = -1  # No power level check needed
 USER = 0
+EXPERT = 25
 STEWARD = 50
 ROOM_ADMIN = 100
 HUB_ADMIN = 999  # Above 100, admin check is performed
@@ -22,4 +23,7 @@ HUB_ADMIN = 999  # Above 100, admin check is performed
 DEFAULT_EXPIRATION_TIME_DAYS = 182    # X: After 'X' days, user needs to login with QR code. Default is half a year.
 DEFAULT_EXPIRATION_TIME_DAYS_WARNING = 7  # Y: After 'X - Y' days, user will be warned about the expiration.
 METHOD_POLLING_INTERVAL = 86400000  # 86400000 milliseconds is 24 hours. Every day executes a method.
+
+# Expert verification event types
+EXPERT_VERIFICATION_MSGTYPE = 'pubhubs.expert_verification'
 

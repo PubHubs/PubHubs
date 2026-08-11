@@ -4,9 +4,9 @@
 
 - There is provision for updating tables in the synapse database.
 - PubHubs provides support for adding columns, removing columns and renaming columns in existing tables in sqlite3 and postgresql databases.
-- This can be demonstrated in the following file: `/pubhubs_hub/modules/database_commands.py`.
+- This can be demonstrated in the following file: `/pubhubs_hub/modules/pubhubs/_database_commands.py`.
 
-New commands for altering tables can also be added. This will also require adding a class in `/pubhubs_hub/modules/_store_modifier.py`. For example, the modify method contains the logic for a specific type of migration operation.
+New commands for altering tables can also be added. This will also require adding a class in `/pubhubs_hub/modules/pubhubs/_store_modifier.py`. For example, the modify method contains the logic for a specific type of migration operation.
 
 ```python
 class AddColumnsMigrationStrategy(MigrationStrategy):

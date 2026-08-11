@@ -50,6 +50,12 @@ const routes = [
 		meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
+		path: '/manage-roles',
+		name: 'manage-roles',
+		component: () => import('@hub-client/pages/ManageRoles.vue'),
+		meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
+	},
+	{
 		path: '/reports',
 		name: 'reports',
 		component: () => import('@hub-client/pages/ManageReports.vue'),

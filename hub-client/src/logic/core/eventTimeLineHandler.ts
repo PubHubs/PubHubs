@@ -1,5 +1,7 @@
-// Models
 // Logic
+import { escapeHtml } from '@hub-client/logic/core/sanitizer';
+
+// Models
 import { type TEvent } from '@hub-client/models/events/TEvent';
 import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
@@ -33,9 +35,14 @@ class EventTimeLineHandler {
 
 		// Build ph_body in a local; never read the reactive ph_body we are about to write.
 		// Reading + writing eventContent.ph_body in one pass makes any render that triggers this transform (e.g. constructing a TimelineEvent for a related m.replace edit) mutate its own dependency → recursive rendering as result.
-		let phBody = eventContent.body ?? '';
+		let phBody: string;
 		if (eventContent.msgtype === 'm.text' && eventContent.format === 'org.matrix.custom.html' && typeof eventContent.formatted_body === 'string') {
+			// Markup is intended here, so it is passed through (v-safe-html sanitizes it at render time).
 			phBody = eventContent.formatted_body;
+		} else {
+			// A plain text body is not markup: escape it, or the HTML parser in the sanitizer would eat
+			// everything between a literal `<` and the next `>` (e.g. pasted code like `Predicate("100<H|")`).
+			phBody = escapeHtml(eventContent.body ?? '');
 		}
 		phBody = this.createClickableLinks(phBody);
 		phBody = this.addMentions(phBody);

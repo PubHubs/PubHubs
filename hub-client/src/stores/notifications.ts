@@ -3,12 +3,19 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { api_synapse } from '@hub-client/logic/core/api';
+import { ApiError } from '@hub-client/logic/core/apiCore';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { delay } from '@hub-client/logic/utils/common';
 
 // Modelsu
 import { type TNotification, TNotificationType } from '@hub-client/models/users/TNotification';
 
 const logger = createLogger('Notifications');
+
+const FETCH_TIMEOUT_MS = 10_000;
+const FETCH_MAX_ATTEMPTS = 3;
+
+const isRetryable = (error: unknown): boolean => !(error instanceof ApiError) || error.status >= 500;
 
 export const useNotifications = defineStore('notifications', {
 	state: () => ({
@@ -16,17 +23,29 @@ export const useNotifications = defineStore('notifications', {
 	}),
 	actions: {
 		async fetchSecuredRoomNotifications(): Promise<TNotification[]> {
-			try {
-				const newNotifications = await api_synapse.apiGET<TNotification[]>(`${api_synapse.apiURLS.data}?data=removed_from_secured_room`);
+			for (let attempt = 0; attempt < FETCH_MAX_ATTEMPTS; attempt++) {
+				try {
+					const newNotifications = await api_synapse.apiGET<TNotification[]>(
+						`${api_synapse.apiURLS.data}?data=removed_from_secured_room`,
+						AbortSignal.timeout(FETCH_TIMEOUT_MS),
+					);
 
-				// Only add notifications that are not already in the list (by room_id and type)
-				newNotifications.forEach((n: TNotification) => {
-					if (!this.notifications.some((existing: TNotification) => existing.room_id === n.room_id && existing.type === n.type)) {
-						this.notifications.push(n);
+					// Only add notifications that are not already in the list (by room_id and type)
+					newNotifications.forEach((n: TNotification) => {
+						if (!this.notifications.some((existing: TNotification) => existing.room_id === n.room_id && existing.type === n.type)) {
+							this.notifications.push(n);
+						}
+					});
+					break;
+				} catch (error) {
+					const lastAttempt = attempt === FETCH_MAX_ATTEMPTS - 1;
+					if (lastAttempt || !isRetryable(error)) {
+						logger.error('Could not retrieve secured room notifications', error);
+						break;
 					}
-				});
-			} catch (error) {
-				logger.error('Could not retrieve secured room notifications', error);
+					logger.warn(`Could not retrieve secured room notifications (attempt ${attempt + 1}/${FETCH_MAX_ATTEMPTS}), retrying`, error);
+					await delay(attempt);
+				}
 			}
 			return this.notifications;
 		},

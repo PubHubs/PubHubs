@@ -1,5 +1,5 @@
 <template>
-	<div class="rounded-base">
+	<div class="rounded-base bg-surface-base overflow-hidden">
 		<div class="rounded-t-base bg-accent-blue/10 border-accent-blue flex h-500 items-center justify-between gap-100 border-b px-200">
 			<div class="flex min-w-0 items-center gap-100">
 				<Icon

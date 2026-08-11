@@ -18,4 +18,5 @@ export enum ContextVariant {
 	delicate = 'text-accent-red-interactive',
 	yellow = 'text-accent-yellow',
 	steward = 'text-accent-steward',
+	expert = 'text-accent-expert',
 }

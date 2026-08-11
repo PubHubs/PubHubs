@@ -110,7 +110,41 @@ export class APIService {
 
 	// Join the room with an access token of another admin
 	static async forceRoomJoin(roomId: string, accessToken: string) {
-		api_matrix.setAccessToken(accessToken);
-		await api_matrix.apiPOST(api_matrix.apiURLS.join + roomId, {});
+		// Put our own token back afterwards: `api_matrix` is shared, so leaving the impersonated
+		// admin's token on it would send every later call - room messages included - as that admin.
+		const ownAccessToken = api_matrix.accessToken;
+		try {
+			api_matrix.setAccessToken(accessToken);
+			await api_matrix.apiPOST(api_matrix.apiURLS.join + roomId, {});
+		} finally {
+			api_matrix.setAccessToken(ownAccessToken);
+		}
+	}
+
+	/**
+	 * See https://spec.matrix.org/latest/client-server-api/#put_matrixclientv3roomsroomidsendeventtypetxnid
+	 *
+	 * Send an `m.room.message` over the client-server API, without the local echo the matrix-js-sdk
+	 * creates for `client.sendMessage`.
+	 *
+	 * Only for messages PubHubs never renders as a message of their own: the ones carrying an
+	 * `m.relates_to` that it reads back off the timeline itself (hidden messages, expert
+	 * verifications). For those a local echo buys nothing and actively breaks.
+	 * `Room.handleRemoteEcho` always clears the echo's status, but only re-registers it in the room
+	 * timeline when `Room.eventShouldLiveIn` says the event belongs there - and for an `m.relates_to`
+	 * event that check follows the *target* message. So relating to a thread reply, or to any message
+	 * no longer in the loaded timeline, leaves the echo in no timeline at all, and the SDK then throws
+	 * "updatePendingEventStatus called on an event which is not a local echo" while booking the send.
+	 * Its scheduler retries that four more times, because a thrown Error carries no http status for
+	 * the retry algorithm to give up on.
+	 *
+	 * @param roomId Room to send the message into
+	 * @param content Event content, including its `msgtype`
+	 * @param txnId Transaction id, making the send idempotent. Take this from the SDK client's
+	 *   `makeTxnId()` so it cannot collide with the ids the SDK uses for its own sends.
+	 */
+	static async sendRoomMessage(roomId: string, content: object, txnId: string): Promise<{ event_id: string }> {
+		const path = `${api_matrix.apiURLS.rooms}${encodeURIComponent(roomId)}/send/m.room.message/${encodeURIComponent(txnId)}`;
+		return await api_matrix.apiPUT<{ event_id: string }>(path, content);
 	}
 }

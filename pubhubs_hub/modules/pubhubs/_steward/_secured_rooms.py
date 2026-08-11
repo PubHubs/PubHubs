@@ -11,7 +11,7 @@ from synapse.http.servlet import parse_json_object_from_request
 from synapse.http.site import SynapseRequest
 from synapse.module_api import ModuleApi
 
-from ..HubClientApiConfig import HubClientApiConfig
+from .._hub_client_api_config import HubClientApiConfig
 from .._constants import STEWARD
 from .._cors import set_allow_origin_header
 from .._errors import BadRequestError

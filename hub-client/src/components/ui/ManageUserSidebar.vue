@@ -86,7 +86,7 @@
 				@click="user.goToUserRoom(userId)"
 			/>
 			<FloatingActionButton
-				v-if="userId !== currentUserId"
+				v-if="canSendDisclosure && userId !== currentUserId"
 				:label="t('admin.ask_disclosure_title')"
 				icon="lock-open"
 				@click="emit('disclose')"
@@ -150,7 +150,10 @@
 		computed(() => props.isAdmin),
 	);
 
-	const { userPowerLevel } = useRoles();
+	const { userPowerLevel, userIsHubStewardOrHigher } = useRoles();
+
+	// Stewards and admins can send disclosure requests
+	const canSendDisclosure = computed(() => props.isAdmin || userIsHubStewardOrHigher());
 
 	function canManage(roomId: string) {
 		return userPowerLevel(roomId) >= UserPowerLevel.Steward;

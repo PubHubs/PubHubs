@@ -34,7 +34,9 @@
 						v-context-menu="
 							steward.userId !== user.user?.userId && !props.disableDM
 								? (evt: any) => openMenu(evt, getPowerUserMenuItems(steward.userId), steward.userId)
-								: undefined
+								: steward.userId === user.user?.userId
+									? (evt: any) => openMenu(evt, getSelfExpertMenuItems(), steward.userId)
+									: undefined
 						"
 						class="flex w-full items-center gap-100 rounded-md p-100"
 						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === steward.userId && 'bg-surface-elevated'"
@@ -45,6 +47,41 @@
 						>
 							<span
 								v-if="steward.userId === user.user?.userId"
+								class="text-on-surface-dim"
+								>{{ $t('admin.you_suffix') }}</span
+							>
+						</UserBadge>
+					</div>
+				</CollapsibleHeader>
+			</div>
+
+			<div
+				v-if="roomExperts && roomExperts.length > 0"
+				class="pb-200"
+			>
+				<CollapsibleHeader :label="$t('rooms.experts')">
+					<template #right>
+						<Pill :value="roomExperts.length" />
+					</template>
+					<div
+						v-for="expert in roomExperts"
+						:key="expert.userId"
+						v-context-menu="
+							expert.userId !== user.user?.userId && !props.disableDM
+								? (evt: any) => openMenu(evt, getExpertContextMenuItems(expert.userId), expert.userId)
+								: expert.userId === user.user?.userId
+									? (evt: any) => openMenu(evt, getSelfExpertMenuItems(), expert.userId)
+									: undefined
+						"
+						class="flex w-full items-center gap-100 rounded-md p-100"
+						:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId === expert.userId && 'bg-surface-elevated'"
+					>
+						<UserBadge
+							:user-id="expert.userId"
+							size="lg"
+						>
+							<span
+								v-if="expert.userId === user.user?.userId"
 								class="text-on-surface-dim"
 								>{{ $t('admin.you_suffix') }}</span
 							>
@@ -206,6 +243,14 @@
 			@close="kickDialog.visible = false"
 			@submit="onKickDialogSubmit"
 		/>
+
+		<!-- Expert profile dialog (for editing own profile) -->
+		<ExpertProfileDialog
+			v-if="expertProfileDialog.visible"
+			:error="expertProfileDialog.error"
+			@close="closeExpertProfileDialog()"
+			@submit="onExpertProfileDialogSubmit"
+		/>
 	</div>
 </template>
 
@@ -217,6 +262,7 @@
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Pill from '@hub-client/components/elements/Pill.vue';
+	import ExpertProfileDialog from '@hub-client/components/forms/ExpertProfileDialog.vue';
 	import IssueTimeoutDialog from '@hub-client/components/forms/IssueTimeoutDialog.vue';
 	import KickDialog from '@hub-client/components/forms/KickDialog.vue';
 	import IssueCardDialog from '@hub-client/components/forms/issueCardDialog.vue';
@@ -228,8 +274,8 @@
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	// Composables
 	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useExpertVerification } from '@hub-client/composables/moderation/expert-verification.composable';
 	import { useModerationKick } from '@hub-client/composables/moderation/kick.composable';
-	import { useModerationMembership } from '@hub-client/composables/moderation/membership.composable';
 	import { useModerationRedCard } from '@hub-client/composables/moderation/red-card.composable';
 	import { useModerationTimeout } from '@hub-client/composables/moderation/timeout.composable';
 	import { useModerationWhisper } from '@hub-client/composables/moderation/whisper.composable';
@@ -241,7 +287,7 @@
 	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
-	import { UserAction } from '@hub-client/models/users/TUser';
+	import { UserAction, UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Store
@@ -268,16 +314,32 @@
 	const contextMenuStore = useContextMenuStore();
 
 	const base = useModerationBase();
-	const { stewards: baseStewards, nonPowerMemberIds } = base;
+	const { stewards: baseStewards, nonPowerMemberIds, contactSteward, allMembers, getCurrentRoom } = base;
 	const stewards = computed(() => [...baseStewards.value]);
 	const isCurrentUserSteward = computed(() => stewards.value.some((s) => s.userId === user.user?.userId));
-	const { activeYellowCards, yellowCardDialog, openYellowCardDialog, onYellowCardDialogSubmit } = useModerationYellowCard(base);
+
+	// Experts are users with power level >= Expert (25) but < Steward (50)
+	const roomExperts = computed(() => {
+		const currentRoom = getCurrentRoom();
+		if (!currentRoom) return [];
+
+		return allMembers.value
+			.filter((userId) => {
+				const powerLevel = currentRoom.getPowerLevel(userId);
+				return powerLevel >= UserPowerLevel.Expert && powerLevel < UserPowerLevel.Steward;
+			})
+			.map((userId) => ({ userId }));
+	});
+	const { activeYellowCards, yellowCardDialog, openYellowCardDialog, onYellowCardDialogSubmit, revokeYellowCard, isUserWarned } =
+		useModerationYellowCard(base);
 	const { redCardMembers, revokedRedCardMembers, redCardDialog, openRedCardDialog, onRedCardDialogSubmit, revokeRedCard } = useModerationRedCard(base);
 	const { kickDialog, openKickDialog, onKickDialogSubmit } = useModerationKick();
 	const { timeoutDialog, activeTimeouts, isUserTimedOut, canTimeoutUser, refreshTimeoutStatus, revokeTimeout, openTimeoutDialog, onTimeoutDialogSubmit } =
 		useModerationTimeout(base);
-	const { contactSteward } = useModerationMembership(base);
 	const { canWhisperFromContextMenu, startWhisperToMember } = useModerationWhisper();
+	const { expertProfileDialog, isCurrentUserExpert, openExpertProfileDialog, closeExpertProfileDialog, onExpertProfileDialogSubmit } =
+		useExpertVerification();
+
 	const numberOfSanctionedMembers = computed(
 		() => redCardMembers.value.length + activeYellowCards.value.length + revokedRedCardMembers.value.length + activeTimeouts.value.length,
 	);
@@ -337,7 +399,15 @@
 	};
 
 	const getMemberContextMenuItems = (memberId: string): MenuItem[] => {
-		if (memberId === user.user?.userId || props.disableDM) return [];
+		const isSelf = memberId === user.user?.userId;
+
+		// For self: only show menu if user is an expert (to edit profile)
+		if (isSelf) {
+			if (!isCurrentUserExpert.value) return [];
+			return getSelfExpertMenuItems();
+		}
+
+		if (props.disableDM) return [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
 		const stewardActions: MenuItem[] = [];
 
@@ -404,6 +474,17 @@
 		const stewardActions: MenuItem[] = [];
 		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
 
+		// Acceptance of a warning is private to the warned member, so a warning only leaves the
+		// sanctioned members list when a steward withdraws it.
+		if (roles.userHasPermissionForAction(UserAction.Kick) && isUserWarned(memberId)) {
+			stewardActions.push({
+				label: capitalize(t('moderation.revoke_yellow_card')),
+				icon: 'arrows-counter-clockwise',
+				onClick: () => revokeYellowCard(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
+			});
+		}
+
 		if (roles.userHasPermissionForAction(UserAction.Ban)) {
 			stewardActions.push({
 				label: capitalize(t('moderation.issue_red_card')),
@@ -463,6 +544,35 @@
 				label: capitalize(t('moderation.revoke_timeout')),
 				icon: 'clock-counter-clockwise',
 				onClick: () => revokeTimeout(props.room.roomId, memberId),
+				variant: ContextVariant.steward,
+			});
+		}
+
+		const divider: MenuItem = { divider: true, label: '' };
+		return [social, stewardActions].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+	};
+
+	const getSelfExpertMenuItems = (): MenuItem[] => {
+		return [
+			{
+				label: capitalize(t('expert.edit_profile')),
+				icon: 'seal-check',
+				onClick: () => openExpertProfileDialog(),
+				variant: ContextVariant.expert,
+			},
+		];
+	};
+
+	const getExpertContextMenuItems = (memberId: string): MenuItem[] => {
+		if (memberId === user.user?.userId || props.disableDM) return [];
+		const social: MenuItem[] = [{ label: t('menu.direct_message'), icon: 'chat-circle', onClick: () => startDM(memberId) }];
+		const stewardActions: MenuItem[] = [];
+
+		if (canWhisperFromContextMenu.value && settings.isFeatureEnabled(FeatureFlag.whisper)) {
+			stewardActions.push({
+				label: t('menu.whisper'),
+				icon: 'whisper',
+				onClick: () => startWhisperToMember(memberId),
 				variant: ContextVariant.steward,
 			});
 		}

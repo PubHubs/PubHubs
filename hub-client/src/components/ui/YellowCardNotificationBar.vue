@@ -14,7 +14,7 @@
 		<Icon
 			type="check"
 			class="hover:cursor-pointer"
-			@click="emit('dismiss')"
+			@click="emit('accept')"
 		>
 		</Icon>
 	</div>
@@ -31,6 +31,6 @@
 	}>();
 
 	const emit = defineEmits<{
-		dismiss: [];
+		accept: [];
 	}>();
 </script>

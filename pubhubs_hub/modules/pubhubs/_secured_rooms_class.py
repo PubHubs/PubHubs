@@ -159,7 +159,7 @@ class SecuredRoom:
                 "users": {user: ROOM_ADMIN, server_notices_user: STEWARD},
                 "events": {
                     "pubhubs.timeout": STEWARD,
-                    "pubhubs.yellow_card": USER,
+                    "pubhubs.yellow_card": STEWARD,
                     "org.matrix.msc3401.call": USER,
                     "org.matrix.msc3401.call.member": USER,
                     "org.matrix.msc4143.rtc.member": USER,

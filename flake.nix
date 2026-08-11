@@ -68,6 +68,21 @@
             includeSystemImages = false;
             includeNDK = false;
           };
+
+          # Python with the dependencies the hub modules import, so `mask test hub` runs
+          # the Synapse module tests without a virtualenv.  Keep in sync with the direct
+          # dependencies in ./pubhubs_hub/requirements.txt, which is what the hub's Docker
+          # image installs; synapse's own transitive dependencies come along with it.
+          pythonEnv = pkgs.python3.withPackages (ps: [
+            # matrix-synapse is packaged as an application rather than a library;
+            # toPythonModule exposes its `synapse` package to `import`.
+            (ps.toPythonModule pkgs.matrix-synapse-unwrapped) # 1.156.0
+            ps.authlib # 1.7.2
+            ps.cryptography # 49.0.0
+            ps.livekit-api # 1.1.0
+            ps.pyopenssl # 26.3.0
+            ps.twisted # 26.4.0
+          ]);
         in
         {
           default = pkgs.mkShell {
@@ -81,8 +96,8 @@
                 # Node
                 nodejs # 24.13.0
 
-                # Python
-                python3 # 3.13.12
+                # Python (provides python3, plus the hub's Synapse dependencies)
+                pythonEnv # 3.14.6
 
                 # Rust (pinned via ./rust-toolchain.toml)
                 rustToolchain

@@ -2,7 +2,7 @@ from synapse.http.site import SynapseRequest
 from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource, respond_with_json
 
-from .HubClientApiConfig import HubClientApiConfig
+from ._hub_client_api_config import HubClientApiConfig
 from ._validation import user_validator
 from ._cors import set_allow_origin_header
 from ._store import HubStore

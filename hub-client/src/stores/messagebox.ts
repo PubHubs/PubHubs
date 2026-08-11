@@ -84,6 +84,8 @@ enum MessageType {
 	BarHide = 'visibilityBar-hide',
 	EventChange = 'eventchange',
 	CloseSidebar = 'closesidebar', // Back navigation in the hub client: close an open forum post or sidebar, else scroll back
+	BackState = 'backstate', // Hub → global: whether the hub consumes a back action itself (sidebar or forum post open),
+	// so the global client can stop its horizontal scroll from swallowing a back swipe the hub will handle
 	ContextMenuOpen = 'contextmenu-open', // Hub asks global to show a context menu
 	ContextMenuSelect = 'contextmenu-select', // Global sends selected item index back to hub
 	ContextMenuClose = 'contextmenu-close', // Global notifies hub that the context menu was dismissed

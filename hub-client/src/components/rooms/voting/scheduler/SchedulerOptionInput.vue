@@ -9,15 +9,19 @@
 				>
 					<VueDatePicker
 						id="schedulerDatePickerInput"
+						ref="datePickerRef"
 						v-model="date"
 						dark
-						:is-24="is24HourFormat"
+						:time-config="{ is24: is24HourFormat }"
 						:locale="locale"
 						:min-date="new Date()"
-						offset="20"
 						range
 						:six-weeks="'fair'"
-						append-to-body
+						:teleport="true"
+						:floating="{ strategy: 'fixed', offset: 20 }"
+						:centered="datePickerCentered"
+						@open="onPickerOpen"
+						@closed="onPickerClose"
 						@update:model-value="updateDateOption"
 					>
 						<template #trigger>
@@ -35,15 +39,19 @@
 					class="bg-surface-base outline-offset-thin outline-on-surface-dim focus-within:outline-accent-blue-interactive flex w-full items-center rounded px-175 py-100 outline-2 focus-within:outline-3"
 				>
 					<VueDatePicker
+						ref="datePickerRef"
 						v-model="date"
 						dark
-						:is-24="is24HourFormat"
+						:time-config="{ is24: is24HourFormat }"
 						:locale="locale"
 						:min-date="new Date()"
-						offset="20"
 						range
 						:six-weeks="'fair'"
-						append-to-body
+						:teleport="true"
+						:floating="{ strategy: 'fixed', offset: 20 }"
+						:centered="datePickerCentered"
+						@open="onPickerOpen"
+						@closed="onPickerClose"
 						@internal-model-change="handleInternal"
 						@update:model-value="updateDateOption"
 					>
@@ -65,7 +73,6 @@
 										dark
 										inline
 										:range="rangeOptions"
-										:time="time"
 										:time-picker="true"
 										@update:model-value="updateTime"
 									/>
@@ -76,7 +83,6 @@
 										auto-apply
 										dark
 										inline
-										:time="time"
 										:time-picker="true"
 										@update:model-value="updateTime"
 									/>
@@ -131,6 +137,9 @@
 	const dateBeforeSaved = ref<[Date | null, Date | null]>([null, null]);
 	const time = ref<{ hours: number; minutes: number } | Array<{ hours: number; minutes: number }>>();
 	const rangeOptions = ref({ disableTimeRangeValidation: false });
+
+	const datePickerRef = ref();
+	const datePickerCentered = ref(false);
 
 	const is24HourFormat = computed(() => {
 		return settings.timeformat === TimeFormat.format24;
@@ -192,6 +201,43 @@
 		normalizedDate2.setHours(0, 0, 0, 0);
 
 		return normalizedDate1.getTime() === normalizedDate2.getTime();
+	}
+
+	/**
+	 * The picker by default is placed on the input field.
+	 * On open: check if there is enough place, otherwise center the picker.
+	 * Guard: if already centered, skip re-check to prevent accidental un-centering.
+	 */
+	function onPickerOpen() {
+		if (datePickerCentered.value) return;
+
+		requestAnimationFrame(() => {
+			const datePicker = datePickerRef.value?.$el as HTMLElement | null;
+			if (!datePicker) return;
+
+			const datePickerRect = datePicker.getBoundingClientRect();
+			const wrapperRef = datePickerRef.value?.dpWrapMenuRef();
+			const pickerHeight = (wrapperRef?.value as HTMLElement | null)?.offsetHeight || 420;
+
+			const spaceAbove = datePickerRect.top;
+			const spaceBelow = window.innerHeight - datePickerRect.bottom;
+			const offset = 10;
+
+			if (spaceAbove > spaceBelow) {
+				// floating-ui flips the picker above the trigger; center if it clips at the top
+				datePickerCentered.value = spaceAbove < pickerHeight + offset;
+			} else {
+				// floating-ui keeps the picker below the trigger; center if it clips at the bottom
+				datePickerCentered.value = spaceBelow < pickerHeight + offset;
+			}
+		});
+	}
+
+	/**
+	 * On close of picker: reset the centered variable
+	 */
+	function onPickerClose() {
+		datePickerCentered.value = false;
 	}
 
 	const updateTime = (time: { hours: number; minutes: number } | Array<{ hours: number; minutes: number }>) => {

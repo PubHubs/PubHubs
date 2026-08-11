@@ -5,7 +5,7 @@ import logging
 from synapse.http.server import DirectServeJsonResource
 from synapse.module_api import ModuleApi
 
-from ..HubClientApiConfig import HubClientApiConfig
+from .._hub_client_api_config import HubClientApiConfig
 from .._store import HubStore
 from ._reports import StewardReportsServlet
 from ._secured_rooms import StewardSecuredRoomsServlet

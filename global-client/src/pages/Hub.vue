@@ -2,7 +2,7 @@
 	<iframe
 		v-if="hubs.currentHubExists"
 		:id="iframeHubId"
-		allow="camera; microphone; display-capture; autoplay; speaker-selection; clipboard-write"
+		allow="camera; microphone; display-capture; autoplay; speaker-selection; clipboard-write; fullscreen"
 		:src="hubUrl"
 		class="h-full w-full"
 		name="hub"

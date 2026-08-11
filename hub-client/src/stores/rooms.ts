@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventType, type IStateEvent, type Room as MatrixRoom } from 'matrix-js-sdk';
+import { Direction, EventType, type IStateEvent, type Room as MatrixRoom, MsgType } from 'matrix-js-sdk';
 import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
@@ -66,9 +66,9 @@ type Unsigned = {
 
 const logger = createLogger('Rooms');
 
+let noticeUserIdPromise: Promise<string> | null = null;
+
 function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
-	// Note that it is allowed to have no attribute values for an attribute type.
-	// So that that the attribute is required but all values are allowed.
 	if (!room.accepted) {
 		return false;
 	}
@@ -354,6 +354,32 @@ const useRooms = defineStore('rooms', {
 			if (this.rooms[roomId]) {
 				this.rooms[roomId].loadFromSlidingSync(roomData);
 			}
+			this.processRoomNotices(roomId, roomData.timeline);
+		},
+
+		/**
+		 * Picks up "{user} joined the room with attributes {...}" notices and records them into `roomNotices`.
+		 */
+		processRoomNotices(roomId: string, timeline: SlidingSyncRoomData['timeline'] | undefined) {
+			if (!timeline || timeline.length === 0) return;
+			const candidates = timeline.filter(
+				(event) =>
+					event.type === EventType.RoomMessage &&
+					event.content?.msgtype === MsgType.Notice &&
+					typeof event.content?.body === 'string' &&
+					event.content.body.includes('joined the room with attributes'),
+			);
+			if (candidates.length === 0) return;
+
+			this.getNoticeUserId()
+				.then((noticeUserId) => {
+					for (const event of candidates) {
+						if (event.sender === noticeUserId) {
+							this.addProfileNotice(roomId, event.content.body as string);
+						}
+					}
+				})
+				.catch((err) => logger.error('Failed to resolve notices user id', { err }));
 		},
 
 		fetchRoomById(roomId: string): Room | undefined {
@@ -578,14 +604,27 @@ const useRooms = defineStore('rooms', {
 			return room?.getType() === RoomType.PH_MESSAGES_RESTRICTED;
 		},
 
-		//? Some documentation would be helpful here.
+		// Resolves the server-notices once and caches it, since it never changes.
+		getNoticeUserId(): Promise<string> {
+			if (!noticeUserIdPromise) {
+				noticeUserIdPromise = api_synapse.apiGET<string>(api_synapse.apiURLS.notice).catch((err) => {
+					noticeUserIdPromise = null;
+					throw err;
+				});
+			}
+			return noticeUserIdPromise;
+		},
+
+		// One-time backfill, called on room-open (see RoomTimeline.vue): fetches the full notice history, so members who joined before the current session still get their badges.
+		// Live notices for members joining afterwards are picked up separately, via processRoomNotices.
 		async storeRoomNotice(roomId: string) {
-			const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
+			const hub_notice = await this.getNoticeUserId();
 			if (!this.roomNotices[roomId]) {
 				this.roomNotices[roomId] = {};
 			}
 
-			const limit = 100000;
+			// Synapse default is too low, so increased the limit to the max.
+			const limit = 1000;
 			const encodedObject = encodeURIComponent(
 				JSON.stringify({
 					types: [EventType.RoomMessage],

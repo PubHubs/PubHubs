@@ -26,11 +26,12 @@ import { useMatrix } from '@hub-client/composables/matrix.composable';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
+import { APIService } from '@hub-client/logic/core/apiService';
 import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { router } from '@hub-client/logic/core/router';
-import { hasHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+import { removeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
@@ -40,6 +41,7 @@ import { Redaction, RelationType, imageTypes } from '@hub-client/models/constant
 import { SystemDefaults } from '@hub-client/models/constants';
 import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TExpertVerificationMessageContent, type TExpertVerificationType } from '@hub-client/models/events/TExpertEvent';
 import {
 	type THideMessageContent,
 	type TMentions,
@@ -616,16 +618,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			threadRoot: TMessageEvent | undefined,
 			inReplyTo: TMessageEvent | undefined,
 		): Promise<TTextMessageEventContent> {
-			let content = undefined;
-
-			// Set body of content
-			const cleanText = hasHtml(text);
-			if (typeof cleanText === 'string') {
-				const html = sanitizeHtml(text);
-				content = ContentHelpers.makeHtmlMessage(cleanText, html) as TTextMessageEventContent;
-			} else {
-				content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
-			}
+			// The message input is a plain text field, so the text is sent verbatim as a plain text
+			// message. Never infer "the user meant markup" from the presence of `<`: code, math and
+			// generics (`Vec<T>`, `100<H|`, `a<b`) would be silently deleted, because the HTML parser
+			// swallows everything from `<` up to the next `>` as a bogus tag.
+			// Escaping for rendering happens downstream (eventTimeLineHandler / textToHtml).
+			const content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
 
 			// Set mention
 			await this._addUserMentionsToMessageContent(content);
@@ -811,6 +809,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 		},
 
+		/**
+		 * Send a message that PubHubs reads back off the timeline itself rather than rendering as a
+		 * message of its own. Goes over the client-server API to skip the matrix-js-sdk's local echo,
+		 * which such a message cannot survive -- see `APIService.sendRoomMessage` for why.
+		 */
+		async sendMessageWithoutLocalEcho(roomId: string, content: object): Promise<void> {
+			await APIService.sendRoomMessage(roomId, content, this.client.makeTxnId());
+		},
+
 		async addVisibilityMessage(roomId: string, targetEventId: string, hide: boolean, label?: string) {
 			const content: THideMessageContent = {
 				msgtype: PubHubsMgType.HideMessage,
@@ -821,8 +828,48 @@ const usePubhubsStore = defineStore('pubhubs', {
 				},
 				ph_hidden_label: label,
 			};
-			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+			await this.sendMessageWithoutLocalEcho(roomId, content);
 		},
+
+		async addExpertVerificationMessage(
+			roomId: string,
+			targetEventId: string,
+			verificationType: TExpertVerificationType,
+			credentials: string,
+			specializations?: string[],
+			verificationNote?: string,
+			sources?: string[],
+		): Promise<void> {
+			const content: TExpertVerificationMessageContent = {
+				msgtype: PubHubsMgType.ExpertVerification,
+				body: `Expert verification: ${verificationType}`,
+				verification_type: verificationType,
+				credentials,
+				specializations,
+				verification_note: verificationNote,
+				sources,
+				'm.relates_to': {
+					rel_type: RelationType.ExpertVerify,
+					event_id: targetEventId,
+				},
+			};
+			await this.sendMessageWithoutLocalEcho(roomId, content);
+		},
+
+		async removeExpertVerificationMessage(roomId: string, targetEventId: string): Promise<void> {
+			const content: TExpertVerificationMessageContent = {
+				msgtype: PubHubsMgType.ExpertVerification,
+				body: 'Expert verification removed',
+				verification_type: 'verified', // Type doesn't matter for unverify
+				credentials: '',
+				'm.relates_to': {
+					rel_type: RelationType.ExpertUnverify,
+					event_id: targetEventId,
+				},
+			};
+			await this.sendMessageWithoutLocalEcho(roomId, content);
+		},
+
 		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {
 			const content = {
 				msgtype: PubHubsMgType.AnnouncementMessage,

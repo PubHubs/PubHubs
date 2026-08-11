@@ -47,34 +47,42 @@
 							<P>{{ $t('register.have_account', [$t('common.app_name')]) }}</P>
 						</div>
 						<div class="flex flex-col gap-200">
-							<div
-								v-show="show"
-								class="relative flex w-full items-center justify-center"
-								:class="isMobile ? '-mb-100' : '-mb-200'"
-							>
-								<!-- Loading overlay - uses yivi-web-form class to match Yivi's dimensions -->
-								<div
-									v-if="qrLoading"
-									class="yivi-web-form absolute bottom-400 left-1/2 z-[40] flex aspect-square min-w-[250px] -translate-x-1/2 items-center justify-center after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
-								>
-									<div class="flex flex-col items-center gap-2">
-										<InlineSpinner />
-										<P class="text-on-surface-dim text-sm">{{ $t('login.loading_yivi') }}</P>
-									</div>
-								</div>
-								<!-- Yivi injects content here - must be empty -->
-								<div
-									id="yivi-authentication"
-									class="absolute bottom-400 left-1/2 z-50 -translate-x-1/2 after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
-								/>
-							</div>
 							<div class="flex gap-200">
-								<Button
-									variant="secondary"
-									@click="loginMSS()"
-								>
-									{{ show ? $t('dialog.close') : $t('login.login') }}
-								</Button>
+								<!-- Anchor for the Yivi popup, so it is positioned relative to the login button instead of the whole button row -->
+								<div class="relative">
+									<!-- Yivi sizes itself to its content, which differs per state (QR, loading, error), so the box is pinned to a fixed size -->
+									<div
+										v-show="show"
+										class="absolute bottom-full left-0 mb-150 h-4000 w-3500"
+									>
+										<!-- Loading overlay - uses yivi-web-form class to match Yivi's styling -->
+										<div
+											v-if="qrLoading"
+											class="yivi-web-form absolute inset-0 z-[40] flex items-center justify-center"
+										>
+											<div class="flex flex-col items-center gap-2">
+												<InlineSpinner />
+												<P class="text-on-surface-dim text-sm">{{ $t('login.loading_yivi') }}</P>
+											</div>
+										</div>
+										<!-- Yivi injects content here - must be empty -->
+										<div
+											id="yivi-authentication"
+											class="absolute inset-0 z-50"
+										/>
+									</div>
+									<!-- Popup tail, centered on the login button -->
+									<div
+										v-show="show"
+										class="absolute bottom-full left-1/2 z-50 h-0 w-0 -translate-x-1/2 border-x-[12px] border-t-[12px] border-b-0 border-x-transparent border-t-white drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+									/>
+									<Button
+										variant="secondary"
+										@click="loginMSS()"
+									>
+										{{ show ? $t('dialog.close') : $t('login.login') }}
+									</Button>
+								</div>
 								<router-link
 									class="w-full"
 									:to="{ path: '/register', query: { redirectPath: redirectPath } }"
@@ -224,3 +232,19 @@
 
 	window.addEventListener('pageshow', () => (show.value = false));
 </script>
+
+<style scoped>
+	/* Yivi injects its own markup, so these need :deep() to reach it. */
+
+	/* Let the content area absorb the remaining height of the pinned box, so the QR code, the
+	   loading animation and any error or message stay centered in the same spot in every state. */
+	#yivi-authentication :deep(.yivi-web-content) {
+		flex: 1 1 auto;
+	}
+
+	/* The canvas is inline by default, so its line box reserves ~7px of descender space
+	   below the QR code, which made the QR state taller than Yivi's other states */
+	#yivi-authentication :deep(.yivi-web-qr-canvas) {
+		display: block;
+	}
+</style>

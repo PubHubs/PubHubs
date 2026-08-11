@@ -1,8 +1,15 @@
 <template>
 	<div
 		id="layout-root"
-		class="bg-background font-body text-on-surface text-body no-scrollbar flex h-svh w-screen min-w-lg overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth"
-		:class="isIOS ? '' : 'snap-x snap-mandatory'"
+		class="bg-background font-body text-on-surface text-body no-scrollbar flex h-svh w-screen min-w-lg overflow-y-hidden overscroll-none scroll-smooth"
+		:class="[
+			isIOS ? '' : 'snap-x snap-mandatory',
+			// While the hub has something to close, a back swipe belongs to the hub, which closes its
+			// sidebar or forum post on it. Take the scroll away from the finger so it cannot scroll the
+			// hub out of view instead. Programmatic scrolling (useRootScroll) keeps working, so the hub
+			// can still scroll us back to the menu once it has nothing left to close.
+			isMobile && global.hubCanGoBack ? 'overflow-x-hidden' : 'overflow-x-auto',
+		]"
 	>
 		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
 		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
