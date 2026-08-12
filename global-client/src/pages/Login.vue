@@ -118,7 +118,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onMounted, ref } from 'vue';
+	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
 	import AuthHeader from '@global-client/components/ui/onboarding/AuthHeader.vue';
@@ -131,6 +131,8 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Logic
+	import { onExternalAppMissing } from '@global-client/logic/linkHandler';
+
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
@@ -163,6 +165,8 @@
 	const qrLoading = ref<boolean>(false);
 	const error = ref();
 
+	let removeExternalAppMissingListener: (() => void) | null = null;
+
 	const isMobile = computed(() => settings.isMobileState);
 
 	// Check for message passed via query params (e.g., from logout)
@@ -183,6 +187,19 @@
 			logger.error('Could not initialize the servers for the multi-server setup.', { error });
 		}
 	});
+
+	// In the native app the Yivi button is a link the OS has to route to the Yivi
+	// app; when nothing can handle it the tap goes nowhere, so report it here.
+	onMounted(async () => {
+		removeExternalAppMissingListener = await onExternalAppMissing((url) => {
+			error.value = { key: 'login.yivi_app_missing', values: [] };
+			show.value = false;
+			qrLoading.value = false;
+			logger.error('No app on this device could open the Yivi link.', { url });
+		});
+	});
+
+	onUnmounted(() => removeExternalAppMissingListener?.());
 
 	async function loginMSS() {
 		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.

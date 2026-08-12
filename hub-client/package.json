@@ -18,6 +18,7 @@
 		"node": ">=22.0.0"
 	},
 	"dependencies": {
+		"@capacitor/core": "^8.5.0",
 		"@privacybydesign/yivi-client": "^0",
 		"@privacybydesign/yivi-core": "^0",
 		"@privacybydesign/yivi-frontend": "^0.2.1",

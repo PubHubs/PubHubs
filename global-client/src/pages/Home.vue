@@ -83,6 +83,7 @@
 			</div>
 		</div>
 		<InstallPrompt
+			v-if="!useSettings().isNativeApp"
 			:browser="device.getBrowserName()"
 			:operating-system="device.getMobileOS()"
 		/>
@@ -109,6 +110,8 @@
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
 	import { useHubs } from '@global-client/stores/hubs';
+
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const global = useGlobal();
 	const hubs = useHubs();

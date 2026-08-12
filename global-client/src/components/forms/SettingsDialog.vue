@@ -47,7 +47,10 @@
 					</Button>
 				</ButtonGroup>
 			</div>
-			<div class="flex flex-col justify-between md:flex-row">
+			<div
+				v-if="!useSettings().isNativeApp"
+				class="flex flex-col justify-between md:flex-row"
+			>
 				<Label>{{ t('settings.notifications') }}</Label>
 				<ButtonGroup
 					v-if="notificationSupported"
@@ -68,7 +71,7 @@
 				</p>
 			</div>
 			<div
-				v-if="promptAllow || promptReset"
+				v-if="(promptAllow || promptReset) && !useSettings().isNativeApp"
 				class="flex"
 			>
 				<Icon
@@ -90,7 +93,7 @@
 				</p>
 			</div>
 			<div
-				v-if="promptInfo"
+				v-if="promptInfo && !useSettings().isNativeApp"
 				class="flex"
 			>
 				<div class="mr-050 flex h-250 w-250 shrink-0 items-center justify-center rounded-full border-2">
@@ -104,7 +107,7 @@
 				</p>
 			</div>
 			<div
-				v-if="installPromptStore.conditionsMet"
+				v-if="installPromptStore.conditionsMet && !useSettings().isNativeApp"
 				class="flex flex-col justify-between md:flex-row"
 			>
 				<Label>{{ $t('pwa.add_app') }}</Label>

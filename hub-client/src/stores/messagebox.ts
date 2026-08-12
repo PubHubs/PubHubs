@@ -45,6 +45,18 @@ import { type Theme, type TimeFormat, useSettings } from '@hub-client/stores/set
  */
 
 /**
+ * Origins of the official PubHubs native app shells (Capacitor).
+ * Under these shells the parent (global-client) runs at a fixed platform origin that has no relation to a hub's configured PARENT_URL (which ops set per web deployment, e.g. https://app.pubhubs.net).
+ * So a hub-client CHILD trusts these in addition to its configured parent, since the native shell is a first-party PubHubs client regardless of which hub it's talking to.
+ *
+ * These are exact-match origins (scheme + host + port), same as any other origin check here.
+ */
+const NATIVE_SHELL_ORIGINS = [
+	'capacitor://localhost', // iOS (capacitor.config.ts: iosScheme 'capacitor', hostname 'localhost')
+	'http://localhost', // Android (capacitor.config.ts: androidScheme 'http', hostname 'localhost')
+];
+
+/**
  * The id of the iframe used to embed the hub's client.
  */
 const iframeHubId = 'hub-frame-id';
@@ -93,6 +105,8 @@ enum MessageType {
 	ContextMenuHideModal = 'contextmenu-modal-hide', // Hub asks global to stop dimming the bar
 
 	ClipboardWrite = 'clipboard-write', // Hub asks global to write text to clipboard (top-level frame has clipboard access; iframes may not)
+	ClipboardWriteImage = 'clipboard-write-image', // As ClipboardWrite, for an image blob rather than text
+	FileShare = 'file-share', // Hub asks global to hand a file to the OS (native app only: Capacitor runs plugins in the main frame only, so an iframe cannot save or share a file itself)
 
 	// Per-hub key-value store persisted in the global client's localStorage.
 	// The hub client's own localStorage is unreliable (blocked in third-party
@@ -198,14 +212,26 @@ const useMessageBox = defineStore('messagebox', {
 
 				// If Child: start handshake with parent
 				if (this.inIframe && this.type === MessageBoxType.Child) {
-					this.sendMessage(new Message(MessageType.Sync), id);
+					// The child doesn't yet know whether the parent's real origin is the configured `url` or one of the native-shell origins,
+					// so this first ping (no sensitive content) is broadcast with targetOrigin '*'.
+					// The reply's event.origin is validated below before anything sensitive is ever sent to it.
+					this.sendMessage(new Message(MessageType.Sync), id, true);
 					this.handshake.set(id, HandshakeState.Started);
 				}
 
 				// Start listening
 				if (this.isConnected) {
 					this._windowMessageListener.set(id, (event: MessageEvent) => {
-						if (filters.removeTrailingSlash(event.origin) === filters.removeTrailingSlash(url)) {
+						const expectedUrl = this.receiverUrlMap.get(id) ?? url;
+						const originMatchesConfigured = filters.removeTrailingSlash(event.origin) === filters.removeTrailingSlash(expectedUrl);
+						const originIsTrustedNativeShell = this.type === MessageBoxType.Child && NATIVE_SHELL_ORIGINS.includes(event.origin);
+
+						if (originMatchesConfigured || originIsTrustedNativeShell) {
+							// Lock onto the confirmed real origin so all further (sensitive) messages to this id target it, instead of the originally-configured `url`.
+							if (!originMatchesConfigured) {
+								this.receiverUrlMap.set(id, event.origin);
+							}
+
 							const message = new Message(event.data.type, event.data.content);
 
 							const settings = useSettings();
@@ -217,6 +243,7 @@ const useMessageBox = defineStore('messagebox', {
 										theme: settings.theme as Theme,
 										timeformat: settings.timeformat as TimeFormat,
 										language: settings.language,
+										isNativeApp: settings.isNativeApp,
 									}),
 									id,
 								);
@@ -229,10 +256,18 @@ const useMessageBox = defineStore('messagebox', {
 							else if (message.type === MessageType.Settings && this.type === MessageBoxType.Child) {
 								// console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
 
-								const settingsContent = message.content as { theme: Theme; timeformat: TimeFormat; language: string };
+								const settingsContent = message.content as {
+									theme: Theme;
+									timeformat: TimeFormat;
+									language: string;
+									isNativeApp?: boolean;
+								};
 								settings.setTheme(settingsContent.theme);
 								settings.setTimeFormat(settingsContent.timeformat);
 								settings.setLanguage(settingsContent.language);
+								// Only the parent can tell: the bridge Capacitor uses to detect a
+								// native platform is not exposed inside this iframe.
+								settings.setIsNativeApp(settingsContent.isNativeApp ?? false);
 								this.handshake.set(id, HandshakeState.Ready);
 								resolve(true);
 							}
@@ -337,13 +372,14 @@ const useMessageBox = defineStore('messagebox', {
 		 *
 		 * @param message Message
 		 * @param [id='parentFrame'] the id of the target that the message needs to be sent to
+		 * @param [unsafeInitialHandshake=false] only used internally for the CHILD's very first (non-sensitive) handshake ping.
 		 */
-		sendMessage(message: Message, id: string = 'parentFrame') {
+		sendMessage(message: Message, id: string = 'parentFrame', unsafeInitialHandshake: boolean = false) {
 			if (this.isConnected) {
 				const target = this.resolveTarget(id);
 				for (const id in target) {
 					// console.log('=> ' + this.type + ' SEND', message, target[id].receiverUrl);
-					target[id].window.postMessage(message, target[id].receiverUrl);
+					target[id].window.postMessage(message, unsafeInitialHandshake ? '*' : target[id].receiverUrl);
 				}
 			}
 		},

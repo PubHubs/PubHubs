@@ -36,6 +36,10 @@
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useAuthMediaUrl } from '@hub-client/composables/useAuthMediaUrl';
 
+	// Logic
+	import { requestFileShare, shouldDelegateToGlobalClient } from '@hub-client/logic/core/requestFileShare';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
+
 	// Models
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
@@ -44,19 +48,48 @@
 
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
+	const logger = createLogger('MessageFile');
 
 	const { authMediaUrl } = useAuthMediaUrl(() => props.message.url);
 
+	function filename() {
+		return props.message.filename ?? props.message.body ?? 'file';
+	}
+
+	// In the native app this client is an iframe, where both an <a download> and a
+	// window.open are silently dropped. See requestFileShare for why, and why the
+	// global client has to take over.
+	async function delegateToGlobalClient() {
+		const url = authMediaUrl.value?.url;
+		if (!url) return;
+
+		try {
+			await requestFileShare(url, filename());
+		} catch (error) {
+			logger.error('Could not pass the file to the global client.', { error });
+		}
+	}
+
 	function downloadFile() {
 		if (!authMediaUrl.value?.url) return;
+		if (shouldDelegateToGlobalClient()) {
+			delegateToGlobalClient();
+			return;
+		}
+
 		const a = document.createElement('a');
 		a.href = authMediaUrl.value.url;
-		a.download = props.message.filename ?? props.message.body ?? 'file';
+		a.download = filename();
 		a.click();
 	}
 
 	function openFileUrl() {
 		if (!authMediaUrl.value?.url) return;
+		if (shouldDelegateToGlobalClient()) {
+			delegateToGlobalClient();
+			return;
+		}
+
 		window.open(authMediaUrl.value.url, '_blank');
 	}
 </script>

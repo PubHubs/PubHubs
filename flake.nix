@@ -48,10 +48,26 @@
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ rust-overlay.overlays.default ];
+            config = {
+              allowUnfree = true;
+              android_sdk.accept_license = true;
+            };
           };
+
           # Pinned to match ./rust-toolchain.toml so Nix, CI (rustup) and local all
           # build on the identical rustc.
           rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./pubhubs/rust-toolchain.toml;
+
+          # Compose Android SDK for Capacitor builds.
+          # Versions match global-client/android/variables.gradle.
+          androidSdk = pkgs.androidenv.composeAndroidPackages {
+            platformVersions = [ "35" "36" ];
+            buildToolsVersions = [ "35.0.0" ];
+            includeEmulator = false;
+            includeSources = false;
+            includeSystemImages = false;
+            includeNDK = false;
+          };
 
           # Python with the dependencies the hub modules import, so `mask test hub` runs
           # the Synapse module tests without a virtualenv.  Keep in sync with the direct
@@ -80,15 +96,20 @@
                 # Node
                 nodejs # 24.13.0
 
-                # Python (provides python3, plus the hub's Synapse dependencies)
-                pythonEnv # 3.14.6
+                # Python
+                python3 # 3.13.12
 
                 # Rust (pinned via ./rust-toolchain.toml)
                 rustToolchain
                 cargo-watch # 8.5.3
 
+                # Android / Capacitor
+                android-tools # 35.0.2 — adb, fastboot
+                androidSdk.androidsdk
+                openjdk21
+                android-studio
+
                 # Other
-                android-tools # 35.0.2
                 mask # 0.11.7
                 openssl # 3.6.1
                 pkg-config # 0.29.2
@@ -99,6 +120,11 @@
                 # Custom packages
                 (pkgs.callPackage ./packages/yivi.nix { }) # 1.0.0
               ];
+
+            # Android SDK tooling expects these environment variables.
+            ANDROID_SDK_ROOT = "${androidSdk.androidsdk}/libexec/android-sdk";
+            ANDROID_HOME = "${androidSdk.androidsdk}/libexec/android-sdk";
+            JAVA_HOME = "${pkgs.openjdk21}";
           };
         }
       );
