@@ -20,3 +20,5 @@ result
 
 # Vscode
 .vscode
+/ios
+/android
