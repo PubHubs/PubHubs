@@ -14,6 +14,7 @@
 		"dev:hub": "npm run dev --workspace=hub-client",
 		"build:global": "npm run build --workspace=global-client",
 		"build:global:native": "PUBHUBS_BASE=/ npm run build --workspace=global-client",
+		"build:global:native": "PUBHUBS_BASE=/ npm run build --workspace=global-client",
 		"build:hub": "npm run build --workspace=hub-client",
 		"lint": "prettier --config .prettierrc --write --ignore-unknown \"global-client/src/**/*.{ts,vue,js}\" \"hub-client/src/**/*.{ts,vue,js}\" && eslint --fix global-client/src hub-client/src",
 		"check": "npm run check:format && npm run check:lint && npm run check:types",
@@ -40,10 +41,12 @@
 		]
 	},
 	"devDependencies": {
-		"@capacitor/android": "^8.5.0",
 		"@capacitor/cli": "^8.4.2",
 		"@capacitor/core": "^8.4.2",
+		"@capacitor/android": "^8.5.0",
 		"@capacitor/ios": "^8.5.0",
+		"@capacitor/filesystem": "^8.1.2",
+		"@capacitor/share": "^8.0.1",
 		"@eslint-community/eslint-plugin-eslint-comments": "^4",
 		"@eslint/js": "^9",
 		"@trivago/prettier-plugin-sort-imports": "^6.0.0",

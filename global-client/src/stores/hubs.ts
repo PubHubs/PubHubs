@@ -4,8 +4,11 @@ import { defineStore } from 'pinia';
 import { type RouteParams } from 'vue-router';
 
 // Logic
+import { copyImageNatively } from '@global-client/logic/nativeClipboard';
+import { shareFileNatively } from '@global-client/logic/nativeFileShare';
 import { type LocalStore } from '@global-client/logic/utils/localStore';
 
+import { type FileShareRequest } from '@hub-client/logic/core/requestFileShare';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
@@ -338,6 +341,27 @@ const useHubs = defineStore('hubs', {
 					const text = message.content as string;
 					navigator.clipboard.writeText(text).catch((err) => {
 						logger.error('Failed to write to clipboard:', err);
+					});
+				});
+
+				// As ClipboardWrite, for an image. Same reason: the hub's iframe cannot
+				// reach the clipboard. A hub only asks in the native app, which is also
+				// the only place the web clipboard API cannot do this -- hence the plugin.
+				messagebox.addCallback(iframeHubId, MessageType.ClipboardWriteImage, (message: Message) => {
+					const image = message.content as Blob;
+					copyImageNatively(image).catch((err) => {
+						logger.error('Failed to write the image to clipboard:', err);
+					});
+				});
+
+				// Save a hub's file and offer it to the OS from the top-level frame, the
+				// only one Capacitor runs plugins for. Registered per hub frame, so only
+				// the active hub can ask.
+				messagebox.addCallback(iframeHubId, MessageType.FileShare, (message: Message) => {
+					const { blob, filename } = message.content as FileShareRequest;
+					shareFileNatively(blob, filename).catch((err) => {
+						// Dismissing the system sheet rejects too, so this is not necessarily a failure.
+						logger.error('Failed to hand the file to the system sheet:', err);
 					});
 				});
 

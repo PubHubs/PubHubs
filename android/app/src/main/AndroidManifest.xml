@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        Yivi's intent links name their package explicitly (see yivi-client's
+        _getMobileUrl). Since Android 11, launching a named package requires it
+        to be visible to us, or startActivity throws ActivityNotFoundException.
+    -->
+    <queries>
+        <package android:name="org.irmacard.cardemu" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

@@ -52,7 +52,12 @@
               allowUnfree = true;
               android_sdk.accept_license = true;
             };
+            config = {
+              allowUnfree = true;
+              android_sdk.accept_license = true;
+            };
           };
+
 
           # Pinned to match ./rust-toolchain.toml so Nix, CI (rustup) and local all
           # build on the identical rustc.

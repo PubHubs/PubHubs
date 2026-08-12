@@ -1,4 +1,5 @@
 // Packages
+import { Capacitor } from '@capacitor/core';
 import { defineStore } from 'pinia';
 
 // Logic
@@ -167,6 +168,10 @@ const useSettings = defineStore('settings', {
 	state: () => ({
 		...defaultSettings,
 		isMobileState: true as boolean | undefined,
+		// Whether we run inside the native app. Correct as-is in the global client,
+		// which is the frame Capacitor exposes its bridge to; the hub client always
+		// reads false here and is told the real value over the messagebox.
+		isNativeApp: Capacitor.isNativePlatform(),
 	}),
 
 	getters: {
@@ -282,6 +287,10 @@ const useSettings = defineStore('settings', {
 			}
 		},
 
+		setIsNativeApp(isNativeApp: boolean) {
+			this.isNativeApp = isNativeApp;
+		},
+
 		sendSettings() {
 			const messagebox = useMessageBox();
 			if (messagebox.type === MessageBoxType.Parent) {
@@ -290,6 +299,7 @@ const useSettings = defineStore('settings', {
 						theme: this.theme as Theme,
 						timeformat: this.timeformat as TimeFormat,
 						language: this.language,
+						isNativeApp: this.isNativeApp,
 					}),
 				);
 			}

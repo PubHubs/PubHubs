@@ -105,6 +105,8 @@ enum MessageType {
 	ContextMenuHideModal = 'contextmenu-modal-hide', // Hub asks global to stop dimming the bar
 
 	ClipboardWrite = 'clipboard-write', // Hub asks global to write text to clipboard (top-level frame has clipboard access; iframes may not)
+	ClipboardWriteImage = 'clipboard-write-image', // As ClipboardWrite, for an image blob rather than text
+	FileShare = 'file-share', // Hub asks global to hand a file to the OS (native app only: Capacitor runs plugins in the main frame only, so an iframe cannot save or share a file itself)
 
 	// Per-hub key-value store persisted in the global client's localStorage.
 	// The hub client's own localStorage is unreliable (blocked in third-party
@@ -241,6 +243,7 @@ const useMessageBox = defineStore('messagebox', {
 										theme: settings.theme as Theme,
 										timeformat: settings.timeformat as TimeFormat,
 										language: settings.language,
+										isNativeApp: settings.isNativeApp,
 									}),
 									id,
 								);
@@ -253,10 +256,18 @@ const useMessageBox = defineStore('messagebox', {
 							else if (message.type === MessageType.Settings && this.type === MessageBoxType.Child) {
 								// console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
 
-								const settingsContent = message.content as { theme: Theme; timeformat: TimeFormat; language: string };
+								const settingsContent = message.content as {
+									theme: Theme;
+									timeformat: TimeFormat;
+									language: string;
+									isNativeApp?: boolean;
+								};
 								settings.setTheme(settingsContent.theme);
 								settings.setTimeFormat(settingsContent.timeformat);
 								settings.setLanguage(settingsContent.language);
+								// Only the parent can tell: the bridge Capacitor uses to detect a
+								// native platform is not exposed inside this iframe.
+								settings.setIsNativeApp(settingsContent.isNativeApp ?? false);
 								this.handshake.set(id, HandshakeState.Ready);
 								resolve(true);
 							}

@@ -199,7 +199,9 @@ caddy run --config Caddyfile.local --adapter caddyfile
 
 #### Browser-based (PWA)
 
-To develop on an Android device using the browser:
+#### Browser-based (PWA)
+
+To develop on an Android device using the browser using the browser:
 
 1. Run `mask run all` to start the local environment.
 2. Activate developer mode on your phone (tap Build number 10 times in Settings > About phone).
@@ -379,6 +381,150 @@ npx cap doctor ios
 
 ```sh
 npm run trust:ios-simulator
+```
+
+#### capacitor
+
+> Commands for the Capacitor native Android app
+
+All commands assume you are in the Nix dev shell (which provides Java, Android SDK).
+
+##### build
+
+> Build the web app and sync to the native project
+
+```sh
+npm run cap:sync
+```
+
+##### copy
+
+> Copy web assets to the native project without rebuilding
+
+Useful when Vite is running in dev mode and you want to refresh the app on device.
+```sh
+npm run build:global:native && npx cap copy android
+```
+
+##### sync
+
+> Sync native plugins and copy web assets (no web build)
+
+Run after adding a new Capacitor plugin to `package.json`.
+```sh
+npx cap sync android
+```
+
+##### update
+
+> Update native plugins to match `package.json`
+
+Run after upgrading Capacitor plugin versions.
+```sh
+npx cap update android
+```
+
+##### open
+
+> Open the Android project in Android Studio (or the default IDE)
+
+```sh
+npx cap open android
+```
+
+##### run
+
+> Build the web app and run on a connected Android device
+
+Requires a connected device (or emulator) with USB debugging enabled.
+```sh
+npm run cap:run:android
+```
+
+##### doctor
+
+> Check Capacitor setup (SDK, dependencies, config)
+
+```sh
+npx cap doctor android
+```
+
+##### log
+
+> Tail Android logs filtered to the PubHubs app
+
+Uses `pidcat` (or falls back to `adb logcat`) with the app package name.
+```sh
+adb logcat --pid="$(adb shell pidof -s nl.pubhubs.client 2>/dev/null || echo 0)" 2>/dev/null | head -c 50000
+```
+
+### ios
+
+> Commands for iOS development
+
+#### capacitor
+
+> Commands for the Capacitor native iOS app
+
+All commands assume you are on macOS with Xcode and CocoaPods installed.
+
+##### build
+
+> Build the web app and sync to the native project
+
+```sh
+npm run cap:sync
+```
+
+##### copy
+
+> Copy web assets to the native project without rebuilding
+
+Useful when Vite is running in dev mode and you want to refresh the app on device.
+```sh
+npm run build:global:native && npx cap copy ios
+```
+
+##### sync
+
+> Sync native plugins and copy web assets (no web build)
+
+Run after adding a new Capacitor plugin to `package.json`.
+```sh
+npx cap sync ios
+```
+
+##### update
+
+> Update native plugins to match `package.json`
+
+Run after upgrading Capacitor plugin versions.
+```sh
+npx cap update ios
+```
+
+##### open
+
+> Open the iOS project in Xcode
+
+```sh
+npx cap open ios
+```
+
+##### run
+
+> Build the web app and run on a connected iOS device or simulator
+
+```sh
+npm run cap:run:ios
+```
+
+##### doctor
+
+> Check Capacitor setup (Xcode, CocoaPods, dependencies, config)
+
+```sh
+npx cap doctor ios
 ```
 
 ### hub
