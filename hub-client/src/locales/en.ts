@@ -203,6 +203,7 @@ const en = {
 		login: 'Login',
 		login_again: 'You have been logged out. Please log in again to continue.',
 		loading_yivi: 'Loading Yivi...',
+		yivi_app_missing: 'Could not open the Yivi app. Please make sure it is installed, then try again.',
 	},
 	logout: {
 		logout: 'Logout',

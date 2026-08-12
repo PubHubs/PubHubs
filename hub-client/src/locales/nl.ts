@@ -204,6 +204,7 @@ const nl = {
 		login: 'Login',
 		login_again: 'Je bent uitgelogd. Log opnieuw in om verder te gaan.',
 		loading_yivi: 'Yivi laden...',
+		yivi_app_missing: 'De Yivi app kon niet worden geopend. Controleer of de app geïnstalleerd is en probeer het opnieuw.',
 	},
 	logout: {
 		logout: 'Logout',

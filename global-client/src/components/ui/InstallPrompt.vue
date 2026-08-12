@@ -128,8 +128,8 @@
 		},
 	});
 	// Assets
-	const logoWhiteUrl = '/client/img/icons/favicon_white.svg';
-	const logoUrl = '/client/img/icons/favicon.svg';
+	const logoWhiteUrl = `${import.meta.env.BASE_URL}img/icons/favicon_white.svg`;
+	const logoUrl = `${import.meta.env.BASE_URL}img/icons/favicon.svg`;
 
 	const installPromptStore = useInstallPromptStore();
 	const neverShowAgain = ref<boolean>(installPromptStore.neverShowAgain);

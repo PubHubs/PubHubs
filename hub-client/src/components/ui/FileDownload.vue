@@ -1,9 +1,18 @@
 <template>
+	<!-- Web: let the browser do the download. -->
 	<a
-		v-if="blobUrl?.url"
+		v-if="blobUrl?.url && !delegateToGlobalClient"
 		:download="filename"
 		:href="blobUrl.url"
 		target="_blank"
+		><slot
+	/></a>
+	<!-- Native app: a download from this iframe goes nowhere, so ask the global client. -->
+	<a
+		v-else-if="blobUrl?.url"
+		class="cursor-pointer"
+		role="button"
+		@click="shareFile"
 		><slot
 	/></a>
 	<span v-else><slot /></span>
@@ -18,11 +27,13 @@
 
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
+	import { requestFileShare, shouldDelegateToGlobalClient } from '@hub-client/logic/core/requestFileShare';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	const props = defineProps<{ url: string; filename: string }>();
 	const logger = createLogger('FileDownload');
 	const matrixFiles = useMatrixFiles();
+	const delegateToGlobalClient = shouldDelegateToGlobalClient();
 
 	let blobUrl = ref<BlobManager | undefined>(undefined);
 
@@ -46,6 +57,17 @@
 		}
 		if (!url) {
 			logger.error('Failed to load the file');
+		}
+	}
+
+	async function shareFile() {
+		const url = blobUrl.value?.url;
+		if (!url) return;
+
+		try {
+			await requestFileShare(url, props.filename);
+		} catch (error) {
+			logger.error('Could not pass the file to the global client.', { error });
 		}
 	}
 </script>
