@@ -93,6 +93,20 @@ The two real-device steps can't be automated over the network or USB without MDM
 physical test device, not per session. The Simulator step is scripted but still needs a human to run it
 once per Simulator instance (there's no reliable hook to catch "a new Simulator just booted").
 
+## Older WKWebView on a real device: missing JS features
+
+A real device may be running an older iOS/WKWebView version than the Simulator (which tracks whatever
+Xcode ships) or a desktop browser (which auto-updates), so it can be missing very recent JS engine
+features that a dependency assumes exist. First one hit: `matrix-js-sdk` uses `Promise.withResolvers()`
+(Safari 17.4+) pervasively (`scheduler.js`'s `queueEvent`, `client.js`, `sync.js`,
+`interactive-auth.js`, and more) — on an older WKWebView, sending a message throws
+`Promise.withResolvers is not a function` with no visible error in the UI, only in Safari Web
+Inspector's console. Fixed with a small polyfill,
+`hub-client/public/polyfill-promise-with-resolvers.js`, loaded as a plain script (like
+`client-config.js` in the same `index.html`) so it always runs before any bundled code, regardless of
+import order — a no-op wherever the native implementation already exists. If another such gap turns up,
+the same pattern (a plain public script, unbundled, loaded first) is the fix.
+
 ## Known follow-ups, out of scope here
 
 - **LiveKit (video calls) is not fronted by the dev proxy.** `_video_call_web.py` hands the browser the
