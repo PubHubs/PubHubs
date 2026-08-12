@@ -413,6 +413,8 @@ const en = {
 		contact_steward_title: 'Contact room steward',
 		contact_steward_subtitle: 'For room-related questions',
 		memberlist: 'Member list',
+		profile_public_rooms: 'Public rooms in common',
+		profile_shared_secured_rooms: 'Shared secured rooms',
 		administrator: 'administrator',
 		votes: 'votes',
 	},

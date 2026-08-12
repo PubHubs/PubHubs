@@ -5,11 +5,13 @@
 			:class="avatarSize"
 			:avatar-url="userStore.userAvatar(userId)"
 			:user-id="userId"
+			:room-id="roomId"
 		/>
 		<UserDisplayName
 			class="min-w-0"
 			:user-id="userId"
 			:user-display-name="userStore.userDisplayName(userId)"
+			:room-id="roomId"
 			:enable-d-m="false"
 		/>
 		<div class="shrink-0">
@@ -32,9 +34,11 @@
 	const props = withDefaults(
 		defineProps<{
 			userId: string;
+			roomId?: string;
 			size?: 'sm' | 'md' | 'lg';
 		}>(),
 		{
+			roomId: undefined,
 			size: 'md',
 		},
 	);
