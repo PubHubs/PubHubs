@@ -21,11 +21,13 @@
 		"check:lint": "eslint --max-warnings 0 global-client/src hub-client/src",
 		"check:types": "npm run type-check --workspace=hub-client && npm run type-check --workspace=global-client",
 		"sync:networkhost-ip": "node scripts/sync-networkhost-ip.js",
+		"gen:dev-proxy": "node scripts/gen-dev-proxy.js",
+		"trust:ios-simulator": "node scripts/trust-ios-simulator-ca.js",
 		"cap:sync": "npm run sync:networkhost-ip && npm run build:global:native && npx cap sync",
 		"cap:open:android": "npx cap open android",
 		"cap:run:android": "npm run build:global:native && npx cap run android",
-		"cap:open:ios": "npm run sync:networkhost-ip && npx cap open ios",
-		"cap:run:ios": "npm run sync:networkhost-ip && npm run build:global:native && npx cap run ios"
+		"cap:open:ios": "npm run sync:networkhost-ip && npm run trust:ios-simulator && npx cap open ios",
+		"cap:run:ios": "npm run sync:networkhost-ip && npm run trust:ios-simulator && npm run build:global:native && npx cap run ios"
 	},
 	"lint-staged": {
 		"global-client/src/**/*.{ts,vue,js}": [

@@ -489,6 +489,32 @@ class UpdateConfig:
                 f"❌   {key} start was changed from {default} to {value}, but expected the same value  for development"
             )
 
+    def _check_client_url_didnt_change(self, key: str, value: str):
+        """
+        Like `_check_did_start_change`, but for `client_url` specifically: in development it may
+        legitimately start with either `http://` (the checked-in template default,
+        matrix_test_config/homeserver.yaml) or `https://` (what `start_testhub.py` passes when the
+        hub-client SPA is fronted by the local dev HTTPS proxy — `mask run proxy`, see
+        docs/app/README.md — since hub-client's use of `window.crypto.subtle` needs a secure-context
+        origin, which a real device has no other way to reach). Production only ever needs to reject
+        the untouched `http://` template default; a real hub's domain is already expected to start
+        with `https://`, so there's nothing extra to check there.
+        """
+        if not isinstance(value, str):
+            raise ConfigError(f"❌  Expected a str value for {key}, but got {value} instead")
+
+        if value.startswith("http://") and self.check_environment == CheckEnvironment.PRODUCTION:
+            raise ConfigError(
+                f"❌   {key}'s value ({value}) still starts with the string http://, but it shouldn't in production"
+            )
+        if (
+            not value.startswith(("http://", "https://"))
+            and self.check_environment == CheckEnvironment.DEVELOPMENT
+        ):
+            raise ConfigError(
+                f"❌   {key} start was changed to {value}, but expected it to start with http:// or https:// for development"
+            )
+
     def _check_did_HubClientApi_change(
         self, key: str, homeserver_live:dict
     ) -> str:
@@ -498,6 +524,8 @@ class UpdateConfig:
         If client_url or global_client_url are not present raise a ConfigError
 
         If they are present check if the start of the string is changed with _check_did_start_change
+        (client_url instead uses _check_client_url_didnt_change, which accepts either http:// or
+        https:// in development — see its docstring)
         """
         client_url = None
         modules = homeserver_live[key].copy()
@@ -510,10 +538,9 @@ class UpdateConfig:
                 continue
             config = module_dict["config"]
             if "client_url" in config:
-                self._check_did_start_change(
+                self._check_client_url_didnt_change(
                     f"({module_dict['module']}'s config).client_url",
                     config["client_url"],
-                    "http://"
                 )
                 client_url = config["client_url"]
             else:

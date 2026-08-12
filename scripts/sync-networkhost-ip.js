@@ -18,93 +18,16 @@
  * See docs/app/README.md and pubhubs/src/servers/config/host_aliases.rs for background.
  */
 
-import dgram from 'node:dgram';
-import dns from 'node:dns';
-import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
-import { parse as parseToml } from 'smol-toml';
 import path from 'node:path';
+import { REPO_ROOT, resolveNetworkhostIp } from './lib/resolve-networkhost-ip.js';
 
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PUBHUBS_TOML = path.join(REPO_ROOT, 'pubhubs', 'pubhubs.toml');
-const PUBHUBS_DEFAULT_TOML = path.join(REPO_ROOT, 'pubhubs', 'pubhubs.default.toml');
 const INFO_PLIST = path.join(REPO_ROOT, 'ios', 'App', 'App', 'Info.plist');
 const CLIENT_CONFIG = path.join(REPO_ROOT, 'global-client', 'public', 'client-config.js');
 const CLIENT_CONFIG_LOCAL = path.join(REPO_ROOT, 'global-client', 'public', 'client-config.local.js');
 
 const IPV4_KEY_RE = /<key>(\d{1,3}(?:\.\d{1,3}){3})<\/key>/g;
 const LOCALHOST_URL_RE = /(\w+):\s*'http:\/\/localhost:(\d+)'/g;
-const AUTO_DETECT_TIMEOUT_MS = 3000;
-
-/**
- * Mirrors the auto-detect trick used by `HostAliases::resolve_all()` in
- * pubhubs/src/servers/config/host_aliases.rs: "connecting" a UDP socket to a remote
- * host:port never sends a packet, but makes the OS pick a route, letting us read back
- * the local address it would use to reach that host.
- *
- * We resolve the hostname via `dns.lookup()` ourselves first, rather than letting
- * `socket.connect()` do it: on a failed lookup, `dgram`'s connect callback fires anyway
- * with the socket bound to the unspecified address ("0.0.0.0"), instead of emitting
- * 'error' — silently "succeeding" with a useless address if we don't guard against it.
- */
-function autoDetectSourceIp(sourceIpFor) {
-	return new Promise((resolve, reject) => {
-		let target;
-		try {
-			target = new URL(sourceIpFor);
-		} catch (err) {
-			reject(new Error(`Could not parse networkhost.source_ip_for "${sourceIpFor}": ${err.message}`));
-			return;
-		}
-
-		const timer = setTimeout(() => {
-			reject(new Error(`Timed out auto-detecting local IP via ${sourceIpFor}`));
-		}, AUTO_DETECT_TIMEOUT_MS);
-		const settle = (fn, arg) => {
-			clearTimeout(timer);
-			fn(arg);
-		};
-
-		dns.lookup(target.hostname, (lookupErr, remoteAddress) => {
-			if (lookupErr) {
-				settle(reject, new Error(`Could not resolve ${target.hostname}: ${lookupErr.message}`));
-				return;
-			}
-
-			const socket = dgram.createSocket('udp4');
-			socket.on('error', (err) => {
-				socket.close();
-				settle(reject, err);
-			});
-
-			socket.connect(Number(target.port), remoteAddress, () => {
-				const { address } = socket.address();
-				socket.close();
-
-				if (address === '0.0.0.0') {
-					settle(reject, new Error(`Could not determine a local route to ${remoteAddress}:${target.port}`));
-					return;
-				}
-
-				settle(resolve, address);
-			});
-		});
-	});
-}
-
-async function resolveNetworkhostIp(config) {
-	const networkhost = config?.host_aliases?.networkhost;
-
-	if (typeof networkhost?.ip === 'string' && networkhost.ip.length > 0) {
-		return networkhost.ip;
-	}
-
-	if (typeof networkhost?.source_ip_for === 'string' && networkhost.source_ip_for.length > 0) {
-		return await autoDetectSourceIp(networkhost.source_ip_for);
-	}
-
-	return null;
-}
 
 function syncInfoPlist(ip) {
 	const plist = fs.readFileSync(INFO_PLIST, 'utf8');
@@ -153,12 +76,9 @@ function syncClientConfig(ip) {
 }
 
 async function main() {
-	const configPath = fs.existsSync(PUBHUBS_TOML) ? PUBHUBS_TOML : PUBHUBS_DEFAULT_TOML;
-	const config = parseToml(fs.readFileSync(configPath, 'utf8'));
-
 	let ip;
 	try {
-		ip = await resolveNetworkhostIp(config);
+		ip = await resolveNetworkhostIp();
 	} catch (err) {
 		console.warn(`sync-networkhost-ip: could not auto-detect networkhost IP (${err.message}) — leaving Info.plist and client-config.local.js unchanged.`);
 		console.warn('Set an explicit networkhost.ip in pubhubs/pubhubs.toml if this keeps happening.');
@@ -166,7 +86,7 @@ async function main() {
 	}
 
 	if (!ip) {
-		console.warn(`sync-networkhost-ip: neither networkhost.ip nor networkhost.source_ip_for set in ${path.relative(REPO_ROOT, configPath)} — leaving Info.plist and client-config.local.js unchanged.`);
+		console.warn('sync-networkhost-ip: neither networkhost.ip nor networkhost.source_ip_for set in pubhubs/pubhubs.toml (or pubhubs.default.toml) — leaving Info.plist and client-config.local.js unchanged.');
 		return;
 	}
 

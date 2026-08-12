@@ -180,6 +180,19 @@ cd global-client
 npx vite --host -l info --port=8080
 ```
 
+### proxy
+
+> Runs the local HTTPS dev proxy (Caddy) that fronts the hub-client SPA and Matrix/Synapse API so any device can reach them with a secure-context origin. Required for hubs to load at all — see docs/app/README.md.
+
+```sh
+set -e
+echo "Generating dev HTTPS proxy cert + Caddyfile..."
+npm run gen:dev-proxy
+
+echo "Running dev HTTPS proxy (Caddy)..."
+caddy run --config Caddyfile.local --adapter caddyfile
+```
+
 ### android
 
 > Commands for Android development
@@ -360,6 +373,14 @@ npm run cap:run:ios
 npx cap doctor ios
 ```
 
+##### trust-simulator
+
+> Trusts the dev HTTPS proxy's mkcert CA in the currently booted iOS Simulator — run once per Simulator instance after booting it, see docs/app/README.md
+
+```sh
+npm run trust:ios-simulator
+```
+
 ### hub
 
 > Commands for running the hub
@@ -373,11 +394,13 @@ Every command below is structured as `mask run hub <subcommand>`
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
+Needs `mask run proxy` running too — that's what makes `hub_client_url` (advertised by this command)
+actually reachable and a secure context, on every platform.
+
 ```sh
 echo "Running testhub${n}"
 
 cd pubhubs_hub
-hub_host="${host:-${YIVI_HOST:-}}"
 python3 start_testhub.py "${n}"
 ```
 
@@ -388,10 +411,14 @@ python3 start_testhub.py "${n}"
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
+Needs `mask run proxy` running too — VITE_HUB_URL below points at its HTTPS frontend, not directly at
+the Matrix API's plain-HTTP port.
+
 ```sh
 cd hub-client
 echo "Running Hub client for testhub${n}..."
-env VITE_HUB_URL=$(node -e "console.log('http://localhost:' + (8008 + $n))") npx vite --host -l info --port=$(node -e "console.log(8001 + $n)")
+networkhost_ip="$(node ../scripts/print-networkhost-ip.js)"
+env VITE_HUB_URL="https://${networkhost_ip}:$((18008 + n))" npx vite --host -l info --port=$((8001 + n))
 ```
 
 #### mainclient

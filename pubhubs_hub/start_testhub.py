@@ -11,6 +11,15 @@ from urllib.parse import urlparse
 # The n-th testhub runs its LiveKit on 7880+n, so several hubs can run side by side.
 LIVEKIT_BASE_PORT = 7880
 
+# hub_client_url and the Matrix/Synapse API (as advertised to the hub-client SPA, see
+# maskfile.md's "hub client (n)") are additionally fronted by a locally-trusted HTTPS proxy
+# (`mask run proxy`, see scripts/gen-dev-proxy.js) on plain-port + this offset, so that:
+#  - a real device (no `adb reverse`-equivalent on iOS) can reach them via the networkhost IP, and
+#  - the hub-client SPA's origin is a "secure context" (crypto.subtle, for E2E room encryption),
+#    which plain http on a non-localhost address never is.
+# See docs/app/README.md.
+HTTPS_PROXY_PORT_OFFSET = 10000
+
 
 def write_livekit_config(number, port):
     """Write a per-hub LiveKit config into testhub<number>/ and return its path in the container.
@@ -49,15 +58,7 @@ def main():
     parser = argparse.ArgumentParser(
             description="Spins up a hub container for local development")
 
-    parser.add_argument("--mode",
-                        choices=("networkhost", "localhost"),
-                        default="localhost",
-                        help="Which hostname to use to (have clients) contact the clients and other servers:"
-                        " localhost or 'networkhost', the IP address of the local internet interface. "
-                        "Currently pubhubs does not work under 'networkhost' due to it not being a 'secure context' for crypto in the browser. "
-                        "The networkhost _is_, however, always used for the hub server url (public_baseurl): "
-                        "it must match the url PHC advertises for this hub, and the yivi app contacts the hub via it. ")
-    parser.add_argument("--networkhost", 
+    parser.add_argument("--networkhost",
                         default=None,
                         help="Use this networkhost (e.g. '1.2.3.4', '[1::2]') instead of trying to autodetect it. Used e.g. by the yivi app to contact the hub.")
     parser.add_argument("--replace-sqlite3-by-postgres",
@@ -94,19 +95,20 @@ def main():
             s.connect(("k.root-servers.net", 53))
             networkhost = "[" + s.getsockname()[0] + "]"
 
-    match args.mode:
-        case "networkhost":
-            host = networkhost
-        case "localhost":
-            host = "localhost"
-        case _:
-            raise RuntimeError(f"unknown mode {args.mode}")
-
-    hub_client_url = f"http://{host}:{8001+args.number}"
-    # always the networkhost: it must match the url PHC advertises for this hub (from which the
-    # hub resolves its own id), and the yivi app (which cannot use localhost) contacts the hub via it
+    # hub_client_url is what PHC hands the global client (from `.ph/info`) and becomes the hub's
+    # iframe src, so it goes through the HTTPS dev proxy on the networkhost IP (see
+    # HTTPS_PROXY_PORT_OFFSET above) — a real device has no route to `localhost` on the dev machine,
+    # and a trusted-HTTPS origin is required for hub-client's use of crypto.subtle either way.
+    hub_client_url = f"https://{networkhost}:{8001+args.number+HTTPS_PROXY_PORT_OFFSET}"
+    # hub_server_url (public_baseurl) is used server-side by PHC/yivi to reach the hub directly, and
+    # must match the plain-http `networkhost` url configured for this hub in pubhubs/pubhubs.toml —
+    # unrelated to what the browser uses (that's hub-client's own HUB_URL, see maskfile.md's
+    # "hub client (n)", which points at the *same* HTTPS proxy as hub_client_url above).
     hub_server_url = f"http://{networkhost}:{8008+args.number}"
-    global_client_url = f"http://{host}:8080"
+    # global_client_url is the native app shell's own origin check (see
+    # modules/pubhubs/HubClientApi.py) and is unrelated to any of the above — it stays on localhost
+    # regardless of platform; see docs/app/README.md.
+    global_client_url = "http://localhost:8080"
 
     replace_sqlite3_by_postgres = ()
     if args.replace_sqlite3_by_postgres != None: 
