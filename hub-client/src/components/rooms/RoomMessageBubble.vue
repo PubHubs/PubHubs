@@ -815,8 +815,13 @@
 		const stewardActions: MenuItem[] = [];
 		const destructive: MenuItem[] = [];
 
-		// Direct message (only if sender is not current user and not already in a DM)
+		// User details + direct message (only if sender is not current user and not already in a DM)
 		if (event.value.sender! !== user.userId && !props.room.isDirectMessageRoom()) {
+			social.push({
+				label: t('admin.user_details'),
+				icon: 'user-circle',
+				onClick: () => sidebar.openMemberProfile(event.value.sender!),
+			});
 			social.push({
 				label: t('menu.direct_message'),
 				icon: 'chat-circle',
