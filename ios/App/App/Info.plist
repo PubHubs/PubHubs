@@ -24,6 +24,12 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>PubHubs may use the camera for your profile, chats, and to share video during video calls.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>PubHubs uses the microphone to share audio during video calls.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>PubHubs accesses your photo library so you can choose a picture to add to a chat or for your profile.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
