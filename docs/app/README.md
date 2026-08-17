@@ -20,22 +20,21 @@ address that's been made reachable. This alone is enough here: global-client nev
 `window.crypto.subtle`, and a plain-HTTP *parent* frame embedding an HTTPS *child* iframe (see below)
 triggers no browser restriction — only the reverse direction does.
 
-- `ios/App/App/Info.plist` has a matching ATS exception domain keyed on that IP.
-- The tracked `global-client/public/client-config.js` keeps its defaults — device-specific overrides go
-  in the gitignored `global-client/public/client-config.local.js` instead (loaded after the tracked file
-  in `global-client/index.html`, so it can override individual `_env` keys). Those overrides are wrapped
-  in a native-platform check (`window.androidBridge` / `window.webkit.messageHandlers.bridge` — the raw
-  markers Capacitor's own `getPlatform()` checks internally, present before any page script runs), so
-  they're a no-op in any browser context — this dev machine, the iOS Simulator, or adb-forwarded Android
-  browser testing, all of which already reach the app fine over plain `localhost` — and only take effect
-  inside the native Capacitor shell on a real device, which is the one case that actually needs the LAN
-  IP. This means a stale (or freshly regenerated) `client-config.local.js` can no longer break
-  browser-based dev, whatever IP it happens to hold.
+- `ios/App/App/Info.plist` has a matching ATS exception domain keyed on that IP, kept in sync by
+  `scripts/sync-networkhost-ip.js`.
+- The tracked `global-client/public/client-config.js` keeps its `localhost` defaults, used as-is for web
+  dev and Android (which reaches `localhost` fine via the Simulator's shared network or `adb reverse`, see
+  below). For iOS specifically, `scripts/patch-ios-client-config-ip.js` patches the *built*
+  `global-client/dist/client-config.js` in place — after `npm run build:global:native`, before Capacitor
+  copies `dist/` into the native project — rewriting its `localhost` URLs to the LAN IP. `dist/` is a
+  gitignored build artifact, freshly regenerated from the tracked source on every build, so there's no
+  tracked file to keep clean, no extra `<script>` tag in `index.html`, and no runtime platform check
+  needed: this only ever runs as part of the iOS build chain, so plain browser dev and Android are
+  untouched by it.
 
-Both are kept in sync automatically by `scripts/sync-networkhost-ip.js` — `pubhubs.toml` is the source
-of truth they're generated from. `npm run sync:networkhost-ip` (at the repo root) does this, and it also
-runs automatically before `cap:sync`, `cap:run:ios`, and `cap:open:ios`, so there's normally nothing to
-do by hand.
+Both scripts are driven by `pubhubs.toml`, the source of truth they read from, and run automatically as
+part of `npm run cap:sync:ios`, `cap:run:ios`, and `cap:open:ios` (see package.json), so there's normally
+nothing to do by hand.
 
 ### hub-client / Matrix API: LAN IP over locally-trusted HTTPS, via a dev proxy
 
@@ -60,7 +59,8 @@ These are *additional*, new ports (existing port + 10000) — not a replacement.
 to each hub over the existing plain-HTTP `networkhost` ports exactly as configured in
 `pubhubs/pubhubs.toml`; only the browser-facing addresses above changed. `scripts/gen-dev-proxy.js`
 (run automatically by `mask run proxy`) regenerates the cert and `Caddyfile.local` whenever the
-networkhost IP changes, the same way `sync-networkhost-ip.js` does for Info.plist/client-config.local.js.
+networkhost IP changes, the same way `sync-networkhost-ip.js`/`patch-ios-client-config-ip.js` do for
+Info.plist/client-config.js.
 
 **`mask run proxy` needs to be running for any hub to load, on every platform** — `mask run all` starts
 it automatically; if you're running `mask run hub server`/`hub client` by hand instead, start
@@ -127,6 +127,6 @@ the same pattern (a plain public script, unbundled, loaded first) is the fix.
   silently block connections on a real device without it.
 - `pubhubs/pubhubs.toml`'s `[host_aliases] networkhost.ip` is a manually-pinned value; if it doesn't
   match the Wi-Fi network the dev Mac is currently on, everything above will point at a stale/unreachable
-  IP — update it and re-run `mask run proxy` / `npm run cap:sync`.
+  IP — update it and re-run `mask run proxy` / `npm run cap:sync:ios`.
 - See also `docs/development/LOCAL_DEVELOPMENT.md` for the separate Apple Private Relay / Yivi Local
   Network permission pitfalls on real iOS devices.
