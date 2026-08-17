@@ -105,6 +105,15 @@ def main():
     # unrelated to what the browser uses (that's hub-client's own HUB_URL, see maskfile.md's
     # "hub client (n)", which points at the *same* HTTPS proxy as hub_client_url above).
     hub_server_url = f"http://{networkhost}:{8008+args.number}"
+    # public_yivi_url is what the hub advertises for its Yivi disclosure-session proxy
+    # (_synapse/client/yiviproxy, part of the same Synapse "client" listener as the Matrix API on
+    # 8008+n) — QR-encoded for the Yivi app to scan, and polled by the browser for session status.
+    # It defaults to hub_server_url (public_baseurl) when unset, but that's plain http, and the
+    # hub-client page polling it is now https (see hub_client_url above): a mismatch the browser
+    # blocks as mixed content. Reuse the *same* HTTPS proxy port already fronting the Matrix API
+    # (see maskfile.md's "hub client (n)" VITE_HUB_URL) — no new Caddy port needed, since it's the
+    # same backend listener. Trailing slash: _web.py concatenates the yiviproxy path onto this as-is.
+    public_yivi_url = f"https://{networkhost}:{8008+args.number+HTTPS_PROXY_PORT_OFFSET}/"
     # global_client_url is the native app shell's own origin check (see
     # modules/pubhubs/HubClientApi.py) and is unrelated to any of the above — it stays on localhost
     # regardless of platform; see docs/app/README.md.
@@ -145,6 +154,7 @@ def main():
                     "--environment", "development",
                     "--hub-client-url", hub_client_url,
                     "--hub-server-url", hub_server_url,
+                    "--public-yivi-url", public_yivi_url,
                     "--global-client-url", global_client_url,
                     *replace_sqlite3_by_postgres,
                     *server_name,

@@ -67,6 +67,8 @@ def main():
                         help="Overwrites the hub client url in the homeserver configuration")
     parser.add_argument("--hub-server-url", default=None,
                         help="Overwrites the hub server url (public_baseurl) in the homeserver configuration")
+    parser.add_argument("--public-yivi-url", default=None,
+                        help="Overwrites the public_yivi_url in the HubClientApi module configuration")
     parser.add_argument("--global-client-url", default=None,
                         help="Overwrites the global client url in the homeserver configuration")
     parser.add_argument("--replace-sqlite3-by-postgres",
@@ -253,6 +255,7 @@ class Program:
                           environment=self._args.environment,
                           hub_client_url=self._args.hub_client_url,
                           hub_server_url=self._args.hub_server_url,
+                          public_yivi_url=self._args.public_yivi_url,
                           global_client_url=self._args.global_client_url,
                           replace_sqlite3_by_postgres=replace_sqlite3_by_postgres_now,
                           server_name=self._args.server_name)

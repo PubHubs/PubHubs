@@ -62,12 +62,25 @@ to each hub over the existing plain-HTTP `networkhost` ports exactly as configur
 networkhost IP changes, the same way `sync-networkhost-ip.js`/`patch-ios-client-config-ip.js` do for
 Info.plist/client-config.js.
 
+One more URL rides along on the second port above: `public_yivi_url` (computed in `start_testhub.py`,
+passed to `boot/start_hub.py --public-yivi-url`), the URL the hub advertises for its Yivi
+disclosure-session proxy (`_synapse/client/yiviproxy` — QR-encoded for the Yivi app to scan when
+entering a secured room, and polled by the browser for session status). It defaults to `public_baseurl`
+(plain HTTP) when unset, which is fine in production (where `public_baseurl` is already `https://`), but
+would be a scheme mismatch here once hub-client's own page is HTTPS — the browser blocks the polling
+request as mixed content. Since `_synapse/client/yiviproxy` is served by the same Synapse "client"
+listener as the Matrix API, no separate Caddy port is needed: `start_testhub.py` just points
+`public_yivi_url` at the same `{8008+n+10000}` HTTPS front used above.
+
 **`mask run proxy` needs to be running for any hub to load, on every platform** — `mask run all` starts
 it automatically; if you're running `mask run hub server`/`hub client` by hand instead, start
 `mask run proxy` too.
 
 **Trust the `mkcert` CA** — each of these has its own separate trust store, so all four are needed
-independently:
+independently. This also applies to whatever phone scans the Yivi QR code when entering a secured room
+(now that `public_yivi_url` routes through this same HTTPS front, see above): if that's a real device,
+follow the **Real iPhone**/**Real Android phone** steps below on it too — without a trusted CA there,
+the Yivi app will reject the connection as untrusted instead of the earlier mixed-content error.
 
 - **Dev Mac (browser dev)**: `mkcert -install` once. This installs the CA into the macOS system
   keychain (and Firefox's own store) — it does **not** reach the iOS Simulator, which has a separate
