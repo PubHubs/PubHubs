@@ -14,7 +14,6 @@
 		"dev:hub": "npm run dev --workspace=hub-client",
 		"build:global": "npm run build --workspace=global-client",
 		"build:global:native": "PUBHUBS_BASE=/ npm run build --workspace=global-client",
-		"build:global:native": "PUBHUBS_BASE=/ npm run build --workspace=global-client",
 		"build:hub": "npm run build --workspace=hub-client",
 		"lint": "prettier --config .prettierrc --write --ignore-unknown \"global-client/src/**/*.{ts,vue,js}\" \"hub-client/src/**/*.{ts,vue,js}\" && eslint --fix global-client/src hub-client/src",
 		"check": "npm run check:format && npm run check:lint && npm run check:types",
