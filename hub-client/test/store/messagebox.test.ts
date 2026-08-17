@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Stores
-import { Message, MessageBoxType, MessageType, iframeHubId, useMessageBox } from '@hub-client/stores/messagebox';
+import { Message, MessageBoxType, MessageType, NATIVE_SHELL_ORIGINS, iframeHubId, useMessageBox } from '@hub-client/stores/messagebox';
 
 const messages = [];
 function mockTarget(id: string) {
@@ -100,6 +100,67 @@ describe('MessageBox Store', () => {
 			expect(messageboxChild.inIframe).toBe(true);
 			expect(messageboxChild.isReady('parentFrame')).toBe(false);
 			expect(messageboxChild.handshake.get('parentFrame')).toBe('started');
+		});
+	});
+
+	// Regression tests for the native-shell origin check in `startCommunication`'s message listener:
+	// a CHILD (hub-client) must trust its configured PARENT_URL and the official native-shell origins,
+	// and nothing else — in particular, no longer the generic, spoofable 'http://localhost'.
+	describe('native shell origin trust', () => {
+		function dispatchSettingsReply(origin: string) {
+			window.dispatchEvent(
+				new MessageEvent('message', {
+					origin,
+					data: { type: MessageType.Settings, content: { theme: 'light', timeformat: '24', language: 'en' } },
+				}),
+			);
+		}
+
+		beforeEach(() => {
+			vi.stubGlobal('top', 'parent');
+			vi.stubGlobal('self', 'child');
+			messageboxChild.init(MessageBoxType.Child);
+			messageboxChild.startCommunication('https://configured-hub.example');
+		});
+
+		test('trusts the configured hub PARENT_URL origin', () => {
+			dispatchSettingsReply('https://configured-hub.example');
+			expect(messageboxChild.isReady('parentFrame')).toBe(true);
+		});
+
+		test.each(NATIVE_SHELL_ORIGINS)('trusts the configured native-shell origin %s', (origin) => {
+			dispatchSettingsReply(origin);
+			expect(messageboxChild.isReady('parentFrame')).toBe(true);
+			expect(messageboxChild.receiverUrlMap.get('parentFrame')).toBe(origin);
+		});
+
+		test('does not trust a generic http://localhost origin (regression guard: this used to stand in for the Android native shell)', () => {
+			dispatchSettingsReply('http://localhost');
+			expect(messageboxChild.isReady('parentFrame')).toBe(false);
+		});
+
+		test('does not trust an arbitrary attacker-controlled origin', () => {
+			dispatchSettingsReply('https://evil.example');
+			expect(messageboxChild.isReady('parentFrame')).toBe(false);
+		});
+
+		test('does not trust a scheme mismatch on the native-shell hostname', () => {
+			dispatchSettingsReply('http://pubhubs-app.invalid'); // right host, wrong scheme (neither iOS's 'capacitor://' nor Android's 'https://')
+			expect(messageboxChild.isReady('parentFrame')).toBe(false);
+		});
+
+		test('a PARENT never trusts a native-shell origin as a stand-in for its configured child URL', () => {
+			vi.stubGlobal('self', 'parent');
+			messageboxParent.init(MessageBoxType.Parent);
+			messageboxParent.startCommunication('https://configured-hub.example', iframeHubId);
+
+			window.dispatchEvent(
+				new MessageEvent('message', {
+					origin: NATIVE_SHELL_ORIGINS[0],
+					data: { type: MessageType.Sync, content: '' },
+				}),
+			);
+			expect(messageboxParent.isReady(iframeHubId)).toBe(false);
 		});
 	});
 });

@@ -50,10 +50,19 @@ import { type Theme, type TimeFormat, useSettings } from '@hub-client/stores/set
  * So a hub-client CHILD trusts these in addition to its configured parent, since the native shell is a first-party PubHubs client regardless of which hub it's talking to.
  *
  * These are exact-match origins (scheme + host + port), same as any other origin check here.
+ *
+ * SECURITY: 'pubhubs-app.invalid' is deliberately not a generic/real hostname like 'localhost' would be —
+ * '.invalid' is reserved by RFC 2606 to never be a resolvable real TLD, so no ordinary browser tab or web
+ * page, in any deployment of this hub-client bundle, can ever be served under these origins; only this
+ * app's own WebViewLocalServer (Android) / WKURLSchemeHandler (iOS) can produce them (see
+ * capacitor.config.ts). 'localhost', used here previously, is a generic origin any locally-running process
+ * can occupy, which let a local attacker impersonate the native shell and receive a hub's access token.
+ * Do NOT change this back to 'localhost'. If you change capacitor.config.ts's server.hostname, update both
+ * entries below to match.
  */
 const NATIVE_SHELL_ORIGINS = [
-	'capacitor://localhost', // iOS (capacitor.config.ts: iosScheme 'capacitor', hostname 'localhost')
-	'http://localhost', // Android (capacitor.config.ts: androidScheme 'http', hostname 'localhost')
+	'capacitor://pubhubs-app.invalid', // iOS (capacitor.config.ts: iosScheme 'capacitor', hostname 'pubhubs-app.invalid')
+	'https://pubhubs-app.invalid', // Android (capacitor.config.ts: androidScheme 'https', hostname 'pubhubs-app.invalid')
 ];
 
 /**
@@ -431,4 +440,4 @@ const useMessageBox = defineStore('messagebox', {
 	},
 });
 
-export { iframeHubId, miniClientId, Message, MessageBoxType, MessageType, useMessageBox };
+export { iframeHubId, miniClientId, Message, MessageBoxType, MessageType, NATIVE_SHELL_ORIGINS, useMessageBox };

@@ -25,9 +25,9 @@
 		"gen:dev-proxy": "node scripts/gen-dev-proxy.js",
 		"trust:ios-simulator": "node scripts/trust-ios-simulator-ca.js",
 		"cap:sync:ios": "npm run sync:networkhost-ip && npm run build:global:native && npm run patch:ios-networkhost-ip && npx cap sync ios",
-		"cap:sync:android": "npm run build:global:native && npx cap sync android",
-		"cap:open:android": "npx cap open android",
-		"cap:run:android": "npm run build:global:native && npx cap run android",
+		"cap:sync:android": "npm run sync:networkhost-ip && npm run build:global:native && npx cap sync android",
+		"cap:open:android": "npm run sync:networkhost-ip && npx cap open android",
+		"cap:run:android": "npm run sync:networkhost-ip && npm run build:global:native && npx cap run android",
 		"cap:open:ios": "npm run sync:networkhost-ip && npm run trust:ios-simulator && npx cap open ios",
 		"cap:run:ios": "npm run sync:networkhost-ip && npm run trust:ios-simulator && npm run build:global:native && npm run patch:ios-networkhost-ip && npx cap run ios",
 		"generate:icons": "capacitor-assets generate --ios --android --iconBackgroundColor '#001242'"
