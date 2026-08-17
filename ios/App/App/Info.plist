@@ -41,7 +41,7 @@
 			     PHC hands out MSS/hub URLs built from that alias (not "localhost"), so ATS needs an explicit exception for it too.
 				 Auto-synced by `npm run sync:networkhost-ip` (also runs before cap:sync/cap:run:ios/cap:open:ios) —
 				 see scripts/sync-networkhost-ip.js and docs/app/README.md. No need to edit this by hand. -->
-			<key>145.137.183.102</key>
+			<key>172.20.10.5</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>

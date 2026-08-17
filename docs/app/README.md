@@ -23,7 +23,14 @@ triggers no browser restriction — only the reverse direction does.
 - `ios/App/App/Info.plist` has a matching ATS exception domain keyed on that IP.
 - The tracked `global-client/public/client-config.js` keeps its defaults — device-specific overrides go
   in the gitignored `global-client/public/client-config.local.js` instead (loaded after the tracked file
-  in `global-client/index.html`, so it can override individual `_env` keys).
+  in `global-client/index.html`, so it can override individual `_env` keys). Those overrides are wrapped
+  in a native-platform check (`window.androidBridge` / `window.webkit.messageHandlers.bridge` — the raw
+  markers Capacitor's own `getPlatform()` checks internally, present before any page script runs), so
+  they're a no-op in any browser context — this dev machine, the iOS Simulator, or adb-forwarded Android
+  browser testing, all of which already reach the app fine over plain `localhost` — and only take effect
+  inside the native Capacitor shell on a real device, which is the one case that actually needs the LAN
+  IP. This means a stale (or freshly regenerated) `client-config.local.js` can no longer break
+  browser-based dev, whatever IP it happens to hold.
 
 Both are kept in sync automatically by `scripts/sync-networkhost-ip.js` — `pubhubs.toml` is the source
 of truth they're generated from. `npm run sync:networkhost-ip` (at the repo root) does this, and it also
