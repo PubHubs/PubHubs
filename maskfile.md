@@ -375,6 +375,15 @@ npx cap doctor ios
 npm run trust:ios-simulator
 ```
 
+### icons
+
+> Regenerate native app icons (iOS + Android) from resources/icon.svg
+
+Run after changing the PubHubs mark in `resources/icon.svg`.
+```sh
+npm run generate:icons
+```
+
 ### hub
 
 > Commands for running the hub
