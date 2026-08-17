@@ -109,10 +109,12 @@ features that a dependency assumes exist. First one hit: `matrix-js-sdk` uses `P
 `interactive-auth.js`, and more) — on an older WKWebView, sending a message throws
 `Promise.withResolvers is not a function` with no visible error in the UI, only in Safari Web
 Inspector's console. Fixed with a small polyfill,
-`hub-client/public/polyfill-promise-with-resolvers.js`, loaded as a plain script (like
-`client-config.js` in the same `index.html`) so it always runs before any bundled code, regardless of
-import order — a no-op wherever the native implementation already exists. If another such gap turns up,
-the same pattern (a plain public script, unbundled, loaded first) is the fix.
+`hub-client/src/logic/core/polyfillPromiseWithResolvers.ts`, imported as the very first statement in
+`src/main.ts` so it's evaluated before any other bundled module — a no-op wherever the native
+implementation already exists. It doesn't need to be an unbundled script: `Promise.withResolvers()` is
+only ever *called* later at runtime (when matrix-js-sdk sends a message), well after module evaluation
+has finished, so patching it during regular module load is early enough. If another such gap turns up,
+the same pattern (a module imported first in `main.ts`) is the fix.
 
 ## Known follow-ups, out of scope here
 

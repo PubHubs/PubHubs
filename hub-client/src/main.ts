@@ -1,3 +1,5 @@
+// This must stay the first import: it patches `Promise.withResolvers` for older WKWebView/iOS versions,
+// and needs to run before any other bundled module (matrix-js-sdk in particular) could ever call it.
 // Packages
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
@@ -11,6 +13,7 @@ import '@hub-client/assets/datepicker.css';
 import '@hub-client/assets/tailwind.css';
 
 import { clickOutside, contextMenu, focus, safeHtml, twClass } from '@hub-client/logic/core/directives';
+import '@hub-client/logic/core/polyfillPromiseWithResolvers';
 import { router } from '@hub-client/logic/core/router';
 import { getLogLevel } from '@hub-client/logic/logging/Logger';
 
