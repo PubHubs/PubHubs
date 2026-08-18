@@ -2,9 +2,8 @@
  * Resolves the `networkhost` IP used for real-device dev testing, from `pubhubs/pubhubs.toml`'s
  * `[host_aliases] networkhost.ip` (or the `networkhost.source_ip_for` auto-detect fallback).
  *
- * Shared by scripts/sync-networkhost-ip.js (Info.plist), scripts/patch-ios-client-config-ip.js
- * (global-client's built client-config.js) and scripts/gen-dev-proxy.js (the HTTPS dev proxy's cert +
- * Caddyfile) — see docs/app/README.md.
+ * Shared by scripts/sync-networkhost-ip.js, scripts/patch-ios-client-config-ip.js, and
+ * scripts/gen-dev-proxy.js — see docs/app/README.md.
  */
 
 import dgram from 'node:dgram';
@@ -21,15 +20,12 @@ const PUBHUBS_DEFAULT_TOML = path.join(REPO_ROOT, 'pubhubs', 'pubhubs.default.to
 const AUTO_DETECT_TIMEOUT_MS = 3000;
 
 /**
- * Mirrors the auto-detect trick used by `HostAliases::resolve_all()` in
- * pubhubs/src/servers/config/host_aliases.rs: "connecting" a UDP socket to a remote
- * host:port never sends a packet, but makes the OS pick a route, letting us read back
- * the local address it would use to reach that host.
+ * Mirrors the auto-detect trick in `HostAliases::resolve_all()`
+ * (pubhubs/src/servers/config/host_aliases.rs): "connecting" a UDP socket to a remote host:port never
+ * sends a packet, but makes the OS pick a route, letting us read back the local address it'd use.
  *
- * We resolve the hostname via `dns.lookup()` ourselves first, rather than letting
- * `socket.connect()` do it: on a failed lookup, `dgram`'s connect callback fires anyway
- * with the socket bound to the unspecified address ("0.0.0.0"), instead of emitting
- * 'error' — silently "succeeding" with a useless address if we don't guard against it.
+ * We resolve the hostname via `dns.lookup()` ourselves first, since on a failed lookup `dgram`'s connect
+ * callback fires anyway bound to "0.0.0.0" instead of emitting 'error' — we guard against that case.
  */
 function autoDetectSourceIp(sourceIpFor) {
 	return new Promise((resolve, reject) => {
@@ -77,8 +73,8 @@ function autoDetectSourceIp(sourceIpFor) {
 }
 
 /**
- * Returns the current `networkhost` IP, or `null` if neither `networkhost.ip` nor
- * `networkhost.source_ip_for` is configured. Throws if auto-detection is configured but fails.
+ * Returns the current `networkhost` IP, or `null` if neither is configured.
+ * Throws if auto-detection is configured but fails.
  */
 export async function resolveNetworkhostIp() {
 	const configPath = fs.existsSync(PUBHUBS_TOML) ? PUBHUBS_TOML : PUBHUBS_DEFAULT_TOML;

@@ -1,32 +1,17 @@
 #!/usr/bin/env node
 /**
- * Generates the locally-trusted TLS cert (via `mkcert`) and Caddyfile used by `mask run proxy` to front
- * the hub-client SPA and the Matrix/Synapse API with HTTPS on the `networkhost` IP.
+ * Generates the locally-trusted TLS cert (via `mkcert`) and Caddyfile used by `mask run proxy` to front the
+ * hub-client SPA and the Matrix/Synapse API with HTTPS on the `networkhost` IP, needed for hub-client's
+ * `window.crypto.subtle` secure-context requirement on a real device. See docs/app/README.md.
  *
- * Why these two specifically: the hub-client SPA (loaded in the global-client's iframe) uses
- * `window.crypto.subtle` for E2E room encryption (hub-client/src/composables/useRoomLibrary.ts), which
- * browsers only expose in a "secure context" — `https://` or `localhost`, never plain `http://<lan-ip>`.
- * A real device has no `localhost` route to the dev machine (no `adb reverse` equivalent on iOS), so
- * reachability alone would need the LAN IP — but plain HTTP on that IP would break the secure-context
- * requirement for every client, not just iOS. Locally-trusted HTTPS on the LAN IP satisfies both at once.
- * Once the hub-client page is HTTPS, its own `fetch`/XHR calls to the Matrix API would in turn be blocked
- * as mixed content unless that's HTTPS too — hence fronting both.
+ * These are NEW ports (existing plain-port + PORT_OFFSET), not a replacement — PHC and yivi still talk to
+ * each hub over the plain-HTTP `networkhost` ports from pubhubs.toml. This only adds a parallel HTTPS
+ * frontend for browser/app clients; global-client and PHC don't need it (see docs/app/README.md).
  *
- * These are NEW ports (the existing plain-port + PORT_OFFSET), not a replacement: PHC and yivi keep
- * talking to each hub over the existing plain-HTTP `networkhost` ports exactly as configured in
- * pubhubs/pubhubs.toml — this only adds a parallel HTTPS frontend for browser/app clients. global-client
- * and PHC are untouched (see docs/app/README.md for why they don't need this).
+ * LiveKit (video calls) is deliberately not fronted here — see docs/app/README.md's "known follow-ups".
  *
- * LiveKit (video calls) is deliberately NOT fronted here: `_video_call_web.py` hands the browser the
- * very same LIVEKIT_URL it uses for its own server-side LiveKit API calls (see
- * docs/development/VIDEO_CALL_TROUBLESHOOTING.md), so giving the browser a different (HTTPS) address
- * would require separating those two uses first — out of scope for this fix. See docs/app/README.md's
- * "known follow-ups" for the resulting limitation.
- *
- * Regenerated on every `mask run proxy` invocation so it always matches the current network (the IP
- * changes when switching Wi-Fi networks, e.g. between "iHub" and "Thuis" in pubhubs.toml).
- *
- * Requires `mkcert` and `caddy` on PATH (both provided by the Nix flake devshell).
+ * Regenerated on every `mask run proxy` invocation, so it always matches the current network. Requires
+ * `mkcert` and `caddy` on PATH (both provided by the Nix devshell).
  */
 
 import { execFileSync } from 'node:child_process';

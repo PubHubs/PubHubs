@@ -1,8 +1,8 @@
 /**
  * Reads a blob as base64, without the data-URL prefix.
  *
- * The native plugins take bytes as base64, since only strings and numbers survive
- * the bridge between the web layer and Java.
+ * The native plugins take bytes as base64, since only strings and numbers survive the bridge between
+ * the web layer and Java.
  */
 const blobToBase64 = (blob: Blob): Promise<string> =>
 	new Promise((resolve, reject) => {

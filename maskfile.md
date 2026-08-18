@@ -182,7 +182,7 @@ npx vite --host -l info --port=8080
 
 ### proxy
 
-> Runs the local HTTPS dev proxy (Caddy) that fronts the hub-client SPA and Matrix/Synapse API so any device can reach them with a secure-context origin. Required for hubs to load at all — see docs/app/README.md.
+> Runs the local HTTPS dev proxy (Caddy) fronting the hub-client SPA and Matrix/Synapse API with a secure-context origin. Required for hubs to load at all — see docs/app/README.md.
 
 ```sh
 set -e
@@ -199,9 +199,7 @@ caddy run --config Caddyfile.local --adapter caddyfile
 
 #### Browser-based (PWA)
 
-#### Browser-based (PWA)
-
-To develop on an Android device using the browser using the browser:
+To develop on an Android device using the browser:
 
 1. Run `mask run all` to start the local environment.
 2. Activate developer mode on your phone (tap Build number 10 times in Settings > About phone).
@@ -397,8 +395,7 @@ Every command below is structured as `mask run hub <subcommand>`
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
-Needs `mask run proxy` running too — that's what makes `hub_client_url` (advertised by this command)
-actually reachable and a secure context, on every platform.
+Needs `mask run proxy` running too, which makes `hub_client_url` reachable and a secure context.
 
 ```sh
 echo "Running testhub${n}"
@@ -414,8 +411,7 @@ python3 start_testhub.py "${n}"
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
-Needs `mask run proxy` running too — VITE_HUB_URL below points at its HTTPS frontend, not directly at
-the Matrix API's plain-HTTP port.
+Needs `mask run proxy` running too, since VITE_HUB_URL below points at its HTTPS frontend, not the Matrix API's plain-HTTP port directly.
 
 ```sh
 cd hub-client

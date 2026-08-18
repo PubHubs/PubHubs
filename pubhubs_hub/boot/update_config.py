@@ -498,14 +498,10 @@ class UpdateConfig:
 
     def _check_client_url_didnt_change(self, key: str, value: str):
         """
-        Like `_check_did_start_change`, but for `client_url` specifically: in development it may
-        legitimately start with either `http://` (the checked-in template default,
-        matrix_test_config/homeserver.yaml) or `https://` (what `start_testhub.py` passes when the
-        hub-client SPA is fronted by the local dev HTTPS proxy — `mask run proxy`, see
-        docs/app/README.md — since hub-client's use of `window.crypto.subtle` needs a secure-context
-        origin, which a real device has no other way to reach). Production only ever needs to reject
-        the untouched `http://` template default; a real hub's domain is already expected to start
-        with `https://`, so there's nothing extra to check there.
+        Like `_check_did_start_change`, but for `client_url`: in development it may legitimately start
+        with either `http://` (the template default) or `https://` (what `start_testhub.py` passes when
+        fronted by the local dev HTTPS proxy, see docs/app/README.md). Production only rejects the
+        untouched `http://` default, since a real hub's domain already starts with `https://`.
         """
         if not isinstance(value, str):
             raise ConfigError(f"❌  Expected a str value for {key}, but got {value} instead")

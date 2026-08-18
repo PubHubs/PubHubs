@@ -11,14 +11,13 @@ type FileShareRequest = {
 /**
  * Whether the global client has to act on this client's behalf.
  *
- * In the native app this client runs in an iframe, and a download started from an
- * iframe goes nowhere: an Android WebView only saves a download when the host app
- * registers a DownloadListener, and Capacitor registers none. Capacitor's own
- * plugins are no way out either, since it accepts plugin calls from the main frame
- * only. So the global client, which is that frame, has to do it for us.
+ * In the native app this client runs in an iframe, and a download started from an iframe goes nowhere:
+ * an Android WebView only saves a download when the host app registers a DownloadListener, and Capacitor
+ * registers none. Capacitor's own plugins are no way out either, since it accepts plugin calls from the
+ * main frame only. So the global client, which is that frame, has to do it for us.
  *
- * The clipboard is out of reach from here for the same reason -- see
- * MessageType.ClipboardWrite, which predates this and works around it for text.
+ * The clipboard is out of reach from here for the same reason -- see MessageType.ClipboardWrite, which
+ * predates this and works around it for text.
  */
 const shouldDelegateToGlobalClient = () => useSettings().isNativeApp;
 

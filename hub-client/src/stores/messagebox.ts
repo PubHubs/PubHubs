@@ -45,20 +45,15 @@ import { type Theme, type TimeFormat, useSettings } from '@hub-client/stores/set
  */
 
 /**
- * Origins of the official PubHubs native app shells (Capacitor).
- * Under these shells the parent (global-client) runs at a fixed platform origin that has no relation to a hub's configured PARENT_URL (which ops set per web deployment, e.g. https://app.pubhubs.net).
- * So a hub-client CHILD trusts these in addition to its configured parent, since the native shell is a first-party PubHubs client regardless of which hub it's talking to.
+ * Origins of the official PubHubs native app shells (Capacitor). Under these shells, global-client runs
+ * at a fixed platform origin unrelated to a hub's configured PARENT_URL, so a hub-client CHILD trusts
+ * these too, as exact-match origins, same as any other origin check here.
  *
- * These are exact-match origins (scheme + host + port), same as any other origin check here.
- *
- * SECURITY: 'pubhubs-app.invalid' is deliberately not a generic/real hostname like 'localhost' would be —
- * '.invalid' is reserved by RFC 2606 to never be a resolvable real TLD, so no ordinary browser tab or web
- * page, in any deployment of this hub-client bundle, can ever be served under these origins; only this
- * app's own WebViewLocalServer (Android) / WKURLSchemeHandler (iOS) can produce them (see
- * capacitor.config.ts). 'localhost', used here previously, is a generic origin any locally-running process
- * can occupy, which let a local attacker impersonate the native shell and receive a hub's access token.
- * Do NOT change this back to 'localhost'. If you change capacitor.config.ts's server.hostname, update both
- * entries below to match.
+ * SECURITY: 'pubhubs-app.invalid' is deliberately not a generic hostname like 'localhost' — '.invalid'
+ * is reserved by RFC 2606 to never be resolvable, so only this app's own WebViewLocalServer (Android) /
+ * WKURLSchemeHandler (iOS) can ever produce these origins (see capacitor.config.ts). 'localhost', used
+ * here previously, let a local attacker impersonate the native shell and receive a hub's access token —
+ * do NOT change this back. If you change capacitor.config.ts's server.hostname, update both entries below.
  */
 const NATIVE_SHELL_ORIGINS = [
 	'capacitor://pubhubs-app.invalid', // iOS (capacitor.config.ts: iosScheme 'capacitor', hostname 'pubhubs-app.invalid')
@@ -115,7 +110,7 @@ enum MessageType {
 
 	ClipboardWrite = 'clipboard-write', // Hub asks global to write text to clipboard (top-level frame has clipboard access; iframes may not)
 	ClipboardWriteImage = 'clipboard-write-image', // As ClipboardWrite, for an image blob rather than text
-	FileShare = 'file-share', // Hub asks global to hand a file to the OS (native app only: Capacitor runs plugins in the main frame only, so an iframe cannot save or share a file itself)
+	FileShare = 'file-share', // Hub asks global to hand a file to the OS (native app only, see requestFileShare.ts)
 
 	// Per-hub key-value store persisted in the global client's localStorage.
 	// The hub client's own localStorage is unreliable (blocked in third-party
@@ -221,9 +216,9 @@ const useMessageBox = defineStore('messagebox', {
 
 				// If Child: start handshake with parent
 				if (this.inIframe && this.type === MessageBoxType.Child) {
-					// The child doesn't yet know whether the parent's real origin is the configured `url` or one of the native-shell origins,
-					// so this first ping (no sensitive content) is broadcast with targetOrigin '*'.
-					// The reply's event.origin is validated below before anything sensitive is ever sent to it.
+					// The child doesn't yet know if the parent's real origin is the configured `url` or a
+					// native-shell origin, so this first, non-sensitive ping broadcasts with targetOrigin '*'.
+					// The reply's event.origin is validated below before anything sensitive is sent to it.
 					this.sendMessage(new Message(MessageType.Sync), id, true);
 					this.handshake.set(id, HandshakeState.Started);
 				}
@@ -236,7 +231,7 @@ const useMessageBox = defineStore('messagebox', {
 						const originIsTrustedNativeShell = this.type === MessageBoxType.Child && NATIVE_SHELL_ORIGINS.includes(event.origin);
 
 						if (originMatchesConfigured || originIsTrustedNativeShell) {
-							// Lock onto the confirmed real origin so all further (sensitive) messages to this id target it, instead of the originally-configured `url`.
+							// Lock onto the confirmed real origin, so further sensitive messages target it instead of `url`.
 							if (!originMatchesConfigured) {
 								this.receiverUrlMap.set(id, event.origin);
 							}
@@ -274,8 +269,7 @@ const useMessageBox = defineStore('messagebox', {
 								settings.setTheme(settingsContent.theme);
 								settings.setTimeFormat(settingsContent.timeformat);
 								settings.setLanguage(settingsContent.language);
-								// Only the parent can tell: the bridge Capacitor uses to detect a
-								// native platform is not exposed inside this iframe.
+								// Only the parent can tell: Capacitor's platform-detection bridge isn't exposed inside this iframe.
 								settings.setIsNativeApp(settingsContent.isNativeApp ?? false);
 								this.handshake.set(id, HandshakeState.Ready);
 								resolve(true);

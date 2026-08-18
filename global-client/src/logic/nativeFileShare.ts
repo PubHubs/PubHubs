@@ -8,14 +8,12 @@ import { blobToBase64 } from '@global-client/logic/utils/blob';
 /**
  * Hands a file to the OS on behalf of a hub client.
  *
- * A hub client cannot do this itself: it runs in an iframe, where an `<a download>`
- * is dropped (an Android WebView needs a DownloadListener, and Capacitor registers
- * none) and where Capacitor refuses plugin calls, accepting them from the main
- * frame only. This module runs in that main frame.
+ * A hub client cannot do this itself: it runs in an iframe, where an `<a download>` is dropped (an
+ * Android WebView needs a DownloadListener, and Capacitor registers none) and where Capacitor accepts
+ * plugin calls from the main frame only. This module runs in that main frame.
  *
- * We write to the cache on purpose: it needs no storage permission on any API
- * level and Android reclaims it by itself. `file_paths.xml` already exposes the
- * cache directory to the FileProvider that Share uses.
+ * We write to the cache on purpose: it needs no storage permission on any API level, and Android
+ * reclaims it by itself. `file_paths.xml` already exposes the cache directory to Share's FileProvider.
  */
 
 /** Refuse implausibly large files rather than trying to base64 them in memory. */

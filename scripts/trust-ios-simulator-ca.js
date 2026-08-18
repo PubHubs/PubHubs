@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 /**
  * Trusts the local `mkcert` dev CA (see scripts/gen-dev-proxy.js) inside every currently *booted* iOS
- * Simulator, via `xcrun simctl keychain <udid> add-root-cert`.
+ * Simulator, via `xcrun simctl keychain <udid> add-root-cert`. The Simulator has its own keychain, which
+ * `mkcert -install` doesn't reach, and there's no hook to catch "a new Simulator just booted", so this
+ * is an explicit step to rerun per Simulator instance. See docs/app/README.md.
  *
- * Unlike the Mac's own trust store, the Simulator has its own separate keychain — `mkcert -install`
- * does NOT reach it. There's no reliable hook to run this automatically at the right time (the
- * Simulator has to already be booted), so this is a one-time, explicit step per Simulator instance,
- * run again whenever a new Simulator is created — see docs/app/README.md.
- *
- * No-ops (with a clear message, not an error) on non-macOS or when Xcode/`xcrun` isn't installed —
- * this script is iOS-Simulator-specific and safe to call from any platform's dev flow.
+ * No-ops (with a message, not an error) on non-macOS or when Xcode/`xcrun` isn't installed, so it's safe
+ * to call from any platform's dev flow.
  */
 
 import { execFileSync } from 'node:child_process';

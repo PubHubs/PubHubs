@@ -11,13 +11,9 @@ from urllib.parse import urlparse
 # The n-th testhub runs its LiveKit on 7880+n, so several hubs can run side by side.
 LIVEKIT_BASE_PORT = 7880
 
-# hub_client_url and the Matrix/Synapse API (as advertised to the hub-client SPA, see
-# maskfile.md's "hub client (n)") are additionally fronted by a locally-trusted HTTPS proxy
-# (`mask run proxy`, see scripts/gen-dev-proxy.js) on plain-port + this offset, so that:
-#  - a real device (no `adb reverse`-equivalent on iOS) can reach them via the networkhost IP, and
-#  - the hub-client SPA's origin is a "secure context" (crypto.subtle, for E2E room encryption),
-#    which plain http on a non-localhost address never is.
-# See docs/app/README.md.
+# hub_client_url and the Matrix/Synapse API are additionally fronted by the locally-trusted HTTPS proxy
+# (`mask run proxy`, see scripts/gen-dev-proxy.js) on plain-port + this offset, for real-device reachability
+# and hub-client's secure-context requirement. See docs/app/README.md.
 HTTPS_PROXY_PORT_OFFSET = 10000
 
 
@@ -95,28 +91,21 @@ def main():
             s.connect(("k.root-servers.net", 53))
             networkhost = "[" + s.getsockname()[0] + "]"
 
-    # hub_client_url is what PHC hands the global client (from `.ph/info`) and becomes the hub's
-    # iframe src, so it goes through the HTTPS dev proxy on the networkhost IP (see
-    # HTTPS_PROXY_PORT_OFFSET above) — a real device has no route to `localhost` on the dev machine,
-    # and a trusted-HTTPS origin is required for hub-client's use of crypto.subtle either way.
+    # hub_client_url: the hub's iframe src, handed to the global client via PHC's `.ph/info`, so it goes
+    # through the HTTPS dev proxy on the networkhost IP (see HTTPS_PROXY_PORT_OFFSET).
     hub_client_url = f"https://{networkhost}:{8001+args.number+HTTPS_PROXY_PORT_OFFSET}"
-    # hub_server_url (public_baseurl) is used server-side by PHC/yivi to reach the hub directly, and
-    # must match the plain-http `networkhost` url configured for this hub in pubhubs/pubhubs.toml —
-    # unrelated to what the browser uses (that's hub-client's own HUB_URL, see maskfile.md's
-    # "hub client (n)", which points at the *same* HTTPS proxy as hub_client_url above).
+    # hub_server_url (public_baseurl): used server-side by PHC/yivi to reach the hub directly, so it
+    # stays on the plain-http `networkhost` url from pubhubs.toml, unrelated to the browser-facing URL
+    # above (that's hub-client's own HUB_URL, see maskfile.md's "hub client (n)").
     hub_server_url = f"http://{networkhost}:{8008+args.number}"
-    # public_yivi_url is what the hub advertises for its Yivi disclosure-session proxy
-    # (_synapse/client/yiviproxy, part of the same Synapse "client" listener as the Matrix API on
-    # 8008+n) — QR-encoded for the Yivi app to scan, and polled by the browser for session status.
-    # It defaults to hub_server_url (public_baseurl) when unset, but that's plain http, and the
-    # hub-client page polling it is now https (see hub_client_url above): a mismatch the browser
-    # blocks as mixed content. Reuse the *same* HTTPS proxy port already fronting the Matrix API
-    # (see maskfile.md's "hub client (n)" VITE_HUB_URL) — no new Caddy port needed, since it's the
-    # same backend listener. Trailing slash: _web.py concatenates the yiviproxy path onto this as-is.
+    # public_yivi_url: the hub's advertised Yivi disclosure-session proxy URL (_synapse/client/yiviproxy,
+    # QR-encoded for the Yivi app, polled by the browser). Defaults to hub_server_url (plain http), which
+    # would mismatch the now-https hub-client page as mixed content, so we reuse the same HTTPS proxy
+    # port as hub_client_url instead — same backend listener, no new Caddy port needed. Trailing slash:
+    # _web.py concatenates the yiviproxy path onto this as-is.
     public_yivi_url = f"https://{networkhost}:{8008+args.number+HTTPS_PROXY_PORT_OFFSET}/"
-    # global_client_url is the native app shell's own origin check (see
-    # modules/pubhubs/HubClientApi.py) and is unrelated to any of the above — it stays on localhost
-    # regardless of platform; see docs/app/README.md.
+    # global_client_url: the native app shell's own origin check (modules/pubhubs/HubClientApi.py),
+    # unrelated to the above — always localhost, regardless of platform. See docs/app/README.md.
     global_client_url = "http://localhost:8080"
 
     replace_sqlite3_by_postgres = ()

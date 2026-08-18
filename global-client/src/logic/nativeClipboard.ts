@@ -12,9 +12,9 @@ type ImageClipboardPlugin = {
 /**
  * Copies an image to the clipboard through our own Android plugin.
  *
- * `navigator.clipboard.write()` is not an option in the native app: inside an
- * Android WebView it resolves as though it worked while leaving the system
- * clipboard untouched, so a copy fails silently. See ImageClipboardPlugin.java.
+ * `navigator.clipboard.write()` is not an option in the native app: inside an Android WebView it
+ * resolves as though it worked while leaving the system clipboard untouched, so a copy fails silently.
+ * See ImageClipboardPlugin.java.
  */
 const ImageClipboard = registerPlugin<ImageClipboardPlugin>('ImageClipboard');
 

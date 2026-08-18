@@ -1,21 +1,17 @@
 #!/usr/bin/env node
 /**
  * Keeps `ios/App/App/Info.plist`'s ATS exception domain, and `capacitor.config.local.json`'s
- * `networkhostIp`, in sync with the `networkhost.ip` configured in `pubhubs/pubhubs.toml`
- * (`pubhubs/pubhubs.default.toml` is used as a fallback if `pubhubs.toml` doesn't exist yet). PubHubs
- * Central hands out hub/MSS URLs built from that alias (not `localhost`), so real-device testing needs an
- * ATS exception for it too — `localhost` resolves to the dev machine in the Simulator (shared network), but
- * resolves to the device itself on a real device, where nothing is listening. Android's WebView applies the
- * same allowNavigation host-matching to iframe navigation, so capacitor.config.ts needs the LAN IP too, or
- * the hub-client iframe (served from the HTTPS dev proxy at that IP) gets bounced out of the app entirely.
+ * `networkhostIp`, in sync with the `networkhost.ip` configured in `pubhubs/pubhubs.toml`, or
+ * `pubhubs.default.toml` if that doesn't exist yet. Both are needed for real-device testing: PHC hands
+ * out hub/MSS URLs built from that alias, and Android's WebView applies the same allowNavigation
+ * host-matching to iframe navigation, so without the LAN IP the hub-client iframe gets bounced out of
+ * the app. See docs/app/README.md.
  *
- * The other half of real-device support — pointing global-client's own PUBHUBS_URL/PHC_URL at the same LAN
- * IP — is handled separately by `scripts/patch-ios-client-config-ip.js`, which patches the *built*
- * `global-client/dist/client-config.js` in place (see that script for why it's not done here).
+ * The other half — global-client's own PUBHUBS_URL/PHC_URL — is handled instead by
+ * `scripts/patch-ios-client-config-ip.js` (see that script for why).
  *
- * This script never needs to be run by hand, since it's wired into `npm run cap:sync:ios` / `cap:run:ios` / `cap:open:ios` (see package.json).
- *
- * See docs/app/README.md and pubhubs/src/servers/config/host_aliases.rs for background.
+ * Wired into `npm run cap:sync:ios` / `cap:run:ios` / `cap:open:ios` (see package.json), so this never
+ * needs to be run by hand.
  */
 import { REPO_ROOT, resolveNetworkhostIp } from './lib/resolve-networkhost-ip.js';
 import fs from 'node:fs';

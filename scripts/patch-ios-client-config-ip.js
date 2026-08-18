@@ -1,25 +1,17 @@
 #!/usr/bin/env node
 /**
  * Patches `global-client/dist/client-config.js` in place, pointing its PUBHUBS_URL/PHC_URL at the
- * `networkhost.ip` configured in `pubhubs/pubhubs.toml` (see scripts/lib/resolve-networkhost-ip.js) instead
- * of `localhost`. PubHubs Central hands out hub/MSS URLs built from that same alias, so the global client
- * needs to request it too — otherwise it never even attempts the address that's been made reachable.
+ * `networkhost.ip` from `pubhubs/pubhubs.toml` (see scripts/lib/resolve-networkhost-ip.js) instead of
+ * `localhost` — needed for real-device testing, since PHC hands out hub/MSS URLs built from that same
+ * alias and a real device has no route to `localhost` on the dev machine. See docs/app/README.md.
  *
- * This only matters for real-device testing: `localhost` resolves to the dev machine in the iOS Simulator
- * (shared network), but resolves to the device itself on a real device, where nothing is listening.
+ * `dist/client-config.js` is a gitignored build artifact, freshly overwritten from the tracked
+ * `global-client/public/client-config.js` on every `npm run build:global:native`, so patching it in place
+ * is safe — nothing tracked stays dirty. This only runs as part of the iOS build chain (`npm run
+ * cap:sync:ios` / `cap:run:ios`), while Android relies on `adb reverse` instead.
  *
- * `global-client/dist/client-config.js` is a gitignored build artifact — freshly overwritten from the
- * tracked `global-client/public/client-config.js` on every `npm run build:global:native` (Vite re-copies
- * `public/*` into `dist/` on every build, regardless of `emptyOutDir`) — so patching it in place here is
- * safe: there's no tracked source to keep clean, no second script tag needed in index.html, and no runtime
- * platform check needed either, since this script only ever runs as part of the iOS build chain (`npm run
- * cap:sync:ios` / `cap:run:ios`, see package.json) — Android's own chain never calls it, relying instead on
- * `adb reverse` to tunnel `localhost` back to the dev machine on real devices (see docs/app/README.md).
- *
- * Must run after `npm run build:global:native` and before `npx cap sync ios` / `cap run ios` / `cap copy
- * ios`, so the LAN IP is baked in before Capacitor copies `dist/` into the native project.
- *
- * See docs/app/README.md and pubhubs/src/servers/config/host_aliases.rs for background.
+ * Must run after `npm run build:global:native` and before `npx cap sync ios` / `cap run ios` /
+ * `cap copy ios`, so the LAN IP is baked in before Capacitor copies `dist/` into the native project.
  */
 import { REPO_ROOT, resolveNetworkhostIp } from './lib/resolve-networkhost-ip.js';
 import fs from 'node:fs';
