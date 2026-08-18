@@ -54,6 +54,12 @@ const config: CapacitorConfig = {
 			keystorePath: undefined,
 		},
 	},
+	plugins: {
+		StatusBar: {
+			overlaysWebView: false,
+			style: 'DEFAULT',
+		},
+	},
 };
 
 export default config;

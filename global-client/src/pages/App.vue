@@ -44,6 +44,8 @@
 
 <script lang="ts" setup>
 	// Packages
+	import { Capacitor } from '@capacitor/core';
+	import { StatusBar, Style } from '@capacitor/status-bar';
 	import { computed, onMounted, onUnmounted, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
@@ -188,6 +190,16 @@
 			document.head.appendChild(meta);
 		}
 		meta.content = themeColor;
+
+		syncStatusBar(isDark, themeColor);
+	}
+
+	// Keeps the reserved native status bar strip (iOS only; see capacitor.config.ts plugins.StatusBar.overlaysWebView) in sync with the app's current theme.
+	async function syncStatusBar(isDark: boolean, backgroundColor: string) {
+		if (Capacitor.getPlatform() !== 'ios') return;
+
+		await StatusBar.setBackgroundColor({ color: backgroundColor });
+		await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
 	}
 
 	// Lifecycle hook

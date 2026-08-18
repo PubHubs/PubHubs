@@ -21,6 +21,7 @@
 		"@capacitor/core": "^8.4.2",
 		"@capacitor/filesystem": "^8.1.2",
 		"@capacitor/share": "^8.0.1",
+		"@capacitor/status-bar": "^8.0.3",
 		"@privacybydesign/yivi-client": "^0",
 		"@privacybydesign/yivi-core": "^0",
 		"@privacybydesign/yivi-web": "^0",
