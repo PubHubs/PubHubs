@@ -44,10 +44,9 @@
 				<false/>
 			</dict>
 			<!-- Dev-only: matches this machine's networkhost.ip in pubhubs/pubhubs.toml.
-			     PHC hands out MSS/hub URLs built from that alias (not "localhost"), so ATS needs an explicit exception for it too.
-				 Auto-synced by `npm run sync:networkhost-ip` (also runs before cap:sync/cap:run:ios/cap:open:ios) —
-				 see scripts/sync-networkhost-ip.js and docs/app/README.md. No need to edit this by hand. -->
-			<key>145.137.183.102</key>
+				 This is a template: `npm run sync:networkhost-ip` generates the real ios/App/App/Info.plist from this file, substituting __NETWORKHOST_IP__.
+				 see scripts/sync-networkhost-ip.js and docs/app/README.md. -->
+			<key>__NETWORKHOST_IP__</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>
