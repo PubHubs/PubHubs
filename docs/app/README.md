@@ -1,111 +1,60 @@
 # Specific info for developing the App
 
-## Real-device testing: why `localhost` doesn't work, and what replaces it
+## iOS Real-device testing: why `localhost` doesn't work.
 
-A real device (unlike the iOS Simulator, which shares the Mac's network) can't reach `localhost` on the
-dev machine. Android's `adb reverse` (see `mask run android ports`) tunnels the phone's own `localhost`
-back over USB, but iOS has no equivalent. So real-device dev URLs need the dev machine's LAN IP instead —
-`pubhubs/pubhubs.toml`'s `[host_aliases] networkhost.ip` (or the `networkhost.source_ip_for` auto-detect
-in `pubhubs.default.toml`) — not `localhost`.
+A real device (unlike the iOS Simulator, which shares the Mac's network) can't reach `localhost` on the dev machine.
+Android's `adb reverse` (see `mask run android ports`) tunnels the phone's own `localhost` back over USB, but iOS has no equivalent.
 
-Two different fixes apply this, for two different legs of the app:
+Two different fixes apply this:
 
 ### PHC / global-client: LAN IP over plain HTTP
 
-PHC already hands out hub/MSS URLs built from the `networkhost` alias, so `global-client`'s own
-`PUBHUBS_URL`/`PHC_URL` need to request that same IP, or the app never attempts the reachable address.
-Plain HTTP is enough here: global-client never uses `window.crypto.subtle`, and an HTTP parent embedding
-an HTTPS iframe (see below) isn't restricted by the browser — only the reverse direction is.
+PHC already hands out hub/MSS URLs built from the `networkhost` alias, so `global-client`'s own `PUBHUBS_URL`/`PHC_URL` need to request that same IP, or the app never attempts the reachable address.
+Plain HTTP is enough here and an HTTP parent embedding an HTTPS iframe (see below) isn't restricted by the browser.
 
-- `ios/App/App/Info.plist` gets a matching ATS exception domain, kept in sync by
-  `scripts/sync-networkhost-ip.js`.
-- The tracked `global-client/public/client-config.js` keeps its `localhost` defaults, which is fine for
-  web dev and Android (both reach `localhost` fine, via the Simulator's shared network or `adb reverse`).
-  For iOS, `scripts/patch-ios-client-config-ip.js` rewrites the *built*
-  `global-client/dist/client-config.js` to the LAN IP, after `npm run build:global:native` and before
-  Capacitor copies `dist/` into the native project. `dist/` is gitignored and freshly rebuilt every time,
-  so nothing tracked stays dirty, and no runtime platform check is needed — the script only ever runs as
-  part of the iOS build chain.
+- `ios/App/App/Info.plist` gets a matching ATS exception domain, kept in sync by `scripts/sync-networkhost-ip.js`.
+- The tracked `global-client/public/client-config.js` keeps its `localhost` defaults, which is fine for web dev and Android.
+  For iOS, `scripts/patch-ios-client-config-ip.js` rewrites the *built*  `global-client/dist/client-config.js` to the LAN IP,
+  after `npm run build:global:native` and before Capacitor copies `dist/` into the native project. `dist/` is gitignored and freshly rebuilt every time, the script only ever runs as part of the iOS build chain.
 
-Both scripts read `pubhubs.toml` and run automatically via `npm run cap:sync:ios`, `cap:run:ios`, and
-`cap:open:ios` (see package.json), so there's normally nothing to do by hand.
+Both scripts read `pubhubs.toml` and run automatically via `npm run cap:sync:ios`, `cap:run:ios`, and `cap:open:ios`.
 
-### hub-client / Matrix API: LAN IP over locally-trusted HTTPS, via a dev proxy
+### hub-client / Matrix API: LAN IP over locally-trusted HTTPS
 
-hub-client itself — the iframe content, `hub_client_url` from `pubhubs_hub/start_testhub.py` — needs the
-same LAN-IP treatment, but plain HTTP isn't enough: hub-client uses `window.crypto.subtle` for E2E room
-encryption (`hub-client/src/composables/useRoomLibrary.ts`), which browsers only expose in a secure
-context (`https://` or `localhost`). Once hub-client's page is HTTPS, its API calls need to be HTTPS too,
-or they're blocked as mixed content.
+The hub-client's itself, `hub_client_url` from `pubhubs_hub/start_testhub.py` — needs the same LAN-IP treatment,
+but plain HTTP isn't enough: hub-client uses `window.crypto.subtle` for E2E room encryption (`hub-client/src/composables/useRoomLibrary.ts`),
+which browsers only expose in a secure context (`https://` or `localhost`). Once hub-client's page is HTTPS, its API calls need to be HTTPS too, or they're blocked as mixed content.
 
-The fix: `mask run proxy` runs a local [Caddy](https://caddyfile.dev) reverse proxy, terminating TLS with
-a [`mkcert`](https://github.com/FiloSottile/mkcert) cert, fronting:
+The fix: `mask run proxy` runs a local [Caddy](https://caddyfile.dev) reverse proxy, terminating TLS with a [`mkcert`](https://github.com/FiloSottile/mkcert) cert, fronting:
 
-- `https://<networkhost-ip>:{8001+n+10000}` → hub-client's own Vite dev server on `127.0.0.1:{8001+n}`,
-  i.e. `hub_client_url`.
-- `https://<networkhost-ip>:{8008+n+10000}` → the Matrix/Synapse API on `127.0.0.1:{8008+n}`, i.e.
-  hub-client's `HUB_URL`.
+- `https://<networkhost-ip>:{8001+n+10000}` → hub-client's own Vite dev server on `127.0.0.1:{8001+n}`; `hub_client_url`.
+- `https://<networkhost-ip>:{8008+n+10000}` → the Matrix/Synapse API on `127.0.0.1:{8008+n}`; hub-client's `HUB_URL`.
 
-These are additional ports (existing port + 10000), not replacements — PHC and yivi still talk to each
-hub over the plain-HTTP `networkhost` ports configured in `pubhubs.toml`, only the browser-facing
-addresses changed. `scripts/gen-dev-proxy.js` (run by `mask run proxy`) regenerates the cert and
-`Caddyfile.local` whenever the networkhost IP changes.
+These are additional ports (existing port + 10000), not replacements — PHC and yivi still talk to each hub over the plain-HTTP `networkhost` ports configured in `pubhubs.toml`,
+only the browser-facing addresses changed. `scripts/gen-dev-proxy.js` (run by `mask run proxy`) regenerates the cert and `Caddyfile.local` whenever the networkhost IP changes.
 
-`public_yivi_url` (the hub's advertised Yivi disclosure-session proxy URL, QR-encoded for the Yivi app,
-polled by the browser for session status) rides along on the second port above. It defaults to
-`public_baseurl` (plain HTTP), which would now mismatch hub-client's HTTPS page and get blocked as mixed
-content, so `start_testhub.py` points it at the same `{8008+n+10000}` HTTPS front instead, since it's
-served by the same Synapse listener as the Matrix API — no separate Caddy port needed.
+`public_yivi_url` rides along on the second port above. It defaults to `public_baseurl` (plain HTTP), which would now mismatch hub-client's HTTPS page and get blocked as mixed content,
+so `start_testhub.py` points it at the same `{8008+n+10000}` HTTPS front instead, since it's served by the same Synapse listener as the Matrix API — no separate Caddy port needed.
 
-**`mask run proxy` needs to be running for any hub to load, on every platform** — `mask run all` starts
-it automatically, but if running `mask run hub server`/`hub client` by hand, start `mask run proxy` too.
+**`mask run proxy` needs to be running for any hub to load, on every platform** — `mask run all` starts it automatically, but if running `mask run hub server`/`hub client` by hand, start `mask run proxy` too.
 
-**Trust the `mkcert` CA** — each of the following has its own separate trust store, so all are needed
-independently. This also applies to whatever phone scans the Yivi QR code, now that it's routed through
-this same HTTPS front: follow the matching device steps on it too, or the Yivi app will reject the
-connection as untrusted.
+**Trust the `mkcert` CA** — each of the following has its own separate trust store, so all are needed independently.
+This also applies to whatever phone scans the Yivi QR code, now that it's routed through this same HTTPS front.
 
-- **Dev Mac (browser dev)**: `mkcert -install` once. Installs the CA into the macOS system keychain and
-  Firefox's own store, but does **not** reach the iOS Simulator, which has its own keychain (see next).
-- **iOS Simulator**: has its own keychain, unaffected by `mkcert -install`. Boot the Simulator, then run
-  `npm run trust:ios-simulator` — also runs automatically as part of `cap:run:ios`/`cap:open:ios`, but
-  only takes effect on Simulators already booted at that point, so run it by hand after booting a new
-  one. Without this you'll see WKWebView cert errors for every HTTPS request through the dev proxy.
-- **Real iPhone**: same underlying cert error as the Simulator, but there's no automation for a real
-  device — fully manual, one-time per physical device:
-  1. Get `$(mkcert -CAROOT)/rootCA.pem` onto the phone, easiest via
-     `open -R "$(mkcert -CAROOT)/rootCA.pem"` to reveal it in Finder, then AirDrop it (Email/Files work
-     too).
+- **Dev Mac (browser dev)**: `mkcert -install` once. Installs the CA into the macOS system keychain, but does **not** reach the iOS Simulator, which has its own keychain (see next).
+- **iOS Simulator**: has its own keychain, unaffected by `mkcert -install`. Boot the Simulator, then run `npm run trust:ios-simulator` — also runs automatically as part of `cap:run:ios`/`cap:open:ios`,
+  but only takes effect on Simulators already booted at that point, so run it by hand after booting a new one.
+- **Real iPhone**: same underlying cert error as the Simulator, but there's no automation for a real device — fully manual, one-time per physical device:
+  1. Get `$(mkcert -CAROOT)/rootCA.pem` onto the phone, easiest via `open -R "$(mkcert -CAROOT)/rootCA.pem"` to reveal it in Finder, then AirDrop it (Email/Files work too).
   2. Tap the file on the phone → Settings → General → **VPN & Device Management** → install the profile.
-  3. Separate step, easy to miss: Settings → General → About → **Certificate Trust Settings** → enable
-     full trust for the mkcert root, since installing the profile alone isn't enough.
+  3. Separate step, easy to miss: Settings → General → About → **Certificate Trust Settings** → enable full trust for the mkcert root, since installing the profile alone isn't enough.
   4. Relaunch the app.
+  You won't need to repeat this unless the mkcert CA itself is regenerated, which only happens if `~/Library/Application Support/mkcert` is deleted — routine `networkhost.ip` changes only regenerate the leaf cert.
+- **Real Android phone**: transfer `$(mkcert -CAROOT)/rootCA.pem` to the device, and install it via Settings → Security → Encryption & Credentials → Install a certificate → CA certificate.
 
-  You won't need to repeat this unless the mkcert CA itself is regenerated, which only happens if
-  `~/Library/Application Support/mkcert` is deleted — routine `networkhost.ip` changes only regenerate
-  the leaf cert.
-- **Real Android phone**: transfer `$(mkcert -CAROOT)/rootCA.pem` to the device, and install it via
-  Settings → Security → Encryption & Credentials → Install a certificate → CA certificate.
+## Future notes:
 
-## Older WKWebView on a real device: missing JS features
-
-A real device may run an older iOS/WKWebView version than the Simulator or a desktop browser, so it can
-be missing recent JS engine features a dependency assumes exist. First one hit: `matrix-js-sdk` uses
-`Promise.withResolvers()` (Safari 17.4+) pervasively, so on an older WKWebView, sending a message throws
-`Promise.withResolvers is not a function`, visible only in Safari Web Inspector's console, not in the UI.
-Fixed with a small polyfill, `hub-client/src/logic/core/polyfillPromiseWithResolvers.ts`, imported first
-in `src/main.ts` (a no-op wherever the native implementation already exists). If another such gap turns
-up, the same pattern — a module imported first in `main.ts` — is the fix.
-
-## Known follow-ups, out of scope here
-
-- **LiveKit (video calls) is not fronted by the dev proxy.** `_video_call_web.py` hands the browser the
-  same `LIVEKIT_URL` it uses server-side (see `docs/development/VIDEO_CALL_TROUBLESHOOTING.md`), so a
-  real device may hit mixed-content blocking on a video call once hub-client's page is HTTPS. Basic hub
-  loading/navigation and E2E room encryption are unaffected.
-- `ios/App/App/Info.plist` has no `NSLocalNetworkUsageDescription` key, so on an RFC1918 private LAN,
-  iOS 14+'s Local Network Privacy prompt applies and could silently block a real device without it.
-- `pubhubs/pubhubs.toml`'s `networkhost.ip` is a manually-pinned value, so if it doesn't match the Mac's
-  current Wi-Fi network, update it and re-run `mask run proxy` / `npm run cap:sync:ios`.
-- See also `docs/development/LOCAL_DEVELOPMENT.md` for the separate Apple Private Relay / Yivi Local
-  Network permission pitfalls on real iOS devices.
+- **LiveKit (video calls) is not fronted by the dev proxy.** `_video_call_web.py` hands the browser the same `LIVEKIT_URL` it uses server-side (see `docs/development/VIDEO_CALL_TROUBLESHOOTING.md`), so a
+  real device may hit mixed-content blocking on a video call once hub-client's page is HTTPS. Basic hub loading/navigation and E2E room encryption are unaffected.
+- `ios/App/App/Info.plist` has no `NSLocalNetworkUsageDescription` key, so on an RFC1918 private LAN, iOS 14+'s Local Network Privacy prompt applies and could silently block a real device without it.
+- See also `docs/development/LOCAL_DEVELOPMENT.md` for the separate Apple Private Relay / Yivi Local Network permission pitfalls on real iOS devices.

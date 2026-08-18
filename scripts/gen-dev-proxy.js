@@ -1,23 +1,19 @@
 #!/usr/bin/env node
 /**
- * Generates the locally-trusted TLS cert (via `mkcert`) and Caddyfile used by `mask run proxy` to front the
- * hub-client SPA and the Matrix/Synapse API with HTTPS on the `networkhost` IP, needed for hub-client's
- * `window.crypto.subtle` secure-context requirement on a real device. See docs/app/README.md.
+ * Generates the locally-trusted TLS cert (via `mkcert`) and Caddyfile used by `mask run proxy` to front the hub-client and the Matrix/Synapse API with HTTPS on the `networkhost` IP.
+ * See docs/app/README.md.
  *
- * These are NEW ports (existing plain-port + PORT_OFFSET), not a replacement — PHC and yivi still talk to
- * each hub over the plain-HTTP `networkhost` ports from pubhubs.toml. This only adds a parallel HTTPS
- * frontend for browser/app clients; global-client and PHC don't need it (see docs/app/README.md).
+ * These are NEW ports (existing plain-port + PORT_OFFSET), not a replacement — PHC and yivi still talk to each hub over the plain-HTTP `networkhost` ports from pubhubs.toml.
+ * This only adds a parallel HTTPS frontend for browser/app clients; global-client and PHC don't need it (see docs/app/README.md).
  *
- * LiveKit (video calls) is deliberately not fronted here — see docs/app/README.md's "known follow-ups".
- *
- * Regenerated on every `mask run proxy` invocation, so it always matches the current network. Requires
- * `mkcert` and `caddy` on PATH (both provided by the Nix devshell).
+ * Regenerated on every `mask run proxy` invocation, so it always matches the current network. Requires `mkcert` and `caddy` on PATH (both provided by the Nix devshell).
  */
+
+import { REPO_ROOT, resolveNetworkhostIp } from './lib/resolve-networkhost-ip.js';
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { REPO_ROOT, resolveNetworkhostIp } from './lib/resolve-networkhost-ip.js';
 
 const CERTS_DIR = path.join(REPO_ROOT, 'certs');
 const CERT_FILE = path.join(CERTS_DIR, 'dev-proxy-cert.pem');
