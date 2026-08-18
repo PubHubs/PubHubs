@@ -22,3 +22,8 @@ result
 .vscode
 /ios
 /android
+
+# Caddy
+/certs
+Caddyfile.local
+capacitor.config.local.json
