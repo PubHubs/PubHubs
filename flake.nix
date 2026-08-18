@@ -85,6 +85,9 @@
 
                 # Rust (pinned via ./rust-toolchain.toml)
                 rustToolchain
+                cargo-deny # 0.20.2
+                cargo-outdated
+                cargo-edit
                 cargo-watch # 8.5.3
 
                 # Other
