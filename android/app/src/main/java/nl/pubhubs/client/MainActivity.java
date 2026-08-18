@@ -1,6 +1,7 @@
 package nl.pubhubs.client;
 
 import android.os.Bundle;
+import android.webkit.WebSettings;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -13,5 +14,9 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(LinkHandlerPlugin.class);
         registerPlugin(ImageClipboardPlugin.class);
         super.onCreate(savedInstanceState);
+
+        if (BuildConfig.DEBUG) {
+            getBridge().getWebView().getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
     }
 }
