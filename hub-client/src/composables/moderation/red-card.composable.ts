@@ -43,6 +43,10 @@ function useModerationRedCard(base: ReturnType<typeof useModerationBase>) {
 
 	const revokeRedCard = (roomId: string, userId: string) => pubhubsStore.client.unban(roomId, userId);
 
+	const isUserBanned = (userId: string): boolean => {
+		return redCardMembers.value.some((w) => w.userId === userId);
+	};
+
 	const openRedCardDialog = (roomId: string, memberId: string) => {
 		redCardDialog.roomId = roomId;
 		redCardDialog.memberId = memberId;
@@ -63,6 +67,7 @@ function useModerationRedCard(base: ReturnType<typeof useModerationBase>) {
 		issueRedCard,
 		revokeRedCard,
 		openRedCardDialog,
+		isUserBanned,
 		onRedCardDialogSubmit,
 	};
 }
