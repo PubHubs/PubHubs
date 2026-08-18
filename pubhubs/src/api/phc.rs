@@ -108,6 +108,77 @@ pub mod hub {
         }
     }
 
+    /// Requests a short-lived, hub-scoped push-notification credential (an FCM HTTP v1 OAuth2
+    /// access token, or an APNs provider authentication token) from PHC, which centrally holds
+    /// the underlying Firebase/APNs secrets.
+    ///
+    /// This exists so that a hub's self-hosted push gateway (e.g. Sygnal) never has to hold
+    /// those secrets itself: they are shared across every hub (there is one Android/iOS app
+    /// identity for the whole PubHubs network), so any one hub holding them directly could send
+    /// spoofed pushes to every user on every hub, not just its own. See the push notifications
+    /// plan's "credential-sharing risk" section.
+    ///
+    /// Requires hub authentication via [`TicketSigned`], like [`crate::api::server::HubPingEP`].
+    pub struct PushCredentialsEP {}
+    impl EndpointDetails for PushCredentialsEP {
+        type RequestType = TicketSigned<PushCredentialsReq>;
+        type ResponseType = Result<PushCredentialsResp>;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/hub/push-credentials";
+    }
+
+    /// Request type of [`PushCredentialsEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct PushCredentialsReq {
+        pub platform: PushPlatform,
+    }
+
+    having_message_code!(PushCredentialsReq, PushCredentialsReq);
+
+    /// Which push transport a [`PushCredentialsReq`] wants a credential for.
+    ///
+    /// Note UnifiedPush (used by the Android "fdroid" build flavor) is deliberately absent here:
+    /// its `webpush` pushkin needs no shared secret — each hub's own Sygnal talks directly to
+    /// the endpoint URL a user's device already handed it — so there is nothing for PHC to mint.
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(rename_all = "snake_case")]
+    pub enum PushPlatform {
+        /// FCM HTTP v1 API, used by the Android "gplay" build flavor.
+        Fcm,
+
+        /// Apple Push Notification service, used by iOS.
+        Apns,
+    }
+
+    /// Returned by [`PushCredentialsEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[must_use]
+    pub enum PushCredentialsResp {
+        /// Ticket signature was invalid or expired.  Obtain a new ticket and retry.
+        RetryWithNewTicket,
+
+        /// This PHC deployment has not been set up with credentials for the requested
+        /// [`PushPlatform`].  Not retryable — an operator needs to configure it.
+        NotConfigured,
+
+        Success(PushCredentials),
+    }
+
+    /// A short-lived credential a hub's push gateway should present to the platform's push
+    /// transport, e.g. as an `Authorization: Bearer <token>` header.
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct PushCredentials {
+        pub token: String,
+
+        /// When `token` expires.  The hub's push gateway should request a fresh credential well
+        /// before this.
+        pub expires: NumericDate,
+    }
+
     /// Error returned by [`TicketSigned::open`].
     #[derive(thiserror::Error, Debug)]
     pub enum TicketOpenError {

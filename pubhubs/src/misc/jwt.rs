@@ -1027,6 +1027,41 @@ impl RS256Sk {
     }
 }
 
+/// ES256 (ECDSA P-256 + SHA-256) private key.
+///
+/// Used to sign Apple Push Notification service (APNs) provider authentication tokens (see
+/// [`crate::servers::phc::hub`]'s push-credential minting) — Apple's `.p8` auth keys are P-256
+/// keys, and APNs only accepts `ES256`.
+#[derive(Clone)]
+pub struct ES256Sk(p256::ecdsa::SigningKey);
+
+impl Key for ES256Sk {
+    const ALG: &'static str = "ES256";
+}
+
+impl SigningKey for ES256Sk {
+    type Signature = Box<[u8]>;
+
+    fn sign(&self, s: &[u8]) -> anyhow::Result<Self::Signature> {
+        use p256::ecdsa::signature::Signer as _;
+        let signature: p256::ecdsa::Signature = self.0.sign(s);
+        Ok(signature.to_bytes().to_vec().into_boxed_slice())
+    }
+
+    fn jwk(&self) -> serde_json::Value {
+        // Not currently needed: ES256Sk is only used to sign one-off APNs tokens, never to
+        // publish a JWK set.  Mirrors HS256::jwk's panic-if-ever-called approach above.
+        panic!("ES256Sk::jwk is not implemented (not currently needed)");
+    }
+}
+
+impl ES256Sk {
+    pub fn from_pkcs8_pem(pem: &str) -> anyhow::Result<Self> {
+        use p256::pkcs8::DecodePrivateKey as _;
+        Ok(Self(p256::ecdsa::SigningKey::from_pkcs8_pem(pem)?))
+    }
+}
+
 /// Some common `FnOnce(Some(T))->Result<(),jwt::Error>`s for calling [`Claims::check`] and co.
 pub mod expecting {
     use super::*;
@@ -1295,5 +1330,29 @@ mod tests {
         let pk = RS256Vk::new(sk.as_rsa_pub().clone());
 
         let _ = jwt.open(&pk).unwrap();
+    }
+
+    #[test]
+    fn test_es256() {
+        use p256::ecdsa::signature::Verifier as _;
+        use p256::pkcs8::EncodePrivateKey as _;
+
+        // P-256 keygen is fast (unlike RSA's), so a random key roundtrip is cheap here; reuse
+        // rsa's re-exported rand_core, which resolves to the same rand_core version p256 uses.
+        let raw_sk = p256::ecdsa::SigningKey::random(&mut rsa::rand_core::OsRng);
+        let pem = raw_sk.to_pkcs8_pem(Default::default()).unwrap();
+
+        let sk = ES256Sk::from_pkcs8_pem(&pem).unwrap();
+
+        assert_eq!(ES256Sk::ALG, "ES256");
+
+        let message = b"hello, apns";
+        let sig_bytes = sk.sign(message).unwrap();
+
+        let signature = p256::ecdsa::Signature::from_slice(&sig_bytes).unwrap();
+        raw_sk
+            .verifying_key()
+            .verify(message, &signature)
+            .expect("signature made by ES256Sk should verify against the key it was parsed from");
     }
 }

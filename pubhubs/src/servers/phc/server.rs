@@ -28,6 +28,8 @@ use crate::{
     hub,
 };
 
+use super::hub::{ApnsCredentialSource, FcmCredentialSource};
+
 /// PubHubs Central server
 pub type Server = servers::ServerImpl<Details>;
 
@@ -97,6 +99,13 @@ pub struct App {
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
 
+    /// Set iff PHC is configured to mint FCM push credentials (see
+    /// [`api::phc::hub::PushCredentialsEP`]).
+    pub(super) push_fcm: Option<FcmCredentialSource>,
+
+    /// Set iff PHC is configured to mint APNs push credentials.
+    pub(super) push_apns: Option<ApnsCredentialSource>,
+
     /// channel for sending messages between apps
     pub broadcast: tokio::sync::broadcast::Sender<InterAppMsg>,
 
@@ -153,6 +162,7 @@ impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
         api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
+        api::phc::hub::PushCredentialsEP::add_to(self, sc, App::handle_hub_push_credentials);
 
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
@@ -789,6 +799,8 @@ pub struct AppCreator {
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
     pub hub_cache_config: HubCacheConfig,
+    pub(super) push_fcm: Option<FcmCredentialSource>,
+    pub(super) push_apns: Option<ApnsCredentialSource>,
 }
 
 impl Deref for AppCreator {
@@ -836,6 +848,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             user_object_hmac_secret: self.user_object_hmac_secret,
             quota: self.quota,
             card_pseud_validity: self.card_pseud_validity,
+            push_fcm: self.push_fcm,
+            push_apns: self.push_apns,
             broadcast: context.broadcast.clone(),
             // cached_hub_info will be set later
             cached_hub_info: std::cell::RefCell::new(
@@ -891,6 +905,20 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             quota: xconf.user_quota.clone(),
             card_pseud_validity: xconf.card_pseud_validity,
             hub_cache_config: xconf.hub_cache.clone(),
+            push_fcm: xconf
+                .push
+                .fcm
+                .as_ref()
+                .map(FcmCredentialSource::from_config)
+                .transpose()
+                .map_err(|err| err.context("parsing configured FCM service account"))?,
+            push_apns: xconf
+                .push
+                .apns
+                .as_ref()
+                .map(ApnsCredentialSource::from_config)
+                .transpose()
+                .map_err(|err| err.context("parsing configured APNs auth key"))?,
         })
     }
 }
