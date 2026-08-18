@@ -15,8 +15,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ImageClipboardPlugin.class);
         super.onCreate(savedInstanceState);
 
-        if (BuildConfig.DEBUG) {
-            getBridge().getWebView().getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        }
+
+        getBridge().getWebView().getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        
     }
 }
