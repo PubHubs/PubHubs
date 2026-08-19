@@ -75,6 +75,12 @@ ignore = [
     # https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/work_items?show=eyJpaWQiOiIxOTI5IiwiZnVsbF9wYXRoIjoiaWxhYi9wdWJodWJzX2Nhbm9uaWNhbCIsImlkIjoyNzU5Nn0%3D
     { id = "RUSTSEC-2026-0195", reason = "https://rustsec.org/advisories/RUSTSEC-2026-0195.html" },
     { id = "RUSTSEC-2026-0194", reason = "https://rustsec.org/advisories/RUSTSEC-2026-0194.html" },
+    # h2 0.3 queues empty DATA frames without limit.  Fixed in h2 0.4.16 only; actix-http 3.x
+    # (up to and including the current 3.13.3) and awc 3.x both pin h2 ^0.3.27, so there is no
+    # upgrade path until the actix 4.x line lands.  Not reachable for us: we bind plain TCP
+    # (see `servers::run`), so actix-web never negotiates HTTP/2 (which needs TLS ALPN or
+    # `bind_auto_h2c`), and awc only speaks to the Yivi server and our own S3 endpoint.
+    { id = "RUSTSEC-2026-0258", reason = "h2 0.3 is unfixable; the HTTP/2 code path is unreachable, see comment above." },
     #"RUSTSEC-0000-0000",
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
