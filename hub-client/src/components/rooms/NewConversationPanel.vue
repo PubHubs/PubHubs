@@ -241,15 +241,13 @@
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
-	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { avatarUpload } from '@hub-client/composables/fileUpload';
 	import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
-	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import filters from '@hub-client/logic/core/filters';
-	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -264,7 +262,6 @@
 		},
 	});
 	const emit = defineEmits(['close']);
-	const logger = createLogger('NewConversationPanel');
 	const { t } = useI18n();
 	const pubhubs = usePubhubsStore();
 	const userStore = useUser();
@@ -281,7 +278,6 @@
 	const hideAvatarPreview = ref<boolean>(true);
 	const dialog = useDialog();
 	const supportedImageTypes = ['image/png', 'image/jpeg', 'image/gif'];
-	const { uploadUrl } = useMatrixFiles();
 	const groupName = ref<string>('');
 	const selectedUsers = ref<string[]>([]);
 	const MAX_USER_GROUP = 5;
@@ -432,33 +428,19 @@
 	};
 
 	async function uploadAvatar(roomId: string) {
-		const accessToken = pubhubs.Auth.getAccessToken();
-		if (!accessToken) return logger.error('Access Token is invalid for File upload.');
+		if (!selectedAvatarFile.value) return;
 
-		const syntheticEvent = {
-			currentTarget: {
-				files: [selectedAvatarFile.value],
-			},
-		} as unknown as Event;
-
-		const errorMsg = t('errors.file_upload');
-
-		fileUpload(
-			errorMsg,
-			accessToken,
-			uploadUrl,
-			supportedImageTypes,
-			syntheticEvent,
+		await avatarUpload(
+			selectedAvatarFile.value,
 			async (mxUrl) => {
 				if (mxUrl) {
 					await pubhubs.setRoomAvatar(roomId, mxUrl);
 				}
 			},
 			() => {
-				// On error: clean up and log
-				logger.error('Error uploading avatar');
 				avatarPreviewUrl.value?.revoke();
 				selectedAvatarFile.value = null;
+				dialog.confirm(t('errors.file_upload'));
 			},
 		);
 	}

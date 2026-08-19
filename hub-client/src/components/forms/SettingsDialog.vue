@@ -89,28 +89,22 @@
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Composables
-	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { avatarUpload } from '@hub-client/composables/fileUpload';
 	import { useFormState } from '@hub-client/composables/useFormState';
-	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	// Logic
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
-	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
 	import { type DialogButtonAction, DialogSubmit, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	const logger = createLogger('SettingsDialog');
 	const { t } = useI18n();
 	const user = useUser();
 	const settings = useSettings();
 	const dialog = useDialog();
 	const formState = useFormState();
-	const pubhubs = usePubhubsStore();
-	const { imageTypes, uploadUrl } = useMatrixFiles();
 	const fileInput = ref<HTMLInputElement>();
 	const fileInfo = ref<File>();
 
@@ -183,36 +177,20 @@
 		}
 	}
 
-	// Avatar related functions
 	async function uploadAvatar() {
-		const accessToken = pubhubs.Auth.getAccessToken();
-		const syntheticEvent = {
-			currentTarget: {
-				files: [fileInfo.value],
+		if (!fileInfo.value) return;
+
+		await avatarUpload(
+			fileInfo.value,
+			async (mxUrl) => {
+				avatarMxcUrl.value = mxUrl;
+				if (mxUrl) user.setAvatarUrl(mxUrl);
 			},
-		} as unknown as Event;
-		if (accessToken) {
-			const errorMsg = t('errors.file_upload');
-			fileUpload(
-				errorMsg,
-				accessToken,
-				uploadUrl,
-				imageTypes,
-				syntheticEvent,
-				(mxUrl) => {
-					avatarMxcUrl.value = mxUrl;
-					if (avatarMxcUrl.value !== undefined) {
-						user.setAvatarUrl(avatarMxcUrl.value);
-					}
-				},
-				() => {
-					// On error: reset file selection so user can try again
-					fileInfo.value = undefined;
-				},
-			);
-		} else {
-			logger.error('Access Token is invalid for File upload.');
-		}
+			() => {
+				fileInfo.value = undefined;
+				dialog.confirm(t('errors.file_upload'));
+			},
+		);
 	}
 
 	async function removeAvatar() {
