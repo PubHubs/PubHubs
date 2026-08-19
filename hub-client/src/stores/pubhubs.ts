@@ -878,6 +878,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
+		/**
+		 * Adds the message that a videocall was opened
+		 * @param roomId
+		 * @param text
+		 * @returns
+		 */
 		async addVideoCallMessage(roomId: string, text: string): Promise<string> {
 			const content: TVideoCallMessageEventContent = {
 				msgtype: PubHubsMgType.VideoCall,
@@ -889,7 +895,13 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return response.event_id;
 		},
 
-		async updateVideoCallMessage(roomId: string, eventId: string, text: string) {
+		/**
+		 * Adds the message that a videocall was ended
+		 * @param roomId
+		 * @param eventId
+		 * @param text
+		 */
+		async addEndVideoCallMessage(roomId: string, eventId: string, text: string) {
 			const content: TVideoCallEndedMessageEventContent = {
 				msgtype: PubHubsMgType.VideoCallEnded,
 				body: text,
@@ -902,6 +914,21 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			// @ts-expect-error -- SDK sendEvent typing does not include custom videocall modify payload
 			await this.client.sendEvent(roomId, PubHubsMgType.VideoCallModify, content);
+		},
+
+		/**
+		 * Threadmessages get a local echo after being added: connecting them through the m.relates_to field to the original message.
+		 * For threadmessages that get sent after the original thread is out of the timeline (for instance in videocalls) this can lead to a breaking error
+		 * Therefor the messages need to be send without a local echo
+		 * @param roomId
+		 * @param text
+		 * @param threadRoot
+		 * @returns
+		 */
+		async addThreadMessageWithoutLocalEcho(roomId: string, text: string, threadRoot: TMessageEvent): Promise<{ event_id: string }> {
+			const content = await this._constructMessageContent(text, threadRoot, undefined);
+			const txnId = this.client.makeTxnId();
+			return APIService.sendRoomMessage(roomId, content, txnId);
 		},
 
 		async addWhisperMessage(
