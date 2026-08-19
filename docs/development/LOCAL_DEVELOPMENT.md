@@ -128,12 +128,16 @@ in your configuration file (e.g. `config.yaml`.)
 
 ## Developing the Hub and using Yivi
 
-With the standard `mask run all`/`mask run proxy` setup (see `docs/app/README.md`), `start_testhub.py` sets `public_yivi_url` to a locally-trusted `https://` LAN address,
-so the qr-code flow works out of the box, as long as the phone scanning the QR trusts the `mkcert` CA (see README's "Trust the mkcert CA").
-The developer-mode/HTTP workaround below doesn't apply in that case.
+`public_yivi_url` (whether set by `start_testhub.py` or by hand in `homeserver.yaml`) is a plain-HTTP LAN
+address — see `docs/app/README.md`. The Yivi app itself, by default, refuses to fetch a QR-scanned
+session-pointer URL over plain HTTP (errors with `'https: remote server does not use https'`). Enable
+Yivi's "developer mode" on the phone that will scan the QR code (see
+https://irma.app/docs/yivi-app/#developer-mode) — a one-time, per-device setting — and the qr-code flow
+works over plain HTTP with no other infrastructure needed.
 
-If you're instead running a hub directly (not via `start_testhub.py`) and left everything on plain HTTP, you'll need both: activate developer-mode in Yivi (see https://irma.app/docs/yivi-app/#developer-mode),
-otherwise the qr-code is recognized but errors with 'https: remote server does not use https'; and, since your phone can't resolve `localhost` to your pc, uncomment `public_yivi_url` in `homeserver.yaml` and fill in your pc's ip-address.
+If you're running a hub directly (not via `start_testhub.py`), also make sure `public_yivi_url` in
+`homeserver.yaml` is uncommented and set to your PC's LAN IP, since your phone can't resolve `localhost`
+to your PC.
 
 ## Android development
 

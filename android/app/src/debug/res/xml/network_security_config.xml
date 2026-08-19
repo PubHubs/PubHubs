@@ -11,8 +11,6 @@
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
-            <!-- The dev proxy's mkcert root CA, installed by hand on the device/emulator. -->
-            <certificates src="user" />
         </trust-anchors>
     </base-config>
 </network-security-config>

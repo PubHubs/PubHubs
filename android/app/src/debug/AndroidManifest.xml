@@ -3,12 +3,11 @@
 
     <!--
         Debug-variant-only overlay. Merged into the main manifest for debug builds and absent from
-        release ones, so the relaxed trust below can never ship.
+        release ones, so the relaxed cleartext-traffic config below can never ship.
 
-        Apps targeting API 24+ ignore user-installed CA certificates unless they opt in through a
-        network security config, and that includes the WebView. Without this, installing the dev
-        proxy's mkcert root CA on the device has no effect and every hub request fails the TLS
-        handshake with ERR_CERT_AUTHORITY_INVALID (net_error -202). See docs/app/README.md.
+        Specifying any network security config supersedes the manifest's
+        android:usesCleartextTraffic, and the default for targetSdk 28+ is false — which would break
+        global-client's plain-HTTP PHC/PubHubs URLs in dev. See docs/app/README.md.
     -->
     <application android:networkSecurityConfig="@xml/network_security_config" />
 

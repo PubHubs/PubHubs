@@ -29,10 +29,6 @@ tmux new-window -t "$SESSION:1" -n hub "mask run hub server 0; $hold"
 # Create split and run the hub client
 tmux split-window -h -t "$SESSION:1" "mask run hub client 0; $hold"
 
-# Create split and run the dev HTTPS proxy (fronts the hub client + Matrix API for real-device/secure-context
-# reachability — see docs/app/README.md). Required for hubs to load at all, on every platform.
-tmux split-window -h -t "$SESSION:1" "mask run proxy; $hold"
-
 # Balance layouts
 tmux select-layout -t "$SESSION:0" even-horizontal
 tmux select-layout -t "$SESSION:1" even-horizontal
