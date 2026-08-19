@@ -24,8 +24,14 @@ This requires [tmux](https://github.com/tmux/tmux) to be installed.
 
 > Windows users should run the lines in `scripts/run-all.sh` separately, as TMUX is not available on Windows.
 
+**OPTIONS**
+
+- no_postgres
+  - flags: --no-postgres
+  - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
+
 ```sh
-sh scripts/run-all.sh
+PH_NO_POSTGRES="$no_postgres" sh scripts/run-all.sh
 ```
 
 #### cleanup
@@ -227,12 +233,20 @@ Every command below is structured as `mask run hub <subcommand>`
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
+**OPTIONS**
+
+- no_postgres
+  - flags: --no-postgres
+  - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
+
 ```sh
 echo "Running testhub${n}"
 
 cd pubhubs_hub
 hub_host="${host:-${YIVI_HOST:-}}"
-python3 start_testhub.py "${n}"
+postgres_flag=()
+[[ "$no_postgres" == "true" ]] && postgres_flag=(--no-replace-sqlite3-by-postgres)
+python3 start_testhub.py "${postgres_flag[@]}" "${n}"
 ```
 
 #### client (n)
