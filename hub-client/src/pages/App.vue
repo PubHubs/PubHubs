@@ -179,6 +179,7 @@
 			await pubhubs.login();
 			await setupUnreadAggregateTracking();
 			setupReady.value = true;
+			void rooms.fetchPublicRooms();
 			void addPushRules();
 		}
 
