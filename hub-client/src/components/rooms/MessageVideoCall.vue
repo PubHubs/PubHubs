@@ -79,24 +79,13 @@
 			return;
 		}
 
-		// The group call state event may arrive after the room message.
-		// Retry a few times to catch it.
 		if (!currentRoom.isOngoingCall()) {
-			if (retryCount < MAX_RETRIES) {
-				retryCount++;
-				setTimeout(() => checkHasCallEnded(), 1000);
-				return;
-			}
 			callEnded.value = true;
 			duration.value = 'Unknown';
 		} else {
 			callEnded.value = false;
-			retryCount = 0;
 		}
 	}
-
-	let retryCount = 0;
-	const MAX_RETRIES = 5;
 
 	function calculateDuration(start: number, end: number): string {
 		if (!start || !end) {
