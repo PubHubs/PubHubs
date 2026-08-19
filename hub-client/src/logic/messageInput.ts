@@ -2,7 +2,7 @@
 import { computed, reactive } from 'vue';
 
 // Models
-import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
+import { type FileInfo } from '@hub-client/models/events/FileInfo';
 import { type Poll, type Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 
 // This is used on multiple messageinputs at the same time, so we need to create a new instance of it for each message input.
@@ -19,7 +19,8 @@ function useMessageInput() {
 		showYiviQR: false,
 		fileDialog: false,
 		fileAdded: null as File | null,
-		editingExistingFile: null as FileEditInfo | null,
+		editingExistingFile: null as FileInfo | null,
+		sharedFile: null as FileInfo | null,
 		poll: false,
 		pollObject: null as Poll | null,
 		scheduler: false,
@@ -41,6 +42,7 @@ function useMessageInput() {
 		state.fileDialog = false;
 		state.fileAdded = null;
 		state.editingExistingFile = null;
+		state.sharedFile = null;
 		state.poll = false;
 		state.pollObject = null;
 		state.scheduler = false;
@@ -71,6 +73,8 @@ function useMessageInput() {
 
 	function setFileAdded(file: File | null) {
 		state.fileAdded = file;
+		// A freshly picked file replaces a file that was shared from the library.
+		if (file) state.sharedFile = null;
 	}
 
 	function cancelFileUpload() {
@@ -80,6 +84,20 @@ function useMessageInput() {
 
 	function closeFileUpload() {
 		state.fileDialog = false;
+	}
+
+	/**
+	 * Attaches a file that is already on the media server (shared from the room library),
+	 * so it can be sent with a caption without being uploaded again.
+	 */
+	function attachSharedFile(file: FileInfo) {
+		resetAll();
+		state.sharedFile = file;
+		state.sendButtonEnabled = true;
+	}
+
+	function removeSharedFile() {
+		state.sharedFile = null;
 	}
 
 	function openSignMessage() {
@@ -113,7 +131,7 @@ function useMessageInput() {
 		state.textArea = false;
 	}
 
-	function editMessage(editEventId: string, existingFile?: FileEditInfo) {
+	function editMessage(editEventId: string, existingFile?: FileInfo) {
 		resetAll();
 		state.editEventId = editEventId;
 		state.textArea = true;
@@ -156,6 +174,8 @@ function useMessageInput() {
 		openFileDialog,
 		cancelFileUpload,
 		closeFileUpload,
+		attachSharedFile,
+		removeSharedFile,
 		openSignMessage,
 		closeSignMessage,
 		openPoll,

@@ -37,9 +37,8 @@ import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
-import { SystemDefaults } from '@hub-client/models/constants';
-import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
+import { Redaction, RelationType, SystemDefaults, imageTypes } from '@hub-client/models/constants';
+import { type FileInfo } from '@hub-client/models/events/FileInfo';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { type TExpertVerificationMessageContent, type TExpertVerificationType } from '@hub-client/models/events/TExpertEvent';
 import {
@@ -195,7 +194,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			// update the rooms in the store with the known rooms
 			if (knownRooms?.length > 0) {
-				rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: MatrixRoom) => joinedRooms.indexOf(room.roomId) !== -1));
+				rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: MatrixRoom) => joinedRooms.includes(room.roomId)));
 			}
 
 			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
@@ -245,7 +244,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					try {
 						const state = matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS);
 						const createEvt = state?.getStateEvents(EventType.RoomCreate, '') ?? null;
-						if (createEvt?.getContent && createEvt.getContent()?.type) {
+						if (createEvt?.getContent?.()?.type) {
 							roomType = createEvt.getContent().type ?? roomType;
 						}
 					} catch {
@@ -307,7 +306,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const powerLevelContext = await this.getPowerLevelEventContent(room_id);
 
 			// If the current user (i.e., admin) is not in powerlevel - the admin is not 'room' admin.
-			if (!powerLevelContext.users || powerLevelContext.users[user.user.userId] === undefined) return false;
+			if (powerLevelContext.users?.[user.user.userId] === undefined) return false;
 			const usersPL100 = Object.keys(powerLevelContext.users);
 
 			// Check membership of users with PL100.
@@ -430,8 +429,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 				// Consider members who have joined or are invited (not left/banned)
 				const roomMembers = room.getMembers().filter((member) => member.membership === 'join' || member.membership === 'invite');
 				const roomMemberIds = roomMembers.map((member) => member.userId);
-				roomMemberIds.sort();
-				const found = JSON.stringify(memberIds.sort()) === JSON.stringify(roomMemberIds);
+				roomMemberIds.sort((a, b) => a.localeCompare(b));
+				const found = JSON.stringify(memberIds.toSorted((a, b) => a.localeCompare(b))) === JSON.stringify(roomMemberIds);
 				// Specific to Steward contact room because of how steward contact room are create.
 				// Room name is based on RoomId,MembersList.
 
@@ -439,10 +438,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 					if (room.name.split(',')[0] === stewardRoomId && found) {
 						return room.roomId;
 					}
-				} else {
-					if (found) {
-						return room.roomId;
-					}
+				} else if (found) {
+					return room.roomId;
 				}
 			}
 			return false;
@@ -661,7 +658,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 
 			// make room visible for all members if private room
-			if (room && room.isPrivateRoom()) {
+			if (room?.isPrivateRoom()) {
 				const originalName = room.name;
 				const newName = refreshPrivateRoomName(originalName);
 				if (originalName !== newName) {
@@ -715,7 +712,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @param newCaption the new caption text (empty string = use filename as body)
 		 * @param file metadata for the file (mxc URL, filename, mimetype, size, msgtype)
 		 */
-		async editFileMessage(roomId: string, originalEvent: TMessageEvent, newCaption: string, file: Omit<FileEditInfo, 'previewUrl'>): Promise<void> {
+		async editFileMessage(roomId: string, originalEvent: TMessageEvent, newCaption: string, file: Omit<FileInfo, 'previewUrl'>): Promise<void> {
 			const body = newCaption.trim() || file.filename;
 			const newContent = {
 				body,
@@ -1145,7 +1142,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		async sendPrivateReceipt(event: MatrixEvent, roomId: string, threadId: string | undefined = undefined) {
 			const eventId = event?.getId();
-			if (!eventId || !roomId || !roomId.startsWith('!')) {
+			if (!eventId || !roomId?.startsWith('!')) {
 				return;
 			}
 
@@ -1209,13 +1206,43 @@ const usePubhubsStore = defineStore('pubhubs', {
 			eventType: PubHubsMgType = PubHubsMgType.Default,
 			inReplyTo?: TMessageEvent,
 		): Promise<boolean> {
+			return await this.sendFileMessage(
+				roomId,
+				threadId,
+				{
+					filename: filename ?? file.name,
+					mimetype: file.type,
+					size: file.size,
+					msgtype: imageTypes.includes(file?.type) ? MsgType.Image : MsgType.File,
+					mxcUrl: uri,
+				},
+				message,
+				eventType,
+				inReplyTo,
+			);
+		},
+
+		/**
+		 * This extra function in addfile is needed so sending already existing files via the roomlibrary is possible.
+		 * @param roomId
+		 * @param threadId
+		 * @param file Description of the media, including its `mxc://` url
+		 * @param message Message to go with the file
+		 * @param eventType
+		 * @param inReplyTo
+		 */
+		async sendFileMessage(
+			roomId: string,
+			threadId: string | undefined,
+			file: FileInfo,
+			message: string = '',
+			eventType: PubHubsMgType = PubHubsMgType.Default,
+			inReplyTo?: TMessageEvent,
+		): Promise<boolean> {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
-			let fileType = MsgType.File;
-			const fileName: string = filename ?? file.name;
 
 			let body = message;
-			if (body === '') body = fileName;
-			if (imageTypes.includes(file?.type)) fileType = MsgType.Image;
+			if (body === '') body = file.filename;
 
 			let relatesTo: { event_id?: string; rel_type?: string; 'm.in_reply_to'?: { event_id: string } } | undefined = undefined;
 			if (thread || inReplyTo) {
@@ -1231,13 +1258,13 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			const content: RoomMessageEventContent = {
 				body: body,
-				filename: fileName,
+				filename: file.filename,
 				info: {
-					mimetype: file.type,
+					mimetype: file.mimetype,
 					size: file.size,
 				},
-				msgtype: fileType, // client expects string from MsgType enum, to make our own type castable send this as any
-				url: uri,
+				msgtype: file.msgtype as MsgType.File | MsgType.Image, // client expects string from MsgType enum, to make our own type castable send this as any
+				url: file.mxcUrl,
 
 				// satisfy the sdk's type checking
 				'm.new_content': undefined,

@@ -2,6 +2,7 @@
 	<div>
 		<slot
 			:collapsed="collapsed"
+			:toggle="toggle"
 			name="visible"
 		/>
 	</div>
@@ -17,14 +18,11 @@
 </template>
 
 <script lang="ts" setup>
-	import { provide, ref } from 'vue';
+	import { ref } from 'vue';
 
 	const collapsed = ref(true);
 
 	function toggle() {
 		collapsed.value = !collapsed.value;
 	}
-
-	provide('toggle', toggle);
-	provide('collapsed', collapsed);
 </script>

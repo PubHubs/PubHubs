@@ -6,13 +6,6 @@ export function useImageActions() {
 		await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
 	}
 
-	function saveImage(url: string, filename: string) {
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = filename;
-		a.click();
-	}
-
 	/**
 	 * Resize an image back to a maximum width or height without changing aspect ratio
 	 * @param image image to resize
@@ -74,7 +67,7 @@ export function useImageActions() {
 		});
 	}
 
-	return { copyImage, saveImage, resizeImage };
+	return { copyImage, resizeImage };
 }
 
 function convertToPng(blob: Blob): Promise<Blob> {

@@ -8,7 +8,7 @@
 					{
 						label: t('menu.save_image'),
 						icon: 'download-simple',
-						onClick: () => authMediaUrl?.url && imageActions.saveImage(authMediaUrl.url, message.filename ?? message.body ?? 'image'),
+						onClick: () => authMediaUrl?.url && saveAs(authMediaUrl.url, message.filename ?? message.body ?? 'image'),
 					},
 				])
 		"
@@ -34,6 +34,7 @@
 				class="max-h-[90vh] max-w-[90vw] object-contain"
 			/>
 			<button
+				type="button"
 				class="absolute top-200 right-200 cursor-pointer text-white hover:text-gray-300"
 				:title="t('dialog.close')"
 				@click="showFullImage = false"
@@ -62,6 +63,7 @@
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useAuthMediaUrl } from '@hub-client/composables/useAuthMediaUrl';
+	import { saveAs } from '@hub-client/composables/useFileDownload';
 	import { useImageActions } from '@hub-client/composables/useImageActions';
 
 	// Models
@@ -73,8 +75,8 @@
 	const props = defineProps<{ message: TImageMessageEventContent }>();
 
 	const { openMenu } = useContextMenu();
-	const { t } = useI18n();
 	const imageActions = useImageActions();
+	const { t } = useI18n();
 	const dialog = useDialog();
 	const showFullImage = ref(false);
 	const lightboxRef = ref<HTMLElement | null>(null);
