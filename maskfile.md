@@ -406,7 +406,7 @@ Don't forget to build the hub image and setup the hub's directory using the
 cd hub-client
 echo "Running Hub client for testhub${n}..."
 networkhost_ip="$(node ../scripts/print-networkhost-ip.js)"
-env VITE_HUB_URL="http://${networkhost_ip}:$((8008 + n))" VITE_PARENT_URL="http://${networkhost_ip}:8080" npx vite --host -l info --port=$((8001 + n))
+env VITE_HUB_URL="http://${networkhost_ip}:$((8008 + n))" npx vite --host -l info --port=$((8001 + n))
 ```
 
 #### mainclient
