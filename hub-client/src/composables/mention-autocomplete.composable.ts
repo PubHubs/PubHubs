@@ -120,16 +120,12 @@ function useMentionAutocomplete(msg: () => string | undefined, room: () => Room)
 		mentionDismissed.value = false;
 	});
 
-	// Trigger room loading when # marker is detected
-	watch(
-		marker,
-		(newMarker) => {
-			if (newMarker === '#' && roomsStore.publicRooms.length === 0) {
-				roomsStore.fetchPublicRooms();
-			}
-		},
-		{ immediate: true },
-	);
+	// Trigger room loading when # marker is detected (not immediate: fetch only when user types #)
+	watch(marker, (newMarker) => {
+		if (newMarker === '#' && roomsStore.publicRooms.length === 0) {
+			roomsStore.fetchPublicRooms();
+		}
+	});
 
 	return { marker, isVisible, filteredItems, selectItem, shortId, getDisplayName, getId, isUser };
 }
