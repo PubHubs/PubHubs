@@ -76,7 +76,7 @@ actix-http = { version = "3.13", default-features = false }
 rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "prefer-post-quantum"] }
 
 # Needed for ML-KEM and (behind `unstable`) ML-DSA. Already pulled in via rustls' aws_lc_rs feature.
-aws-lc-rs = { version = "1.17", features = ["unstable"] }
+aws-lc-rs = "1.18"
 
 # RustCrypto packages
 aead = { version = "0.5", features=["getrandom"] }
