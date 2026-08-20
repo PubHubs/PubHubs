@@ -62,7 +62,7 @@ export function yiviFlow(
 	const session = new yiviCore({
 		debugging: getLogLevel() === 'debug',
 		element: elementId,
-		language: settings.getActiveLanguage,
+		language: settings.getActiveLanguage as 'nl' | 'en' | undefined,
 		session: {
 			url: 'yivi-endpoint',
 			start: {
@@ -80,8 +80,8 @@ export function yiviFlow(
 				headers: { Authorization: `Bearer ${accessToken}` },
 			},
 			result: {
-				url: (_o: unknown, obj: { sessionToken: string }) => {
-					const baseUrl = `${hubUrl}/yivi-endpoint/result?session_token=${obj.sessionToken}`;
+				url: (_o: unknown, obj: { sessionToken?: string }) => {
+					const baseUrl = `${hubUrl}/yivi-endpoint/result?session_token=${obj.sessionToken ?? ''}`;
 					return flowtype === EYiviFlow.SecuredRoom ? `${baseUrl}&room_id=${roomId}` : baseUrl;
 				},
 				method: isSignatureFlow ? 'POST' : 'GET',
@@ -95,8 +95,8 @@ export function yiviFlow(
 
 	session
 		.start()
-		.then((result: YiviSigningSessionResult | SecuredRoomAttributeResult) => {
-			onFinish(result, threadRoot);
+		.then((result) => {
+			onFinish(result as YiviSigningSessionResult | SecuredRoomAttributeResult, threadRoot);
 		})
 		.catch((error: unknown) => {
 			logger.error('Yivi session error:', error);
