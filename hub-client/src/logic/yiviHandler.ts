@@ -1,10 +1,7 @@
 // Packages
-// @ts-expect-error -- yivi-client has no type declarations
-import yiviClient from '@privacybydesign/yivi-client';
-// @ts-expect-error -- yivi-core has no type declarations
-import yiviCore from '@privacybydesign/yivi-core';
-// @ts-expect-error -- yivi-web has no type declarations
-import yiviWeb from '@privacybydesign/yivi-web';
+import { YiviClient as yiviClient } from '@privacybydesign/yivi-client';
+import { YiviCore as yiviCore } from '@privacybydesign/yivi-core';
+import { YiviWeb as yiviWeb } from '@privacybydesign/yivi-web';
 
 // Assets
 import '@hub-client/assets/yivi.min.css';
