@@ -486,7 +486,7 @@ impl JWT {
                 }))
                 .map_err(Error::SerializingHeader)?
             ),
-            &Base64UrlUnpadded::encode_string(
+            Base64UrlUnpadded::encode_string(
                 &serde_json::to_vec(claims).map_err(Error::SerializingClaims)?
             )
         );

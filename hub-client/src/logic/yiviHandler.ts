@@ -1,10 +1,7 @@
 // Packages
-// @ts-expect-error -- yivi-client has no type declarations
-import yiviClient from '@privacybydesign/yivi-client';
-// @ts-expect-error -- yivi-core has no type declarations
-import yiviCore from '@privacybydesign/yivi-core';
-// @ts-expect-error -- yivi-web has no type declarations
-import yiviWeb from '@privacybydesign/yivi-web';
+import { YiviClient as yiviClient } from '@privacybydesign/yivi-client';
+import { YiviCore as yiviCore } from '@privacybydesign/yivi-core';
+import { YiviWeb as yiviWeb } from '@privacybydesign/yivi-web';
 
 // Assets
 import '@hub-client/assets/yivi.min.css';
@@ -65,7 +62,7 @@ export function yiviFlow(
 	const session = new yiviCore({
 		debugging: getLogLevel() === 'debug',
 		element: elementId,
-		language: settings.getActiveLanguage,
+		language: settings.getActiveLanguage as 'nl' | 'en' | undefined,
 		session: {
 			url: 'yivi-endpoint',
 			start: {
@@ -83,8 +80,8 @@ export function yiviFlow(
 				headers: { Authorization: `Bearer ${accessToken}` },
 			},
 			result: {
-				url: (_o: unknown, obj: { sessionToken: string }) => {
-					const baseUrl = `${hubUrl}/yivi-endpoint/result?session_token=${obj.sessionToken}`;
+				url: (_o: unknown, obj: { sessionToken?: string }) => {
+					const baseUrl = `${hubUrl}/yivi-endpoint/result?session_token=${obj.sessionToken ?? ''}`;
 					return flowtype === EYiviFlow.SecuredRoom ? `${baseUrl}&room_id=${roomId}` : baseUrl;
 				},
 				method: isSignatureFlow ? 'POST' : 'GET',
@@ -98,8 +95,8 @@ export function yiviFlow(
 
 	session
 		.start()
-		.then((result: YiviSigningSessionResult | SecuredRoomAttributeResult) => {
-			onFinish(result, threadRoot);
+		.then((result) => {
+			onFinish(result as YiviSigningSessionResult | SecuredRoomAttributeResult, threadRoot);
 		})
 		.catch((error: unknown) => {
 			logger.error('Yivi session error:', error);

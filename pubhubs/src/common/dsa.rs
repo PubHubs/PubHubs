@@ -14,8 +14,8 @@
 //! directly.
 //!
 //! We replicate that combiner **except for one detail**: the standard signs the ML-DSA component
-//! with a non-empty context (`mldsa_ctx = LABEL`), but [`aws_lc_rs`]'s ML-DSA API (still `unstable`
-//! as of 1.17) exposes no context parameter, so we use the *empty* context (see `ML_DSA_CTX`).
+//! with a non-empty context (`mldsa_ctx = LABEL`), but [`aws_lc_rs`]'s ML-DSA API (as of 1.18)
+//! exposes no context parameter, so we use the *empty* context (see `ML_DSA_CTX`).
 //! This makes our signatures **non-conformant** with the standard, and means the official test
 //! vectors (which use `mldsa_ctx=LABEL`) cannot be verified here yet.
 //!
@@ -29,8 +29,9 @@
 //! [`draft-ietf-jose-pq-composite-sigs-01`]: https://datatracker.ietf.org/doc/html/draft-ietf-jose-pq-composite-sigs-01
 //! [`draft-ietf-lamps-pq-composite-sigs-19`]: https://datatracker.ietf.org/doc/html/draft-ietf-lamps-pq-composite-sigs-19
 
-use aws_lc_rs::signature::{KeyPair as _, ParsedPublicKey};
-use aws_lc_rs::unstable::signature::{ML_DSA_65, ML_DSA_65_SIGNING, PqdsaKeyPair};
+use aws_lc_rs::signature::{
+    KeyPair as _, ML_DSA_65, ML_DSA_65_SIGNING, ParsedPublicKey, PqdsaKeyPair,
+};
 use base64ct::{Base64UrlUnpadded, Encoding as _};
 use sha2::{Digest as _, Sha256, Sha512};
 

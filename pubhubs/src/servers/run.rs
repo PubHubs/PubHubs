@@ -711,7 +711,7 @@ impl<S: Server> CommandRequest<S> {
         if self.feedback_sender.send(()).is_err() {
             log::warn!(
                 "The app issuing command '{}' that is about to execute has already dropped.",
-                &self.command
+                self.command
             );
         }
         self.command

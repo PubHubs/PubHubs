@@ -213,7 +213,7 @@ impl ConfigUpdateArgs {
                 log::info!(
                     "{}'s configuration at {} is still {} and not yet {}",
                     ctx.server,
-                    &self.pointer,
+                    self.pointer,
                     current_value,
                     self.new_value
                 );
