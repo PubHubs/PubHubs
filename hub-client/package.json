@@ -63,7 +63,7 @@
 		"tailwindcss": "^4.2.2",
 		"typescript": "^6.0.2",
 		"vite": "^7.2.6",
-		"vite-plugin-node-polyfills": "^0.28.0",
+		"vite-plugin-node-polyfills": "^0.2.0",
 		"vitest": "^4",
 		"vue-mess-detector": "^0.68.0",
 		"vue-tsc": "^2",
