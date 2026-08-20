@@ -5,7 +5,45 @@ import argparse
 import subprocess
 import socket
 import os.path
+import re
 from urllib.parse import urlparse
+
+# The n-th testhub runs its LiveKit on 7880+n, so several hubs can run side by side.
+LIVEKIT_BASE_PORT = 7880
+
+
+def write_livekit_config(number, port):
+    """Write a per-hub LiveKit config into testhub<number>/ and return its path in the container.
+
+    The port has to be the same inside and outside the container: the hub hands the browser the very
+    same LIVEKIT_URL that it uses for its own server-side LiveKit API calls (see
+    modules/pubhubs/_video_call_web.py). Publishing host 7880+n onto container 7880 would therefore
+    still send every browser to hub 0's LiveKit - and because all dev hubs share the committed
+    `devkey`, that token would even validate, so media would silently flow through the wrong hub.
+    Giving each hub its own LiveKit port keeps a single URL correct in both places.
+
+    The rtc media ports are left as they are: they are identical in every container, but since they
+    are not published to the host they cannot collide.
+    """
+    base_config = os.path.join("config", "local", "livekit.local.yaml")
+    hub_dir = f"testhub{number}"
+
+    if not os.path.isdir(hub_dir):
+        raise SystemExit(f"{hub_dir} does not exist; run 'mask run hub init testhub-dirs' first")
+
+    with open(base_config) as f:
+        config = f.read()
+
+    config, substitutions = re.subn(r"^port:\s*\d+$", f"port: {port}", config, count=1, flags=re.MULTILINE)
+    if substitutions != 1:
+        raise SystemExit(f"expected exactly one top-level 'port:' line in {base_config}")
+
+    with open(os.path.join(hub_dir, "livekit.yaml"), "w") as f:
+        f.write(config)
+
+    # testhub<number> is mounted at /data.
+    return "/data/livekit.yaml"
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -79,12 +117,23 @@ def main():
     if args.server_name != None:
         server_name = ("--server-name", args.server_name) 
 
-    subprocess.run(("docker", "run", 
+    livekit_port = LIVEKIT_BASE_PORT + args.number
+    livekit_config_path = write_livekit_config(args.number, livekit_port)
+
+    subprocess.run(("docker", "run",
                     "-it",
                     "--rm",
                     "--name", f"pubhubs-testhub{args.number}",
                     "-p", f"{8008+args.number}:8008",
-                    "-p", f"{7880}:7880",
+                    # Publish LiveKit's signalling port on the host loopback only. The dev
+                    # LiveKit uses a key committed to the source tree, so it must not be
+                    # reachable from other machines. Binding LiveKit itself to 127.0.0.1
+                    # would break this: docker forwards published ports to the container's
+                    # eth0, not its loopback, so we restrict exposure on the host side here.
+                    # localhost:<livekit_port> (what the token endpoint hands the browser) still works.
+                    "-p", f"127.0.0.1:{livekit_port}:{livekit_port}",
+                    "-e", f"LIVEKIT_CONFIG_PATH={livekit_config_path}",
+                    "-e", f"LIVEKIT_URL=http://localhost:{livekit_port}",
                     "-v", f"{os.path.join(".","modules")}:/conf/modules:ro",
                     "-v", f"{os.path.join(".","boot")}:/conf/boot:ro",
                     "-v", f"{os.path.join(".",f"testhub{args.number}")}:/data:rw",

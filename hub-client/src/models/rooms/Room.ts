@@ -36,7 +36,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
 import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { type TTimeoutStateEvent } from '@hub-client/models/events/TTimeoutEvent';
-import { type TYellowCardStateEvent } from '@hub-client/models/events/TYellowCardEvent';
+import { type TYellowCardAcceptedContent, type TYellowCardStateEvent } from '@hub-client/models/events/TYellowCardEvent';
 import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
@@ -360,6 +360,15 @@ export default class Room {
 	}
 
 	// End of sliding sync state methods //
+
+	/**
+	 * The warning the current user has acknowledged in this room, from their own room account data.
+	 * Not reactive: callers should re-read on RoomEvent.AccountData.
+	 */
+	public getAcceptedYellowCard(): TYellowCardAcceptedContent | undefined {
+		const event = this.matrixRoom.getAccountData(MatrixEventType.YellowCardAccepted);
+		return event?.getContent() as TYellowCardAcceptedContent | undefined;
+	}
 
 	/**
 	 * @param getPHRoomMember Set to true to update to using the PubHubs RoomMember class instead of matrix-js-sdk RoomMember class.
@@ -694,6 +703,10 @@ export default class Room {
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
 		return this.timelineManager.getRelatedEvents(eventId);
+	}
+
+	public getVerifications(eventId: string): MatrixEvent[] {
+		return this.timelineManager.getVerifications(eventId);
 	}
 
 	public getRelatedEventsByType(eventId: string, options: RelatedEventsOptions = {}): TimelineEvent[] {
@@ -1032,7 +1045,7 @@ export default class Room {
 		this.matrixRoom.client.matrixRTC.start();
 	}
 
-	public getMatrixRTCSessions(): MatrixRTCSession {
+	public getMatrixRTCSession(): MatrixRTCSession {
 		return this.matrixRoom.client.matrixRTC.getRoomSession(this.matrixRoom);
 	}
 
@@ -1052,10 +1065,8 @@ export default class Room {
 		return this.matrixRoom.client.getGroupCallForRoom(this.roomId);
 	}
 
-	public isOngoingCall() {
-		const groupCall = this.matrixRoom.client.getGroupCallForRoom(this.roomId);
-		if (groupCall) return true;
-		return false;
+	public isOngoingCall(): boolean {
+		return this.getMatrixRTCSession().memberships.length > 0;
 	}
 
 	public getLastVideoCallTimeLineEvent(): MatrixEvent | undefined {

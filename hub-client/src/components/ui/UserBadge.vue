@@ -1,17 +1,22 @@
 <template>
-	<div class="flex items-center gap-200">
+	<div class="flex min-w-0 items-center gap-200">
 		<Avatar
 			class="shrink-0"
 			:class="avatarSize"
 			:avatar-url="userStore.userAvatar(userId)"
 			:user-id="userId"
+			:room-id="roomId"
 		/>
 		<UserDisplayName
+			class="min-w-0"
 			:user-id="userId"
 			:user-display-name="userStore.userDisplayName(userId)"
+			:room-id="roomId"
 			:enable-d-m="false"
 		/>
-		<slot />
+		<div class="shrink-0">
+			<slot />
+		</div>
 	</div>
 </template>
 
@@ -29,9 +34,11 @@
 	const props = withDefaults(
 		defineProps<{
 			userId: string;
+			roomId?: string;
 			size?: 'sm' | 'md' | 'lg';
 		}>(),
 		{
+			roomId: undefined,
 			size: 'md',
 		},
 	);

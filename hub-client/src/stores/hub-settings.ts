@@ -4,6 +4,8 @@
 // Packages
 import { defineStore } from 'pinia';
 
+import { useImageActions } from '@hub-client/composables/useImageActions';
+
 // Logic
 import { api_synapse as api } from '@hub-client/logic/core/api';
 import { type HubSettingsJSONParser } from '@hub-client/logic/json-utility';
@@ -65,6 +67,8 @@ export const toolbarSettings = {
 
 export const ALLOWED_HUB_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
 export const MAX_HUB_ICON_SIZE = 5000000; // ~5MB
+
+const { resizeImage } = useImageActions();
 
 const useHubSettings = defineStore('hub-settings', {
 	state: (): HubSettingsState => {
@@ -197,14 +201,16 @@ const useHubSettings = defineStore('hub-settings', {
 		},
 
 		async setIcon(image: File) {
-			await api.uploadImage(api.apiURLS.hubIcon, image);
+			const resized = await resizeImage(image, 128, undefined);
+			await api.uploadImage(api.apiURLS.hubIcon, resized);
 		},
 
 		async deleteIcon() {
 			await api.apiDELETE(api.apiURLS.hubIcon);
 		},
 		async setBanner(image: File) {
-			await api.uploadImage(api.apiURLS.hubBanner, image);
+			const resized = await resizeImage(image, 1920, undefined);
+			await api.uploadImage(api.apiURLS.hubBanner, resized);
 		},
 
 		async deleteBanner() {

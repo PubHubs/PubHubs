@@ -1,8 +1,12 @@
 // Stores
+import { useImageActions } from '@hub-client/composables/useImageActions';
+import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
 import { type BlobManager } from '@hub-client/logic/core/blobManager';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 import { useDialog } from '@hub-client/stores/dialog';
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 const logger = createLogger('FileUpload');
 
@@ -12,8 +16,49 @@ interface ExtendedFile extends File {
 	blobManager: BlobManager;
 }
 
+/**
+ * Upload avatar with filetypechecking, avatar will be resized if necessary
+ * @param file
+ * @param onSuccess
+ * @param onError
+ * @returns
+ */
+const avatarUpload = async (file: File, onSuccess: (mxUrl: string) => Promise<void>, onError?: () => void) => {
+	const { imageTypes, uploadUrl } = useMatrixFiles();
+
+	if (!imageTypes.includes(file.type)) return;
+
+	const pubhubs = usePubhubsStore();
+	const accessToken = pubhubs.Auth.getAccessToken();
+	if (!accessToken) return logger.error('Access Token is invalid for File upload.');
+
+	await asyncFileUpload(
+		accessToken,
+		uploadUrl,
+		file,
+		() => {},
+		onSuccess,
+		() => {
+			onError?.();
+		},
+		1,
+		{ maxWidth: 500 },
+	);
+};
+
 // Better to pass pubhubs object to useMatrixFiles.
-const fileUpload = (
+/**
+ * Fileupload of single file
+ * @param errorMsg
+ * @param accessToken
+ * @param uploadUrl
+ * @param fileTypeToCheck
+ * @param event
+ * @param callback
+ * @param onError
+ * @param resize Possible maximum width/height for images
+ */
+const fileUpload = async (
 	errorMsg: string,
 	accessToken: string,
 	uploadUrl: string,
@@ -21,12 +66,18 @@ const fileUpload = (
 	event: Event,
 	callback: (uri: string) => void,
 	onError?: (status: number, response: string) => void,
+	resize?: { maxWidth?: number; maxHeight?: number },
 ) => {
 	const target = event.currentTarget as HTMLInputElement;
 	if (target) {
 		const files = target.files;
 		if (files) {
-			if (fileTypeToCheck.includes(files[0].type)) {
+			let file = files[0];
+			if (fileTypeToCheck.includes(file.type)) {
+				if (resize && file.type.startsWith('image/')) {
+					const { resizeImage } = useImageActions();
+					file = (await resizeImage(file, resize.maxWidth, resize.maxHeight)) as File;
+				}
 				const fileReader = new FileReader();
 				const req = new XMLHttpRequest();
 
@@ -43,7 +94,7 @@ const fileUpload = (
 				fileReader.onload = () => {
 					req.open('POST', uploadUrl, true);
 					req.setRequestHeader('Authorization', 'Bearer ' + accessToken);
-					req.setRequestHeader('Content-Type', files[0].type);
+					req.setRequestHeader('Content-Type', file.type);
 					req.send(fileReader.result);
 				};
 
@@ -65,7 +116,7 @@ const fileUpload = (
 					}
 				};
 
-				fileReader.readAsArrayBuffer(files[0]);
+				fileReader.readAsArrayBuffer(file);
 			} else {
 				const dialog = useDialog();
 
@@ -76,6 +127,18 @@ const fileUpload = (
 	}
 };
 
+/**
+ *
+ * @param accessToken
+ * @param uploadUrl
+ * @param file
+ * @param onProgress
+ * @param onReady
+ * @param onError
+ * @param maxRetries
+ * @param resize
+ * @returns
+ */
 const asyncFileUpload = async (
 	accessToken: string,
 	uploadUrl: string,
@@ -84,7 +147,13 @@ const asyncFileUpload = async (
 	onReady: (uri: string) => Promise<void>,
 	onError?: (status: number, response: string) => void,
 	maxRetries: number = 3,
+	resize?: { maxWidth?: number; maxHeight?: number },
 ): Promise<void> => {
+	let uploadFile = file;
+	if (resize && uploadFile.type.startsWith('image/')) {
+		const { resizeImage } = useImageActions();
+		uploadFile = (await resizeImage(uploadFile, resize.maxWidth, resize.maxHeight)) as File;
+	}
 	const attemptUpload = (): Promise<{ success: boolean; retryAfterMs?: number }> => {
 		return new Promise((resolve, reject) => {
 			const fileReader = new FileReader();
@@ -99,7 +168,7 @@ const asyncFileUpload = async (
 			fileReader.onload = () => {
 				req.open('POST', uploadUrl, true);
 				req.setRequestHeader('Authorization', 'Bearer ' + accessToken);
-				req.setRequestHeader('Content-Type', file.type);
+				req.setRequestHeader('Content-Type', uploadFile.type);
 				req.send(fileReader.result);
 			};
 
@@ -140,7 +209,7 @@ const asyncFileUpload = async (
 				}
 			};
 
-			fileReader.readAsArrayBuffer(file);
+			fileReader.readAsArrayBuffer(uploadFile);
 		});
 	};
 
@@ -194,4 +263,4 @@ const generateUniqueName = (name: string, exists: (name: string) => boolean): st
 	return result;
 };
 
-export { fileUpload, asyncFileUpload, generateUniqueName, ExtendedFile };
+export { avatarUpload, fileUpload, asyncFileUpload, generateUniqueName, ExtendedFile };

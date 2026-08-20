@@ -8,7 +8,7 @@ import logging
 import json
 import os
 
-from .HubClientApiConfig import HubClientApiConfig
+from ._hub_client_api_config import HubClientApiConfig
 from ._store import HubStore
 from ._validation import user_validator
 from ._cors import set_allow_origin_header

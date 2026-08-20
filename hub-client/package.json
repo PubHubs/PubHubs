@@ -1,6 +1,5 @@
 {
 	"name": "@pubhubs/hub-client",
-	"version": "3.2.2",
 	"type": "module",
 	"private": true,
 	"scripts": {

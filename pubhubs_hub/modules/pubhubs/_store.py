@@ -23,6 +23,36 @@ def _generate_token() -> (str, int):
     return token, token_expiration
 
 
+def _expired_members_txn(txn: LoggingTransaction, room_id: Optional[str] = None) -> list[tuple]:
+    """The (user_id, room_id) pairs whose access expired and who are still in the room.
+
+    Expired rows are kept around after the user is kicked -- they drive the "you were
+    removed from a secured room" notification and are only deleted once the user dismisses
+    it, so `user_expired = 1` on its own says nothing about current membership.  Joining
+    `local_current_membership` keeps the already-kicked rows out: `update_room_membership`
+    raises for a user who is not in the room, which used to abort the sweep and leave the
+    rows after it unhandled.
+
+    Users who are still joined stay in the result whether they expired just now or in an
+    earlier sweep, so a kick that failed is retried on the next run.
+
+    :param room_id: only consider this room; all rooms when None.
+    """
+
+    sql = """
+        SELECT a.user_id, a.room_id FROM allowed_to_join_room a
+        JOIN local_current_membership m
+            ON m.user_id = a.user_id AND m.room_id = a.room_id
+        WHERE a.user_expired = 1 AND m.membership = 'join'
+        """
+
+    if room_id is None:
+        txn.execute(sql)
+    else:
+        txn.execute(sql + " AND a.room_id = ?", (room_id,))
+
+    return txn.fetchall()
+
 
 class HubStore:
     """Contains methods for database operations connected to room access with Yivi.
@@ -38,8 +68,10 @@ class HubStore:
         """
 
         def create_tables_txn(txn: LoggingTransaction) -> None:
-            # No functionality yet for expired Yivi attributes, now able to join room forever.
-            # Make some background check for it see: https://github.com/matrix-org/synapse-email-account-validity for an example.
+            # Access expires after the room's expiration_time_days: the `remove_from_room` sweep
+            # (scheduled from HubClientApi) marks them user_expired and kicks the user, and the
+            # row is kept until dismissed so the client can notify them.  Both columns are added
+            # by DBMigration rather than here.
             # WARNING!  When adding a new table, make sure you consider modifying the
             #           sqlite3 -> postgres migration code in start_hub.py.
             
@@ -105,6 +137,11 @@ class HubStore:
     async def is_allowed(self, user_id: str, room_id: str) -> bool:
         """Check whether a user is allowed to join a room.
 
+        Access that has been marked expired (by `remove_from_room` or
+        `remove_users_from_secured_room`) no longer counts: the row is kept around to
+        drive the "you were removed from a secured room" notification, but the user has
+        to disclose their attributes again before being let back in.
+
         :param user_id: The user that wants to join the room
         :param room_id: The room the user wants to join
         :return: a boolean indicating whether the user is allowed
@@ -116,7 +153,8 @@ class HubStore:
                 room_id_txn: str) -> bool:
             txn.execute(
                 """
-                SELECT * FROM allowed_to_join_room WHERE user_id = ? AND room_id = ?
+                SELECT * FROM allowed_to_join_room
+                WHERE user_id = ? AND room_id = ? AND user_expired = 0
                 """,
                 (user_id_txn, room_id_txn),
             )
@@ -186,6 +224,8 @@ class HubStore:
 
 
     async def remove_from_room(self) -> None:
+        """Expire access that is past the room's expiration_time_days and kick those users."""
+
         def set_expiry_from_user_txn(
                 txn: LoggingTransaction,
                 ) -> Optional[list[tuple]]:
@@ -203,10 +243,12 @@ class HubStore:
 
             # NOTE: the CAST(expiration_time_days as INTEGER) is needed because (for some reason)
             #       expiration_time_days has type TEXT.
+            # The user_expired = 0 guard keeps this to an actual transition, so rows that
+            # expired in an earlier sweep are not written again on every run.
             txn.execute(
                 f"""
                 UPDATE allowed_to_join_room SET user_expired = 1
-                WHERE {cast_col} <= {unix_now} - (
+                WHERE user_expired = 0 AND {cast_col} <= {unix_now} - (
                     SELECT CAST(expiration_time_days AS INTEGER) * 24 * 60 * 60
                     FROM secured_rooms
                     WHERE room_id = allowed_to_join_room.room_id
@@ -214,12 +256,7 @@ class HubStore:
                 """,
             )
 
-            txn.execute(
-                """
-                SELECT user_id,room_id from allowed_to_join_room WHERE user_expired = 1
-                """,
-            )
-            return txn.fetchall()
+            return _expired_members_txn(txn)
 
         result = await self._module_api.run_db_interaction(
             "set_expiry_from_user_txn",
@@ -227,14 +264,22 @@ class HubStore:
 
         )
 
-        for row in result:
+        await self._kick_expired_members(result)
+
+
+    async def _kick_expired_members(self, members: Optional[list[tuple]]) -> None:
+        """Make the given (user_id, room_id) pairs leave the room they expired out of.
+
+        :param members: rows from `_expired_members_txn`, i.e. users known to be joined.
+        """
+
+        for row in members or []:
             user_id, room_id =  row
             try:
                 logger.info(f"allowed_to_join_room: removing expired user {user_id} from room {room_id}")
                 await self._module_api.update_room_membership(user_id, user_id, room_id, "leave")
             except Exception as e:
                 logger.error(f"Could not remove user with id {user_id} from room {room_id} after the user was expired, Error: {e}")
-           
 
 
 
@@ -423,21 +468,26 @@ class HubStore:
 
         def remove_users_from_secured_room_txn(
                 txn: LoggingTransaction,
-                room_id_txn: str) -> None:
+                room_id_txn: str) -> Optional[list[tuple]]:
             txn.execute(
                 """
-                UPDATE allowed_to_join_room SET user_expired = 1 WHERE room_id = ?
+                UPDATE allowed_to_join_room SET user_expired = 1
+                WHERE room_id = ? AND user_expired = 0
                 """,
                 (room_id_txn,),
             )
 
+            return _expired_members_txn(txn, room_id_txn)
+
         logger.info(f"allowed_to_join_room: removing all users from room {room_id}")
-        await self._module_api.run_db_interaction(
+        result = await self._module_api.run_db_interaction(
             "remove_users_from_secured_room",
             remove_users_from_secured_room_txn,
             room_id,
         )
-        await self.remove_from_room()
+
+        # Scoped to this room: the hub-wide sweep would also touch users of other rooms.
+        await self._kick_expired_members(result)
     async def remove_allowed_join_room_row(self, room_id: str, user_id:str) -> None:
         """Remove a user from the allowed_to_join_room table.
 

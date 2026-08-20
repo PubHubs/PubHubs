@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="w-full px-150 pb-150 md:px-300"
+		class="relative z-10 w-full px-150 pb-150 md:px-300"
 		v-bind="$attrs"
 	>
 		<!-- Timeout notification bar -->
@@ -15,7 +15,7 @@
 		<YellowCardNotificationBar
 			v-if="isCurrentUserWarned && currentUserYellowCardInfo"
 			:reason="currentUserYellowCardInfo.reason"
-			@dismiss="onDismissYellowCard"
+			@accept="onAcceptYellowCard"
 		/>
 
 		<!-- Floating -->
@@ -351,14 +351,14 @@
 	// Models
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { RelationType } from '@hub-client/models/constants';
-	import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
+	import { type FileInfo } from '@hub-client/models/events/FileInfo';
 	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
 	import { EYiviFlow, type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
-	import { buttonsCancel } from '@hub-client/stores/dialog';
+	import { buttonsCancel, useDialog } from '@hub-client/stores/dialog';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
@@ -395,6 +395,7 @@
 	defineOptions({ inheritAttrs: false });
 
 	const { t } = useI18n();
+	const dialog = useDialog();
 	const user = useUser();
 	const route = useRoute();
 	const router = useRouter();
@@ -407,7 +408,7 @@
 	const messageInput = useMessageInput();
 	const base = useModerationBase();
 	const { isCurrentUserTimedOut, currentUserTimeoutInfo, refreshTimeoutStatus } = useModerationTimeout(base);
-	const { isCurrentUserWarned, currentUserYellowCardInfo, dismissYellowCard } = useModerationYellowCard(base);
+	const { isCurrentUserWarned, currentUserYellowCardInfo, acceptYellowCard } = useModerationYellowCard(base);
 
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const valueAsString = computed({
@@ -432,7 +433,7 @@
 	const mentionAutoCompleteRef = ref<InstanceType<typeof MentionAutoComplete> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 	const editingOriginalEvent = ref<TMessageEvent | undefined>(undefined);
-	const editingFilePreviewBlobUrl = ref<string | undefined>();
+	const filePreviewBlobUrl = ref<string | undefined>();
 	const isAnnouncementMode = ref(false);
 	const moderationPopover = ref(false);
 
@@ -459,10 +460,12 @@
 
 	watch(route, () => {
 		revokeOwnedFileUploadBlob();
-		revokeEditingFilePreviewBlob();
+		revokeFilePreviewBlob();
 		reset();
 		messageInput.resetAll();
 		clearWhisperMode();
+		// A file shared from the library belongs to the room it was shared in, so it does not travel along.
+		messageActions.sharingFile = undefined;
 	});
 
 	watch(
@@ -538,10 +541,35 @@
 		},
 	);
 
+	// A file shared from the room library is attached here, so the user can add a caption before sending.
+	watch(
+		() => messageActions.sharingFile,
+		async () => {
+			const sharingFile = messageActions.sharingFile;
+			if (!sharingFile) return;
+			messageActions.sharingFile = undefined;
+			if (messageInput.isEdit.value) cancelEdit();
+			revokeFilePreviewBlob();
+			messageInput.attachSharedFile(sharingFile);
+			nextTick(() => elTextInput.value?.$el.focus());
+			if (sharingFile.msgtype === MsgType.Image) {
+				const previewUrl = await getAuthorizedMediaUrl(sharingFile.mxcUrl).catch(() => '');
+				if (!previewUrl.startsWith('blob:')) return;
+				// The user may have removed or replaced the file while the preview was loading.
+				if (messageInput.state.sharedFile?.mxcUrl === sharingFile.mxcUrl) {
+					filePreviewBlobUrl.value = previewUrl;
+					messageInput.state.sharedFile = { ...sharingFile, previewUrl };
+				} else {
+					URL.revokeObjectURL(previewUrl);
+				}
+			}
+		},
+	);
+
 	watch(
 		() => props.editingMessage,
 		async () => {
-			revokeEditingFilePreviewBlob();
+			revokeFilePreviewBlob();
 			if (!props.editingMessage?.event.event_id) return;
 			clearWhisperMode();
 			messageActions.replyingTo = undefined;
@@ -553,7 +581,7 @@
 				value.value = content.body !== content.filename ? (content.body ?? '') : '';
 				const previewUrl = content.url ? await getAuthorizedMediaUrl(content.url) : (content.url ?? '');
 				if (previewUrl.startsWith('blob:')) {
-					editingFilePreviewBlobUrl.value = previewUrl;
+					filePreviewBlobUrl.value = previewUrl;
 				}
 				messageInput.editMessage(props.editingMessage.event.event_id, {
 					mxcUrl: content.url ?? '',
@@ -587,16 +615,16 @@
 		uriForFileUpload.value = undefined;
 	}
 
-	function revokeEditingFilePreviewBlob() {
-		if (editingFilePreviewBlobUrl.value) {
-			URL.revokeObjectURL(editingFilePreviewBlobUrl.value);
-			editingFilePreviewBlobUrl.value = undefined;
+	function revokeFilePreviewBlob() {
+		if (filePreviewBlobUrl.value) {
+			URL.revokeObjectURL(filePreviewBlobUrl.value);
+			filePreviewBlobUrl.value = undefined;
 		}
 	}
 
 	onBeforeUnmount(() => {
 		revokeOwnedFileUploadBlob();
-		revokeEditingFilePreviewBlob();
+		revokeFilePreviewBlob();
 	});
 
 	onUnmounted(() => {
@@ -631,6 +659,8 @@
 	function handleKeydown(event: KeyboardEvent) {
 		if (messageInput.state.signMessage || messageInput.state.showYiviQR) return;
 		if (!messageInput.hasActivePopup.value || event.key === 'Escape') {
+			// The reset drops the attached file, so its preview goes with it.
+			revokeFilePreviewBlob();
 			messageInput.resetAll();
 			messageInput.state.sendButtonEnabled = isValidMessage();
 		}
@@ -651,6 +681,7 @@
 		if ((messageInput.state.poll || messageInput.state.scheduler) && messageInput.state.sendButtonEnabled) valid = true;
 		if (messageInput.state.fileAdded) valid = true;
 		if (messageInput.state.editingExistingFile) valid = true;
+		if (messageInput.state.sharedFile) valid = true;
 		return valid;
 	}
 
@@ -661,8 +692,8 @@
 		messageInput.state.sendButtonEnabled = isValidMessage();
 	}
 
-	async function onDismissYellowCard() {
-		await dismissYellowCard(props.room.roomId);
+	async function onAcceptYellowCard() {
+		await acceptYellowCard(props.room.roomId);
 	}
 
 	function preventSubmitWhenTimedOut(event: KeyboardEvent) {
@@ -713,6 +744,8 @@
 		uriForFileUpload.value = uriBlob;
 		fileBlobOwnedByParent.value = !!uriBlob;
 		if (!uriBlob) {
+			// The file was removed from the input, so its preview is no longer needed.
+			revokeFilePreviewBlob();
 			messageInput.state.sendButtonEnabled = isValidMessage();
 		}
 	}
@@ -824,6 +857,21 @@
 			sendScheduler();
 			value.value = '';
 			clearDraft();
+		} else if (messageInput.state.sharedFile) {
+			// The file is already on the media server (shared from the library), so only an event is sent.
+			const sharedFile = { ...messageInput.state.sharedFile };
+			const replyTo = inReplyTo.value;
+			const messageText = value.value as string;
+			messageActions.replyingTo = undefined;
+			messageInput.removeSharedFile();
+			revokeFilePreviewBlob();
+			value.value = '';
+			clearDraft();
+			messageInput.state.sendButtonEnabled = isValidMessage();
+			const sent = await pubhubs.sendFileMessage(props.room.roomId, threadRoot?.event_id, sharedFile, messageText, undefined, replyTo);
+			if (!sent) {
+				dialog.confirm(t('errors.file_share'));
+			}
 		} else if (messageInput.state.fileAdded) {
 			// `fileAdded` is the actual payload to upload.
 			// `uriForFileUpload` is only the local preview blob URL manager.
@@ -928,7 +976,7 @@
 	}
 
 	function cancelEdit() {
-		revokeEditingFilePreviewBlob();
+		revokeFilePreviewBlob();
 		editingOriginalEvent.value = undefined;
 		value.value = '';
 		messageInput.openTextArea();
@@ -945,7 +993,7 @@
 			file,
 			(_progress) => {},
 			async (url) => {
-				const fileInfo: Omit<FileEditInfo, 'previewUrl'> = {
+				const fileInfo: Omit<FileInfo, 'previewUrl'> = {
 					mxcUrl: url,
 					filename: file.name,
 					mimetype: file.type,

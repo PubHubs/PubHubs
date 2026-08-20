@@ -47,74 +47,58 @@ describe('PubHubs Store', () => {
 			expect(content).toHaveProperty('msgtype', 'm.text');
 		});
 
-		test('safe html', async () => {
+		// The message input is a plain text field: markup typed by the user is not interpreted, it is
+		// kept verbatim in the body. Escaping happens at render time, so nothing is sent as HTML here.
+		test('markup is kept verbatim, not sent as html', async () => {
 			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor sit amet');
 
-			expect(content).toHaveProperty('body', 'Lorem ipsum dolor sit amet');
+			expect(content).toHaveProperty('body', '<b>Lorem</b> ipsum dolor sit amet');
 			expect(content).toHaveProperty('msgtype', 'm.text');
-			expect(content).toHaveProperty('format', 'org.matrix.custom.html');
-			expect(content).toHaveProperty('formatted_body', '<b>Lorem</b> ipsum dolor sit amet');
+			expect(content).not.toHaveProperty('format');
+			expect(content).not.toHaveProperty('formatted_body');
 		});
 
-		test('safe link', async () => {
+		test('script tags are not sent as html', async () => {
 			const pubhubs = usePubhubsStore();
-			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <a href="https://test.nl">sit</a> amet');
+			const source = 'Lorem ipsum dolor <script src="mxc://test.nl">windows.location="bad"</script> amet';
+			const content = await pubhubs._constructMessageContent(source);
 
-			expect(content).toHaveProperty('body', 'Lorem ipsum dolor sit amet');
+			expect(content).toHaveProperty('body', source);
 			expect(content).toHaveProperty('msgtype', 'm.text');
-			expect(content).toHaveProperty('format', 'org.matrix.custom.html');
-			expect(content).toHaveProperty('formatted_body', '<b>Lorem</b> ipsum dolor <a href="https://test.nl" rel="noopener">sit</a> amet');
+			expect(content).not.toHaveProperty('format');
+			expect(content).not.toHaveProperty('formatted_body');
 		});
 
-		test('no img', async () => {
+		// Regression: `<H|` starts a tag as far as an HTML parser is concerned (`|` is a legal tag name
+		// character), and the tag is only closed by the next `>` — five lines down, in `>= obs1`.
+		// Treating this paste as HTML deleted everything in between.
+		test('pasted code containing < is not truncated', async () => {
 			const pubhubs = usePubhubsStore();
-			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <img src="https://test.nl"> amet');
+			const source = [
+				'obs1 = Predicate("100<H| + -50<T|")',
+				'obs2 = Predicate("100<H| + 50<T|")',
+				'# parsing error in:',
+				'#obs3 = Predicate("100<H| - 50<T|")',
+				'# same outcomes:',
+				'print( flip(Fraction(3,10)) >= obs1 )',
+				'print( flip(Fraction(3,10)) >= obs2 )',
+			].join('\n');
+			const content = await pubhubs._constructMessageContent(source);
 
-			expect(content).toHaveProperty('body', 'Lorem ipsum dolor  amet');
+			expect(content).toHaveProperty('body', source);
 			expect(content).toHaveProperty('msgtype', 'm.text');
-			expect(content).toHaveProperty('format', 'org.matrix.custom.html');
-			expect(content).toHaveProperty('formatted_body', '<b>Lorem</b> ipsum dolor  amet');
+			expect(content).not.toHaveProperty('format');
+			expect(content).not.toHaveProperty('formatted_body');
 		});
 
-		test('matrix img', async () => {
+		test('generics and comparisons are not truncated', async () => {
 			const pubhubs = usePubhubsStore();
-			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <img src="mxc://test.nl"> amet');
+			const source = 'let x: Vec<T> = a<b && b>c;';
+			const content = await pubhubs._constructMessageContent(source);
 
-			expect(content).toHaveProperty('body', 'Lorem ipsum dolor  amet');
-			expect(content).toHaveProperty('msgtype', 'm.text');
-			expect(content).toHaveProperty('format', 'org.matrix.custom.html');
-			expect(content).toHaveProperty('formatted_body', '<b>Lorem</b> ipsum dolor <img src="mxc://test.nl" /> amet');
-		});
-
-		test('no iframes', async () => {
-			const pubhubs = usePubhubsStore();
-			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <iframe src="mxc://test.nl"> amet');
-
-			expect(content).toHaveProperty('body', 'Lorem ipsum dolor  amet');
-			expect(content).toHaveProperty('msgtype', 'm.text');
-			expect(content).toHaveProperty('format', 'org.matrix.custom.html');
-			expect(content).toHaveProperty('formatted_body', '<b>Lorem</b> ipsum dolor  amet');
-		});
-
-		test('no scripts', async () => {
-			const pubhubs = usePubhubsStore();
-			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <script src="mxc://test.nl">windows.location="bad"</script> amet');
-
-			expect(content).toHaveProperty('body', 'Lorem ipsum dolor windows.location="bad" amet');
-			expect(content).toHaveProperty('msgtype', 'm.text');
-			expect(content).toHaveProperty('format', 'org.matrix.custom.html');
-			expect(content).toHaveProperty('formatted_body', '<b>Lorem</b> ipsum dolor  amet');
-		});
-
-		test('only whithin <html></html>', async () => {
-			const pubhubs = usePubhubsStore();
-			const content = await pubhubs._constructMessageContent('<head><title>Lorem</title></head><html><body><h1>Lorum ipsum dolor amet</h1><p>etc</p></body></html>');
-
-			expect(content).toHaveProperty('body', 'Lorum ipsum dolor ametetc');
-			expect(content).toHaveProperty('msgtype', 'm.text');
-			expect(content).toHaveProperty('format', 'org.matrix.custom.html');
-			expect(content).toHaveProperty('formatted_body', '<h1>Lorum ipsum dolor amet</h1><p>etc</p>');
+			expect(content).toHaveProperty('body', source);
+			expect(content).not.toHaveProperty('formatted_body');
 		});
 	});
 });

@@ -136,11 +136,12 @@
 	const rowError = ref<Record<string, string>>({});
 
 	// Room admin (100) is deliberately not offered; rooms need exactly one admin, the creator.
-	const powerLevelOptions = [0, 50];
+	const powerLevelOptions = [UserPowerLevel.User, UserPowerLevel.Expert, UserPowerLevel.Steward];
 
 	function roleTransformer(value: number): FieldOption {
-		if (value === 0) return { label: t('admin.title_user'), value: '0' };
-		if (value === 50) return { label: t('admin.title_steward'), value: '50' };
+		if (value === UserPowerLevel.User) return { label: t('admin.title_user'), value: String(UserPowerLevel.User) };
+		if (value === UserPowerLevel.Expert) return { label: t('expert.expert'), value: String(UserPowerLevel.Expert) };
+		if (value === UserPowerLevel.Steward) return { label: t('admin.title_steward'), value: String(UserPowerLevel.Steward) };
 		return { label: String(value), value: String(value) };
 	}
 

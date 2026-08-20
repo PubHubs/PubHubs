@@ -35,6 +35,7 @@
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useAuthMediaUrl } from '@hub-client/composables/useAuthMediaUrl';
+	import { saveAs } from '@hub-client/composables/useFileDownload';
 
 	// Models
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -49,10 +50,7 @@
 
 	function downloadFile() {
 		if (!authMediaUrl.value?.url) return;
-		const a = document.createElement('a');
-		a.href = authMediaUrl.value.url;
-		a.download = props.message.filename ?? props.message.body ?? 'file';
-		a.click();
+		saveAs(authMediaUrl.value.url, props.message.filename ?? props.message.body ?? 'file');
 	}
 
 	function openFileUrl() {

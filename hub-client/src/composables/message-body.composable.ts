@@ -4,6 +4,9 @@ import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 // Composables
 import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 
+// Logic
+import { escapeHtml } from '@hub-client/logic/core/sanitizer';
+
 /**
  * Composable for handling message body rendering with mentions and sanitization.
  * Used by Message.vue, MessageFile.vue, and MessageImage.vue.
@@ -32,11 +35,14 @@ function useMessageBody(body: MaybeRefOrGetter<string | undefined>, phBody: Mayb
 	/**
 	 * Body for direct rendering when no mentions are present. Sanitized at render time by v-safe-html.
 	 * Named messageBody (not sanitizedBody) because sanitization happens in the directive, not here.
+	 *
+	 * The raw body is escaped when falling back to it: unlike ph_body it is plain text, never markup,
+	 * so handing it to v-safe-html unescaped would drop everything from a literal `<` to the next `>`.
 	 */
 	const messageBody = computed(() => {
 		const ph = toValue(phBody);
 		if (ph) return ph;
-		return toValue(body) || '';
+		return escapeHtml(toValue(body) || '');
 	});
 
 	return {

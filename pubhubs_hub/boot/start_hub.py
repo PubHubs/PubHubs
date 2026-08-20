@@ -14,9 +14,30 @@ import psycopg2
 import contextlib
 import atexit
 import collections
+from urllib.parse import urlparse
 
 # The embedded postgres data directory.
 PG_DATA_DIR = "/data/postgres"
+
+# Hosts that mean "the LiveKit server lives inside this container", i.e. the
+# bundled dev server rather than an externally-hosted one.
+_LOCALHOST_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def _using_external_livekit():
+    """Return True when the hub is configured to use an externally-hosted LiveKit.
+    External if either:
+      * explicit external credentials (LIVEKIT_API_KEY + LIVEKIT_API_SECRET) are set, or
+      * LIVEKIT_URL points at a non-localhost host.
+    """
+    if os.environ.get("LIVEKIT_API_KEY") and os.environ.get("LIVEKIT_API_SECRET"):
+        return True
+
+    livekit_url = os.environ.get("LIVEKIT_URL")
+    if livekit_url and urlparse(livekit_url).hostname not in _LOCALHOST_HOSTS:
+        return True
+
+    return False
 
 # How long _stop_all waits, in total, for the services to exit cleanly on shutdown.
 # Kept under docker's default 10s stop grace so postgres can finish (and remove its
@@ -236,25 +257,40 @@ class Program:
                           replace_sqlite3_by_postgres=replace_sqlite3_by_postgres_now,
                           server_name=self._args.server_name)
 
-        # Start LiveKit server.
-        # Priority:
-        # 1) LIVEKIT_CONFIG_PATH env var
-        # 2) new local default path
-        # 3) legacy path kept for backward compatibility with older images
-        livekit_config_path = os.environ.get("LIVEKIT_CONFIG_PATH")
-        if not livekit_config_path:
-            if os.path.exists("/conf/livekit.local.yaml"):
-                livekit_config_path = "/conf/livekit.local.yaml"
-            else:
-                livekit_config_path = "/conf/livekit.yaml"
-        self._start("livekit", ("/usr/bin/livekit-server",
-                        "--config", livekit_config_path))
+        # Decide whether to start a bundled livekit-server. It won't 
+        # run in production.
+        explicit_livekit_config = os.environ.get("LIVEKIT_CONFIG_PATH")
+        if _using_external_livekit():
+            print("External LiveKit configured; not starting the bundled livekit-server.", flush=True)
+        elif not explicit_livekit_config and self._args.environment == "production":
+            print(
+                "WARNING: no external LiveKit configured and LIVEKIT_CONFIG_PATH is unset; "
+                "refusing to start the bundled dev livekit-server in production because it "
+                "uses a key committed to the public source tree. Video calls are disabled "
+                "until you either configure an external LiveKit (set LIVEKIT_URL, "
+                "LIVEKIT_API_KEY and LIVEKIT_API_SECRET) or point LIVEKIT_CONFIG_PATH at "
+                "your own livekit config with a private key.",
+                flush=True,
+            )
+        else:
+            # Resolve the config path:
+            # 1) LIVEKIT_CONFIG_PATH env var
+            # 2) new local default path
+            # 3) legacy path kept for backward compatibility with older images
+            livekit_config_path = explicit_livekit_config
+            if not livekit_config_path:
+                if os.path.exists("/conf/livekit.local.yaml"):
+                    livekit_config_path = "/conf/livekit.local.yaml"
+                else:
+                    livekit_config_path = "/conf/livekit.yaml"
+            self._start("livekit", ("/usr/bin/livekit-server",
+                            "--config", livekit_config_path))
 
-        self._start("yivi", ("/usr/bin/irma",
+        self._start("yivi", ("/usr/bin/yivi",
+                        "irma",
                         "server",
                         "--issue-perms", "*",
                         "--production",
-                        "--no-email",
                         "--no-tls",
                         "--sse",
                         "--allow-unsigned-callbacks",

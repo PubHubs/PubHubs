@@ -215,7 +215,7 @@ class PhInfoEP(Resource):
         self.update_contents()
 
     def update_contents(self):
-        # See HubClientApiConfig.py
+        # See _hub_client_api_config.py
         try: 
             with open('/data/media/hub_settings', 'rb') as f:
                 self._contents['Ok']['dynamic']['settings'] = json.load(f)

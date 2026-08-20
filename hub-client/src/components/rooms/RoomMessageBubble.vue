@@ -312,7 +312,7 @@
 								/>
 								<MessageVideoCall
 									v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
-									:event="props.event as any"
+									:event="videoCallEvent"
 									:room-id="room.roomId"
 								/>
 								<Message
@@ -360,7 +360,7 @@
 								/>
 								<MessageVideoCall
 									v-else-if="event.content!.msgtype === PubHubsMgType.VideoCall"
-									:event="props.event as any"
+									:event="videoCallEvent"
 									:room-id="room.roomId"
 								/>
 								<Message
@@ -381,6 +381,13 @@
 							class="text-label-small ml-2 hidden group-hover:block"
 						/>
 					</div>
+
+					<!-- Expert Verification Badges -->
+					<MessageExpertVerified
+						v-for="verification in allVerificationInfo"
+						:key="verification.expert_user_id"
+						:verification-info="verification"
+					/>
 
 					<!-- View-thread affordance: visible when this message has thread replies and we're not already inside the thread view. -->
 					<button
@@ -423,6 +430,24 @@
 				@close="reportDialog.visible = false"
 				@submit="onReportDialogSubmit"
 			></ReportDialog>
+			<ExpertVerifyDialog
+				v-if="verifyDialog.visible && isCurrentUserExpert"
+				:error="verifyDialog.error"
+				:room-id="verifyDialog.roomId"
+				:event-id="verifyDialog.eventId"
+				:initial-verification-type="verifyDialog.initialVerificationType"
+				:initial-note="verifyDialog.initialNote"
+				:initial-sources="verifyDialog.initialSources"
+				@close="closeVerifyDialog()"
+				@submit="onVerifyDialogSubmit"
+				@open-profile="openExpertProfileDialog()"
+			></ExpertVerifyDialog>
+			<ExpertProfileDialog
+				v-if="expertProfileDialog.visible"
+				:error="expertProfileDialog.error"
+				@close="closeExpertProfileDialog()"
+				@submit="onExpertProfileDialogSubmit"
+			></ExpertProfileDialog>
 		</div>
 	</div>
 </template>
@@ -435,6 +460,8 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import ExpertProfileDialog from '@hub-client/components/forms/ExpertProfileDialog.vue';
+	import ExpertVerifyDialog from '@hub-client/components/forms/ExpertVerifyDialog.vue';
 	import HideMessageDialog from '@hub-client/components/forms/HideMessageDialog.vue';
 	import ReportDialog from '@hub-client/components/forms/ReportDialog.vue';
 	import EditedMarker from '@hub-client/components/rooms/EditedMarker.vue';
@@ -442,6 +469,7 @@
 	import Message from '@hub-client/components/rooms/Message.vue';
 	import MessageDisclosed from '@hub-client/components/rooms/MessageDisclosed.vue';
 	import MessageDisclosureRequest from '@hub-client/components/rooms/MessageDisclosureRequest.vue';
+	import MessageExpertVerified from '@hub-client/components/rooms/MessageExpertVerified.vue';
 	import MessageFile from '@hub-client/components/rooms/MessageFile.vue';
 	import MessageHidden from '@hub-client/components/rooms/MessageHidden.vue';
 	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
@@ -458,6 +486,7 @@
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useModerationCreateReport } from '@hub-client/composables/moderation/create-report.composable';
+	import { useExpertVerification } from '@hub-client/composables/moderation/expert-verification.composable';
 	import { useModerationHideMessage } from '@hub-client/composables/moderation/hide-message.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
@@ -470,7 +499,7 @@
 	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	import { RelationType } from '@hub-client/models/constants';
 	import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-	import { type TMessageEvent, type TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { type TMessageEvent, type TMessageEventContent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TAnnouncementMessageEventContent, type TWhisperMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -593,6 +622,29 @@
 	const { unHideMessage, hideMessageDialog, onHideMessageDialogSubmit, openHideMessageDialog } = useModerationHideMessage();
 	const { reportDialog, openReportDialog, onReportDialogSubmit } = useModerationCreateReport();
 
+	// Expert verification
+	const {
+		verifyDialog,
+		expertProfileDialog,
+		isCurrentUserExpert,
+		hasCurrentUserVerified,
+		getCurrentUserVerification,
+		getAllVerificationInfo,
+		removeVerification,
+		openVerifyDialog,
+		closeVerifyDialog,
+		onVerifyDialogSubmit,
+		openExpertProfileDialog,
+		closeExpertProfileDialog,
+		onExpertProfileDialogSubmit,
+	} = useExpertVerification(computed(() => props.room));
+
+	const allVerificationInfo = computed(() => {
+		const eventId = event.value.event_id;
+		if (!eventId || redactedMessage.value) return [];
+		return getAllVerificationInfo(eventId);
+	});
+
 	/**
 	 * Different types can be passed in props.event, this selects the event property from each type
 	 */
@@ -601,6 +653,11 @@
 		if (props.event instanceof MatrixEvent) return props.event.event;
 		return props.event as TMessageEvent<TMessageEventContent>;
 	});
+
+	// MessageVideoCall identifies the call by event_id and reads content.timestamp, so it needs the
+	// unwrapped event above - handing it props.event leaves both undefined for the TimelineEvent and
+	// MatrixEvent shapes, which made every incoming call look like an already-ended one.
+	const videoCallEvent = computed(() => event.value as TMessageEvent<TVideoCallMessageEventContent>);
 
 	const deletedEvent = computed(() => {
 		if (props.event instanceof TimelineEvent) return props.event.isDeleted;
@@ -754,11 +811,17 @@
 		const social: MenuItem[] = [];
 		const actions: MenuItem[] = [];
 		const utility: MenuItem[] = [];
+		const expertActions: MenuItem[] = [];
 		const stewardActions: MenuItem[] = [];
 		const destructive: MenuItem[] = [];
 
-		// Direct message (only if sender is not current user and not already in a DM)
+		// User details + direct message (only if sender is not current user and not already in a DM)
 		if (event.value.sender! !== user.userId && !props.room.isDirectMessageRoom()) {
+			social.push({
+				label: t('admin.user_details'),
+				icon: 'user-circle',
+				onClick: () => sidebar.openMemberProfile(event.value.sender!),
+			});
 			social.push({
 				label: t('menu.direct_message'),
 				icon: 'chat-circle',
@@ -783,6 +846,41 @@
 					messageActions.whisperingToEventId = event.value.event_id;
 				},
 				variant: ContextVariant.steward,
+			});
+		}
+
+		// Expert verify message (only for experts, not on own messages, not if already verified by current user)
+		if (isCurrentUserExpert.value && !redactedMessage.value && !hasCurrentUserVerified(event.value.event_id!) && event.value.sender !== user.userId) {
+			expertActions.push({
+				label: t('expert.verify_message'),
+				icon: 'seal-check',
+				onClick: () => openVerifyDialog(props.room.roomId, event.value.event_id!),
+				variant: ContextVariant.expert,
+			});
+		}
+
+		// Expert edit/remove verification (only for experts who have already verified this message)
+		if (isCurrentUserExpert.value && !redactedMessage.value && hasCurrentUserVerified(event.value.event_id!)) {
+			// Edit assessment
+			expertActions.push({
+				label: t('expert.edit_assessment'),
+				icon: 'pencil-simple',
+				onClick: () => {
+					const currentVerification = getCurrentUserVerification(event.value.event_id!);
+					openVerifyDialog(props.room.roomId, event.value.event_id!, {
+						verificationType: currentVerification?.verification_type,
+						note: currentVerification?.verification_note,
+						sources: currentVerification?.sources,
+					});
+				},
+				variant: ContextVariant.expert,
+			});
+			// Remove assessment
+			expertActions.push({
+				label: t('expert.remove_verification'),
+				icon: 'trash',
+				onClick: () => removeVerification(props.room.roomId, event.value.event_id!),
+				variant: ContextVariant.expert,
 			});
 		}
 
@@ -910,6 +1008,8 @@
 		}
 
 		const divider: MenuItem = { divider: true, label: '' };
-		return [social, actions, utility, stewardActions, destructive].filter((g) => g.length > 0).flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
+		return [social, actions, utility, expertActions, stewardActions, destructive]
+			.filter((g) => g.length > 0)
+			.flatMap((g, i) => (i === 0 ? g : [divider, ...g]));
 	}
 </script>

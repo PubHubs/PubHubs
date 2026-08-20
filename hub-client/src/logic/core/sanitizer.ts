@@ -15,17 +15,12 @@ const removeHtml = (html: string): string => {
 };
 
 /**
- * Checks string for Html and removes it when found
- * @param html string to check
- * @returns false if no Html, otherwise cleaned string
+ * Escapes the characters that would otherwise be parsed as markup, so plain text survives verbatim.
+ * Without this, an HTML parser consumes everything from a literal `<` up to the next `>` as a tag and
+ * drops it, which silently deletes pasted code, math and generics.
+ * @param text Plain text to escape
  */
-const hasHtml = (html: string): boolean | string => {
-	const text = removeHtml(html);
-	if (text === html) {
-		return false;
-	}
-	return text;
-};
+const escapeHtml = (text: string): string => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // See: https://spec.matrix.org/v1.8/client-server-api/#mroommessage-msgtypes
 const sanitizeOptions = {
@@ -128,7 +123,7 @@ const emailAddressPattern = /(([a-zA-Z0-9_\-.]+)@[a-zA-Z_]+?(?:\.[a-zA-Z]{2,6}))
  */
 const textToHtml = (text: string): string => {
 	// First escape HTML entities to prevent XSS
-	let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	let html = escapeHtml(text);
 
 	// Convert URLs to clickable links
 	html = html
@@ -142,4 +137,4 @@ const textToHtml = (text: string): string => {
 	return html;
 };
 
-export { removeHtml, hasHtml, sanitizeHtml, textToHtml };
+export { removeHtml, escapeHtml, sanitizeHtml, textToHtml };

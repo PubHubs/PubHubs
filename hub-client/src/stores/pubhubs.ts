@@ -26,20 +26,21 @@ import { useMatrix } from '@hub-client/composables/matrix.composable';
 
 // Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
+import { APIService } from '@hub-client/logic/core/apiService';
 import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { router } from '@hub-client/logic/core/router';
-import { hasHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+import { removeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
 import { type AskDisclosureMessage, type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
-import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
-import { SystemDefaults } from '@hub-client/models/constants';
-import { type FileEditInfo } from '@hub-client/models/events/FileEditInfo';
+import { Redaction, RelationType, SystemDefaults, imageTypes } from '@hub-client/models/constants';
+import { type FileInfo } from '@hub-client/models/events/FileInfo';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TExpertVerificationMessageContent, type TExpertVerificationType } from '@hub-client/models/events/TExpertEvent';
 import {
 	type THideMessageContent,
 	type TMentions,
@@ -61,7 +62,6 @@ import { type Poll, type Scheduler } from '@hub-client/models/events/voting/Voti
 import type Room from '@hub-client/models/rooms/Room';
 import { type RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TSearchParameters } from '@hub-client/models/search/TSearch';
-import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { useConnection } from '@hub-client/stores/connection';
@@ -194,7 +194,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			// update the rooms in the store with the known rooms
 			if (knownRooms?.length > 0) {
-				rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: MatrixRoom) => joinedRooms.indexOf(room.roomId) !== -1));
+				rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: MatrixRoom) => joinedRooms.includes(room.roomId)));
 			}
 
 			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
@@ -244,7 +244,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					try {
 						const state = matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS);
 						const createEvt = state?.getStateEvents(EventType.RoomCreate, '') ?? null;
-						if (createEvt?.getContent && createEvt.getContent()?.type) {
+						if (createEvt?.getContent?.()?.type) {
 							roomType = createEvt.getContent().type ?? roomType;
 						}
 					} catch {
@@ -306,7 +306,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const powerLevelContext = await this.getPowerLevelEventContent(room_id);
 
 			// If the current user (i.e., admin) is not in powerlevel - the admin is not 'room' admin.
-			if (!powerLevelContext.users || powerLevelContext.users[user.user.userId] === undefined) return false;
+			if (powerLevelContext.users?.[user.user.userId] === undefined) return false;
 			const usersPL100 = Object.keys(powerLevelContext.users);
 
 			// Check membership of users with PL100.
@@ -426,10 +426,11 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const roomId = (rooms[index] as unknown as Room).roomId;
 				const room = this.client.getRoom(roomId);
 				if (!room) continue;
-				const roomMembers = room.getMembers();
+				// Consider members who have joined or are invited (not left/banned)
+				const roomMembers = room.getMembers().filter((member) => member.membership === 'join' || member.membership === 'invite');
 				const roomMemberIds = roomMembers.map((member) => member.userId);
-				roomMemberIds.sort();
-				const found = JSON.stringify(memberIds.sort()) === JSON.stringify(roomMemberIds);
+				roomMemberIds.sort((a, b) => a.localeCompare(b));
+				const found = JSON.stringify(memberIds.toSorted((a, b) => a.localeCompare(b))) === JSON.stringify(roomMemberIds);
 				// Specific to Steward contact room because of how steward contact room are create.
 				// Room name is based on RoomId,MembersList.
 
@@ -437,10 +438,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 					if (room.name.split(',')[0] === stewardRoomId && found) {
 						return room.roomId;
 					}
-				} else {
-					if (found) {
-						return room.roomId;
-					}
+				} else if (found) {
+					return room.roomId;
 				}
 			}
 			return false;
@@ -472,11 +471,14 @@ const usePubhubsStore = defineStore('pubhubs', {
 				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
 			}
 
-			// Reuse existing room only if user is still a member
+			// Reuse existing room if user is a member, or join if invited
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
-				const isMember = await this.isUserRoomMember(me.userId, existingRoomId);
-				if (isMember) {
-					const rooms = useRooms();
+				const rooms = useRooms();
+				const existingRoom = this.client.getRoom(existingRoomId);
+				const myMembership = existingRoom?.getMember(me.userId)?.membership;
+
+				if (myMembership === 'join') {
+					// Already a member - reuse the room
 					let name = rooms.room(existingRoomId)?.name;
 					if (name) {
 						name = updatePrivateRoomName(name, me.userId, false);
@@ -486,32 +488,33 @@ const usePubhubsStore = defineStore('pubhubs', {
 					await this.renameRoom(existingRoomId, name);
 					rooms.setRoomListHidden(existingRoomId, false);
 					return { room_id: existingRoomId };
+				} else if (myMembership === 'invite') {
+					// Invited but not joined - accept the invite
+					await this.client.joinRoom(existingRoomId);
+					rooms.setRoomListHidden(existingRoomId, false);
+					return { room_id: existingRoomId };
 				}
-				// User is not a member anymore - fall through to create a new room
+				// User has left or was banned - fall through to create a new room
 			}
 
-			// Create new room
-			if (existingRoomId === false) {
-				const privateRoomName = createNewPrivateRoomName([me.userId, ...otherUsers]);
-				const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
+			// Create new room (either no existing room found, or user left the existing room)
+			const privateRoomName = createNewPrivateRoomName([me.userId, ...otherUsers]);
+			const stewardRoomName = roomIdForStewardRoomCreate === '' ? '' : roomIdForStewardRoomCreate + ',' + privateRoomName;
 
-				const room = await this.createRoom({
-					preset: Preset.TrustedPrivateChat,
-					name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
-					visibility: Visibility.Private,
-					invite: otherUsers,
-					is_direct: true,
-					creation_content: { type: roomType },
-					topic: `PRIVATE: ${me.userId}, ${otherUsers.join(', ')}`,
-					initial_state: [
-						{ type: 'm.room.history_visibility', state_key: '', content: { history_visibility: 'shared' } },
-						{ type: 'm.room.guest_access', state_key: '', content: { guest_access: 'forbidden' } },
-					],
-				});
-				return room;
-			}
-
-			return null;
+			const room = await this.createRoom({
+				preset: Preset.TrustedPrivateChat,
+				name: roomIdForStewardRoomCreate === '' ? privateRoomName : stewardRoomName,
+				visibility: Visibility.Private,
+				invite: otherUsers,
+				is_direct: true,
+				creation_content: { type: roomType },
+				topic: `PRIVATE: ${me.userId}, ${otherUsers.join(', ')}`,
+				initial_state: [
+					{ type: 'm.room.history_visibility', state_key: '', content: { history_visibility: 'shared' } },
+					{ type: 'm.room.guest_access', state_key: '', content: { guest_access: 'forbidden' } },
+				],
+			});
+			return room;
 		},
 
 		async renameRoom(roomId: string, name: string) {
@@ -612,16 +615,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			threadRoot: TMessageEvent | undefined,
 			inReplyTo: TMessageEvent | undefined,
 		): Promise<TTextMessageEventContent> {
-			let content = undefined;
-
-			// Set body of content
-			const cleanText = hasHtml(text);
-			if (typeof cleanText === 'string') {
-				const html = sanitizeHtml(text);
-				content = ContentHelpers.makeHtmlMessage(cleanText, html) as TTextMessageEventContent;
-			} else {
-				content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
-			}
+			// The message input is a plain text field, so the text is sent verbatim as a plain text
+			// message. Never infer "the user meant markup" from the presence of `<`: code, math and
+			// generics (`Vec<T>`, `100<H|`, `a<b`) would be silently deleted, because the HTML parser
+			// swallows everything from `<` up to the next `>` as a bogus tag.
+			// Escaping for rendering happens downstream (eventTimeLineHandler / textToHtml).
+			const content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
 
 			// Set mention
 			await this._addUserMentionsToMessageContent(content);
@@ -659,7 +658,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 
 			// make room visible for all members if private room
-			if (room && room.isPrivateRoom()) {
+			if (room?.isPrivateRoom()) {
 				const originalName = room.name;
 				const newName = refreshPrivateRoomName(originalName);
 				if (originalName !== newName) {
@@ -713,7 +712,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @param newCaption the new caption text (empty string = use filename as body)
 		 * @param file metadata for the file (mxc URL, filename, mimetype, size, msgtype)
 		 */
-		async editFileMessage(roomId: string, originalEvent: TMessageEvent, newCaption: string, file: Omit<FileEditInfo, 'previewUrl'>): Promise<void> {
+		async editFileMessage(roomId: string, originalEvent: TMessageEvent, newCaption: string, file: Omit<FileInfo, 'previewUrl'>): Promise<void> {
 			const body = newCaption.trim() || file.filename;
 			const newContent = {
 				body,
@@ -807,6 +806,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 		},
 
+		/**
+		 * Send a message that PubHubs reads back off the timeline itself rather than rendering as a
+		 * message of its own. Goes over the client-server API to skip the matrix-js-sdk's local echo,
+		 * which such a message cannot survive -- see `APIService.sendRoomMessage` for why.
+		 */
+		async sendMessageWithoutLocalEcho(roomId: string, content: object): Promise<void> {
+			await APIService.sendRoomMessage(roomId, content, this.client.makeTxnId());
+		},
+
 		async addVisibilityMessage(roomId: string, targetEventId: string, hide: boolean, label?: string) {
 			const content: THideMessageContent = {
 				msgtype: PubHubsMgType.HideMessage,
@@ -817,8 +825,48 @@ const usePubhubsStore = defineStore('pubhubs', {
 				},
 				ph_hidden_label: label,
 			};
-			await this.client.sendMessage(roomId, content as unknown as RoomMessageEventContent);
+			await this.sendMessageWithoutLocalEcho(roomId, content);
 		},
+
+		async addExpertVerificationMessage(
+			roomId: string,
+			targetEventId: string,
+			verificationType: TExpertVerificationType,
+			credentials: string,
+			specializations?: string[],
+			verificationNote?: string,
+			sources?: string[],
+		): Promise<void> {
+			const content: TExpertVerificationMessageContent = {
+				msgtype: PubHubsMgType.ExpertVerification,
+				body: `Expert verification: ${verificationType}`,
+				verification_type: verificationType,
+				credentials,
+				specializations,
+				verification_note: verificationNote,
+				sources,
+				'm.relates_to': {
+					rel_type: RelationType.ExpertVerify,
+					event_id: targetEventId,
+				},
+			};
+			await this.sendMessageWithoutLocalEcho(roomId, content);
+		},
+
+		async removeExpertVerificationMessage(roomId: string, targetEventId: string): Promise<void> {
+			const content: TExpertVerificationMessageContent = {
+				msgtype: PubHubsMgType.ExpertVerification,
+				body: 'Expert verification removed',
+				verification_type: 'verified', // Type doesn't matter for unverify
+				credentials: '',
+				'm.relates_to': {
+					rel_type: RelationType.ExpertUnverify,
+					event_id: targetEventId,
+				},
+			};
+			await this.sendMessageWithoutLocalEcho(roomId, content);
+		},
+
 		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {
 			const content = {
 				msgtype: PubHubsMgType.AnnouncementMessage,
@@ -830,6 +878,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
+		/**
+		 * Adds the message that a videocall was opened
+		 * @param roomId
+		 * @param text
+		 * @returns
+		 */
 		async addVideoCallMessage(roomId: string, text: string): Promise<string> {
 			const content: TVideoCallMessageEventContent = {
 				msgtype: PubHubsMgType.VideoCall,
@@ -841,7 +895,13 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return response.event_id;
 		},
 
-		async updateVideoCallMessage(roomId: string, eventId: string, text: string) {
+		/**
+		 * Adds the message that a videocall was ended
+		 * @param roomId
+		 * @param eventId
+		 * @param text
+		 */
+		async addEndVideoCallMessage(roomId: string, eventId: string, text: string) {
 			const content: TVideoCallEndedMessageEventContent = {
 				msgtype: PubHubsMgType.VideoCallEnded,
 				body: text,
@@ -854,6 +914,21 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			// @ts-expect-error -- SDK sendEvent typing does not include custom videocall modify payload
 			await this.client.sendEvent(roomId, PubHubsMgType.VideoCallModify, content);
+		},
+
+		/**
+		 * Threadmessages get a local echo after being added: connecting them through the m.relates_to field to the original message.
+		 * For threadmessages that get sent after the original thread is out of the timeline (for instance in videocalls) this can lead to a breaking error
+		 * Therefor the messages need to be send without a local echo
+		 * @param roomId
+		 * @param text
+		 * @param threadRoot
+		 * @returns
+		 */
+		async addThreadMessageWithoutLocalEcho(roomId: string, text: string, threadRoot: TMessageEvent): Promise<{ event_id: string }> {
+			const content = await this._constructMessageContent(text, threadRoot, undefined);
+			const txnId = this.client.makeTxnId();
+			return APIService.sendRoomMessage(roomId, content, txnId);
 		},
 
 		async addWhisperMessage(
@@ -1094,7 +1169,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		async sendPrivateReceipt(event: MatrixEvent, roomId: string, threadId: string | undefined = undefined) {
 			const eventId = event?.getId();
-			if (!eventId || !roomId || !roomId.startsWith('!')) {
+			if (!eventId || !roomId?.startsWith('!')) {
 				return;
 			}
 
@@ -1158,13 +1233,43 @@ const usePubhubsStore = defineStore('pubhubs', {
 			eventType: PubHubsMgType = PubHubsMgType.Default,
 			inReplyTo?: TMessageEvent,
 		): Promise<boolean> {
+			return await this.sendFileMessage(
+				roomId,
+				threadId,
+				{
+					filename: filename ?? file.name,
+					mimetype: file.type,
+					size: file.size,
+					msgtype: imageTypes.includes(file?.type) ? MsgType.Image : MsgType.File,
+					mxcUrl: uri,
+				},
+				message,
+				eventType,
+				inReplyTo,
+			);
+		},
+
+		/**
+		 * This extra function in addfile is needed so sending already existing files via the roomlibrary is possible.
+		 * @param roomId
+		 * @param threadId
+		 * @param file Description of the media, including its `mxc://` url
+		 * @param message Message to go with the file
+		 * @param eventType
+		 * @param inReplyTo
+		 */
+		async sendFileMessage(
+			roomId: string,
+			threadId: string | undefined,
+			file: FileInfo,
+			message: string = '',
+			eventType: PubHubsMgType = PubHubsMgType.Default,
+			inReplyTo?: TMessageEvent,
+		): Promise<boolean> {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
-			let fileType = MsgType.File;
-			const fileName: string = filename ?? file.name;
 
 			let body = message;
-			if (body === '') body = fileName;
-			if (imageTypes.includes(file?.type)) fileType = MsgType.Image;
+			if (body === '') body = file.filename;
 
 			let relatesTo: { event_id?: string; rel_type?: string; 'm.in_reply_to'?: { event_id: string } } | undefined = undefined;
 			if (thread || inReplyTo) {
@@ -1180,13 +1285,13 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			const content: RoomMessageEventContent = {
 				body: body,
-				filename: fileName,
+				filename: file.filename,
 				info: {
-					mimetype: file.type,
+					mimetype: file.mimetype,
 					size: file.size,
 				},
-				msgtype: fileType, // client expects string from MsgType enum, to make our own type castable send this as any
-				url: uri,
+				msgtype: file.msgtype as MsgType.File | MsgType.Image, // client expects string from MsgType enum, to make our own type castable send this as any
+				url: file.mxcUrl,
 
 				// satisfy the sdk's type checking
 				'm.new_content': undefined,
@@ -1505,34 +1610,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
-		},
-
-		async initialiseVideoCallPowerLevels(roomId: string) {
-			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
-			powerLevels.events = powerLevels.events || {};
-			powerLevels.events['org.matrix.msc3401.call.member'] = UserPowerLevel.User;
-			powerLevels.events['org.matrix.msc3401.call'] = UserPowerLevel.User;
-			await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
-		},
-
-		async initialiseTimeoutPowerLevels(roomId: string) {
-			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
-			powerLevels.events = powerLevels.events || {};
-			// Steward power level (50) required to issue timeouts
-			if (powerLevels.events['pubhubs.timeout'] === undefined) {
-				powerLevels.events['pubhubs.timeout'] = UserPowerLevel.Steward;
-				await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
-			}
-		},
-
-		async initialiseYellowCardPowerLevels(roomId: string) {
-			const powerLevels = await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
-			powerLevels.events = powerLevels.events || {};
-			// Power level 0 allows any user to send (users can dismiss their own warnings)
-			if (powerLevels.events['pubhubs.yellow_card'] === undefined) {
-				powerLevels.events['pubhubs.yellow_card'] = 0;
-				await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, powerLevels, '');
-			}
 		},
 
 		addEndCallListener() {

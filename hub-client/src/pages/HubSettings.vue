@@ -3,7 +3,7 @@
 		<template #header>
 			<div
 				class="flex h-full items-center gap-150"
-				:class="isMobile ? 'p-150 pl-600' : 'p-200 pl-400'"
+				:class="isMobile ? 'p-150 pl-700' : 'p-200 pl-400'"
 			>
 				<Icon type="sliders-horizontal" />
 				<H3 class="text-on-surface flex">

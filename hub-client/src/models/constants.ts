@@ -48,6 +48,7 @@ enum MatrixEventType {
 	RoomReceipt = 'm.room.receipt',
 	RoomReadMarker = 'm.room.read_markers',
 	YellowCard = 'pubhubs.yellow_card',
+	YellowCardAccepted = 'pubhubs.yellow_card_accepted', // Room account data, see TYellowCardAcceptedContent
 	Timeout = 'pubhubs.timeout',
 }
 
@@ -63,6 +64,8 @@ enum RelationType {
 	EventId = 'event_id',
 	Hide = 'hide',
 	UnHide = 'unhide',
+	ExpertVerify = 'pubhubs.expert_verify',
+	ExpertUnverify = 'pubhubs.expert_unverify',
 }
 
 // Redaction strings that are not included in Matrix enums

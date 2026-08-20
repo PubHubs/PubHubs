@@ -117,9 +117,6 @@ function useModerationTimeout(base: ReturnType<typeof useModerationBase>) {
 	};
 
 	const issueTimeout = async (roomId: string, userId: string, durationMinutes: number, reason: string): Promise<void> => {
-		// Initialize power levels for timeout event if needed
-		await pubhubsStore.initialiseTimeoutPowerLevels(roomId);
-
 		const now = Date.now();
 		const currentTimeouts = { ...getCurrentTimeouts() };
 

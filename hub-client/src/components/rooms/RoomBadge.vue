@@ -49,9 +49,10 @@
 	const isAdmin = computed(() => userPowerLevel.value === UserPowerLevel.Admin);
 	const isSuperSteward = computed(() => userPowerLevel.value >= UserPowerLevel.SuperSteward);
 	const isSteward = computed(() => userPowerLevel.value >= UserPowerLevel.Steward);
-	const isExpert = computed(() => userPowerLevel.value >= UserPowerLevel.Expert);
-
 	const isRoomSteward = computed(() => isAdmin.value || isSteward.value || isSuperSteward.value);
+
+	// Check if user is an expert based on power level (>= 25)
+	const isExpert = computed(() => userPowerLevel.value >= UserPowerLevel.Expert);
 
 	const hasPrivileges = computed(() => isExpert.value || isRoomSteward.value);
 
@@ -67,6 +68,7 @@
 
 	const badgeLabel = computed(() => {
 		if (isRoomSteward.value) return t('admin.title_room_steward');
+		if (isExpert.value) return t('expert.expert');
 		if (roomAttributeEntries.value.length > 0) {
 			const [, value] = roomAttributeEntries.value[0];
 			return value.includes('.') ? t(value) : value;
@@ -78,6 +80,9 @@
 		if (isRoomSteward.value) {
 			return badgeLabel.value;
 		}
+		if (isExpert.value) {
+			return t('expert.expert');
+		}
 		if (roomAttributeEntries.value.length > 0) {
 			const [attribute, value] = roomAttributeEntries.value[0];
 			const displayValue = value.includes('.') ? t(value) : value;
@@ -88,7 +93,7 @@
 
 	const badgeClasses = computed(() => {
 		if (isRoomSteward.value) return 'border-accent-steward text-accent-steward';
-		if (isExpert.value) return 'border-on-surface-dim text-on-surface-dim';
+		if (isExpert.value) return 'border-accent-expert text-accent-expert';
 		return 'border-on-surface-dim text-on-surface-dim';
 	});
 </script>
