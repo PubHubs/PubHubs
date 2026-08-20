@@ -9,10 +9,10 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
-## Changes not merged to stable yet
+## 20 August 2026 - v3.5.1
 
 - [NEW] Introducing expert users that can set their credentials via synapse account details and add context to messages. Expert users are appointed by stewards or room admins via a new roles page.
-- [NEW] The Pubhubs Central Yivi email and phone-number login will be replaced with the Yivi Pubhubs Card login.
+- [NEW] The Pubhubs Central Yivi email and phone-number login is replaced with the Yivi Pubhubs Card login.
 - [NEW] Added a room sidebar where user details can be viewed.
 
 - [BUG] Fixed that only one local testhub could be started at a time: every hub published LiveKit on the fixed host port 7880, so a second `mask run hub server <n>` failed with "port is already allocated". Each hub `n` now runs its LiveKit on `7880+n`, both inside and outside the container, so video calls work in several hubs at once.
@@ -23,10 +23,10 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed that the Global Bar info (Questionmark Icon) was showing the wrong version of Pubhubs.
 - [BUG] Fixed that room mentions did not immediately work on page reload.
 - [BUG] Fixed that code examples could not be sent properly because they would be catched as invalid html.
-- [BUG] Fixed that any user could send a warning to any other users, which was a potential grieve risk.
+- [BUG] Fixed that any user could send a warning to any other users via the synapse api, which was a potential grieve risk.
 - [BUG] Fixed that expired users could rejoin a secured room via the synapse api without disclosing their yivi attributes again.
-- [BUG] Fixed that leaving a room from the roomlist rerouted a user to the homepage no matter on what page the user was.
-- [BUG] Roomlibrary download button was not responsive for non-mobile users.
+- [BUG] Fixed that leaving a room from the roomlist rerouted a user to the homepage no matter on what page the user was at that time.
+- [BUG] Fixed that the Roomlibrary download button was not responsive for non-mobile users.
 
 ## 15 June 2026 - v3.5.0
 
