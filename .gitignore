@@ -13,6 +13,11 @@ dist
 # Added by cargo
 /target
 
+# GitLab CI caches.  
+/.cargo/
+/.npm/
+/.cache/
+
 # Nix
 .direnv
 .envrc
