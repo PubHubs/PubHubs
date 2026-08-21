@@ -14,7 +14,7 @@ FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 
 RUN mkdir -p tests && touch tests/integration.rs && \
-	cargo chef cook --release --locked --recipe-path recipe.json
+        cargo chef cook --release --recipe-path recipe.json
 
 COPY ./src/ src/
 COPY ./Cargo.toml ./Cargo.lock ./
