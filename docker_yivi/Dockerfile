@@ -1,11 +1,11 @@
 FROM golang:trixie
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v1.3.0 --depth 1
-
-WORKDIR irmago
-
 # Since v1.x the CLI is the `yivi` binary; the old `irma` command is now the `yivi irma` subcommand.
-RUN go install ./yivi
+RUN git clone https://github.com/privacybydesign/irmago --branch v1.3.0 --depth 1 && \
+	cd irmago && \
+	go install ./yivi
+
+WORKDIR /go/irmago
 
 EXPOSE 8088
 
