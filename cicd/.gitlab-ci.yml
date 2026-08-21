@@ -35,39 +35,49 @@ stages: # List of stages for jobs, and their order of execution
 
         - CACHE_ARGS="${CACHE_ARGS} --provenance=false"
 
-.rust-cache: &rust-cache
-    cache:
-        key: rust-$CI_COMMIT_REF_SLUG
-        # New branches and MRs warm-start from main's cache instead of building cold.
-        fallback_keys:
-            - rust-main
-        paths:
-            - pubhubs/target/
-            - .cargo/
-    variables:
-        CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
-
-rust:
+.rust-job:
     stage: tests
     tags:
         - docker
     interruptible: true
+    image: $RUST_IMAGE
+    variables:
+        CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
     rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
-    image: $RUST_IMAGE
-    <<: *rust-cache
+
+rust-clippy:
+    extends: .rust-job
+    cache:
+        key: rust-clippy-$CI_COMMIT_REF_SLUG
+        # New branches and MRs warm-start from main's cache instead of building cold.
+        fallback_keys:
+            - rust-clippy-main
+        paths:
+            - pubhubs/target/
+            - .cargo/
     script:
         - cd pubhubs
-        - echo "=== cargo clippy ==="
         - cargo clippy --all-targets -- --deny "warnings"
-        - echo "=== cargo test ==="
+
+rust-test:
+    extends: .rust-job
+    cache: &rust-test-cache
+        key: rust-test-$CI_COMMIT_REF_SLUG
+        fallback_keys:
+            - rust-test-main
+        paths:
+            - pubhubs/target/
+            - .cargo/
+    script:
+        - cd pubhubs
         - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug cargo test
 
 # `cargo deny` only reads Cargo.lock and deny.toml -- it compiles nothing.  As its own job it runs
-# next to `rust` instead of after it, and it does not need the (multi-GB) target/ cache.
-cargo-deny:
+# next to the other rust jobs instead of after them, and it does not need the (multi-GB) target/ cache.
+rust-deny:
     stage: tests
     tags:
         - docker
@@ -81,9 +91,9 @@ cargo-deny:
         CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
     cache:
         # Only the crates.io index and the advisory database, not the build artifacts.
-        key: cargo-deny-$CI_COMMIT_REF_SLUG
+        key: rust-deny-$CI_COMMIT_REF_SLUG
         fallback_keys:
-            - cargo-deny-main
+            - rust-deny-main
         paths:
             - .cargo/
     script:
@@ -104,9 +114,13 @@ rust-doc:
               - pubhubs/**/*
               - cicd/.gitlab-ci.yml
     needs:
-        - rust
+        - rust-test
     image: $RUST_IMAGE
-    <<: *rust-cache
+    variables:
+        CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+    cache:
+        <<: *rust-test-cache
+        policy: pull
     script:
         - cd pubhubs
         # target/doc comes back from the cache, so wipe it first: without that, dependency docs left
@@ -132,7 +146,9 @@ build-pubhubs-image:
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs-buildcache:stable
               BUILD_CACHE_FALLBACK_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs-buildcache:main
     needs:
-        - job: rust
+        - job: rust-clippy
+          optional: true
+        - job: rust-test
           optional: true
     tags:
         - docker
