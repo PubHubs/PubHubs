@@ -79,7 +79,10 @@ public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin {
             completionHandler(.noData)
             return
         }
-        notifyListeners("pushReceived", data: ["hub_id": hubId])
+        // retainUntilConsumed: a push received while backgrounded/killed can fire before the JS
+        // layer has re-attached its "pushReceived" listener after cold start; without this the
+        // event would be dropped on the floor instead of delivered once JS is ready for it.
+        notifyListeners("pushReceived", data: ["hub_id": hubId], retainUntilConsumed: true)
         completionHandler(.newData)
     }
 }

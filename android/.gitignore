@@ -61,8 +61,9 @@ captures/
 .externalNativeBuild
 .cxx/
 
-# Google Services (e.g. APIs or Firebase)
-# google-services.json
+# Google Services (e.g. APIs or Firebase) - operator/CI-supplied, gplay flavor only.
+# See app/build.gradle's flavor comments and cicd/.gitlab-ci.yml's android-assemble-gplay job.
+app/src/gplay/google-services.json
 
 # Freeline
 freeline.py

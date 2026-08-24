@@ -27,6 +27,27 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Two push-notification transports, so PubHubs can ship both a Play Store build and an
+    // F-Droid build: F-Droid's build servers cannot fetch Google's proprietary Maven artifacts
+    // at all, so any Firebase/Play-Services dependency must be completely absent from that
+    // variant, not merely unused at runtime. Each flavor gets its own
+    // nl.pubhubs.client.push.NativePushPlugin implementation via source-set overrides (see
+    // src/gplay/java/.../push/ and src/fdroid/java/.../push/) - shared code (MainActivity,
+    // PushEvents, LocalNotifier) never references Firebase or UnifiedPush symbols directly, so it
+    // compiles identically for both. See the push notifications plan for the full rationale.
+    flavorDimensions "distribution"
+    productFlavors {
+        // Play Store / general APK build: FCM via Firebase Cloud Messaging.
+        gplay {
+            dimension "distribution"
+        }
+        // F-Droid build: no Google dependency at all. Uses UnifiedPush instead, which requires
+        // the end user to have a UnifiedPush distributor (e.g. ntfy) installed.
+        fdroid {
+            dimension "distribution"
+        }
+    }
 }
 
 repositories {
@@ -45,15 +66,35 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // gplay flavor only: Firebase Cloud Messaging, for src/gplay/.../push/NativePushPlugin.java
+    // and FcmService.java. The BoM pins compatible versions of all Firebase artifacts; only
+    // firebase-messaging itself is actually used.
+    gplayImplementation platform("com.google.firebase:firebase-bom:$firebaseBomVersion")
+    gplayImplementation "com.google.firebase:firebase-messaging"
+
+    // fdroid flavor only: UnifiedPush, for src/fdroid/.../push/NativePushPlugin.java and
+    // UnifiedPushService.java. Google-free, self-hostable push - see the push notifications plan.
+    fdroidImplementation "org.unifiedpush.android:connector:$unifiedPushConnectorVersion"
 }
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+// Applied only when the gplay flavor's google-services.json is actually present (gitignored;
+// each build/developer/CI job supplies their own - see cicd/.gitlab-ci.yml's
+// android-assemble-gplay job). This deliberately keeps the original template's cautious,
+// conditional-apply behaviour rather than applying unconditionally: the google-services plugin is
+// known to hard-fail *the entire build's configuration phase* - not just the affected variant -
+// when it can't find a google-services.json anywhere in the module, which would otherwise also
+// break fdroid-only builds and any Gradle invocation on a checkout without Firebase set up.
+//
+// NEEDS VERIFICATION (no Android SDK in this environment to build against, and no network access
+// to Google's/Maven's repositories to even resolve the plugin itself): confirm this file-existence
+// check is still sufficient with the flavor-scoped path, and that applying the plugin at all when
+// only the fdroid flavor is being built (but a gplay google-services.json happens to be present,
+// e.g. in CI where both jobs share a checkout) doesn't pull Firebase into the fdroid variant too.
+if (file('src/gplay/google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+} else {
+    logger.info("src/gplay/google-services.json not found - gplay push notifications won't work, fdroid is unaffected")
 }
