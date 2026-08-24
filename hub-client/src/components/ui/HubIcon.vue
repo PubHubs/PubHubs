@@ -4,7 +4,7 @@
 			v-show="imageLoaded"
 			:alt="`Icon of Hub ${hubNameForImgAlt ?? ''}`"
 			class="bg-surface-base dark:bg-on-surface h-full w-full object-cover"
-			:src="url"
+			:src="src"
 			@load="imageLoaded = true"
 		/>
 		<Icon
@@ -17,9 +17,12 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onMounted, ref } from 'vue';
+	import { onMounted, ref } from 'vue';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// Composables
+	import { useImageObjectUrl } from '@hub-client/composables/useImageObjectUrl';
 
 	// Types
 	type Props = {
@@ -30,7 +33,10 @@
 	};
 
 	const props = defineProps<Props>();
-	const url = computed(getUrl);
+
+	// Fetched instead of bound straight to `<img src>`: the icon lives on the hub's plain-HTTP dev
+	// address, which the native shell's https origin would auto-upgrade. See the composable.
+	const { src } = useImageObjectUrl(() => props.iconUrl);
 
 	let fallback = ref(false);
 	let imageLoaded = ref(false);
@@ -44,9 +50,5 @@
 		if (!imageLoaded.value) {
 			fallback.value = true;
 		}
-	}
-
-	function getUrl(): string {
-		return props.iconUrl;
 	}
 </script>

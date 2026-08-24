@@ -1,8 +1,11 @@
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase, TestCase
 
 import sys
+import tempfile
+from types import SimpleNamespace
 
 sys.path.append("modules")
+from pubhubs._cors import set_public_allow_origin_header
 from pubhubs._hub_media_resource import (
     HubMediaResource,
     ALLOWED_HUB_MEDIA_TYPES,
@@ -82,3 +85,81 @@ class HubMediaConstantsTest(TestCase):
 
     def test_max_media_size_is_five_mb(self):
         self.assertEqual(MAX_HUB_MEDIA_SIZE, 5_000_000)
+
+
+class _FakeRequest:
+    """Minimal stand-in for SynapseRequest: records headers and the written body."""
+
+    def __init__(self):
+        self.headers = {}
+        self.written = b""
+        self.finished = False
+
+    def setHeader(self, name, value):
+        self.headers[name] = value
+
+    def write(self, content):
+        self.written += content
+
+    def finish(self):
+        self.finished = True
+
+
+class PublicAllowOriginHeaderTest(TestCase):
+    def test_sets_wildcard_without_consulting_the_request_origin(self):
+        request = _FakeRequest()
+
+        set_public_allow_origin_header(request)
+
+        self.assertEqual(request.headers[b"Access-Control-Allow-Origin"], b"*")
+
+
+class HubMediaCorsTest(IsolatedAsyncioTestCase):
+    """The clients read hub media with fetch() rather than binding it to <img src>, so the native
+    shell's https origin cannot auto-upgrade the plain-HTTP dev address (see hub-client's
+    useImageObjectUrl). Unlike <img>, fetch() needs the response to be CORS-readable, and this GET
+    writes raw bytes instead of going through respond_with_json, so Synapse's own CORS handling
+    never runs for it."""
+
+    def _resource(self, media_path):
+        # _async_render_GET needs no module_api (its validator is GUEST, i.e. unauthenticated), so
+        # skip the heavy DirectServeJsonResource constructor as the tests above do.
+        resource = HubMediaResource.__new__(HubMediaResource)
+        resource._media_type = "icon"
+        resource._is_default = False
+        resource._darkmode = False
+        resource._get_media_path = lambda: media_path
+        return resource
+
+    async def test_get_allows_any_origin(self):
+        png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+        with tempfile.NamedTemporaryFile() as fd:
+            fd.write(png)
+            fd.flush()
+            request = _FakeRequest()
+
+            await self._resource(fd.name)._async_render_GET(request)
+
+        self.assertEqual(request.headers[b"Access-Control-Allow-Origin"], b"*")
+        self.assertEqual(request.headers[b"Content-Type"], b"image/png")
+        self.assertEqual(request.written, png)
+        self.assertTrue(request.finished)
+
+    async def test_get_allows_any_origin_when_falling_back_to_default_media(self):
+        # The default-media branch responds on its own, so it has to carry the header too.
+        svg = b"<svg></svg>"
+        with tempfile.NamedTemporaryFile() as fd:
+            fd.write(svg)
+            fd.flush()
+            resource = self._resource("/nonexistent/hub/icon")
+            resource._config = SimpleNamespace(
+                default_hub_icon_path=fd.name,
+                default_hub_icon_dark_path=fd.name,
+            )
+            request = _FakeRequest()
+
+            await resource._async_render_GET(request)
+
+        self.assertEqual(request.headers[b"Access-Control-Allow-Origin"], b"*")
+        self.assertEqual(request.headers[b"Content-Type"], b"image/svg+xml")
+        self.assertEqual(request.written, svg)

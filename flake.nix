@@ -114,9 +114,7 @@
                 android-studio
 
                 # Other
-                caddy # local HTTPS dev proxy for real-device testing, see docs/app/README.md
                 mask # 0.11.7
-                mkcert # generates the locally-trusted cert the dev HTTPS proxy uses
                 openssl # 3.6.1
                 pkg-config # 0.29.2
                 sqlite # 3.51.2

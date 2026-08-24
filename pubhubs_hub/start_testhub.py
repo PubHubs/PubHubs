@@ -11,11 +11,6 @@ from urllib.parse import urlparse
 # The n-th testhub runs its LiveKit on 7880+n, so several hubs can run side by side.
 LIVEKIT_BASE_PORT = 7880
 
-# hub_client_url and the Matrix/Synapse API are additionally fronted by the locally-trusted HTTPS proxy
-# (`mask run proxy`, see scripts/gen-dev-proxy.js) on plain-port + this offset, for real-device reachability
-# and hub-client's secure-context requirement. See docs/app/README.md.
-HTTPS_PROXY_PORT_OFFSET = 10000
-
 
 def write_livekit_config(number, port):
     """Write a per-hub LiveKit config into testhub<number>/ and return its path in the container.
@@ -91,19 +86,19 @@ def main():
             s.connect(("k.root-servers.net", 53))
             networkhost = "[" + s.getsockname()[0] + "]"
 
-    # hub_client_url: the hub's iframe src, handed to the global client via PHC's `.ph/info`, so it goes
-    # through the HTTPS dev proxy on the networkhost IP (see HTTPS_PROXY_PORT_OFFSET).
-    hub_client_url = f"https://{networkhost}:{8001+args.number+HTTPS_PROXY_PORT_OFFSET}"
+    # hub_client_url: the hub's iframe src, handed to the global client via PHC's `.ph/info`. Plain HTTP
+    # on the networkhost IP, mirroring the PHC/global-client pattern — see docs/app/README.md.
+    hub_client_url = f"http://{networkhost}:{8001+args.number}"
     # hub_server_url (public_baseurl): used server-side by PHC/yivi to reach the hub directly, so it
     # stays on the plain-http `networkhost` url from pubhubs.toml, unrelated to the browser-facing URL
     # above (that's hub-client's own HUB_URL, see maskfile.md's "hub client (n)").
     hub_server_url = f"http://{networkhost}:{8008+args.number}"
     # public_yivi_url: the hub's advertised Yivi disclosure-session proxy URL (_synapse/client/yiviproxy,
-    # QR-encoded for the Yivi app, polled by the browser). Defaults to hub_server_url (plain http), which
-    # would mismatch the now-https hub-client page as mixed content, so we reuse the same HTTPS proxy
-    # port as hub_client_url instead — same backend listener, no new Caddy port needed. Trailing slash:
-    # _web.py concatenates the yiviproxy path onto this as-is.
-    public_yivi_url = f"https://{networkhost}:{8008+args.number+HTTPS_PROXY_PORT_OFFSET}/"
+    # QR-encoded for the Yivi app, polled by the browser). Same plain-http address as hub_server_url —
+    # enable Yivi's own "developer mode" on the phone scanning the QR code, or it'll refuse a plain-HTTP
+    # session-pointer URL. See docs/app/README.md. Trailing slash: _web.py concatenates the yiviproxy
+    # path onto this as-is.
+    public_yivi_url = f"{hub_server_url}/"
     # global_client_url: the native app shell's own origin check (modules/pubhubs/HubClientApi.py),
     # unrelated to the above — always localhost, regardless of platform. See docs/app/README.md.
     global_client_url = "http://localhost:8080"

@@ -5,14 +5,15 @@
 	>
 		<!-- Without a hub name the banner carries no information of its own, so it is decorative -->
 		<img
-			v-if="props.bannerUrl"
+			v-if="src"
 			class="h-full w-full object-cover"
 			onerror="this.style.display = 'none'"
-			:src="props.bannerUrl"
+			:src="src"
 			:alt="props.hubNameForImgAlt ?? ''"
 		/>
+		<!-- Only when there is no banner to load at all, so a slow fetch doesn't flash the default first -->
 		<img
-			v-else
+			v-else-if="!props.bannerUrl"
 			class="h-full w-full object-cover"
 			onerror="this.style.display = 'none'"
 			:src="defaultUrl"
@@ -25,6 +26,9 @@
 	// Assets
 	import defaultUrl from '@hub-client/assets/banner.svg';
 
+	// Composables
+	import { useImageObjectUrl } from '@hub-client/composables/useImageObjectUrl';
+
 	// Types
 	type Props = {
 		bannerUrl?: string;
@@ -33,4 +37,8 @@
 	};
 
 	const props = defineProps<Props>();
+
+	// Fetched instead of bound straight to `<img src>`: the banner lives on the hub's plain-HTTP dev
+	// address, which the native shell's https origin would auto-upgrade. See the composable.
+	const { src } = useImageObjectUrl(() => props.bannerUrl);
 </script>

@@ -15,8 +15,11 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ImageClipboardPlugin.class);
         super.onCreate(savedInstanceState);
 
-
-        getBridge().getWebView().getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        
+        // Debug builds only: lets the native shell (served from https://pubhubs-app.invalid) fetch
+        // plain-HTTP dev addresses (PHC/global-client/hub-client/Matrix API) without being blocked as
+        // mixed content. Release builds keep strict mixed-content blocking. See docs/app/README.md.
+        if (BuildConfig.DEBUG) {
+            getBridge().getWebView().getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
     }
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Prints the current `networkhost` IP (see scripts/lib/resolve-networkhost-ip.js) to stdout, for use in
- * shell command substitution — e.g. maskfile.md's "hub client (n)" task, which needs the same IP the HTTPS
- * dev proxy (`mask run proxy`, see scripts/gen-dev-proxy.js) is fronted on.
+ * shell command substitution — e.g. maskfile.md's "hub client (n)" task, which needs it to build
+ * VITE_HUB_URL.
  */
 
 import { resolveNetworkhostIp } from './lib/resolve-networkhost-ip.js';

@@ -68,7 +68,7 @@
 										<!-- Yivi injects content here - must be empty -->
 										<div
 											id="yivi-authentication"
-											class="absolute inset-0 z-50"
+											class="relative inset-0 z-50"
 										/>
 									</div>
 									<!-- Popup tail, centered on the login button -->

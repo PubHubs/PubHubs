@@ -30,6 +30,8 @@
 	<string>PubHubs uses the microphone to share audio during video calls.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>PubHubs accesses your photo library so you can choose a picture to add to a chat or for your profile.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>PubHubs connects to a hub server on your local network.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

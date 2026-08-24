@@ -2,8 +2,8 @@
  * Resolves the `networkhost` IP used for real-device dev testing, from `pubhubs/pubhubs.toml`'s
  * `[host_aliases] networkhost.ip` (or the `networkhost.source_ip_for` auto-detect fallback).
  *
- * Shared by scripts/sync-networkhost-ip.js, scripts/patch-ios-client-config-ip.js, and
- * scripts/gen-dev-proxy.js — see docs/app/README.md.
+ * Shared by scripts/sync-networkhost-ip.js and scripts/patch-ios-client-config-ip.js — see
+ * docs/app/README.md.
  */
 
 import dgram from 'node:dgram';

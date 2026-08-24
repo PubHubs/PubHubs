@@ -24,14 +24,12 @@ tmux split-window -h -t "$SESSION:0" "mask run servers; $hold"
 tmux split-window -h -t "$SESSION:0" "mask run client; $hold"
 
 # Create hub tab with first command for the hub
-tmux new-window -t "$SESSION:1" -n hub "mask run hub server 0; $hold"
+hub_server_flags=()
+[[ "$PH_NO_POSTGRES" == "true" ]] && hub_server_flags=(--no-postgres)
+tmux new-window -t "$SESSION:1" -n hub "mask run hub server 0 ${hub_server_flags[*]}; $hold"
 
 # Create split and run the hub client
 tmux split-window -h -t "$SESSION:1" "mask run hub client 0; $hold"
-
-# Create split and run the dev HTTPS proxy (fronts the hub client + Matrix API for real-device/secure-context
-# reachability — see docs/app/README.md). Required for hubs to load at all, on every platform.
-tmux split-window -h -t "$SESSION:1" "mask run proxy; $hold"
 
 # Balance layouts
 tmux select-layout -t "$SESSION:0" even-horizontal
