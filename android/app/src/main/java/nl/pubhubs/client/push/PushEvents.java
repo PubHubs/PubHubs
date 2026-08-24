@@ -1,13 +1,14 @@
 package nl.pubhubs.client.push;
 
 import com.getcapacitor.JSObject;
-import com.getcapacitor.Plugin;
 
 /**
  * Lets a push transport's background {@code Service} (FcmService in the gplay flavor,
  * UnifiedPushService in the fdroid flavor) hand events to the {@code NativePush} plugin instance
  * when the app happens to be running, without the two flavors' otherwise-separate
- * {@code NativePushPlugin} classes needing to duplicate this bookkeeping.
+ * {@code NativePushPlugin} classes needing to duplicate this bookkeeping. See
+ * {@link PushEventEmitter}'s doc for why this goes through an interface rather than a direct
+ * {@code com.getcapacitor.Plugin} reference.
  *
  * <p>The plugin instance may not exist at all when a Service method runs: Android can start this
  * process purely to deliver a push, with no WebView/Activity (and so no Capacitor bridge/plugin)
@@ -16,13 +17,13 @@ import com.getcapacitor.Plugin;
  */
 public final class PushEvents {
 
-    private static volatile Plugin activePlugin;
+    private static volatile PushEventEmitter activePlugin;
     private static volatile boolean appInForeground = false;
 
     private PushEvents() {}
 
     /** Called by NativePushPlugin.load() in each flavor. */
-    public static void setActivePlugin(Plugin plugin) {
+    public static void setActivePlugin(PushEventEmitter plugin) {
         activePlugin = plugin;
     }
 
@@ -42,22 +43,22 @@ public final class PushEvents {
     }
 
     public static void notifyTokenReceived(String transport, String token) {
-        Plugin plugin = activePlugin;
+        PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
         JSObject data = new JSObject();
         data.put("transport", transport);
         data.put("token", token);
-        plugin.notifyListeners("pushTokenReceived", data);
+        plugin.emitPushTokenReceived(data);
     }
 
     public static void notifyUnavailable(String reason) {
-        Plugin plugin = activePlugin;
+        PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
         JSObject data = new JSObject();
         data.put("reason", reason);
-        plugin.notifyListeners("pushUnavailable", data);
+        plugin.emitPushUnavailable(data);
     }
 
     /**
@@ -65,16 +66,11 @@ public final class PushEvents {
      *     content, see the push notifications plan.
      */
     public static void notifyPushReceived(String hubId) {
-        Plugin plugin = activePlugin;
+        PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
         JSObject data = new JSObject();
         data.put("hub_id", hubId);
-        // retainUntilConsumed: a push received right after a cold start (e.g. the app process was
-        // launched just to handle it, or the user tapped the LocalNotifier notification) can fire
-        // before the JS layer has attached its "pushReceived" listener; without this the event
-        // would be dropped instead of delivered once JS is ready. Mirrors the same fix on iOS,
-        // see NativePushPlugin.swift.
-        plugin.notifyListeners("pushReceived", data, true);
+        plugin.emitPushReceived(data);
     }
 }

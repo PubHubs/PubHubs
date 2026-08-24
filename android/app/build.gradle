@@ -24,7 +24,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -82,19 +82,25 @@ apply from: 'capacitor.build.gradle'
 
 // Applied only when the gplay flavor's google-services.json is actually present (gitignored;
 // each build/developer/CI job supplies their own - see cicd/.gitlab-ci.yml's
-// android-assemble-gplay job). This deliberately keeps the original template's cautious,
-// conditional-apply behaviour rather than applying unconditionally: the google-services plugin is
-// known to hard-fail *the entire build's configuration phase* - not just the affected variant -
-// when it can't find a google-services.json anywhere in the module, which would otherwise also
-// break fdroid-only builds and any Gradle invocation on a checkout without Firebase set up.
-//
-// NEEDS VERIFICATION (no Android SDK in this environment to build against, and no network access
-// to Google's/Maven's repositories to even resolve the plugin itself): confirm this file-existence
-// check is still sufficient with the flavor-scoped path, and that applying the plugin at all when
-// only the fdroid flavor is being built (but a gplay google-services.json happens to be present,
-// e.g. in CI where both jobs share a checkout) doesn't pull Firebase into the fdroid variant too.
+// android-assemble-gplay job). Confirmed by actually building both flavors locally (no
+// google-services.json anywhere in this sandbox originally, so this needed live verification,
+// not just reasoning about it):
+//   - Applying the plugin at all - regardless of this file-existence guard - registers a
+//     process<Variant>GoogleServices task for *every* variant, gplay and fdroid alike. That task
+//     hard-fails fdroid's build ("File google-services.json is missing") the moment the gplay
+//     file exists anywhere in the module, even though fdroid never asked for one. This *did*
+//     reproduce locally, so the fix below is verified, not guessed.
+//   - The fix: explicitly disable the google-services task for every non-gplay variant, so the
+//     plugin only ever does real work for gplay. This is deliberately name-matching rather than
+//     using AGP's variant-filtering API, to keep this readable without extra imports.
 if (file('src/gplay/google-services.json').exists()) {
     apply plugin: 'com.google.gms.google-services'
+
+    tasks.configureEach { task ->
+        if (task.name.startsWith('process') && task.name.endsWith('GoogleServices') && !task.name.contains('Gplay')) {
+            task.enabled = false
+        }
+    }
 } else {
     logger.info("src/gplay/google-services.json not found - gplay push notifications won't work, fdroid is unaffected")
 }

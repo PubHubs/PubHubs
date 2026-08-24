@@ -27,12 +27,33 @@ import com.google.firebase.messaging.FirebaseMessaging;
         @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = "receive")
     }
 )
-public class NativePushPlugin extends Plugin {
+public class NativePushPlugin extends Plugin implements PushEventEmitter {
 
     @Override
     public void load() {
         super.load();
         PushEvents.setActivePlugin(this);
+    }
+
+    // PushEventEmitter - see its doc for why this indirection exists (Plugin.notifyListeners is
+    // protected, so PushEvents can't call it directly on a held Plugin reference).
+    @Override
+    public void emitPushTokenReceived(JSObject data) {
+        notifyListeners("pushTokenReceived", data);
+    }
+
+    @Override
+    public void emitPushUnavailable(JSObject data) {
+        notifyListeners("pushUnavailable", data);
+    }
+
+    @Override
+    public void emitPushReceived(JSObject data) {
+        // retainUntilConsumed: a push received right after a cold start can fire before the JS
+        // layer has attached its "pushReceived" listener; without this the event would be
+        // dropped instead of delivered once JS is ready. Mirrors the same fix on iOS, see
+        // NativePushPlugin.swift.
+        notifyListeners("pushReceived", data, true);
     }
 
     @PluginMethod
@@ -57,12 +78,7 @@ public class NativePushPlugin extends Plugin {
     private void fetchToken(PluginCall call) {
         FirebaseMessaging.getInstance()
             .getToken()
-            .addOnSuccessListener(token -> {
-                JSObject data = new JSObject();
-                data.put("transport", "fcm");
-                data.put("token", token);
-                notifyListeners("pushTokenReceived", data);
-            })
+            .addOnSuccessListener(token -> PushEvents.notifyTokenReceived("fcm", token))
             .addOnFailureListener(err -> PushEvents.notifyUnavailable("registration_failed"));
 
         // fire-and-forget from JS's perspective: the actual token arrives via the

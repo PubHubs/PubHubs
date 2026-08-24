@@ -2,6 +2,7 @@ package nl.pubhubs.client.push;
 
 import androidx.annotation.NonNull;
 
+import org.unifiedpush.android.connector.FailedReason;
 import org.unifiedpush.android.connector.PushService;
 import org.unifiedpush.android.connector.data.PushEndpoint;
 import org.unifiedpush.android.connector.data.PushMessage;
@@ -11,12 +12,11 @@ import java.nio.charset.StandardCharsets;
 /**
  * fdroid flavor: receives UnifiedPush endpoint updates and messages.
  *
- * <p>Declared in AndroidManifest.xml (fdroid flavor overlay) with the intent-filter action the
- * UnifiedPush connector library requires to bind this service.
+ * <p>Declared in AndroidManifest.xml (fdroid flavor overlay) with {@link PushService#ACTION_PUSH_EVENT}
+ * as the intent-filter action.
  *
- * <p>NEEDS VERIFICATION - see NativePushPlugin.java's class doc: the base class name, its
- * override signatures, and PushEndpoint/PushMessage's shape are from best recollection of the
- * connector library's v2.x contract, not confirmed against its actual source or docs.
+ * <p>Verified against org.unifiedpush.android:connector 3.3.5's actual decompiled class files -
+ * see NativePushPlugin.java's class doc.
  */
 public class UnifiedPushService extends PushService {
 
@@ -28,8 +28,13 @@ public class UnifiedPushService extends PushService {
     }
 
     @Override
-    public void onRegistrationFailed(@NonNull org.unifiedpush.android.connector.FailedReason reason, @NonNull String instance) {
-        PushEvents.notifyUnavailable("registration_failed");
+    public void onRegistrationFailed(@NonNull FailedReason reason, @NonNull String instance) {
+        // VAPID_REQUIRED surfaced distinctly rather than folded into a generic failure: it means
+        // the chosen distributor requires a real VAPID key (see NativePushPlugin.register's
+        // comment on why we currently pass an empty one) - an ops/config problem, not a
+        // transient one, so it's worth being able to tell apart from NETWORK/INTERNAL_ERROR.
+        String reasonString = reason == FailedReason.VAPID_REQUIRED ? "vapid_required" : "registration_failed";
+        PushEvents.notifyUnavailable(reasonString);
     }
 
     @Override

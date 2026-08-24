@@ -3,6 +3,7 @@ package nl.pubhubs.client.push;
 import android.Manifest;
 import android.content.Context;
 
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -28,13 +29,11 @@ import java.util.List;
  * that URL is registered directly as the Matrix pusher's {@code data.url}, since a hub's Sygnal
  * instance can send to it directly via its webpush pushkin (see the push notifications plan).
  *
- * <p>NEEDS VERIFICATION (no Android SDK in this sandbox to build against, and no network access
- * to check org.unifiedpush.android:connector's current docs for the version pinned in
- * variables.gradle): the org.unifiedpush.android.connector.UnifiedPush API surface used below
- * (register/getDistributors/saveDistributor/getAckDistributor) is written from best recollection
- * of the connector library's v2.x contract, not confirmed against its actual source or docs.
- * Cross-check against https://unifiedpush.org/developers/android/ before relying on this - this
- * is exactly the "spike this early" risk flagged in the push notifications plan.
+ * <p>Verified against org.unifiedpush.android:connector 3.3.5's actual decompiled class files
+ * (no javadoc/source jar was available, and there's no network access from the environment that
+ * originally wrote this to check the library's docs) - see variables.gradle for the pinned
+ * version. Method signatures below are confirmed against that specific version's bytecode, not
+ * assumed; re-check if the pinned version is bumped.
  */
 @CapacitorPlugin(
     name = "NativePush",
@@ -42,7 +41,7 @@ import java.util.List;
         @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = "receive")
     }
 )
-public class NativePushPlugin extends Plugin {
+public class NativePushPlugin extends Plugin implements PushEventEmitter {
 
     /** Only one Matrix pusher's worth of push is needed per device. */
     private static final String INSTANCE = "default";
@@ -51,6 +50,27 @@ public class NativePushPlugin extends Plugin {
     public void load() {
         super.load();
         PushEvents.setActivePlugin(this);
+    }
+
+    // PushEventEmitter - see its doc for why this indirection exists (Plugin.notifyListeners is
+    // protected, so PushEvents can't call it directly on a held Plugin reference).
+    @Override
+    public void emitPushTokenReceived(JSObject data) {
+        notifyListeners("pushTokenReceived", data);
+    }
+
+    @Override
+    public void emitPushUnavailable(JSObject data) {
+        notifyListeners("pushUnavailable", data);
+    }
+
+    @Override
+    public void emitPushReceived(JSObject data) {
+        // retainUntilConsumed: a push received right after a cold start can fire before the JS
+        // layer has attached its "pushReceived" listener; without this the event would be
+        // dropped instead of delivered once JS is ready. Mirrors the same fix on iOS, see
+        // NativePushPlugin.swift.
+        notifyListeners("pushReceived", data, true);
     }
 
     @PluginMethod
@@ -93,7 +113,15 @@ public class NativePushPlugin extends Plugin {
 
         // The endpoint URL itself arrives asynchronously via UnifiedPushService.onNewEndpoint, not
         // as a return value here - same fire-and-forget shape as the gplay/iOS implementations.
-        UnifiedPush.register(context, INSTANCE);
+        //
+        // register()'s 3rd/4th args are messageForDistributor (a rationale string some
+        // distributors may show the user - none needed here) and vapid (a VAPID public key for
+        // Web Push encryption). We pass "" for both: our payload is an opaque hub_id only (see
+        // the push notifications plan), so there's nothing sensitive to encrypt. NOTE: some
+        // distributors reject registration with FailedReason.VAPID_REQUIRED without a real VAPID
+        // key - see UnifiedPushService.onRegistrationFailed, which surfaces that case distinctly
+        // so it's visible if it happens rather than looking like a generic failure.
+        UnifiedPush.register(context, INSTANCE, "", "");
         call.resolve();
     }
 }

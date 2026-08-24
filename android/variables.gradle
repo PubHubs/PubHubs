@@ -23,5 +23,5 @@ ext {
     // NEEDS VERIFICATION: same caveat - check https://unifiedpush.org for the current connector
     // release and, importantly, confirm this version's exact API against
     // NativePushPlugin.java/UnifiedPushService.java's comments, which flag the same uncertainty.
-    unifiedPushConnectorVersion = '2.4.0'
+    unifiedPushConnectorVersion = '3.3.5'
 }

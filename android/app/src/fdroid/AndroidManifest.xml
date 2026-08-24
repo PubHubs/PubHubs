@@ -3,13 +3,9 @@
     fdroid-flavor-only manifest additions, merged only into the F-Droid build. This flavor has no
     Firebase/Google Play Services dependency anywhere - see app/build.gradle's flavor comments.
 
-    NEEDS VERIFICATION (no Android SDK in this sandbox to build/test against, and no network
-    access to check the exact org.unifiedpush.android:connector docs for the version pinned in
-    variables.gradle): the intent-filter action name below and exported/permission attributes are
-    written from best recollection of the UnifiedPush Android connector's contract, not confirmed
-    against current library docs. Cross-check against
-    https://unifiedpush.org/developers/android/ (or the connector artifact's own README) before
-    relying on this.
+    The intent-filter action below is org.unifiedpush.android.connector.PushService's own
+    ACTION_PUSH_EVENT constant value, confirmed by decompiling connector-3.3.5.aar (no
+    javadoc/source jar was available to check directly) - see NativePushPlugin.java's class doc.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
@@ -20,7 +16,7 @@
             android:name=".push.UnifiedPushService"
             android:exported="true">
             <intent-filter>
-                <action android:name="org.unifiedpush.android.connector.MESSAGE" />
+                <action android:name="org.unifiedpush.android.connector.PUSH_EVENT" />
             </intent-filter>
         </service>
     </application>

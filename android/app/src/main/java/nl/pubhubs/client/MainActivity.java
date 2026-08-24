@@ -41,13 +41,13 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         PushEvents.setAppInForeground(true);
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         PushEvents.setAppInForeground(false);
         super.onPause();
     }
