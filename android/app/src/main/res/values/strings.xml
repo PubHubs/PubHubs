@@ -4,4 +4,10 @@
     <string name="title_activity_main">PubHubs</string>
     <string name="package_name">nl.pubhubs.client</string>
     <string name="custom_url_scheme">nl.pubhubs.client</string>
+
+    <!-- Push notifications (nl.pubhubs.client.push) - deliberately generic: the payload never
+         carries message content, sender, or room information to put here. -->
+    <string name="push_channel_name">New messages</string>
+    <string name="push_notification_title">PubHubs</string>
+    <string name="push_notification_body">You have new messages</string>
 </resources>

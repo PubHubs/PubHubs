@@ -1,6 +1,7 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
+use base64ct::{Base64UrlUnpadded, Encoding as _};
 use indexmap::IndexMap;
 
 use pubhubs::{
@@ -74,6 +75,25 @@ async fn main_integration_test() {
         .url = pubhubs::servers::config::host_aliases::UrlPwa::PerhapsWithAlias(
         "memory://".parse().unwrap(),
     );
+
+    // Configure PHC with a fake, test-only APNs auth key (not a real Apple key), so the
+    // push-credentials test below can mint and verify a real ES256 JWT without needing an
+    // actual Apple Developer account. FCM is deliberately left unconfigured: minting an FCM
+    // credential makes a real outbound call to Google, which needs a genuine service account
+    // and isn't suitable for this offline test - see the PushPlatform::Fcm case below instead.
+    let apns_test_pem: String = {
+        use p256::pkcs8::EncodePrivateKey as _;
+        p256::ecdsa::SigningKey::random(&mut rsa::rand_core::OsRng)
+            .to_pkcs8_pem(Default::default())
+            .unwrap()
+            .to_string()
+    };
+    config.phc.as_mut().unwrap().push.apns = Some(pubhubs::servers::config::phc::push::ApnsConfig {
+        key_id: "TESTKEYID1".to_string(),
+        team_id: "TESTTEAMID".to_string(),
+        private_key: apns_test_pem.clone(),
+        token_validity: Duration::from_secs(3000),
+    });
 
     // Change randomly generated admin key to a symmetric one we know.
     let admin_key = pubhubs::misc::serde_ext::bytes_wrapper::B16::from_bytes([7u8; 32]);
@@ -188,6 +208,7 @@ async fn main_integration_test() {
                     jwt::HS256(admin_key.into_inner().into_vec()),
                     yivi_server_sk,
                     hub_listener,
+                    apns_test_pem,
                 ))
                 .await;
             drop(shutdown_sender); // causes the servers to stop
@@ -204,6 +225,7 @@ async fn main_integration_test_local(
     admin_key: jwt::HS256,
     yivi_server_sk: yivi::SigningKey,
     hub_listener: std::net::TcpListener,
+    apns_test_pem: String,
 ) {
     let client = client::Client::builder()
         .agent(client::Agent::IntegrationTest)
@@ -438,6 +460,82 @@ async fn main_integration_test_local(
         assert_eq!(hub_handle, "testhub".parse().unwrap());
         assert_eq!(nonce.to_string(), ping_nonce.to_string());
         assert_eq!(served_by, name);
+    }
+
+    // Exercise PushCredentialsEP: mint an APNs credential via the same ticket-based hub auth
+    // flow, and check PHC returns a well-formed, correctly-signed ES256 JWT - entirely offline,
+    // using the fake APNs key configured in `main_integration_test` above.
+    {
+        let ts_req = api::phc::hub::TicketSigned::new(
+            ticket.clone(),
+            api::Signed::new(
+                &mock_hub.context.sk,
+                &api::phc::hub::PushCredentialsReq {
+                    platform: api::phc::hub::PushPlatform::Apns,
+                },
+                Duration::from_secs(10),
+            )
+            .unwrap(),
+        );
+
+        let api::phc::hub::PushCredentialsResp::Success(creds) = client
+            .query::<api::phc::hub::PushCredentialsEP>(&constellation.phc_url, &ts_req)
+            .with_retry()
+            .await
+            .unwrap()
+        else {
+            panic!("expected PushCredentialsResp::Success for Apns");
+        };
+
+        let parts: Vec<&str> = creds.token.split('.').collect();
+        assert_eq!(parts.len(), 3, "a compact JWT has exactly two dots");
+
+        let header: serde_json::Value =
+            serde_json::from_slice(&Base64UrlUnpadded::decode_vec(parts[0]).unwrap()).unwrap();
+        assert_eq!(header["alg"], "ES256");
+        assert_eq!(header["kid"], "TESTKEYID1");
+
+        let claims: serde_json::Value =
+            serde_json::from_slice(&Base64UrlUnpadded::decode_vec(parts[1]).unwrap()).unwrap();
+        assert_eq!(claims["iss"], "TESTTEAMID");
+
+        // check the signature against the (fake, test-only) APNs key configured above
+        use p256::ecdsa::signature::Verifier as _;
+        use p256::pkcs8::DecodePrivateKey as _;
+        let apns_test_sk = p256::ecdsa::SigningKey::from_pkcs8_pem(&apns_test_pem).unwrap();
+        let signed_part = format!("{}.{}", parts[0], parts[1]);
+        let signature =
+            p256::ecdsa::Signature::from_slice(&Base64UrlUnpadded::decode_vec(parts[2]).unwrap())
+                .unwrap();
+        apns_test_sk
+            .verifying_key()
+            .verify(signed_part.as_bytes(), &signature)
+            .expect("APNs credential should be signed by the configured key");
+
+        // FCM was deliberately left unconfigured (see main_integration_test) - PHC should say so
+        // plainly rather than attempting (and failing) to reach Google.
+        let ts_req = api::phc::hub::TicketSigned::new(
+            ticket.clone(),
+            api::Signed::new(
+                &mock_hub.context.sk,
+                &api::phc::hub::PushCredentialsReq {
+                    platform: api::phc::hub::PushPlatform::Fcm,
+                },
+                Duration::from_secs(10),
+            )
+            .unwrap(),
+        );
+
+        let resp = client
+            .query::<api::phc::hub::PushCredentialsEP>(&constellation.phc_url, &ts_req)
+            .with_retry()
+            .await
+            .unwrap();
+
+        assert!(matches!(
+            resp,
+            api::phc::hub::PushCredentialsResp::NotConfigured
+        ));
     }
 
     let attrs = request_attributes(

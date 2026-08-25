@@ -46,4 +46,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+    // MARK: - Push notifications (see NativePushPlugin.swift)
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        // Capacitor core forwards this to NativePushPlugin via NotificationCenter.
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        // Capacitor core doesn't proxy this callback, so NativePushPlugin is handed the
+        // payload directly. It only ever contains an opaque hub_id, never message content.
+        guard let plugin = NativePushPlugin.shared else {
+            completionHandler(.noData)
+            return
+        }
+        plugin.handleRemoteNotification(userInfo: userInfo, completionHandler: completionHandler)
+    }
+
 }

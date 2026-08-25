@@ -13,4 +13,15 @@ ext {
     androidxJunitVersion = '1.3.0'
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
+
+    // gplay flavor only (Firebase Cloud Messaging) - see app/src/gplay/java/.../push/
+    // NEEDS VERIFICATION: this sandbox has no network access to Maven Central/dl.google.com, so
+    // this version could not be confirmed against the current release - check
+    // https://firebase.google.com/support/release-notes/android before relying on it.
+    firebaseBomVersion = '34.5.0'
+    // fdroid flavor only (UnifiedPush) - see app/src/fdroid/java/.../push/
+    // NEEDS VERIFICATION: same caveat - check https://unifiedpush.org for the current connector
+    // release and, importantly, confirm this version's exact API against
+    // NativePushPlugin.java/UnifiedPushService.java's comments, which flag the same uncertainty.
+    unifiedPushConnectorVersion = '3.3.5'
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- "development" here targets APNs' sandbox environment, used by
+	     Xcode debug builds and TestFlight builds signed with a development
+	     provisioning profile. CI must rewrite this to "production" before
+	     archiving a release build signed for the App Store / ad-hoc
+	     distribution — see cicd/.gitlab-ci.yml's ios-build job. -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

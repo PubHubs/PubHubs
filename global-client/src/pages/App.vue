@@ -60,6 +60,8 @@
 	// Composables
 	import useRootScroll from '@global-client/composables/useRootScroll';
 
+	import { initNativePush } from '@global-client/logic/nativePush';
+
 	// Logic
 	import device from '@hub-client/logic/core/device';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -204,6 +206,9 @@
 
 	// Lifecycle hook
 	onMounted(initializeSettings);
+	// No-ops on the web; see nativePush.ts for why the router has to be handed in rather than
+	// re-acquired there via useRouter() (that composable needs an active component context).
+	onMounted(() => initNativePush(router));
 
 	onUnmounted(() => {
 		settings.stopListeningMobile();

@@ -34,3 +34,4 @@ result
 # App
 /ios
 .android
+deploymentTargetSelector.xml
