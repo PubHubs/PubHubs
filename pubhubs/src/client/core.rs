@@ -249,7 +249,7 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                 "{}: Querying {} {} {payload}",
                 self.client.inner.agent,
                 EP::METHOD,
-                &ep_url,
+                ep_url,
             );
         }
 
@@ -283,7 +283,7 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                     "{agent}: Failed to query {method} {url}: could not serialize payload: {err:#}",
                     agent = self.client.inner.agent,
                     method = EP::METHOD,
-                    url = &ep_url
+                    url = ep_url
                 );
                 return futures::future::Either::Left(std::future::ready(
                     EP::ResponseType::from_ec(ErrorCode::BadRequest),

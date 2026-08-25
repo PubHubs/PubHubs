@@ -91,11 +91,21 @@
 								<BarListItem :class="{ 'bg-accent-error!': isSelected(item) && deletingAll }">
 									<div>
 										<InlineCollapse>
-											<template #visible="{ collapsed }">
-												<div class="gap-050 flex h-300 items-center">
+											<template #visible="{ collapsed, toggle }">
+												<div
+													v-context-menu="(evt: any) => openMenu(evt, contextMenuItems(item, toggle), item.matrixEvent.getId())"
+													class="gap-050 flex h-300 cursor-pointer items-center"
+													:class="{
+														'bg-surface-elevated!': contextMenu.isOpen && contextMenu.currentTargetId === item.matrixEvent.getId(),
+													}"
+													:title="t('menu.download_file')"
+													@click.capture="suppressClickAfterLongPress"
+													@click="downloadItem(item)"
+												>
 													<div
 														v-if="user.isAdmin"
 														class="gap-050 flex items-center"
+														@click.stop
 													>
 														<IconButton
 															v-if="isSelected(item)"
@@ -112,52 +122,40 @@
 															@click.stop="addToSelection(item)"
 														/>
 													</div>
-													<div v-if="deletingAll && isSelected(item)">
+													<div v-if="(deletingAll && isSelected(item)) || isDownloading(item.matrixEvent.getContent().url)">
 														<InlineSpinner />
 													</div>
 													<div v-else>
+														<FileIcon :filename="item.matrixEvent.getContent().filename" />
+													</div>
+													<button
+														:aria-label="`${t('menu.download_file')}: ${item.matrixEvent.getContent().filename}`"
+														class="text-label-small min-w-0 grow cursor-pointer truncate text-left"
+														:title="item.matrixEvent.getContent().filename"
+														type="button"
+														@click.stop="downloadItem(item)"
+													>
+														{{ item.matrixEvent.getContent().filename }}
+													</button>
+													<div
+														v-if="isSigned(item.matrixEvent.getId())"
+														:title="t('roomlibrary.info.sign')"
+													>
 														<Icon
-															v-if="isSigned(item.matrixEvent.getId())"
 															class="text-accent-blue"
 															type="seal-check"
 															size="sm"
 														/>
-														<Icon
-															v-else
-															class="text-on-surface-disabled cursor-pointer"
-															type="question"
-															size="sm"
-															@click.stop="handleSigning(item.matrixEvent.getContent().url, item.matrixEvent.getId())"
-														/>
 													</div>
-													<div>
-														<FileDownload
-															:filename="item.matrixEvent.getContent().filename"
-															:url="item.matrixEvent.getContent().url"
-															:title="item.matrixEvent.getContent().filename"
-														>
-															<FileIcon :filename="item.matrixEvent.getContent().filename" />
-														</FileDownload>
-													</div>
-													<div class="text-label-small grow truncate">
-														<FileDownload
-															:filename="item.matrixEvent.getContent().filename"
-															:url="item.matrixEvent.getContent().url"
-															:title="item.matrixEvent.getContent().filename"
-														>
-															{{ item.matrixEvent.getContent().filename }}
-														</FileDownload>
-													</div>
-													<div>
-														<InlineCollapseToggle>
-															<Icon
-																:class="{ 'text-accent-blue': !collapsed }"
-																type="info"
-																size="sm"
-															/>
-														</InlineCollapseToggle>
-													</div>
-													<div class="max-xs:hidden text-right">
+													<IconButton
+														data-testid="filemanager-share"
+														icon="paper-plane-right"
+														size="sm"
+														:title="t('roomlibrary.share_to_timeline')"
+														variant="secondary"
+														@click.stop="shareItem(item)"
+													/>
+													<div class="max-xs:hidden flex min-w-500 justify-end overflow-hidden text-right">
 														<span
 															v-if="order.index <= 1"
 															class="text-label-tiny whitespace-nowrap"
@@ -175,18 +173,13 @@
 															:user-id="item.matrixEvent.getSender()!"
 														/>
 													</div>
-													<div
-														v-if="user.isAdmin"
-														class="gap-050 flex items-center"
-													>
-														<IconButton
-															class="hover:text-accent-red"
-															icon="trash"
-															size="sm"
-															variant="secondary"
-															@click.stop="confirmDeletion(item.matrixEvent.getContent(), item.matrixEvent.getId())"
-														/>
-													</div>
+													<!-- Marks the row whose details panel is open; the panel is toggled from the context menu -->
+													<Icon
+														v-if="!collapsed"
+														class="text-accent-blue"
+														type="info"
+														size="sm"
+													/>
 												</div>
 											</template>
 											<template #collapsed>
@@ -266,7 +259,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { type Room as MatrixRoom } from 'matrix-js-sdk';
+	import { type Room as MatrixRoom, MsgType } from 'matrix-js-sdk';
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -280,17 +273,18 @@
 	import BarListItem from '@hub-client/components/ui/BarListItem.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import DropFiles from '@hub-client/components/ui/DropFiles.vue';
-	import FileDownload from '@hub-client/components/ui/FileDownload.vue';
 	import FileIcon from '@hub-client/components/ui/FileIcon.vue';
 	import InlineCollapse from '@hub-client/components/ui/InlineCollapse.vue';
-	import InlineCollapseToggle from '@hub-client/components/ui/InlineCollapseToggle.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import PullDownMenu from '@hub-client/components/ui/PullDownMenu.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
+	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+	import { useFileDownload } from '@hub-client/composables/useFileDownload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
+	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
@@ -299,6 +293,7 @@
 
 	// Models
 	import { type SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
+	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { SystemDefaults } from '@hub-client/models/constants';
 	import { type TFileMessageEventContent, type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -307,8 +302,9 @@
 	import { EYiviFlow, type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
-	import { buttonsCancel } from '@hub-client/stores/dialog';
-	import { useDialog } from '@hub-client/stores/dialog';
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
+	import { buttonsCancel, useDialog } from '@hub-client/stores/dialog';
+	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
@@ -326,8 +322,13 @@
 	const isMobile = computed(() => settings.isMobileState);
 
 	const pubhubs = usePubhubsStore();
+	const messageActions = useMessageActions();
+	const contextMenu = useContextMenuStore();
+	const sidebar = useSidebar();
+	const { openMenu } = useContextMenu();
 	const { makeHash, deleteMedia, removeFromTimeline } = useRoomLibrary();
 	const { formUrlfromMxc, deleteMediaUrlfromMxc } = useMatrixFiles();
+	const { downloadFile, isDownloading } = useFileDownload();
 
 	const signingMessage = ref<boolean>(false);
 	const selectedAttributes = ref<string[]>(['irma-demo.sidn-pbdf.email.domain']);
@@ -421,7 +422,7 @@
 				const lowerFilter = filter.value.toLocaleLowerCase();
 				if (e.matrixEvent.event.content?.filename) {
 					const filename = (e.matrixEvent.event.content.filename as string).toLocaleLowerCase();
-					return filename.indexOf(lowerFilter) >= 0;
+					return filename.includes(lowerFilter);
 				}
 				return false;
 			});
@@ -462,6 +463,74 @@
 	const isSigned = (eventId: string | undefined) => {
 		return getAllSignedEventsForFile(eventId).length > 0;
 	};
+
+	/**
+	 * Actions that do not fit next to the file name live in the right click (or long press) menu.
+	 * @param toggle Opens and closes the details panel of this file, provided by the surrounding InlineCollapse
+	 */
+	function contextMenuItems(item: TimelineEvent, toggle: () => void): MenuItem[] {
+		const eventId = item.matrixEvent.getId();
+		const items: MenuItem[] = [
+			{ label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadItem(item) },
+			{ label: t('roomlibrary.share_to_timeline'), icon: 'paper-plane-right', onClick: () => shareItem(item) },
+			{ label: t('roomlibrary.file_details'), icon: 'info', onClick: () => toggle() },
+		];
+		if (!isSigned(eventId)) {
+			items.push({
+				label: t('roomlibrary.sign_file'),
+				icon: 'pen-nib',
+				onClick: () => handleSigning(item.matrixEvent.getContent().url, eventId),
+			});
+		}
+		if (user.isAdmin) {
+			items.push(
+				{ divider: true, label: '' },
+				{
+					label: t('roomlibrary.delete_file'),
+					icon: 'trash',
+					variant: ContextVariant.delicate,
+					onClick: () => confirmDeletion(item.matrixEvent.getContent(), eventId),
+				},
+			);
+		}
+		return items;
+	}
+
+	/**
+	 * A long press opens the context menu, but the browser still fires a click when the finger is lifted.
+	 * This functions stops propogation after the context menu has been opened.
+	 */
+	function suppressClickAfterLongPress(event: MouseEvent) {
+		// Immediate: the row listens for clicks on itself as well, and that listener has to be stopped too.
+		if (contextMenu.isOpen) event.stopImmediatePropagation();
+	}
+
+	async function downloadItem(item: TimelineEvent) {
+		const content = item.matrixEvent.getContent();
+		const succeeded = await downloadFile(content.url, content.filename ?? content.body ?? 'file');
+		if (!succeeded) {
+			dialog.confirm(t('errors.file_download'));
+		}
+	}
+
+	/**
+	 * Hands the file to the message input, so the user can add a message before posting it in the timeline.
+	 * The file stays where it is on the media server: nothing is uploaded again.
+	 */
+	function shareItem(item: TimelineEvent) {
+		const content = item.matrixEvent.getContent();
+		messageActions.sharingFile = {
+			mxcUrl: content.url,
+			filename: content.filename ?? content.body ?? 'file',
+			mimetype: content.info?.mimetype,
+			size: content.info?.size,
+			msgtype: content.msgtype === MsgType.Image ? MsgType.Image : MsgType.File,
+		};
+		// On mobile the sidebar covers the message input, so make room for the file that was just attached.
+		if (isMobile.value && sidebar.activeTab.value === SidebarTab.Library) {
+			sidebar.close();
+		}
+	}
 
 	function handleEsc(event: KeyboardEvent) {
 		if (event.key === 'Escape' && signingMessage.value) {
@@ -547,7 +616,7 @@
 	}
 
 	function removeFromSelection(item: TimelineEvent) {
-		const index = (selection.value as unknown as TimelineEvent[]).findIndex((e) => e === item);
+		const index = (selection.value as unknown as TimelineEvent[]).indexOf(item);
 		selection.value.splice(index, 1);
 	}
 

@@ -1045,7 +1045,7 @@ export default class Room {
 		this.matrixRoom.client.matrixRTC.start();
 	}
 
-	public getMatrixRTCSessions(): MatrixRTCSession {
+	public getMatrixRTCSession(): MatrixRTCSession {
 		return this.matrixRoom.client.matrixRTC.getRoomSession(this.matrixRoom);
 	}
 
@@ -1065,10 +1065,8 @@ export default class Room {
 		return this.matrixRoom.client.getGroupCallForRoom(this.roomId);
 	}
 
-	public isOngoingCall() {
-		const groupCall = this.matrixRoom.client.getGroupCallForRoom(this.roomId);
-		if (groupCall) return true;
-		return false;
+	public isOngoingCall(): boolean {
+		return this.getMatrixRTCSession().memberships.length > 0;
 	}
 
 	public getLastVideoCallTimeLineEvent(): MatrixEvent | undefined {

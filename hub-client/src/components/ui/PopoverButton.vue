@@ -1,12 +1,18 @@
 <template>
 	<button
 		class="bg-surface-base rounded-base border-surface-elevated flex h-fit w-2000 flex-col items-center justify-center gap-100 overflow-hidden border-3 p-200 shadow"
-		:class="disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-surface-elevated hover:cursor-pointer'"
+		:class="disabled ? 'cursor-not-allowed' : 'hover:bg-surface-elevated hover:cursor-pointer'"
 		:disabled="disabled"
 		@click="click"
 	>
-		<Icon :type="icon" />
-		<p class="line-clamp-1 w-full">
+		<Icon
+			:type="icon"
+			:class="{ 'opacity-50': disabled }"
+		/>
+		<p
+			class="line-clamp-1 w-full"
+			:class="{ 'opacity-50': disabled }"
+		>
 			<slot />
 		</p>
 	</button>

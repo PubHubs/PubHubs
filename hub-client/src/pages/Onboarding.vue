@@ -331,8 +331,7 @@
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
 	// Composables
-	import { fileUpload } from '@hub-client/composables/fileUpload';
-	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { avatarUpload } from '@hub-client/composables/fileUpload';
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
 	// Logic
@@ -341,7 +340,6 @@
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -349,7 +347,6 @@
 	const { t } = useI18n();
 	const router = useRouter();
 	const route = useRoute();
-	const pubhubs = usePubhubsStore();
 	const user = useUser();
 	const hubSettings = useHubSettings();
 	const settings = useSettings();
@@ -370,8 +367,6 @@
 	const avatarPreviewUrl = ref<BlobManager | null>(null);
 	const selectedAvatarFile = ref<File | null>(null);
 
-	const { imageTypes, uploadUrl } = useMatrixFiles();
-
 	const handleFileUpload = (event: Event) => {
 		const file = (event.target as HTMLInputElement)?.files?.[0];
 		if (file) {
@@ -382,31 +377,17 @@
 	};
 
 	const uploadAvatar = async () => {
-		const accessToken = pubhubs.Auth.getAccessToken();
-		if (!accessToken) return logger.error('Access Token is invalid for File upload.');
+		if (!selectedAvatarFile.value) return;
 
-		const syntheticEvent = {
-			currentTarget: {
-				files: [selectedAvatarFile.value],
-			},
-		} as unknown as Event;
-
-		const errorMsg = t('errors.file_upload');
-
-		fileUpload(
-			errorMsg,
-			accessToken,
-			uploadUrl,
-			imageTypes,
-			syntheticEvent,
+		await avatarUpload(
+			selectedAvatarFile.value,
 			async (mxUrl) => {
-				avatarMxcUrl.value = mxUrl;
-				if (avatarMxcUrl.value) {
-					await user.setAvatarUrl(avatarMxcUrl.value);
+				if (mxUrl) {
+					avatarMxcUrl.value = mxUrl;
+					user.setAvatarUrl(avatarMxcUrl.value);
 				}
 			},
 			() => {
-				// On error: reset file selection so user can try again
 				selectedAvatarFile.value = null;
 				logger.error('Error uploading avatar');
 			},

@@ -266,7 +266,7 @@ impl MessageCode {
 impl std::fmt::Display for MessageCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(&mut *f)?; // Don't ask me why self.serialize(f) does not work..
-        write!(f, " ({:?})", &self)
+        write!(f, " ({:?})", self)
     }
 }
 

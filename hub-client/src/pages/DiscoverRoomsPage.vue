@@ -110,7 +110,7 @@
 	const timestamps = ref<Array<Array<number | string>>>(rooms.roomtimestamps);
 	const roomTimestamps = ref<Record<string, Date>>({});
 	const searchQuery = ref('');
-	let roomsLoaded = ref(true);
+	const roomsLoaded = ref(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -187,9 +187,7 @@
 	});
 
 	onMounted(async () => {
-		roomsLoaded.value = false;
 		await rooms.fetchPublicRooms();
-		roomsLoaded.value = true;
 
 		// for quicker searching: add tolower name and topic
 		visiblePublicRooms.value = rooms.visiblePublicRooms.map((room) => ({
@@ -198,5 +196,8 @@
 			topicToLower: room.topic?.toLowerCase() ?? '',
 		}));
 		filteredRooms.value = visiblePublicRooms.value;
+
+		// Last: dropping the spinner before the grid is filled shows "no rooms found" for a frame.
+		roomsLoaded.value = true;
 	});
 </script>

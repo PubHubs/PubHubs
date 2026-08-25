@@ -11,10 +11,12 @@
 			:src="image"
 			@load="imgLoaded()"
 		/>
+		<!-- Distinct testid: sharing one with the image above makes every avatar
+		     assertion race the image load, because both are in the DOM until it fires. -->
 		<Icon
 			v-if="!avatarUrl || !loaded"
 			:class="iconColor"
-			testid="avatar"
+			testid="avatar-placeholder"
 			:type="icon ? icon : 'user'"
 		/>
 	</div>

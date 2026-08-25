@@ -428,7 +428,7 @@
 		@apply text-accent-blue;
 	}
 
-	.dp__main {
+	.dp--main {
 		@apply bg-transparent!;
 	}
 	.dp--menu-wrapper {
