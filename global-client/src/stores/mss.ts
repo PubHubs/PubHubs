@@ -4,7 +4,7 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
-import { decodeJWT, handleErrors, responseEqualToRequested } from '@global-client/logic/utils/mssUtils';
+import { decodeJWT, handleErrors, isNetworkFetchError, responseEqualToRequested } from '@global-client/logic/utils/mssUtils';
 import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
@@ -129,7 +129,7 @@ const useMSS = defineStore('mss', {
 				} catch (error) {
 					// Card issuance failed (likely network error from battery saver)
 					// Return warning so user can retry card issuance from the UI
-					if (error instanceof TypeError && error.message.includes('NetworkError')) {
+					if (isNetworkFetchError(error)) {
 						warningMessage = { key: 'YiviServerGone', values: [comment] };
 					} else {
 						throw error;

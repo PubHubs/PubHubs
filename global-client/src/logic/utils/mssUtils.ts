@@ -23,6 +23,21 @@ export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E> | Arra
 	}
 }
 
+/**
+ * Whether an error is a `TypeError` thrown by `fetch()` because the request could not be completed
+ * at all (as opposed to completing with a non-OK HTTP status). Browsers word this differently:
+ * - Chromium: "Failed to fetch"
+ * - Firefox: "NetworkError when attempting to fetch resource."
+ * - WebKit/Safari (incl. iOS): "Load failed"
+ *
+ * @param error The error to check.
+ * @returns True if this looks like a transient network-level fetch failure.
+ */
+export function isNetworkFetchError(error: unknown): error is TypeError {
+	if (!(error instanceof TypeError)) return false;
+	return error.message.includes('NetworkError') || error.message.includes('Load failed') || error.message.includes('Failed to fetch');
+}
+
 // Use function overloads to specify different return types based on input (return type Promise<T> instead of Promise<T | ArrayBuffer> if apiCallFn returns a Result type)
 export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode>>, maxRetries?: number): Promise<T>;
 
@@ -39,7 +54,7 @@ export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCo
 				continue;
 			}
 			// Also retry on network errors (e.g., caused by battery saver throttling requests)
-			if (error instanceof TypeError && error.message.includes('NetworkError')) {
+			if (isNetworkFetchError(error)) {
 				delay(retry);
 				continue;
 			}
