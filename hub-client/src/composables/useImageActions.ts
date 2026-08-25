@@ -1,4 +1,5 @@
 // Logic
+import { shouldDelegateToGlobalClient } from '@hub-client/logic/core/requestFileShare';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Stores
