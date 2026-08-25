@@ -3,7 +3,6 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { api } from '@global-client/logic/core/api';
-import { toDevHttpsProxyUrl } from '@global-client/logic/utils/devHttpsProxy';
 
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -224,9 +223,7 @@ const useGlobal = defineStore('global', {
 			const hubsStore = useHubs();
 			const data = await mss.getHubs();
 			const hubPromises = data.map((item) => {
-				// In the native shell, route the hub's plain-HTTP dev address via the local HTTPS proxy,
-				// or its icons load as auto-upgraded mixed content and fail. No-op everywhere else.
-				const serverUrl = toDevHttpsProxyUrl(item.url.replace(/\/_synapse\/client\/?$/, '/'));
+				const serverUrl = item.url.replace(/\/_synapse\/client\/?$/, '/');
 				return mss
 					.getHubInfo(serverUrl)
 					.then((hubInfo) => {

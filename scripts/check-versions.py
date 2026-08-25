@@ -24,20 +24,12 @@ def main():
     check_docker()
     check_npm()
     check_yivi()
-    check_caddy()
-    check_mkcert()
 
 def check_yivi():
     check_for_command("yivi")
 
 def check_docker():
     check_for_command("docker")
-
-def check_caddy():
-    check_for_command("caddy")
-
-def check_mkcert():
-    check_for_command("mkcert")
 
 def parse_version(version_str):
     return tuple(map(int, version_str.split(".")))

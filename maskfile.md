@@ -24,8 +24,14 @@ This requires [tmux](https://github.com/tmux/tmux) to be installed.
 
 > Windows users should run the lines in `scripts/run-all.sh` separately, as TMUX is not available on Windows.
 
+**OPTIONS**
+
+- no_postgres
+  - flags: --no-postgres
+  - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
+
 ```sh
-sh scripts/run-all.sh
+PH_NO_POSTGRES="$no_postgres" sh scripts/run-all.sh
 ```
 
 #### cleanup
@@ -178,19 +184,6 @@ echo "Running pubhubs client..."
 
 cd global-client
 npx vite --host -l info --port=8080
-```
-
-### proxy
-
-> Runs the local HTTPS dev proxy (Caddy) fronting the hub-client SPA and Matrix/Synapse API with a secure-context origin. Required for hubs to load at all — see docs/app/README.md.
-
-```sh
-set -e
-echo "Generating dev HTTPS proxy cert + Caddyfile..."
-npm run gen:dev-proxy
-
-echo "Running dev HTTPS proxy (Caddy)..."
-caddy run --config Caddyfile.local --adapter caddyfile
 ```
 
 ### android
@@ -365,14 +358,6 @@ npm run cap:run:ios
 npx cap doctor ios
 ```
 
-#### trust-simulator
-
-> Trusts the dev HTTPS proxy's mkcert CA in the currently booted iOS Simulator — run once per Simulator instance after booting it, see docs/app/README.md
-
-```sh
-npm run trust:ios-simulator
-```
-
 ### icons
 
 > Regenerate native app icons (iOS + Android) from resources/icon.svg
@@ -395,13 +380,19 @@ Every command below is structured as `mask run hub <subcommand>`
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
-Needs `mask run proxy` running too, which makes `hub_client_url` reachable and a secure context.
+**OPTIONS**
+
+- no_postgres
+  - flags: --no-postgres
+  - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
 
 ```sh
 echo "Running testhub${n}"
 
 cd pubhubs_hub
-python3 start_testhub.py "${n}"
+postgres_flag=()
+[[ "$no_postgres" == "true" ]] && postgres_flag=(--no-replace-sqlite3-by-postgres)
+python3 start_testhub.py "${postgres_flag[@]}" "${n}"
 ```
 
 #### client (n)
@@ -411,13 +402,11 @@ python3 start_testhub.py "${n}"
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
-Needs `mask run proxy` running too, since VITE_HUB_URL below points at its HTTPS frontend, not the Matrix API's plain-HTTP port directly.
-
 ```sh
 cd hub-client
 echo "Running Hub client for testhub${n}..."
 networkhost_ip="$(node ../scripts/print-networkhost-ip.js)"
-env VITE_HUB_URL="https://${networkhost_ip}:$((18008 + n))" npx vite --host -l info --port=$((8001 + n))
+env VITE_HUB_URL="http://${networkhost_ip}:$((8008 + n))" npx vite --host -l info --port=$((8001 + n))
 ```
 
 #### mainclient

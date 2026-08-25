@@ -3,6 +3,11 @@ apply plugin: 'com.android.application'
 android {
     namespace = "nl.pubhubs.client"
     compileSdk = rootProject.ext.compileSdkVersion
+    // Needed to generate BuildConfig.DEBUG, used by MainActivity.java to gate the dev-only
+    // mixed-content-allow setting to debug builds. AGP 8+ no longer generates BuildConfig by default.
+    buildFeatures {
+        buildConfig true
+    }
     defaultConfig {
         applicationId "nl.pubhubs.client"
         minSdkVersion rootProject.ext.minSdkVersion
