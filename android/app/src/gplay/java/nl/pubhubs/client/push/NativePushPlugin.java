@@ -1,6 +1,7 @@
 package nl.pubhubs.client.push;
 
 import android.Manifest;
+import android.util.Log;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -28,6 +29,8 @@ import com.google.firebase.messaging.FirebaseMessaging;
     }
 )
 public class NativePushPlugin extends Plugin implements PushEventEmitter {
+
+    private static final String TAG = "NativePushPlugin";
 
     @Override
     public void load() {
@@ -58,6 +61,7 @@ public class NativePushPlugin extends Plugin implements PushEventEmitter {
 
     @PluginMethod
     public void register(PluginCall call) {
+        Log.d(TAG, "register() called (permissionState=" + getPermissionState("receive") + ")");
         if (getPermissionState("receive") != PermissionState.GRANTED) {
             requestPermissionForAlias("receive", call, "registerPermissionCallback");
             return;
@@ -79,7 +83,10 @@ public class NativePushPlugin extends Plugin implements PushEventEmitter {
         FirebaseMessaging.getInstance()
             .getToken()
             .addOnSuccessListener(token -> PushEvents.notifyTokenReceived("fcm", token))
-            .addOnFailureListener(err -> PushEvents.notifyUnavailable("registration_failed"));
+            .addOnFailureListener(err -> {
+                Log.e(TAG, "FirebaseMessaging.getToken() failed", err);
+                PushEvents.notifyUnavailable("registration_failed");
+            });
 
         // fire-and-forget from JS's perspective: the actual token arrives via the
         // "pushTokenReceived" event once Firebase's async call above completes (or

@@ -121,6 +121,7 @@ async function setPusher(hubId: string, hubAccessToken: string, serverUrl: strin
 
 	try {
 		await api.apiPOST(api.apiURLS.pushersSet, body);
+		logger.info(`${remove ? 'deleted' : 'registered'} pusher for hub ${hubId} (transport=${deviceToken.transport})`);
 	} catch (error) {
 		logger.error(`failed to ${remove ? 'delete' : 'register'} the pusher for hub ${hubId}: ${error}`);
 	}
@@ -182,6 +183,7 @@ function trackAuthenticatedHubs(): void {
 /** A new (or refreshed) device token arrived: register it for every authenticated hub, and
  *  best-effort clean up the previous token's pusher on each of them if it changed. */
 async function onTokenReceived(deviceToken: DeviceToken): Promise<void> {
+	logger.info(`token received (transport=${deviceToken.transport})`);
 	const previous = loadDeviceToken();
 	storeDeviceToken(deviceToken);
 
@@ -201,6 +203,7 @@ async function onTokenReceived(deviceToken: DeviceToken): Promise<void> {
 function initNativePush(router: Router): void {
 	if (!Capacitor.isNativePlatform()) return;
 
+	logger.debug('initNativePush: registering');
 	trackAuthenticatedHubs();
 
 	NativePush.addListener('pushTokenReceived', ({ transport, token }) => {
@@ -215,6 +218,7 @@ function initNativePush(router: Router): void {
 	});
 
 	NativePush.addListener('pushReceived', ({ hub_id }) => {
+		logger.info(`push received (hub_id=${hub_id})`);
 		const hub = useHubs().hub(hub_id);
 		if (!hub) return;
 		// Same route a user clicking the hub in the UI would take (see HubBlock.vue/HubMenu.vue) -

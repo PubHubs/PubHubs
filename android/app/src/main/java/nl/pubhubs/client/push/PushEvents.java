@@ -1,5 +1,7 @@
 package nl.pubhubs.client.push;
 
+import android.util.Log;
+
 import com.getcapacitor.JSObject;
 
 /**
@@ -16,6 +18,8 @@ import com.getcapacitor.JSObject;
  * exactly why {@link LocalNotifier} exists as a separate, always-works fallback.
  */
 public final class PushEvents {
+
+    private static final String TAG = "NativePush";
 
     private static volatile PushEventEmitter activePlugin;
     private static volatile boolean appInForeground = false;
@@ -43,6 +47,7 @@ public final class PushEvents {
     }
 
     public static void notifyTokenReceived(String transport, String token) {
+        Log.d(TAG, "token received (transport=" + transport + ", pluginAttached=" + (activePlugin != null) + ")");
         PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
@@ -53,6 +58,7 @@ public final class PushEvents {
     }
 
     public static void notifyUnavailable(String reason) {
+        Log.d(TAG, "unavailable (reason=" + reason + ")");
         PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
@@ -66,6 +72,7 @@ public final class PushEvents {
      *     content, see the push notifications plan.
      */
     public static void notifyPushReceived(String hubId) {
+        Log.d(TAG, "push received (hubId=" + hubId + ", pluginAttached=" + (activePlugin != null) + ", foreground=" + appInForeground + ")");
         PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 

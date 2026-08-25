@@ -1,5 +1,7 @@
 package nl.pubhubs.client.push;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
@@ -13,11 +15,14 @@ import com.google.firebase.messaging.RemoteMessage;
  */
 public class FcmService extends FirebaseMessagingService {
 
+    private static final String TAG = "FcmService";
+
     @Override
     public void onNewToken(@NonNull String token) {
         // Can fire at any time, not just after NativePushPlugin.register() - e.g. Firebase
         // rotating the token server-side. global.ts's registration loop re-runs for every pinned
         // hub whenever a new token arrives, same as on first registration.
+        Log.d(TAG, "onNewToken");
         PushEvents.notifyTokenReceived("fcm", token);
     }
 
@@ -28,6 +33,7 @@ public class FcmService extends FirebaseMessagingService {
         // onMessageReceived rather than the OS auto-rendering something from a `notification`
         // payload.
         String hubId = remoteMessage.getData().get("hub_id");
+        Log.d(TAG, "onMessageReceived (hubId=" + hubId + ")");
         if (hubId == null) return;
 
         // Tell the JS layer directly if the app happens to be running (PushEvents). Only fall
