@@ -11,7 +11,7 @@
 						size="sm"
 						type="file"
 					/>
-					<span class="text-accent-blue text-label-small shrink-0">{{ $t('file.upload_file') }}</span>
+					<span class="text-accent-blue text-label-small shrink-0">{{ $t(displayFile.label) }}</span>
 					<span class="text-on-surface-dim text-label-small truncate">
 						{{ displayFile.name }}
 						<template v-if="displayFile.size">({{ filters.formatBytes(displayFile.size, 2) }})</template>
@@ -25,6 +25,7 @@
 						@click.stop="openFile"
 					/>
 					<button
+						type="button"
 						class="shrink-0 hover:cursor-pointer"
 						@click="displayFile.onRemove()"
 					>
@@ -37,12 +38,13 @@
 				</div>
 			</div>
 			<div
-				v-if="imageTypes.includes(displayFile.type)"
+				v-if="displayFile.previewUrl && displayFile.isImage"
 				class="flex justify-center px-200 pt-100 pb-200"
 			>
 				<img
 					:src="displayFile.previewUrl"
 					class="max-h-3000 max-w-full rounded-lg"
+					alt="selected file is being previewed"
 				/>
 			</div>
 			<div class="mt-050 flex justify-center">
@@ -66,6 +68,7 @@
 </template>
 
 <script setup lang="ts">
+	import { type MsgType } from 'matrix-js-sdk';
 	import { type PropType, computed, onBeforeUnmount, ref, watch } from 'vue';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -103,8 +106,9 @@
 	interface DisplayFile {
 		name: string;
 		size?: number;
-		type: string;
-		previewUrl: string;
+		isImage: boolean;
+		previewUrl?: string;
+		label: string;
 		onRemove: () => void;
 	}
 
@@ -113,8 +117,9 @@
 			return {
 				name: props.messageInput.state.fileAdded.name,
 				size: props.messageInput.state.fileAdded.size,
-				type: props.messageInput.state.fileAdded.type,
-				previewUrl: uri.value?.url ?? '',
+				isImage: imageTypes.includes(props.messageInput.state.fileAdded.type),
+				previewUrl: uri.value?.url,
+				label: 'file.upload_file',
 				onRemove: removeFile,
 			};
 		}
@@ -123,13 +128,29 @@
 			return {
 				name: ef.filename,
 				size: ef.size,
-				type: ef.mimetype ?? '',
+				isImage: isImageFile(ef),
 				previewUrl: ef.previewUrl,
+				label: 'file.upload_file',
 				onRemove: removeExistingFile,
+			};
+		}
+		if (props.messageInput.state.sharedFile) {
+			const sf = props.messageInput.state.sharedFile;
+			return {
+				name: sf.filename,
+				size: sf.size,
+				isImage: isImageFile(sf),
+				previewUrl: sf.previewUrl,
+				label: 'file.from_library',
+				onRemove: removeSharedFile,
 			};
 		}
 		return null;
 	});
+
+	function isImageFile(file: { mimetype?: string; msgtype: MsgType }): boolean {
+		return imageTypes.includes(file.mimetype ?? '');
+	}
 
 	// FilePicker starts as owner of the blob URL and can transfer ownership to parent.
 	const ownsBlobMemory = ref(true);
@@ -181,6 +202,11 @@
 
 	function removeExistingFile() {
 		props.messageInput.removeExistingFile();
+		emit('uploadFile', undefined);
+	}
+
+	function removeSharedFile() {
+		props.messageInput.removeSharedFile();
 		emit('uploadFile', undefined);
 	}
 

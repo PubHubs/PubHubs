@@ -1,8 +1,8 @@
 import { type MsgType } from 'matrix-js-sdk';
 
-export interface FileEditInfo {
+export interface FileInfo {
 	mxcUrl: string;
-	previewUrl: string;
+	previewUrl?: string;
 	filename: string;
 	mimetype?: string;
 	size?: number;

@@ -9,7 +9,7 @@ export default defineConfig({
 	server: {
 		strictPort: true,
 	},
-	plugins: [nodePolyfills(), tailwindcss(), Vue()],
+	plugins: [nodePolyfills({ exclude: ['crypto'] }), tailwindcss(), Vue()],
 	test: {
 		root: './',
 		globals: true,

@@ -54,6 +54,8 @@ export const defaultLiveKitOptions: RoomOptions = {
 	webAudioMix: false,
 };
 
+const MembershipExpiryTime = 5 * 60 * 1000; // 5 minutes
+
 const useVideoCall = defineStore('videoCall', {
 	state: () => {
 		return {
@@ -144,7 +146,9 @@ const useVideoCall = defineStore('videoCall', {
 
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
-			if (!currentRoom) {
+			const userId = currentRoom?.matrixRoom.client.getUserId();
+			const deviceId = currentRoom?.matrixRoom.client.getDeviceId();
+			if (!currentRoom || !userId || !deviceId) {
 				this._connecting = false;
 				return false;
 			}
@@ -156,8 +160,11 @@ const useVideoCall = defineStore('videoCall', {
 				if (!this.token || !this.target_url) return false;
 
 				this.call_active = true;
-				this.rtc_session = currentRoom.getMatrixRTCSessions();
-				this.rtc_session.joinRoomSession([]);
+				this.rtc_session = currentRoom.getMatrixRTCSession();
+
+				this.rtc_session.joinRTCSession({ userId: userId, deviceId: deviceId, memberId: `${userId}:${deviceId}` }, [], undefined, {
+					membershipEventExpiryMs: MembershipExpiryTime,
+				});
 				this.pubhubsStore.addEndCallListener();
 
 				const matrix_key_provider = new MatrixKeyProvider();
@@ -257,7 +264,7 @@ const useVideoCall = defineStore('videoCall', {
 			const currentRoom = rooms.currentRoom;
 			if (currentRoom && this.eventId) {
 				const threadRoot = (await this.pubhubsStore.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
-				await this.pubhubsStore.addMessage(currentRoom.roomId, 'Left', threadRoot, undefined);
+				await this.pubhubsStore.addThreadMessageWithoutLocalEcho(currentRoom.roomId, 'Left', threadRoot);
 			}
 
 			this.eventId = null;
@@ -281,7 +288,7 @@ const useVideoCall = defineStore('videoCall', {
 			this._isEnding = true;
 
 			if (this.eventId) {
-				await this.pubhubsStore.updateVideoCallMessage(currentRoom.roomId, this.eventId, 'VideoCall Ended');
+				await this.pubhubsStore.addEndVideoCallMessage(currentRoom.roomId, this.eventId, 'VideoCall Ended');
 			}
 
 			// Save reference before leaveCall() clears this.groupCall
