@@ -10,7 +10,7 @@
 					<!-- Header -->
 					<div class="mb-300 flex items-center gap-200">
 						<div
-							class="flex aspect-square h-300 w-300 items-center justify-center rounded-full"
+							class="relative flex aspect-square h-300 w-300 items-center justify-center rounded-full"
 							:class="
 								error
 									? 'bg-accent-error text-on-accent-error'
@@ -34,6 +34,12 @@
 								class="text-label-small font-semibold"
 								>{{ index + 1 }}</span
 							>
+
+							<!-- Another action is still pending (the second Yivi step) -->
+							<div
+								v-if="error || success"
+								class="bg-on-surface-dim absolute top-700 h-300 w-300 rounded-full"
+							/>
 						</div>
 						<slot name="title" />
 					</div>
