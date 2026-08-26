@@ -13,7 +13,7 @@ _Please add a brief description of any changes and any migrations to be performe
 ## Changes not merged to stable yet
 
 - [IMPROVED] Updated the changelog tags
-
+- [IMPROVED, BUG] Updated the Pubhubs registration flow to handle users with slow connectivity or with settings that slow down or block backgrounds job not being able to register an account or obtain a Pubhubs Card.
 - [BUG] Fixed that voting in a poll or datepicker broke sending messages afterwards, ending in an "updatePendingEventStatus called on an event which is not a local echo" error.
 
 ## 20 August 2026 - v3.5.1

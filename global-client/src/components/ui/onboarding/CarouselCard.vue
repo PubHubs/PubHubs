@@ -11,11 +11,22 @@
 					<div class="mb-300 flex items-center gap-200">
 						<div
 							class="flex aspect-square h-300 w-300 items-center justify-center rounded-full"
-							:class="error ? 'bg-accent-error text-on-accent-error' : 'bg-accent-primary text-on-accent-primary'"
+							:class="
+								error
+									? 'bg-accent-error text-on-accent-error'
+									: success
+										? 'bg-accent-success text-on-accent-success'
+										: 'bg-accent-primary text-on-accent-primary'
+							"
 						>
 							<Icon
 								v-if="error"
 								type="warning"
+								class="h-200 w-200"
+							/>
+							<Icon
+								v-else-if="success"
+								type="check"
 								class="h-200 w-200"
 							/>
 							<span
@@ -71,13 +82,17 @@
 	const props = defineProps({
 		index: {
 			type: Number,
-			default: undefined,
+			required: true,
 		},
 		active: {
 			type: Boolean,
 			default: true,
 		},
 		error: {
+			type: Boolean,
+			default: false,
+		},
+		success: {
 			type: Boolean,
 			default: false,
 		},
