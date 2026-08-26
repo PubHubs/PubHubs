@@ -65,7 +65,6 @@
 		"vite": "^8.2.2",
 		"vite-plugin-node-polyfills": "^0.28.0",
 		"vitest": "^4",
-		"vue-mess-detector": "^0.68.0",
 		"vue-tsc": "^3.3.10",
 		"webpack": "^5.97.1"
 	},

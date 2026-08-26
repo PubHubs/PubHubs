@@ -1,5 +1,5 @@
 // Packages
-import { YiviClient as yiviClient } from '@privacybydesign/yivi-client';
+import { SessionManagement, YiviClient as yiviClient } from '@privacybydesign/yivi-client';
 import { YiviCore as yiviCore } from '@privacybydesign/yivi-core';
 import { YiviWeb as yiviWeb } from '@privacybydesign/yivi-web';
 
@@ -17,6 +17,27 @@ import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('YiviHandler');
+
+// Override yivi-client url-check method for development. The method is more strict since yivi-client 1.0.1
+if (import.meta.env.DEV) {
+	type SessionUrlAsserter = { _assertSafeSessionUrl: (url: string) => void };
+
+	(SessionManagement.prototype as unknown as SessionUrlAsserter)._assertSafeSessionUrl = (url: string) => {
+		if (typeof url !== 'string' || url.length === 0) throw new Error('Missing or invalid sessionPtr URL in mappings');
+		if (url.startsWith('//')) throw new Error(`Refusing to use protocol-relative sessionPtr URL: ${url}`);
+
+		let parsed: URL;
+		try {
+			parsed = new URL(url, window.location.href);
+		} catch {
+			throw new Error(`Invalid sessionPtr URL received from server: ${url}`);
+		}
+
+		if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+			throw new Error(`Refusing to use sessionPtr URL with scheme "${parsed.protocol}": ${url}`);
+		}
+	};
+}
 
 export function yiviFlow(
 	flowtype: EYiviFlow.SecuredRoom,
