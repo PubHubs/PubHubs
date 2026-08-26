@@ -130,7 +130,6 @@ const nl = {
 		// The _app variants are shown on a device that opens the Yivi app by link, where there is no
 		// QR code to scan.
 		card_3_title_app: 'Open de {0}-app',
-		card_3_text_1: 'Top, je bent bijna klaar!',
 		card_3_text_2: 'Scan de QR-code met je {0} app en deel je gegevens om in te loggen op {1}.',
 		card_3_text_2_app: 'Open je {0} app en deel je gegevens om in te loggen op {1}.',
 		// The success variants are shown once the disclosure succeeded and the card is being issued.

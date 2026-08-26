@@ -86,8 +86,8 @@
 							<CarouselCardMobile
 								:index="2"
 								:class="[
-									error && 'outline-accent-error card-shake text-on-accent-error outline outline-2',
-									showSuccess && 'outline-accent-success outline outline-2',
+									error && 'outline-accent-error card-shake text-on-accent-error outline outline-6',
+									showSuccess && 'outline-accent-success outline outline-6',
 								]"
 								:error="!!error"
 								:success="showSuccess"
@@ -196,7 +196,6 @@
 								</template>
 
 								<div class="flex flex-col gap-100">
-									<P>{{ error ? errorText : $t('register.card_3_text_1') }}</P>
 									<P
 										v-if="!error"
 										class="mb-300"
