@@ -1,13 +1,18 @@
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
 
 - _[BUG] - If the change is a bugfix (from own branch)_
-- _[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable_
+- _[HOTFIX] - If it is a small bug (typo or styling) that is done directly on stable_
 - _[TYPO] - If a translation/typo in the UI has been changed or implemented_
 - _[NEW] - If it is a new feature_
-- _[UPDATE] - Updated dependencies_
-- _[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done._
+- _[IMPROVED] - Extends or improves an existing feature_
+- _[REMOVED] - Removes an existing feature_
+- _[SECURITY] - Security patch_
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
-- _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
+- _[INTERNAL] - Code changes not affecting functionality_
+
+## Not yet merged
+
+- [IMPROVED] Updated the changelog tags
 
 ## 20 August 2026 - v3.5.1
 
