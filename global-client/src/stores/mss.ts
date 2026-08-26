@@ -42,6 +42,9 @@ const useMSS = defineStore('mss', {
 			phcServer: new PHCServer(),
 			constellation: null as Constellation | null,
 			hubs: null as Record<string, HubInformation> | null,
+			// True while the disclosure has succeeded and the PubHubs card is being issued, so the
+			// UI can tell the user the login worked and a second Yivi session is on its way.
+			issuingCard: false,
 		};
 	},
 
@@ -62,12 +65,19 @@ const useMSS = defineStore('mss', {
 
 			// 2. Build auth start request
 			const isRegistering = enterMode === PHCEnterMode.LoginOrRegister;
+
+			// Disable chained-sessions while the error fallback is not working
+			// and there are timeouts with slow connectivity
+			const chainedSession = false;
+			// Below the original code before we disabled chained-session temporarily
+			// const chainedSession = isRegistering && cardFeature;
+
 			const authStartReq: AuthStartReq = {
 				source: loginMethod.source,
 				attr_types: !isRegistering && cardFeature ? loginMethod.login_attr : loginMethod.register_attr,
 				attr_type_choices: [],
-				yivi_chained_session: isRegistering && cardFeature,
-				yivi_chained_session_drip: isRegistering && cardFeature,
+				yivi_chained_session: chainedSession,
+				yivi_chained_session_drip: chainedSession,
 			};
 
 			// 3. Start authentication
@@ -84,7 +94,7 @@ const useMSS = defineStore('mss', {
 			// Disclose attributes in Yivi
 			let proof: { Yivi: { disclosure: string } };
 
-			if (isRegistering && cardFeature) {
+			if (chainedSession) {
 				startYiviAuthentication(yiviUrl, disclosure_request);
 				const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
 				if (jwt === 'PleaseRestartAuth') {
@@ -117,13 +127,15 @@ const useMSS = defineStore('mss', {
 			if (!entered) return errorMessage;
 
 			// 9. Issue a Pubhubs card if registering a new account
-			// The Yivi server has been waiting since step 4 (disclosure) and will timeout after ~5 seconds.
+			// When chaining, the Yivi server has been waiting since step 4 (disclosure) and will
+			// timeout after ~5 seconds; otherwise this starts a session of its own.
 			// If card issuance fails due to network error (e.g., battery saver),
 			// we return a warning so the user can retry card issuance separately.
 			if (isRegistering && cardFeature) {
 				const comment = 'via\n' + attributeValues.join('\n');
+				this.issuingCard = true;
 				try {
-					const { cardAttr, errorMessage: cardError } = await this.issueCard(true, comment, identifyingAttr);
+					const { cardAttr, errorMessage: cardError } = await this.issueCard(chainedSession, comment, identifyingAttr);
 					if (cardAttr) identifying['ph_card'] = cardAttr;
 					else warningMessage = cardError;
 				} catch (error) {
@@ -134,6 +146,8 @@ const useMSS = defineStore('mss', {
 					} else {
 						throw error;
 					}
+				} finally {
+					this.issuingCard = false;
 				}
 			}
 
