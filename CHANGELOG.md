@@ -21,7 +21,6 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] Introducing expert users that can set their credentials via synapse account details and add context to messages. Expert users are appointed by stewards or room admins via a new roles page.
 - [NEW] The Pubhubs Central Yivi email and phone-number login is replaced with the Yivi Pubhubs Card login.
 - [NEW] Added a room sidebar where user details can be viewed.
-
 - [BUG] Fixed that only one local testhub could be started at a time: every hub published LiveKit on the fixed host port 7880, so a second `mask run hub server <n>` failed with "port is already allocated". Each hub `n` now runs its LiveKit on `7880+n`, both inside and outside the container, so video calls work in several hubs at once.
 - [BUG] Fixed that the receiver of a video call never got a join button: the call message showed only "Duration: Unknown" with no body text. `RoomMessageBubble` handed `MessageVideoCall` the raw event wrapper instead of its unwrapped `event` computed, so `event_id` was `undefined` and every incoming call was treated as an older, already-ended one.
 - [BUG] Fixed that stewards could not apply timeouts or warnings because room power levels were not set yet.
