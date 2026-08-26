@@ -7,6 +7,7 @@ from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
 
 from ._yivi_proxy import ProxyServlet
+from ._push_gateway_proxy import PushGatewayProxyServlet
 from ._video_call_web import VideoCallServlet
 from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomPublicMetadataServlet
 from ._store import HubStore
@@ -91,6 +92,11 @@ class HubClientApi(object):
         api.register_web_resource("/_synapse/client/videocall", VideoCallServlet( self._config,  self.store, self.module_api))
 
         api.register_web_resource("/_synapse/client/steward", StewardResource(api, self._config, self.store))
+
+        # Not under /_synapse/client/ like the rest of these: this is the standard Matrix Push
+        # Gateway API path a Matrix pusher's `data.url` points at (see nativePush.ts's
+        # pushGatewayUrl()), so it has to live at this exact, spec-fixed location.
+        api.register_web_resource("/_matrix/push/v1/notify", PushGatewayProxyServlet(self.module_api))
 
         self.spam_checker = SpamChecker(api, self.store)
         api.register_spam_checker_callbacks(

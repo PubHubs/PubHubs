@@ -289,6 +289,18 @@ class Program:
             self._start("livekit", ("/usr/bin/livekit-server",
                             "--config", livekit_config_path))
 
+        # Sygnal (Matrix push gateway, see modules/pubhubs/_push_gateway_proxy.py). Opt-in only: a
+        # hub that hasn't dropped a /data/sygnal.yaml (see config/local/sygnal.local.yaml for how)
+        # isn't testing push notifications, so leave it disabled - the proxy resource is always
+        # registered, but simply 502s with nothing listening on the other end.
+        sygnal_config_path = "/data/sygnal.yaml"
+        if os.path.exists(sygnal_config_path):
+            self._start("sygnal", ("/opt/sygnal-venv/bin/python", "-m", "sygnal.sygnal"),
+                        env={**os.environ, "SYGNAL_CONF": sygnal_config_path})
+        else:
+            print(f"No {sygnal_config_path} found; push notifications are disabled for this hub "
+                  "(see config/local/sygnal.local.yaml to enable them).", flush=True)
+
         self._start("yivi", ("/usr/bin/yivi",
                         "irma",
                         "server",
