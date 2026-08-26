@@ -815,6 +815,15 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await APIService.sendRoomMessage(roomId, content, this.client.makeTxnId());
 		},
 
+		/**
+		 * Send a custom-typed event that PubHubs reads back off the timeline itself (voting widget
+		 * votes, picks, close/reopen and edits) rather than rendering as a message of its own.
+		 * Same reason as `sendMessageWithoutLocalEcho`.
+		 */
+		async sendEventWithoutLocalEcho(roomId: string, eventType: string, content: object): Promise<{ event_id: string }> {
+			return await APIService.sendRoomEvent(roomId, eventType, content, this.client.makeTxnId());
+		},
+
 		async addVisibilityMessage(roomId: string, targetEventId: string, hide: boolean, label?: string) {
 			const content: THideMessageContent = {
 				msgtype: PubHubsMgType.HideMessage,
@@ -1063,8 +1072,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					rel_type: PubHubsMgType.VotingWidgetVote,
 				},
 			};
-			//@ts-expect-error -- custom event type not assignable to SDK types
-			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetReply, content);
+			await this.sendEventWithoutLocalEcho(roomId, PubHubsMgType.VotingWidgetReply, content);
 		},
 
 		// Adds reaction event to an existing event based on eventId.
@@ -1092,8 +1100,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					user_ids: user_ids,
 				},
 			};
-			//@ts-expect-error -- custom event type not assignable to SDK types
-			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
+			await this.sendEventWithoutLocalEcho(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
 		async reopenVotingWidget(roomId: string, inReplyTo: string, user_ids: string[]) {
@@ -1107,8 +1114,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 					user_ids: user_ids,
 				},
 			};
-			//@ts-expect-error -- custom event type not assignable to SDK types
-			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
+			await this.sendEventWithoutLocalEcho(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
 		async pickOptionVotingWidget(roomId: string, inReplyTo: string, optionId: number) {
@@ -1120,8 +1126,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				},
 				optionId: optionId,
 			};
-			//@ts-expect-error -- custom event type not assignable to SDK types
-			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetPickOption, content);
+			await this.sendEventWithoutLocalEcho(roomId, PubHubsMgType.VotingWidgetPickOption, content);
 		},
 
 		async editPoll(roomId: string, inReplyTo: string, widget: Poll) {
@@ -1137,8 +1142,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				type: widget.type,
 				showVotesBeforeVoting: widget.showVotesBeforeVoting,
 			};
-			//@ts-expect-error -- custom event type not assignable to SDK types
-			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
+			await this.sendEventWithoutLocalEcho(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
 		async editScheduler(roomId: string, inReplyTo: string, widget: Scheduler) {
@@ -1155,8 +1159,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				type: widget.type,
 				showVotesBeforeVoting: widget.showVotesBeforeVoting,
 			};
-			//@ts-expect-error -- custom event type not assignable to SDK types
-			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
+			await this.sendEventWithoutLocalEcho(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
 		/**

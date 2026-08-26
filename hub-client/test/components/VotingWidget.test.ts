@@ -13,6 +13,9 @@ import { en } from '@hub-client/locales/en';
 // Locales
 import { nl } from '@hub-client/locales/nl';
 
+// Logic
+import { APIService } from '@hub-client/logic/core/apiService';
+
 // Models
 import { type TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
 import { Poll, type PollOption, Scheduler, type SchedulerOption, type UserVote, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
@@ -520,30 +523,40 @@ describe('Back end functions', () => {
 		});
 	});
 
-	test('addVote', () => {
+	// The vote relates to the widget message, so it goes over the client-server api without a local
+	// echo - see `APIService.sendRoomEvent`.
+	test('addVote', async () => {
 		const addVoteSpy = vi.spyOn(usePubhubsStore(), 'addVote');
 
 		const sendEventMock = vi.fn();
 		usePubhubsStore().client.sendEvent = sendEventMock;
+		usePubhubsStore().client.makeTxnId = () => 'txn-1';
+		const sendRoomEvent = vi.spyOn(APIService, 'sendRoomEvent').mockResolvedValue({ event_id: '$sent:example.org' });
 
 		const roomId = 'roomId';
 		const eventId = 'eventId';
 		const optionId = 1;
 		const vote = 'yes';
 
-		usePubhubsStore().addVote(roomId, eventId, optionId, vote);
+		await usePubhubsStore().addVote(roomId, eventId, optionId, vote);
 
 		expect(addVoteSpy).toHaveBeenCalledWith(roomId, eventId, optionId, vote);
 
-		expect(sendEventMock).toHaveBeenCalledWith(roomId, 'pubhubs.voting_widget.reply', {
-			msgtype: 'pubhubs.voting_widget.vote',
-			optionId: optionId,
-			vote: vote,
-			'm.relates_to': {
-				event_id: eventId,
-				rel_type: 'pubhubs.voting_widget.vote',
+		expect(sendEventMock).not.toHaveBeenCalled();
+		expect(sendRoomEvent).toHaveBeenCalledWith(
+			roomId,
+			'pubhubs.voting_widget.reply',
+			{
+				msgtype: 'pubhubs.voting_widget.vote',
+				optionId: optionId,
+				vote: vote,
+				'm.relates_to': {
+					event_id: eventId,
+					rel_type: 'pubhubs.voting_widget.vote',
+				},
 			},
-		});
+			'txn-1',
+		);
 	});
 });
 

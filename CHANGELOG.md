@@ -10,9 +10,11 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _[INTERNAL] - Code changes not affecting functionality_
 
-## Not yet merged
+## Changes not merged to stable yet
 
 - [IMPROVED] Updated the changelog tags
+
+- [BUG] Fixed that voting in a poll or datepicker broke sending messages afterwards, ending in an "updatePendingEventStatus called on an event which is not a local echo" error.
 
 ## 20 August 2026 - v3.5.1
 
