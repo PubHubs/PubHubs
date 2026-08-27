@@ -17,6 +17,24 @@ import { useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('YiviHandler');
 
+/**
+ * Whether the Yivi widget will offer a link that opens the Yivi app on this device, rather than a
+ * QR code to be scanned with a second device.
+ *
+ * Mirrors the platform check in `@privacybydesign/yivi-client`'s `user-agent.js`
+ */
+const canOpenYiviApp = (): boolean => {
+	if (typeof window === 'undefined') return false;
+
+	const userAgent = window.navigator.userAgent;
+
+	if (/Android/i.test(userAgent)) return true;
+	if (/iPad|iPhone|iPod/.test(userAgent)) return true;
+
+	// iPadOS 13 and up report themselves as a Mac; the touch points give them away.
+	return /Macintosh/.test(userAgent) && window.navigator.maxTouchPoints > 2;
+};
+
 const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 	const settings = useSettings();
 	const elementId = '#yivi-authentication';
@@ -110,8 +128,12 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 			}
 		})
 		.catch((startError: unknown) => {
+			// Rethrow. A caller that cannot tell a finished session from a failed one would carry an
+			// `undefined` disclosure into the next request, or report a PubHubs card as issued that
+			// never reached the user's Yivi app.
 			logger.error('Yivi session failed:', startError);
+			throw startError instanceof Error ? startError : new Error(`Yivi session failed: ${String(startError)}`);
 		});
 };
 
-export { startYiviSession, startYiviAuthentication };
+export { canOpenYiviApp, startYiviSession, startYiviAuthentication };

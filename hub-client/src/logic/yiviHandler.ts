@@ -1,10 +1,7 @@
 // Packages
-// @ts-expect-error -- yivi-client has no type declarations
-import yiviClient from '@privacybydesign/yivi-client';
-// @ts-expect-error -- yivi-core has no type declarations
-import yiviCore from '@privacybydesign/yivi-core';
-// @ts-expect-error -- yivi-web has no type declarations
-import yiviWeb from '@privacybydesign/yivi-web';
+import { SessionManagement, YiviClient as yiviClient } from '@privacybydesign/yivi-client';
+import { YiviCore as yiviCore } from '@privacybydesign/yivi-core';
+import { YiviWeb as yiviWeb } from '@privacybydesign/yivi-web';
 
 // Assets
 import '@hub-client/assets/yivi.min.css';
@@ -20,6 +17,27 @@ import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('YiviHandler');
+
+// Override yivi-client url-check method for development. The method is more strict since yivi-client 1.0.1
+if (import.meta.env.DEV) {
+	type SessionUrlAsserter = { _assertSafeSessionUrl: (url: string) => void };
+
+	(SessionManagement.prototype as unknown as SessionUrlAsserter)._assertSafeSessionUrl = (url: string) => {
+		if (typeof url !== 'string' || url.length === 0) throw new Error('Missing or invalid sessionPtr URL in mappings');
+		if (url.startsWith('//')) throw new Error(`Refusing to use protocol-relative sessionPtr URL: ${url}`);
+
+		let parsed: URL;
+		try {
+			parsed = new URL(url, window.location.href);
+		} catch {
+			throw new Error(`Invalid sessionPtr URL received from server: ${url}`);
+		}
+
+		if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+			throw new Error(`Refusing to use sessionPtr URL with scheme "${parsed.protocol}": ${url}`);
+		}
+	};
+}
 
 export function yiviFlow(
 	flowtype: EYiviFlow.SecuredRoom,
@@ -65,7 +83,7 @@ export function yiviFlow(
 	const session = new yiviCore({
 		debugging: getLogLevel() === 'debug',
 		element: elementId,
-		language: settings.getActiveLanguage,
+		language: settings.getActiveLanguage as 'nl' | 'en' | undefined,
 		session: {
 			url: 'yivi-endpoint',
 			start: {
@@ -83,8 +101,8 @@ export function yiviFlow(
 				headers: { Authorization: `Bearer ${accessToken}` },
 			},
 			result: {
-				url: (_o: unknown, obj: { sessionToken: string }) => {
-					const baseUrl = `${hubUrl}/yivi-endpoint/result?session_token=${obj.sessionToken}`;
+				url: (_o: unknown, obj: { sessionToken?: string }) => {
+					const baseUrl = `${hubUrl}/yivi-endpoint/result?session_token=${obj.sessionToken ?? ''}`;
 					return flowtype === EYiviFlow.SecuredRoom ? `${baseUrl}&room_id=${roomId}` : baseUrl;
 				},
 				method: isSignatureFlow ? 'POST' : 'GET',
@@ -98,8 +116,8 @@ export function yiviFlow(
 
 	session
 		.start()
-		.then((result: YiviSigningSessionResult | SecuredRoomAttributeResult) => {
-			onFinish(result, threadRoot);
+		.then((result) => {
+			onFinish(result as YiviSigningSessionResult | SecuredRoomAttributeResult, threadRoot);
 		})
 		.catch((error: unknown) => {
 			logger.error('Yivi session error:', error);

@@ -9,7 +9,6 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 > Shell snippets in this file should stick to POSIX syntax so they keep working in Git Bash, MSYS, and WSL alongside Linux/macOS shells.
 
-
 ---
 
 ## run
@@ -24,8 +23,14 @@ This requires [tmux](https://github.com/tmux/tmux) to be installed.
 
 > Windows users should run the lines in `scripts/run-all.sh` separately, as TMUX is not available on Windows.
 
+**OPTIONS**
+
+- no_postgres
+  - flags: --no-postgres
+  - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
+
 ```sh
-sh scripts/run-all.sh
+PH_NO_POSTGRES="$no_postgres" sh scripts/run-all.sh
 ```
 
 #### cleanup
@@ -45,8 +50,8 @@ sh scripts/run-all-cleanup.sh
 **OPTIONS**
 
 - no_check
-  - flags: --no-check
-  - desc: Skip version checks
+    - flags: --no-check
+    - desc: Skip version checks
 
 ```bash
 set -e
@@ -64,9 +69,9 @@ mask run hub init
 **OPTIONS**
 
 - host
-  - flags: --host
-  - type: string
-  - desc: Override the host IP yivi advertises in its session URL (e.g. a Tailscale IP)
+    - flags: --host
+    - type: string
+    - desc: Override the host IP yivi advertises in its session URL (e.g. a Tailscale IP)
 
 ```sh
 echo "Running Yivi server..."
@@ -227,12 +232,20 @@ Every command below is structured as `mask run hub <subcommand>`
 Don't forget to build the hub image and setup the hub's directory using the
 `mask run hub init` command before running the server and client command
 
+**OPTIONS**
+
+- no_postgres
+  - flags: --no-postgres
+  - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
+
 ```sh
 echo "Running testhub${n}"
 
 cd pubhubs_hub
 hub_host="${host:-${YIVI_HOST:-}}"
-python3 start_testhub.py "${n}"
+postgres_flag=()
+[[ "$no_postgres" == "true" ]] && postgres_flag=(--no-replace-sqlite3-by-postgres)
+python3 start_testhub.py "${postgres_flag[@]}" "${n}"
 ```
 
 #### client (n)
@@ -433,4 +446,33 @@ fi
 
 python3 scripts/check-python3-version.py
 python3 scripts/check-versions.py
+```
+
+## update
+
+> Commands for updating pinned dependencies
+
+### yivi (version)
+
+> Updates the pinned Yivi (irmago) version in packages/yivi.nix
+
+Runs `nix-update` inside a throwaway git worktree.
+
+```sh
+set -e
+
+worktree="$(mktemp -d)/pubhubs"
+git worktree add --detach -q "$worktree" HEAD
+trap 'git worktree remove --force "$worktree" >/dev/null 2>&1' EXIT
+
+cp packages/yivi.nix "$worktree/packages/yivi.nix"
+(cd "$worktree" && nix run nixpkgs#nix-update -- --flake yivi --version "$version")
+cp "$worktree/packages/yivi.nix" packages/yivi.nix
+
+echo
+echo "packages/yivi.nix is now at ${version}. Remaining steps:"
+echo "  1. update the trailing version comment next to yivi in flake.nix"
+echo "  2. keep the yivi_build stage of pubhubs_hub/Dockerfile on the same version"
+echo "  3. run 'direnv reload' and check 'yivi version' (direnv only watches flake.nix and flake.lock)"
+echo "  4. smoke-test with 'mask run yivi'"
 ```

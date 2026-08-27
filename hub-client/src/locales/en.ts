@@ -66,6 +66,13 @@ const en = {
 			'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
 		notid_taken_title: 'Phone number already in use',
 		YiviServerGone: 'You could likely not complete the login because battery-saver blocks javascript, try the last step one more time to log in.',
+		// Shown when a Yivi session fails outright, rather than being cancelled or timing out - the
+		// widget offers a retry of its own for those.
+		yivi_session_failed: 'Something went wrong in the Yivi app, so we could not log you in. Reload this page to try again.',
+		// The card is on the account but never reached the user's Yivi app, and logging in later
+		// discloses exactly that card - so the last step really does have to be finished.
+		card_not_added:
+			'You are logged in, but your PubHubs card was not added to your Yivi app. You need it to log in next time, so please finish the last step.',
 	},
 	file: {
 		upload: 'Upload',
@@ -129,8 +136,15 @@ const en = {
 		card_2_text_2: '{0} needs this information to complete registration.',
 
 		card_3_title: 'Scan the QR code',
-		card_3_text_1: "Great, you're almost done!",
+		// The _app variants are shown on a device that opens the Yivi app by link, where there is no
+		// QR code to scan.
+		card_3_title_app: 'Open the {0} app',
 		card_3_text_2: 'Scan the QR code with your {0} app and share your details to log into {1}.',
+		card_3_text_2_app: 'Open your {0} app and share your details to log into {1}.',
+		// The success variants are shown once the disclosure succeeded and the card is being issued.
+		card_3_success_title: "You're logged in!",
+		card_3_success_text: 'Scan the {0} Qr code once more to add your {1} card.',
+		card_3_success_text_app: 'Open your {0} app once more to add your {1} card.',
 
 		video_click_to_play: 'Click to play video',
 		video_hosted_by_vimeo: 'This video is hosted by Vimeo',

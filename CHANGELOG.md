@@ -1,20 +1,26 @@
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
 
 - _[BUG] - If the change is a bugfix (from own branch)_
-- _[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable_
+- _[HOTFIX] - If it is a small bug (typo or styling) that is done directly on stable_
 - _[TYPO] - If a translation/typo in the UI has been changed or implemented_
 - _[NEW] - If it is a new feature_
-- _[UPDATE] - Updated dependencies_
-- _[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done._
+- _[IMPROVED] - Extends or improves an existing feature_
+- _[REMOVED] - Removes an existing feature_
+- _[SECURITY] - Security patch_
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
-- _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
+- _[INTERNAL] - Code changes not affecting functionality_
+
+## 27 Auguest 2026 - v3.5.2
+
+- [IMPROVED] Updated the changelog tags
+- [IMPROVED, BUG] Updated the Pubhubs registration flow to handle users with slow connectivity or with settings that slow down or block background jobs not being able to register an account or obtain a Pubhubs Card.
+- [BUG] Fixed that voting in a poll or datepicker broke sending messages afterwards, ending in an "updatePendingEventStatus called on an event which is not a local echo" error.
 
 ## 20 August 2026 - v3.5.1
 
 - [NEW] Introducing expert users that can set their credentials via synapse account details and add context to messages. Expert users are appointed by stewards or room admins via a new roles page.
 - [NEW] The Pubhubs Central Yivi email and phone-number login is replaced with the Yivi Pubhubs Card login.
 - [NEW] Added a room sidebar where user details can be viewed.
-
 - [BUG] Fixed that only one local testhub could be started at a time: every hub published LiveKit on the fixed host port 7880, so a second `mask run hub server <n>` failed with "port is already allocated". Each hub `n` now runs its LiveKit on `7880+n`, both inside and outside the container, so video calls work in several hubs at once.
 - [BUG] Fixed that the receiver of a video call never got a join button: the call message showed only "Duration: Unknown" with no body text. `RoomMessageBubble` handed `MessageVideoCall` the raw event wrapper instead of its unwrapped `event` computed, so `event_id` was `undefined` and every incoming call was treated as an older, already-ended one.
 - [BUG] Fixed that stewards could not apply timeouts or warnings because room power levels were not set yet.

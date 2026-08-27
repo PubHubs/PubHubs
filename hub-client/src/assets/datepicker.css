@@ -1,4 +1,4 @@
-.dp__theme_dark {
+.dp--theme-dark {
 	--dp-background-color: var(--surface-background);
 	--dp-border-color: var(--surface-base);
 	--dp-menu-border-color: var(--surface-background);
@@ -18,13 +18,13 @@
 	box-shadow: 0px 0px 5px var(--surface-elevated);
 	border-radius: 5px;
 }
-.dp__input_wrap input {
+.dp--input-wrap input {
 	display: none;
 }
-.dp__clear_icon {
+.dp--clear-btn {
 	display: none;
 }
-.dp__input_icon {
+.dp--input-icon {
 	color: var(--black);
 }
 .time-picker-overlay {

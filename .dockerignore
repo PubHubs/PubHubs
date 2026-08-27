@@ -1,9 +1,17 @@
-node_modules
+# The repository root is the build context of the hub client image (hub-client/Dockerfile) -- the
+# only image built from here.
+
+# ignore everything...
+*
+
+# except:  what `npm ci` and `vite build` need for the hub client
+!package.json
+!package-lock.json
+!global-client/package.json
+!hub-client/**
+
+# ...but not the parts of hub-client/ that the build does not use
 hub-client/node_modules
-global-client/node_modules
 hub-client/dist
-global-client/dist
-hub-client/stories
 hub-client/test
-global-client/test
-.git
+hub-client/stories

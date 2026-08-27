@@ -100,7 +100,7 @@
               ]
               ++ [
                 # Custom packages
-                (pkgs.callPackage ./packages/yivi.nix { }) # 1.0.0
+                (pkgs.callPackage ./packages/yivi.nix { }) # 1.3.0
               ];
           };
         }

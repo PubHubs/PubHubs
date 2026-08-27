@@ -13,6 +13,11 @@ dist
 # Added by cargo
 /target
 
+# GitLab CI caches.  
+/.cargo/
+/.npm/
+/.cache/
+
 # Nix
 .direnv
 .envrc
@@ -27,3 +32,7 @@ result
 /certs
 Caddyfile.local
 capacitor.config.local.json
+
+# A local clone of https://github.com/privacybydesign/irmago, if you keep one here.
+# Ignored so it cannot be committed as a gitlink again (see #1999).
+/irmago
