@@ -128,7 +128,11 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 			}
 		})
 		.catch((startError: unknown) => {
+			// Rethrow. A caller that cannot tell a finished session from a failed one would carry an
+			// `undefined` disclosure into the next request, or report a PubHubs card as issued that
+			// never reached the user's Yivi app.
 			logger.error('Yivi session failed:', startError);
+			throw startError instanceof Error ? startError : new Error(`Yivi session failed: ${String(startError)}`);
 		});
 };
 

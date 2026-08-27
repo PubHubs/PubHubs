@@ -66,6 +66,13 @@ const en = {
 			'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
 		notid_taken_title: 'Phone number already in use',
 		YiviServerGone: 'You could likely not complete the login because battery-saver blocks javascript, try the last step one more time to log in.',
+		// Shown when a Yivi session fails outright, rather than being cancelled or timing out - the
+		// widget offers a retry of its own for those.
+		yivi_session_failed: 'Something went wrong in the Yivi app, so we could not log you in. Reload this page to try again.',
+		// The card is on the account but never reached the user's Yivi app, and logging in later
+		// discloses exactly that card - so the last step really does have to be finished.
+		card_not_added:
+			'You are logged in, but your PubHubs card was not added to your Yivi app. You need it to log in next time, so please finish the last step.',
 	},
 	file: {
 		upload: 'Upload',
