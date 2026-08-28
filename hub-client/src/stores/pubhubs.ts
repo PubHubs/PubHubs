@@ -29,10 +29,11 @@ import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 import { APIService } from '@hub-client/logic/core/apiService';
 import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { removeHtml } from '@hub-client/logic/core/htmlText';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { router } from '@hub-client/logic/core/router';
-import { removeHtml } from '@hub-client/logic/core/sanitizer';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { SyncProfile } from '@hub-client/logic/matrix.logic';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
@@ -69,7 +70,6 @@ import { useDialog } from '@hub-client/stores/dialog';
 import { useMessageActions } from '@hub-client/stores/message-actions';
 import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
-import useVideoCall from '@hub-client/stores/videoCall';
 
 const logger = createLogger('PubHubs');
 const publicRoomsLoading: Promise<TPublicRoom[]> | null = null; // Outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -100,7 +100,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 			window.top?.location.replace(centralLoginUrl);
 		},
 
-		async login() {
+		/**
+		 * @param options.unreadOnly Log in only far enough to compute this hub's unread state, for
+		 *   the miniclient. Syncs the leanest room lists and skips the profile, administrator and
+		 *   consent lookups, none of which a dot needs — three HTTP round trips per pinned hub.
+		 */
+		async login(options: { unreadOnly?: boolean } = {}) {
 			logger.debug('START PubHubs.login');
 			try {
 				const _client = await this.Auth.login();
@@ -113,7 +118,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 				const { init, startSync } = useMatrix();
 				init(_client as MatrixClient);
-				startSync(); // Do not await this async function, since it will be running continuously in the background
+				startSync(options.unreadOnly ? SyncProfile.UnreadOnly : SyncProfile.Full); // Do not await this async function, since it will be running continuously in the background
 
 				logger.debug('PubHubs.logged in ()');
 
@@ -126,14 +131,19 @@ const usePubhubsStore = defineStore('pubhubs', {
 					if (!accessToken) throw new Error('Access token not available after login');
 					api_synapse.setAccessToken(accessToken);
 					api_matrix.setAccessToken(accessToken);
-					user.fetchIsAdministrator(this.client as MatrixClient);
-					user.fetchIfUserNeedsConsent();
 
-					try {
-						const profile = await this.client.getProfileInfo(newUserId);
-						await user.setProfile(profile);
-					} catch (error) {
-						logger.debug('There is no profile information (avatar or displayname) for this user.', { error });
+					if (!options.unreadOnly) {
+						user.fetchIsAdministrator(this.client as MatrixClient);
+						user.fetchIfUserNeedsConsent();
+
+						// Deliberately not awaited. This is two network operations — the profile lookup, and
+						// inside setProfile a download of the user's own avatar — and App.vue keeps the whole
+						// hub UI behind `v-if="setupReady"` until login() resolves. Nothing rendered at that
+						// point needs either; the name and avatar fill in when they arrive.
+						void this.client
+							.getProfileInfo(newUserId)
+							.then((profile) => user.setProfile(profile))
+							.catch((error) => logger.debug('There is no profile information (avatar or displayname) for this user.', { error }));
 					}
 				}
 			} catch (error: unknown) {
@@ -1617,7 +1627,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		addEndCallListener() {
 			const rooms = useRooms();
-			const videoCall = useVideoCall();
 			const calledRoom = rooms.currentRoom;
 
 			if (calledRoom === undefined) {
@@ -1626,6 +1635,11 @@ const usePubhubsStore = defineStore('pubhubs', {
 			const onCallTerminated = async (event: MatrixEvent) => {
 				if (event.getType() === 'org.matrix.msc3401.call' && event.getContent()?.['m.terminated']) {
 					calledRoom.matrixRoom.removeListener(RoomStateEvent.Events, onCallTerminated);
+					// Imported here rather than at module scope to keep livekit-client (~870 KB) off the
+					// startup path of this store. Only videoCall.ts registers this listener, so by the time
+					// it fires the module is already in the module cache and this resolves without a fetch.
+					const { default: useVideoCall } = await import('@hub-client/stores/videoCall');
+					const videoCall = useVideoCall();
 					// Skip if we're the one ending the call — endCall() handles everything
 					if (videoCall._isEnding) return;
 					router.push({ name: 'room', params: { id: calledRoom.roomId } });

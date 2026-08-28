@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, ref } from 'vue';
+	import { computed, onMounted, ref } from 'vue';
 
 	// Components
 	import HubBlock from '@global-client/components/ui/HubBlock.vue';
@@ -99,6 +99,9 @@
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
+
+	// Stores
+	import { useMiniclientGate } from '@global-client/composables/miniclientGate.composable';
 
 	// Logic
 	import device from '@hub-client/logic/core/device';
@@ -112,6 +115,11 @@
 
 	const global = useGlobal();
 	const hubs = useHubs();
+	const { releaseMiniclients } = useMiniclientGate();
+
+	// No hub is being opened here, so there is nothing for the miniclients to stay out of the way
+	// of — and letting them sync now means the work is already done by the time a hub is picked.
+	onMounted(() => releaseMiniclients('no hub open'));
 
 	const searchQuery = ref<string>('');
 

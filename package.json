@@ -38,11 +38,11 @@
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-vue": "^9",
 		"husky": "^9.1.7",
-		"jsdom": "^27",
+		"jsdom": "^29",
 		"lint-staged": "^16",
 		"prettier": "^3.5.0",
 		"prettier-plugin-tailwindcss": "^0.7.2",
-		"typescript": "~5.9.3",
+		"typescript": "^6.0.3",
 		"typescript-eslint": "^8"
 	}
 }

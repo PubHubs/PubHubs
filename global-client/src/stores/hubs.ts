@@ -1,12 +1,14 @@
 // Packages
-import { assert } from 'chai';
 import { defineStore } from 'pinia';
 import { type RouteParams } from 'vue-router';
+
+import { useMiniclientGate } from '@global-client/composables/miniclientGate.composable';
 
 // Logic
 import { type LocalStore } from '@global-client/logic/utils/localStore';
 
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { assert } from '@hub-client/logic/utils/assert';
 
 // Models
 import { Hub, type HubList } from '@global-client/models/Hubs';
@@ -126,8 +128,9 @@ const useHubs = defineStore('hubs', {
 
 			assert.isDefined(this.hubs[hubId], 'Current hub is not initialized');
 
-			// Start conversation with hub frame and sync latest settings
-			await messagebox.startCommunication(this.hubs[hubId].url, frameId);
+			// Start conversation with hub frame and sync latest settings. A false result means this
+			// handshake was superseded or torn down while we waited, so the frame it belonged to is gone.
+			if (!(await messagebox.startCommunication(this.hubs[hubId].url, frameId))) return;
 
 			// Hub client signals when it transitions to having unread messages
 			messagebox.addCallback(frameId, MessageType.UnreadMessages, () => {
@@ -154,6 +157,7 @@ const useHubs = defineStore('hubs', {
 			const toggleMenu = useToggleMenu();
 			const messagebox = useMessageBox();
 			const global = useGlobal();
+			const { releaseMiniclients } = useMiniclientGate();
 
 			const previousHubId = this.currentHubId;
 			this.currentHubId = hubId;
@@ -202,8 +206,10 @@ const useHubs = defineStore('hubs', {
 				// with no way left to unlock it.
 				global.setHubCanGoBack(false);
 
-				// Start conversation with hub frame and sync latest settings
-				await messagebox.startCommunication(this.currentHub.url, iframeHubId);
+				// Start conversation with hub frame and sync latest settings. A false result means a later
+				// hub change superseded this one while we waited; that call owns currentHubId now, so
+				// registering callbacks here would attach them to a hub the user already left.
+				if (!(await messagebox.startCommunication(this.currentHub.url, iframeHubId))) return;
 
 				// The main hub iframe reuses iframeHubId across hubs — read currentHubId
 				// at message-arrival time so callbacks always use the current hub.
@@ -216,6 +222,10 @@ const useHubs = defineStore('hubs', {
 				messagebox.addCallback(iframeHubId, MessageType.AggregateUnreadState, (message: Message) => {
 					const content = message.content as { hubId?: string; state?: UnreadState };
 					if (!content.hubId || content.state === undefined) return;
+					// This hub only computes an aggregate once it has logged in and loaded its rooms, so
+					// its first report is as good a "the hub the user opened is up" signal as we have —
+					// and unlike a new message type, it also arrives from older hub clients.
+					releaseMiniclients('active hub ready');
 					if (content.hubId !== this.currentHubId) {
 						logger.warn(`AggregateUnreadState: hubId mismatch (expected ${this.currentHubId}, got ${content.hubId}); dropping`);
 						return;
