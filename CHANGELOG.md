@@ -10,7 +10,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _[INTERNAL] - Code changes not affecting functionality_
 
-## Not merged into stable yet
+## 28 August 2026 - v3.5.3
 
 - [BUG, INTERNAL] Fixed that event listeners were leaking between hub switches.
 - [INTERNAL] Added a separate minimal sliding sync configuration for miniclients, to increase app performance.
