@@ -10,6 +10,15 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _[INTERNAL] - Code changes not affecting functionality_
 
+## 28 August 2026 - v3.5.3
+
+- [BUG, INTERNAL] Fixed that event listeners were leaking between hub switches.
+- [INTERNAL] Added a separate minimal sliding sync configuration for miniclients, to increase app performance.
+- [INTERNAL] Minimized the hub-client and mini-client size to improve initial loading time of the app.
+- [INTERNAL] Miniclients now wait for the hub-client to load and are then loaded in sequence to improve the initial loading time of the app.
+- [INTERNAL] Removed non-vital awaits in hub login to speed up initial hub-client setup.
+- [INTERNAL] Removed unused packages in the package json files and synced package version differences.
+
 ## 27 Auguest 2026 - v3.5.2
 
 - [IMPROVED] Updated the changelog tags

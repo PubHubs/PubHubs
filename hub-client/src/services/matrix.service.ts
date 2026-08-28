@@ -11,7 +11,7 @@ import {
 
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
-import { MainRoomSubscription, RoomLists, makeMainRoomSubscriptionName } from '@hub-client/logic/matrix.logic.js';
+import { MainRoomSubscription, RoomLists, SyncProfile, makeMainRoomSubscriptionName, roomListsForProfile } from '@hub-client/logic/matrix.logic.js';
 
 // Models
 import { MatrixType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
@@ -39,6 +39,7 @@ class MatrixService {
 	private roomsUpperRange: number = SystemDefaults.mainRoomListRange; // current number of the upper range of the roomlist
 	private initialRoomLoading: boolean = true; // Are we fetching the first roomlist with only memberdata? (vs the main roomlist with all data)
 	private isReauthenticating: boolean = false; // Prevents multiple re-authentication attempts
+	private roomListKeys = roomListsForProfile(SyncProfile.Full); // which pair of lists this sync runs through
 
 	/**
 	 * Construct a MatrixService instance.
@@ -64,13 +65,14 @@ class MatrixService {
 	 * @throws {Error} If the client is not provided
 	 * @throws {Error} If the SlidingSyncService fails to start
 	 */
-	async startSync() {
+	async startSync(profile: SyncProfile = SyncProfile.Full) {
 		if (!this.client) throw new Error('Matrix client required');
 		if (this.slidingSync) throw new Error('SlidingSync already started');
 
-		logger.info('Starting Sliding Sync');
+		logger.info(`Starting Sliding Sync (${profile})`);
 
-		const initialRoomList = RoomLists.get(SlidingSyncOptions.initialRoomList);
+		this.roomListKeys = roomListsForProfile(profile);
+		const initialRoomList = RoomLists.get(this.roomListKeys.initial);
 		if (!initialRoomList) throw new Error('Initial room list configuration not found');
 		const initialRoomListFilter = new Map<string, MSC3575List>([[SlidingSyncOptions.roomList, initialRoomList]]);
 
@@ -153,7 +155,7 @@ class MatrixService {
 	 * When there are more rooms than the current upperRange: increase it to wait for the next load of rooms
 	 */
 	private SetRoomSlidingSync() {
-		const mainRoomList = RoomLists.get(SlidingSyncOptions.mainRoomList);
+		const mainRoomList = RoomLists.get(this.roomListKeys.main);
 		if (!mainRoomList) return;
 		mainRoomList.ranges[0][1] = this.roomsUpperRange;
 

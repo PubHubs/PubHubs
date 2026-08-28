@@ -18,12 +18,10 @@
 		"node": ">=22.0.0"
 	},
 	"dependencies": {
-		"@privacybydesign/yivi-client": "^0",
-		"@privacybydesign/yivi-core": "^0",
-		"@privacybydesign/yivi-web": "^0",
+		"@privacybydesign/yivi-client": "^1.0.1",
+		"@privacybydesign/yivi-core": "^1.0.0",
+		"@privacybydesign/yivi-web": "^1.0.3",
 		"pinia": "^4.0.3",
-		"typescript-cookie": "^1.0.4",
-		"util": "^0.12.5",
 		"vue": "^3.2.13",
 		"vue-i18n": "11.4.0",
 		"vue-router": "^5.0.4",
@@ -32,19 +30,15 @@
 	"devDependencies": {
 		"@tailwindcss/vite": "^4.2.2",
 		"@vitejs/plugin-vue": "^6",
-		"@vue/test-utils": "^2.2.3",
-		"autoprefixer": "^10.4.21",
-		"chai": "^6.2.1",
-		"jsdoc": "^4.0.2",
 		"jsdom": "^29",
 		"msw": "^2.12.4",
-		"postcss": "^8.5.3",
 		"tailwindcss": "^4.2.2",
-		"typescript": "^6.0.2",
+		"typescript": "^6.0.3",
+		"vite": "^8.2.2",
 		"vite-plugin-node-polyfills": "^0.28.0",
 		"vite-plugin-pwa": "^1.2.0",
 		"vitest": "^4",
-		"vue-tsc": "^2"
+		"vue-tsc": "^3.3.10"
 	},
 	"browserslist": [
 		"> 1%",

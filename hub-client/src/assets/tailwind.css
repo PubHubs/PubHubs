@@ -390,8 +390,11 @@
 		@apply text-accent-blue;
 	}
 
+	/* System emoji fonts first. Every current mobile and desktop platform ships one, so the
+	   bundled notocoloremoji fallback (a 24 MB .ttf) is only fetched on the rare platform that
+	   has none, instead of by every phone that opens the emoji picker. */
 	.emoji-font {
-		font-family: notocoloremoji;
+		font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', notocoloremoji;
 	}
 
 	.no-scrollbar {

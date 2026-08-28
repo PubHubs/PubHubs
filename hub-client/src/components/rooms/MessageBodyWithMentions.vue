@@ -69,9 +69,9 @@
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useMessageBody } from '@hub-client/composables/message-body.composable';
 
+	import { textToHtml } from '@hub-client/logic/core/htmlText';
 	// Logic
 	import { router } from '@hub-client/logic/core/router';
-	import { textToHtml } from '@hub-client/logic/core/sanitizer';
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';

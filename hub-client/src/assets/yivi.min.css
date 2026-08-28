@@ -51,10 +51,6 @@
 .yivi-web-centered canvas {
 	cursor: none;
 }
-.yivi-web-centered .yivi-web-qr-canvas {
-	width: 200px !important;
-	height: 200px !important;
-}
 .yivi-web-centered > p:first-child {
 	margin-top: 0;
 }
@@ -101,24 +97,6 @@
 }
 .yivi-web-form .yivi-web-content p.yivi-web-error {
 	color: #e12747;
-}
-.yivi-web-form .yivi-web-content a {
-	background-color: inherit;
-	box-sizing: border-box;
-	margin: 0;
-	padding: 0;
-	font-family: 'Open Sans', 'Roboto', Tahoma, Arial, sans-serif;
-	font-weight: 700;
-	font-size: 15px;
-	color: #00508a;
-	text-decoration: underline;
-	cursor: pointer;
-}
-.yivi-web-form .yivi-web-content a.yivi-web-error {
-	color: #e12747;
-}
-.yivi-web-form .yivi-web-content a:hover {
-	color: #484747;
 }
 .yivi-web-form .yivi-web-header {
 	background-color: inherit;
@@ -338,6 +316,73 @@
 .yivi-web-button:focus {
 	outline: 0;
 }
+/* yivi-web 1.0 replaced `<a><button class="yivi-web-button"></button></a>` with a single
+   `<a class="yivi-web-button-link yivi-web-button">`, and moved the secondary and tertiary
+   actions (cancel, retry, back, "show QR code") onto their own classes. Ported from
+   @privacybydesign/yivi-css 1.0.1, with its rem font sizes written out in px because the
+   clients set `html { font-size: 62.5% }`. */
+.yivi-web-button:hover {
+	box-shadow: 0 0.1em 0.1em rgba(0, 0, 0, 0.3);
+}
+.yivi-web-button:active {
+	transform: translateY(0.1em);
+	box-shadow: none;
+}
+.yivi-web-button-secondary {
+	background-color: inherit;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	font-family: 'Open Sans', 'Roboto', Tahoma, Arial, sans-serif;
+	font-weight: 700;
+	font-size: 16px;
+	display: inline-block;
+	padding: 10px 30px;
+	color: #484747;
+	border: 2px solid #484747;
+	border-radius: 8px;
+	background-color: white;
+	cursor: pointer;
+}
+.yivi-web-error.yivi-web-button-secondary {
+	color: #e12747;
+}
+.yivi-web-button-secondary:hover {
+	color: oklch(from #484747 calc(l - 0.05) c h);
+	border-color: oklch(from #484747 calc(l - 0.05) c h);
+	background-color: oklch(from #484747 l c h / calc(alpha - 0.9));
+	box-shadow: 0 0.1em 0.1em rgba(0, 0, 0, 0.2);
+}
+.yivi-web-button-secondary:active {
+	transform: translateY(0.1em);
+	box-shadow: none;
+}
+.yivi-web-button-secondary:focus {
+	outline: 0;
+}
+.yivi-web-button-tertiary {
+	background-color: inherit;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	font-family: 'Open Sans', 'Roboto', Tahoma, Arial, sans-serif;
+	font-weight: 700;
+	font-size: 15px;
+	display: inline-block;
+	border: 0;
+	color: #00508a;
+	text-decoration: underline;
+	cursor: pointer;
+}
+.yivi-web-error.yivi-web-button-tertiary {
+	color: #e12747;
+}
+.yivi-web-button-tertiary:hover {
+	color: #484747;
+}
+.yivi-web-button-tertiary:focus {
+	outline: 0;
+}
 .yivi-web-pairing-form .yivi-web-pairing-loading-animation,
 .yivi-web-loading-animation {
 	background-color: inherit;
@@ -530,6 +575,13 @@
 	height: 200px;
 	max-width: 100%;
 	background-color: white;
+}
+/* yivi-web 1.0 renders the QR as an inline <svg> inside this container instead of a <canvas>,
+   so the SVG has to be told to fill it. */
+.yivi-web-qr-code > svg {
+	display: block;
+	width: 100%;
+	height: 100%;
 }
 .yivi-web-loading-animation,
 .yivi-web-pairing-form .yivi-web-pairing-loading-animation {

@@ -242,9 +242,9 @@
 		flex: 1 1 auto;
 	}
 
-	/* The canvas is inline by default, so its line box reserves ~7px of descender space
-	   below the QR code, which made the QR state taller than Yivi's other states */
-	#yivi-authentication :deep(.yivi-web-qr-canvas) {
+	/* The QR is an inline <svg>, so its line box reserves ~7px of descender space below the
+	   QR code, which made the QR state taller than Yivi's other states */
+	#yivi-authentication :deep(.yivi-web-qr-code > svg) {
 		display: block;
 	}
 </style>
