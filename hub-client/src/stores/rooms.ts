@@ -2,6 +2,7 @@
 import { Direction, EventType, type IStateEvent, type Room as MatrixRoom, MsgType } from 'matrix-js-sdk';
 import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
+import { watch } from 'vue';
 
 // Composables
 import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
@@ -67,6 +68,10 @@ type Unsigned = {
 const logger = createLogger('Rooms');
 
 let noticeUserIdPromise: Promise<string> | null = null;
+
+// Shared by every waitForInitialRoomsLoaded caller. Outside defineStore so it is created once, not
+// per store instance.
+let initialRoomsLoadedPromise: Promise<void> | null = null;
 
 function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
 	if (!room.accepted) {
@@ -289,6 +294,11 @@ const useRooms = defineStore('rooms', {
 		// Returns the worst unread state across all visible rooms (those
 		// displayed in the sidebar: public, secured, and private).
 		async fetchAggregateUnreadState(): Promise<UnreadState> {
+			// Awaited on purpose: over an empty room list worstUnreadState is 'read', and reporting that
+			// before the rooms are in both clears the parent's badge for a hub that does have unread
+			// messages and, because the global client treats the first AggregateUnreadState as "this hub
+			// is up", releases the pinned-hub miniclients into the middle of this hub's startup.
+			// Callers that must not block on this should not await the fetch (see App.vue).
 			await this.waitForInitialRoomsLoaded();
 			return worstUnreadState(
 				[...this.loadedPublicRooms, ...this.loadedSecuredRooms, ...this.loadedPrivateRooms]
@@ -297,10 +307,29 @@ const useRooms = defineStore('rooms', {
 			);
 		},
 
+		/**
+		 * Resolves once the first sliding sync has delivered the room list.
+		 */
 		async waitForInitialRoomsLoaded(): Promise<void> {
-			while (!this.initialRoomsLoaded) {
-				await new Promise((resolve) => setTimeout(resolve, 50)); // poll every 50 ms
-			}
+			if (this.initialRoomsLoaded) return;
+
+			// Memoised because several call sites wait on this and each watch below is detached: it is
+			// created inside an action, so outside any component or store effect scope, and nothing but
+			// itself will ever dispose of it. Sharing one promise means one watcher to stop no matter how
+			// many callers are waiting — and none left running per call on a hub that never loads.
+			initialRoomsLoadedPromise ??= new Promise<void>((resolve) => {
+				const stop = watch(
+					() => this.initialRoomsLoaded,
+					(loaded) => {
+						if (!loaded) return;
+						stop();
+						initialRoomsLoadedPromise = null;
+						resolve();
+					},
+				);
+			});
+
+			await initialRoomsLoadedPromise;
 		},
 
 		setRoomsLoaded(loaded: boolean) {

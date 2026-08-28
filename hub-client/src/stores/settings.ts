@@ -8,7 +8,7 @@ import { CONFIG } from '@hub-client/logic/logging/Config';
 import { Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 
 // Other
-import { fallbackLanguage } from '@hub-client/i18n';
+import { fallbackLanguage } from '@hub-client/language';
 
 // Types
 enum Theme {

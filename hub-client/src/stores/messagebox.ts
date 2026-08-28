@@ -151,6 +151,7 @@ const useMessageBox = defineStore('messagebox', {
 			handshake: new Map<string, HandshakeState>(), // Handshake state
 			callbacks: new Map<string, { [index in MessageType]: (message: Message) => void }>(), // List of callbacks per MessageType
 			_windowMessageListener: new Map<string, (event: MessageEvent) => void>(), // Event listener, set at init
+			_pendingHandshake: new Map<string, (connected: boolean) => void>(), // Resolver of the in-flight startCommunication per id, so a superseded or torn-down one can be settled
 		};
 	},
 
@@ -190,11 +191,20 @@ const useMessageBox = defineStore('messagebox', {
 		 * @param url url of the other side
 		 * @param [id='parentFrame'] the iframe id of the other side (the main frame does not have such an id, so the id will then be 'parentFrame')
 		 *
-		 * @returns a Promise after handshake is ready. Add callbacks after the promise is resolved.
+		 * @returns a Promise that resolves true once the handshake is ready. Add callbacks after that.
+		 *   Resolves false instead when this handshake is abandoned — superseded by a later
+		 *   startCommunication on the same id, or torn down by reset/resetCurrentHub/resetMiniclient —
+		 *   in which case the caller must not go on to register callbacks for what is now a stale frame.
 		 */
 		startCommunication(url: string, id: string = 'parentFrame'): Promise<boolean> {
+			// A pending handshake on this id belongs to a frame we are about to stop listening to, so its
+			// resolve is unreachable from here on. Settle it as abandoned rather than leaving its caller
+			// awaiting forever.
+			this.abandonHandshake(id);
+
 			return new Promise((resolve, reject) => {
 				this.receiverUrlMap.set(id, url);
+				this._pendingHandshake.set(id, resolve);
 
 				// If Child: start handshake with parent
 				if (this.inIframe && this.type === MessageBoxType.Child) {
@@ -204,6 +214,14 @@ const useMessageBox = defineStore('messagebox', {
 
 				// Start listening
 				if (this.isConnected) {
+					// The main hub iframe reuses one id across hub switches, and a switch does not go
+					// through resetCurrentHub. Drop the previous listener here, or every switch leaves
+					// another one attached to window, all of them running on every postMessage.
+					const previousListener = this._windowMessageListener.get(id);
+					if (previousListener) {
+						window.removeEventListener('message', previousListener);
+					}
+
 					this._windowMessageListener.set(id, (event: MessageEvent) => {
 						if (filters.removeTrailingSlash(event.origin) === filters.removeTrailingSlash(url)) {
 							const message = new Message(event.data.type, event.data.content);
@@ -222,6 +240,7 @@ const useMessageBox = defineStore('messagebox', {
 								);
 
 								this.handshake.set(id, HandshakeState.Ready);
+								this._pendingHandshake.delete(id);
 								resolve(true);
 							}
 
@@ -234,6 +253,7 @@ const useMessageBox = defineStore('messagebox', {
 								settings.setTimeFormat(settingsContent.timeformat);
 								settings.setLanguage(settingsContent.language);
 								this.handshake.set(id, HandshakeState.Ready);
+								this._pendingHandshake.delete(id);
 								resolve(true);
 							}
 
@@ -249,9 +269,21 @@ const useMessageBox = defineStore('messagebox', {
 						window.addEventListener('message', listener);
 					}
 				} else {
+					this._pendingHandshake.delete(id);
 					reject(new Error('Messagebox is not connected'));
 				}
 			});
+		},
+
+		/**
+		 * Settle a still-pending startCommunication for this id as abandoned, so whoever is awaiting it
+		 * stops instead of hanging on a frame we no longer listen to. No-op when there is none.
+		 */
+		abandonHandshake(id: string) {
+			const pending = this._pendingHandshake.get(id);
+			if (!pending) return;
+			this._pendingHandshake.delete(id);
+			pending(false);
 		},
 
 		/**
@@ -264,6 +296,7 @@ const useMessageBox = defineStore('messagebox', {
 					window.removeEventListener('message', listener);
 				}
 			});
+			[...this._pendingHandshake.keys()].forEach((id) => this.abandonHandshake(id));
 			this._windowMessageListener.clear();
 			this.inIframe = globalThis.self !== window.top;
 			this.type = MessageBoxType.Unset;
@@ -282,6 +315,7 @@ const useMessageBox = defineStore('messagebox', {
 			if (hubListener) {
 				window.removeEventListener('message', hubListener);
 			}
+			this.abandonHandshake(iframeHubId);
 			this._windowMessageListener.delete(iframeHubId);
 			this.receiverUrlMap.delete(iframeHubId);
 			this.handshake.delete(iframeHubId);
@@ -294,6 +328,7 @@ const useMessageBox = defineStore('messagebox', {
 			if (miniclientListener) {
 				window.removeEventListener('message', miniclientListener);
 			}
+			this.abandonHandshake(fullMiniclientId);
 			this._windowMessageListener.delete(fullMiniclientId);
 			this.receiverUrlMap.delete(fullMiniclientId);
 			this.handshake.delete(fullMiniclientId);

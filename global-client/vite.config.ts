@@ -114,7 +114,6 @@ export default defineConfig({
 		alias: {
 			'@global-client': fileURLToPath(new URL('./src', import.meta.url)),
 			'@hub-client': fileURLToPath(new URL('../hub-client/src', import.meta.url)),
-			process: 'process/browser',
 			'vue-i18n': 'vue-i18n/dist/vue-i18n.esm-bundler.js',
 		},
 		dedupe: ['pinia'], // Necessary to avoid duplicate pinia instances
@@ -122,6 +121,14 @@ export default defineConfig({
 	build: {
 		sourcemap: true,
 		rollupOptions: {
+			// dialog.ts imports i18n dynamically so the hub client's miniclient can leave the locale
+			// catalogues out of its startup graph. The global client mounts i18n from main.ts, so here the
+			// module is statically reachable anyway and the split cannot happen — expected, not a problem
+			// to fix on this side.
+			onwarn(warning, defaultHandler) {
+				if (warning.code === 'INEFFECTIVE_DYNAMIC_IMPORT') return;
+				defaultHandler(warning);
+			},
 			input: {
 				// Define included files from outside global-client
 				main: 'index.html',

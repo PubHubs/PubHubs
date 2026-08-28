@@ -26,7 +26,6 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'@hub-client': fileURLToPath(new URL('./src', import.meta.url)),
-			process: 'process/browser',
 			'vue-i18n': 'vue-i18n/dist/vue-i18n.esm-bundler.js',
 		},
 	},

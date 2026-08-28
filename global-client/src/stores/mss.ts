@@ -1,5 +1,4 @@
 // Packages
-import { assert } from 'chai';
 import { defineStore } from 'pinia';
 
 // Logic
@@ -8,6 +7,7 @@ import { decodeJWT, handleErrors, responseEqualToRequested } from '@global-clien
 import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
+import { assert } from '@hub-client/logic/utils/assert';
 import { delay } from '@hub-client/logic/utils/common';
 
 // Models

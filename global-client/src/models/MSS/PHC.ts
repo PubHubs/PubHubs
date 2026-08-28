@@ -1,6 +1,5 @@
 // Packages
 import { type AttrKeyResp, type SignedIdentifyingAttrs } from './TAuths';
-import { assert } from 'chai';
 
 import { phc_api } from '@global-client/logic/core/api';
 import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
@@ -8,6 +7,7 @@ import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } f
 import { type Api } from '@hub-client/logic/core/apiCore';
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { assert } from '@hub-client/logic/utils/assert';
 
 // Models
 import { type ErrorCode, type Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
