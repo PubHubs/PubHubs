@@ -55,11 +55,64 @@ const MainRoomList: MSC3575List = {
 	timeline_limit: 10, // enough events so at least one is usually a visible message for unread computation; increased from 1
 };
 
+/*
+Unread-only variants, used by the miniclient.
+
+The miniclient renders one dot per hub and no other chrome, so it needs a room's type (to know
+whether the dot applies to it at all), this user's own membership, and the receipts the unread
+computation compares against — and none of the member list, power levels or arbitrary state the
+full client draws its UI from.
+
+That distinction matters most at [RoomMember, MSC3575_WILDCARD] in the lists above: the state key
+of a member event is a user id, so a wildcard there asks for *every member of every room* on every
+sync. The full client earns that (moderation views read other members out of the room list, see
+useUserRooms and useRoomDetails); a dot does not. MainRoomList's ['*', '*'] is the same story for
+every other state type.
+*/
+const unreadOnlyRequiredState: MSC3575List['required_state'] = [
+	[EventType.RoomName, MSC3575_WILDCARD],
+	[EventType.RoomCreate, MSC3575_WILDCARD],
+	[EventType.RoomMember, MSC3575_STATE_KEY_ME],
+	[MatrixEventType.RoomReceipt, MSC3575_WILDCARD],
+	[MatrixEventType.RoomReadMarker, MSC3575_WILDCARD],
+];
+
+const UnreadOnlyInitialRoomList: MSC3575List = {
+	ranges: [[0, SystemDefaults.initialRoomListRange]],
+	sort: [SlidingSyncOptions.byRecency, SlidingSyncOptions.byNotificationLevel],
+	required_state: unreadOnlyRequiredState,
+	timeline_limit: 0,
+};
+
+const UnreadOnlyMainRoomList: MSC3575List = {
+	ranges: [[0, SystemDefaults.mainRoomListRange]],
+	sort: [SlidingSyncOptions.byRecency],
+	required_state: unreadOnlyRequiredState,
+	timeline_limit: 10, // as MainRoomList: enough events that one is usually a visible message
+};
+
 // Put Roomlists in map for easy handling
 const RoomLists = new Map<string, MSC3575List>([
 	[SlidingSyncOptions.initialRoomList, InitialRoomList],
 	[SlidingSyncOptions.mainRoomList, MainRoomList],
+	[SlidingSyncOptions.unreadOnlyInitialRoomList, UnreadOnlyInitialRoomList],
+	[SlidingSyncOptions.unreadOnlyMainRoomList, UnreadOnlyMainRoomList],
 ]);
+
+/**
+ * How much of a hub a sync needs to see. Full drives the hub client's UI; UnreadOnly backs the
+ * miniclient's dot and asks the server for as little as that answer requires.
+ */
+enum SyncProfile {
+	Full = 'full',
+	UnreadOnly = 'unreadOnly',
+}
+
+/** The (initial, main) room list keys a sync profile runs through, in that order. */
+const roomListsForProfile = (profile: SyncProfile): { initial: string; main: string } =>
+	profile === SyncProfile.UnreadOnly
+		? { initial: SlidingSyncOptions.unreadOnlyInitialRoomList, main: SlidingSyncOptions.unreadOnlyMainRoomList }
+		: { initial: SlidingSyncOptions.initialRoomList, main: SlidingSyncOptions.mainRoomList };
 
 // Per-room timeline subscription (used for custom timeline_xxx subscriptions)
 const MainRoomSubscription: MSC3575RoomSubscription = {
@@ -83,4 +136,4 @@ const makeMainRoomSubscriptionName = (roomId: string) => `timeline_${roomId}`;
 // #endregion
 
 // Exports
-export { makeMainRoomSubscriptionName, RoomLists, MainRoomSubscription };
+export { makeMainRoomSubscriptionName, RoomLists, MainRoomSubscription, SyncProfile, roomListsForProfile };

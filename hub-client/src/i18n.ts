@@ -8,23 +8,14 @@ import { en } from '@hub-client/locales/en';
 // Logic
 import { nl } from '@hub-client/locales/nl';
 
-// Types
-type Language = 'nl' | 'en';
-
-const supportedLanguages: Language[] = ['nl', 'en'];
+// Re-exported so existing importers of '@hub-client/i18n' keep working.
+import { type Language, fallbackLanguage, supportedLanguages } from '@hub-client/language';
 
 // associate locale to language
 const languageLocale: Record<string, Locale> = {
 	en: localeEN,
 	nl: localeNL,
 };
-
-// The default language is determined by the browser
-const defaultLanguage = getLanguageFromBrowser() || 'nl';
-
-// The static site can communicate the user's language preference through the query parameter 'lang'.
-// Usefull when the user is not logged in, but did choose a language on the static site.
-const fallbackLanguage = getLanguageFromQueryParam() || defaultLanguage;
 
 const i18nOptions: I18nOptions = {
 	legacy: false,
@@ -103,27 +94,5 @@ const setLanguage = function (i18n: { global: { locale: unknown } }, language: s
 const currentLanguage = function (i18n: { global: { locale: unknown } }) {
 	return (i18n.global.locale as { value: string }).value;
 };
-
-function getLanguageFromBrowser(): Language | null {
-	const lang = navigator.language;
-	if (lang && languageIsSupported(lang)) {
-		return lang;
-	} else {
-		return null;
-	}
-}
-
-function getLanguageFromQueryParam(): Language | null {
-	const lang = new URLSearchParams(window.location.search).get('lang');
-	if (lang && languageIsSupported(lang)) {
-		return lang;
-	} else {
-		return null;
-	}
-}
-
-function languageIsSupported(language: string): language is Language {
-	return supportedLanguages.includes(language as Language);
-}
 
 export { Language, currentLanguage, fallbackLanguage, setLanguage, setUpi18n, supportedLanguages, languageLocale };

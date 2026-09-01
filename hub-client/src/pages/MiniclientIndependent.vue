@@ -54,7 +54,7 @@
 
 	onMounted(async () => {
 		logger.debug('MiniclientIndependent onMounted');
-		await pubhubs.login();
+		await pubhubs.login({ unreadOnly: true });
 		await setupUnreadAggregateTracking();
 		initialized.value = true;
 		logger.debug('MiniclientIndependent onMounted done');

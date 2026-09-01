@@ -19,9 +19,9 @@ To be able to join the PubHubs network, you will need to provide the following i
     - It is recommended that the Hub server domain is different than the Hub client domain. This is because they both expose http endpoints.
     - For security reasons, it is recommended that the Hub server domain is not a subdomain of the Hub client domain and vice versa. This is to prevent the sharing of cookies and local storage between the Hub server and the Hub client.
 
-The pubhubs team will provide an access token to pull the client and hub images. The access token is not confidential, but is needed to pull images from gitlab.
+The pubhubs team will provide an deploy token to pull the client and hub images. The deploy token is not confidential, but is needed to pull images from gitlab.
 
-- **Access token** - for retrieving the Hub server and Hub client docker images
+- **Deploy token** - for retrieving the Hub server and Hub client docker images, it consists of a username and a token.
 
 ```
 Example information
@@ -38,7 +38,7 @@ Below are instructions for the actual setup and deployment of the Hub server. Yo
 The Hub server will be a docker container that runs on your server. You will first need to get the docker image from us.
 
 ```shell
-docker login registry.science.ru.nl -u <requiredbutnotused> -p <access token>
+docker login registry.science.ru.nl -u <deploy token-username> -p <deploy token-token>
 docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:stable
 ```
 

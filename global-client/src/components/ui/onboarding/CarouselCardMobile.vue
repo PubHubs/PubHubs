@@ -6,12 +6,23 @@
 			<!-- Header -->
 			<div class="items-top flex h-full flex-row gap-200">
 				<div
-					class="mt-100 flex aspect-square h-200 w-200 items-center justify-center rounded-full"
-					:class="error ? 'bg-accent-error text-on-accent-error' : 'bg-accent-primary text-on-accent-primary'"
+					class="relative mt-100 flex aspect-square h-200 w-200 items-center justify-center rounded-full"
+					:class="
+						error
+							? 'bg-accent-error text-on-accent-error'
+							: success
+								? 'bg-accent-success text-on-accent-success'
+								: 'bg-accent-primary text-on-accent-primary'
+					"
 				>
 					<Icon
 						v-if="error"
 						type="warning"
+						class="h-150 w-150"
+					/>
+					<Icon
+						v-else-if="success"
+						type="check"
 						class="h-150 w-150"
 					/>
 					<span
@@ -19,6 +30,12 @@
 						class="text-label-small font-semibold"
 						>{{ index + 1 }}</span
 					>
+
+					<!-- Another action is still pending (the second Yivi step) -->
+					<div
+						v-if="error || success"
+						class="bg-on-surface-dim absolute top-500 h-200 w-200 rounded-full"
+					/>
 				</div>
 				<div class="flex h-full w-full flex-col gap-200">
 					<slot name="title" />
@@ -53,9 +70,13 @@
 	defineProps({
 		index: {
 			type: Number,
-			default: undefined,
+			required: true,
 		},
 		error: {
+			type: Boolean,
+			default: false,
+		},
+		success: {
 			type: Boolean,
 			default: false,
 		},

@@ -7,7 +7,6 @@ import { type TVariant } from '@hub-client/components/elements/Button.vue';
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 
 // Other
-import { setUpi18n } from '@hub-client/i18n';
 
 /**
  * Global Dialog, uses components/ui/Dialog.vue component which is globally present in App.vue
@@ -156,7 +155,10 @@ const useDialog = defineStore('dialog', {
 		 * @param type @default['hub'] Type of dialog ('global' or 'hub')
 		 * @returns
 		 */
-		showError(title: string, content: string = '', type: 'global' | 'hub' = 'hub') {
+		async showError(title: string, content: string = '', type: 'global' | 'hub' = 'hub') {
+			// On demand: importing i18n.ts at module scope drags both locale catalogues into the
+			// startup graph of everything that touches this store, the miniclient included.
+			const { setUpi18n } = await import('@hub-client/i18n');
 			const i18n = setUpi18n();
 			const { t } = i18n.global;
 			const message = t('errors.error', title);

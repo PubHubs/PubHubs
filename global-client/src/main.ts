@@ -1,7 +1,5 @@
 // Assets
 // Packages
-import mavonEditor from 'mavon-editor';
-import 'mavon-editor/dist/css/index.css';
 import { createPinia } from 'pinia';
 import { createApp, markRaw } from 'vue';
 import { createRouter, createWebHashHistory } from 'vue-router';
@@ -63,7 +61,6 @@ pinia.use(({ store }) => {
 const app = createApp(App);
 
 // Use plugins and directives
-app.use(mavonEditor);
 app.use(pinia);
 app.use(router);
 app.use(i18n as Parameters<typeof app.use>[0]);

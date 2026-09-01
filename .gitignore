@@ -34,3 +34,7 @@ result
 # App
 /ios
 .android
+
+# A local clone of https://github.com/privacybydesign/irmago, if you keep one here.
+# Ignored so it cannot be committed as a gitlink again (see #1999).
+/irmago

@@ -9,7 +9,6 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 > Shell snippets in this file should stick to POSIX syntax so they keep working in Git Bash, MSYS, and WSL alongside Linux/macOS shells.
 
-
 ---
 
 ## run
@@ -27,8 +26,14 @@ This requires [tmux](https://github.com/tmux/tmux) to be installed.
 **OPTIONS**
 
 - no_postgres
-  - flags: --no-postgres
-  - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
+    - flags: --no-postgres
+    - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
+
+**OPTIONS**
+
+- no_postgres
+    - flags: --no-postgres
+    - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
 
 ```sh
 PH_NO_POSTGRES="$no_postgres" sh scripts/run-all.sh
@@ -51,8 +56,8 @@ sh scripts/run-all-cleanup.sh
 **OPTIONS**
 
 - no_check
-  - flags: --no-check
-  - desc: Skip version checks
+    - flags: --no-check
+    - desc: Skip version checks
 
 ```bash
 set -e
@@ -70,9 +75,9 @@ mask run hub init
 **OPTIONS**
 
 - host
-  - flags: --host
-  - type: string
-  - desc: Override the host IP yivi advertises in its session URL (e.g. a Tailscale IP)
+    - flags: --host
+    - type: string
+    - desc: Override the host IP yivi advertises in its session URL (e.g. a Tailscale IP)
 
 ```sh
 echo "Running Yivi server..."
@@ -237,6 +242,7 @@ npm run cap:sync:android
 > Copy web assets to the native project without rebuilding
 
 Useful when Vite is running in dev mode and you want to refresh the app on device.
+
 ```sh
 npm run build:global:native && npx cap copy android
 ```
@@ -246,6 +252,7 @@ npm run build:global:native && npx cap copy android
 > Sync native plugins and copy web assets (no web build)
 
 Run after adding a new Capacitor plugin to `package.json`.
+
 ```sh
 npx cap sync android
 ```
@@ -255,6 +262,7 @@ npx cap sync android
 > Update native plugins to match `package.json`
 
 Run after upgrading Capacitor plugin versions.
+
 ```sh
 npx cap update android
 ```
@@ -272,6 +280,7 @@ npx cap open android
 > Build the web app and run on a connected Android device
 
 Requires a connected device (or emulator) with USB debugging enabled.
+
 ```sh
 npm run cap:run:android
 ```
@@ -289,6 +298,7 @@ npx cap doctor android
 > Tail Android logs filtered to the PubHubs app
 
 Uses `pidcat` (or falls back to `adb logcat`) with the app package name.
+
 ```sh
 adb logcat --pid="$(adb shell pidof -s nl.pubhubs.client 2>/dev/null || echo 0)" 2>/dev/null | head -c 50000
 ```
@@ -312,6 +322,7 @@ npm run cap:sync:ios
 > Copy web assets to the native project without rebuilding
 
 Useful when Vite is running in dev mode and you want to refresh the app on device.
+
 ```sh
 npm run build:global:native && npm run patch:ios-networkhost-ip && npx cap copy ios
 ```
@@ -321,6 +332,7 @@ npm run build:global:native && npm run patch:ios-networkhost-ip && npx cap copy 
 > Sync native plugins and copy web assets (no web build)
 
 Run after adding a new Capacitor plugin to `package.json`.
+
 ```sh
 npx cap sync ios
 ```
@@ -330,6 +342,7 @@ npx cap sync ios
 > Update native plugins to match `package.json`
 
 Run after upgrading Capacitor plugin versions.
+
 ```sh
 npx cap update ios
 ```
@@ -363,6 +376,7 @@ npx cap doctor ios
 > Regenerate native app icons (iOS + Android) from resources/icon.svg
 
 Run after changing the PubHubs mark in `resources/icon.svg`.
+
 ```sh
 npm run generate:icons
 ```
@@ -383,8 +397,8 @@ Don't forget to build the hub image and setup the hub's directory using the
 **OPTIONS**
 
 - no_postgres
-  - flags: --no-postgres
-  - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
+    - flags: --no-postgres
+    - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
 
 ```sh
 echo "Running testhub${n}"
@@ -594,4 +608,33 @@ fi
 
 python3 scripts/check-python3-version.py
 python3 scripts/check-versions.py
+```
+
+## update
+
+> Commands for updating pinned dependencies
+
+### yivi (version)
+
+> Updates the pinned Yivi (irmago) version in packages/yivi.nix
+
+Runs `nix-update` inside a throwaway git worktree.
+
+```sh
+set -e
+
+worktree="$(mktemp -d)/pubhubs"
+git worktree add --detach -q "$worktree" HEAD
+trap 'git worktree remove --force "$worktree" >/dev/null 2>&1' EXIT
+
+cp packages/yivi.nix "$worktree/packages/yivi.nix"
+(cd "$worktree" && nix run nixpkgs#nix-update -- --flake yivi --version "$version")
+cp "$worktree/packages/yivi.nix" packages/yivi.nix
+
+echo
+echo "packages/yivi.nix is now at ${version}. Remaining steps:"
+echo "  1. update the trailing version comment next to yivi in flake.nix"
+echo "  2. keep the yivi_build stage of pubhubs_hub/Dockerfile on the same version"
+echo "  3. run 'direnv reload' and check 'yivi version' (direnv only watches flake.nix and flake.lock)"
+echo "  4. smoke-test with 'mask run yivi'"
 ```

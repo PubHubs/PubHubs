@@ -29,14 +29,13 @@ This project is **in active development** and moving through test phases. The re
 
 ### Important files & directories
 
-| Path / Name                       | Type | Purpose                                                            | Notes                                                    |
-| --------------------------------- | ---: | ------------------------------------------------------------------ | -------------------------------------------------------- |
-| [flake.nix](./flake.nix)          | file | Nix flake with reproducible developer environment and dependencies | Use this to create dev shells.                           |
-| [docker_yivi](./docker_yivi/)`    |  dir | Docker build files for the Yivi image                              | Builds the Yivi server used for attribute-based acccess. |
-| [global-client](./global-client/) |  dir | Global client source (TypeScript + Vue)                            | Embeds hub clients via iframe.                           |
-| [hub-client](./hub-client/)       |  dir | Hub client source (TypeScript + Vue)                               | Matrix client customisations.                            |
-| [pubhubs](./pubhubs/)             |  dir | PubHubs Central (Rust)                                             | Central login & identity platform.                       |
-| [pubhubs_hub](./pubhubs_hub/)     |  dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration.               |
+| Path / Name                       | Type | Purpose                                                            | Notes                                      |
+| --------------------------------- | ---: | ------------------------------------------------------------------ | ------------------------------------------ |
+| [flake.nix](./flake.nix)          | file | Nix flake with reproducible developer environment and dependencies | Use this to create dev shells.             |
+| [global-client](./global-client/) |  dir | Global client source (TypeScript + Vue)                            | Embeds hub clients via iframe.             |
+| [hub-client](./hub-client/)       |  dir | Hub client source (TypeScript + Vue)                               | Matrix client customisations.              |
+| [pubhubs](./pubhubs/)             |  dir | PubHubs Central (Rust)                                             | Central login & identity platform.         |
+| [pubhubs_hub](./pubhubs_hub/)     |  dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration. |
 
 ---
 

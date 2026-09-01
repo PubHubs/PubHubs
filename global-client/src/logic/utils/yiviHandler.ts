@@ -1,21 +1,39 @@
 // Packages
-// @ts-expect-error -- yivi-client has no type declarations
-import yiviClient from '@privacybydesign/yivi-client';
-// @ts-expect-error -- yivi-core has no type declarations
-import yiviCore from '@privacybydesign/yivi-core';
-// @ts-expect-error -- yivi-web has no type declarations
-import yiviWeb from '@privacybydesign/yivi-web';
+import { YiviClient } from '@privacybydesign/yivi-client';
+import { YiviCore } from '@privacybydesign/yivi-core';
+import { YiviWeb } from '@privacybydesign/yivi-web';
 import { type Ref } from 'vue';
 
 // Assets
 import '@hub-client/assets/yivi.min.css';
 
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { allowInsecureYiviSessionUrlsInDev } from '@hub-client/logic/utils/yiviSessionUrl';
 
 // Stores
 import { useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('YiviHandler');
+
+allowInsecureYiviSessionUrlsInDev();
+
+/**
+ * Whether the Yivi widget will offer a link that opens the Yivi app on this device, rather than a
+ * QR code to be scanned with a second device.
+ *
+ * Mirrors the platform check in `@privacybydesign/yivi-client`'s `user-agent.js`
+ */
+const canOpenYiviApp = (): boolean => {
+	if (typeof window === 'undefined') return false;
+
+	const userAgent = window.navigator.userAgent;
+
+	if (/Android/i.test(userAgent)) return true;
+	if (/iPad|iPhone|iPod/.test(userAgent)) return true;
+
+	// iPadOS 13 and up report themselves as a Mac; the touch points give them away.
+	return /Macintosh/.test(userAgent) && window.navigator.maxTouchPoints > 2;
+};
 
 const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 	const settings = useSettings();
@@ -24,10 +42,10 @@ const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 
 	let session;
 	try {
-		session = new yiviCore({
+		session = new YiviCore({
 			debugging: false,
 			element: elementId,
-			language: settings.getActiveLanguage,
+			language: settings.getActiveLanguage as 'nl' | 'en' | undefined,
 			session: {
 				url: endpointBase,
 				start: {
@@ -37,8 +55,8 @@ const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 			},
 		});
 
-		session.use(yiviWeb);
-		session.use(yiviClient);
+		session.use(YiviWeb);
+		session.use(YiviClient);
 	} catch (initError) {
 		logger.error('Yivi initialization failed:', initError);
 		throw initError;
@@ -46,7 +64,9 @@ const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 
 	session
 		.start()
-		.then((result: { sessionToken?: string }) => {
+		.then((response: unknown) => {
+			const result = response as { sessionToken?: string };
+
 			if (!result || !result.sessionToken) {
 				throw new Error('Missing sessionToken in Yivi response');
 			}
@@ -74,10 +94,10 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 	const settings = useSettings();
 	let yivi;
 	try {
-		yivi = new yiviCore({
+		yivi = new YiviCore({
 			debugging: false,
 			element: '#yivi-authentication',
-			language: settings.getActiveLanguage,
+			language: settings.getActiveLanguage as 'nl' | 'en' | undefined,
 			session: {
 				url: yiviRequestorUrl,
 				start: {
@@ -90,8 +110,8 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 				pairing: false,
 			},
 		});
-		yivi.use(yiviWeb);
-		yivi.use(yiviClient);
+		yivi.use(YiviWeb);
+		yivi.use(YiviClient);
 	} catch (initError) {
 		logger.error('Yivi initialization failed:', initError);
 		throw initError;
@@ -99,7 +119,9 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 
 	return yivi
 		.start()
-		.then(async (result: { token: string }) => {
+		.then(async (response: unknown) => {
+			const result = response as { token: string };
+
 			const responseResultJWT = await fetch(`${yiviRequestorUrl}/session/${result.token}/result-jwt`);
 			if (responseResultJWT.ok) {
 				const resultJWT = await responseResultJWT.text();
@@ -110,8 +132,12 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 			}
 		})
 		.catch((startError: unknown) => {
+			// Rethrow. A caller that cannot tell a finished session from a failed one would carry an
+			// `undefined` disclosure into the next request, or report a PubHubs card as issued that
+			// never reached the user's Yivi app.
 			logger.error('Yivi session failed:', startError);
+			throw startError instanceof Error ? startError : new Error(`Yivi session failed: ${String(startError)}`);
 		});
 };
 
-export { startYiviSession, startYiviAuthentication };
+export { canOpenYiviApp, startYiviSession, startYiviAuthentication };

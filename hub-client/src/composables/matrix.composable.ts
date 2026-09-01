@@ -3,6 +3,8 @@ import { type MatrixClient } from 'matrix-js-sdk';
 import { computed } from 'vue';
 
 // Services
+import { type SyncProfile } from '@hub-client/logic/matrix.logic';
+
 import { initMatrixService } from '@hub-client/services/matrix.service';
 
 // Stores
@@ -20,7 +22,7 @@ const useMatrix = () => {
 
 	// #region Sliding Sync
 
-	const startSync = () => store.startSync();
+	const startSync = (profile?: SyncProfile) => store.startSync(profile);
 	const stopSync = () => store.stopSync();
 	const addRoomSubscription = (roomId: string) => store.addRoomSubscription(roomId);
 

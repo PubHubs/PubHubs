@@ -1,7 +1,0 @@
-services:
-  yivi:
-    container_name: yivi
-    build:
-      dockerfile: Dockerfile
-    ports:
-      - "8088:8088"

@@ -85,20 +85,20 @@
 							<!-- Card 3 -->
 							<CarouselCardMobile
 								:index="2"
-								:class="error && 'outline-accent-error card-shake text-on-accent-error outline outline-2'"
+								:class="[
+									error && 'outline-accent-error card-shake text-on-accent-error outline outline-6',
+									showSuccess && 'outline-accent-success outline outline-6',
+								]"
 								:error="!!error"
+								:success="showSuccess"
 								@next="scrollTo"
 							>
 								<template #title>
-									<H2>{{ error ? $t('errors.oops') : $t('register.card_3_title') }}</H2>
+									<H2>{{ cardTitle }}</H2>
 								</template>
 
 								<div class="flex flex-col gap-100">
-									<P>{{
-										error
-											? $t('errors.' + error.key, error.values ? error.values : [])
-											: $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')])
-									}}</P>
+									<P>{{ error ? errorText : cardText }}</P>
 								</div>
 
 								<template #extra>
@@ -183,24 +183,20 @@
 								:active="currentIndex === 2"
 								:class="[
 									currentIndex !== 2 && 'pointer-events-none',
-									error && 'outline-accent-error card-shake text-on-accent-error outline outline-2',
+									error && 'outline-accent-error card-shake text-on-accent-error outline outline-6',
+									showSuccess && 'outline-accent-success outline outline-6',
 								]"
 								:index="2"
 								:error="!!error"
+								:success="showSuccess"
 								@next="scrollTo"
 							>
 								<template #title>
-									<H2>{{ error ? $t('errors.oops') : $t('register.card_3_title') }}</H2>
+									<H2>{{ cardTitle }}</H2>
 								</template>
 
 								<div class="flex flex-col gap-100">
-									<P>{{ error ? $t('errors.' + error.key, error.values ? error.values : []) : $t('register.card_3_text_1') }}</P>
-									<P
-										v-if="!error"
-										class="mb-300"
-									>
-										{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}
-									</P>
+									<P class="mb-300">{{ error ? errorText : cardText }}</P>
 								</div>
 
 								<template #right>
@@ -274,6 +270,8 @@
 	import P from '@hub-client/components/elements/P.vue';
 
 	// Logic
+	import { canOpenYiviApp } from '@global-client/logic/utils/yiviHandler';
+
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
@@ -288,6 +286,7 @@
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
+	const mss = useMSS();
 	const { t } = useI18n();
 	const router = useRouter();
 	const route = useRoute();
@@ -297,10 +296,38 @@
 	// Logging
 	const logger = createLogger('Onboarding');
 
+	// Whether this device opens the Yivi app by link instead of showing a QR code to scan with a
+	// second device. Fixed for the lifetime of the page, unlike `isMobile`, which is a viewport
+	// check and would flip when the window is resized.
+	const yiviAppAvailable = canOpenYiviApp();
+
 	// Reactive state
 	const isMobile = computed(() => settings.isMobileState);
+
+	// The disclosure succeeded and the PubHubs card is being issued. On a device that opens the
+	// Yivi app that means a second trip into the app.
+	const showSuccess = computed(() => !error.value && mss.issuingCard);
+
+	const cardTitle = computed(() => {
+		if (error.value) return t('errors.oops');
+		if (showSuccess.value) return t('register.card_3_success_title');
+		return yiviAppAvailable ? t('register.card_3_title_app', [t('common.yivi')]) : t('register.card_3_title');
+	});
+
+	const cardText = computed(() => {
+		const names = [t('common.yivi'), t('common.app_name')];
+		if (showSuccess.value) return t(yiviAppAvailable ? 'register.card_3_success_text_app' : 'register.card_3_success_text', names);
+		return t(yiviAppAvailable ? 'register.card_3_text_2_app' : 'register.card_3_text_2', names);
+	});
+
+	// Error keys arrive fully qualified (`errors.<key>`), the same way `Login.vue` renders them.
+	const errorText = computed(() => (error.value ? t(error.value.key, error.value.values ?? []) : ''));
+
 	const currentIndex = ref(0);
 	const items = [1, 2, 3];
+
+	// Generation counter for `startYiviSessionMSS`, see the comment there.
+	let currentRun = 0;
 
 	// DOM refs for carousels
 	const carouselMobile = ref<HTMLDivElement | null>(null);
@@ -350,13 +377,11 @@
 		});
 	};
 
-	const handleResize = debounce(async () => {
-		await startYiviSessionMSS();
-	}, 300);
+	const restartOnPageShow = (): void => {
+		startYiviSessionMSS();
+	};
 
 	onMounted(async () => {
-		window.addEventListener('resize', handleResize);
-
 		watch(
 			isMobile,
 			() => {
@@ -365,37 +390,41 @@
 			{ immediate: true },
 		);
 
+		// The mobile and the desktop carousel each carry their own `#yivi-authentication`, so
+		// crossing the breakpoint destroys the element the widget rendered into and the session has
+		// to be started again. Watching `isMobile` instead of `resize` keeps a mobile keyboard
+		// opening or a collapsing URL bar from restarting a session that is running fine.
+		watch(isMobile, () => startYiviSessionMSS());
+
 		await startYiviSessionMSS();
 
-		window.addEventListener('pageshow', async () => {
-			await startYiviSessionMSS();
-		});
+		window.addEventListener('pageshow', restartOnPageShow);
 	});
 
 	onUnmounted(() => {
-		window.removeEventListener('resize', handleResize);
+		window.removeEventListener('pageshow', restartOnPageShow);
 	});
-
-	function debounce(fn: () => void, delay: number) {
-		let timer: number;
-		return () => {
-			clearTimeout(timer);
-			timer = window.setTimeout(fn, delay);
-		};
-	}
 
 	async function startYiviSessionMSS(registerOnlyWithUniqueAttrs = true) {
 		const loginMethod = loginMethods.Yivi;
+		// `AuthenticationServer` holds a single auth state, so a restart invalidates whatever the
+		// previous run was still waiting on: only the newest run may show an error or navigate.
+		const runId = ++currentRun;
+		const superseded = () => runId !== currentRun;
 
 		try {
-			const mss = useMSS();
 			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister, registerOnlyWithUniqueAttrs);
+			if (superseded()) return;
 			if (errorMessage?.key === 'errors.notid_attribute_already_taken') {
 				handleDuplicateAttributeError();
 				return;
-			} else if (errorMessage?.key === 'YiviServerGone') {
+			} else if (errorMessage?.key === 'errors.YiviServerGone' || errorMessage?.key === 'errors.card_not_added') {
+				// Logged in, but without a usable PubHubs card - which is what a later login discloses.
+				// Show what happened and give the card issuance one more Yivi session.
 				error.value = errorMessage;
-				await mss.issueCard(false, errorMessage?.values?.pop() ?? '');
+				const { errorMessage: retryError } = await mss.issueCard(false, errorMessage?.values?.pop() ?? '');
+				if (superseded()) return;
+				if (retryError) logger.error('Retrying the PubHubs card issuance failed as well', { retryError });
 			} else if (errorMessage) {
 				error.value = errorMessage;
 				return;
@@ -406,6 +435,7 @@
 				await router.push({ name: 'home' });
 			}
 		} catch (err) {
+			if (superseded()) return;
 			router.push({ name: 'error' });
 			logger.error('Error during MSS Registration', { err });
 		}

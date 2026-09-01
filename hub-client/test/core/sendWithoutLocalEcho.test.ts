@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 // Logic
 import { api_matrix } from '@hub-client/logic/core/api';
 import { APIService } from '@hub-client/logic/core/apiService';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
+
+// Models
+import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -14,11 +18,12 @@ const TARGET_EVENT_ID = '$target:example.org';
 
 /**
  * The relation messages PubHubs reads back off the timeline itself must not go through the SDK's
- * local-echo path. `Room.handleRemoteEcho` clears the echo's status unconditionally but only
- * re-registers it in the room timeline when `Room.eventShouldLiveIn` says the event belongs there,
- * and for an `m.relates_to` event that check follows the target message. Relating to a thread reply,
- * or to a message no longer in the loaded timeline, therefore left the echo in no timeline and the
- * SDK threw "updatePendingEventStatus called on an event which is not a local echo".
+ * local-echo path: when the remote echo from `/sync` arrives before the send response, the SDK
+ * leaves the event with a cleared status and no timeline entry, and then throws
+ * "updatePendingEventStatus called on an event which is not a local echo".
+ *
+ * `APIService.sendRoomEvent` documents the full sequence. These tests pin down that every such
+ * message is sent through it rather than through `client.sendMessage`.
  */
 describe('relation messages are sent without a local echo', () => {
 	let pubhubs: ReturnType<typeof usePubhubsStore>;
@@ -84,6 +89,100 @@ describe('relation messages are sent without a local echo', () => {
 
 		// The composables report failures to the user, so the rejection must not be swallowed here.
 		await expect(pubhubs.addExpertVerificationMessage(ROOM_ID, TARGET_EVENT_ID, 'verified', 'Prof. of Testing')).rejects.toThrow('boom');
+	});
+});
+
+/**
+ * Additional tests for non-message events that also throw the same error
+ * if they are sent with an echo trough the standard sdk send function.
+ */
+describe('voting widget relation events are sent without a local echo', () => {
+	let pubhubs: ReturnType<typeof usePubhubsStore>;
+	let sendEvent: ReturnType<typeof vi.fn>;
+	let sendRoomEvent: ReturnType<typeof vi.spyOn>;
+
+	beforeEach(() => {
+		setActivePinia(createPinia());
+		pubhubs = usePubhubsStore();
+		sendEvent = vi.fn();
+		pubhubs.client = {
+			makeTxnId: () => 'txn-1',
+			sendEvent,
+		} as unknown as typeof pubhubs.client;
+		sendRoomEvent = vi.spyOn(APIService, 'sendRoomEvent').mockResolvedValue({ event_id: '$sent:example.org' });
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const lastCall = () => sendRoomEvent.mock.calls[sendRoomEvent.mock.calls.length - 1];
+
+	test('a vote goes through the api service, not sendEvent', async () => {
+		await pubhubs.addVote(ROOM_ID, TARGET_EVENT_ID, 3, 'yes');
+
+		expect(sendEvent).not.toHaveBeenCalled();
+		expect(sendRoomEvent).toHaveBeenCalledOnce();
+		const [roomId, eventType, content, txnId] = lastCall();
+		expect(roomId).toEqual(ROOM_ID);
+		expect(eventType).toEqual(PubHubsMgType.VotingWidgetReply);
+		// The relation still goes out on the wire: the widget reads the votes back off the timeline.
+		expect((content as Record<string, unknown>)['m.relates_to']).toEqual({
+			event_id: TARGET_EVENT_ID,
+			rel_type: PubHubsMgType.VotingWidgetVote,
+		});
+		expect((content as Record<string, unknown>).optionId).toEqual(3);
+		// The txn id comes off the SDK client, so it cannot collide with the SDK's own sends.
+		expect(txnId).toEqual('txn-1');
+	});
+
+	test('picking an option goes through the api service', async () => {
+		await pubhubs.pickOptionVotingWidget(ROOM_ID, TARGET_EVENT_ID, 2);
+
+		expect(sendEvent).not.toHaveBeenCalled();
+		expect(lastCall()[1]).toEqual(PubHubsMgType.VotingWidgetPickOption);
+	});
+
+	test('closing and reopening a widget goes through the api service', async () => {
+		await pubhubs.closeVotingWidget(ROOM_ID, TARGET_EVENT_ID, ['@someone:example.org']);
+		expect(lastCall()[1]).toEqual(PubHubsMgType.VotingWidgetModify);
+		expect((lastCall()[2] as Record<string, unknown>).msgtype).toEqual(PubHubsMgType.VotingWidgetClose);
+
+		await pubhubs.reopenVotingWidget(ROOM_ID, TARGET_EVENT_ID, ['@someone:example.org']);
+		expect((lastCall()[2] as Record<string, unknown>).msgtype).toEqual(PubHubsMgType.VotingWidgetOpen);
+
+		expect(sendEvent).not.toHaveBeenCalled();
+	});
+
+	test('editing a poll and a scheduler goes through the api service', async () => {
+		await pubhubs.editPoll(ROOM_ID, TARGET_EVENT_ID, new Poll());
+		expect(lastCall()[1]).toEqual(PubHubsMgType.VotingWidgetModify);
+
+		await pubhubs.editScheduler(ROOM_ID, TARGET_EVENT_ID, new Scheduler());
+		expect(lastCall()[1]).toEqual(PubHubsMgType.VotingWidgetModify);
+		expect((lastCall()[2] as Record<string, unknown>)['m.relates_to']).toEqual({
+			event_id: TARGET_EVENT_ID,
+			rel_type: PubHubsMgType.VotingWidgetEdit,
+		});
+
+		expect(sendEvent).not.toHaveBeenCalled();
+	});
+});
+
+describe('APIService.sendRoomEvent', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	test('puts to the room send endpoint for a custom event type', async () => {
+		const apiPUT = vi.spyOn(api_matrix, 'apiPUT').mockResolvedValue({ event_id: '$sent:example.org' });
+
+		await APIService.sendRoomEvent(ROOM_ID, PubHubsMgType.VotingWidgetReply, { msgtype: 'pubhubs.test' }, 'txn-1');
+
+		// Room ids contain `!` and `:`, so they have to be escaped into the path.
+		expect(apiPUT).toHaveBeenCalledWith(`${api_matrix.apiURLS.rooms}${encodeURIComponent(ROOM_ID)}/send/${PubHubsMgType.VotingWidgetReply}/txn-1`, {
+			msgtype: 'pubhubs.test',
+		});
 	});
 });
 

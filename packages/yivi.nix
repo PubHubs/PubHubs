@@ -4,19 +4,25 @@
 }:
 pkgs.buildGoModule rec {
   pname = "irmago";
-  # To update, change the version number below and replace the hash
-  version = "1.1.1";
+
+  # To update, run `mask update yivi <new version>` from the repository root.  That wraps
+  # nix-update in a throwaway git worktree and rewrites `version`, `hash` and `vendorHash` in
+  # one pass.
+  #
+  # Keep this version in sync with the `yivi_build` stage of pubhubs_hub/Dockerfile, and
+  # update the trailing version comment next to this package in flake.nix.  Afterwards run
+  # `direnv reload` and check `yivi version`: direnv only watches flake.nix and flake.lock, so
+  # without a reload the shell keeps serving the previously built binary.
+  version = "1.3.0";
 
   src = pkgs.fetchFromGitHub {
     owner = "privacybydesign";
     repo = "irmago";
     tag = "v${version}";
-    # To get the hash of a new version, do `nix hash convert --hash-algo sha256 $(nix-prefetch-url --unpack https://github.com/privacybydesign/irmago/archive/refs/tags/v1.x.x.tar.gz 2>/dev/null)`
-    hash = "sha256-nuyq2b+X0GFhLFkUyM+iAX7HtVltLxhTPwCPvq7DDF0=";
+    hash = "sha256-R+SRrSSxV1hrytr+yj/MGdtmty2pV8kFGggwUbyT4ls=";
   };
 
-  # To get the new vendor hash, change the hash to `sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=` and run `nix build ./#yivi`. You will get promted with the right hash.
-  vendorHash = "sha256-64eEtU4qtowODc+Wax5kbe5EO2JTnBw9bJDomiqlA44=";
+  vendorHash = "sha256-mqLVDnK1NlCrvXts7exaBrJAk2BmC1Nw1RErGESrFEA=";
 
   subPackages = [ "yivi" ];
 
@@ -29,8 +35,11 @@ pkgs.buildGoModule rec {
     license = lib.licenses.asl20;
     mainProgram = "yivi";
 
-    maintainers = with lib.maintainers; [
-      jorritvanderheide
+    maintainers = [
+      {
+        name = "Jorrit van der Heide";
+        github = "jorritvanderheide";
+      }
     ];
   };
 }

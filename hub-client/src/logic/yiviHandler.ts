@@ -1,13 +1,14 @@
 // Packages
-import { YiviClient as yiviClient } from '@privacybydesign/yivi-client';
-import { YiviCore as yiviCore } from '@privacybydesign/yivi-core';
-import { YiviWeb as yiviWeb } from '@privacybydesign/yivi-web';
+import { YiviClient } from '@privacybydesign/yivi-client';
+import { YiviCore } from '@privacybydesign/yivi-core';
+import { YiviWeb } from '@privacybydesign/yivi-web';
 
 // Assets
 import '@hub-client/assets/yivi.min.css';
 
 import { CONFIG } from '@hub-client/logic/logging/Config';
 import { createLogger, getLogLevel } from '@hub-client/logic/logging/Logger';
+import { allowInsecureYiviSessionUrlsInDev } from '@hub-client/logic/utils/yiviSessionUrl';
 
 import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
@@ -17,6 +18,8 @@ import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('YiviHandler');
+
+allowInsecureYiviSessionUrlsInDev();
 
 export function yiviFlow(
 	flowtype: EYiviFlow.SecuredRoom,
@@ -59,7 +62,7 @@ export function yiviFlow(
 	// Determine if this flow requires a POST with body
 	const isSignatureFlow = flowtype === EYiviFlow.Disclosure || flowtype === EYiviFlow.Sign;
 
-	const session = new yiviCore({
+	const session = new YiviCore({
 		debugging: getLogLevel() === 'debug',
 		element: elementId,
 		language: settings.getActiveLanguage as 'nl' | 'en' | undefined,
@@ -90,8 +93,8 @@ export function yiviFlow(
 		},
 	});
 
-	session.use(yiviWeb);
-	session.use(yiviClient);
+	session.use(YiviWeb);
+	session.use(YiviClient);
 
 	session
 		.start()

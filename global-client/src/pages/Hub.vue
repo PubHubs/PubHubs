@@ -11,13 +11,13 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { assert } from 'chai';
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
 	import { cacheBust } from '@global-client/logic/utils/cacheBust';
 
 	import { createLogger } from '@hub-client/logic/logging/Logger';
+	import { assert } from '@hub-client/logic/utils/assert';
 	// Logic
 	import { delay } from '@hub-client/logic/utils/common';
 
@@ -88,7 +88,7 @@
 					const maxAttempts = 4;
 					for (let attempt = 0; attempt < maxAttempts; attempt++) {
 						if (attempt > 0) {
-							delay(attempt - 1);
+							await delay(attempt - 1);
 						}
 						const mss = useMSS();
 						const enterStartResp: EnterStartResp | undefined = await hub.enterStartEP();

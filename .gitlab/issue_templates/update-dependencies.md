@@ -27,7 +27,7 @@ For reference, dependencies are in `package.json`.
 
 - [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
-    - 2025-dec: `vuedraggable` and `mavon-editor` have both a vue2 and vue3 version in npm, which means the latest version can show a lower version number which is for vue2.
+    - 2026-aug: `vuedraggable` has both a vue2 and vue3 version in npm, which means the latest version can show a lower version number which is for vue2.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
@@ -41,11 +41,12 @@ For reference, dependencies are in `package.json`.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
-## Yivi docker
+## Yivi
 
-- [ ] Check the version numbers in the [yivi Dockerfile](docker_yivi/Dockerfile)
+- [ ] Check the version numbers in the `yivi_build` stage of the [hub Dockerfile](pubhubs_hub/Dockerfile)
     - [ ] `FROM golang:XXX`
-    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` Please check that you've selected the same version as in the [hub Dockerfile](pubhubs_hub/Dockerfile).
+    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX`
+- [ ] Check the `version` in [packages/yivi.nix](packages/yivi.nix), which provides the `yivi` binary in the Nix dev shell. Please check that it matches the version in the hub Dockerfile above; bumping it also means replacing `hash` and `vendorHash` (see the comments in that file).
 
 ## PubHubs Central docker
 

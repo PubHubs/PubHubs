@@ -2,7 +2,8 @@
 import { describe, expect, test } from 'vitest';
 
 // Logic
-import { escapeHtml, removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+import { escapeHtml, removeHtml } from '@hub-client/logic/core/htmlText';
+import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 
 describe('removeHTML', () => {
 	test('remove HTML', () => {

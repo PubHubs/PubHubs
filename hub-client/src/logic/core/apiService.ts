@@ -122,29 +122,49 @@ export class APIService {
 	}
 
 	/**
+	 * Send a room event over the client-server API, without the local echo the matrix-js-sdk
+	 * creates for `client.sendMessage` / `client.sendEvent`.
 	 * See https://spec.matrix.org/latest/client-server-api/#put_matrixclientv3roomsroomidsendeventtypetxnid
 	 *
-	 * Send an `m.room.message` over the client-server API, without the local echo the matrix-js-sdk
-	 * creates for `client.sendMessage`.
-	 *
-	 * Only for messages PubHubs never renders as a message of their own: the ones carrying an
+	 * Only for events PubHubs never renders as a message of their own: the ones carrying an
 	 * `m.relates_to` that it reads back off the timeline itself (hidden messages, expert
-	 * verifications). For those a local echo buys nothing and actively breaks.
-	 * `Room.handleRemoteEcho` always clears the echo's status, but only re-registers it in the room
-	 * timeline when `Room.eventShouldLiveIn` says the event belongs there - and for an `m.relates_to`
-	 * event that check follows the *target* message. So relating to a thread reply, or to any message
-	 * no longer in the loaded timeline, leaves the echo in no timeline at all, and the SDK then throws
-	 * "updatePendingEventStatus called on an event which is not a local echo" while booking the send.
-	 * Its scheduler retries that four more times, because a thrown Error carries no http status for
-	 * the retry algorithm to give up on.
+	 * verifications, voting widget votes and edits). Sending those with a local echo makes the SDK
+	 * throw "updatePendingEventStatus called on an event which is not a local echo", because:
 	 *
-	 * @param roomId Room to send the message into
-	 * @param content Event content, including its `msgtype`
+	 * 1. `/sync` can deliver the event back before the send request resolves. The SDK matches it on
+	 *    its transaction id and calls `Room.handleRemoteEcho`.
+	 * 2. `handleRemoteEcho` always clears the echo's status, but only re-registers the event under
+	 *    its real id when `Room.eventShouldLiveIn` says it belongs in the room timeline.
+	 * 3. For an `m.relates_to` event that check follows the *target* message, looked up with
+	 *    `Room.findEventById`, which searches only the *unfiltered* timeline. PubHubs paginates the
+	 *    room through a filtered one (see `TimelineManager.getEventTimeline`), so a target outside
+	 *    that window is not found: the event is then treated as belonging nowhere and its id is
+	 *    never updated.
+	 * 4. The send response reaches `Room.updatePendingEvent`, which now finds neither a timeline for
+	 *    the new event id nor a status left to transition, and throws.
+	 *
+	 * Sending over the API directly skips both echo paths. The relation still goes out on the wire,
+	 * so `TimelineManager` picks it up from `/sync` as usual.
+	 *
+	 * @param roomId Room to send the event into
+	 * @param eventType Matrix event type, e.g. `m.room.message` or a `pubhubs.*` type
+	 * @param content Event content
 	 * @param txnId Transaction id, making the send idempotent. Take this from the SDK client's
 	 *   `makeTxnId()` so it cannot collide with the ids the SDK uses for its own sends.
 	 */
-	static async sendRoomMessage(roomId: string, content: object, txnId: string): Promise<{ event_id: string }> {
-		const path = `${api_matrix.apiURLS.rooms}${encodeURIComponent(roomId)}/send/m.room.message/${encodeURIComponent(txnId)}`;
+	static async sendRoomEvent(roomId: string, eventType: string, content: object, txnId: string): Promise<{ event_id: string }> {
+		const path = `${api_matrix.apiURLS.rooms}${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`;
 		return await api_matrix.apiPUT<{ event_id: string }>(path, content);
+	}
+
+	/**
+	 * Send an `m.room.message` without a local echo. See `sendRoomEvent`.
+	 *
+	 * @param roomId Room to send the message into
+	 * @param content Event content, including its `msgtype`
+	 * @param txnId Transaction id, see `sendRoomEvent`
+	 */
+	static async sendRoomMessage(roomId: string, content: object, txnId: string): Promise<{ event_id: string }> {
+		return await APIService.sendRoomEvent(roomId, 'm.room.message', content, txnId);
 	}
 }
