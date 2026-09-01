@@ -5,7 +5,7 @@ Before merging to stable:
 - [ ] Run the PubHubs e2e test (https://gitlab.science.ru.nl/pubhubs/pubhubs-e2e-test)
 - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
 - [ ] Scan through all changes in merge request to see if there is any issue.
-- [ ] Set the new version number ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md) and in the package.json in the root folder. **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
+- [ ] Set the new version number ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
 - [ ] Before proceeding with the following steps please check that the pipeline has been succeeded.
 - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
 

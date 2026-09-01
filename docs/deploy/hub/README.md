@@ -39,8 +39,10 @@ The Hub server will be a docker container that runs on your server. You will fir
 
 ```shell
 docker login registry.science.ru.nl -u <deploy token-username> -p <deploy token-token>
-docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:stable
+docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:latest
 ```
+
+The `latest` tag always points at our latest release. Every release is also published under its own version tag, for example `:v3.5.1`, which never changes once it is published. Pulling `latest` keeps you on the latest version; pinning a version tag lets you decide when to update, and lets you go back to a previous release if an update causes trouble. Released versions are listed in the [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/stable/CHANGELOG.md).
 
 Data such as configuration data and the database are persistent, they will be mounted inside the docker container. Create a directory `hub_dir` on the server that will run the docker containers. We will add some initial configuration to this directory.
 
@@ -58,7 +60,7 @@ You should now be able to run the hub server:
 ```shell
 docker run -p 8008:8008 \
   -v <path_to_hub_dir>:/data \
-  registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:stable
+  registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:latest
 ```
 
 Please do not publish other ports to prevent matrix federation, which is currently a bit of a mismatch with the PubHubs identity principles.
