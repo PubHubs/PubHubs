@@ -35,6 +35,24 @@ stages: # List of stages for jobs, and their order of execution
 
         - CACHE_ARGS="${CACHE_ARGS} --provenance=false"
 
+        # Every image gets its moving tag (:main or :stable).  A release tag additionally gets an
+        # immutable per-version tag, so a hub can pin a version and roll back to an earlier one, plus
+        # :latest as an alias for the most recent pinned version.
+        - TAG_ARGS="-t ${CONTAINER_IMAGE}"
+        - case "${CI_COMMIT_TAG}" in *-*) ;; v*.*.*) TAG_ARGS="${TAG_ARGS} -t ${CONTAINER_IMAGE%:*}:${CI_COMMIT_TAG} -t ${CONTAINER_IMAGE%:*}:latest" ;; esac
+
+# Shared by every job that needs the version we are building: the images bake it in, and the global
+# client shows it in its about dialog.
+.version:
+    script:
+        # Gitlab runners use a shallow clone of our repo,
+        # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
+        # a bit more history until we hit our tag's commit.
+        # This used to work witout gc.auto=0 and maintenance.auto=false, but after a git update(?) this broke, causing the deepen loop to only run twice.
+        - if [ -z "${CI_COMMIT_TAG}" ]; then until git describe --tags; do git -c gc.auto=0 -c maintenance.auto=false fetch --deepen 10; done; fi
+        - export PH_VERSION="${CI_COMMIT_TAG:-$(git describe --tags)}"
+        - echo "Version=${PH_VERSION}"
+
 .rust-job:
     stage: tests
     tags:
@@ -155,19 +173,15 @@ build-pubhubs:
     image: docker:latest
     script:
         - !reference [.docker-buildx, script]
-        # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
-        # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
-        # a bit more history until we hit our tag's commit.
-        # This used to work witout gc.auto-0 and maintnance.auto=false, but after a git update(?) this broke, causing the deepen loop to only run twice.
-        - until git describe --tags; do git -c gc.auto=0 -c maintnance.auto=false fetch --deepen 10; done
+        - !reference [.version, script]
         - cd pubhubs
         # The cache keeps the compiled dependency tree (the `cargo chef cook` layer in
         # pubhubs/Dockerfile), so a commit that only touches our own sources does not recompile ~all
         # dependencies.  buildx pushes the image itself, so no separate `docker push`.
         - >
-            docker buildx build --push -t ${CONTAINER_IMAGE}
+            docker buildx build --push ${TAG_ARGS}
             ${CACHE_ARGS}
-            --build-arg PH_VERSION="$(git describe --tags)"
+            --build-arg PH_VERSION="${PH_VERSION}"
             -f Dockerfile .
 
 deploy-main-phmss:
@@ -245,18 +259,15 @@ build-hub:
     image: docker:latest # docker:stable does not work, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/228
     script:
         - !reference [.docker-buildx, script]
-        # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
-        # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
-        # a bit more history until we hit our tag's commit.
-        - until git describe --tags; do git fetch --deepen 10; done
+        - !reference [.version, script]
         - cd pubhubs_hub
         # The cache covers the two expensive parts of this image: the `yivi_build` stage (`git clone
         # irmago` + `go install ./yivi`) and the apt/pip layer.  HUB_VERSION is the last instruction
         # in the Dockerfile on purpose, so passing it here invalidates nothing above it.
         - >
-            docker buildx build --push -t ${CONTAINER_IMAGE}
+            docker buildx build --push ${TAG_ARGS}
             ${CACHE_ARGS}
-            --build-arg HUB_VERSION="$(git describe --tags)"
+            --build-arg HUB_VERSION="${PH_VERSION}"
             .
 
 deploy-main-hub:
@@ -336,6 +347,8 @@ globalclient-build:
     extends: .node-setup
     stage: tests
     script:
+        # vite.config.ts picks PH_VERSION up from the environment.
+        - !reference [.version, script]
         - npm run build --workspace=global-client
     artifacts:
         paths:
@@ -380,9 +393,14 @@ build-hubclient:
     image: docker:latest
     script:
         - !reference [.docker-buildx, script]
+        - !reference [.version, script]
+        # The image build context has no .git, so PH_VERSION is the only way the client learns which
+        # version it is; it ends up in the about dialog, in /usr/var/static/version.txt and in the
+        # image's org.opencontainers.image.version label.
         - >
-            docker buildx build --push -t ${CONTAINER_IMAGE}
+            docker buildx build --push ${TAG_ARGS}
             ${CACHE_ARGS}
+            --build-arg PH_VERSION="${PH_VERSION}"
             -f hub-client/Dockerfile .
 
 deploy-main-hubclient:

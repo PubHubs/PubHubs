@@ -10,6 +10,10 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _[INTERNAL] - Code changes not affecting functionality_
 
+## Not merged with stable yet
+
+- [NEW] From this version onwards pinned images will be shared for every full release and the new `latest` tag points to the latest full release. The `stable` tag is unchanged, it points to the latest full release or release-candidate.
+
 ## 28 August 2026 - v3.5.3
 
 - [BUG, INTERNAL] Fixed that event listeners were leaking between hub switches.
