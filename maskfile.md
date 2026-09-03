@@ -431,6 +431,20 @@ npm run check:lint
 npm run check:types
 ```
 
+### audit
+
+> Check the npm dependencies against our security advisory policy
+
+The npm counterpart of `cargo deny check advisories`: it fails on any `npm audit` advisory that
+[npm-audit.config.mjs](npm-audit.config.mjs) does not accept. Not part of `mask check all`, because
+new advisories are published all the time and one appearing should not fail an unrelated check run —
+the `npm-audit` pipeline job is what watches for them. Needs no `npm install`; it reads
+`package-lock.json`.
+
+```sh
+npm run check:audit
+```
+
 ### versions
 
 > Check whether some of the required software is installed
