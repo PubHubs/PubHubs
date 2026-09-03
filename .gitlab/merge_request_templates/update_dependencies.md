@@ -1,0 +1,64 @@
+# Updating dependencies
+
+Please make seperate commits for every step with descriptive commit messages. So that if an update breaks something, we can revert the commit. For major updates, also make a seperate commit for every dependency.
+Also make sure to not squash the commits so we can search for them later.
+
+## PubHubs central
+
+### Rust
+
+- [ ] Make sure `channel` in [`rust-toolchain.toml`](/pubhubs/rust-toolchain.toml) is equal to the [latest version supported by NixOS](https://search.nixos.org/packages?channel=unstable&show=cargo&query=cargo).
+- [ ] In the `pubhubs` directory, run `cargo update -v` to install updates that are likely backwards compatible.
+- [ ] _If_ you are familiar with the rust code, check for (and likely breaking) major releases using `cargo update -v` and adjust `Cargo.toml` (and the code) accordingly.
+
+## Hub
+
+- [ ] Check the version numbers in the [hub Dockerfile](pubhubs_hub/Dockerfile):
+    - [ ] update synapse:
+        - [ ] `FROM ghcr.io/element-hq/synapse:vXXXX` see [synapse releases](https://github.com/element-hq/synapse/releases)
+        - [ ] `matrix-synapse==XXXX` in [python dependencies file](pubhubs_hub/requirements.txt) should be same version as synapse in dockerfile. NOTE: check if there is a new synapse version > 1.144.0. Remove prometheus-client==0.23.1 from requirement file and see if the pipeline succeeds for the hub. If the pipeline fails keeps the current version.
+    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)
+    - [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same as for golang and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found".
+- [ ] Review the minimal version floors in [`pubhubs_hub/requirements.txt`](pubhubs_hub/requirements.txt). The block at the bottom is copied verbatim from synapse — keep it in sync with the minimal versions in synapse's [`pyproject.toml`](https://github.com/element-hq/synapse/blob/master/pyproject.toml). The hub's own dependencies at the top (`twisted`, `cryptography`, `livekit-api`, ...) only need bumping when a feature requires it. (Be aware that pip automatically installs the latest version available, not the minimal version you specify.)
+
+## Global Client
+
+For reference, dependencies are in `package.json`.
+
+- [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
+- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
+    - 2026-aug: `vuedraggable` has both a vue2 and vue3 version in npm, which means the latest version can show a lower version number which is for vue2.
+- [ ] To address issues that do not require attention, run: `npm audit fix`
+- [ ] To address issues with breaking changes, check them and solve them if possible.
+
+## Hub Client
+
+For reference, dependencies are in `package.json`.
+
+- [ ] Check the version number in the [`Dockerfile`](hub-client/Dockerfile): `FROM XX-slim`. (You can find a list of tags [here](https://hub.docker.com/_/node/tags?name=slim).)
+- [ ] In the `hub-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
+- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
+- [ ] To address issues that do not require attention, run: `npm audit fix`
+- [ ] To address issues with breaking changes, check them and solve them if possible.
+
+## Yivi
+
+- [ ] Check the version numbers in the `yivi_build` stage of the [hub Dockerfile](pubhubs_hub/Dockerfile)
+    - [ ] `FROM golang:XXX`
+    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX`
+- [ ] Check the `version` in [packages/yivi.nix](packages/yivi.nix), which provides the `yivi` binary in the Nix dev shell. Please check that it matches the version in the hub Dockerfile above; bumping it also means replacing `hash` and `vendorHash` (see the comments in that file).
+
+## PubHubs Central docker
+
+- [ ] Check the pinned `cargo install cargo-chef --version XXX` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (releases [here](https://crates.io/crates/cargo-chef/versions)).
+- [ ] Bump the pinned `rust-stable` digest to pick up a new Rust toolchain. It appears in **two** places that must match: `RUST_IMAGE` in the [.gitlab-ci.yml](cicd/.gitlab-ci.yml) and the `FROM` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (`grep -rn rust-stable` finds both). See the latest rust job for the latest digest version.
+
+## CICD
+
+- [ ] Update the node version in the [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml?ref_type=heads#L190) file for global and hub client related jobs.
+
+## Nix
+
+- [ ] If you have Nix, update the Nix flake by running `nix flake update`.
+
+(The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/update-dependencies.md).)
