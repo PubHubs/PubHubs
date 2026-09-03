@@ -18,7 +18,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const SEVERITIES = ['info', 'low', 'moderate', 'high', 'critical'];
 const IGNORE_KEYS = ['id', 'reason', 'expires'];
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const CONFIG_FILE = 'npm-audit.config.mjs';
+const CONFIG_FILE = 'scripts/npm-audit.config.mjs';
 
 const today = new Date().toISOString().slice(0, 10);
 
