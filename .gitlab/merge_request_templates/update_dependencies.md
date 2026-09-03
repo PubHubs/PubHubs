@@ -44,7 +44,7 @@ For reference, dependencies are in `package.json`.
 ## npm security advisories
 
 - [ ] Run `mask check audit` (or `npm run check:audit`) and fix what it reports: `npm update <package>` picks up a fixed patch or minor release, a bump in `package.json` is needed when the fix is in a new major or minor of a direct dependency.
-- [ ] For an advisory that has no fix yet, or that does not apply to the way we use the package, add it to [`npm-audit.config.mjs`](npm-audit.config.mjs) with a reason — and with an `expires` date when the fix is only being postponed.
+- [ ] For an advisory that has no fix yet, or that does not apply to the way we use the package, add it to [`scripts/npm-audit.config.mjs`](/scripts/npm-audit.config.mjs) with a reason — and with an `expires` date when the fix is only being postponed.
 - [ ] Remove the entries the check reports as no longer needed, and have another look at the ones whose `expires` date is coming up.
 
 ## Yivi

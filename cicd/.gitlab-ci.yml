@@ -332,7 +332,8 @@ client-format-check:
         - npm run check:format
 
 # The npm counterpart of `rust-deny`: `npm audit` asks the registry which advisories apply to
-# package-lock.json, and scripts/npm-audit.mjs fails on the ones npm-audit.config.mjs does not accept.
+# package-lock.json, and scripts/npm-audit.mjs fails on the ones that
+# scripts/npm-audit.config.mjs does not accept.
 npm-audit:
     stage: tests
     tags:
