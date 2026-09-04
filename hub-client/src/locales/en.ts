@@ -4,6 +4,7 @@ const en = {
 		yivi: 'Yivi',
 		loading: 'Loading ...',
 		or: 'or',
+		retry: 'Retry',
 	},
 	card: {
 		description: 'Card issued with the following attributes:',
@@ -381,7 +382,6 @@ const en = {
 		required_attributes:
 			'This is a secured room. To join, scan the QR code below with your Yivi app. You will share only the following information with the room, nothing else:',
 		display_qr: 'Display QR-code',
-		retry: 'Retry',
 		secure_room_enter_info: 'Please show the following:',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check you gave the correct data with the Yivi App.',
 		unavailable: 'There are no available rooms to join',

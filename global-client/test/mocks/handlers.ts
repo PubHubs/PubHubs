@@ -3,7 +3,8 @@ import { HttpResponse, http } from 'msw';
 
 // Models
 import PHCServer from '@global-client/models/MSS/PHC';
-import { PHCStateResp, PHCWelcomeResp } from '@global-client/models/MSS/TMultiServerSetup';
+import { AuthAttrKeyReq } from '@global-client/models/MSS/TAuths';
+import { PHCStateResp, PHCWelcomeResp } from '@global-client/models/MSS/TPHC';
 
 let encryptedUserSecret = null;
 let encryptedUserSecretBackup = null;
@@ -92,10 +93,8 @@ export const handlers = [
 			};
 			const encodedData = new TextEncoder().encode(JSON.stringify(data));
 			const phcServer = new PHCServer();
-			// Using the string index notation as escape hatch to get a hold of the private function _encryptData
-			// https://github.com/microsoft/TypeScript/issues/19335
 			const encodedKey = new Uint8Array(Buffer.from(localStorage.getItem('UserSecret'), 'base64'));
-			const encryptedData = await phcServer['_encryptData'](encodedData, encodedKey);
+			const encryptedData = await phcServer.encryptData(encodedData, encodedKey);
 			return HttpResponse.arrayBuffer(encryptedData.buffer, {
 				headers: {
 					'content-type': 'application/octet-stream',
@@ -172,5 +171,25 @@ export const handlers = [
 			},
 			status: 200,
 		});
+	}),
+
+	http.post('http://auths-test/.ph/attr-keys', async ({ request }) => {
+		const requestData = await request.text();
+		const requestBody = JSON.parse(requestData) as AuthAttrKeyReq;
+		const data = {
+			Ok: {
+				Success: {
+					email: {
+						latest_key: ['someKey5', '5'],
+						old_key: 'someKey' + requestBody.email.timestamp,
+					},
+					phonenumber: {
+						latest_key: ['someKey5', '5'],
+						old_key: 'somePhoneKey' + requestBody.phonenumber.timestamp,
+					},
+				},
+			},
+		};
+		return HttpResponse.json(data, { status: 200 });
 	}),
 ];
