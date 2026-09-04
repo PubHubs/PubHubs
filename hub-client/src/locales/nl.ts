@@ -4,6 +4,7 @@ const nl = {
 		yivi: 'Yivi',
 		loading: 'Laden ...',
 		or: 'of',
+		retry: 'Probeer opnieuw',
 	},
 	card: {
 		description: 'Kaart uitgegeven met de volgende kenmerken:',
@@ -374,7 +375,6 @@ const nl = {
 		secure_room_message_heading: 'Voordat je verder kan gaan naar de kamer',
 		secure_room_message: 'Scan de QR-code met je Yivi-app om toegang te krijgen.',
 		display_qr: 'Toon QR-code',
-		retry: 'Probeer opnieuw',
 		incorrect_attributes:
 			'De gegevens die je hebt gedeeld geven je geen toegang tot deze kamer. Controleer of je de juiste gegevens in je Yivi-app hebt gebruikt en probeer het opnieuw.',
 		required_attributes:

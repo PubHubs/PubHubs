@@ -164,6 +164,14 @@ export function isUserSecretObjectNew(obj: unknown): obj is UserSecretObjectNew 
 	return obj !== null && obj !== undefined && typeof obj === 'object' && 'data' in obj;
 }
 
+export function getUserSecretData(obj: UserSecretObject): UserSecretData {
+	if (isUserSecretObjectNew(obj)) {
+		return obj.data;
+	} else {
+		return obj;
+	}
+}
+
 export type PppResp = 'RetryWithNewAuthToken' | { Success: string };
 
 export type PHCPppResp = Result<PppResp, ErrorCode>;

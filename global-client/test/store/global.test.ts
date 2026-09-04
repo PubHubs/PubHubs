@@ -9,7 +9,8 @@ import { api } from '@global-client/logic/core/api';
 
 // Models
 import PHCServer from '@global-client/models/MSS/PHC';
-import { AttrKeyResp, SignedIdentifyingAttrs } from '@global-client/models/MSS/TAuths';
+import { AttrKeyResp } from '@global-client/models/MSS/TAuths';
+import { SignedIdentifyingAttrs } from '@global-client/models/MSS/TGeneral';
 
 // Stores
 import { PinnedHubs, useGlobal } from '@global-client/stores/global';
