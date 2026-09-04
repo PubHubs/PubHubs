@@ -7,13 +7,14 @@ import { decodeJWT, handleErrors, responseEqualToRequested } from '@global-clien
 import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 import { assert } from '@hub-client/logic/utils/assert';
 import { delay } from '@hub-client/logic/utils/common';
 
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
-import { type AuthAttrKeyReq, type AuthStartReq, type CardReq, type LoginMethod, Source } from '@global-client/models/MSS/TAuths';
+import { type AttrKeyResp, type AuthAttrKeyReq, type AuthStartReq, type CardReq, type LoginMethod, Source } from '@global-client/models/MSS/TAuths';
 import {
 	type DecodedAttributes,
 	type EnterStartResp,
@@ -21,16 +22,20 @@ import {
 	type InfoResp,
 	ResultResponse,
 	type ReturnCard,
+	type SignedIdentifyingAttrs,
 	isResult,
 } from '@global-client/models/MSS/TGeneral';
 import { type Attr, type Constellation, type HubInformation, PHCEnterMode, type UserSecretObject, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
+import { type ResolvedUserSecretObjects } from '@global-client/models/MSS/UserSecret';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
 import { useLocalStores } from '@global-client/stores/localStores';
 
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+
+const logger = createLogger('MSS');
 
 const useMSS = defineStore('mss', {
 	state: () => {
@@ -49,6 +54,32 @@ const useMSS = defineStore('mss', {
 	},
 
 	actions: {
+		/**
+		 * Request the user secret objects, repairing a difference between the two stored copies where
+		 * possible. See UserSecret.ts for how the two copies relate.
+		 *
+		 * @param signedIdentifyingAttrs A list of the signed identifying attributes that were disclosed in the enter request.
+		 * @param afterReset Whether this call is the check performed after resetting usersecret to usersecretbackup.
+		 * @returns The user secret objects, or the translation key of the error to show the user.
+		 */
+		async requestUserSecretObject(signedIdentifyingAttrs: SignedIdentifyingAttrs, afterReset: boolean = false): Promise<ResolvedUserSecretObjects> {
+			return await this.phcServer.resolveUserSecretObject(
+				signedIdentifyingAttrs,
+				(userSecretObject) => this.requestAttrKeys(userSecretObject, signedIdentifyingAttrs),
+				afterReset,
+			);
+		},
+
+		async requestAttrKeys(
+			userSecretObject: UserSecretObject | null,
+			signedIdentifyingAttrs: SignedIdentifyingAttrs,
+		): Promise<{ error: false; response: Record<string, AttrKeyResp> } | { error: true; response: string }> {
+			const authServer = await this.getAuthServer();
+			// Request attribute keys for all identifying attributes used to login.
+			const attrKeyReq = this.buildAttributeKeyRequest(signedIdentifyingAttrs, userSecretObject);
+			return await authServer.attrKeysEP(attrKeyReq);
+		},
+
 		async enterPubHubs(
 			loginMethod: LoginMethod,
 			enterMode: PHCEnterMode,
@@ -64,7 +95,7 @@ const useMSS = defineStore('mss', {
 			const identifyingAttrs = authServer.checkAttributes(supported, loginMethod, enterMode);
 
 			// 2. Build auth start request
-			const isRegistering = enterMode === PHCEnterMode.LoginOrRegister;
+			const isRegistering = enterMode === PHCEnterMode.LoginOrRegister || enterMode === PHCEnterMode.Register;
 
 			// Disable chained-sessions while the error fallback is not working
 			// and there are timeouts with slow connectivity
@@ -124,7 +155,7 @@ const useMSS = defineStore('mss', {
 			const authSuccess = await authServer.completeAuthEP(proof, authServer.getState());
 
 			// 6. Validate attributes
-			this.validateAttributes(authSuccess, isRegistering || !cardFeature, loginMethod);
+			this.validateAttributes(authSuccess.attrs, isRegistering || !cardFeature, loginMethod);
 
 			// 7. Decode attributes
 			const { identifying, additional, attributeValues } = this.decodeSignedAttributes(authSuccess.attrs, identifyingAttrs);
@@ -164,22 +195,29 @@ const useMSS = defineStore('mss', {
 			// 10. Load updated state (moved after card issuance to reduce Yivi wait time)
 			await this.phcServer.stateEP();
 			// Load Secret objects
-			const userSecret = await this.phcServer.getUserSecretObject();
-			const objectDetails = userSecret?.details ?? null;
+			const reqUserSecretResp = await this.requestUserSecretObject(identifying);
+			if (reqUserSecretResp.error) {
+				this.logout();
+				return { key: reqUserSecretResp.message, values: reqUserSecretResp.values };
+			}
+			const { userSecret, userSecretBackup } = reqUserSecretResp;
 			const userSecretObject = userSecret?.object ?? null;
 
 			// 11. Get attribute Key Response
-			const attrKeyReq: AuthAttrKeyReq = this.buildAttributeKeyRequest(identifying, userSecretObject);
-			const attrKeyResp = await authServer.attrKeysEP(attrKeyReq);
-
-			if ('RetryWithNewAttr' in attrKeyResp) {
+			const attrKeyResp = await this.requestAttrKeys(userSecretObject, identifying);
+			if (attrKeyResp.error) {
 				useGlobal().logout();
-				return { key: 'errors.retry_with_new_attr' };
+				return { key: attrKeyResp.response };
 			}
 
 			// 12. Store user secret objects
-			if (ResultResponse.Success in attrKeyResp) {
-				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, identifying, userSecretObject, objectDetails);
+			const objectDetails = userSecret !== null ? { usersecret: userSecret.details, backup: userSecretBackup?.details ?? null } : null;
+			try {
+				await this.phcServer.storeUserSecretObject(attrKeyResp.response, identifying, userSecretObject, objectDetails);
+			} catch (error) {
+				logger.error('An error occured while trying to store the user secret.', error);
+				useGlobal().logout();
+				return { key: 'errors.general_error' };
 			}
 			return warningMessage;
 		},
@@ -270,6 +308,7 @@ const useMSS = defineStore('mss', {
 				errorMessage: null,
 			};
 		},
+
 		async storePHCWelcomeInfo(): Promise<void> {
 			const welcomeResp = await this.phcServer.welcome();
 			this.constellation = welcomeResp.constellation;
@@ -314,6 +353,7 @@ const useMSS = defineStore('mss', {
 			localStorage.removeItem('UserSecret');
 			localStorage.removeItem('UserSecretVersion');
 		},
+
 		async getHubs(): Promise<HubInformation[]> {
 			if (!this.hubs) {
 				await this.storePHCWelcomeInfo();
@@ -374,8 +414,8 @@ const useMSS = defineStore('mss', {
 
 			return { identifying, additional, attributeValues };
 		},
-		validateAttributes(authSuccess: { attrs: Record<string, unknown> }, isRegisteringOrNoCard: boolean, loginMethod: LoginMethod): void {
-			const keys = Object.keys(authSuccess.attrs);
+		validateAttributes(attrs: Record<string, unknown>, isRegisteringOrNoCard: boolean, loginMethod: LoginMethod): void {
+			const keys = Object.keys(attrs);
 			let allowedAttributeSets: string[];
 
 			if (isRegisteringOrNoCard) {
@@ -389,10 +429,8 @@ const useMSS = defineStore('mss', {
 				throw new Error('Disclosed attributes do not match the requested ones.');
 			}
 		},
-		buildAttributeKeyRequest(
-			signedIdentifyingAttrs: Record<string, { id: string; value: string; signedAttr: string }>,
-			userSecretObject: UserSecretObject | null,
-		): AuthAttrKeyReq {
+
+		buildAttributeKeyRequest(signedIdentifyingAttrs: SignedIdentifyingAttrs, userSecretObject: UserSecretObject | null): AuthAttrKeyReq {
 			const attrKeyReq: AuthAttrKeyReq = {};
 
 			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs)) {

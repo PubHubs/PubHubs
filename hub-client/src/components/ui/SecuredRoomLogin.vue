@@ -31,7 +31,7 @@
 						size="sm"
 						@click="retry()"
 					>
-						{{ t('rooms.retry') }}
+						{{ t('common.retry') }}
 					</Button>
 				</div>
 			</div>

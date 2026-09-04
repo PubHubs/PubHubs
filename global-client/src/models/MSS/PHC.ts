@@ -1,8 +1,8 @@
 // Packages
-import { type AttrKeyResp, type SignedIdentifyingAttrs } from './TAuths';
+import { Buffer } from 'node:buffer';
 
 import { phc_api } from '@global-client/logic/core/api';
-import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
+import { buffersAreEqual, handleErrorCodes, handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
 import { type Api } from '@hub-client/logic/core/apiCore';
 // Logic
@@ -10,8 +10,10 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 import { assert } from '@hub-client/logic/utils/assert';
 
 // Models
-import { type ErrorCode, type Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
+import { type AttrKeyResp } from '@global-client/models/MSS/TAuths';
+import { type ErrorCode, type Result, ResultResponse, type SignedIdentifyingAttrs } from '@global-client/models/MSS/TGeneral';
 import * as TPHC from '@global-client/models/MSS/TPHC';
+import UserSecretManager, { type AttrKeysFetcher } from '@global-client/models/MSS/UserSecret';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
@@ -24,16 +26,15 @@ export default class PHCServer {
 	/** NOTE: Do not use this variable directly to prevent using an expired authToken. Instead, use _getAuthToken(). */
 	private _authToken: string | null = null;
 	private _expiryAuthToken: null | bigint = null;
-	/** NOTE: Do not use this variable directly, but use getUserSecretInfo(). */
-	private _userSecret: string | undefined;
-	/** NOTE: Do not use this variable directly, but use getUserSecretInfo(). */
-	private _userSecretVersion: number | undefined;
+	/** Holds everything to do with the user secret; see UserSecret.ts. */
+	private readonly _userSecretManager: UserSecretManager;
 
 	constructor() {
 		if (!phc_api) {
 			throw new Error('PHC API is null.');
 		}
 		this._phcAPI = phc_api;
+		this._userSecretManager = new UserSecretManager(this);
 		const savedAuthToken = localStorage.getItem('PHauthToken');
 		if (savedAuthToken) {
 			const authToken: TPHC.AuthTokenPackage = JSON.parse(savedAuthToken);
@@ -70,6 +71,7 @@ export default class PHCServer {
 	async welcome() {
 		return await handleErrors<TPHC.WelcomeRespPHC>(() => this._phcAPI.apiGET<TPHC.PHCWelcomeResp>(this._phcAPI.apiURLS.welcome));
 	}
+
 	async cardPseudoPackage(): Promise<TPHC.CardPseudRespSucces> {
 		const options = {
 			headers: {
@@ -174,64 +176,6 @@ export default class PHCServer {
 	}
 
 	/**
-	 * Check if two objects (A and B) are equal.
-	 *
-	 * @param a Object A
-	 * @param b Object B
-	 * @returns true if the objects are equal, false otherwise.
-	 */
-	private _deepEqualObjects(a: unknown, b: unknown): boolean {
-		if (a === b) return true;
-		if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
-
-		const objA = a as Record<string, unknown>;
-		const objB = b as Record<string, unknown>;
-		const keysA = Object.keys(objA);
-		const keysB = Object.keys(objB);
-		if (keysA.length !== keysB.length) return false;
-
-		for (const key of keysA) {
-			if (!keysB.includes(key)) return false;
-			if (!this._deepEqualObjects(objA[key], objB[key])) return false;
-		}
-		return true;
-	}
-
-	/**
-	 * Request the user secret object from the object store. Make sure that, if there is a backup stored, both user secret objects are equal.
-	 *
-	 * @returns An object with the decoded user secret and its details if the object exists; null otherwise.
-	 * @throws Will throw an error if there is no backup user secret object stored while this is expected.
-	 * @throws Will throw an error if the backup user secret object differs from the user secret object.
-	 */
-	public async getUserSecretObject(): Promise<{
-		object: TPHC.UserSecretObject;
-		details: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null };
-	} | null> {
-		const userSecretObject = await this.getUserObject('usersecret');
-
-		if (!userSecretObject?.object) {
-			return null;
-		}
-		const decoder = new TextDecoder();
-		const decodedUserSecret = decoder.decode(userSecretObject.object);
-		const object = JSON.parse(decodedUserSecret) as TPHC.UserSecretObject;
-		// If the user secret object is stored in the new format, expect there to be a backup object stored.
-		if (TPHC.isUserSecretObjectNew(object)) {
-			const userSecretObjectBackup = await this.getUserObject('usersecretbackup');
-			if (!userSecretObjectBackup?.object) {
-				this.triggerLogoutProcedure();
-				throw new Error('Expected a backup of the user secret object to be stored, but could not find it.');
-			}
-			const decodedUserSecretBackup = decoder.decode(userSecretObjectBackup.object);
-			const secretObjectBackup = JSON.parse(decodedUserSecretBackup) as TPHC.UserSecretObject;
-			assert.isTrue(this._deepEqualObjects(object, secretObjectBackup), 'The user secret object differs from the backup user secret object.');
-			return { object, details: { usersecret: userSecretObject.details, backup: userSecretObjectBackup.details } };
-		}
-		return { object, details: { usersecret: userSecretObject.details, backup: null } };
-	}
-
-	/**
 	 * Call the refreshEP to refresh an (expired) authToken.
 	 *
 	 * @returns true if token was successfully refreshed, false if user needs to re-authenticate (triggers logout)
@@ -281,8 +225,11 @@ export default class PHCServer {
 			return;
 		}
 		// Convert Date.now() to represent the number of seconds from 1970-01-01T00:00:00Z UTC, to be able to compare it to the expiry timestamp we get from the AuthTokenPackage.
+		// 5 minutes leeway are built in (if a token expires in the next 5 minutes, it will get refreshed).
+		const leeway_minutes: number = 5;
 		const now: bigint = BigInt(Math.floor(Date.now() / 1000));
-		if (this._authToken && this._expiryAuthToken && this._expiryAuthToken <= now) {
+		const expiry: bigint | null = this._expiryAuthToken ? BigInt(this._expiryAuthToken) : null;
+		if (expiry && expiry <= now + BigInt(leeway_minutes * 60)) {
 			await this.refreshEP();
 		}
 		return this._authToken;
@@ -292,174 +239,28 @@ export default class PHCServer {
 
 	// #region UserSecret object
 
-	async getUserSecretInfo() {
-		const global = useGlobal();
-		assert.isNotNull(global.loggedIn, 'The user secret cannot be requested if a user is not logged in.');
-		if (this._userSecret && this._userSecretVersion) {
-			return { userSecret: this._userSecret, version: this._userSecretVersion };
-		}
-		const storedUserSecret = localStorage.getItem('UserSecret');
-		const version = localStorage.getItem('UserSecretVersion');
-		// This will only happen when a user is messing with their local storage, which means the logout procedure will be invoked.
-		if (!storedUserSecret || !version) {
-			this.triggerLogoutProcedure();
-			return;
-		}
-		this._userSecret = storedUserSecret;
-		this._userSecretVersion = Number(version);
-		return { userSecret: this._userSecret, version: this._userSecretVersion };
+	// The user secret logic lives in UserSecret.ts, which documents how the `usersecret` and
+	// `usersecretbackup` objects are meant to be written and read. The methods below only forward to it.
+
+	getUserSecretInfo() {
+		return this._userSecretManager.getUserSecretInfo();
 	}
 
-	private async _decryptUserSecret(oldAttrKey: string, userSecretObject: { ts: string; encUserSecret: string }, _version: number) {
-		const encUserSecret = new Uint8Array(Buffer.from(userSecretObject.encUserSecret, 'base64'));
-		const userSecret = await this._decryptData(encUserSecret, oldAttrKey);
-		return userSecret;
+	getUserSecretObject() {
+		return this._userSecretManager.getUserSecretObject();
 	}
 
-	private _buffersAreEqual(a: ArrayBuffer | Uint8Array | null, b: ArrayBuffer | Uint8Array | null): boolean {
-		// If they are the exact same ref or are both null
-		if (a === b) {
-			return true;
-		}
-
-		if (a === null || b === null) {
-			return false;
-		}
-
-		// Normalize inputs to Uint8Array for comparison
-		const normalizedA = a instanceof Uint8Array ? a : new Uint8Array(a);
-		const normalizedB = b instanceof Uint8Array ? b : new Uint8Array(b);
-
-		if (normalizedA.byteLength !== normalizedB.byteLength) {
-			return false;
-		}
-
-		for (let i = 0; i < normalizedA.length; i++) {
-			if (normalizedA[i] !== normalizedB[i]) {
-				return false;
-			}
-		}
-
-		return true;
+	resolveUserSecretObject(signedIdentifyingAttrs: SignedIdentifyingAttrs, requestAttrKeys: AttrKeysFetcher, afterReset: boolean = false) {
+		return this._userSecretManager.resolveUserSecretObject(signedIdentifyingAttrs, requestAttrKeys, afterReset);
 	}
 
-	/**
-	 * Generates a new user secret or decrypt the existing user secret.
-	 * Then encrypts the user secret with the new attribute key for each identifying attribute that was disclosed in the enter request.
-	 *
-	 * @param attrKeyResp The response from the attrKeysEP with the requested attribute keys.
-	 * @param identifyingAttrs A list of the signed identifying attributes that were disclosed in the enter request.
-	 * @param userSecretObject The data for the existing user secret object.
-	 * @returns The updated user secret object.
-	 * @throws Will throw an error if an old attribute key is missing in the attrKeyResp.
-	 * @throws Will throw an error if the user secrets encrypted with different attribute keys do not match.
-	 * @throws Will throw an error if the user secret could not successfully be decrypted.
-	 */
-	private async _computeNewUserSecretObject(
-		attrKeyResp: Record<string, AttrKeyResp>,
-		identifyingAttrs: SignedIdentifyingAttrs,
-		userSecretObject: TPHC.UserSecretObject | null,
-	): Promise<{ newUserSecretObject: TPHC.UserSecretObjectNew; userSecret: Uint8Array }> {
-		let newUserSecretData: TPHC.UserSecretData = {};
-		if (TPHC.isUserSecretObjectNew(userSecretObject)) {
-			newUserSecretData = { ...userSecretObject.data };
-		} else if (userSecretObject) {
-			newUserSecretData = { ...userSecretObject };
-		}
-		let userSecret: Uint8Array | null = null;
-		if (userSecretObject === null) {
-			// If this is the first time the user secret object is set, a random 256 bits (32 bytes) user secret needs to be generated.
-			userSecret = globalThis.crypto.getRandomValues(new Uint8Array(32));
-		} else {
-			let referenceUserSecret: Uint8Array | null = null;
-
-			for (const [handle, attr] of Object.entries(identifyingAttrs)) {
-				const keyResp = attrKeyResp[handle];
-				// If the user secret was not stored before for this combination of attribute type and value, continue.
-				if (!newUserSecretData[attr.id]?.[attr.value]) {
-					continue;
-				}
-				// If there is no old_key in the attrKeyResp for this attribute, something went wrong
-				if (keyResp.old_key === null) {
-					throw new Error(`Expected an old_key in the attrKeyResp for attribute with type ${attr.id} and value ${attr.value}`);
-				}
-				// Try to decrypt the user secret
-				const version = TPHC.isUserSecretObjectNew(userSecretObject) ? userSecretObject.version : 0;
-				const decryptedUserSecret = await this._decryptUserSecret(keyResp.old_key, newUserSecretData[attr.id][attr.value], version);
-				if (referenceUserSecret === null) {
-					referenceUserSecret = decryptedUserSecret;
-				} else if (!this._buffersAreEqual(referenceUserSecret, decryptedUserSecret)) {
-					this.triggerLogoutProcedure();
-					throw new Error('Something went wrong, the user secrets for different identifying attributes do not match.');
-				}
-			}
-
-			if (referenceUserSecret === null) {
-				this.triggerLogoutProcedure();
-				throw new Error('Could not recover the user secret.');
-			}
-			userSecret = referenceUserSecret;
-		}
-
-		// Encrypt the user secret with the new attribute key for each of the identifying attributes used in this enter request.
-		for (const [handle, attr] of Object.entries(identifyingAttrs)) {
-			const keyResp = attrKeyResp[handle];
-			// Encrypt the userSecret with the new attribute key and compose the new userSecret object
-			const encodedKey = new Uint8Array(Buffer.from(base64fromBase64Url(keyResp.latest_key[0]), 'base64'));
-			const cipherText = await this._encryptData(userSecret, encodedKey);
-			// Use local OR assignment operator (||=) to make sure that newUserSecretObject is initialized before assigning the nested property
-			(newUserSecretData[attr.id] ||= {})[attr.value] = { ts: keyResp.latest_key[1], encUserSecret: Buffer.from(cipherText).toString('base64') };
-		}
-		const newUserSecretObject: TPHC.UserSecretObject = {
-			version: 1,
-			data: newUserSecretData,
-		};
-		return { newUserSecretObject, userSecret };
-	}
-
-	/**
-	 * Stores the user secret object at the PHC object store under the handles 'usersecret' and 'usersecretbackup'.
-	 *
-	 * @param attrKeyResp The response from the attrKeysEP with the requested attribute keys.
-	 * @param identifyingAttrs A list of the signed identifying attributes that were disclosed in the enter request.
-	 * @param userSecretObject The data for the existing user secret object.
-	 * @param userSecretObjectDetails The object details for the existing user secret object.
-	 * @throws Will throw an error if an old attribute key is missing in the attrKeyResp.
-	 */
-	async storeUserSecretObject(
+	storeUserSecretObject(
 		attrKeyResp: Record<string, AttrKeyResp>,
 		identifyingAttrs: SignedIdentifyingAttrs,
 		userSecretObject: TPHC.UserSecretObject | null,
 		userSecretObjectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } | null,
-	): Promise<void> {
-		try {
-			const computedUserSecretObject = await this._computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);
-			const encodedNewUserSecretObject: Uint8Array = new TextEncoder().encode(JSON.stringify(computedUserSecretObject.newUserSecretObject));
-
-			// Store the userSecret object (twice)
-			const overwriteHash = userSecretObjectDetails ? userSecretObjectDetails.usersecret.hash : undefined;
-			const storedUserSecret = await this._storeObject('usersecret', encodedNewUserSecretObject, overwriteHash);
-			const overwriteHashBackup = userSecretObjectDetails?.backup ? userSecretObjectDetails.backup.hash : undefined;
-			const storedBackup = await this._storeObject('usersecretbackup', encodedNewUserSecretObject, overwriteHashBackup);
-
-			// Only set the _userSecret variable and store the user secret in localStorage if they were successfully written to the object store.
-			if (storedUserSecret && storedBackup) {
-				// Encode the userSecret as a base64 string
-				this._userSecret = Buffer.from(computedUserSecretObject.userSecret).toString('base64');
-				this._userSecretVersion = TPHC.isUserSecretObjectNew(computedUserSecretObject.newUserSecretObject)
-					? computedUserSecretObject.newUserSecretObject.version
-					: 0;
-				localStorage.setItem('UserSecret', this._userSecret);
-				localStorage.setItem('UserSecretVersion', this._userSecretVersion.toString());
-			} else {
-				this.triggerLogoutProcedure();
-				throw new Error('Something went wrong in storing the user secret.');
-			}
-		} catch (error) {
-			// If anything goes wrong when storing the user secret, the user should be logged out and instructed to contact the developers.
-			this.triggerLogoutProcedure();
-			throw error;
-		}
+	) {
+		return this._userSecretManager.storeUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject, userSecretObjectDetails);
 	}
 
 	// #endregion
@@ -498,7 +299,7 @@ export default class PHCServer {
 	 * @param key The key to encrypt the data.
 	 * @returns The ciphertext of the encrypted data.
 	 */
-	private async _encryptData(data: Uint8Array, key: Uint8Array) {
+	async encryptData(data: Uint8Array, key: Uint8Array) {
 		const encoder = new TextEncoder();
 		// Generate random 256 bits (32 bytes) data
 		const randomBits = crypto.getRandomValues(new Uint8Array(32));
@@ -521,6 +322,21 @@ export default class PHCServer {
 		return cipherText;
 	}
 
+	private async _decrypt(ciphertext: Uint8Array, encodedKey: Uint8Array) {
+		// Extract the random bits of data (that were used to generate the seed) from the ciphertext
+		const randomBits = ciphertext.slice(0, 32);
+		const encoder = new TextEncoder();
+		const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
+		const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
+		// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
+		const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
+		const iv = await crypto.subtle.digest('SHA-256', seedIV);
+		// Import the key and use it to decrypt the data
+		const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+		const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
+		return new Uint8Array(decryptedData);
+	}
+
 	/**
 	 * Decrypt the data that is stored at PubHubs Central.
 	 *
@@ -528,36 +344,18 @@ export default class PHCServer {
 	 * @param key The key to decrypt the data.
 	 * @returns The plaintext of the decrypted data.
 	 */
-	private async _decryptData(ciphertext: Uint8Array, key: string) {
-		// Encode the key
-		const encoder = new TextEncoder();
-		// Extract the random bits of data (that were used to generate the seed) from the ciphertext
-		const randomBits = ciphertext.slice(0, 32);
-		// Recover the seed by appending the encoded attrKey to the random bits of data
-		try {
-			const encodedKey = new Uint8Array(Buffer.from(key, 'base64'));
-			const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
-			const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
-			// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
-			const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
-			const iv = await crypto.subtle.digest('SHA-256', seedIV);
-			// Import the key and use it to decrypt the data
-			const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
-			const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
-			return new Uint8Array(decryptedData);
-		} catch (error) {
-			logger.error('Could not decrypt data with the most recent encoding version', error);
-			const encodedKey = new TextEncoder().encode(key);
-			const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
-			const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
-			// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
-			const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
-			const iv = await crypto.subtle.digest('SHA-256', seedIV);
-			// Import the key and use it to decrypt the data
-			const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
-			const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
-			return new Uint8Array(decryptedData);
+	async decryptData(ciphertext: Uint8Array, key: string) {
+		const encodingStrategies = [() => new Uint8Array(Buffer.from(key, 'base64')), () => new TextEncoder().encode(key)];
+		for (let i = 0; i < encodingStrategies.length; i++) {
+			try {
+				const encodedKey = encodingStrategies[i]();
+				return await this._decrypt(ciphertext, encodedKey);
+			} catch (error) {
+				logger.error(`Could not decrypt data with encoding version ${i}`, error);
+			}
 		}
+		logger.error('Failed to decrypt the data.');
+		throw new Error('Failed to decrypt the data.');
 	}
 
 	// #endregion
@@ -609,17 +407,20 @@ export default class PHCServer {
 			if (getObjResp instanceof ArrayBuffer) {
 				return getObjResp;
 			} else if (getObjResp === TPHC.GetObjectRespProblem.NotFound || getObjResp === TPHC.GetObjectRespProblem.RetryWithNewHmac) {
-				if (attempts === maxAttempts) {
+				// Both problems mean the object details we sent are stale; an outdated hmac, or a hash that
+				// has since been replaced - and PHC documents the same remedy for both (see GetObjectResp in
+				// pubhubs/src/api/phc.rs) - reload the stored objects from the state endpoint and retry with
+				// the details found there.
+				if (attempts === maxAttempts - 1) {
 					throw new Error(`Could not retrieve the object with handle ${handle}, errorcode: ${getObjResp}`);
 				}
 				await this.stateEP();
-				// TODO: check if this is the correct way to handle both of these cases
-				const objectDetails = await this._getObjectDetails(handle);
+				const refreshedDetails = await this._getObjectDetails(handle);
 				// If the object cannot be found, return null.
-				if (!objectDetails) {
+				if (!refreshedDetails) {
 					return null;
 				}
-				details = objectDetails;
+				details = refreshedDetails;
 				continue;
 			} else {
 				throw new Error('Unknown response from the getObjectEP.');
@@ -663,12 +464,12 @@ export default class PHCServer {
 			return null;
 		}
 		const object = new Uint8Array(getObjectResp.object);
-		const userSecretInfo = await this.getUserSecretInfo();
+		const userSecret = await this.getUserSecretInfo();
 		// this._getUserSecret will only return undefined in case where the user gets logged out because they were messing with their local storage.
 		// In practice, this means that this._getUserSecret will never return undefined, since the user will have been redirected to the login page in that case.
-		assert.isDefined(userSecretInfo, 'Could not retrieve the userSecret from localstorage.');
+		assert.isDefined(userSecret, 'Could not retrieve the userSecret from localstorage.');
 		// Decrypt the data that was stored under the given handle
-		const decryptedData = await this._decryptData(object, userSecretInfo.userSecret);
+		const decryptedData = await this.decryptData(object, userSecret);
 
 		// Decode the data
 		const decoder = new TextDecoder();
@@ -683,7 +484,7 @@ export default class PHCServer {
 	 * @param object The object to write to the object store.
 	 * @returns True if the object was stored correctly.
 	 */
-	private async _newObjectEP(handle: string, object: Uint8Array): Promise<boolean | undefined> {
+	private async _newObjectEP(handle: string, object: Uint8Array): Promise<boolean> {
 		const maxAttempts = 3;
 		let tokenRefreshed = false;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
@@ -709,7 +510,7 @@ export default class PHCServer {
 						tokenRefreshed = true;
 						continue; // Retry with new token
 					}
-					return; // Logout was triggered or already retried
+					return false; // Logout was triggered or already retried
 				case 'MissingHash': {
 					// There is already an object stored under this handle, so use overwriteObjectEP instead
 					const existingObject = await this.getUserObject(handle);
@@ -749,7 +550,7 @@ export default class PHCServer {
 	 * @param object The new contents of the object.
 	 * @returns True if the object was stored correctly.
 	 */
-	private async _overwriteObjectEP(handle: string, overwriteHash: string, object: Uint8Array): Promise<boolean | undefined> {
+	private async _overwriteObjectEP(handle: string, overwriteHash: string, object: Uint8Array): Promise<boolean> {
 		const maxAttempts = 3;
 		let hash = overwriteHash;
 		let tokenRefreshed = false;
@@ -776,7 +577,7 @@ export default class PHCServer {
 						tokenRefreshed = true;
 						continue; // Retry with new token
 					}
-					return; // Logout was triggered or already retried
+					return false; // Logout was triggered or already retried
 				case 'MissingHash':
 					throw new Error('Unexpected response MissingHash for a newObjectEP request.');
 				case 'NotFound':
@@ -821,7 +622,7 @@ export default class PHCServer {
 	 * @param overwriteHash The hash of the object if it existed before.
 	 * @returns A boolean value, denoting whether the object was stored correctly or not.
 	 */
-	private async _storeObject(handle: string, data: Uint8Array, overwriteHash?: string): Promise<boolean> {
+	async storeObject(handle: string, data: Uint8Array, overwriteHash?: string): Promise<boolean> {
 		let stored: boolean | undefined;
 		if (overwriteHash) {
 			stored = await this._overwriteObjectEP(handle, overwriteHash, data);
@@ -838,7 +639,7 @@ export default class PHCServer {
 			storedObject.object,
 			`Could not retrieve the object with handle ${handle}, even though it seemed to be stored correctly and the object details were retrieved.`,
 		);
-		assert.isTrue(this._buffersAreEqual(storedObject.object, data), `The data for the object with handle ${handle} was not correctly stored.`);
+		assert.isTrue(buffersAreEqual(storedObject.object, data), `The data for the object with handle ${handle} was not correctly stored.`);
 		return true;
 	}
 
@@ -847,13 +648,13 @@ export default class PHCServer {
 		const encoder = new TextEncoder();
 		const encodedData = encoder.encode(JSON.stringify(data));
 		// Encrypt the encoded data if the userSecret is present
-		const userSecretInfo = await this.getUserSecretInfo();
+		const userSecret = await this.getUserSecretInfo();
 		// this._getUserSecret will only return undefined in case where the user gets logged out because they were messing with their local storage.
 		// In practice, this means that this._getUserSecret will never return undefined, since the user will have been redirected to the login page in that case.
-		assert.isDefined(userSecretInfo, 'Could not retrieve the userSecret from localstorage.');
-		const encodedUserSecret = new Uint8Array(Buffer.from(userSecretInfo.userSecret, 'base64'));
-		const encryptedData = await this._encryptData(encodedData, encodedUserSecret);
-		await this._storeObject(handle, encryptedData, overwriteHash);
+		assert.isDefined(userSecret, 'Could not retrieve the userSecret from localstorage.');
+		const encodedUserSecret = new Uint8Array(Buffer.from(userSecret, 'base64'));
+		const encryptedData = await this.encryptData(encodedData, encodedUserSecret);
+		await this.storeObject(handle, encryptedData, overwriteHash);
 	}
 
 	// #region Hub Login
@@ -881,7 +682,7 @@ export default class PHCServer {
 		}
 	}
 
-	async hhppEP(sealedEhpp: string, hhppSignatureScheme?: string): Promise<string | 'RetryWithNewPpp' | undefined> {
+	async hhppEP(sealedEhpp: string, hhppSignatureScheme?: string): Promise<string | undefined> {
 		const maxRetries = 1;
 		for (let attempt = 0; attempt <= maxRetries; attempt++) {
 			const hhppReq: TPHC.HhppReq = { ehpp: sealedEhpp, hhpp_signature_scheme: hhppSignatureScheme };

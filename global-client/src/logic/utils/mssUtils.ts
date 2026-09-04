@@ -1,3 +1,6 @@
+// Packages
+import { Buffer } from 'node:buffer';
+
 // Logic
 import { delay } from '@hub-client/logic/utils/common';
 
@@ -48,6 +51,7 @@ export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCo
 	}
 	throw new Error(ErrorCode.PleaseRetry);
 }
+
 /**
  * Converts a base64url encoded string into a standard base64 string.
  *
@@ -104,6 +108,7 @@ export function responseEqualToRequested(responseAttrs: string[], attrTypes: rea
 	}
 	return true;
 }
+
 export function decodeJWT(jwt: string): unknown {
 	try {
 		// Only take the payload of the JWT
@@ -115,4 +120,38 @@ export function decodeJWT(jwt: string): unknown {
 	} catch {
 		throw new Error('Invalid JWT');
 	}
+}
+
+/**
+ * Compare two byte sequences.
+ *
+ * @param a The first byte sequence, or null.
+ * @param b The second byte sequence, or null.
+ * @returns True if both are null or hold exactly the same bytes, false otherwise.
+ */
+export function buffersAreEqual(a: ArrayBuffer | Uint8Array | null, b: ArrayBuffer | Uint8Array | null): boolean {
+	// If they are the exact same ref or are both null
+	if (a === b) {
+		return true;
+	}
+
+	if (a === null || b === null) {
+		return false;
+	}
+
+	// Normalize inputs to Uint8Array for comparison
+	const normalizedA = a instanceof Uint8Array ? a : new Uint8Array(a);
+	const normalizedB = b instanceof Uint8Array ? b : new Uint8Array(b);
+
+	if (normalizedA.byteLength !== normalizedB.byteLength) {
+		return false;
+	}
+
+	for (let i = 0; i < normalizedA.length; i++) {
+		if (normalizedA[i] !== normalizedB[i]) {
+			return false;
+		}
+	}
+
+	return true;
 }

@@ -107,7 +107,7 @@
 							class="items-top bg-surface text-accent-error border-surface-elevated mt-200 flex w-3/4 w-fit w-full flex-row gap-x-200 rounded border-3 px-200 py-400 break-normal"
 						>
 							<Icon type="warning" />
-							<P>{{ $t(error.key, error.values) }}</P>
+							<P class="whitespace-pre-line">{{ $t(error.key, error.values) }}</P>
 						</div>
 					</div>
 				</div>

@@ -6,17 +6,41 @@ Administrators can also create rooms like public rooms and secured rooms. For mo
 
 ## Creating an admin user
 
+There is no admin user to start with, so the first one has to be made by editing the hub database directly. Only that first admin has to be made this way; every admin after that can be made with the Synapse Admin API.
+
+A user only exists in the database after logging in on the hub at least once, so log in with the account you want to make admin before you start.
+
 ### Using the database directly
 
-To create the first admin user, you need to update the homeserver database directly:
+Hubs run an embedded PostgreSQL database inside the hub container, so the database is reached through `docker exec` rather than through a file in `hub_dir`.
 
-1. Navigate to the homeserver database (`homeserver.db`) which is in your `hub_dir` .
+1. Open a `psql` shell on the `hub` database inside the running hub container:
+
+    ```shell
+    docker exec -it <hub-container> sudo -u postgres psql hub
+    ```
 
 2. Make the user admin:
 
     ```sql
     UPDATE users SET admin = 1 WHERE name = '@abc-123:testhub.matrix.host';
     ```
+
+    If you do not know the exact user id, `SELECT name FROM users;` lists them.
+
+3. Leave the `psql` shell with `\q`, and restart the hub container so it picks up the change.
+
+#### Hubs still on sqlite3
+
+Hubs that have not been migrated to PostgreSQL yet (see the [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/stable/CHANGELOG.md)) keep their database in the `homeserver.db` file in your `hub_dir`. There, use `sqlite3` instead:
+
+```shell
+sqlite3 <path_to_hub_dir>/homeserver.db
+```
+
+The `UPDATE` statement above is the same; quit with `.quit` and restart the hub container.
+
+If `hub_dir` contains a `homeserver.db.bak`, the hub has already been migrated and PostgreSQL is the live database: editing `homeserver.db.bak` has no effect.
 
 ### Using the Synapse Admin API
 

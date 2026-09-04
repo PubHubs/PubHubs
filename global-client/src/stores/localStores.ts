@@ -31,12 +31,12 @@ const useLocalStores = defineStore('localStores', () => {
 			logger.warn('retrieve() called while not logged in — LocalStore unavailable');
 			return null;
 		}
-		const info = await useMSS().phcServer.getUserSecretInfo();
-		if (!info) {
+		const userSecret = await useMSS().phcServer.getUserSecretInfo();
+		if (!userSecret) {
 			logger.warn('retrieve() called but user secret unavailable — LocalStore unavailable (logout procedure triggered)');
 			return null;
 		}
-		instance = new LocalStores(info.userSecret);
+		instance = new LocalStores(userSecret);
 		return instance;
 	}
 
