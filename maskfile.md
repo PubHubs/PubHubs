@@ -604,7 +604,7 @@ the `npm-audit` pipeline job is what watches for them. Needs no `npm install`; i
 `package-lock.json`.
 
 ```sh
-npm run check:audit
+npm run check:audit ${verbose:+-- --verbose}
 ```
 
 ### versions

@@ -7,6 +7,9 @@
 //
 // Run it with `npm run check:audit` or `mask check audit`; CI runs it in the `npm-audit` job.
 // Everything it needs is in package-lock.json, so it works without node_modules installed.
+// Nearly all of a run is spent inside npm: `--verbose` (`npm run check:audit -- --verbose`) says
+// which call it is in and for how long.
+//
 // We will want to replace this with better-npm-audit if that package ever comes alive again. (No updates for 2 years currently).
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -20,7 +23,53 @@ const IGNORE_KEYS = ['id', 'reason', 'expires'];
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONFIG_FILE = 'scripts/npm-audit.config.mjs';
 
+// The registry answering 503 (or not answering) is the most common reason for this check to fail, so
+// the audit gets a few attempts.  npm's own retries are switched off and its fetch timeout is cut
+// down from the default five minutes, because both are invisible from here: a run that hangs for
+// five minutes and then fails is worse than three bounded attempts that say what they are doing.
+const AUDIT_ATTEMPTS = 3;
+const RETRY_DELAY_SECONDS = [5, 20];
+const FETCH_TIMEOUT_SECONDS = 60;
+const NETWORK_ARGUMENTS = ['--fetch-retries=0', `--fetch-timeout=${FETCH_TIMEOUT_SECONDS * 1000}`];
+
+// What a message from npm looks like when the problem is the network or the registry rather than our
+const TRANSIENT =
+	/Service Unavailable|Bad Gateway|Gateway Time-?out|Internal Server Error|Too Many Requests|\b(?:429|500|502|503|504)\s+-\s|ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENETUNREACH|EAI_AGAIN|ENOTFOUND|socket hang up|network timeout|request to \S+ failed/i;
+
 const today = new Date().toISOString().slice(0, 10);
+
+const options = process.argv.slice(2);
+const verbose = options.includes('--verbose') || options.includes('-v');
+const unknownOptions = options.filter((option) => !['--verbose', '-v'].includes(option));
+
+const startedAt = Date.now();
+
+/** Seconds since the run started, or since `from`, right-aligned so the progress lines line up. */
+const seconds = (from = startedAt) => ((Date.now() - from) / 1000).toFixed(1).padStart(5);
+
+/**
+ * Writes a progress line, but only under `--verbose`.
+ *
+ * On stderr, so switching it on leaves the report on stdout exactly as it was.
+ */
+const log = (message) => {
+	if (verbose) console.error(`[${seconds()}s] ${message}`);
+};
+
+/** Runs `step`, saying what it is about to do and what it cost.  Nearly all of a run sits in one of these. */
+const timed = (what, step) => {
+	log(`starting: ${what}`);
+	const before = Date.now();
+	const result = step();
+	log(`finished: ${what}, in ${seconds(before)}s`);
+	return result;
+};
+
+/** Waits without an event loop, so the retry below can stay in the synchronous flow of this script. */
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/** An error, marked `transient` when npm's complaint is about reaching the registry. */
+const auditError = (message) => Object.assign(new Error(message), { transient: TRANSIENT.test(message) });
 
 // How to run npm, worked out once by `npmInvocation`.
 let npm;
@@ -52,35 +101,43 @@ const npmInvocation = () => {
 	throw new Error(`Found no npm next to ${process.execPath}; please run this through \`npm run check:audit\`.`);
 };
 
-/** Runs `npm audit --json` in the repository root and returns the parsed report. */
-const runAudit = (extraArguments = []) => {
+/** One `npm audit --json` in the repository root, as a parsed report. */
+const auditOnce = (extraArguments) => {
 	const { command, leadingArguments } = npmInvocation();
+	// This is the call that talks to the registry, and a slow run is almost always this call waiting.
+	const what = ['npm audit --json', ...extraArguments].join(' ');
 	let stdout;
 	try {
-		stdout = execFileSync(command, [...leadingArguments, 'audit', '--json', ...extraArguments], {
-			cwd: ROOT,
-			encoding: 'utf8',
-			// execFileSync passes the child's stderr straight through to ours unless we capture it
-			// ourselves, and npm's warnings would then land in the middle of our own report.
-			stdio: ['ignore', 'pipe', 'pipe'],
-			// A tree this size produces a report of a few hundred kilobytes; the default 1 MiB buffer
-			// is uncomfortably close to that.
-			maxBuffer: 64 * 1024 * 1024,
-		});
+		stdout = timed(what, () =>
+			execFileSync(command, [...leadingArguments, 'audit', '--json', ...extraArguments, ...NETWORK_ARGUMENTS], {
+				cwd: ROOT,
+				encoding: 'utf8',
+				// execFileSync passes the child's stderr straight through to ours unless we capture it
+				// ourselves, and npm's warnings would then land in the middle of our own report.
+				stdio: ['ignore', 'pipe', 'pipe'],
+				// A tree this size produces a report of a few hundred kilobytes; the default 1 MiB buffer
+				// is uncomfortably close to that.
+				maxBuffer: 64 * 1024 * 1024,
+			}),
+		);
 	} catch (error) {
 		// npm exits non-zero as soon as it finds a single vulnerability, so a non-zero exit only means
 		// something actually went wrong when there is no report on stdout to read.
 		stdout = error.stdout ?? '';
 		if (!stdout.trim()) {
-			throw new Error(`\`npm audit\` failed:\n${error.stderr || error.message}`);
+			throw auditError(`\`npm audit\` failed:\n${error.stderr || error.message}`);
 		}
+		// `timed` never gets to print its closing line when the call throws, so say so here.
+		log(`${what}: exited non-zero with a report on stdout, which is what it does whenever it finds anything`);
 	}
 
 	let report;
 	try {
 		report = JSON.parse(stdout);
 	} catch {
-		throw new Error(`\`npm audit\` did not return JSON:\n${stdout.slice(0, 1000)}`);
+		// A registry behind a proxy that is having a bad day answers with an HTML error page, which
+		// lands here rather than in the `report.error` below.
+		throw auditError(`\`npm audit\` did not return JSON:\n${stdout.slice(0, 1000)}`);
 	}
 
 	// npm reports registry problems (no network, an unreachable advisory endpoint) inside the JSON.
@@ -88,15 +145,39 @@ const runAudit = (extraArguments = []) => {
 	if (report.error) {
 		// The `error` object is often empty, with the actual problem (an unreachable registry, say) in
 		// `message` next to it.
-		throw new Error(
+		throw auditError(
 			`\`npm audit\` reported an error: ${[report.message, report.error.summary, report.error.detail].filter(Boolean).join('\n') || JSON.stringify(report.error)}`,
 		);
 	}
 	if (report.auditReportVersion !== 2) {
+		// Not transient: a new report format needs a change here, and retrying cannot help.
 		throw new Error(`Unexpected audit report version ${report.auditReportVersion}; this script only understands version 2.`);
 	}
 
+	log(`${what}: ${(stdout.length / 1024).toFixed(0)} kB of JSON, ${Object.keys(report.vulnerabilities).length} vulnerable packages`);
+
 	return report;
+};
+
+/**
+ * `npm audit --json`, retried while the registry is the thing that is broken.
+ */
+const runAudit = (extraArguments = [], attempts = AUDIT_ATTEMPTS) => {
+	for (let attempt = 1; ; attempt++) {
+		try {
+			return auditOnce(extraArguments);
+		} catch (error) {
+			if (!error.transient || attempt >= attempts) throw error;
+
+			const delay = RETRY_DELAY_SECONDS[Math.min(attempt, RETRY_DELAY_SECONDS.length) - 1];
+			// On stderr and not behind `--verbose`: a run that suddenly takes half a minute longer
+			// should say why without anyone having to ask for it again.
+			console.error(
+				`${error.message}\n\nThe registry looks temporarily unavailable; trying again in ${delay}s (attempt ${attempt + 1} of ${attempts}).\n`,
+			);
+			sleep(delay * 1000);
+		}
+	}
 };
 
 /** The identifier an advisory is ignored by: its GHSA id, or npm's own numeric id if it has no GHSA. */
@@ -121,20 +202,24 @@ const dependencyTree = () => {
 		const { command, leadingArguments } = npmInvocation();
 		let stdout;
 		try {
-			stdout = execFileSync(command, [...leadingArguments, 'ls', '--all', '--json', '--package-lock-only'], {
-				cwd: ROOT,
-				encoding: 'utf8',
-				stdio: ['ignore', 'pipe', 'pipe'],
-				maxBuffer: 64 * 1024 * 1024,
-			});
+			stdout = timed('npm ls --all --json --package-lock-only', () =>
+				execFileSync(command, [...leadingArguments, 'ls', '--all', '--json', '--package-lock-only'], {
+					cwd: ROOT,
+					encoding: 'utf8',
+					stdio: ['ignore', 'pipe', 'pipe'],
+					maxBuffer: 64 * 1024 * 1024,
+				}),
+			);
 		} catch (error) {
 			// Without node_modules npm reports every package as missing and exits non-zero, but the
 			// tree it prints is the one from the lockfile and is all we need.
 			stdout = error.stdout ?? '';
+			log(`npm ls exited non-zero, as it does without node_modules: ${(stdout.length / 1024).toFixed(0)} kB of tree on stdout`);
 		}
 		tree = JSON.parse(stdout);
 	} catch {
 		tree = null;
+		log('npm ls produced no usable tree; the advisories below come without their dependency chains');
 	}
 
 	return tree;
@@ -166,6 +251,10 @@ const chainsTo = (name) => {
 const collectAdvisories = (report) => {
 	const advisories = new Map();
 
+	// Every advisory walks the whole dependency tree once, so a report with many of them spends real
+	// time here; timing them one by one shows that, where a single pause would not.
+	log(`collecting advisories out of ${Object.keys(report.vulnerabilities).length} vulnerable packages`);
+
 	for (const entry of Object.values(report.vulnerabilities)) {
 		for (const via of entry.via) {
 			// A string means "vulnerable because of that other package"; the advisory itself is an
@@ -175,6 +264,8 @@ const collectAdvisories = (report) => {
 			const id = advisoryId(via);
 			if (advisories.has(id)) continue;
 
+			const chains = timed(`${id}: dependency chains to ${via.name}`, () => chainsTo(via.name));
+
 			advisories.set(id, {
 				id,
 				severity: via.severity,
@@ -182,13 +273,15 @@ const collectAdvisories = (report) => {
 				vulnerableRange: via.range,
 				title: via.title,
 				url: via.url,
-				chains: chainsTo(via.name),
+				chains,
 				// npm sets this to `true` for "a matching version exists", or to the package it would
 				// have to change (with `isSemVerMajor`) when the fix is not a drop-in one.
 				fixAvailable: entry.fixAvailable,
 			});
 		}
 	}
+
+	log(`${advisories.size} distinct advisories`);
 
 	return advisories;
 };
@@ -202,15 +295,18 @@ const collectAdvisories = (report) => {
  * check keeps working without it.
  */
 const productionAdvisoryIds = () => {
+	log('auditing a second time with --omit=dev, to see which advisories reach the code we ship');
 	try {
 		const ids = new Set();
-		for (const entry of Object.values(runAudit(['--omit=dev']).vulnerabilities)) {
+		for (const entry of Object.values(runAudit(['--omit=dev'], 1).vulnerabilities)) {
 			for (const via of entry.via) {
 				if (typeof via === 'object') ids.add(advisoryId(via));
 			}
 		}
+		log(`${ids.size} advisories survive --omit=dev`);
 		return ids;
 	} catch {
+		log('the --omit=dev audit failed; the advisories below come without their reachability');
 		return null;
 	}
 };
@@ -295,6 +391,14 @@ const formatAdvisory = (advisory, reach, notes = []) => {
 };
 
 const main = async () => {
+	// A mistyped `--verbsoe` would otherwise be accepted and quietly do nothing.
+	if (unknownOptions.length > 0) {
+		throw new Error(`Unknown option ${unknownOptions.map((option) => JSON.stringify(option)).join(', ')}; the only one is \`--verbose\` (\`-v\`).`);
+	}
+
+	log('verbose: progress goes here on stderr, the report itself to stdout as always');
+
+	log(`reading ${CONFIG_FILE}`);
 	const config = await loadConfig();
 	const advisories = collectAdvisories(runAudit());
 	const productionIds = productionAdvisoryIds();
@@ -350,6 +454,8 @@ const main = async () => {
 		);
 		process.exitCode = 1;
 	}
+
+	log(`done in ${seconds()}s`);
 };
 
 try {
@@ -358,5 +464,17 @@ try {
 	// A broken config or an audit we could not run is not "no vulnerabilities found": exit 2 so it is
 	// distinguishable from a policy failure.
 	console.error(error.message);
-	process.exitCode = 2;
+
+	if (error.transient) {
+		// A registry that stayed unreachable for every attempt is not a verdict on our dependencies,
+		// and nothing in this repository can fix it.  Exit 75 (EX_TEMPFAIL) instead, which the
+		// `npm-audit` job in cicd/.gitlab-ci.yml allows: the job goes yellow, the pipeline stays green,
+		// and the next run does the real check.
+		console.error(
+			`\nThe registry stayed unreachable for all ${AUDIT_ATTEMPTS} attempts, so this run says nothing about our dependencies. Exiting 75 rather than failing the check; please run it again once the registry is back.`,
+		);
+		process.exitCode = 75;
+	} else {
+		process.exitCode = 2;
+	}
 }

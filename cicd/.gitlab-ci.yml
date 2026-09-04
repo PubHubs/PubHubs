@@ -345,6 +345,12 @@ npm-audit:
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
         - if: $CI_COMMIT_TAG
+    # registry.npmjs.org answering 503 for the advisory endpoint has nothing to do with the branch
+    # being tested, and no change here can fix it.  The check retries and then exits 75, which lands
+    # the job in "warning" instead of turning an unrelated pipeline red.
+    allow_failure:
+        exit_codes:
+            - 75
     script:
         - npm run check:audit
 
