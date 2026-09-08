@@ -2,7 +2,7 @@
   lib,
   pkgs,
 }:
-pkgs.buildGoModule rec {
+pkgs.buildGoModule.override { go = pkgs.go_1_27; } rec {
   pname = "irmago";
 
   # To update, run `mask update yivi <new version>` from the repository root.  That wraps
@@ -13,16 +13,16 @@ pkgs.buildGoModule rec {
   # update the trailing version comment next to this package in flake.nix.  Afterwards run
   # `direnv reload` and check `yivi version`: direnv only watches flake.nix and flake.lock, so
   # without a reload the shell keeps serving the previously built binary.
-  version = "1.3.0";
+  version = "1.3.1";
 
   src = pkgs.fetchFromGitHub {
     owner = "privacybydesign";
     repo = "irmago";
     tag = "v${version}";
-    hash = "sha256-R+SRrSSxV1hrytr+yj/MGdtmty2pV8kFGggwUbyT4ls=";
+    hash = "sha256-3Sy3u4UA69CG1YRFg8z5E2vk30Odh8jMsB1XzGzqqpM=";
   };
 
-  vendorHash = "sha256-mqLVDnK1NlCrvXts7exaBrJAk2BmC1Nw1RErGESrFEA=";
+  vendorHash = "sha256-g9zPX3/UoI6ykyGQmcmnjN7bnAGTh40aYfRvn6JbelE=";
 
   subPackages = [ "yivi" ];
 

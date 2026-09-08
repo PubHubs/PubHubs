@@ -77,7 +77,7 @@
           pythonEnv = pkgs.python3.withPackages (ps: [
             # matrix-synapse is packaged as an application rather than a library;
             # toPythonModule exposes its `synapse` package to `import`.
-            (ps.toPythonModule pkgs.matrix-synapse-unwrapped) # 1.156.0
+            (ps.toPythonModule pkgs.matrix-synapse-unwrapped) # 1.159.0
             ps.authlib # 1.7.2
             ps.cryptography # 49.0.0
             ps.livekit-api # 1.1.0
@@ -91,11 +91,11 @@
               with pkgs;
               [
                 # Docker
-                buildkit # 0.27.1
-                docker # 29.2.1
+                buildkit # 0.32.2
+                docker # 29.7.2
 
                 # Node
-                nodejs # 24.13.0
+                nodejs # 24.19.0
 
                 # Python
                 python3 # 3.13.12
@@ -103,26 +103,26 @@
                 # Rust (pinned via ./rust-toolchain.toml)
                 rustToolchain
                 cargo-deny # 0.20.2
-                cargo-outdated
-                cargo-edit
+                cargo-outdated # 0.19.0
+                cargo-edit # 0.13.13
                 cargo-watch # 8.5.3
 
                 # Android / Capacitor
-                android-tools # 35.0.2 — adb, fastboot
+                android-tools # 37.0.0
                 androidSdk.androidsdk
                 openjdk21
                 android-studio
 
                 # Other
                 mask # 0.11.7
-                openssl # 3.6.1
+                openssl # 3.6.3
                 pkg-config # 0.29.2
-                sqlite # 3.51.2
-                tmux # 3.6a
+                sqlite # 3.53.3
+                tmux # 3.7a
               ]
               ++ [
                 # Custom packages
-                (pkgs.callPackage ./packages/yivi.nix { }) # 1.3.0
+                (pkgs.callPackage ./packages/yivi.nix { }) # 1.3.1
               ];
 
             # Android SDK tooling expects these environment variables.
