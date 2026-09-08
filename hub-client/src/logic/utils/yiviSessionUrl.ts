@@ -11,12 +11,13 @@
  * restriction. Both clients run into this, so it lives here rather than in either yiviHandler.
  */
 // Packages
+import { Capacitor } from '@capacitor/core';
 import { SessionManagement } from '@privacybydesign/yivi-client';
 
 type SessionUrlAsserter = { _assertSafeSessionUrl: (url: string) => void };
 
 const allowInsecureYiviSessionUrlsInDev = (): void => {
-	if (!import.meta.env.DEV) return;
+	if (!import.meta.env.DEV && !Capacitor.DEBUG) return;
 
 	(SessionManagement.prototype as unknown as SessionUrlAsserter)._assertSafeSessionUrl = (url: string) => {
 		if (typeof url !== 'string' || url.length === 0) throw new Error('Missing or invalid sessionPtr URL in mappings');
