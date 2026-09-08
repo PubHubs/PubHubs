@@ -406,7 +406,8 @@ echo "Running testhub${n}"
 cd pubhubs_hub
 postgres_flag=()
 [[ "$no_postgres" == "true" ]] && postgres_flag=(--no-replace-sqlite3-by-postgres)
-python3 start_testhub.py "${postgres_flag[@]}" "${n}"
+networkhost_ip="$(node ../scripts/print-networkhost-ip.js)"
+python3 start_testhub.py --networkhost "${networkhost_ip}" "${postgres_flag[@]}" "${n}"
 ```
 
 #### client (n)
