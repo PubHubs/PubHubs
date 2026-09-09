@@ -52,14 +52,19 @@ const en = {
 		admin_error: 'You are not an admin!',
 		no_room_error: 'User {0} has not joined any room in the hub.',
 		room_creator: 'Room Creator not found',
-		account_does_not_exist:
-			'A PubHubs account with these attributes does not exist. Try to register a new account with these attributes or try to login with different attributes.',
-		attribute_banned: 'The following attribute is banned and therefore cannot be used to register a new PubHubs account: {0}.',
+		// Reached on login, where a PubHubs card is the only thing disclosed - so it must not suggest
+		// logging in with something else, or registering with the card. Registering starts over from
+		// the attributes and hands out a card of its own.
+		account_does_not_exist: 'We could not find a PubHubs account for this. If you do not have an account yet, register a new one.',
+		// Reached both when registering and when logging in, so it says neither.
+		attribute_banned: 'The following attribute is banned and cannot be used in PubHubs: {0}.',
 		banned: 'This account is banned and can no longer be used to login to PubHubs.',
 		attribute_already_taken: 'The following attribute is already tied to a PubHubs account: {0}. Try logging in.',
 		general_error:
 			'Unfortunately an error occured. Try again and <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a> if the problem persists.',
-		retry_with_new_attr: 'Please add your attributes again in Yivi and retry.',
+		// The server rejected a signed attribute as expired or invalid, which means disclosing again -
+		// not adding anything in Yivi, which for a PubHubs card the user cannot do at all.
+		retry_with_new_attr: 'Your details could not be verified, they may have expired. Please try again.',
 		no_hubs_found:
 			'Unfortunately we could not show any hubs. Try again later and <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a> if the problem persists.',
 		cant_find: 'Sorry, we could not find the page or room that you were looking for.',
@@ -69,11 +74,15 @@ const en = {
 		YiviServerGone: 'You could likely not complete the login because battery-saver blocks javascript, try the last step one more time to log in.',
 		// Shown when a Yivi session fails outright, rather than being cancelled or timing out - the
 		// widget offers a retry of its own for those.
-		yivi_session_failed: 'Something went wrong in the Yivi app, so we could not log you in. Reload this page to try again.',
+		yivi_session_failed: 'Something went wrong in the Yivi app, so we could not log you in.',
 		// The card is on the account but never reached the user's Yivi app, and logging in later
 		// discloses exactly that card - so the last step really does have to be finished.
 		card_not_added:
 			'You are logged in, but your PubHubs card was not added to your Yivi app. You need it to log in next time, so please finish the last step.',
+		// The card reached the Yivi app but could not be tied to the account, which the next login
+		// needs in order to recognise it. Issuing another one repairs this, so it asks for a retry too.
+		card_not_linked:
+			'You are logged in, but your PubHubs card could not be linked to your account. You need it to log in next time, so please try the last step again.',
 	},
 	file: {
 		upload: 'Upload',
@@ -147,6 +156,9 @@ const en = {
 		card_3_success_text: 'Scan the {0} Qr code once more to add your {1} card.',
 		card_3_success_text_app: 'Open your {0} app once more to add your {1} card.',
 
+		card_1_alt: 'Laptop',
+		card_2_alt: '{0} mascot with attributes',
+
 		video_click_to_play: 'Click to play video',
 		video_hosted_by_vimeo: 'This video is hosted by Vimeo',
 
@@ -219,6 +231,7 @@ const en = {
 	},
 	login: {
 		login: 'Login',
+		mascot_alt: '{0} mascot',
 		login_again: 'You have been logged out. Please log in again to continue.',
 		loading_yivi: 'Loading Yivi...',
 	},

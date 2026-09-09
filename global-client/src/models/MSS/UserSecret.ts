@@ -17,6 +17,13 @@
  *
  *     { version: 1, data: { <attrId>: { <attrValue>: { ts, encUserSecret } } } }
  *
+ * Every identifying attribute the account can be entered with needs an entry of its own, and an
+ * attribute added later needs one too: a PubHubs card is disclosed on its own at the next login, so
+ * an account whose card has no entry cannot recover its secret from anything and is lost. The entry
+ * is normally written by the login that disclosed the attribute; `addIdentifyingAttr()` is for the
+ * card that arrives after that login, when there is nothing disclosed left to decrypt the secret
+ * with and the session's own copy is what it is stored from.
+ *
  * `encUserSecret` is the user secret encrypted with the attribute key, and `ts` records which
  * generation of that key was used. The `ts` is sent along to the authentication server so it knows
  * which `old_key` to return next to the `latest_key`. Objects written before `version` existed hold
@@ -129,6 +136,14 @@ export default class UserSecretManager {
 	}
 
 	// #region Retrieving the user secret
+
+	/**
+	 * Drop the cached user secret, so that it is not handed to the next account to log in - see
+	 * {@link PHCServer.reset}.
+	 */
+	forgetUserSecret() {
+		this._userSecret = undefined;
+	}
 
 	/**
 	 * The user secret of the logged in user, base64 encoded, from memory or from local storage.
@@ -375,6 +390,9 @@ export default class UserSecretManager {
 	 * @param identifyingAttrs A list of the signed identifying attributes that were disclosed in the enter request.
 	 * @param userSecretObject The data for the existing user secret object.
 	 * @param userSecretObjectDetails The object details for the existing user secret object.
+	 * @param useSessionSecret Take the user secret from the session instead of decrypting it with the
+	 * attributes in `identifyingAttrs`. Only for an attribute added to an account this session already
+	 * entered, see {@link addIdentifyingAttr}.
 	 * @throws Will throw an error if an old attribute key is missing in the attrKeyResp.
 	 * @throws Will throw an error if either object could not be stored, or if the stored usersecret object does not decrypt to the user secret.
 	 */
@@ -383,8 +401,9 @@ export default class UserSecretManager {
 		identifyingAttrs: SignedIdentifyingAttrs,
 		userSecretObject: TPHC.UserSecretObject | null,
 		userSecretObjectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } | null,
+		useSessionSecret: boolean = false,
 	): Promise<void> {
-		const computedUserSecretObject = await this._computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);
+		const computedUserSecretObject = await this._computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject, useSessionSecret);
 		const encodedNewUserSecretObject: Uint8Array = new TextEncoder().encode(JSON.stringify(computedUserSecretObject.newUserSecretObject));
 
 		// Store the userSecret object
@@ -419,12 +438,39 @@ export default class UserSecretManager {
 	}
 
 	/**
+	 * Store the user secret for an identifying attribute that was added to the account after the
+	 * login that stored it, the PubHubs card of a registration whose issuance had to be retried.
+	 *
+	 * Without this the account is lost: the card is the only attribute a later login discloses, and
+	 * the secret would not be stored for it, so nothing that login has can recover it. The secret is
+	 * taken from the session rather than decrypted, because the attribute that could decrypt it is
+	 * not disclosed any more by the time the card arrives.
+	 *
+	 * @param attrKeyResp The response from the attrKeysEP with the key for the added attribute.
+	 * @param identifyingAttrs The attribute that was added to the account.
+	 * @param userSecretObject The data for the existing user secret object.
+	 * @param userSecretObjectDetails The object details for the existing user secret object.
+	 * @throws Whatever {@link storeUserSecretObject} throws, plus an error when this session has no
+	 * user secret to store.
+	 */
+	async addIdentifyingAttr(
+		attrKeyResp: Record<string, AttrKeyResp>,
+		identifyingAttrs: SignedIdentifyingAttrs,
+		userSecretObject: TPHC.UserSecretObject | null,
+		userSecretObjectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } | null,
+	): Promise<void> {
+		return this.storeUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject, userSecretObjectDetails, true);
+	}
+
+	/**
 	 * Generates a new user secret or decrypt the existing user secret.
 	 * Then encrypts the user secret with the new attribute key for each identifying attribute that was disclosed in the enter request.
 	 *
 	 * @param attrKeyResp The response from the attrKeysEP with the requested attribute keys.
 	 * @param identifyingAttrs A list of the signed identifying attributes that were disclosed in the enter request.
 	 * @param userSecretObject The data for the existing user secret object.
+	 * @param useSessionSecret Take the user secret from the session rather than decrypting it, see
+	 * {@link storeUserSecretObject}.
 	 * @returns The updated user secret object.
 	 * @throws Will throw an error if an old attribute key is missing in the attrKeyResp.
 	 * @throws Will throw an error if the user secrets encrypted with different attribute keys do not match.
@@ -434,13 +480,22 @@ export default class UserSecretManager {
 		attrKeyResp: Record<string, AttrKeyResp>,
 		identifyingAttrs: SignedIdentifyingAttrs,
 		userSecretObject: TPHC.UserSecretObject | null,
+		useSessionSecret: boolean = false,
 	): Promise<{ newUserSecretObject: TPHC.UserSecretObjectNew; userSecret: Uint8Array }> {
 		let newUserSecretData: TPHC.UserSecretData = {};
 		if (userSecretObject !== null) {
 			newUserSecretData = TPHC.getUserSecretData(userSecretObject);
 		}
 		let userSecret: Uint8Array | null = null;
-		if (userSecretObject === null) {
+		if (useSessionSecret) {
+			// The attribute being added is the only one disclosed, and the secret was never stored for
+			// it, so there is nothing here to decrypt it with - it comes from the login that stored it.
+			const sessionSecret = await this.getUserSecretInfo();
+			if (!sessionSecret) {
+				throw new Error('The user secret of this session is gone, so it cannot be stored for another attribute.');
+			}
+			userSecret = new Uint8Array(Buffer.from(sessionSecret, 'base64'));
+		} else if (userSecretObject === null) {
 			// If this is the first time the user secret object is set, a random 256 bits (32 bytes) user secret needs to be generated.
 			userSecret = globalThis.crypto.getRandomValues(new Uint8Array(32));
 		} else {
