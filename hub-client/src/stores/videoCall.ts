@@ -97,9 +97,8 @@ const useVideoCall = defineStore('videoCall', {
 			return this.livekit_room?.remoteParticipants.get(id) as RemoteParticipant;
 		},
 
-		async startCall(message?: string): Promise<boolean> {
+		async startCall(): Promise<boolean> {
 			const rooms = useRooms();
-			const pubhubs = usePubhubsStore();
 			const currentRoom = rooms.currentRoom;
 			if (!currentRoom) return false;
 
@@ -111,14 +110,10 @@ const useVideoCall = defineStore('videoCall', {
 				return false;
 			}
 
-			// create message for timeline to show the call has started
-			const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? 'VideoCall Started');
-			this.eventId = eventId;
-
 			return true;
 		},
 
-		async joinCall(): Promise<boolean> {
+		async joinCall(message?: string): Promise<boolean> {
 			const rooms = useRooms();
 			const pubhubs = usePubhubsStore();
 
@@ -127,6 +122,13 @@ const useVideoCall = defineStore('videoCall', {
 
 			const connected = await this.connectToCall();
 			if (!connected) return false;
+
+			// check if first user, if so: message for video call start
+			if (this.rtc_session?.memberships?.length === 1) {
+				// create message for timeline to show the call has started
+				const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? 'VideoCall Started');
+				this.eventId = eventId;
+			}
 
 			// Don't block navigation/UX on this secondary message write.
 			if (this.eventId) {
