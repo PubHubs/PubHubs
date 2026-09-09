@@ -66,14 +66,16 @@
 	async function checkHasCallEnded() {
 		if (!currentRoom) return;
 
+		// catch all ended videocalls and calculate their duration
 		const relatedEvents = currentRoom.getRelatedEvents(props.event.event_id).map((x) => x.matrixEvent);
-		relatedEvents?.forEach((event) => {
+		for (const event of relatedEvents) {
 			const newContent = event.event.content as TMessageEventContent;
 			if (props.event.event_id !== event.event.event_id && newContent.msgtype === PubHubsMgType.VideoCallEnded) {
 				duration.value = calculateDuration(props.event.content?.timestamp ?? 0, newContent.timestamp);
-				return;
+				callEnded.value = true;
+				return; // need to return from the method, therefore the for-loop
 			}
-		});
+		}
 
 		const mostRecentVideoCallMessage = currentRoom.getLastVideoCallTimeLineEvent();
 		const isOldMessage = props.event.event_id !== mostRecentVideoCallMessage?.event.event_id;
