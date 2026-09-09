@@ -32,10 +32,5 @@ export default {
 			id: 'GHSA-848j-6mx2-7j84',
 			reason: "No fixed version exists: 6.6.1 is the latest elliptic release, and the only upgrade npm can suggest is a major downgrade of vite-plugin-node-polyfills. We do not use elliptic ourselves; it arrives through that plugin's crypto-browserify shim, and the advisory is about the strictness of its ECDSA verification.",
 		},
-		{
-			id: 'GHSA-cp6q-959q-f8rh',
-			reason: 'Fixed in @tiptap/* 3.30.4, but the tiptap packages pin each other exactly, so `npm update` cannot reach it: it needs the four @tiptap dependencies in hub-client/package.json to move to ^3.31.1 together, which is an editor upgrade with its own regression risk and belongs in a dependency-update merge request.',
-			expires: '2026-11-01',
-		},
 	],
 };
