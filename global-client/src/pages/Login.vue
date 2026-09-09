@@ -26,7 +26,7 @@
 				>
 					<figure class="h-auto w-full">
 						<img
-							alt="PubHubs mascot"
+							:alt="$t('login.mascot_alt', [$t('common.app_name')])"
 							src="../assets/mascot-welcome.svg"
 						/>
 					</figure>
@@ -67,8 +67,8 @@
 										</div>
 										<!-- Yivi injects content here - must be empty -->
 										<div
-											id="yivi-authentication"
-											class="absolute inset-0 z-50"
+											ref="yiviMountPoint"
+											class="yivi-mount absolute inset-0 z-50"
 										/>
 									</div>
 									<!-- Popup tail, centered on the login button -->
@@ -107,7 +107,7 @@
 							class="items-top bg-surface text-accent-error border-surface-elevated mt-200 flex w-3/4 w-fit w-full flex-row gap-x-200 rounded border-3 px-200 py-400 break-normal"
 						>
 							<Icon type="warning" />
-							<P class="whitespace-pre-line">{{ $t(error.key, error.values) }}</P>
+							<P class="whitespace-pre-line">{{ $t(error.key, error.values ?? []) }}</P>
 						</div>
 					</div>
 				</div>
@@ -118,7 +118,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onMounted, ref } from 'vue';
+	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
 	import AuthHeader from '@global-client/components/ui/onboarding/AuthHeader.vue';
@@ -138,7 +138,7 @@
 	import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 	// Stores
-	import { useMSS } from '@global-client/stores/mss';
+	import { EnterCancelled, useMSS } from '@global-client/stores/mss';
 
 	import { useSettings } from '@hub-client/stores/settings';
 
@@ -161,7 +161,10 @@
 	const show = ref<boolean>(false);
 	const loading = ref<boolean>(true);
 	const qrLoading = ref<boolean>(false);
-	const error = ref();
+	const error = ref<{ key: string; values?: string[] } | undefined>();
+
+	// The element the Yivi widget renders into, inside the popup above the login button.
+	const yiviMountPoint = ref<HTMLElement | null>(null);
 
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -173,7 +176,26 @@
 		return { key, values };
 	});
 
+	// Watches the Yivi element for the QR code to appear, so the loading overlay can step aside. Kept
+	// here so closing the popup, or leaving the page, takes it off the element again.
+	let qrObserver: MutationObserver | null = null;
+
+	// Generation counter for `loginMSS`. The store cancels a run it replaces, but only reports that as
+	// `EnterCancelled` up to the disclosure; an attempt that gets that far and is then superseded runs
+	// to completion and resolves normally. Its result belongs to a popup that is no longer on screen,
+	// so this guards what the page shows and where it navigates.
+	let currentRun = 0;
+
+	const closePopupOnPageShow = (event: PageTransitionEvent): void => {
+		// Only a restore from the back/forward cache brings back a popup with a session behind it that
+		// has gone stale in the meantime.
+		if (!event.persisted) return;
+		closeYiviPopup();
+	};
+
 	onMounted(async () => {
+		window.addEventListener('pageshow', closePopupOnPageShow);
+
 		try {
 			loading.value = true;
 			await mss.initializeServers();
@@ -184,53 +206,86 @@
 		}
 	});
 
+	onUnmounted(() => {
+		window.removeEventListener('pageshow', closePopupOnPageShow);
+		closeYiviPopup();
+	});
+
+	// Hide the popup and end the session behind it: a Yivi session left running keeps polling and
+	// holds on to the element the next one renders into.
+	function closeYiviPopup() {
+		show.value = false;
+		qrLoading.value = false;
+		qrObserver?.disconnect();
+		qrObserver = null;
+		// Bumping the counter keeps an attempt that is still unwinding from writing to a popup that has
+		// been put away, or from navigating on a login the user has just closed.
+		currentRun++;
+		mss.cancelEnter();
+	}
+
 	async function loginMSS() {
 		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
 
-		if (loginMethod === loginMethods.Yivi) {
-			show.value = !show.value;
-			if (show.value) {
-				qrLoading.value = true;
-				watchForYiviContent();
-			}
+		// The button doubles as the popup's close button.
+		if (show.value) {
+			closeYiviPopup();
+			return;
 		}
+
+		// `AuthenticationServer` holds a single auth state, so a new attempt invalidates whatever the
+		// previous one was still waiting on: only the newest attempt may show an error or navigate.
+		const runId = ++currentRun;
+		const superseded = () => runId !== currentRun;
+
+		// The message this attempt replaces stays on screen once the popup is closed, so a new attempt
+		// has to take it away itself - the QR code is otherwise shown underneath the reason the
+		// previous one failed.
+		error.value = undefined;
+
+		show.value = true;
+		qrLoading.value = true;
+		watchForYiviContent();
+
 		try {
-			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.Login);
+			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.Login, yiviMountPoint);
+			if (superseded()) return;
 			if (errorMessage) {
 				error.value = errorMessage;
-				show.value = false;
-				qrLoading.value = false;
+				closeYiviPopup();
 				return;
 			}
-			show.value = false;
-			qrLoading.value = false;
+			closeYiviPopup();
 			const redirectPath = route.query.redirect?.toString() || '/';
 			router.replace(redirectPath);
-		} catch (error) {
+		} catch (err) {
+			// A second click, or the close button, supersedes this attempt; whoever did that has
+			// already put the popup away.
+			if (superseded() || err instanceof EnterCancelled) return;
 			router.replace({ name: 'error' });
-			show.value = false;
-			qrLoading.value = false;
-			logger.error('Error during MSS login', { error });
+			closeYiviPopup();
+			logger.error('Error during MSS login', { err });
 		}
 	}
 
 	function watchForYiviContent() {
-		const yiviEl = document.getElementById('yivi-authentication');
+		const yiviEl = yiviMountPoint.value;
 		if (!yiviEl) return;
 
+		qrObserver?.disconnect();
 		const observer = new MutationObserver(() => {
 			// Wait for actual QR code (canvas or svg) not just the text
 			const hasQrCode = yiviEl.querySelector('canvas, svg');
 			if (hasQrCode) {
 				qrLoading.value = false;
 				observer.disconnect();
+				if (qrObserver === observer) qrObserver = null;
 			}
 		});
 
+		qrObserver = observer;
 		observer.observe(yiviEl, { childList: true, subtree: true });
 	}
-
-	window.addEventListener('pageshow', () => (show.value = false));
 </script>
 
 <style scoped>
@@ -238,13 +293,13 @@
 
 	/* Let the content area absorb the remaining height of the pinned box, so the QR code, the
 	   loading animation and any error or message stay centered in the same spot in every state. */
-	#yivi-authentication :deep(.yivi-web-content) {
+	.yivi-mount :deep(.yivi-web-content) {
 		flex: 1 1 auto;
 	}
 
 	/* The QR is an inline <svg>, so its line box reserves ~7px of descender space below the
 	   QR code, which made the QR state taller than Yivi's other states */
-	#yivi-authentication :deep(.yivi-web-qr-code > svg) {
+	.yivi-mount :deep(.yivi-web-qr-code > svg) {
 		display: block;
 	}
 </style>
