@@ -13,6 +13,8 @@ _Please add a brief description of any changes and any migrations to be performe
 ## Not merged with stable yet
 
 - [NEW] From this version onwards pinned images will be shared for every full release and the new `latest` tag points to the latest full release. The `stable` tag is unchanged, it points to the latest full release or release-candidate.
+- [INTERNAL, NEW] Npm-audit was added to the cicd pipeline to check for npm package vunerabilities.
+- [INTERNAL, IMPROVED] Refactored update_config.py file for better maintainability.
 
 ## 28 August 2026 - v3.5.3
 
