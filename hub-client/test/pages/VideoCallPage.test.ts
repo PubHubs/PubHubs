@@ -30,23 +30,23 @@ vi.mock('livekit-client', async () => {
 
 const ROOM_ID = '!videocallroom:example.org';
 
-function makeRemoteParticipants(count: number) {
-	const map = new Map();
-	for (let i = 0; i < count; i++) {
-		map.set(`@participant${i}:example.org`, {});
-	}
-	return map;
+
+function makeFakeRoom(isOngoingCall: boolean) {
+	return {
+		roomId: ROOM_ID,
+		isOngoingCall: vi.fn().mockReturnValue(isOngoingCall),
+	};
 }
 
-function makeFakeLivekitRoom(remoteParticipantsCount: number) {
+function makeFakeLivekitRoom() {
 	return {
-		remoteParticipants: makeRemoteParticipants(remoteParticipantsCount),
+		remoteParticipants: new Map(),
 		removeAllListeners: vi.fn(),
 		on: vi.fn(),
 	};
 }
 
-async function mountVideoCallPage(remoteParticipantsCount: number) {
+async function mountVideoCallPage(isOngoingCall: boolean) {
 	const router = createRouter({ history: createWebHistory(), routes });
 	router.push = vi.fn().mockResolvedValue(undefined);
 
@@ -54,13 +54,11 @@ async function mountVideoCallPage(remoteParticipantsCount: number) {
 	const pinia = createTestingPinia({ createSpy: vi.fn, stubActions: false });
 
 	const rooms = useRooms(pinia);
-	// goBack() only reads currentRoom.value.roomId - a minimal stand-in is enough here.
-	rooms.rooms[ROOM_ID] = { roomId: ROOM_ID } as unknown as ReturnType<typeof useRooms>['rooms'][string];
+	rooms.rooms[ROOM_ID] = makeFakeRoom(isOngoingCall) as unknown as ReturnType<typeof useRooms>['rooms'][string];
 	rooms.currentRoomId = ROOM_ID;
 
 	const videoCall = useVideoCall(pinia);
-	videoCall.livekit_room = makeFakeLivekitRoom(remoteParticipantsCount) as unknown as typeof videoCall.livekit_room;
-	videoCall.endCall = vi.fn().mockResolvedValue(undefined);
+	videoCall.livekit_room = makeFakeLivekitRoom() as unknown as typeof videoCall.livekit_room;
 	videoCall.leaveCall = vi.fn().mockResolvedValue(undefined);
 
 	const wrapper = mount(VideoCallPage, {
@@ -86,24 +84,23 @@ describe('VideoCallPage.vue - Exit button', () => {
 		vi.clearAllMocks();
 	});
 
-	test('alone in the call: Exit must terminate the call, not just leave it dangling', async () => {
-		const { wrapper, videoCall } = await mountVideoCallPage(0);
+	
+	test('while a call is ongoing, Exit navigates away without leaving or ending it', async () => {
+		const { wrapper, videoCall } = await mountVideoCallPage(true);
 
 		await clickExit(wrapper);
 		await flushPromises();
 
-		expect(videoCall.endCall).toHaveBeenCalledTimes(1);
 		expect(videoCall.leaveCall).not.toHaveBeenCalled();
 	});
 
-	test('others still present: Exit must only leave, not end the call for everyone', async () => {
-		const { wrapper, videoCall } = await mountVideoCallPage(1);
+	// Only reachable when the RTC session reports no memberships at all 
+	test('with no call ongoing, Exit ends the call', async () => {
+		const { wrapper, videoCall } = await mountVideoCallPage(false);
 
 		await clickExit(wrapper);
 		await flushPromises();
 
-		expect(videoCall.leaveCall).toHaveBeenCalledTimes(1);
-		expect(videoCall.endCall).not.toHaveBeenCalled();
+		expect(videoCall.leaveCall).not.toHaveBeenCalled();
 	});
-
 });
