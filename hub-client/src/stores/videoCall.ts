@@ -16,15 +16,18 @@ import {
 	createLocalAudioTrack,
 	createLocalVideoTrack,
 } from 'livekit-client';
-import { type MatrixRTCSession } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
-import { type GroupCall } from 'matrix-js-sdk/lib/webrtc/groupCall';
+import { type MatrixRTCSession, MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
 import { defineStore } from 'pinia';
 
 import { MatrixKeyProvider } from '@hub-client/logic/core/matrixKeyProvider';
+import { router } from '@hub-client/logic/core/router';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+const logger = createLogger('Videocall');
 
 const defaultLiveKitPublishOptions: TrackPublishDefaults = {
 	audioPreset: AudioPresets.music,
@@ -55,18 +58,16 @@ export const defaultLiveKitOptions: RoomOptions = {
 };
 
 const MembershipExpiryTime = 5 * 60 * 1000; // 5 minutes
+let endCallCleanup: (() => void) | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
 
 const useVideoCall = defineStore('videoCall', {
 	state: () => {
 		return {
-			call_active: false,
 			token: null as string | null,
 			target_url: null as string | null,
 			should_publish_audio_track: false,
 			should_publish_video_track: false,
 			rtc_session: null as MatrixRTCSession | null,
-			groupCall: null as GroupCall | null,
-			pubhubsStore: usePubhubsStore(),
 
 			eventId: null as string | null,
 
@@ -75,22 +76,19 @@ const useVideoCall = defineStore('videoCall', {
 			options: { ...defaultLiveKitOptions } as RoomOptions,
 
 			audio_track: null as LocalAudioTrack | null,
-			audio_devices: [] as MediaDeviceInfo[],
 			selected_audio_device_id: null as string | null,
 			mute_audio_track: false,
 			video_track: null as LocalVideoTrack | null,
-			video_devices: [] as MediaDeviceInfo[],
 			selected_video_device_id: null as string | null,
 			mute_video_track: false,
 
-			screen_share_track: null as LocalVideoTrack | null,
 			screen_share: false,
 
 			locally_muted_participants: [] as string[],
 			selfView: true,
 			focus: [null, false] as [Participant | null, boolean],
-			_isEnding: false, // Flag to prevent listener race during endCall
 			_connecting: false,
+			_leaving: false,
 		};
 	},
 
@@ -101,26 +99,31 @@ const useVideoCall = defineStore('videoCall', {
 
 		async startCall(message?: string): Promise<boolean> {
 			const rooms = useRooms();
+			const pubhubs = usePubhubsStore();
 			const currentRoom = rooms.currentRoom;
 			if (!currentRoom) return false;
 
-			const eventId = await this.pubhubsStore.addVideoCallMessage(currentRoom.roomId, message ?? 'VideoCall Started');
+			// only start of the call, do not join yet
+			try {
+				await currentRoom.initializeCall();
+			} catch (error) {
+				logger.error('Initializing call failed ', error);
+				return false;
+			}
+
+			// create message for timeline to show the call has started
+			const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? 'VideoCall Started');
 			this.eventId = eventId;
 
-			this.groupCall = await currentRoom.createGroupCall();
-
-			currentRoom.startMatrixRTC();
-
-			return await this.connectToCall();
+			return true;
 		},
 
 		async joinCall(): Promise<boolean> {
 			const rooms = useRooms();
+			const pubhubs = usePubhubsStore();
+
 			const currentRoom = rooms.currentRoom;
 			if (!currentRoom) return false;
-
-			this.groupCall = currentRoom.getGroupCall();
-			if (!this.groupCall) return false;
 
 			const connected = await this.connectToCall();
 			if (!connected) return false;
@@ -129,8 +132,8 @@ const useVideoCall = defineStore('videoCall', {
 			if (this.eventId) {
 				void (async () => {
 					try {
-						const threadRoot = (await this.pubhubsStore.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent;
-						await this.pubhubsStore.addMessage(currentRoom.roomId, 'Joined', threadRoot, undefined);
+						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent;
+						await pubhubs.addMessage(currentRoom.roomId, 'Joined', threadRoot, undefined);
 					} catch {
 						// Ignore best-effort "Joined" message failures.
 					}
@@ -139,8 +142,12 @@ const useVideoCall = defineStore('videoCall', {
 			return true;
 		},
 
+		/**
+		 * For internal use. Use joinCall to join a call
+		 * @returns
+		 */
 		async connectToCall(): Promise<boolean> {
-			if (this.call_active && this.livekit_room) return true;
+			if (this.livekit_room) return true;
 			if (this._connecting) return false;
 			this._connecting = true;
 
@@ -159,13 +166,12 @@ const useVideoCall = defineStore('videoCall', {
 				this.target_url = LiveKitTokenResponse[1];
 				if (!this.token || !this.target_url) return false;
 
-				this.call_active = true;
 				this.rtc_session = currentRoom.getMatrixRTCSession();
 
 				this.rtc_session.joinRTCSession({ userId: userId, deviceId: deviceId, memberId: `${userId}:${deviceId}` }, [], undefined, {
 					membershipEventExpiryMs: MembershipExpiryTime,
 				});
-				this.pubhubsStore.addEndCallListener();
+				this.addEndCallListener();
 
 				const matrix_key_provider = new MatrixKeyProvider();
 				this.matrix_key_provider = matrix_key_provider;
@@ -208,12 +214,18 @@ const useVideoCall = defineStore('videoCall', {
 				});
 				return true;
 			} catch {
-				this.call_active = false;
 				if (this.livekit_room) {
 					try {
 						await this.livekit_room.disconnect(true);
 					} catch {
 						// best effort
+					}
+				}
+				if (this.rtc_session) {
+					try {
+						await this.rtc_session.leaveRoomSession(10);
+					} catch {
+						//
 					}
 				}
 				this.livekit_room = null;
@@ -224,86 +236,114 @@ const useVideoCall = defineStore('videoCall', {
 		},
 
 		async leaveCall() {
-			if (this.call_active) {
-				this.call_active = false;
-			} else {
-				return;
-			}
-
-			if (this.livekit_room) {
-				await this.livekit_room.disconnect(true);
-				await this.togglePublishTracks(false);
-				this.livekit_room = null;
-			}
-
-			if (this.matrix_key_provider) {
-				this.matrix_key_provider.removeAllListeners();
-				this.matrix_key_provider = null;
-			}
-
-			if (this.options.e2ee) {
-				// @ts-expect-error -- worker exists when e2ee options were created, but RoomOptions typing is broader
-				this.options.e2ee.worker.terminate();
-				this.options.e2ee = undefined;
-			}
-
-			if (this.groupCall) {
-				this.groupCall.leave();
-				this.groupCall = null;
-			}
-
-			await this.changeAudioDevice(null);
-			await this.changeVideoDevice(null);
-
-			if (this.rtc_session) {
-				await this.rtc_session.leaveRoomSession(10);
-				this.rtc_session = null;
-			}
+			if (this._leaving) return;
+			if (!this.livekit_room) return;
 
 			const rooms = useRooms();
-			const currentRoom = rooms.currentRoom;
-			if (currentRoom && this.eventId) {
-				const threadRoot = (await this.pubhubsStore.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
-				await this.pubhubsStore.addThreadMessageWithoutLocalEcho(currentRoom.roomId, 'Left', threadRoot);
-			}
-
-			this.eventId = null;
-			this.token = null;
-			this.target_url = null;
-
-			this.audio_track = null;
-			this.selected_audio_device_id = null;
-			this.video_track = null;
-			this.selected_video_device_id = null;
-			this.screen_share_track = null;
-			this.focus = [null, false];
-		},
-
-		async endCall() {
-			const rooms = useRooms();
+			const pubhubs = usePubhubsStore();
 			const currentRoom = rooms.currentRoom;
 			if (!currentRoom) return;
 
-			// Set flag so the addEndCallListener knows not to fire (we handle cleanup ourselves)
-			this._isEnding = true;
+			this._leaving = true;
+			try {
+				// Clean up eventlisteners
+				if (endCallCleanup) {
+					endCallCleanup();
+					endCallCleanup = null;
+				}
 
-			if (this.eventId) {
-				await this.pubhubsStore.addEndVideoCallMessage(currentRoom.roomId, this.eventId, 'VideoCall Ended');
+				const errors: unknown[] = [];
+
+				// disconnect the livekit room
+				try {
+					const livekitRoom = this.livekit_room;
+					this.livekit_room = null;
+
+					// explicitly stop local participants tracks in livekit
+					livekitRoom.localParticipant.audioTrackPublications.forEach((pub) => pub.track?.stop());
+					livekitRoom.localParticipant.videoTrackPublications.forEach((pub) => pub.track?.stop());
+					await livekitRoom.disconnect(true);
+				} catch (error) {
+					errors.push(error);
+				}
+
+				this.togglePublishTracks(false);
+
+				if (this.matrix_key_provider) {
+					this.matrix_key_provider.removeAllListeners();
+					this.matrix_key_provider = null;
+				}
+
+				if (this.options.e2ee) {
+					// @ts-expect-error -- worker exists when e2ee options were created, but RoomOptions typing is broader
+					this.options.e2ee.worker.terminate();
+					this.options.e2ee = undefined;
+				}
+
+				await this.changeAudioDevice(null);
+				await this.changeVideoDevice(null);
+
+				// send left-message
+				if (this.eventId) {
+					try {
+						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
+						await pubhubs.addThreadMessageWithoutLocalEcho(currentRoom.roomId, 'Left', threadRoot);
+					} catch (error) {
+						errors.push(error);
+					}
+				}
+
+				// leave rtc session
+				// if necessary: send end message
+				if (this.rtc_session) {
+					try {
+						const isLastMember = this.rtc_session.memberships.length === 1; // check if you are the last participant before leaving, it takes some time for the memberships to sync
+						await this.rtc_session.leaveRoomSession(10);
+						if (isLastMember && this.eventId) {
+							await pubhubs.addEndVideoCallMessage(currentRoom.roomId, this.eventId, 'Ended');
+						}
+					} catch (error) {
+						errors.push(error);
+					}
+					this.rtc_session = null;
+				}
+
+				this.eventId = null;
+				this.token = null;
+				this.target_url = null;
+
+				this.audio_track = null;
+				this.selected_audio_device_id = null;
+				this.video_track = null;
+				this.selected_video_device_id = null;
+				this.focus = [null, false];
+
+				if (errors.length) {
+					logger.error('LeaveCall failed: ', errors);
+				}
+			} finally {
+				this._leaving = false;
 			}
+		},
 
-			// Save reference before leaveCall() clears this.groupCall
-			const groupCallToTerminate = this.groupCall;
+		addEndCallListener() {
+			const rooms = useRooms();
+			if (!rooms.currentRoom) return;
 
-			// Leave first so cleanup completes before terminate fires any listeners
-			await this.leaveCall();
+			const rtcSession = rooms.currentRoom.getMatrixRTCSession();
 
-			// Terminate the group call so a new one can be created later
-			if (groupCallToTerminate) {
-				await groupCallToTerminate.terminate(true);
-			}
-			currentRoom.setCurrentThreadId(undefined);
+			const onMembershipsChanged = () => {
+				if (!rooms.currentRoom) return;
+				if (rtcSession.memberships.length === 0) {
+					endCallCleanup?.();
+					endCallCleanup = null;
+					router.push({ name: 'room', params: { id: rooms.currentRoom.roomId } });
+					this.leaveCall();
+				}
+			};
 
-			this._isEnding = false;
+			rtcSession.on(MatrixRTCSessionEvent.MembershipsChanged, onMembershipsChanged);
+			endCallCleanup = () => rtcSession.off(MatrixRTCSessionEvent.MembershipsChanged, onMembershipsChanged);
 		},
 
 		async toggleAudioTrack(should_publish: boolean) {
@@ -371,7 +411,7 @@ const useVideoCall = defineStore('videoCall', {
 			}
 		},
 
-		async togglePublishTracks(should_publish: boolean) {
+		togglePublishTracks(should_publish: boolean) {
 			this.toggleAudioTrack(should_publish);
 			this.toggleVideoTrack(should_publish);
 		},
@@ -427,7 +467,7 @@ const useVideoCall = defineStore('videoCall', {
 					deviceId: deviceId,
 				});
 
-				if (this.call_active && this.should_publish_video_track && this.livekit_room && this.video_track) {
+				if (this.livekit_room && this.should_publish_video_track && this.video_track) {
 					await this.livekit_room.localParticipant.publishTrack(this.video_track as LocalVideoTrack);
 				}
 			} else {
@@ -449,7 +489,7 @@ const useVideoCall = defineStore('videoCall', {
 					noiseSuppression: true,
 				});
 
-				if (this.call_active && this.should_publish_audio_track && this.livekit_room && this.audio_track) {
+				if (this.livekit_room && this.should_publish_audio_track && this.audio_track) {
 					await this.livekit_room.localParticipant.publishTrack(this.audio_track as LocalAudioTrack);
 				}
 			} else {

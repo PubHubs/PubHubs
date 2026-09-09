@@ -3,11 +3,6 @@
 		<div class="flex items-center space-x-200">
 			<!-- TODO: add language variables -->
 			<Button
-				variant="error"
-				@click="endCall"
-				>End call</Button
-			>
-			<Button
 				variant="primary"
 				@click="leaveCall"
 				>Leave call</Button
@@ -71,16 +66,7 @@
 	const selfView = ref(videoCall.selfView);
 
 	async function leaveCall() {
-		if (videoCall.livekit_room?.remoteParticipants.size === 0) {
-			await endCall();
-		} else {
-			router.push({ name: 'room', params: { id: props.currentRoom.roomId } });
-			await videoCall.leaveCall();
-		}
-	}
-
-	async function endCall() {
-		await videoCall.endCall();
+		await videoCall.leaveCall();
 		router.push({ name: 'room', params: { id: props.currentRoom.roomId } });
 	}
 

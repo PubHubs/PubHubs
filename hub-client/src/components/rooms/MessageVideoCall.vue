@@ -4,7 +4,7 @@
 			{{ body }}
 		</div>
 		<VideoCallButton
-			v-if="!callEnded && !videoCall.call_active"
+			v-if="!callEnded"
 			:is-start-button="false"
 			@click="JoinVideoCall()"
 		></VideoCallButton>
@@ -13,7 +13,8 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc';
+	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRouter } from 'vue-router';
 
 	import VideoCallButton from '@hub-client/components/ui/VideoCallButton.vue';
@@ -23,7 +24,6 @@
 	import { type TMessageEvent, type TMessageEventContent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	import { useRooms } from '@hub-client/stores/rooms';
-	import useVideoCall from '@hub-client/stores/videoCall';
 
 	const props = defineProps<{
 		event: TMessageEvent<TVideoCallMessageEventContent>;
@@ -32,27 +32,35 @@
 
 	const router = useRouter();
 	const rooms = useRooms();
-	const videoCall = useVideoCall();
 	const callEnded = ref(false);
-	const hasEndCallReference = ref(false);
 	const duration = ref<string | undefined>(undefined);
 	const body = computed(() => props.event.content?.body ?? '');
 	const currentRoom = rooms.currentRoom;
-	const timeLine = computed(() => (!hasEndCallReference.value ? currentRoom?.getTimeline() : null));
+	const rtcSession = currentRoom?.getMatrixRTCSession();
+
+	watch(
+		() => currentRoom?.relatedEventsRevision.count,
+		() => checkHasCallEnded(),
+	);
+
+	function onMemberShipsChanged() {
+		checkHasCallEnded();
+	}
 
 	async function JoinVideoCall() {
-		let connected = await videoCall.joinCall();
-		if (!connected) {
-			connected = await videoCall.startCall();
-		}
-		if (!connected) return;
+		// check if there is a current call
+		if (!currentRoom) return;
+
 		await router.push({ name: 'videocall' });
 	}
 
-	onMounted(() => checkHasCallEnded());
-
-	watch(timeLine, () => {
+	onMounted(() => {
 		checkHasCallEnded();
+		rtcSession?.on(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+	});
+
+	onUnmounted(() => {
+		rtcSession?.off(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
 	});
 
 	async function checkHasCallEnded() {
@@ -62,26 +70,23 @@
 		relatedEvents?.forEach((event) => {
 			const newContent = event.event.content as TMessageEventContent;
 			if (props.event.event_id !== event.event.event_id && newContent.msgtype === PubHubsMgType.VideoCallEnded) {
-				callEnded.value = true;
 				duration.value = calculateDuration(props.event.content?.timestamp ?? 0, newContent.timestamp);
-				hasEndCallReference.value = true;
 				return;
 			}
 		});
-		if (callEnded.value) return;
 
-		const mostRecentVideoCallMessageOfUser = currentRoom.getLastVideoCallTimeLineEvent();
-		const isOldMessage = props.event.event_id !== mostRecentVideoCallMessageOfUser?.event.event_id;
+		const mostRecentVideoCallMessage = currentRoom.getLastVideoCallTimeLineEvent();
+		const isOldMessage = props.event.event_id !== mostRecentVideoCallMessage?.event.event_id;
 
 		if (isOldMessage) {
 			callEnded.value = true;
-			duration.value = 'Unknown';
+			if (!duration.value) duration.value = 'Unknown';
 			return;
 		}
 
-		if (!currentRoom.isOngoingCall()) {
+		if (!currentRoom.hasActiveCall()) {
 			callEnded.value = true;
-			duration.value = 'Unknown';
+			if (!duration.value) duration.value = 'Unknown';
 		} else {
 			callEnded.value = false;
 		}

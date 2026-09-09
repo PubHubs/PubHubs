@@ -292,18 +292,12 @@
 
 	async function goBack() {
 		if (!currentRoom.value) return;
-		// Leaving alone would only leave() the group call, never terminate()
-		// it - the room-level call state would stay "ongoing" forever with
-		// nobody left to end it.
-		if (videoCall.livekit_room?.remoteParticipants.size === 0) {
-			await videoCall.endCall();
-		} else {
-			await videoCall.leaveCall();
-		}
 		router.push({ name: 'room', params: { id: currentRoom.value.roomId } });
 	}
 
-	function joinRoom() {
+	async function joinRoom() {
+		const connected = await videoCall.joinCall();
+		if (!connected) return;
 		connectInputs.value = true;
 		videoCall.togglePublishTracks(true);
 		syncRemoteParticipants();
