@@ -11,15 +11,24 @@ Also make sure to not squash the commits so we can search for them later.
 - [ ] In the `pubhubs` directory, run `cargo update -v` to install updates that are likely backwards compatible.
 - [ ] _If_ you are familiar with the rust code, check for (and likely breaking) major releases using `cargo update -v` and adjust `Cargo.toml` (and the code) accordingly.
 
+### Dockerfile
+
+- [ ] Check the pinned `cargo install cargo-chef --version XXX` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (releases [here](https://crates.io/crates/cargo-chef/versions)).
+- [ ] Bump the pinned `rust-stable` digest to pick up a new Rust toolchain. It appears in **two** places that must match: `RUST_IMAGE` in the [.gitlab-ci.yml](cicd/.gitlab-ci.yml) and the `FROM` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (`grep -rn rust-stable` finds both). Look in the docker-build ilab repository for the latest pinned rust-stable build.
+
 ## Hub
 
 - [ ] Check the version numbers in the [hub Dockerfile](pubhubs_hub/Dockerfile):
     - [ ] update synapse:
         - [ ] `FROM ghcr.io/element-hq/synapse:vXXXX` see [synapse releases](https://github.com/element-hq/synapse/releases)
         - [ ] `matrix-synapse==XXXX` in [python dependencies file](pubhubs_hub/requirements.txt) should be same version as synapse in dockerfile. NOTE: check if there is a new synapse version > 1.144.0. Remove prometheus-client==0.23.1 from requirement file and see if the pipeline succeeds for the hub. If the pipeline fails keeps the current version.
-    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)
-    - [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same as for golang and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found".
 - [ ] Review the minimal version floors in [`pubhubs_hub/requirements.txt`](pubhubs_hub/requirements.txt). The block at the bottom is copied verbatim from synapse — keep it in sync with the minimal versions in synapse's [`pyproject.toml`](https://github.com/element-hq/synapse/blob/master/pyproject.toml). The hub's own dependencies at the top (`twisted`, `cryptography`, `livekit-api`, ...) only need bumping when a feature requires it. (Be aware that pip automatically installs the latest version available, not the minimal version you specify.)
+
+#### Yivi for the Hub
+
+- [ ] git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)
+- [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same as for golang and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found".
+- [ ] Check the `version` in [packages/yivi.nix](packages/yivi.nix), which provides the `yivi` binary in the Nix dev shell. Please check that it matches the version in the hub Dockerfile above; bumping it also means replacing `hash` and `vendorHash` (see the comments in that file).
 
 ## Global Client
 
@@ -40,24 +49,6 @@ For reference, dependencies are in `package.json`.
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
 - [ ] To address issues with breaking changes, check them and solve them if possible.
-
-## npm security advisories
-
-- [ ] Run `mask check audit` (or `npm run check:audit`) and fix what it reports: `npm update <package>` picks up a fixed patch or minor release, a bump in `package.json` is needed when the fix is in a new major or minor of a direct dependency.
-- [ ] For an advisory that has no fix yet, or that does not apply to the way we use the package, add it to [`scripts/npm-audit.config.mjs`](/scripts/npm-audit.config.mjs) with a reason — and with an `expires` date when the fix is only being postponed.
-- [ ] Remove the entries the check reports as no longer needed, and have another look at the ones whose `expires` date is coming up.
-
-## Yivi
-
-- [ ] Check the version numbers in the `yivi_build` stage of the [hub Dockerfile](pubhubs_hub/Dockerfile)
-    - [ ] `FROM golang:XXX`
-    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX`
-- [ ] Check the `version` in [packages/yivi.nix](packages/yivi.nix), which provides the `yivi` binary in the Nix dev shell. Please check that it matches the version in the hub Dockerfile above; bumping it also means replacing `hash` and `vendorHash` (see the comments in that file).
-
-## PubHubs Central docker
-
-- [ ] Check the pinned `cargo install cargo-chef --version XXX` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (releases [here](https://crates.io/crates/cargo-chef/versions)).
-- [ ] Bump the pinned `rust-stable` digest to pick up a new Rust toolchain. It appears in **two** places that must match: `RUST_IMAGE` in the [.gitlab-ci.yml](cicd/.gitlab-ci.yml) and the `FROM` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (`grep -rn rust-stable` finds both). See the latest rust job for the latest digest version.
 
 ## CICD
 
