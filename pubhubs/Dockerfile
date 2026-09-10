@@ -1,6 +1,6 @@
 # Please keep the pubhubs/Dockerfile.dockerignore up-to-date.
 
-FROM registry.science.ru.nl/ilab/docker-build/rust-stable:1.97.1-227 AS chef
+FROM registry.science.ru.nl/ilab/docker-build/rust-stable:1.97.1-229 AS chef
 WORKDIR /app
 RUN cargo install cargo-chef --locked --version 0.1.78
 ENV CARGO_TARGET_DIR=/app/target
