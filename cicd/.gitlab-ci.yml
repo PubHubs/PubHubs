@@ -1,5 +1,5 @@
 variables:
-    RUST_IMAGE: registry.science.ru.nl/ilab/docker-build/rust-stable:main@sha256:568ab075dcbbe71e67c61e1b36d3f4f9386fe9d3025a669f88b9ad3979abd8b9
+    RUST_IMAGE: registry.science.ru.nl/ilab/docker-build/rust-stable:1.97.1-227
     DOCKER_DRIVER: overlay2
     CARGO_INCREMENTAL: '0'
     CARGO_NET_RETRY: '3'
