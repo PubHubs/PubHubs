@@ -10,7 +10,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _[INTERNAL] - Code changes not affecting functionality_
 
-## Not merged with stable yet
+## 10 September 2026 - v.3.5.4
 
 - [NEW] From this version onwards pinned images will be shared for every full release and the new `latest` tag points to the latest full release. The `stable` tag is unchanged, it points to the latest full release or release-candidate.
 - [IMPROVED] Login and registration recover from a Yivi session that is interrupted.
