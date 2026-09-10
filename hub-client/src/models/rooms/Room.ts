@@ -6,9 +6,6 @@ import {
 	type EventTimelineSet,
 	EventType,
 	type Filter,
-	type GroupCall,
-	GroupCallIntent,
-	GroupCallType,
 	type IStateEvent,
 	type IThreadBundledRelationship,
 	type MatrixClient,
@@ -705,6 +702,10 @@ export default class Room {
 		return this.timelineManager.getRelatedEvents(eventId);
 	}
 
+	public get relatedEventsRevision() {
+		return this.timelineManager.relatedEventsRevision;
+	}
+
 	public getVerifications(eventId: string): MatrixEvent[] {
 		return this.timelineManager.getVerifications(eventId);
 	}
@@ -1041,10 +1042,6 @@ export default class Room {
 
 	// #region VideoCall
 
-	public startMatrixRTC() {
-		this.matrixRoom.client.matrixRTC.start();
-	}
-
 	public getMatrixRTCSession(): MatrixRTCSession {
 		return this.matrixRoom.client.matrixRTC.getRoomSession(this.matrixRoom);
 	}
@@ -1056,16 +1053,14 @@ export default class Room {
 		return [response.token, response.livekit_url];
 	}
 
-	public async createGroupCall(): Promise<GroupCall> {
+	/**
+	 * API call that checks whether user may enter call and then if necessary creates the livekitroom
+	 */
+	public async initializeCall(): Promise<void> {
 		await api_synapse.apiPOST(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId, {});
-		return await this.matrixRoom.client.createGroupCall(this.roomId, GroupCallType.Video, false, GroupCallIntent.Room, true);
 	}
 
-	public getGroupCall(): GroupCall | null {
-		return this.matrixRoom.client.getGroupCallForRoom(this.roomId);
-	}
-
-	public isOngoingCall(): boolean {
+	public hasActiveCall(): boolean {
 		return this.getMatrixRTCSession().memberships.length > 0;
 	}
 

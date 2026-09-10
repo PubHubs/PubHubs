@@ -13,7 +13,6 @@ import {
 	type User as MatrixUser,
 	Method,
 	MsgType,
-	RoomStateEvent,
 } from 'matrix-js-sdk';
 import { Preset, Visibility } from 'matrix-js-sdk/lib/@types/partials';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -72,8 +71,8 @@ import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
 
 const logger = createLogger('PubHubs');
-const publicRoomsLoading: Promise<TPublicRoom[]> | null = null; // Outside of defineStore to guarantee lifetime, not accessible outside this module
-const updateRoomsPerforming: Promise<void> | null = null; // Outside of defineStore to guarantee lifetime, not accessible outside this module
+const publicRoomsLoading: Promise<TPublicRoom[]> | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
+const updateRoomsPerforming: Promise<void> | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
 
 const usePubhubsStore = defineStore('pubhubs', {
 	state: () => ({
@@ -1623,30 +1622,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
-		},
-
-		addEndCallListener() {
-			const rooms = useRooms();
-			const calledRoom = rooms.currentRoom;
-
-			if (calledRoom === undefined) {
-				return;
-			}
-			const onCallTerminated = async (event: MatrixEvent) => {
-				if (event.getType() === 'org.matrix.msc3401.call' && event.getContent()?.['m.terminated']) {
-					calledRoom.matrixRoom.removeListener(RoomStateEvent.Events, onCallTerminated);
-					// Imported here rather than at module scope to keep livekit-client (~870 KB) off the
-					// startup path of this store. Only videoCall.ts registers this listener, so by the time
-					// it fires the module is already in the module cache and this resolves without a fetch.
-					const { default: useVideoCall } = await import('@hub-client/stores/videoCall');
-					const videoCall = useVideoCall();
-					// Skip if we're the one ending the call — endCall() handles everything
-					if (videoCall._isEnding) return;
-					router.push({ name: 'room', params: { id: calledRoom.roomId } });
-					videoCall.leaveCall();
-				}
-			};
-			calledRoom.matrixRoom.on(RoomStateEvent.Events, onCallTerminated);
 		},
 
 		async routeToRoomPage(room: { room_id: string }) {

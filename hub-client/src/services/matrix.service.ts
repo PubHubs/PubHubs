@@ -94,6 +94,7 @@ class MatrixService {
 			// wrapper that registers extensions (to-device, account data, typing, receipts) natively,
 			// eliminating the old /v3/sync loop entirely. SlidingSyncSdk calls slidingSync.start() internally.
 			await this.client.startClient({ slidingSync: this.slidingSync!, lazyLoadMembers: true, threadSupport: true, includeArchivedRooms: false });
+			this.client.matrixRTC.start();
 
 			logger.info('Sliding Sync started');
 		} catch (err) {

@@ -43,17 +43,20 @@ export default class PHCServer {
 		}
 	}
 
+	/**
+	 * Drop everything this instance holds for the account that was logged in.
+	 *
+	 * The store keeps the instance across a logout, so anything left behind here goes on being used:
+	 * an auth token would authorise requests for the account that just left, and a cached user secret
+	 * would be handed out instead of the logout procedure being triggered. Reading the token back from
+	 * local storage - which is what this used to do - defeats the purpose, whichever order the caller
+	 * clears the two in.
+	 */
 	reset() {
 		this._userStateObjects = undefined;
-		const savedAuthToken = localStorage.getItem('PHauthToken');
-		if (savedAuthToken) {
-			const authToken: TPHC.AuthTokenPackage = JSON.parse(savedAuthToken);
-			this._authToken = authToken.auth_token;
-			this._expiryAuthToken = authToken.expires;
-		} else {
-			this._authToken = null;
-			this._expiryAuthToken = null;
-		}
+		this._authToken = null;
+		this._expiryAuthToken = null;
+		this._userSecretManager.forgetUserSecret();
 	}
 
 	triggerLogoutProcedure() {
@@ -261,6 +264,15 @@ export default class PHCServer {
 		userSecretObjectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } | null,
 	) {
 		return this._userSecretManager.storeUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject, userSecretObjectDetails);
+	}
+
+	addIdentifyingAttrToUserSecret(
+		attrKeyResp: Record<string, AttrKeyResp>,
+		identifyingAttrs: SignedIdentifyingAttrs,
+		userSecretObject: TPHC.UserSecretObject | null,
+		userSecretObjectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } | null,
+	) {
+		return this._userSecretManager.addIdentifyingAttr(attrKeyResp, identifyingAttrs, userSecretObject, userSecretObjectDetails);
 	}
 
 	// #endregion

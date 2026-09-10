@@ -57,7 +57,7 @@
 						v-if="settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.isPrivateRoom() || room.isSecuredRoom())"
 						icon="video"
 						data-testid="videocall"
-						:disabled="room.isOngoingCall()"
+						:disabled="room.hasActiveCall()"
 						@click="startVideocall"
 						>{{ $t('message.videocall') }}</PopoverButton
 					>

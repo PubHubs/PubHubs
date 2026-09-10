@@ -39,6 +39,8 @@ const defaultGlobalSettings = {
 	hubs: [] as PinnedHubs,
 };
 
+const logger = createLogger('Global');
+
 const useGlobal = defineStore('global', {
 	state: () => {
 		return {
@@ -51,8 +53,6 @@ const useGlobal = defineStore('global', {
 			hubCanGoBack: false,
 			pinnedHubs: [] as PinnedHubs,
 			hubsLoading: false,
-
-			logger: createLogger('Global'),
 		};
 	},
 
@@ -96,7 +96,7 @@ const useGlobal = defineStore('global', {
 				try {
 					settingsUserObject = await mss.requestUserObject('globalsettings');
 				} catch (error) {
-					this.logger.error('Failure getting global settings from server, attempting to load default settings', error);
+					logger.error('Failure getting global settings from server, attempting to load default settings', error);
 				}
 				let data: GlobalSettings;
 				if (settingsUserObject) {
@@ -109,7 +109,7 @@ const useGlobal = defineStore('global', {
 				this.loggedIn = true;
 				return true;
 			} catch (error) {
-				this.logger.error('Failure to set global settings', error);
+				logger.error('Failure to set global settings', error);
 				// Remove PHauthToken and userSecret from local storage in case the enterEP did successfully return an authToken for the user
 				localStorage.removeItem('PHauthToken');
 				localStorage.removeItem('UserSecret');
@@ -119,7 +119,7 @@ const useGlobal = defineStore('global', {
 		},
 
 		async setGlobalSettings(data: GlobalSettings) {
-			this.logger.info('setGlobalSettings', data);
+			logger.info('setGlobalSettings', data);
 			const settings = useSettings();
 			settings.setTheme(data.theme);
 			if (!data.timeformat || (data.timeformat as string) === '') {
@@ -185,7 +185,7 @@ const useGlobal = defineStore('global', {
 			} catch (error) {
 				// @ts-expect-error -- router is injected as plugin, not in store type
 				this.router.push({ name: 'error' });
-				this.logger.error(String(error));
+				logger.error(String(error));
 			}
 		},
 
@@ -232,7 +232,7 @@ const useGlobal = defineStore('global', {
 						hubsStore.addHub(hub);
 					})
 					.catch((error) => {
-						this.logger.error(`Could not fetch hub info for hub '${item.name}' with url ${item.url}: ${error.message}`);
+						logger.error(`Could not fetch hub info for hub '${item.name}' with url ${item.url}: ${error.message}`);
 					});
 			});
 			await Promise.all(hubPromises);

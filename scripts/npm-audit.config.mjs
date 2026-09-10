@@ -32,10 +32,5 @@ export default {
 			id: 'GHSA-848j-6mx2-7j84',
 			reason: "No fixed version exists: 6.6.1 is the latest elliptic release, and the only upgrade npm can suggest is a major downgrade of vite-plugin-node-polyfills. We do not use elliptic ourselves; it arrives through that plugin's crypto-browserify shim, and the advisory is about the strictness of its ECDSA verification.",
 		},
-		{
-			id: 'GHSA-w5hq-g745-h8pq',
-			reason: 'uuid 7.0.3 arrives through @capacitor/cli > xcode, and xcode 3.0.1 is its newest release: it asks for uuid ^7.0.3, so the fixed 11.1.1 is out of reach until xcode moves (`npm audit fix` changes nothing here, with or without --force). The advisory is about v3/v5/v6 not checking the bounds of a caller-provided `buf`, which xcode does not do -- it generates Xcode project identifiers -- and it only ever runs on a developer machine during `npx cap sync ios`, over our own project file.',
-			expires: '2026-12-01',
-		},
 	],
 };
