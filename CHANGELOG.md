@@ -15,6 +15,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] From this version onwards pinned images will be shared for every full release and the new `latest` tag points to the latest full release. The `stable` tag is unchanged, it points to the latest full release or release-candidate.
 - [IMPROVED] Login and registration recover from a Yivi session that is interrupted.
 - [IMPROVED] The rtcSession now rules the videocallpages, instead of the usermessages
+- [IMPROVED] In the file libray files can now be deleted by admins, stewards and the users that uploaded them
 - [BUG] Fixed that an account could no longer be logged into when the PubHubs card had to be issued a second time during registration.
 - [INTERNAL, NEW] Npm-audit was added to the cicd pipeline to check for npm package vunerabilities.
 - [INTERNAL, IMPROVED] Refactored update_config.py file for better maintainability.
