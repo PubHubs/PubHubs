@@ -4,6 +4,7 @@ const nl = {
 		yivi: 'Yivi',
 		loading: 'Laden ...',
 		or: 'of',
+		retry: 'Probeer opnieuw',
 	},
 	card: {
 		description: 'Kaart uitgegeven met de volgende kenmerken:',
@@ -50,14 +51,14 @@ const nl = {
 		cant_find_room: 'Deze kamer is op het moment niet beschikbaar',
 		admin_error: 'Je bent geen beheerder!',
 		no_room_error: 'Gebruiker {0} is niet aangesloten bij een kamer in de hub.',
-		account_does_not_exist:
-			'Er bestaat geen PubHubs account met deze attributen. Probeer een nieuw account te registreren met deze attributen of probeer in te loggen met andere attributen.',
-		attribute_banned: 'Het volgende attribuut is verbannen en kan daarom niet worden gebruikt om een nieuw PubHubs account te registreren: {0}.',
+		// Zie de opmerkingen bij deze sleutels in en.ts.
+		account_does_not_exist: 'We konden hier geen PubHubs-account bij vinden. Heb je nog geen account, registreer er dan een.',
+		attribute_banned: 'Het volgende attribuut is verbannen en kan niet in PubHubs worden gebruikt: {0}.',
 		banned: 'Dit account is verbannen en kan niet langer worden gebruikt om in te loggen bij PubHubs.',
 		attribute_already_taken: 'Het volgende attribuut is al gekoppeld aan een PubHubs account: {0}. Probeer in te loggen.',
 		general_error:
 			'Helaas is er een fout opgetreden. Probeer het opnieuw en <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">neem contact op met de ontwikkelaars</a> als het probleem blijft bestaan.',
-		retry_with_new_attr: 'Voeg uw attribuuten opnieuw toe in Yivi en probeer het nog een keer.',
+		retry_with_new_attr: 'Je gegevens konden niet worden geverifieerd, mogelijk zijn ze verlopen. Probeer het opnieuw.',
 		no_hubs_found:
 			'Helaas konden we geen hubs tonen. Probeer het later opnieuw en <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">neem contact op met de ontwikkelaars</a> als het probleem blijft bestaan.',
 		cant_find: 'Sorry, we konden de pagina of kamer die u zocht niet vinden.',
@@ -67,9 +68,11 @@ const nl = {
 		YiviServerGone:
 			'U kon waarschijnlijk niet volledig inloggen omdat battery-saver javascript blokeerd, probeer de laatste stap nog een keer om de inlog the voltooien.',
 		// Zie de opmerkingen bij deze sleutels in en.ts.
-		yivi_session_failed: 'Er is iets misgegaan in de Yivi-app, waardoor we je niet konden inloggen. Herlaad deze pagina om het opnieuw te proberen.',
+		yivi_session_failed: 'Er is iets misgegaan in de Yivi-app, waardoor we je niet konden inloggen.',
 		card_not_added:
 			'Je bent ingelogd, maar je PubHubs-kaart is niet aan je Yivi-app toegevoegd. Je hebt deze nodig om de volgende keer in te loggen, dus rond de laatste stap nog even af.',
+		card_not_linked:
+			'Je bent ingelogd, maar je PubHubs-kaart kon niet aan je account worden gekoppeld. Je hebt deze nodig om de volgende keer in te loggen, dus probeer de laatste stap nog een keer.',
 	},
 	file: {
 		upload: 'Upload',
@@ -140,6 +143,9 @@ const nl = {
 		card_3_success_title: 'Je bent ingelogd!',
 		card_3_success_text: 'Scan de {0} QR code nog een keer om je {1} kaart toe te voegen.',
 		card_3_success_text_app: 'Open je {0} app nog een keer om je {1} kaart toe te voegen.',
+
+		card_1_alt: 'Laptop',
+		card_2_alt: '{0}-mascotte met kenmerken',
 
 		video_click_to_play: 'Klik om video af te spelen',
 		video_hosted_by_vimeo: 'Deze video wordt gehost door Vimeo',
@@ -216,6 +222,7 @@ const nl = {
 	},
 	login: {
 		login: 'Login',
+		mascot_alt: '{0}-mascotte',
 		login_again: 'Je bent uitgelogd. Log opnieuw in om verder te gaan.',
 		loading_yivi: 'Yivi laden...',
 	},
@@ -374,7 +381,6 @@ const nl = {
 		secure_room_message_heading: 'Voordat je verder kan gaan naar de kamer',
 		secure_room_message: 'Scan de QR-code met je Yivi-app om toegang te krijgen.',
 		display_qr: 'Toon QR-code',
-		retry: 'Probeer opnieuw',
 		incorrect_attributes:
 			'De gegevens die je hebt gedeeld geven je geen toegang tot deze kamer. Controleer of je de juiste gegevens in je Yivi-app hebt gebruikt en probeer het opnieuw.',
 		required_attributes:

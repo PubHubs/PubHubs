@@ -67,8 +67,10 @@ export type ReturnCard =
 	| { cardAttr: null; errorMessage: { key: string; values?: string[] | undefined } }
 	| { cardAttr: { signedAttr: string; id: string; value: string }; errorMessage: null };
 
+export type SignedIdentifyingAttrs = Record<string, { signedAttr: string; id: string; value: string }>;
+
 export interface DecodedAttributes {
-	identifying: Record<string, { signedAttr: string; id: string; value: string }>;
+	identifying: SignedIdentifyingAttrs;
 	additional: string[];
 	attributeValues: string[];
 }

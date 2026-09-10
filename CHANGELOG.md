@@ -10,6 +10,16 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _[INTERNAL] - Code changes not affecting functionality_
 
+## 10 September 2026 - v.3.5.4
+
+- [NEW] From this version onwards pinned images will be shared for every full release and the new `latest` tag points to the latest full release. The `stable` tag is unchanged, it points to the latest full release or release-candidate.
+- [IMPROVED] Login and registration recover from a Yivi session that is interrupted.
+- [IMPROVED] The rtcSession now rules the videocallpages, instead of the usermessages
+- [IMPROVED] In the file libray files can now be deleted by admins, stewards and the users that uploaded them
+- [BUG] Fixed that an account could no longer be logged into when the PubHubs card had to be issued a second time during registration.
+- [INTERNAL, NEW] Npm-audit was added to the cicd pipeline to check for npm package vunerabilities.
+- [INTERNAL, IMPROVED] Refactored update_config.py file for better maintainability.
+
 ## 28 August 2026 - v3.5.3
 
 - [BUG, INTERNAL] Fixed that event listeners were leaking between hub switches.

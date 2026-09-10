@@ -39,6 +39,8 @@ const InitialRoomList: MSC3575List = {
 		[EventType.RoomPowerLevels, MSC3575_WILDCARD],
 		[MatrixEventType.RoomReceipt, MSC3575_WILDCARD],
 		[MatrixEventType.RoomReadMarker, MSC3575_WILDCARD],
+		[EventType.GroupCallPrefix, MSC3575_WILDCARD], // videocall
+		[EventType.GroupCallMemberPrefix, MSC3575_WILDCARD], // videocall membership
 	],
 	timeline_limit: 0, // initially no events, this is used for the roomlist in the sidebar.
 };

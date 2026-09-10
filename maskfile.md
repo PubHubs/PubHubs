@@ -26,8 +26,8 @@ This requires [tmux](https://github.com/tmux/tmux) to be installed.
 **OPTIONS**
 
 - no_postgres
-  - flags: --no-postgres
-  - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
+    - flags: --no-postgres
+    - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
 
 ```sh
 PH_NO_POSTGRES="$no_postgres" sh scripts/run-all.sh
@@ -235,8 +235,8 @@ Don't forget to build the hub image and setup the hub's directory using the
 **OPTIONS**
 
 - no_postgres
-  - flags: --no-postgres
-  - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
+    - flags: --no-postgres
+    - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
 
 ```sh
 echo "Running testhub${n}"
@@ -429,6 +429,20 @@ npm run check:lint
 
 ```sh
 npm run check:types
+```
+
+### audit
+
+> Check the npm dependencies against our security advisory policy
+
+The npm counterpart of `cargo deny check advisories`: it fails on any `npm audit` advisory that
+[scripts/npm-audit.config.mjs](scripts/npm-audit.config.mjs) does not accept. Not part of `mask check all`, because
+new advisories are published all the time and one appearing should not fail an unrelated check run —
+the `npm-audit` pipeline job is what watches for them. Needs no `npm install`; it reads
+`package-lock.json`.
+
+```sh
+npm run check:audit ${verbose:+-- --verbose}
 ```
 
 ### versions

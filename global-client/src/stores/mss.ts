@@ -4,16 +4,17 @@ import { defineStore } from 'pinia';
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
 import { decodeJWT, handleErrors, responseEqualToRequested } from '@global-client/logic/utils/mssUtils';
-import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
+import { type YiviMountPoint, type YiviSession, startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 import { assert } from '@hub-client/logic/utils/assert';
 import { delay } from '@hub-client/logic/utils/common';
 
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
-import { type AuthAttrKeyReq, type AuthStartReq, type CardReq, type LoginMethod, Source } from '@global-client/models/MSS/TAuths';
+import { type AttrKeyResp, type AuthAttrKeyReq, type AuthStartReq, type CardReq, type LoginMethod, Source } from '@global-client/models/MSS/TAuths';
 import {
 	type DecodedAttributes,
 	type EnterStartResp,
@@ -21,16 +22,41 @@ import {
 	type InfoResp,
 	ResultResponse,
 	type ReturnCard,
+	type SignedIdentifyingAttrs,
 	isResult,
 } from '@global-client/models/MSS/TGeneral';
 import { type Attr, type Constellation, type HubInformation, PHCEnterMode, type UserSecretObject, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
+import { type ResolvedUserSecretObjects } from '@global-client/models/MSS/UserSecret';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
 import { useLocalStores } from '@global-client/stores/localStores';
 
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+
+const logger = createLogger('MSS');
+
+// The Yivi session `enterPubHubs` is waiting on, plus a counter identifying the run that started it.
+// Only one enter attempt can be in flight: `AuthenticationServer` holds a single authentication
+// state, so a run that has been replaced must stop before it writes that state or completes an
+// authentication against the state its replacement put there. Kept at module level because neither
+// value is rendered.
+let activeYiviSession: YiviSession | null = null;
+let currentEnterRun = 0;
+// The run that last claimed `currentEnterRun` for itself. `cancelEnter()` bumps the counter without
+// putting a successor in place. The page uses it to make an issuance report `card_not_added`, so
+// the counter alone cannot tell a run that was replaced from one that was cancelled with nothing
+// taking over, and only the former can leave its cleanup to the run that took over.
+let ownedEnterRun = 0;
+
+/** Thrown by `enterPubHubs` when a newer run, or `cancelEnter()`, superseded it. */
+class EnterCancelled extends Error {
+	constructor() {
+		super('The enter attempt was superseded');
+		this.name = 'EnterCancelled';
+	}
+}
 
 const useMSS = defineStore('mss', {
 	state: () => {
@@ -45,15 +71,91 @@ const useMSS = defineStore('mss', {
 			// True while the disclosure has succeeded and the PubHubs card is being issued, so the
 			// UI can tell the user the login worked and a second Yivi session is on its way.
 			issuingCard: false,
+			// True while the disclosure widget is the thing on screen, so a page that has to re-render
+			// it (a breakpoint swap, a page restored from the back/forward cache) can tell whether a
+			// restart still means anything.
+			awaitingDisclosure: false,
 		};
 	},
 
 	actions: {
+		/**
+		 * Stop the enter attempt in flight: abort the Yivi session it is showing and mark it
+		 * superseded, so it gives up before touching the shared authentication state.
+		 */
+		cancelEnter(): void {
+			currentEnterRun++;
+			activeYiviSession?.abort();
+			activeYiviSession = null;
+			this.awaitingDisclosure = false;
+			this.issuingCard = false;
+		},
+
+		/**
+		 * Run a Yivi session and keep it cancellable for as long as it lasts.
+		 *
+		 * @param mountPoint The element the page wants the Yivi widget rendered into.
+		 * @param ownedByRun The enter run this session belongs to; defaults to the run in flight, which
+		 * is what a caller outside `enterPubHubs` - a card issuance retried from the page - wants.
+		 * @returns The disclosure or issuance result.
+		 */
+		async runYiviSession(yiviRequestorUrl: string, request: string, mountPoint: YiviMountPoint, ownedByRun = currentEnterRun): Promise<string> {
+			// A run that has been superseded renders no widget: it would draw over the one its
+			// replacement is showing, and take the slot `cancelEnter()` reaches for with it.
+			if (ownedByRun !== currentEnterRun) throw new EnterCancelled();
+
+			const { session, result } = startYiviAuthentication(yiviRequestorUrl, request, mountPoint);
+			activeYiviSession = session;
+			try {
+				return await result;
+			} finally {
+				// A newer run may already have put its own session here.
+				if (activeYiviSession === session) activeYiviSession = null;
+			}
+		},
+
+		/**
+		 * Request the user secret objects, repairing a difference between the two stored copies where
+		 * possible. See UserSecret.ts for how the two copies relate.
+		 *
+		 * @param signedIdentifyingAttrs A list of the signed identifying attributes that were disclosed in the enter request.
+		 * @param afterReset Whether this call is the check performed after resetting usersecret to usersecretbackup.
+		 * @returns The user secret objects, or the translation key of the error to show the user.
+		 */
+		async requestUserSecretObject(signedIdentifyingAttrs: SignedIdentifyingAttrs, afterReset: boolean = false): Promise<ResolvedUserSecretObjects> {
+			return await this.phcServer.resolveUserSecretObject(
+				signedIdentifyingAttrs,
+				(userSecretObject) => this.requestAttrKeys(userSecretObject, signedIdentifyingAttrs),
+				afterReset,
+			);
+		},
+
+		async requestAttrKeys(
+			userSecretObject: UserSecretObject | null,
+			signedIdentifyingAttrs: SignedIdentifyingAttrs,
+		): Promise<{ error: false; response: Record<string, AttrKeyResp> } | { error: true; response: string }> {
+			const authServer = await this.getAuthServer();
+			// Request attribute keys for all identifying attributes used to login.
+			const attrKeyReq = this.buildAttributeKeyRequest(signedIdentifyingAttrs, userSecretObject);
+			return await authServer.attrKeysEP(attrKeyReq);
+		},
+
 		async enterPubHubs(
 			loginMethod: LoginMethod,
 			enterMode: PHCEnterMode,
+			mountPoint: YiviMountPoint,
 			registerOnlyWithUniqueAttrs = false,
 		): Promise<{ key: string; values?: string[] } | undefined> {
+			// Take over from whatever was in flight - a page restarting its widget, or a second login
+			// click - so only one run can reach the shared authentication state.
+			this.cancelEnter();
+			const runId = currentEnterRun;
+			ownedEnterRun = runId;
+			const superseded = () => runId !== currentEnterRun;
+			// Whether a newer run has taken over the entry, and with it the cleanup this run would
+			// otherwise have to do itself. See `ownedEnterRun`.
+			const replaced = () => ownedEnterRun !== runId;
+
 			const settings = useSettings();
 			const cardFeature = settings.isFeatureEnabled(FeatureFlag.phCard);
 			const authServer = await this.getAuthServer();
@@ -64,7 +166,7 @@ const useMSS = defineStore('mss', {
 			const identifyingAttrs = authServer.checkAttributes(supported, loginMethod, enterMode);
 
 			// 2. Build auth start request
-			const isRegistering = enterMode === PHCEnterMode.LoginOrRegister;
+			const isRegistering = enterMode === PHCEnterMode.LoginOrRegister || enterMode === PHCEnterMode.Register;
 
 			// Disable chained-sessions while the error fallback is not working
 			// and there are timeouts with slow connectivity
@@ -82,6 +184,9 @@ const useMSS = defineStore('mss', {
 
 			// 3. Start authentication
 			const { task, state } = await authServer.authStartEP(authStartReq);
+			// A late response from a superseded run would overwrite the state its replacement is
+			// already waiting to complete an authentication against.
+			if (superseded()) throw new EnterCancelled();
 			authServer.setState(state);
 
 			// 4. Handle Yivi task
@@ -94,37 +199,49 @@ const useMSS = defineStore('mss', {
 			// Disclose attributes in Yivi
 			let proof: { Yivi: { disclosure: string } };
 
-			if (chainedSession) {
-				// When chaining, the disclosure is collected from the authentication server below rather
-				// than from this promise, and `YiviWaitForResultEP` is what reports a failure. The Yivi
-				// handler has already logged it, so the rejection is only kept from going unhandled here.
-				startYiviAuthentication(yiviUrl, disclosure_request).catch(() => {});
-				const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
-				if (jwt === 'PleaseRestartAuth') {
-					throw new Error('Something went wrong; please start again at AuthStartEP.');
-				} else if (jwt === 'SessionGone') {
-					throw new Error('The session has expired or was already completed.');
-				} else if (typeof jwt !== 'object' || !(ResultResponse.Success in jwt)) {
-					throw new Error('Unexpected response from YiviWaitForResultEP');
+			this.awaitingDisclosure = true;
+			try {
+				if (chainedSession) {
+					// When chaining, the disclosure is collected from the authentication server below rather
+					// than from this promise, and `YiviWaitForResultEP` is what reports a failure. The Yivi
+					// handler has already logged it, so the rejection is only kept from going unhandled here.
+					this.runYiviSession(yiviUrl, disclosure_request, mountPoint, runId).catch(() => {});
+					const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
+					if (jwt === 'PleaseRestartAuth') {
+						throw new Error('Something went wrong; please start again at AuthStartEP.');
+					} else if (jwt === 'SessionGone') {
+						throw new Error('The session has expired or was already completed.');
+					} else if (typeof jwt !== 'object' || !(ResultResponse.Success in jwt)) {
+						throw new Error('Unexpected response from YiviWaitForResultEP');
+					}
+					proof = { Yivi: jwt.Success };
+				} else {
+					let disclosure: string;
+					try {
+						disclosure = await this.runYiviSession(yiviUrl, disclosure_request, mountPoint, runId);
+					} catch {
+						// A superseded run aborts its own Yivi session, which is not a failure to report.
+						if (superseded()) throw new EnterCancelled();
+						// Already logged by the Yivi handler. Reported instead of thrown so the caller can
+						// show it in place of the QR code, rather than sending the user to the error page.
+						return { key: 'errors.yivi_session_failed' };
+					}
+					proof = { Yivi: { disclosure } };
 				}
-				proof = { Yivi: jwt.Success };
-			} else {
-				let disclosure: string;
-				try {
-					disclosure = await startYiviAuthentication(yiviUrl, disclosure_request);
-				} catch {
-					// Already logged by the Yivi handler. Reported instead of thrown so the caller can
-					// show it in place of the QR code, rather than sending the user to the error page.
-					return { key: 'errors.yivi_session_failed' };
-				}
-				proof = { Yivi: { disclosure } };
+			} finally {
+				// A superseded run must not clear a flag its replacement has already raised.
+				if (!superseded()) this.awaitingDisclosure = false;
 			}
+
+			// The disclosure the user just made belongs to the authentication state a newer run has
+			// since replaced, so completing against it would fail - or worse, succeed for the wrong run.
+			if (superseded()) throw new EnterCancelled();
 
 			// 5. Complete authentication
 			const authSuccess = await authServer.completeAuthEP(proof, authServer.getState());
 
 			// 6. Validate attributes
-			this.validateAttributes(authSuccess, isRegistering || !cardFeature, loginMethod);
+			this.validateAttributes(authSuccess.attrs, isRegistering || !cardFeature, loginMethod);
 
 			// 7. Decode attributes
 			const { identifying, additional, attributeValues } = this.decodeSignedAttributes(authSuccess.attrs, identifyingAttrs);
@@ -145,7 +262,7 @@ const useMSS = defineStore('mss', {
 				const comment = 'via\n' + attributeValues.join('\n');
 				this.issuingCard = true;
 				try {
-					const { cardAttr, errorMessage: cardError } = await this.issueCard(chainedSession, comment, identifyingAttr);
+					const { cardAttr, errorMessage: cardError } = await this.issueCard(chainedSession, comment, mountPoint, identifyingAttr, runId);
 					if (cardAttr) identifying['ph_card'] = cardAttr;
 					else warningMessage = cardError;
 				} catch (error) {
@@ -157,31 +274,115 @@ const useMSS = defineStore('mss', {
 						throw error;
 					}
 				} finally {
-					this.issuingCard = false;
+					// Steps 8 onwards no longer touch the shared authentication state, so a superseded run
+					// finishes them rather than leave the account half registered - but it must not clear a
+					// flag its replacement has already raised.
+					if (!superseded()) this.issuingCard = false;
 				}
 			}
 
 			// 10. Load updated state (moved after card issuance to reduce Yivi wait time)
 			await this.phcServer.stateEP();
 			// Load Secret objects
-			const userSecret = await this.phcServer.getUserSecretObject();
-			const objectDetails = userSecret?.details ?? null;
+			// An account that is entered but whose user secret cannot be resolved is not usable, so
+			// every failure from here on abandons the entry rather than leaving the user half logged in.
+			// `abandonEntry` clears the auth token and the cached user secret process-wide, though, so a
+			// run that was *replaced* would tear down the session its replacement has meanwhile
+			// established. It leaves both the cleanup and the reporting to the run that now owns that
+			// state. A run that was cancelled with nothing taking over still owns it, and has to abandon
+			// the entry itself - dropping it there is what leaves an account nobody can log in to again.
+			const reqUserSecretResp = await this.requestUserSecretObject(identifying);
+			if (reqUserSecretResp.error) {
+				if (replaced()) throw new EnterCancelled();
+				this.abandonEntry();
+				return { key: reqUserSecretResp.message, values: reqUserSecretResp.values };
+			}
+			const { userSecret, userSecretBackup } = reqUserSecretResp;
 			const userSecretObject = userSecret?.object ?? null;
 
 			// 11. Get attribute Key Response
-			const attrKeyReq: AuthAttrKeyReq = this.buildAttributeKeyRequest(identifying, userSecretObject);
-			const attrKeyResp = await authServer.attrKeysEP(attrKeyReq);
-
-			if ('RetryWithNewAttr' in attrKeyResp) {
-				useGlobal().logout();
-				return { key: 'errors.retry_with_new_attr' };
+			const attrKeyResp = await this.requestAttrKeys(userSecretObject, identifying);
+			if (attrKeyResp.error) {
+				if (replaced()) throw new EnterCancelled();
+				this.abandonEntry();
+				return { key: attrKeyResp.response };
 			}
 
 			// 12. Store user secret objects
-			if (ResultResponse.Success in attrKeyResp) {
-				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, identifying, userSecretObject, objectDetails);
+			const objectDetails = userSecret !== null ? { usersecret: userSecret.details, backup: userSecretBackup?.details ?? null } : null;
+			try {
+				await this.phcServer.storeUserSecretObject(attrKeyResp.response, identifying, userSecretObject, objectDetails);
+			} catch (error) {
+				logger.error('An error occured while trying to store the user secret.', error);
+				if (replaced()) throw new EnterCancelled();
+				this.abandonEntry();
+				return { key: 'errors.general_error' };
 			}
 			return warningMessage;
+		},
+
+		/**
+		 * Issue a PubHubs card for an account that is already entered, and store the user secret for
+		 * it - the retry `enterPubHubs` reports through `errors.card_not_added`.
+		 *
+		 * The card is an identifying attribute, and it is the only one a later login discloses. A card
+		 * that reaches the account without an entry in the user secret therefore locks the account for
+		 * good, so the issuance only counts as done once both have happened.
+		 *
+		 * @param comment The attributes the card is issued for, shown in the user's Yivi app.
+		 */
+		async issueCardAfterEntry(comment: string, mountPoint: YiviMountPoint): Promise<ReturnCard> {
+			const runId = currentEnterRun;
+			// The page keys its widget restarts on this, so it has to go down once the Yivi session is
+			// over: the write below renders nothing, and restarting there issues a second card and races
+			// a second write against this one.
+			this.issuingCard = true;
+			const issued = await this.issueCard(false, comment, mountPoint).finally(() => {
+				// A superseded issuance must not clear a flag the one that replaced it has already raised.
+				if (runId === currentEnterRun) this.issuingCard = false;
+			});
+			if (!issued.cardAttr) return issued;
+
+			try {
+				await this.addCardToUserSecret(issued.cardAttr);
+			} catch (error) {
+				logger.error('The PubHubs card was issued but could not be stored in the user secret.', error);
+				return { cardAttr: null, errorMessage: { key: 'errors.card_not_linked' } };
+			}
+			return issued;
+		},
+
+		/**
+		 * Store the user secret for a PubHubs card that was added to the account after the login that
+		 * stored the secret, so the next login can recover it from the card alone.
+		 *
+		 * @throws If the attribute key could not be fetched, or the objects could not be stored.
+		 */
+		async addCardToUserSecret(cardAttr: { signedAttr: string; id: string; value: string }): Promise<void> {
+			const identifying: SignedIdentifyingAttrs = { ph_card: cardAttr };
+
+			const reqUserSecretResp = await this.requestUserSecretObject(identifying);
+			if (reqUserSecretResp.error) {
+				throw new Error(`Could not resolve the user secret objects to add the card to: ${reqUserSecretResp.message}`);
+			}
+			const { userSecret, userSecretBackup } = reqUserSecretResp;
+
+			const attrKeyResp = await this.requestAttrKeys(userSecret?.object ?? null, identifying);
+			if (attrKeyResp.error) {
+				throw new Error(`Could not get an attribute key for the PubHubs card: ${attrKeyResp.response}`);
+			}
+
+			const objectDetails = userSecret !== null ? { usersecret: userSecret.details, backup: userSecretBackup?.details ?? null } : null;
+			await this.phcServer.addIdentifyingAttrToUserSecret(attrKeyResp.response, identifying, userSecret?.object ?? null, objectDetails);
+		},
+
+		/**
+		 * Give up an entry that got as far as an auth token but cannot be completed, without navigating:
+		 * the page that started it shows what happened and decides where the user goes next.
+		 */
+		abandonEntry(): void {
+			useGlobal().loggedIn = false;
+			this.logout();
 		},
 
 		async enterHub(id: string, enterStartResp: EnterStartResp): Promise<string | undefined> {
@@ -217,7 +418,17 @@ const useMSS = defineStore('mss', {
 			}
 		},
 
-		async issueCard(chainedSession: boolean, comment: string, identifyingAttr?: string): Promise<ReturnCard> {
+		/**
+		 * @param ownedByRun The enter run this issuance belongs to, see `runYiviSession`. A page
+		 * retrying the issuance on its own leaves it out.
+		 */
+		async issueCard(
+			chainedSession: boolean,
+			comment: string,
+			mountPoint: YiviMountPoint,
+			identifyingAttr?: string,
+			ownedByRun = currentEnterRun,
+		): Promise<ReturnCard> {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
@@ -249,7 +460,7 @@ const useMSS = defineStore('mss', {
 			} else {
 				const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
 				try {
-					await startYiviAuthentication(yiviUrl, issuance_request);
+					await this.runYiviSession(yiviUrl, issuance_request, mountPoint, ownedByRun);
 				} catch {
 					// The card attribute is on the account (step 3) but never reached the user's Yivi
 					// app, and logging in later discloses exactly that card - so this has to be
@@ -270,6 +481,7 @@ const useMSS = defineStore('mss', {
 				errorMessage: null,
 			};
 		},
+
 		async storePHCWelcomeInfo(): Promise<void> {
 			const welcomeResp = await this.phcServer.welcome();
 			this.constellation = welcomeResp.constellation;
@@ -314,6 +526,7 @@ const useMSS = defineStore('mss', {
 			localStorage.removeItem('UserSecret');
 			localStorage.removeItem('UserSecretVersion');
 		},
+
 		async getHubs(): Promise<HubInformation[]> {
 			if (!this.hubs) {
 				await this.storePHCWelcomeInfo();
@@ -374,8 +587,8 @@ const useMSS = defineStore('mss', {
 
 			return { identifying, additional, attributeValues };
 		},
-		validateAttributes(authSuccess: { attrs: Record<string, unknown> }, isRegisteringOrNoCard: boolean, loginMethod: LoginMethod): void {
-			const keys = Object.keys(authSuccess.attrs);
+		validateAttributes(attrs: Record<string, unknown>, isRegisteringOrNoCard: boolean, loginMethod: LoginMethod): void {
+			const keys = Object.keys(attrs);
 			let allowedAttributeSets: string[];
 
 			if (isRegisteringOrNoCard) {
@@ -389,10 +602,8 @@ const useMSS = defineStore('mss', {
 				throw new Error('Disclosed attributes do not match the requested ones.');
 			}
 		},
-		buildAttributeKeyRequest(
-			signedIdentifyingAttrs: Record<string, { id: string; value: string; signedAttr: string }>,
-			userSecretObject: UserSecretObject | null,
-		): AuthAttrKeyReq {
+
+		buildAttributeKeyRequest(signedIdentifyingAttrs: SignedIdentifyingAttrs, userSecretObject: UserSecretObject | null): AuthAttrKeyReq {
 			const attrKeyReq: AuthAttrKeyReq = {};
 
 			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs)) {
@@ -415,4 +626,4 @@ const useMSS = defineStore('mss', {
 	},
 });
 
-export { useMSS };
+export { EnterCancelled, useMSS };

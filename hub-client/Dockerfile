@@ -11,9 +11,16 @@ COPY global-client/package.json ./global-client/
 RUN --mount=type=cache,target=/root/.npm \
 	npm ci --ignore-scripts --prefer-offline --no-audit --no-fund
 COPY hub-client/ ./hub-client/
-RUN npm run build --workspace=hub-client
+
+ARG PH_VERSION
+RUN PH_VERSION=$PH_VERSION npm run build --workspace=hub-client
 
 FROM nginx:alpine-slim
+
+# So `docker image inspect` reports the version without having to run the image.  Inside a running
+# container, /usr/var/static/version.txt (emitted by vite.config.ts) carries the same value.
+ARG PH_VERSION
+LABEL org.opencontainers.image.version="$PH_VERSION"
 
 COPY --from=builder /usr/src/app/hub-client/dist /usr/var/static
 COPY hub-client/nginx.conf /etc/nginx/templates/default.conf.template

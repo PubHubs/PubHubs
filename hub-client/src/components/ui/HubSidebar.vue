@@ -7,9 +7,10 @@
 			<div class="flex h-full w-full items-center justify-between gap-200">
 				<div
 					v-context-menu="(evt: Event) => openMenu(evt as MouseEvent, [{ label: t('menu.copy_hub_url'), icon: 'copy', onClick: () => copyHubUrl() }])"
-					class="group relative flex min-w-0 items-center gap-100"
+					class="group relative flex min-w-0 flex-col gap-100"
 				>
 					<H2 class="font-headings text-h2 text-on-surface truncate font-semibold">{{ hubSettings.hubName }}</H2>
+					<P class="text-body-small text-on-surface-dim"> {{ version }}</P>
 				</div>
 				<div class="flex items-center gap-100">
 					<Notification />
@@ -212,6 +213,7 @@
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
+	import P from '@hub-client/components/elements/P.vue';
 	import RoomList from '@hub-client/components/rooms/RoomList.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
@@ -254,6 +256,7 @@
 	const { scrollToEnd } = useGlobalScroll();
 
 	const route = useRoute();
+	const version = __APP_VERSION__;
 	// INFO: when adding a page to the moderation sidebar, update the routes
 	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'manage-roles', 'reports', 'editroom']);
 	const showModerationMenu = ref(moderationRoutes.has(route.name as string));
