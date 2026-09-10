@@ -21,8 +21,8 @@ Also make sure to not squash the commits so we can search for them later.
 - [ ] Check the version numbers in the [hub Dockerfile](pubhubs_hub/Dockerfile):
     - [ ] update synapse:
         - [ ] `FROM ghcr.io/element-hq/synapse:vXXXX` see [synapse releases](https://github.com/element-hq/synapse/releases)
-        - [ ] `matrix-synapse==XXXX` in [python dependencies file](pubhubs_hub/requirements.txt) should be same version as synapse in dockerfile. NOTE: check if there is a new synapse version > 1.144.0. Remove prometheus-client==0.23.1 from requirement file and see if the pipeline succeeds for the hub. If the pipeline fails keeps the current version.
-- [ ] Review the minimal version floors in [`pubhubs_hub/requirements.txt`](pubhubs_hub/requirements.txt). The block at the bottom is copied verbatim from synapse — keep it in sync with the minimal versions in synapse's [`pyproject.toml`](https://github.com/element-hq/synapse/blob/master/pyproject.toml). The hub's own dependencies at the top (`twisted`, `cryptography`, `livekit-api`, ...) only need bumping when a feature requires it. (Be aware that pip automatically installs the latest version available, not the minimal version you specify.)
+        - [ ] `matrix-synapse[oidc]==XXXX` in [python dependencies file](pubhubs_hub/requirements.txt) should be same version as synapse in dockerfile.
+- [ ] Review the minimal version floors in [`pubhubs_hub/requirements.txt`](pubhubs_hub/requirements.txt). The file lists only what the hub imports itself (`twisted`, `cryptography`, `pynacl`, `livekit-api`, ...), plus the few floors that must be _higher_ than synapse's; synapse's own floors arrive with its wheel metadata, so there is nothing left to copy from synapse's [`pyproject.toml`](https://github.com/element-hq/synapse/blob/master/pyproject.toml). These floors only need bumping when a feature requires it.
 
 #### Yivi for the Hub
 
