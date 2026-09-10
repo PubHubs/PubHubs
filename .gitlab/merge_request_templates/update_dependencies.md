@@ -1,9 +1,9 @@
-# Updating dependencies
+# Updating Dependencies
 
 Please make seperate commits for every step with descriptive commit messages. So that if an update breaks something, we can revert the commit. For major updates, also make a seperate commit for every dependency.
 Also make sure to not squash the commits so we can search for them later.
 
-## PubHubs central
+## PubHubs Central
 
 ### Rust
 
@@ -15,6 +15,10 @@ Also make sure to not squash the commits so we can search for them later.
 
 - [ ] Check the pinned `cargo install cargo-chef --version XXX` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (releases [here](https://crates.io/crates/cargo-chef/versions)).
 - [ ] Bump the pinned `rust-stable` digest to pick up a new Rust toolchain. It appears in **two** places that must match: `RUST_IMAGE` in the [.gitlab-ci.yml](cicd/.gitlab-ci.yml) and the `FROM` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (`grep -rn rust-stable` finds both). Look in the docker-build ilab repository for the latest pinned rust-stable build.
+
+### Yivi
+
+- [ ] For updaing Yivi for PubHubs central update the version number in the cicd file in the docker-build repository,see [yivi releases](https://github.com/privacybydesign/irmago/releases) for the latest version.
 
 ## Hub
 
