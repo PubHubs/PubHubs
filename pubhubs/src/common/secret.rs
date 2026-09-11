@@ -67,7 +67,11 @@ pub trait DigestibleSecret {
     where
         D: sha2::digest::Digest<OutputSize = typenum::U32>,
     {
-        self.update_digest(d, domain).finalize()
+        // NOTE: the copy is needed because sha2 is still on generic-array while
+        // chacha20poly1305 v0.11 moved to hybrid-array; drop it once sha2 v0.11 lands.
+        let bytes: [u8; 32] = self.update_digest(d, domain).finalize().into();
+
+        bytes.into()
     }
 }
 

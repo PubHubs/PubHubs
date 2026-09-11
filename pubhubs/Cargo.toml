@@ -79,14 +79,19 @@ rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", 
 aws-lc-rs = "1.18"
 
 # RustCrypto packages
-## From v0.6, aead drops generic-array (-> hybrid-array) and no longer re-exports rand_core v0.6, which
-## misc/crypto.rs and the `aead::OsRng` handed to curve25519-dalek v4 rely on; bump together with the
-## digest-0.11 cluster below.  chacha20poly1305 v0.11 needs aead v0.6.
-aead = { version = "0.5", features=["getrandom"] }
+## v0.6 dropped generic-array for hybrid-array and moved to rand_core v0.10, so the `aead::OsRng` that
+## misc/crypto.rs handed to curve25519-dalek v4 is gone, and the `Generate` trait replaces
+## `AeadCore::generate_nonce`.  Callers that needed a rand_core v0.6 RNG now draw their bytes from
+## `rand` instead; see `random_scalar` in common/elgamal.rs.  `alloc` is what provides the `Aead`
+## trait: chacha20poly1305 enables it too, but we use it directly so we ask for it ourselves.
+aead = { version = "0.6", features = ["getrandom", "alloc"] }
 base16ct = { version = "1.0", features = ["alloc"] } # hex
 base64ct = { version = "1.8", features = ["alloc"] }
-chacha20poly1305 = { version = "0.10" }
-curve25519-dalek = { version = "4.1.3", features = ["rand_core", "digest", "serde", "zeroize"] }
+chacha20poly1305 = { version = "0.11" }
+## no `rand_core`: that feature only adds `Scalar::random`/`RistrettoPoint::random`, which take a
+## rand_core v0.6 RNG.  We used to feed those `aead::OsRng`, which aead v0.6 no longer has; the
+## replacements in common/elgamal.rs reduce 64 bytes from `rand` themselves, exactly as dalek does.
+curve25519-dalek = { version = "4.1.3", features = ["digest", "serde", "zeroize"] }
 ed25519-dalek = { version = "2.2", features = ["rand_core", "serde"] }
 rsa = { version = "0.9", features = ["sha2"] }
 ## From v0.13, hmac uses digest v0.11 which conflicts with digest v0.10.7 that other packages use (see sha2 below).

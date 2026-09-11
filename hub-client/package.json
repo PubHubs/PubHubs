@@ -49,13 +49,13 @@
 		"@types/sanitize-html": "^2.13.0",
 		"@vitejs/plugin-vue": "^6",
 		"@vue/test-utils": "^2.2.3",
-		"jsdom": "^29",
+		"jsdom": "^30",
 		"msw": "^2.12.4",
 		"tailwindcss": "^4.2.2",
 		"typescript": "^6.0.3",
 		"vite": "^8.2.2",
 		"vite-plugin-node-polyfills": "^0.28.0",
-		"vitest": "^4",
+		"vitest": "^5",
 		"vue-tsc": "^3.3.10"
 	},
 	"browser": {
