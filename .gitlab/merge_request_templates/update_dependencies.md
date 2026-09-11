@@ -18,7 +18,7 @@ Also make sure to not squash the commits so we can search for them later.
 
 ### Yivi
 
-- [ ] For updaing Yivi for PubHubs central update the version number in the cicd file in the docker-build repository,see [yivi releases](https://github.com/privacybydesign/irmago/releases) for the latest version.
+- [ ] For updaing Yivi for PubHubs central update the version number in the cicd file in the docker-build repository,see [yivi releases](https://github.com/privacybydesign/irmago/releases) for the latest version. You have to restart the service on the pubhubs vm for it to take effect.
 
 ## Hub
 
