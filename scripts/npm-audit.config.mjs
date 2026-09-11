@@ -10,6 +10,8 @@
 //   npm update <package>          picks up a fixed patch or minor release without touching package.json
 //   npm audit fix                 the same, for everything npm can fix on its own
 //   a bump in package.json        when the fix needs a new major or minor of a direct dependency
+//   an "overrides" entry          when the vulnerable package sits under a dependency that has not
+//                                 released a fix yet, and a compatible version can be forced in its place
 //
 // Each entry takes:
 //   id       the advisory id as the check prints it (a GHSA id, or `npm-<number>` without one)

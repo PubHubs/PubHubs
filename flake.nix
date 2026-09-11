@@ -97,8 +97,8 @@
                 # Node
                 nodejs # 24.19.0
 
-                # Python
-                python3 # 3.13.12
+                # Python (provides python3, plus the hub's Synapse dependencies)
+                pythonEnv # 3.14.6
 
                 # Rust (pinned via ./rust-toolchain.toml)
                 rustToolchain
