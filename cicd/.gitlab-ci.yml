@@ -8,6 +8,11 @@ variables:
     CARGO_INCREMENTAL: '0'
     CARGO_NET_RETRY: '3'
     CARGO_TERM_COLOR: always
+    # The runner's default cache archiver is single-threaded gzip, and the rust `target/` caches
+    # below are by far the largest thing it has to pack and unpack.  fastzip is parallel, and
+    # `fastest` trades a somewhat bigger archive for a lot less CPU.
+    FF_USE_FASTZIP: 'true'
+    CACHE_COMPRESSION_LEVEL: fastest
 
 before_script:
     - if [ -n "${CI_COMMIT_TAG}" ]; then ENVIRONMENT=stable; fi
@@ -67,6 +72,9 @@ stages: # List of stages for jobs, and their order of execution
         CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
     rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes:
+              - pubhubs/**/*
+              - cicd/.gitlab-ci.yml
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
 
@@ -106,6 +114,10 @@ rust-deny:
     interruptible: true
     rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes:
+              - pubhubs/Cargo.lock
+              - pubhubs/deny.toml
+              - cicd/.gitlab-ci.yml
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
     image: $RUST_IMAGE
