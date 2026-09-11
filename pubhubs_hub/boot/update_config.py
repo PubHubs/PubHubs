@@ -177,7 +177,7 @@ class UpdateConfig:
         "conf.modules.pubhubs.ConsentResource",
     )
 
-    def __init__(self, config_env: str, hub_client_url, hub_server_url, global_client_url,
+    def __init__(self, config_env: str, hub_client_url, hub_server_url, public_yivi_url, global_client_url,
                  replace_sqlite3_by_postgres, server_name):
         self._hub_client_url = hub_client_url
         self._hub_server_url = hub_server_url
@@ -222,24 +222,6 @@ class UpdateConfig:
 
         if self._hub_server_url is not None:
             homeserver['public_baseurl'] = self._hub_server_url
-
-        if self._hub_client_url != None:
-            for module in homeserver['modules']:
-                if module['module'] != "conf.modules.pubhubs.HubClientApi":
-                    continue
-                module['config']['client_url'] = self._hub_client_url
-
-        if self._public_yivi_url != None:
-            for module in homeserver['modules']:
-                if module['module'] != "conf.modules.pubhubs.HubClientApi":
-                    continue
-                module['config']['public_yivi_url'] = self._public_yivi_url
-
-        if self._global_client_url != None:
-            for module in homeserver['modules']:
-                if module['module'] != "conf.modules.pubhubs.HubClientApi":
-                    continue
-                module['config']['global_client_url'] = self._global_client_url
 
         self._sqlite3_path = sqlite3_path_in(homeserver)
 
@@ -509,6 +491,8 @@ class UpdateConfig:
                 config["client_url"] = self._hub_client_url
             if self._global_client_url is not None:
                 config["global_client_url"] = self._global_client_url
+            if self._public_yivi_url is not None:
+                config["public_yivi_url"] = self._public_yivi_url
 
         # This script replaces the config checker, so drop it from older configurations.
         modules = [m for m in modules if m["module"] not in self.RETIRED_MODULES]

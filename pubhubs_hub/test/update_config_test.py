@@ -70,6 +70,7 @@ def generate(config: dict, environment: str = "development", **kwargs) -> dict:
     """Run update_config over `config` and return the resulting live config."""
     kwargs.setdefault("hub_client_url", None)
     kwargs.setdefault("hub_server_url", None)
+    kwargs.setdefault("public_yivi_url", None)
     kwargs.setdefault("replace_sqlite3_by_postgres", None)
     kwargs.setdefault("server_name", None)
     if environment == "development":
@@ -400,6 +401,24 @@ class ModulesTest(unittest.TestCase):
         live = generate(base_config(), hub_client_url="http://localhost:9999")
         api = module_named(live, "conf.modules.pubhubs.HubClientApi")
         self.assertEqual(api["config"]["client_url"], "http://localhost:9999")
+
+    def test_public_yivi_url_argument_overrides_the_config(self):
+        live = generate(base_config(), public_yivi_url="http://192.168.1.2:8008/")
+        api = module_named(live, "conf.modules.pubhubs.HubClientApi")
+        self.assertEqual(api["config"]["public_yivi_url"], "http://192.168.1.2:8008/")
+
+    def test_public_yivi_url_is_left_unset_when_not_passed(self):
+        """Unset, the module falls back to public_baseurl, so nothing should be written."""
+        live = generate(base_config())
+        api = module_named(live, "conf.modules.pubhubs.HubClientApi")
+        self.assertNotIn("public_yivi_url", api["config"])
+
+    def test_public_yivi_url_argument_replaces_an_owner_configured_value(self):
+        config = base_config()
+        config["modules"][0]["config"]["public_yivi_url"] = "http://localhost:8008/"
+        live = generate(config, public_yivi_url="http://192.168.1.2:8008/")
+        api = module_named(live, "conf.modules.pubhubs.HubClientApi")
+        self.assertEqual(api["config"]["public_yivi_url"], "http://192.168.1.2:8008/")
 
 
 class OidcProvidersTest(unittest.TestCase):
