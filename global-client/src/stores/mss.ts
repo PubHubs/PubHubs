@@ -158,6 +158,7 @@ const useMSS = defineStore('mss', {
 
 			const settings = useSettings();
 			const cardFeature = settings.isFeatureEnabled(FeatureFlag.phCard);
+			const chainedFeature = settings.isFeatureEnabled(FeatureFlag.chainedSession);
 			const authServer = await this.getAuthServer();
 			let warningMessage = undefined;
 
@@ -168,11 +169,9 @@ const useMSS = defineStore('mss', {
 			// 2. Build auth start request
 			const isRegistering = enterMode === PHCEnterMode.LoginOrRegister || enterMode === PHCEnterMode.Register;
 
-			// Disable chained-sessions while the error fallback is not working
+			// Disable chained-sessions for stable while the error fallback is not working
 			// and there are timeouts with slow connectivity
-			const chainedSession = false;
-			// Below the original code before we disabled chained-session temporarily
-			// const chainedSession = isRegistering && cardFeature;
+			const chainedSession = isRegistering && cardFeature && chainedFeature;
 
 			const authStartReq: AuthStartReq = {
 				source: loginMethod.source,
@@ -199,13 +198,18 @@ const useMSS = defineStore('mss', {
 			// Disclose attributes in Yivi
 			let proof: { Yivi: { disclosure: string } };
 
+			// The Yivi session a chained run shows. It stays up after the disclosure to carry the card
+			// issuance as well, so step 9 has to wait for it; null when the card gets a session of its own.
+			let chainedYiviSession: Promise<string> | null = null;
+
 			this.awaitingDisclosure = true;
 			try {
 				if (chainedSession) {
 					// When chaining, the disclosure is collected from the authentication server below rather
 					// than from this promise, and `YiviWaitForResultEP` is what reports a failure. The Yivi
 					// handler has already logged it, so the rejection is only kept from going unhandled here.
-					this.runYiviSession(yiviUrl, disclosure_request, mountPoint, runId).catch(() => {});
+					chainedYiviSession = this.runYiviSession(yiviUrl, disclosure_request, mountPoint, runId);
+					chainedYiviSession.catch(() => {});
 					const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
 					if (jwt === 'PleaseRestartAuth') {
 						throw new Error('Something went wrong; please start again at AuthStartEP.');
@@ -262,7 +266,7 @@ const useMSS = defineStore('mss', {
 				const comment = 'via\n' + attributeValues.join('\n');
 				this.issuingCard = true;
 				try {
-					const { cardAttr, errorMessage: cardError } = await this.issueCard(chainedSession, comment, mountPoint, identifyingAttr, runId);
+					const { cardAttr, errorMessage: cardError } = await this.issueCard(chainedYiviSession, comment, mountPoint, identifyingAttr, runId);
 					if (cardAttr) identifying['ph_card'] = cardAttr;
 					else warningMessage = cardError;
 				} catch (error) {
@@ -337,7 +341,7 @@ const useMSS = defineStore('mss', {
 			// over: the write below renders nothing, and restarting there issues a second card and races
 			// a second write against this one.
 			this.issuingCard = true;
-			const issued = await this.issueCard(false, comment, mountPoint).finally(() => {
+			const issued = await this.issueCard(null, comment, mountPoint).finally(() => {
 				// A superseded issuance must not clear a flag the one that replaced it has already raised.
 				if (runId === currentEnterRun) this.issuingCard = false;
 			});
@@ -419,11 +423,13 @@ const useMSS = defineStore('mss', {
 		},
 
 		/**
+		 * @param chainedYiviSession The Yivi session the disclosure ran in, when the card is chained onto
+		 * it, or null when the card gets a session of its own.
 		 * @param ownedByRun The enter run this issuance belongs to, see `runYiviSession`. A page
 		 * retrying the issuance on its own leaves it out.
 		 */
 		async issueCard(
-			chainedSession: boolean,
+			chainedYiviSession: Promise<string> | null,
 			comment: string,
 			mountPoint: YiviMountPoint,
 			identifyingAttr?: string,
@@ -448,7 +454,7 @@ const useMSS = defineStore('mss', {
 				return { cardAttr: null, errorMessage };
 			}
 			// 4. Add card to Yivi
-			if (chainedSession) {
+			if (chainedYiviSession) {
 				const response = await authServer.YiviReleaseNextSessionEP({
 					state: authServer.getState(),
 					next_session: issuance_request,
@@ -456,6 +462,12 @@ const useMSS = defineStore('mss', {
 				});
 				if (response === 'YiviServerGone') {
 					return { cardAttr: null, errorMessage: { key: 'errors.YiviServerGone', values: [comment] } };
+				}
+				try {
+					await chainedYiviSession;
+				} catch {
+					// Already logged by the Yivi handler.
+					return { cardAttr: null, errorMessage: { key: 'errors.card_not_added', values: [comment] } };
 				}
 			} else {
 				const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
