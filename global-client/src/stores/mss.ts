@@ -69,8 +69,12 @@ const useMSS = defineStore('mss', {
 			constellation: null as Constellation | null,
 			hubs: null as Record<string, HubInformation> | null,
 			// True while the disclosure has succeeded and the PubHubs card is being issued, so the
-			// UI can tell the user the login worked and a second Yivi session is on its way.
+			// UI can tell the user the login worked and the card is on its way.
 			issuingCard: false,
+			// True while that card is being issued in the Yivi session the disclosure ran in rather than
+			// in a second one, so the UI can tell the user to finish in the app they already have open
+			// instead of sending them back for another scan.
+			issuingCardInSameSession: false,
 			// True while the disclosure widget is the thing on screen, so a page that has to re-render
 			// it (a breakpoint swap, a page restored from the back/forward cache) can tell whether a
 			// restart still means anything.
@@ -89,6 +93,7 @@ const useMSS = defineStore('mss', {
 			activeYiviSession = null;
 			this.awaitingDisclosure = false;
 			this.issuingCard = false;
+			this.issuingCardInSameSession = false;
 		},
 
 		/**
@@ -97,14 +102,22 @@ const useMSS = defineStore('mss', {
 		 * @param mountPoint The element the page wants the Yivi widget rendered into.
 		 * @param ownedByRun The enter run this session belongs to; defaults to the run in flight, which
 		 * is what a caller outside `enterPubHubs` - a card issuance retried from the page - wants.
+		 * @param endOnFailure Whether a session that did not succeed ends rather than letting the widget
+		 * start it again, see `startYiviAuthentication`.
 		 * @returns The disclosure or issuance result.
 		 */
-		async runYiviSession(yiviRequestorUrl: string, request: string, mountPoint: YiviMountPoint, ownedByRun = currentEnterRun): Promise<string> {
+		async runYiviSession(
+			yiviRequestorUrl: string,
+			request: string,
+			mountPoint: YiviMountPoint,
+			ownedByRun = currentEnterRun,
+			endOnFailure = false,
+		): Promise<string> {
 			// A run that has been superseded renders no widget: it would draw over the one its
 			// replacement is showing, and take the slot `cancelEnter()` reaches for with it.
 			if (ownedByRun !== currentEnterRun) throw new EnterCancelled();
 
-			const { session, result } = startYiviAuthentication(yiviRequestorUrl, request, mountPoint);
+			const { session, result } = startYiviAuthentication(yiviRequestorUrl, request, mountPoint, endOnFailure);
 			activeYiviSession = session;
 			try {
 				return await result;
@@ -206,12 +219,19 @@ const useMSS = defineStore('mss', {
 			try {
 				if (chainedSession) {
 					// When chaining, the disclosure is collected from the authentication server below rather
-					// than from this promise, and `YiviWaitForResultEP` is what reports a failure. The Yivi
-					// handler has already logged it, so the rejection is only kept from going unhandled here.
-					chainedYiviSession = this.runYiviSession(yiviUrl, disclosure_request, mountPoint, runId);
-					chainedYiviSession.catch(() => {});
-					const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
-					if (jwt === 'PleaseRestartAuth') {
+					// than from this promise. This session carries the card issuance as well, so it must not
+					// be left to the widget to start again: by then its request is a disclosure the server
+					// has already consumed. See `startYiviAuthentication`.
+					chainedYiviSession = this.runYiviSession(yiviUrl, disclosure_request, mountPoint, runId, true);
+					const sessionOver = chainedYiviSession.catch(() => {}).then(() => 'ChainedSessionOver' as const);
+					const jwt = await Promise.race([authServer.YiviWaitForResultEP(authServer.getState()), sessionOver]);
+					if (jwt === 'ChainedSessionOver') {
+						// A superseded run aborts its own Yivi session, which is not a failure to report.
+						if (superseded()) throw new EnterCancelled();
+						// Reported instead of thrown so the caller can show it in place of the QR code, rather
+						// than sending the user to the error page.
+						return { key: 'errors.yivi_session_failed' };
+					} else if (jwt === 'PleaseRestartAuth') {
 						throw new Error('Something went wrong; please start again at AuthStartEP.');
 					} else if (jwt === 'SessionGone') {
 						throw new Error('The session has expired or was already completed.');
@@ -265,6 +285,7 @@ const useMSS = defineStore('mss', {
 			if (isRegistering && cardFeature) {
 				const comment = 'via\n' + attributeValues.join('\n');
 				this.issuingCard = true;
+				this.issuingCardInSameSession = chainedSession;
 				try {
 					const { cardAttr, errorMessage: cardError } = await this.issueCard(chainedYiviSession, comment, mountPoint, identifyingAttr, runId);
 					if (cardAttr) identifying['ph_card'] = cardAttr;
@@ -281,7 +302,10 @@ const useMSS = defineStore('mss', {
 					// Steps 8 onwards no longer touch the shared authentication state, so a superseded run
 					// finishes them rather than leave the account half registered - but it must not clear a
 					// flag its replacement has already raised.
-					if (!superseded()) this.issuingCard = false;
+					if (!superseded()) {
+						this.issuingCard = false;
+						this.issuingCardInSameSession = false;
+					}
 				}
 			}
 
@@ -341,6 +365,7 @@ const useMSS = defineStore('mss', {
 			// over: the write below renders nothing, and restarting there issues a second card and races
 			// a second write against this one.
 			this.issuingCard = true;
+			this.issuingCardInSameSession = false;
 			const issued = await this.issueCard(null, comment, mountPoint).finally(() => {
 				// A superseded issuance must not clear a flag the one that replaced it has already raised.
 				if (runId === currentEnterRun) this.issuingCard = false;

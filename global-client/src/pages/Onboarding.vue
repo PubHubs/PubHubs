@@ -339,7 +339,12 @@
 
 	const cardText = computed(() => {
 		const names = [t('common.yivi'), t('common.app_name')];
-		if (showSuccess.value) return t(yiviAppAvailable ? 'register.card_3_success_text_app' : 'register.card_3_success_text', names);
+		if (showSuccess.value) {
+			// A chained session issues the card in the Yivi session the user is already in: there is no
+			// second QR code to scan and no second trip into the app, so neither of the texts below fits.
+			if (mss.issuingCardInSameSession) return t('register.card_3_success_text_chained', names);
+			return t(yiviAppAvailable ? 'register.card_3_success_text_app' : 'register.card_3_success_text', names);
+		}
 		return t(yiviAppAvailable ? 'register.card_3_text_2_app' : 'register.card_3_text_2', names);
 	});
 

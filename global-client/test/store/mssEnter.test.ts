@@ -18,12 +18,17 @@ import { useSettings } from '@hub-client/stores/settings';
 // The Yivi widget is stood in for, so a test decides when a session ends - and whether it ends
 // because the store aborted it. Everything the store does around it is the real implementation.
 const { yiviSessions } = vi.hoisted(() => ({
-	yiviSessions: [] as { abort: ReturnType<typeof vi.fn>; resolve: (disclosure: string) => void; reject: (reason: unknown) => void }[],
+	yiviSessions: [] as {
+		abort: ReturnType<typeof vi.fn>;
+		resolve: (disclosure: string) => void;
+		reject: (reason: unknown) => void;
+		endOnFailure: boolean;
+	}[],
 }));
 
 vi.mock('@global-client/logic/utils/yiviHandler', () => ({
 	canOpenYiviApp: () => false,
-	startYiviAuthentication: () => {
+	startYiviAuthentication: (_url: string, _request: string, _mountPoint: unknown, endOnFailure = false) => {
 		let resolve!: (disclosure: string) => void;
 		let reject!: (reason: unknown) => void;
 		const result = new Promise<string>((resolveResult, rejectResult) => {
@@ -31,7 +36,7 @@ vi.mock('@global-client/logic/utils/yiviHandler', () => ({
 			reject = rejectResult;
 		});
 		const abort = vi.fn(() => reject(new Error('Yivi session aborted')));
-		yiviSessions.push({ abort, resolve, reject });
+		yiviSessions.push({ abort, resolve, reject, endOnFailure });
 		return { session: { abort }, result };
 	},
 }));
@@ -354,6 +359,8 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 	// Success here only means the Yivi server has been handed the issuance request; whether it reaches
 	// the user's app is up to the chained session, which is why the tests drive the two separately.
 	let releaseNextSession: ReturnType<typeof vi.fn>;
+	// The authentication server's long poll for the disclosure, which a test can leave outstanding.
+	let waitForResult: () => Promise<unknown>;
 	const mountPoint = ref<HTMLElement | null>(null);
 	const emailAttr = { signedAttr: 'jwt', id: 'email', value: 'someone@example.com' };
 	// The issuance decodes the signed card attribute, so it has to be a JWT that parses.
@@ -364,6 +371,7 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 		yiviSessions.length = 0;
 		mss = useMSS();
 		releaseNextSession = vi.fn(async () => ({}));
+		waitForResult = async () => ({ Success: { disclosure: 'a-disclosure' } });
 		// Chaining issues the card in the session the disclosure ran in, rather than a second one.
 		vi.spyOn(useSettings(), 'isFeatureEnabled').mockReturnValue(true);
 	});
@@ -381,7 +389,7 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 			authStartEP: async () => ({ task: { Yivi: { disclosure_request: 'a-request', yivi_requestor_url: 'http://yivi-test/' } }, state: [1] }),
 			setState: vi.fn(),
 			getState: () => [1],
-			YiviWaitForResultEP: async () => ({ Success: { disclosure: 'a-disclosure' } }),
+			YiviWaitForResultEP: () => waitForResult(),
 			completeAuthEP: async () => ({ attrs: { email: 'jwt' } }),
 			CardEP: async () => ({ attr: signedCardAttr, issuance_request: 'an-issuance', yivi_requestor_url: 'http://yivi-test/' }),
 			YiviReleaseNextSessionEP: releaseNextSession,
@@ -412,6 +420,47 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 
 		await expect(run).resolves.toBeUndefined();
 		expect(mss.requestUserSecretObject).toHaveBeenCalledWith(expect.objectContaining({ ph_card: expect.objectContaining({ id: 'ph_card' }) }));
+	});
+
+	test('the widget is not left to restart a chained session by itself', async () => {
+		// Restarting sends the request the widget was given again, which is the disclosure - by the time
+		// the card is being issued the authentication server has consumed it, so the restart yivi-web
+		// offers on a cancelled session, and performs by itself when the window regains focus, starts a
+		// session nobody is waiting for and shows the user a Yivi error.
+		const run = enterChained();
+		await waitForIssuanceReleased();
+
+		expect(yiviSessions[0].endOnFailure).toBe(true);
+
+		mss.cancelEnter();
+		await expect(run).resolves.toEqual({ key: 'errors.card_not_added', values: ['via\nemail'] });
+	});
+
+	test('the page is told the card is being issued in the session that is already on screen', async () => {
+		// What decides between telling the user to scan again and telling them to finish in the app they
+		// already have open.
+		const run = enterChained();
+		await waitForIssuanceReleased();
+
+		expect(mss.issuingCard).toBe(true);
+		expect(mss.issuingCardInSameSession).toBe(true);
+
+		yiviSessions[0].resolve('a-disclosure');
+		await run;
+		expect(mss.issuingCardInSameSession).toBe(false);
+	});
+
+	test('a chained session that ends before the disclosure arrives is reported, not waited on', async () => {
+		// The authentication server holds its long poll open until the chained session expires, so a run
+		// that only waits on that is left with nothing on screen and no way forward for ten minutes.
+		waitForResult = () => new Promise(() => {});
+		const run = enterChained();
+		await vi.waitFor(() => expect(yiviSessions).toHaveLength(1));
+
+		yiviSessions[0].reject(new Error('the user closed the Yivi app'));
+
+		await expect(run).resolves.toEqual({ key: 'errors.yivi_session_failed' });
+		expect(releaseNextSession).not.toHaveBeenCalled();
 	});
 
 	test('a chained session stopped before the card reached the app reports it instead of storing it', async () => {
