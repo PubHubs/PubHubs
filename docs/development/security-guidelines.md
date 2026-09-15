@@ -114,11 +114,9 @@ def get_reports_txn(txn: LoggingTransaction, room_ids_txn: list[str], limit_txn:
         (*room_ids_txn, limit_txn, start_txn),
     )
     return txn.fetchall()
-```
 
-Note that `ORDER BY {order}` and `LIMIT ?` are different problems: the sort direction cannot be bound, so
-it must come from a fixed mapping (`"DESC" if backwards else "ASC"`) and never straight from the `dir`
-query parameter.
+
+```
 
 Identifiers (table and column names) cannot be parameterized either. When a migration has to build them
 dynamically, validate them against the database or a pattern first, as `_store_modifier.py` does:
@@ -255,3 +253,18 @@ script:
 script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 ```
+
+### Allocation of Resources Without Limits or Throttling
+
+It is important to keep in mind max-sizes, max-tries, throttling and load-balancing whenever you use an existing endpoint or add a new endpoint.
+
+You do not only want to load resources quickly, you also want to keep the work for the hub server as light as possible.
+
+Also think about how any of these endpoints can be abused. Can a user upload infinite images with a large size?
+
+Synapse itself already does a lot, but for Pubhubs modules we need to make our own limits.
+
+TODO:
+
+- Harden every module endpoint with throttling and limits.
+- Set max sizes for all resource uploads.
