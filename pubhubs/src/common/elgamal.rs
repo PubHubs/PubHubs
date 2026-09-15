@@ -190,23 +190,19 @@ pub mod rsk {
     }
 }
 
-macro_rules! osrng {
-    () => {
-        &mut aead::OsRng
-    };
-}
-
 /// Returns a random Ristretto point, mainly for examples.
 ///
 /// If you're immediately encrypting this point, consider
 /// using [PublicKey::encrypt_random] instead.
 pub fn random_point() -> RistrettoPoint {
-    RistrettoPoint::random(osrng!())
+    // NOTE: what `RistrettoPoint::random` does, but without needing a rand_core v0.6 RNG.
+    RistrettoPoint::from_uniform_bytes(&crate::misc::crypto::random_64_bytes())
 }
 
 /// Returns a random scalar, mainly for examples.
 pub fn random_scalar() -> Scalar {
-    Scalar::random(osrng!())
+    // NOTE: what `Scalar::random` does, but without needing a rand_core v0.6 RNG.
+    Scalar::from_bytes_mod_order_wide(&crate::misc::crypto::random_64_bytes())
 }
 
 /// Private key - load using [`PrivateKey::from_hex`] or generate with [`PrivateKey::random`].
