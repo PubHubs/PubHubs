@@ -161,7 +161,7 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 
 ### 6. Solutions for common issues
 
-- If Yivi cannot communicate with your local development setup, disable your firewall.
+- If Yivi cannot communicate with your local development setup, allow the yivi ports 8188 and 8189 in your firewall.
 - If Yivi still doesn't communicate with your local development, and you are on eduroam, you might have to use a VPN such as Tailscale to connect your development machine and your phone.
 - Is you run into CORS issues, disable HTPPS-only in your browser.
 
