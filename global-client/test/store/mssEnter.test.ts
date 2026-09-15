@@ -13,6 +13,8 @@ import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 import { useGlobal } from '@global-client/stores/global';
 import { EnterCancelled, useMSS } from '@global-client/stores/mss';
 
+import { useSettings } from '@hub-client/stores/settings';
+
 // The Yivi widget is stood in for, so a test decides when a session ends - and whether it ends
 // because the store aborted it. Everything the store does around it is the real implementation.
 const { yiviSessions } = vi.hoisted(() => ({
@@ -344,5 +346,86 @@ describe('Issuing a PubHubs card after the account was entered', () => {
 			errorMessage: { key: 'errors.card_not_added' },
 		});
 		expect(addCard).not.toHaveBeenCalled();
+	});
+});
+
+describe('Issuing the PubHubs card in a chained Yivi session', () => {
+	let mss: ReturnType<typeof useMSS>;
+	// Success here only means the Yivi server has been handed the issuance request; whether it reaches
+	// the user's app is up to the chained session, which is why the tests drive the two separately.
+	let releaseNextSession: ReturnType<typeof vi.fn>;
+	const mountPoint = ref<HTMLElement | null>(null);
+	const emailAttr = { signedAttr: 'jwt', id: 'email', value: 'someone@example.com' };
+	// The issuance decodes the signed card attribute, so it has to be a JWT that parses.
+	const signedCardAttr = `header.${btoa(JSON.stringify({ attr_type: 'ph_card', value: 'card-pseudonym' }))}.signature`;
+
+	beforeEach(() => {
+		setActivePinia(createPinia());
+		yiviSessions.length = 0;
+		mss = useMSS();
+		releaseNextSession = vi.fn(async () => ({}));
+		// Chaining issues the card in the session the disclosure ran in, rather than a second one.
+		vi.spyOn(useSettings(), 'isFeatureEnabled').mockReturnValue(true);
+	});
+
+	afterEach(() => {
+		localStorage.clear();
+	});
+
+	// A registration that gets as far as releasing the issuance into the chained session. The widget is
+	// left running: each test decides how that session ends.
+	const enterChained = () => {
+		const authServer = {
+			welcomeEPAuths: async () => attrTypes,
+			checkAttributes: () => new Set(['email']),
+			authStartEP: async () => ({ task: { Yivi: { disclosure_request: 'a-request', yivi_requestor_url: 'http://yivi-test/' } }, state: [1] }),
+			setState: vi.fn(),
+			getState: () => [1],
+			YiviWaitForResultEP: async () => ({ Success: { disclosure: 'a-disclosure' } }),
+			completeAuthEP: async () => ({ attrs: { email: 'jwt' } }),
+			CardEP: async () => ({ attr: signedCardAttr, issuance_request: 'an-issuance', yivi_requestor_url: 'http://yivi-test/' }),
+			YiviReleaseNextSessionEP: releaseNextSession,
+		};
+		vi.spyOn(mss, 'getAuthServer').mockResolvedValue(authServer as unknown as Awaited<ReturnType<typeof mss.getAuthServer>>);
+		vi.spyOn(mss, 'validateAttributes').mockImplementation(() => {});
+		vi.spyOn(mss, 'decodeSignedAttributes').mockReturnValue({ identifying: { email: emailAttr }, additional: [], attributeValues: ['email'] });
+		vi.spyOn(mss.phcServer, 'cardPseudoPackage').mockResolvedValue('a-package' as unknown as Awaited<ReturnType<typeof mss.phcServer.cardPseudoPackage>>);
+		vi.spyOn(mss.phcServer, 'enter').mockResolvedValue({ entered: true, errorMessage: null, enterResp: [] });
+		vi.spyOn(mss.phcServer, 'stateEP').mockResolvedValue(undefined as unknown as Awaited<ReturnType<typeof mss.phcServer.stateEP>>);
+		vi.spyOn(mss, 'requestUserSecretObject').mockResolvedValue({ error: false, userSecret: null, userSecretBackup: null });
+		vi.spyOn(mss, 'requestAttrKeys').mockResolvedValue({ error: false, response: {} });
+		vi.spyOn(mss.phcServer, 'storeUserSecretObject').mockResolvedValue(undefined);
+
+		return mss.enterPubHubs(loginMethods.Yivi, PHCEnterMode.LoginOrRegister, mountPoint);
+	};
+
+	// Resolves once the issuance has been handed to the Yivi server, which is the point from which the
+	// chained session is the only thing that can still carry the card to the user.
+	const waitForIssuanceReleased = () => vi.waitFor(() => expect(releaseNextSession).toHaveBeenCalled());
+
+	test('the card is stored once the chained session has carried it to the app', async () => {
+		const run = enterChained();
+		await waitForIssuanceReleased();
+
+		// The user approves the issuance in their Yivi app, which ends the chained session.
+		yiviSessions[0].resolve('a-disclosure');
+
+		await expect(run).resolves.toBeUndefined();
+		expect(mss.requestUserSecretObject).toHaveBeenCalledWith(expect.objectContaining({ ph_card: expect.objectContaining({ id: 'ph_card' }) }));
+	});
+
+	test('a chained session stopped before the card reached the app reports it instead of storing it', async () => {
+		// What a breakpoint swap or a page restored from the back/forward cache does while the issuance
+		// is up: the widget is gone, so the card never reaches the Yivi app. Releasing the next session
+		// succeeded all the same, and the card attribute is on the account either way - so a run that
+		// took that for success would store a card the user does not have, and the next login discloses
+		// exactly that card.
+		const run = enterChained();
+		await waitForIssuanceReleased();
+
+		mss.cancelEnter();
+
+		await expect(run).resolves.toEqual({ key: 'errors.card_not_added', values: ['via\nemail'] });
+		expect(mss.requestUserSecretObject).toHaveBeenCalledWith(expect.not.objectContaining({ ph_card: expect.anything() }));
 	});
 });
