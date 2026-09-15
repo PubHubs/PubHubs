@@ -169,4 +169,6 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 
 ## Further documentation & changelog
 
-- Changelog: [CHANGELOG.md](./CHANGELOG.md)
+- [CHANGELOG.md](./CHANGELOG.md)
+- [Deploy docs](./docs/deploy/)
+- [Dev docs](./docs/development/)
