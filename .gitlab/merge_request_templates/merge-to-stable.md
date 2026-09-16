@@ -33,6 +33,9 @@ Test by hand:
             - [ ] With the new user (not an admin!):
                 - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
                 - [ ] Leave one of the secured rooms. And re-enter that room.
+            - [ ] Promote the new user to Steward of a room, with the Steward:
+                - [ ] Change the roomproperties (name, description, attributes of a secured room)
+                - [ ] Test steward functionality
             - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
             - [ ] Logging out and logging in again with your original user.
         - [ ] Anything related specifically to your merge request that is not covered by the e2e test (new stuff should!)
