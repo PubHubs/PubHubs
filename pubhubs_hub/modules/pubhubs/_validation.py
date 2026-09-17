@@ -66,8 +66,8 @@ def get_room_id_from_request(request: SynapseRequest) -> Optional[str]:
     # Fallback to body
     try:
         body = request.content.read()
-        request.content.seek(0)
         body_json = json.loads(body)
+        request.content.seek(0)
         return body_json.get('room_id')
     except Exception:
         return None
