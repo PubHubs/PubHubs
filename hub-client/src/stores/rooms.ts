@@ -13,6 +13,7 @@ import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
+import { mergeStateEvents } from '@hub-client/logic/utils/roomUtils';
 
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
@@ -472,7 +473,9 @@ const useRooms = defineStore('rooms', {
 			if (existing) {
 				existing.roomType = roomListRoom.roomType;
 				if (roomListRoom.name) existing.name = roomListRoom.name;
-				if (roomListRoom.stateEvents.length > 0) existing.stateEvents = roomListRoom.stateEvents;
+				if (roomListRoom.stateEvents.length > 0) {
+					mergeStateEvents(roomListRoom.stateEvents, existing.stateEvents);
+				}
 			} else {
 				this.roomList.push(roomListRoom);
 			}

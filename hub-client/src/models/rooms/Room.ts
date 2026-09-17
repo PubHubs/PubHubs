@@ -28,6 +28,7 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { api_synapse } from '@hub-client/logic/core/api';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { mergeStateEvents } from '@hub-client/logic/utils/roomUtils';
 
 // Models
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType } from '@hub-client/models/constants';
@@ -216,18 +217,6 @@ export default class Room {
 
 	public getStateEvents(): IStateEvent[] {
 		return this.stateEvents;
-	}
-
-	// Merges new state events into stateEvents, keyed by (type, state_key)
-	private mergeStateEvents(newEvents: IStateEvent[]) {
-		for (const newEvent of newEvents) {
-			const existingIndex = this.stateEvents.findIndex((e) => e.type === newEvent.type && e.state_key === newEvent.state_key);
-			if (existingIndex >= 0) {
-				this.stateEvents[existingIndex] = newEvent;
-			} else {
-				this.stateEvents.push(newEvent);
-			}
-		}
 	}
 
 	public getFirstVisibleEventId(): string {
@@ -755,7 +744,7 @@ export default class Room {
 	public loadFromSlidingSync(roomData: SlidingSyncRoomData) {
 		this.syncDataReceived = true;
 		if (roomData.required_state && roomData.required_state.length > 0) {
-			this.mergeStateEvents(roomData.required_state);
+			mergeStateEvents(roomData.required_state, this.stateEvents);
 		}
 
 		if (!roomData.timeline || roomData.timeline.length === 0) return;
