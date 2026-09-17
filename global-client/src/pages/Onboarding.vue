@@ -339,7 +339,12 @@
 
 	const cardText = computed(() => {
 		const names = [t('common.yivi'), t('common.app_name')];
-		if (showSuccess.value) return t(yiviAppAvailable ? 'register.card_3_success_text_app' : 'register.card_3_success_text', names);
+		if (showSuccess.value) {
+			// A chained session issues the card in the Yivi session the user is already in: there is no
+			// second QR code to scan and no second trip into the app, so neither of the texts below fits.
+			if (mss.issuingCardInSameSession) return t('register.card_3_success_text_chained', names);
+			return t(yiviAppAvailable ? 'register.card_3_success_text_app' : 'register.card_3_success_text', names);
+		}
 		return t(yiviAppAvailable ? 'register.card_3_text_2_app' : 'register.card_3_text_2', names);
 	});
 
@@ -422,8 +427,8 @@
 	// The steps in between show nothing and survive on their own, so restarting there would only throw
 	// away a registration in progress.
 	//
-	// Registration shows two widgets, not one: chained sessions are off, so the PubHubs card is issued
-	// in a second Yivi session after the disclosure. Which of the two is up decides what to restart.
+	// Registration can show a second widget: without chained sessions the PubHubs card is issued in a
+	// Yivi session of its own after the disclosure. Which of the two is up decides what to restart.
 	//
 	// `mountPointReplaced` says whether the element the widget rendered into is actually gone. When it
 	// is, a session that is still up has nowhere left to draw and has to be restarted whatever that
@@ -441,7 +446,8 @@
 		} else if (mss.issuingCard) {
 			// The last step of the enter run is showing the widget, and only that run knows what the card
 			// is being issued for. Stopping its session makes it report `card_not_added`, which is
-			// picked up below and retried with the comment it carries.
+			// picked up below and retried with the comment it carries - for a chained session as much as
+			// for one of its own, see `issueCard`.
 			if (!mountPointReplaced) return;
 			mss.cancelEnter();
 		} else if (mss.awaitingDisclosure) {

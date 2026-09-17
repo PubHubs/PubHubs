@@ -11,24 +11,41 @@ import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler'
 // the mount point, aborting, turning a rejection into a message - is the real implementation.
 const { cores } = vi.hoisted(() => ({ cores: [] as MockCore[] }));
 
+type Plugin = { stateChange?: (event: { newState: string }) => void };
+
 type MockCore = {
 	options: { element: string };
 	abort: ReturnType<typeof vi.fn>;
 	settle: { resolve: (value: unknown) => void; reject: (reason: unknown) => void };
+	stateChange: (event: { newState: string }) => void;
 };
+
+// The widget and the session client are stood in for as well, so `use` can build the plugins the
+// handler registers without either of them reaching for the DOM or the network.
+vi.mock('@privacybydesign/yivi-web', () => ({ YiviWeb: class {} }));
+// `SessionManagement` is here because the handler's module scope patches its prototype.
+vi.mock('@privacybydesign/yivi-client', () => ({ YiviClient: class {}, SessionManagement: class {} }));
 
 vi.mock('@privacybydesign/yivi-core', () => ({
 	YiviCore: class {
 		public readonly options: { element: string };
 		public readonly abort = vi.fn();
 		public settle!: MockCore['settle'];
+		private readonly plugins: Plugin[] = [];
 
 		constructor(options: { element: string }) {
 			this.options = options;
 			cores.push(this as unknown as MockCore);
 		}
 
-		use() {}
+		use(plugin: new (args: unknown) => Plugin) {
+			this.plugins.push(new plugin({ stateMachine: {}, options: this.options }));
+		}
+
+		// Tells the plugins the session moved to `newState`, the way the real state machine does.
+		stateChange(event: { newState: string }) {
+			this.plugins.forEach((plugin) => plugin.stateChange?.(event));
+		}
 
 		start() {
 			return new Promise((resolve, reject) => {
@@ -157,6 +174,32 @@ describe('Yivi handler', () => {
 			cores[0].settle.reject({ status: 500 });
 
 			await expect(result).rejects.toThrow('Yivi session failed: {"status":500}');
+		});
+
+		test('A session that may not be restarted by the widget ends when it does not succeed', async () => {
+			// yivi-web keeps its own retry button on a session it can start again, and restarts one by
+			// itself when the window regains focus. Both send this session's request again, which is not
+			// what a chained session wants once the authentication server has consumed its disclosure.
+			const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			const { result } = startYiviAuthentication('http://yivi-test', 'request', mountPointFor(document.createElement('div')), true);
+			cores[0].stateChange({ newState: 'Cancelled' });
+
+			await expect(result).rejects.toThrow('Yivi session cancelled');
+			expect(cores[0].abort).toHaveBeenCalled();
+			// Ending a session on purpose is not a failure to report.
+			expect(errorLog).not.toHaveBeenCalled();
+		});
+
+		test('A session the widget may restart is left to do so', async () => {
+			// The retry yivi-web offers restarts the session this widget was given, which for a session
+			// of its own is exactly the right thing - the caller is still waiting on the same result.
+			const { result } = startYiviAuthentication('http://yivi-test', 'request', mountPointFor(document.createElement('div')));
+			cores[0].stateChange({ newState: 'Cancelled' });
+
+			const pending = Symbol('pending');
+			await expect(Promise.race([result, Promise.resolve(pending)])).resolves.toBe(pending);
+			expect(cores[0].abort).not.toHaveBeenCalled();
 		});
 
 		test('An error thrown while collecting the result is passed on as it is', async () => {

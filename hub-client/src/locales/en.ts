@@ -155,6 +155,7 @@ const en = {
 		card_3_success_title: "You're logged in!",
 		card_3_success_text: 'Scan the {0} Qr code once more to add your {1} card.',
 		card_3_success_text_app: 'Open your {0} app once more to add your {1} card.',
+		card_3_success_text_chained: 'Add your {1} card in the {0} app you just used to finish.',
 
 		card_1_alt: 'Laptop',
 		card_2_alt: '{0} mascot with attributes',

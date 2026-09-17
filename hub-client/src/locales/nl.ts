@@ -143,6 +143,7 @@ const nl = {
 		card_3_success_title: 'Je bent ingelogd!',
 		card_3_success_text: 'Scan de {0} QR code nog een keer om je {1} kaart toe te voegen.',
 		card_3_success_text_app: 'Open je {0} app nog een keer om je {1} kaart toe te voegen.',
+		card_3_success_text_chained: 'Voeg je {1} kaart toe in de {0} app die je net gebruikt hebt om af te ronden.',
 
 		card_1_alt: 'Laptop',
 		card_2_alt: '{0}-mascotte met kenmerken',
