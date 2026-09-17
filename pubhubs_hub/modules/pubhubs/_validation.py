@@ -63,7 +63,14 @@ def get_room_id_from_request(request: SynapseRequest) -> Optional[str]:
     if room_id_bytes:
         return room_id_bytes.decode('utf-8')
 
-    return None
+    # Fallback to body
+    try:
+        body = request.content.read()
+        request.content.seek(0)
+        body_json = json.loads(body)
+        return body_json.get('room_id')
+    except Exception:
+        return None
 
 
 def get_user_power_level(user_id: str, power_levels_dict: dict) -> int:
