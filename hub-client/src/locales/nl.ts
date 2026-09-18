@@ -68,7 +68,7 @@ const nl = {
 		YiviServerGone:
 			'U kon waarschijnlijk niet volledig inloggen omdat battery-saver javascript blokeerd, probeer de laatste stap nog een keer om de inlog the voltooien.',
 		// Zie de opmerkingen bij deze sleutels in en.ts.
-		yivi_session_failed: 'Er is iets misgegaan in de Yivi-app, waardoor we je niet konden inloggen.',
+		yivi_session_failed: 'Er is iets misgegaan in de Yivi-app, waardoor we je niet konden inloggen. Probeer het opnieuw.',
 		card_not_added:
 			'Je bent ingelogd, maar je PubHubs-kaart is niet aan je Yivi-app toegevoegd. Je hebt deze nodig om de volgende keer in te loggen, dus rond de laatste stap nog even af.',
 		card_not_linked:

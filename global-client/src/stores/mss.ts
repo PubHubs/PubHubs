@@ -79,6 +79,11 @@ const useMSS = defineStore('mss', {
 			// it (a breakpoint swap, a page restored from the back/forward cache) can tell whether a
 			// restart still means anything.
 			awaitingDisclosure: false,
+			// Set once a chained Yivi session has failed. Whatever made it fail - a Yivi app that does
+			// not support chaining, a connection too slow for the window the Yivi server keeps the
+			// session open in - is still true of the next attempt, so every attempt from here on issues
+			// the card in a second Yivi session instead of chaining it onto the disclosure.
+			chainedSessionFailed: false,
 		};
 	},
 
@@ -183,8 +188,9 @@ const useMSS = defineStore('mss', {
 			const isRegistering = enterMode === PHCEnterMode.LoginOrRegister || enterMode === PHCEnterMode.Register;
 
 			// Disable chained-sessions for stable while the error fallback is not working
-			// and there are timeouts with slow connectivity
-			const chainedSession = isRegistering && cardFeature && chainedFeature;
+			// and there are timeouts with slow connectivity. A chained session that has already failed
+			// once is not tried again either, see `chainedSessionFailed`.
+			const chainedSession = isRegistering && cardFeature && chainedFeature && !this.chainedSessionFailed;
 
 			const authStartReq: AuthStartReq = {
 				source: loginMethod.source,
@@ -228,6 +234,10 @@ const useMSS = defineStore('mss', {
 					if (jwt === 'ChainedSessionOver') {
 						// A superseded run aborts its own Yivi session, which is not a failure to report.
 						if (superseded()) throw new EnterCancelled();
+						// Nothing was disclosed, so the whole registration has to be started over - and a
+						// restart that chains again fails the same way. Giving up on chaining here is what
+						// makes the retry the page offers land in the two-step flow.
+						this.chainedSessionFailed = true;
 						// Reported instead of thrown so the caller can show it in place of the QR code, rather
 						// than sending the user to the error page.
 						return { key: 'errors.yivi_session_failed' };
