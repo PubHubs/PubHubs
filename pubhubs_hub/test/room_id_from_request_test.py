@@ -60,6 +60,12 @@ class GetRoomIdFromRequestTest(TestCase):
 
         self.assertIsNone(get_room_id_from_request(request))
 
+    def test_non_string_room_id_in_body_returns_none(self):
+        """Anything but a string reaches get_room_state() and surfaces as a 500, not a 403."""
+        request = FakeRequest(body={"room_id": 5})
+
+        self.assertIsNone(get_room_id_from_request(request))
+
     def test_body_is_rewound_after_reading(self):
         """The handler parses the same stream afterwards, so it must start at 0."""
         body = {"room_id": ROOM_ID, "name": "new name"}

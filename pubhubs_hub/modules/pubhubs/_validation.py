@@ -70,12 +70,13 @@ def get_room_id_from_request(request: SynapseRequest) -> Optional[str]:
         return None
 
     try:
-        return json.loads(content.read()).get('room_id')
+        room_id = json.loads(content.read()).get('room_id')
     except Exception:
         return None
     finally:
         content.seek(0)
 
+    return room_id if isinstance(room_id, str) else None
 
 def get_user_power_level(user_id: str, power_levels_dict: dict) -> int:
     """Extract the user's power level from the power levels dictionary.
