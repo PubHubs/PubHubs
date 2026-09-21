@@ -400,6 +400,7 @@ const en = {
 		display_qr: 'Display QR-code',
 		secure_room_enter_info: 'Please show the following:',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check you gave the correct data with the Yivi App.',
+		secured_room_attributes_edit_error: 'Add at least one value per attribute',
 		unavailable: 'There are no available rooms to join',
 		admin_badge: 'Admin',
 		member_count: 'Member count',
