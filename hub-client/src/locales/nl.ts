@@ -388,6 +388,7 @@ const nl = {
 			'Dit is een beveiligde kamer. Scan de QR-code hieronder met je Yivi-app om deel te nemen. Je deelt alleen de volgende gegevens met de kamer, niets anders:',
 		secure_room_enter_info: 'De volgende gegevens zijn nodig:',
 		secured_room_error: 'Het lijkt erop dat je geen toegang hebt tot deze kamer! Controleer of je de juiste gegevens met de Yivi-app hebt laten zien.',
+		secured_room_attributes_edit_error: 'Voeg minimaal één waarde per attribuut toe',
 		unavailable: 'Er zijn geen kamers beschikbaar om aan deel te nemen',
 		admin_badge: 'Beheerder',
 		member_count: 'Aantal leden',
