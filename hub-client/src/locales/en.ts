@@ -72,9 +72,11 @@ const en = {
 			'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
 		notid_taken_title: 'Phone number already in use',
 		YiviServerGone: 'You could likely not complete the login because battery-saver blocks javascript, try the last step one more time to log in.',
-		// Shown when a Yivi session fails outright, rather than being cancelled or timing out - the
-		// widget offers a retry of its own for those.
-		yivi_session_failed: 'Something went wrong in the Yivi app, so we could not log you in.',
+		// Shown for a Yivi session the widget cannot restart by itself: a chained session, which ends
+		// there on a cancel and on a timeout as much as on an error. Battery-saver and a slow connection
+		// both come out as one of those, and neither says anything about the retry - which no longer
+		// chains, so it is worth taking.
+		yivi_session_failed: 'Something went wrong in the Yivi app, so we could not log you in. Please try again.',
 		// The card is on the account but never reached the user's Yivi app, and logging in later
 		// discloses exactly that card - so the last step really does have to be finished.
 		card_not_added:
@@ -399,6 +401,7 @@ const en = {
 		display_qr: 'Display QR-code',
 		secure_room_enter_info: 'Please show the following:',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check you gave the correct data with the Yivi App.',
+		secured_room_attributes_edit_error: 'Add at least one value per attribute',
 		unavailable: 'There are no available rooms to join',
 		admin_badge: 'Admin',
 		member_count: 'Member count',
@@ -803,6 +806,7 @@ const en = {
 			title: 'Title',
 			description: 'Description',
 			option: 'Option',
+			option_number: 'Option {number}',
 			location: 'Location',
 			enter_title: 'Enter title...',
 			enter_option: 'Enter option...',

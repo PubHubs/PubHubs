@@ -1,10 +1,11 @@
 // Packages
-import { flushPromises, shallowMount } from '@vue/test-utils';
+import { type VueWrapper, flushPromises, shallowMount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createRouter, createWebHistory } from 'vue-router';
 
 import Button from '@hub-client/components/elements/Button.vue';
+import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 // Logic
 import { routes } from '@global-client/logic/core/routes';
@@ -27,6 +28,14 @@ import { setUpi18n } from '@hub-client/i18n';
 // leave unrendered.
 const carouselCardStub = {
 	template: '<div><slot name="title" /><slot /><slot name="image" /><slot name="extra" /><slot name="right" /></div>',
+};
+
+// What the Yivi widget does to its mount point once it is built: it renders its own form there,
+// which is what the loading state is waiting for.
+const renderYiviWidget = (wrapper: VueWrapper) => {
+	const form = document.createElement('div');
+	form.className = 'yivi-web-content';
+	wrapper.find('.yivi-mount').element.replaceChildren(form);
 };
 
 // `pageshow` carries `persisted` only when the page comes back from the back/forward cache, and
@@ -269,11 +278,56 @@ describe('Onboarding.vue', () => {
 		expect(mss.cancelEnter).toHaveBeenCalled();
 	});
 
+	test('The spot the QR code goes in shows a loading state until the widget is there', async () => {
+		// Starting a session takes a few requests to PubHubs before the widget is built at all, which on
+		// a slow connection leaves that spot empty long enough for the card to look broken.
+		const wrapper = await mountOnboarding();
+		expect(wrapper.findComponent(InlineSpinner).exists()).toBe(true);
+
+		renderYiviWidget(wrapper);
+		await flushPromises();
+
+		expect(wrapper.findComponent(InlineSpinner).exists()).toBe(false);
+		wrapper.unmount();
+	});
+
+	test('The loading state comes back for the second Yivi session of the two-step flow', async () => {
+		// Without chaining the card is issued in a session of its own, built in the same mount point
+		// once the disclosure is in, so the spot the QR code goes in is empty again in the meantime.
+		const wrapper = await mountOnboarding();
+		renderYiviWidget(wrapper);
+		await flushPromises();
+		expect(wrapper.findComponent(InlineSpinner).exists()).toBe(false);
+
+		mss.issuingCard = true;
+		await flushPromises();
+
+		expect(wrapper.findComponent(InlineSpinner).exists()).toBe(true);
+		wrapper.unmount();
+	});
+
+	test('The loading state stays away while the card is issued in the session already on screen', async () => {
+		// A chained session has the card issued in the widget the user is looking at, so there is no
+		// second widget to wait for - and covering that one would hide what they have to finish in.
+		const wrapper = await mountOnboarding();
+		renderYiviWidget(wrapper);
+		await flushPromises();
+
+		mss.issuingCard = true;
+		mss.issuingCardInSameSession = true;
+		await flushPromises();
+
+		expect(wrapper.findComponent(InlineSpinner).exists()).toBe(false);
+		wrapper.unmount();
+	});
+
 	test('A failed registration offers to try again', async () => {
 		vi.mocked(mss.enterPubHubs).mockResolvedValue({ key: 'errors.general_error' });
 
 		const wrapper = await mountOnboarding();
 
+		// The retry takes the spot the QR code had, so the loading state has to be out of the way.
+		expect(wrapper.findComponent(InlineSpinner).exists()).toBe(false);
 		const retry = wrapper.findComponent(Button);
 		expect(retry.exists()).toBe(true);
 

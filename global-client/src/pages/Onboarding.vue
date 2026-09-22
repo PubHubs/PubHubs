@@ -101,21 +101,41 @@
 
 								<div class="flex flex-col gap-100">
 									<P>{{ error ? errorText : cardText }}</P>
-									<Button
-										v-if="retry"
-										class="self-start"
-										@click="retryFailedStep"
-									>
-										{{ $t('common.retry') }}
-									</Button>
 								</div>
 
 								<template #extra>
 									<div class="flex h-full w-full flex-col items-center justify-center gap-200">
-										<div
-											ref="yiviMobile"
-											class="aspect-square w-full"
-										/>
+										<!-- The widget is not there for the first moments of a session, and shows nothing the user can
+										act on once one has failed, so the box is pinned to its own size and the loading state and the
+										retry take the spot the QR code has. -->
+										<div class="relative aspect-square w-full">
+											<!-- Loading overlay - uses yivi-web-form class to match Yivi's styling, and covers the widget
+											until it has drawn its own frame -->
+											<div
+												v-if="qrLoading"
+												class="yivi-web-form pointer-events-none absolute inset-0 z-[60] flex items-center justify-center"
+											>
+												<div class="flex flex-col items-center gap-100">
+													<InlineSpinner />
+													<P class="text-on-surface-dim text-sm">{{ $t('login.loading_yivi') }}</P>
+												</div>
+											</div>
+											<!-- Yivi injects content here - must be empty -->
+											<div
+												ref="yiviMobile"
+												class="yivi-mount absolute inset-0 z-[50]"
+											/>
+											<!-- Covers whatever the failed session left on screen, which the user cannot use: the
+											restart the widget offers itself sends a request the server has already consumed. -->
+											<div
+												v-if="retry"
+												class="yivi-web-form pointer-events-auto absolute inset-0 z-[70] flex items-center justify-center p-300"
+											>
+												<Button @click="retryFailedStep">
+													{{ $t('common.retry') }}
+												</Button>
+											</div>
+										</div>
 									</div>
 								</template>
 							</CarouselCardMobile>
@@ -208,25 +228,45 @@
 								</template>
 
 								<div class="flex flex-col gap-100">
-									<P :class="!retry && 'mb-300'">{{ error ? errorText : cardText }}</P>
-									<!-- Registration starts on mount, so a failure can surface while the user is still reading
-									card 1 or 2, with this card off-centre and inert. The button opts back in, so the retry it
-									offers can be taken as soon as it is on screen. -->
-									<Button
-										v-if="retry"
-										class="pointer-events-auto mb-300 self-start"
-										@click="retryFailedStep"
-									>
-										{{ $t('common.retry') }}
-									</Button>
+									<P class="mb-300">{{ error ? errorText : cardText }}</P>
 								</div>
 
 								<template #right>
 									<div class="flex h-full w-full flex-col items-center justify-center gap-200">
-										<div
-											ref="yiviDesktop"
-											class="h-fit w-fit"
-										/>
+										<!-- The widget is not there for the first moments of a session, and shows nothing the user can
+										act on once one has failed, so the box is pinned to its own size and the loading state and the
+										retry take the spot the QR code has. -->
+										<div class="relative h-4000 w-full max-w-3500">
+											<!-- Loading overlay - uses yivi-web-form class to match Yivi's styling, and covers the widget
+											until it has drawn its own frame -->
+											<div
+												v-if="qrLoading"
+												class="yivi-web-form pointer-events-none absolute inset-0 z-[60] flex items-center justify-center"
+											>
+												<div class="flex flex-col items-center gap-100">
+													<InlineSpinner />
+													<P class="text-on-surface-dim text-sm">{{ $t('login.loading_yivi') }}</P>
+												</div>
+											</div>
+											<!-- Yivi injects content here - must be empty -->
+											<div
+												ref="yiviDesktop"
+												class="yivi-mount absolute inset-0 z-[50]"
+											/>
+											<!-- Covers whatever the failed session left on screen, which the user cannot use: the
+											restart the widget offers itself sends a request the server has already consumed.
+											Registration starts on mount, so a failure can surface while the user is still reading
+											card 1 or 2, with this card off-centre and inert. `pointer-events-auto` opts back in, so
+											the retry can be taken as soon as the card is on screen. -->
+											<div
+												v-if="retry"
+												class="yivi-web-form pointer-events-auto absolute inset-0 z-[70] flex items-center justify-center p-300"
+											>
+												<Button @click="retryFailedStep">
+													{{ $t('common.retry') }}
+												</Button>
+											</div>
+										</div>
 									</div>
 								</template>
 							</CarouselCard>
@@ -291,6 +331,7 @@
 	import H1 from '@hub-client/components/elements/H1.vue';
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import P from '@hub-client/components/elements/P.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Logic
 	import { canOpenYiviApp } from '@global-client/logic/utils/yiviHandler';
@@ -365,8 +406,16 @@
 	// issuance `enterPubHubs` runs as its last step is not this one, see `restartYiviSessionIfWaiting`.
 	const cardIssuanceInFlight = ref<string | null>(null);
 
+	// Whether the Yivi widget still has nothing to show: it fetches its session before it draws
+	// anything, and a slow connection leaves the spot the QR code goes in empty in the meantime.
+	const qrLoading = ref(false);
+
 	const currentIndex = ref(0);
 	const items = [1, 2, 3];
+
+	// Watches the mount point for the widget to render something, so the loading state can step aside.
+	// Kept here so a restart, or leaving the page, takes it off the element again.
+	let qrObserver: MutationObserver | null = null;
 
 	// Generation counter for `startYiviSessionMSS`, see the comment there. The store keeps a counter
 	// of its own for the enter attempt; this one guards what this page shows and where it navigates,
@@ -420,6 +469,38 @@
 		});
 
 		currentIndex.value = closestIndex;
+	};
+
+	// Hold the spot the QR code goes in until the Yivi widget has rendered itself into it. Starting a
+	// session takes a few requests to PubHubs before the widget is even built, which leaves that spot
+	// empty - or, for a session that follows another one, showing what the previous widget last drew.
+	//
+	// Laid over the widget rather than behind it: Yivi turns the mount point itself into its form,
+	// background and all, so a loading state underneath would never be seen again after the first
+	// session. It steps aside as soon as the widget has drawn its frame, which is also what carries
+	// Yivi's own loading animation and its own errors - so this never covers what the widget has to say.
+	const showYiviLoading = (): void => {
+		qrLoading.value = true;
+
+		const element = yiviMountPoint.value;
+		if (!element) return;
+
+		qrObserver?.disconnect();
+		const observer = new MutationObserver(() => {
+			if (!element.firstElementChild) return;
+			qrLoading.value = false;
+			observer.disconnect();
+			if (qrObserver === observer) qrObserver = null;
+		});
+
+		qrObserver = observer;
+		observer.observe(element, { childList: true, subtree: true });
+	};
+
+	const hideYiviLoading = (): void => {
+		qrLoading.value = false;
+		qrObserver?.disconnect();
+		qrObserver = null;
 	};
 
 	// Only a widget that is on screen needs a new session, and it needs one whenever the element it
@@ -490,6 +571,16 @@
 			() => restartYiviSessionIfWaiting(false),
 		);
 
+		// The two-step flow issues the card in a second Yivi session, built in the same mount point once
+		// the disclosure is in, so that one gets the loading state as well. A chained session has the
+		// card issued in the widget that is already on screen, where there is nothing to wait for.
+		watch(
+			() => mss.issuingCard && !mss.issuingCardInSameSession,
+			(issuingInSecondSession) => {
+				if (issuingInSecondSession) showYiviLoading();
+			},
+		);
+
 		// Registered before the session is awaited: that await only settles once the whole
 		// registration is done, by which time this component is on its way out.
 		window.addEventListener('pageshow', restartOnPageShow);
@@ -499,6 +590,7 @@
 
 	onUnmounted(() => {
 		window.removeEventListener('pageshow', restartOnPageShow);
+		hideYiviLoading();
 		// Leaving the page ends the attempt: an orphaned Yivi session keeps polling and would carry a
 		// login that finished elsewhere into a navigation of its own. Bumping the counter keeps a step
 		// that is still unwinding from writing to a card that is no longer on screen.
@@ -519,10 +611,15 @@
 		retry.value = undefined;
 		cardIssuanceInFlight.value = null;
 		registerOnlyWithUniqueAttrsInFlight.value = registerOnlyWithUniqueAttrs;
+		showYiviLoading();
 
 		try {
 			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister, yiviMountPoint, registerOnlyWithUniqueAttrs);
+			// A newer run owns the widget, and with it the loading state this one would be clearing.
 			if (superseded()) return;
+			// However the run ended, the Yivi session it was showing is over. A step that starts another
+			// one - the card issuance below - shows the loading state again itself.
+			hideYiviLoading();
 			if (errorMessage?.key === 'errors.notid_attribute_already_taken') {
 				handleDuplicateAttributeError();
 				return;
@@ -569,10 +666,12 @@
 		// Whatever error explains this attempt stays on the card; only the button goes, so the session
 		// now on screen cannot be started twice.
 		retry.value = undefined;
+		showYiviLoading();
 
 		try {
 			const { errorMessage } = await mss.issueCardAfterEntry(comment, yiviMountPoint);
 			if (superseded()) return;
+			hideYiviLoading();
 			cardIssuanceInFlight.value = null;
 			if (errorMessage) {
 				logger.error('Issuing the PubHubs card failed', { errorMessage });
@@ -623,6 +722,21 @@
 </script>
 
 <style scoped>
+	/* Yivi injects its own markup, so these need :deep() to reach it. The same pair as in `Login.vue`,
+	   for the same reason: the widget sits in a box of a fixed size. */
+
+	/* Let the content area absorb the remaining height of the pinned box, so the QR code, the
+	   loading animation and any error or message stay centered in the same spot in every state. */
+	.yivi-mount :deep(.yivi-web-content) {
+		flex: 1 1 auto;
+	}
+
+	/* The QR is an inline <svg>, so its line box reserves ~7px of descender space below the
+	   QR code, which made the QR state taller than Yivi's other states */
+	.yivi-mount :deep(.yivi-web-qr-code > svg) {
+		display: block;
+	}
+
 	@keyframes card-shake {
 		0%,
 		100% {

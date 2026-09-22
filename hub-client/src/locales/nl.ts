@@ -68,7 +68,7 @@ const nl = {
 		YiviServerGone:
 			'U kon waarschijnlijk niet volledig inloggen omdat battery-saver javascript blokeerd, probeer de laatste stap nog een keer om de inlog the voltooien.',
 		// Zie de opmerkingen bij deze sleutels in en.ts.
-		yivi_session_failed: 'Er is iets misgegaan in de Yivi-app, waardoor we je niet konden inloggen.',
+		yivi_session_failed: 'Er is iets misgegaan in de Yivi-app, waardoor we je niet konden inloggen. Probeer het opnieuw.',
 		card_not_added:
 			'Je bent ingelogd, maar je PubHubs-kaart is niet aan je Yivi-app toegevoegd. Je hebt deze nodig om de volgende keer in te loggen, dus rond de laatste stap nog even af.',
 		card_not_linked:
@@ -389,6 +389,7 @@ const nl = {
 			'Dit is een beveiligde kamer. Scan de QR-code hieronder met je Yivi-app om deel te nemen. Je deelt alleen de volgende gegevens met de kamer, niets anders:',
 		secure_room_enter_info: 'De volgende gegevens zijn nodig:',
 		secured_room_error: 'Het lijkt erop dat je geen toegang hebt tot deze kamer! Controleer of je de juiste gegevens met de Yivi-app hebt laten zien.',
+		secured_room_attributes_edit_error: 'Voeg minimaal één waarde per attribuut toe',
 		unavailable: 'Er zijn geen kamers beschikbaar om aan deel te nemen',
 		admin_badge: 'Beheerder',
 		member_count: 'Aantal leden',
@@ -793,6 +794,7 @@ const nl = {
 			title: 'Titel',
 			description: 'Omschrijving',
 			option: 'Keuze',
+			option_number: 'Keuze {number}',
 			location: 'Locatie',
 			enter_title: 'Geef een titel...',
 			enter_option: 'Geef een keuze...',

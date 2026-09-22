@@ -1,6 +1,6 @@
 <template>
-	<div class="rounded-base bg-surface-base overflow-hidden">
-		<div class="rounded-t-base bg-accent-blue/10 border-accent-blue flex h-500 items-center justify-between gap-100 border-b px-200">
+	<div class="rounded-base bg-surface-base flex max-h-[50dvh] flex-col overflow-hidden">
+		<div class="rounded-t-base bg-accent-blue/10 border-accent-blue flex h-500 shrink-0 items-center justify-between gap-100 border-b px-200">
 			<div class="flex min-w-0 items-center gap-100">
 				<Icon
 					class="text-accent-blue shrink-0"
@@ -15,7 +15,10 @@
 				@click="emit('closePoll')"
 			/>
 		</div>
-		<div class="border-surface-elevated rounded-base flex flex-col gap-200 border-3 p-200">
+		<div
+			id="optionsContainer"
+			class="border-surface-elevated rounded-base flex min-h-0 flex-1 flex-col gap-200 overflow-y-auto border-3 p-200"
+		>
 			<TextField
 				v-model="poll.title"
 				:validation="{ required: true, maxLength: 100 }"
@@ -23,12 +26,9 @@
 				@input="updatePoll"
 				>{{ $t('message.voting.title') }}</TextField
 			>
-			<div
-				id="optionsContainer"
-				class="scrollbar-emojipicker flex flex-col gap-200"
-			>
+			<div class="flex flex-col gap-200">
 				<div
-					v-for="option in poll.options"
+					v-for="(option, index) in poll.options"
 					:key="option.id"
 				>
 					<TextField
@@ -40,7 +40,7 @@
 						@right-icon-click="removeOption(option.id)"
 						@blur="cleanupPollOption(option)"
 						@input="updateOptions"
-						>{{ $t('message.voting.option') }}</TextField
+						>{{ $t('message.voting.option_number', { number: index + 1 }) }}</TextField
 					>
 				</div>
 				<TextField
@@ -109,10 +109,6 @@
 			const container = document.getElementById('optionsContainer');
 			if (container) {
 				container.scrollTop = container.scrollHeight;
-			}
-			const mobileContainer = document.getElementById('mobileOptionsContainer');
-			if (mobileContainer) {
-				mobileContainer.scrollTop = mobileContainer.scrollHeight;
 			}
 		});
 	};

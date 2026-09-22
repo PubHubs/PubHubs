@@ -359,6 +359,8 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 	// Success here only means the Yivi server has been handed the issuance request; whether it reaches
 	// the user's app is up to the chained session, which is why the tests drive the two separately.
 	let releaseNextSession: ReturnType<typeof vi.fn>;
+	// The request the authentication is started with, which says whether this attempt chains.
+	let authStart: ReturnType<typeof vi.fn>;
 	// The authentication server's long poll for the disclosure, which a test can leave outstanding.
 	let waitForResult: () => Promise<unknown>;
 	const mountPoint = ref<HTMLElement | null>(null);
@@ -371,6 +373,7 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 		yiviSessions.length = 0;
 		mss = useMSS();
 		releaseNextSession = vi.fn(async () => ({}));
+		authStart = vi.fn(async () => ({ task: { Yivi: { disclosure_request: 'a-request', yivi_requestor_url: 'http://yivi-test/' } }, state: [1] }));
 		waitForResult = async () => ({ Success: { disclosure: 'a-disclosure' } });
 		// Chaining issues the card in the session the disclosure ran in, rather than a second one.
 		vi.spyOn(useSettings(), 'isFeatureEnabled').mockReturnValue(true);
@@ -386,7 +389,7 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 		const authServer = {
 			welcomeEPAuths: async () => attrTypes,
 			checkAttributes: () => new Set(['email']),
-			authStartEP: async () => ({ task: { Yivi: { disclosure_request: 'a-request', yivi_requestor_url: 'http://yivi-test/' } }, state: [1] }),
+			authStartEP: authStart,
 			setState: vi.fn(),
 			getState: () => [1],
 			YiviWaitForResultEP: () => waitForResult(),
@@ -461,6 +464,34 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 
 		await expect(run).resolves.toEqual({ key: 'errors.yivi_session_failed' });
 		expect(releaseNextSession).not.toHaveBeenCalled();
+	});
+
+	test('a chained session that failed is not chained again', async () => {
+		// Whatever made the chained session fail - a Yivi app that cannot chain, a connection too slow
+		// for the window the Yivi server holds the session open in - is still true of the next attempt,
+		// so the retry the page offers has to fall back to issuing the card in a second Yivi session.
+		waitForResult = () => new Promise(() => {});
+		const failed = enterChained();
+		await vi.waitFor(() => expect(yiviSessions).toHaveLength(1));
+		yiviSessions[0].reject(new Error('the user closed the Yivi app'));
+		await expect(failed).resolves.toEqual({ key: 'errors.yivi_session_failed' });
+		expect(authStart).toHaveBeenCalledWith(expect.objectContaining({ yivi_chained_session: true, yivi_chained_session_drip: true }));
+
+		// The retry.
+		waitForResult = async () => ({ Success: { disclosure: 'a-disclosure' } });
+		const retried = enterChained();
+		await vi.waitFor(() => expect(yiviSessions).toHaveLength(2));
+		expect(authStart).toHaveBeenLastCalledWith(expect.objectContaining({ yivi_chained_session: false, yivi_chained_session_drip: false }));
+
+		// The disclosure ends its own session, and the card is issued in a second one rather than
+		// released into the session the user has just finished.
+		yiviSessions[1].resolve('a-disclosure');
+		await vi.waitFor(() => expect(yiviSessions).toHaveLength(3));
+		expect(releaseNextSession).not.toHaveBeenCalled();
+
+		yiviSessions[2].resolve('an-issuance');
+		await expect(retried).resolves.toBeUndefined();
+		expect(mss.requestUserSecretObject).toHaveBeenCalledWith(expect.objectContaining({ ph_card: expect.objectContaining({ id: 'ph_card' }) }));
 	});
 
 	test('a chained session stopped before the card reached the app reports it instead of storing it', async () => {

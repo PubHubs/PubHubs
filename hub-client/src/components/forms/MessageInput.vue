@@ -101,7 +101,7 @@
 			</div>
 		</div>
 
-		<div class="flex max-h-[50vh] items-end justify-between gap-100">
+		<div class="flex max-h-[50dvh] items-end justify-between gap-100 overflow-y-auto">
 			<div class="bg-surface-base rounded-base w-full shadow">
 				<!-- Editing a message -->
 				<InputModeBar
@@ -196,8 +196,8 @@
 
 				<div
 					v-if="messageInput.state.textArea"
-					class="rounded-base border-surface-elevated flex items-center gap-x-200 border-3 px-200 py-100"
-					:class="isInputDisabled ? 'cursor-not-allowed opacity-50' : ''"
+					class="rounded-base border-surface-elevated flex items-start gap-x-200 border-3 px-200 py-100"
+					:class="{ 'cursor-not-allowed opacity-50': isInputDisabled, 'gap-x-0!': isMobile }"
 				>
 					<Icon
 						v-if="isInputDisabled"
