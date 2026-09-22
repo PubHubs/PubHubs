@@ -793,6 +793,7 @@ const nl = {
 			title: 'Titel',
 			description: 'Omschrijving',
 			option: 'Keuze',
+			option_number: 'Keuze {number}',
 			location: 'Locatie',
 			enter_title: 'Geef een titel...',
 			enter_option: 'Geef een keuze...',
