@@ -805,6 +805,7 @@ const en = {
 			title: 'Title',
 			description: 'Description',
 			option: 'Option',
+			option_number: 'Option {number}',
 			location: 'Location',
 			enter_title: 'Enter title...',
 			enter_option: 'Enter option...',

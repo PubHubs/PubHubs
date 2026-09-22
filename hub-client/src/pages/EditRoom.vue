@@ -202,7 +202,7 @@
 		</ValidatedForm>
 
 		<!-- Fixed action buttons -->
-		<div class="fixed right-500 bottom-250 z-20 flex items-center gap-200">
+		<div class="absolute right-400 z-20 flex items-center gap-200 md:fixed md:bottom-250">
 			<Button
 				variant="error"
 				@click.stop.prevent="back()"
