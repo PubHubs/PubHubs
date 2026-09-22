@@ -1,5 +1,5 @@
 <template>
-	<span class="overflow-hidden text-ellipsis">
+	<span class="min-w-0 overflow-hidden wrap-anywhere text-ellipsis">
 		<template v-if="hasAnyMentions">
 			<span
 				v-for="(segment, index) in messageSegments"
