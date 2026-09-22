@@ -1,5 +1,5 @@
 <template>
-	<div class="gap-050 flex flex-col wrap-break-word">
+	<div class="gap-050 flex flex-col wrap-anywhere">
 		<!-- Deleted Message -->
 		<template v-if="deleted">
 			<div class="gap-050 flex flex-row items-center">

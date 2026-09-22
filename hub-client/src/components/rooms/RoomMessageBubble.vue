@@ -269,7 +269,7 @@
 						</div>
 					</div>
 
-					<div class="flex items-center gap-100">
+					<div class="flex w-full min-w-0 items-center gap-100">
 						<template v-if="hasBeenVisible">
 							<MessageHidden
 								v-if="(event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
