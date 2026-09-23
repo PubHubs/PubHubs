@@ -145,7 +145,7 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: true,
-			chainedSession: true,
+			chainedSession: false,
 		},
 		local: {
 			signedMessages: true,
@@ -163,7 +163,7 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: true,
-			chainedSession: true,
+			chainedSession: false,
 		},
 	},
 };
