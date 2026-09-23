@@ -3,11 +3,14 @@ import { auths_api } from '@global-client/logic/core/api';
 import { handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
 import { type Api } from '@hub-client/logic/core/apiCore';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import type * as TAuths from '@global-client/models/MSS/TAuths';
 import { type ErrorCode, type Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
 import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
+
+const logger = createLogger('AuthenticationServer');
 
 export default class AuthenticationServer {
 	private _state: number[];
@@ -159,6 +162,8 @@ export default class AuthenticationServer {
 			// TODO: the auth server is at its concurrent chained-session limit. Rather than surfacing
 			// this to the user, we could fall back to the non-chained card-issuance flow (retry
 			// authStartEP with yivi_chained_session=false, at the cost of a second Yivi QR scan).
+			// Not reachable at the moment: enterPubHubs() in stores/mss.ts keeps chained sessions off
+			// while this fallback is missing, so yivi_chained_session is always false.
 			throw new Error('The authentication server is temporarily busy with card issuance; please try again in a moment.');
 		} else if (typeof okAuthStartResp === 'string') {
 			throw new Error(`Unexpected string response in authStartEP: ${okAuthStartResp}`);
@@ -195,9 +200,25 @@ export default class AuthenticationServer {
 		return okAuthCompleteResp.Success;
 	}
 
-	async attrKeysEP(attrKeyRequest: TAuths.AuthAttrKeyReq) {
-		return await handleErrors<TAuths.AttrKeysResp>(() =>
-			this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest)),
-		);
+	/**
+	 * Call the AttrKeys endpoint.
+	 *
+	 * @param attrKeyRequest The request that needs to be sent to the AttrKeys endpoint with the attributes for which the attrKeys are requested and possible a timestamp for an old attrKey that is requested.
+	 * @returns An object with a boolean value 'error' that denotes whether an error occurred and a 'response' that is either a string in case an error occurs or a Record type with the requested attribute keys for the corresponding attributes.
+	 */
+	async attrKeysEP(
+		attrKeyRequest: TAuths.AuthAttrKeyReq,
+	): Promise<{ error: false; response: Record<string, TAuths.AttrKeyResp> } | { error: true; response: string }> {
+		const attrKeysRespFn = () =>
+			this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest));
+		const okAttrKeysResp = await handleErrors<TAuths.AttrKeysResp>(attrKeysRespFn);
+		if ('RetryWithNewAttr' in okAttrKeysResp) {
+			return { error: true, response: 'errors.retry_with_new_attr' };
+		} else if ('Success' in okAttrKeysResp) {
+			return { error: false, response: okAttrKeysResp.Success };
+		} else {
+			logger.error('Unknown response from the AttrKeys endpoint.');
+			return { error: true, response: 'errors.general_error' };
+		}
 	}
 }

@@ -1,4 +1,4 @@
-import { assert } from 'chai';
+import { assert } from '@hub-client/logic/utils/assert';
 
 import { UserAction, UserPowerLevel, UserRole, UserRoleActions } from '@hub-client/models/users/TUser';
 

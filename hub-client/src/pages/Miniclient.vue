@@ -39,7 +39,6 @@
 	 */
 	// Packages
 	import { onMounted, ref, watch } from 'vue';
-	import { useI18n } from 'vue-i18n';
 
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -51,19 +50,15 @@
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { type Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
-	import { useSettings } from '@hub-client/stores/settings';
 
 	const logger = createLogger('Miniclient');
 	const hubSettings = useHubSettings();
 	const messagebox = useMessageBox();
-	const settings = useSettings();
-	const { locale, availableLocales } = useI18n();
 
 	const hubActive = ref<boolean | undefined>(hubSettings.isSolo ? false : undefined);
 
 	onMounted(async () => {
 		logger.debug('Miniclient.vue onMounted');
-		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		if (!hubSettings.isSolo) {
 			messagebox.init(MessageBoxType.Child);
 			// Register AFTER init (which calls reset and clears callbacks).

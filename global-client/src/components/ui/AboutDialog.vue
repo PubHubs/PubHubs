@@ -35,7 +35,7 @@
 	const { t } = useI18n();
 	const settings = useSettings();
 
-	// Injected from package.json at build time (see vite.config.ts).
+	// Injected from the git tag at build time (see vite.config.ts).
 	const version = __APP_VERSION__;
 
 	function gotoHelp() {

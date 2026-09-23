@@ -85,6 +85,7 @@ class TimelineManager {
 	/** Contains all related events: reactions, annotations etc. */
 	private relatedEvents: TRelatedEvents[] = [];
 	private _relatedEventsMap: Map<string, TRelatedEvents> | null = null;
+	public readonly relatedEventsRevision = shallowReactive({ count: 0 });
 	// Contains related hide events
 	private hideMessageEvents: Map<string, MatrixEvent> = new Map();
 	// Contains expert verification events: targetEventId -> array of verification events (multiple experts can verify).
@@ -129,6 +130,7 @@ class TimelineManager {
 		EventType.Reaction,
 		PubHubsMgType.HideMessage,
 		PubHubsMgType.ExpertVerification,
+		PubHubsMgType.VideoCallModify,
 	]);
 
 	constructor(roomId: string, client: MatrixClient) {
@@ -387,6 +389,7 @@ class TimelineManager {
 	private async addRelatedEvents(events: MatrixEvent[]) {
 		if (events.length <= 0) return;
 
+		let changed = false;
 		for (const eventToAdd of events) {
 			this.updateHideMessageEvent(eventToAdd);
 			this.updateExpertVerificationEvent(eventToAdd);
@@ -414,16 +417,19 @@ class TimelineManager {
 					if (!relatedEventsEntry.relatedEvents.find((y) => y.getId() === eventToAdd.getId())) {
 						relatedEventsEntry.relatedEvents.push(eventToAdd);
 						relatedEventsEntry.relatedEvents.sort((a, b) => a.getTs() - b.getTs());
+						changed = true;
 					}
 				} else {
 					if (relatesToEvent) {
 						this.relatedEvents.push({ eventId: relatesToEvent, isFetched: false, relatedEvents: [eventToAdd] });
 						// A new entry changes the lookup itself; entries already in it are mutated in place
 						this._relatedEventsMap = null;
+						changed = true;
 					}
 				}
 			}
 		}
+		if (changed) this.relatedEventsRevision.count++;
 	}
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {

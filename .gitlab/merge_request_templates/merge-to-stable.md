@@ -5,7 +5,7 @@ Before merging to stable:
 - [ ] Run the PubHubs e2e test (https://gitlab.science.ru.nl/pubhubs/pubhubs-e2e-test)
 - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
 - [ ] Scan through all changes in merge request to see if there is any issue.
-- [ ] Set the new version number ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md) and in the package.json in the root folder. **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
+- [ ] Set the new version number ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
 - [ ] Before proceeding with the following steps please check that the pipeline has been succeeded.
 - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
 
@@ -33,6 +33,9 @@ Test by hand:
             - [ ] With the new user (not an admin!):
                 - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
                 - [ ] Leave one of the secured rooms. And re-enter that room.
+            - [ ] Promote the new user to Steward of a room, with the Steward:
+                - [ ] Change the roomproperties (name, description, attributes of a secured room)
+                - [ ] Test steward functionality
             - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
             - [ ] Logging out and logging in again with your original user.
         - [ ] Anything related specifically to your merge request that is not covered by the e2e test (new stuff should!)

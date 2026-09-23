@@ -19,9 +19,9 @@ To be able to join the PubHubs network, you will need to provide the following i
     - It is recommended that the Hub server domain is different than the Hub client domain. This is because they both expose http endpoints.
     - For security reasons, it is recommended that the Hub server domain is not a subdomain of the Hub client domain and vice versa. This is to prevent the sharing of cookies and local storage between the Hub server and the Hub client.
 
-The pubhubs team will provide an access token to pull the client and hub images. The access token is not confidential, but is needed to pull images from gitlab.
+The pubhubs team will provide an deploy token to pull the client and hub images. The deploy token is not confidential, but is needed to pull images from gitlab.
 
-- **Access token** - for retrieving the Hub server and Hub client docker images
+- **Deploy token** - for retrieving the Hub server and Hub client docker images, it consists of a username and a token.
 
 ```
 Example information
@@ -38,9 +38,11 @@ Below are instructions for the actual setup and deployment of the Hub server. Yo
 The Hub server will be a docker container that runs on your server. You will first need to get the docker image from us.
 
 ```shell
-docker login registry.science.ru.nl -u <requiredbutnotused> -p <access token>
-docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:stable
+docker login registry.science.ru.nl -u <deploy token-username> -p <deploy token-token>
+docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:latest
 ```
+
+The `latest` tag always points at our latest release. Every release is also published under its own version tag, for example `:v3.5.1`, which never changes once it is published. Pulling `latest` keeps you on the latest version; pinning a version tag lets you decide when to update, and lets you go back to a previous release if an update causes trouble. Released versions are listed in the [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/stable/CHANGELOG.md).
 
 Data such as configuration data and the database are persistent, they will be mounted inside the docker container. Create a directory `hub_dir` on the server that will run the docker containers. We will add some initial configuration to this directory.
 
@@ -58,7 +60,7 @@ You should now be able to run the hub server:
 ```shell
 docker run -p 8008:8008 \
   -v <path_to_hub_dir>:/data \
-  registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:stable
+  registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:latest
 ```
 
 Please do not publish other ports to prevent matrix federation, which is currently a bit of a mismatch with the PubHubs identity principles.

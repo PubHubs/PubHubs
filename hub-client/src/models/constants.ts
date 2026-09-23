@@ -3,7 +3,7 @@
  */
 
 const SystemDefaults = {
-	syncIntervalMS: 3000, // Sync interval in milliseconds. Experimental selection for interval. Changed it from 2000 to 1000 to load events much quickly.
+	syncIntervalMS: 30_000, // Long-poll timeout handed to SlidingSync, not a polling interval: the server holds the request open until it has something to send, up to this long. Events still arrive immediately; a short value only forces needless reconnects, which on mobile keep the radio awake and compete with the initial load.
 	SubscriptionRoomTimelineLimit: 50, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
 	initialRoomTimelineLimit: 30, // Initially load less messages in the rooms: makes startup faster, but filtering on messages is client-side, so we need at least one message
 	roomTimelineLimit: 100, // Max messages in the sliding window
@@ -26,6 +26,8 @@ enum SlidingSyncOptions {
 	roomList = 'roomList',
 	initialRoomList = 'initalRoomList',
 	mainRoomList = 'mainRoomList',
+	unreadOnlyInitialRoomList = 'unreadOnlyInitalRoomList',
+	unreadOnlyMainRoomList = 'unreadOnlyMainRoomList',
 }
 
 // common matrix types

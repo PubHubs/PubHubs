@@ -1,5 +1,4 @@
 // Packages
-import { assert } from 'chai';
 import { EventType, type MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { type MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
@@ -14,6 +13,7 @@ import filters from '@hub-client/logic/core/filters';
 import { router } from '@hub-client/logic/core/router';
 import { type ConsentJSONParser } from '@hub-client/logic/json-utility';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { assert } from '@hub-client/logic/utils/assert';
 
 // Models
 import { MatrixType, OnboardingType } from '@hub-client/models/constants';

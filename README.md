@@ -29,14 +29,13 @@ This project is **in active development** and moving through test phases. The re
 
 ### Important files & directories
 
-| Path / Name                       | Type | Purpose                                                            | Notes                                                    |
-| --------------------------------- | ---: | ------------------------------------------------------------------ | -------------------------------------------------------- |
-| [flake.nix](./flake.nix)          | file | Nix flake with reproducible developer environment and dependencies | Use this to create dev shells.                           |
-| [docker_yivi](./docker_yivi/)`    |  dir | Docker build files for the Yivi image                              | Builds the Yivi server used for attribute-based acccess. |
-| [global-client](./global-client/) |  dir | Global client source (TypeScript + Vue)                            | Embeds hub clients via iframe.                           |
-| [hub-client](./hub-client/)       |  dir | Hub client source (TypeScript + Vue)                               | Matrix client customisations.                            |
-| [pubhubs](./pubhubs/)             |  dir | PubHubs Central (Rust)                                             | Central login & identity platform.                       |
-| [pubhubs_hub](./pubhubs_hub/)     |  dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration.               |
+| Path / Name                       | Type | Purpose                                                            | Notes                                      |
+| --------------------------------- | ---: | ------------------------------------------------------------------ | ------------------------------------------ |
+| [flake.nix](./flake.nix)          | file | Nix flake with reproducible developer environment and dependencies | Use this to create dev shells.             |
+| [global-client](./global-client/) |  dir | Global client source (TypeScript + Vue)                            | Embeds hub clients via iframe.             |
+| [hub-client](./hub-client/)       |  dir | Hub client source (TypeScript + Vue)                               | Matrix client customisations.              |
+| [pubhubs](./pubhubs/)             |  dir | PubHubs Central (Rust)                                             | Central login & identity platform.         |
+| [pubhubs_hub](./pubhubs_hub/)     |  dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration. |
 
 ---
 
@@ -162,7 +161,7 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 
 ### 6. Solutions for common issues
 
-- If Yivi cannot communicate with your local development setup, disable your firewall.
+- If Yivi cannot communicate with your local development setup, allow the yivi ports 8188 and 8189 in your firewall.
 - If Yivi still doesn't communicate with your local development, and you are on eduroam, you might have to use a VPN such as Tailscale to connect your development machine and your phone.
 - Is you run into CORS issues, disable HTPPS-only in your browser.
 
@@ -170,4 +169,6 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 
 ## Further documentation & changelog
 
-- Changelog: [CHANGELOG.md](./CHANGELOG.md)
+- [CHANGELOG.md](./CHANGELOG.md)
+- [Deploy docs](./docs/deploy/)
+- [Dev docs](./docs/development/)

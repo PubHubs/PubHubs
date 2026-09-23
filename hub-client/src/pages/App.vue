@@ -177,7 +177,9 @@
 		if (!window.location.hash.startsWith('#/hub/')) {
 			// With sliding-sync, loading is faster.
 			await pubhubs.login();
-			await setupUnreadAggregateTracking();
+			// Not awaited: the first aggregate waits for the initial room list, and the UI has nothing to
+			// gain from waiting with it — the badge fills in when it resolves.
+			void setupUnreadAggregateTracking();
 			setupReady.value = true;
 			void rooms.fetchPublicRooms();
 			void addPushRules();

@@ -13,8 +13,10 @@ docker login registry.science.ru.nl -u <requiredbutnotused> -p <access token>
 2. Fetch the client container:
 
 ```shell
-docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:stable
+docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:latest
 ```
+
+The `latest` tag always points at our latest release. Every release is also published under its own version tag, for example `:v3.5.1`, which never changes once it is published. Pulling `latest` keeps you on the latest version; pinning a version tag lets you decide when to update, and lets you go back to a previous release if an update causes trouble. Released versions are listed in the [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/stable/CHANGELOG.md).
 
 3. Run the client:
 
@@ -23,7 +25,7 @@ docker run \
   --env 'HUB_URL=https://<Hub server domain>' \
   --env 'PARENT_URL=https://app.pubhubs.net' \
   -p 8800:8800 \
-  registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:stable
+  registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:latest
 ```
 
 Replace `<Hub server domain>` with the domain of your Hub server (for example: `hub.librarywebsite.com`).

@@ -2,6 +2,8 @@
 import { defineStore } from 'pinia';
 
 // Services
+import { type SyncProfile } from '@hub-client/logic/matrix.logic';
+
 import { useMatrixService } from '@hub-client/services/matrix.service';
 
 const useMatrixStore = defineStore('matrix', {
@@ -25,12 +27,12 @@ const useMatrixStore = defineStore('matrix', {
 		/**
 		 * Start the Sliding Sync.
 		 */
-		async startSync() {
+		async startSync(profile?: SyncProfile) {
 			if (this.hasActiveSync) return;
 
 			try {
 				const matrixService = useMatrixService();
-				await matrixService.startSync();
+				await matrixService.startSync(profile);
 			} finally {
 				this.hasActiveSync = true;
 			}

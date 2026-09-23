@@ -1,5 +1,5 @@
 // Logic
-import { escapeHtml } from '@hub-client/logic/core/sanitizer';
+import { escapeHtml } from '@hub-client/logic/core/htmlText';
 
 // Models
 import { type TEvent } from '@hub-client/models/events/TEvent';

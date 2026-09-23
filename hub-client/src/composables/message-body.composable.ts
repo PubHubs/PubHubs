@@ -5,7 +5,7 @@ import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 
 // Logic
-import { escapeHtml } from '@hub-client/logic/core/sanitizer';
+import { escapeHtml } from '@hub-client/logic/core/htmlText';
 
 /**
  * Composable for handling message body rendering with mentions and sanitization.

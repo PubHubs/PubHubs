@@ -6,8 +6,10 @@
 		:title="hub?.name"
 		:data-rail-active="active || undefined"
 	>
+		<!-- v-if, not v-show: a hidden iframe still loads miniclient.html and runs a full
+		     MatrixClient and sliding sync of its own, so it has to not exist to cost nothing. -->
 		<div
-			v-show="hub && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)"
+			v-if="showMiniclient"
 			class="-top-050 -right-050 absolute z-10"
 		>
 			<iframe
@@ -33,10 +35,13 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, ref } from 'vue';
+	import { computed, ref, watch } from 'vue';
 
 	// Components
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
+
+	// Composables
+	import { useMiniclientStartSlot } from '@global-client/composables/miniclientGate.composable';
 
 	// Logic
 	import { cacheBust } from '@global-client/logic/utils/cacheBust';
@@ -72,11 +77,33 @@
 
 	const hub = computed(() => hubs.hub(props.hubId));
 
-	hubs.setupMiniclient(props.hubId);
+	// Kept as the object rather than a string: getAuthInfo returns null when this hub has no
+	// token yet, and JSON.stringify(null) is 'null' — truthy, which would gate nothing.
+	const authInfo = ref(global.getAuthInfo(props.hubId));
 
-	const accessToken = ref<string>(JSON.stringify(global.getAuthInfo(props.hubId)));
+	// A miniclient is only worth its own MatrixClient once it can authenticate and its badge is
+	// actually wanted. Handed to the gate so this hub only takes a turn in the start queue while it
+	// could use one — a hub still waiting for its token would otherwise spend a turn on nothing.
+	const canStartMiniclient = computed(() => !!hub.value && !!authInfo.value && settings.isFeatureEnabled(FeatureFlag.unreadCounter));
+
+	const mayStartMiniclient = useMiniclientStartSlot(canStartMiniclient);
+
+	// ...and only once it is not about to compete with a hub the user is opening.
+	const showMiniclient = computed(() => mayStartMiniclient.value && canStartMiniclient.value);
+
 	const miniclientSrc = computed(
-		() => `${hub.value?.url}/miniclient.html?${new URLSearchParams({ accessToken: accessToken.value, hubId: props.hubId, cb: cacheBust })}`,
+		() => `${hub.value?.url}/miniclient.html?${new URLSearchParams({ accessToken: JSON.stringify(authInfo.value), hubId: props.hubId, cb: cacheBust })}`,
+	);
+
+	// setupMiniclient awaits a handshake with the miniclient iframe, so running it while that
+	// iframe is not mounted would leave it waiting on a frame that never appears. Its callbacks
+	// are registered per message type and overwrite, so re-running it on a later toggle is safe.
+	watch(
+		showMiniclient,
+		(show) => {
+			if (show) void hubs.setupMiniclient(props.hubId);
+		},
+		{ immediate: true },
 	);
 
 	// When a user opens the hub for the first time on a device or in a browser, the accessToken
@@ -85,8 +112,7 @@
 	messagebox.$onAction(({ name, args, after }) => {
 		if (name === 'receivedMessage' && args[0].type === 'addAuthInfo') {
 			after(() => {
-				const authInfo = global.getAuthInfo(props.hubId);
-				accessToken.value = JSON.stringify(authInfo);
+				authInfo.value = global.getAuthInfo(props.hubId);
 			});
 		}
 	});

@@ -1,8 +1,7 @@
 // Packages
-import { assert } from 'chai';
-
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { assert } from '@hub-client/logic/utils/assert';
 
 const logger = createLogger('Error');
 

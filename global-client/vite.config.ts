@@ -1,13 +1,34 @@
 import tailwindcss from '@tailwindcss/vite';
 import Vue from '@vitejs/plugin-vue';
-import { readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { URL, fileURLToPath } from 'node:url';
+import type { Plugin } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
-// Root package.json is the single source of truth for the app version.
-const { version } = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf-8'));
+// The version shown in the about dialog and written to dist/version.txt.  CI sets PH_VERSION to the
+// release tag it is building; locally we describe the checkout, so a dev build reports what it was
+// actually built from.
+let version = process.env.PH_VERSION ?? '';
+if (!version) {
+	try {
+		version = execSync('git describe --tags', { stdio: ['ignore', 'pipe', 'ignore'] })
+			.toString()
+			.trim();
+	} catch {
+		version = 'unknown';
+	}
+}
+
+// Puts the version in a plain file next to the bundle, so the deployed version can be read without
+// digging through the minified bundle for the string literal `define` put there.
+const emitVersionFile: Plugin = {
+	name: 'ph-emit-version',
+	generateBundle() {
+		this.emitFile({ type: 'asset', fileName: 'version.txt', source: `${version}\n` });
+	},
+};
 
 export default defineConfig({
 	logLevel: 'warn',
@@ -95,6 +116,7 @@ export default defineConfig({
 			},
 		}),
 		Vue(),
+		emitVersionFile,
 	],
 	test: {
 		root: './',
@@ -116,7 +138,6 @@ export default defineConfig({
 		alias: {
 			'@global-client': fileURLToPath(new URL('./src', import.meta.url)),
 			'@hub-client': fileURLToPath(new URL('../hub-client/src', import.meta.url)),
-			process: 'process/browser',
 			'vue-i18n': 'vue-i18n/dist/vue-i18n.esm-bundler.js',
 		},
 		dedupe: ['pinia'], // Necessary to avoid duplicate pinia instances
@@ -124,6 +145,14 @@ export default defineConfig({
 	build: {
 		sourcemap: true,
 		rollupOptions: {
+			// dialog.ts imports i18n dynamically so the hub client's miniclient can leave the locale
+			// catalogues out of its startup graph. The global client mounts i18n from main.ts, so here the
+			// module is statically reachable anyway and the split cannot happen — expected, not a problem
+			// to fix on this side.
+			onwarn(warning, defaultHandler) {
+				if (warning.code === 'INEFFECTIVE_DYNAMIC_IMPORT') return;
+				defaultHandler(warning);
+			},
 			input: {
 				// Define included files from outside global-client
 				main: 'index.html',

@@ -86,8 +86,6 @@ export type AuthCompleteReq = {
 
 export type CompleteResp = { Success: { attrs: Record<string, string> } } | 'PleaseRestartAuth';
 
-export type SignedIdentifyingAttrs = Record<string, { signedAttr: string; id: string; value: string }>;
-
 export type AuthCompleteResp = Result<CompleteResp, ErrorCode>;
 
 export type SuccesResp = { attrs: Record<string, string> };

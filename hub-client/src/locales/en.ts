@@ -4,6 +4,7 @@ const en = {
 		yivi: 'Yivi',
 		loading: 'Loading ...',
 		or: 'or',
+		retry: 'Retry',
 	},
 	card: {
 		description: 'Card issued with the following attributes:',
@@ -51,14 +52,19 @@ const en = {
 		admin_error: 'You are not an admin!',
 		no_room_error: 'User {0} has not joined any room in the hub.',
 		room_creator: 'Room Creator not found',
-		account_does_not_exist:
-			'A PubHubs account with these attributes does not exist. Try to register a new account with these attributes or try to login with different attributes.',
-		attribute_banned: 'The following attribute is banned and therefore cannot be used to register a new PubHubs account: {0}.',
+		// Reached on login, where a PubHubs card is the only thing disclosed - so it must not suggest
+		// logging in with something else, or registering with the card. Registering starts over from
+		// the attributes and hands out a card of its own.
+		account_does_not_exist: 'We could not find a PubHubs account for this. If you do not have an account yet, register a new one.',
+		// Reached both when registering and when logging in, so it says neither.
+		attribute_banned: 'The following attribute is banned and cannot be used in PubHubs: {0}.',
 		banned: 'This account is banned and can no longer be used to login to PubHubs.',
 		attribute_already_taken: 'The following attribute is already tied to a PubHubs account: {0}. Try logging in.',
 		general_error:
 			'Unfortunately an error occured. Try again and <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a> if the problem persists.',
-		retry_with_new_attr: 'Please add your attributes again in Yivi and retry.',
+		// The server rejected a signed attribute as expired or invalid, which means disclosing again -
+		// not adding anything in Yivi, which for a PubHubs card the user cannot do at all.
+		retry_with_new_attr: 'Your details could not be verified, they may have expired. Please try again.',
 		no_hubs_found:
 			'Unfortunately we could not show any hubs. Try again later and <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a> if the problem persists.',
 		cant_find: 'Sorry, we could not find the page or room that you were looking for.',
@@ -66,6 +72,19 @@ const en = {
 			'You have already used the phone number for another account, if you still want to create a new account, click ok and try again',
 		notid_taken_title: 'Phone number already in use',
 		YiviServerGone: 'You could likely not complete the login because battery-saver blocks javascript, try the last step one more time to log in.',
+		// Shown for a Yivi session the widget cannot restart by itself: a chained session, which ends
+		// there on a cancel and on a timeout as much as on an error. Battery-saver and a slow connection
+		// both come out as one of those, and neither says anything about the retry - which no longer
+		// chains, so it is worth taking.
+		yivi_session_failed: 'Something went wrong in the Yivi app, so we could not log you in. Please try again.',
+		// The card is on the account but never reached the user's Yivi app, and logging in later
+		// discloses exactly that card - so the last step really does have to be finished.
+		card_not_added:
+			'You are logged in, but your PubHubs card was not added to your Yivi app. You need it to log in next time, so please finish the last step.',
+		// The card reached the Yivi app but could not be tied to the account, which the next login
+		// needs in order to recognise it. Issuing another one repairs this, so it asks for a retry too.
+		card_not_linked:
+			'You are logged in, but your PubHubs card could not be linked to your account. You need it to log in next time, so please try the last step again.',
 	},
 	file: {
 		upload: 'Upload',
@@ -129,8 +148,19 @@ const en = {
 		card_2_text_2: '{0} needs this information to complete registration.',
 
 		card_3_title: 'Scan the QR code',
-		card_3_text_1: "Great, you're almost done!",
+		// The _app variants are shown on a device that opens the Yivi app by link, where there is no
+		// QR code to scan.
+		card_3_title_app: 'Open the {0} app',
 		card_3_text_2: 'Scan the QR code with your {0} app and share your details to log into {1}.',
+		card_3_text_2_app: 'Open your {0} app and share your details to log into {1}.',
+		// The success variants are shown once the disclosure succeeded and the card is being issued.
+		card_3_success_title: "You're logged in!",
+		card_3_success_text: 'Scan the {0} Qr code once more to add your {1} card.',
+		card_3_success_text_app: 'Open your {0} app once more to add your {1} card.',
+		card_3_success_text_chained: 'Add your {1} card in the {0} app you just used to finish.',
+
+		card_1_alt: 'Laptop',
+		card_2_alt: '{0} mascot with attributes',
 
 		video_click_to_play: 'Click to play video',
 		video_hosted_by_vimeo: 'This video is hosted by Vimeo',
@@ -204,6 +234,7 @@ const en = {
 	},
 	login: {
 		login: 'Login',
+		mascot_alt: '{0} mascot',
 		login_again: 'You have been logged out. Please log in again to continue.',
 		loading_yivi: 'Loading Yivi...',
 		yivi_app_missing: 'Could not open the Yivi app. Please make sure it is installed, then try again.',
@@ -368,9 +399,9 @@ const en = {
 		required_attributes:
 			'This is a secured room. To join, scan the QR code below with your Yivi app. You will share only the following information with the room, nothing else:',
 		display_qr: 'Display QR-code',
-		retry: 'Retry',
 		secure_room_enter_info: 'Please show the following:',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check you gave the correct data with the Yivi App.',
+		secured_room_attributes_edit_error: 'Add at least one value per attribute',
 		unavailable: 'There are no available rooms to join',
 		admin_badge: 'Admin',
 		member_count: 'Member count',
@@ -775,6 +806,7 @@ const en = {
 			title: 'Title',
 			description: 'Description',
 			option: 'Option',
+			option_number: 'Option {number}',
 			location: 'Location',
 			enter_title: 'Enter title...',
 			enter_option: 'Enter option...',

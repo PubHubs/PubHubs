@@ -39,8 +39,6 @@ modules:
               # public_yivi_url: "http://<outside container>:8008/",
           }
 
-oidc_providers: [{ client_id: 'not used but must be set' }]
-
 # Server name, used in full user/room names.
 # Warning: cannot be changed later on without issues.
 server_name: 'testhub.matrix.host' # DO CHANGE - to your Hub server domain name
@@ -50,10 +48,6 @@ public_baseurl: http://localhost:8008 # DO CHANGE - to https://<hub-server-domai
 
 macaroon_secret_key: 'macaroon_key' # DO CHANGE - to e.g. a 32 letter generated password
 signing_key_path: '/data/testhub.signing.key' # DO CHANGE - remove this to auto-generate a signing key
-
-trusted_key_servers: []
-pid_file: /data/homeserver.pid
-report_stats: false
 
 listeners:
     - port: 8008
@@ -72,31 +66,7 @@ database:
 
 log_config: '/data/test_hub.log.config' # Change to /data/log.config
 
-media_store_path: '/data/media_store'
-
-# Allow finding all users, by other users in the hub even if they don't share rooms.
-user_directory:
-    enabled: true
-    search_all_users: true
-    prefer_local_users: true
-    show_locked_users: false
-
-# Skips having to check the redirection with user interaction.
-sso:
-    client_whitelist:
-        - https://app.pubhubs.net
-        - http://localhost # DO CHANGE - to https://<your-hub-client-domain-name>
-
-update_profile_information: true
-
-# Less login attempt restrictions
-rc_login:
-    address:
-        per_second: 1000
-        burst_count: 1000
-    account:
-        per_second: 1000
-        burst_count: 1000
-    failed_attempts:
-        per_second: 1000
-        burst_count: 1000
+# Rate limiting (rc_message, rc_login, rc_room_creation, rc_joins, rc_invites)
+# is not configured here: update_config fills in values tuned for PubHubs, see
+# DEFAULT_CONFIG in boot/update_config.py for the values and why they differ
+# from Synapse's. Setting any of those keys here overrides the PubHubs value.

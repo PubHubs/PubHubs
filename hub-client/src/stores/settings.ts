@@ -9,7 +9,7 @@ import { CONFIG } from '@hub-client/logic/logging/Config';
 import { Message, MessageBoxType, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 
 // Other
-import { fallbackLanguage } from '@hub-client/i18n';
+import { fallbackLanguage } from '@hub-client/language';
 
 // Types
 enum Theme {
@@ -47,6 +47,7 @@ enum FeatureFlag {
 	roomLibrary = 'roomLibrary',
 	phCard = 'phCard',
 	whisper = 'whisper',
+	chainedSession = 'chainedSession',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -126,6 +127,7 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: false,
+			chainedSession: false,
 		},
 		main: {
 			signedMessages: true,
@@ -143,6 +145,7 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: true,
+			chainedSession: true,
 		},
 		local: {
 			signedMessages: true,
@@ -160,6 +163,7 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: true,
+			chainedSession: true,
 		},
 	},
 };

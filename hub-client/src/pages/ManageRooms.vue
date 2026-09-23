@@ -80,7 +80,7 @@
 				</FilterableList>
 				<div
 					v-if="isAdmin"
-					class="absolute right-200 bottom-200 z-50"
+					class="fixed right-200 bottom-200 z-50"
 				>
 					<FloatingActionButton
 						:label="t('rooms.add_room')"

@@ -649,7 +649,10 @@ wrap_dalek_type! {
 
 impl Scalar {
     pub fn random() -> Self {
-        curve25519_dalek::scalar::Scalar::random(&mut aead::rand_core::OsRng).into()
+        curve25519_dalek::scalar::Scalar::from_bytes_mod_order_wide(
+            &crate::misc::crypto::random_64_bytes(),
+        )
+        .into()
     }
 }
 

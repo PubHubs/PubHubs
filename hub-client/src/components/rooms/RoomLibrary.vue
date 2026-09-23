@@ -51,7 +51,7 @@
 						data-testid="filemanager"
 					>
 						<BarListItem
-							v-if="user.isAdmin"
+							v-if="roles.userIsStewardOrHigher()"
 							class="bg-background! mb-0! flex shrink-0"
 							data-testid="filemanager-admin"
 						>
@@ -103,7 +103,7 @@
 													@click="downloadItem(item)"
 												>
 													<div
-														v-if="user.isAdmin"
+														v-if="roles.userIsStewardOrHigher()"
 														class="gap-050 flex items-center"
 														@click.stop
 													>
@@ -220,7 +220,7 @@
 						</div>
 						<BarListItem class="bg-background! mb-0! flex shrink-0 justify-between">
 							<span>{{ $t('roomlibrary.total_files', roomTimeLineFiles.length, { named: { count: roomTimeLineFiles.length } }) }}</span>
-							<span v-if="user.isAdmin && hasSelection()">{{
+							<span v-if="roles.userIsStewardOrHigher() && hasSelection()">{{
 								$t('roomlibrary.selected_files', selection.length, { named: { count: selection.length } })
 							}}</span>
 						</BarListItem>
@@ -281,6 +281,7 @@
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFileDownload } from '@hub-client/composables/useFileDownload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
@@ -318,6 +319,7 @@
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const user = useUser();
+	const roles = useRoles();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -470,6 +472,7 @@
 	 */
 	function contextMenuItems(item: TimelineEvent, toggle: () => void): MenuItem[] {
 		const eventId = item.matrixEvent.getId();
+		const senderId = item.matrixEvent.event.sender;
 		const items: MenuItem[] = [
 			{ label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadItem(item) },
 			{ label: t('roomlibrary.share_to_timeline'), icon: 'paper-plane-right', onClick: () => shareItem(item) },
@@ -482,14 +485,14 @@
 				onClick: () => handleSigning(item.matrixEvent.getContent().url, eventId),
 			});
 		}
-		if (user.isAdmin) {
+		if (user.userId === senderId || roles.userIsStewardOrHigher()) {
 			items.push(
 				{ divider: true, label: '' },
 				{
 					label: t('roomlibrary.delete_file'),
 					icon: 'trash',
 					variant: ContextVariant.delicate,
-					onClick: () => confirmDeletion(item.matrixEvent.getContent(), eventId),
+					onClick: () => confirmDeletion(item.matrixEvent.getContent(), eventId, senderId),
 				},
 			);
 		}
@@ -556,15 +559,20 @@
 		await pubhubs.addSignedFile(rooms.currentRoomId ?? '', result as YiviSigningSessionResult, activeEventId.value);
 	}
 
-	async function confirmDeletion(eventContent: TFileMessageEventContent | TImageMessageEventContent, eventId: string | undefined) {
+	async function confirmDeletion(
+		eventContent: TFileMessageEventContent | TImageMessageEventContent,
+		eventId: string | undefined,
+		senderId: string | undefined,
+	) {
 		const confirm = await dialog.okcancel(t('roomlibrary.delete.heading'), t('roomlibrary.delete.content', [eventContent.filename]));
 		if (confirm) {
-			await handleDeletion(eventContent, eventId as string);
+			await handleDeletion(eventContent, eventId ?? '', senderId ?? '');
 		}
 	}
 
-	async function handleDeletion(eventContent: TFileMessageEventContent | TImageMessageEventContent | undefined, eventId: string) {
-		if (eventContent) {
+	async function handleDeletion(eventContent: TFileMessageEventContent | TImageMessageEventContent | undefined, eventId: string, senderId: string) {
+		const canDelete = user.userId === senderId || roles.userIsStewardOrHigher();
+		if (canDelete && eventContent) {
 			const mxc = eventContent.url;
 			const url = deleteMediaUrlfromMxc(mxc);
 			const allSignedEvents = getAllSignedEventsForFile(eventId);
@@ -630,6 +638,7 @@
 				await handleDeletion(
 					item.matrixEvent.event.content as TFileMessageEventContent | TImageMessageEventContent | undefined,
 					item.matrixEvent.event.event_id ?? '',
+					item.matrixEvent.event.sender ?? '',
 				);
 			}
 			deletingAll.value = false;

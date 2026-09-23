@@ -12,9 +12,6 @@ import Badge from '@hub-client/components/elements/Badge.vue';
 // Pages
 import Miniclient from '@hub-client/pages/Miniclient.vue';
 
-// Other
-import { setUpi18n } from '@hub-client/i18n';
-
 adjustClientConfig();
 
 const pinia = createPinia();
@@ -22,8 +19,8 @@ const app = createApp(Miniclient);
 
 app.component('Badge', Badge);
 
-const i18n = setUpi18n(app);
-app.use(i18n);
-
+// No i18n here on purpose: the whole miniclient tree (Miniclient -> Independent/Linked ->
+// MiniclientBadge -> Badge) renders an unread dot and no text at all, and vue-i18n plus both
+// locale files are ~205 KB. settings.setLanguage no-ops without _i18n, so the handshake is fine.
 app.use(pinia);
 app.mount('#app');
