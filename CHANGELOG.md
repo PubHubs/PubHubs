@@ -10,6 +10,10 @@ _Please add a brief description of any changes and any migrations to be performe
 - _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
 - _[INTERNAL] - Code changes not affecting functionality_
 
+## Changed not merged yet
+
+- [BUG] Fixed that ~ would break url links.
+
 ## 18 September 2026 - v3.5.5
 
 - [HOTFIX] Fixed that stewards were not allowed to edit rooms.
