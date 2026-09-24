@@ -12,6 +12,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not merged yet
 
+- [IMPROVED] Updated the hub overview and discover page.
 - [BUG] Fixed that ~ would break url links.
 
 ## 18 September 2026 - v3.5.5
@@ -21,6 +22,7 @@ _Please add a brief description of any changes and any migrations to be performe
 ## 10 September 2026 - v.3.5.4
 
 - [NEW] From this version onwards pinned images will be shared for every full release and the new `latest` tag points to the latest full release. The `stable` tag is unchanged, it points to the latest full release or release-candidate.
+- [NEW] When entering pubhubs home users get redirected to the last pinned hub they visited, with a fallback `MyHubs` page if the user has no pinned hubs or the loading of the hub-client fails.
 - [IMPROVED] Login and registration recover from a Yivi session that is interrupted.
 - [IMPROVED] The rtcSession now rules the videocallpages, instead of the usermessages
 - [IMPROVED] In the file libray files can now be deleted by admins, stewards and the users that uploaded them

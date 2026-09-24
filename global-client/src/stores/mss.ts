@@ -37,6 +37,8 @@ import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 const logger = createLogger('MSS');
 
+const hubInfoTimeoutMs = 5000;
+
 // The Yivi session `enterPubHubs` is waiting on, plus a counter identifying the run that started it.
 // Only one enter attempt can be in flight: `AuthenticationServer` holds a single authentication
 // state, so a run that has been replaced must stop before it writes that state or completes an
@@ -598,7 +600,10 @@ const useMSS = defineStore('mss', {
 		},
 
 		async getHubInfo(hubServerUrl: string): Promise<InfoResp> {
-			const infoResp = await hub_api.api<HubInfoResp | InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
+			const infoResp = await hub_api.api<HubInfoResp | InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`, {
+				method: 'GET',
+				signal: AbortSignal.timeout(hubInfoTimeoutMs),
+			});
 
 			// hubs <= v3.0.0 do not wrap the info response in an "Ok": { ... }
 			if (isResult(infoResp)) {

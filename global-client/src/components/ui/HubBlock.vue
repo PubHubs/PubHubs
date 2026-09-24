@@ -1,7 +1,7 @@
 <template>
 	<div
 		v-if="hub"
-		class="bg-surface-base border-surface-elevated rounded-base relative flex w-full max-w-full flex-col overflow-hidden border-3"
+		class="bg-surface-base border-surface-elevated rounded-base hover:border-accent-blue-interactive relative flex w-full max-w-full flex-col overflow-hidden border-3 transition-colors"
 	>
 		<button
 			type="button"

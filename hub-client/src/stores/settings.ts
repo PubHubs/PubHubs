@@ -82,6 +82,10 @@ interface Settings {
 	 * Should have type 'Language', but for some reason the build gives an error when trying to import it from '@hub-client/i18n.
 	 */
 	language: string;
+	/**
+	 * Remember the last visited hub to quickly returning to it when loading Pubhubs.
+	 */
+	lastHubId: string;
 
 	_i18n?: i18nSettings;
 
@@ -96,6 +100,7 @@ const defaultSettings: Settings = {
 	pagination: 150,
 	displayNameMaxLength: 40,
 	language: fallbackLanguage,
+	lastHubId: '',
 	_i18n: undefined,
 	// First check if the Notifications API is supported.
 	notificationsPermission:
@@ -204,6 +209,9 @@ const useSettings = defineStore('settings', {
 		getTimeFormat: (state: Settings): TimeFormat => {
 			return state.timeformat;
 		},
+		getLastVisitedHub: (state: Settings): string => {
+			return state.lastHubId;
+		},
 
 		getNotificationsPermission: (state: Settings): NotificationsPermission => {
 			return state.notificationsPermission;
@@ -284,6 +292,9 @@ const useSettings = defineStore('settings', {
 				this.language = newLanguage;
 				if (send) this.sendSettings();
 			}
+		},
+		setLastVisitedHub(hubId: string) {
+			this.lastHubId = hubId;
 		},
 
 		sendSettings() {

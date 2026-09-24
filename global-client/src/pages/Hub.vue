@@ -2,6 +2,7 @@
 	<iframe
 		v-if="hubs.currentHubExists"
 		:id="iframeHubId"
+		title="hub"
 		allow="camera; microphone; display-capture; autoplay; speaker-selection; clipboard-write; fullscreen"
 		:src="hubUrl"
 		class="h-full w-full"
@@ -29,11 +30,13 @@
 	import { useMSS } from '@global-client/stores/mss';
 
 	import { iframeHubId } from '@hub-client/stores/messagebox';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const route = useRoute();
 	const router = useRouter();
 	const hubs = useHubs();
 	const global = useGlobal();
+	const settings = useSettings();
 	const logger = createLogger('Hub');
 
 	onMounted(onRouteChange);
@@ -50,11 +53,20 @@
 	const hubUrl = ref('');
 
 	async function onRouteChange() {
+		const hubName = route.params.name as string;
+		// Only pinned hubs are loaded at startup, so a hub the user has not pinned yet is fetched here.
+		if (!hubs.hubId(hubName)) {
+			try {
+				await global.getHubData(hubName);
+			} catch (error) {
+				logger.error(`Could not load hub '${hubName}'`, { error });
+			}
+		}
 		let hubId = undefined;
 		const maxAttempts = 4;
 		for (let attempt = 0; attempt < maxAttempts && !hubId; attempt++) {
 			try {
-				hubId = hubs.hubId(route.params.name as string);
+				hubId = hubs.hubId(hubName);
 			} catch (error) {
 				logger.error(`Could not execute function onRouteChange on attempt: ${attempt}`, { error });
 			}
@@ -63,7 +75,7 @@
 			}
 		}
 		if (!hubId) {
-			router.push({ name: 'home' });
+			router.push({ name: 'hubs-overview' });
 			return;
 		}
 		if (!hubs.hubExists(hubId)) {
@@ -71,6 +83,7 @@
 		}
 		await handleHubAuth(hubId);
 		await hubs.changeHub(route.params);
+		settings.setLastVisitedHub(hubId);
 	}
 
 	async function handleHubAuth(id: string) {
