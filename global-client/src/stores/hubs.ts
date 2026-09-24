@@ -172,7 +172,7 @@ const useHubs = defineStore('hubs', {
 			}
 
 			// If the target is not a valid hub, reset currentHubId to '' and
-			// navigate the global client to home. This is still a hub change
+			// navigate the global client to hubs-overview. This is still a hub change
 			// (from whatever we were on to "no hub"), so the HubActive(false)
 			// above for the previous hub is correct and we return afterwards.
 			if (typeof hubId === 'undefined' || !this.currentHubExists) {
@@ -180,7 +180,7 @@ const useHubs = defineStore('hubs', {
 				messagebox.resetCurrentHub();
 				// TODO: find a way router can be part of a store that TypeScript swallows.
 				// @ts-expect-error -- router is injected as plugin, not in store type
-				this.router.push({ name: 'home' });
+				this.router.push({ name: 'hubs-overview' });
 				return;
 			}
 

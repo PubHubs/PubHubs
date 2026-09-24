@@ -51,7 +51,6 @@ const en = {
 		cant_find_room: 'This room is not available at the moment',
 		admin_error: 'You are not an admin!',
 		no_room_error: 'User {0} has not joined any room in the hub.',
-		room_creator: 'Room Creator not found',
 		// Reached on login, where a PubHubs card is the only thing disclosed - so it must not suggest
 		// logging in with something else, or registering with the card. Registering starts over from
 		// the attributes and hands out a card of its own.
@@ -114,14 +113,19 @@ const en = {
 		hub_homepage_welcome_auth: 'Welcome to the {0}-hub.',
 		welcome: 'Welcome',
 		highlighted_hubs: 'Highlighted hubs',
-		highlighted_hubs_info:
-			'PubHubs consist of seperate hubs, where local conversations happen, under a central login. These hubs are run by seperate, participating organisations.',
 		welcome_to: '{0} Hub overview',
-		discover_hubs: 'Discover hubs',
 		hub_card_about: 'About',
 		heading: 'Hub description:',
 		contact_details: 'Contact details:',
 		enter_hub: 'Enter {hub}',
+		hubs_overview: 'Hubs overview',
+		pinned: 'Pinned',
+		discover: 'Discover',
+		add_hub: 'Add hub',
+		add_hub_description: 'Discover hubs and pin your first one.',
+		pinned_all_hubs: 'You already pinned all hubs',
+		no_hubs_available: 'No hubs are available',
+		load_hubs_failed: 'The hubs could not be loaded.',
 	},
 	about: {
 		title: 'About PubHubs',
@@ -313,7 +317,6 @@ const en = {
 		search_rooms: 'Search for rooms',
 		search_hubs: 'Search for hubs',
 		search_users: 'Search for users',
-		search_hubs_not_found: 'No hubs were found',
 		search_rooms_not_found: 'No rooms were found',
 		search_room: 'Search this room',
 		search_room_hint: 'Enter a search term and press Enter to search messages in this room.',
@@ -722,7 +725,6 @@ const en = {
 		welcome_consent: 'The house rules of this hub have changed',
 		welcome_consent_description: 'Please review the terms before entering.',
 
-		info_first_time: 'This is your first visit. It is nice that you are here.',
 		info_abt_pseudonym: 'This hub has given you a random name (pseudonym)',
 		info_issue_identity:
 			'This pseudonym hides your identity for privacy reasons. But it is not very convenient for others in the hub. Therefore, You can choose a nickname yourself that others in the hub will see',
@@ -866,7 +868,6 @@ const en = {
 		max_value: '{0} is too high, the maximum value is {1}, but there are {2}',
 		min_value: '{0} needs to at least have a value of {1}, but there are {2}',
 		is_number: '{0} must be a number',
-		email: '{0} is not a valid email address',
 	},
 	bubble: {
 		organize: 'Organize your hubs by dragging them.',

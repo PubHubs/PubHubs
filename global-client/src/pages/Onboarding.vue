@@ -694,7 +694,7 @@
 		if (redirectPath) {
 			await router.push({ path: decodeURI(redirectPath) });
 		} else {
-			await router.push({ name: 'home' });
+			await router.push({ name: 'hubs-overview' });
 		}
 	}
 

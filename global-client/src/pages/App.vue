@@ -17,7 +17,7 @@
 		<router-view
 			class="flex h-full shrink-0 overflow-y-auto"
 			:class="
-				isMobile && !(route.name === 'onboarding' || route.name === 'home' || route.name === 'login' || route.name === 'error')
+				isMobile && !(route.name === 'onboarding' || route.name === 'hubs-overview' || route.name === 'login' || route.name === 'error')
 					? 'w-[calc(200vw-80px)]!'
 					: 'w-[calc(100vw-80px)]! flex-1'
 			"
@@ -164,12 +164,13 @@
 		logger.info('App.vue onMounted done', { language: settings.getActiveLanguage });
 	}
 
-	// Function to add hubs
+	// Function to add hubs (only pinned hubs on startup for lazy loading)
 	async function addHubs() {
 		try {
-			await global.getHubs();
+			const isLoggedIn = await global.checkLoginAndSettings();
+			if (!isLoggedIn) return;
+			await global.getPinnedHubsData();
 		} catch (error) {
-			global.setLoadingHubs(false);
 			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
 			logger.error('Error adding hubs', { error });
 		}
