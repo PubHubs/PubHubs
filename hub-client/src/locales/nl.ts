@@ -24,6 +24,7 @@ const nl = {
 		close: 'Sluiten',
 		yes: 'Ja',
 		no: 'Nee',
+		hub_pin_title: 'Hub vastspelden',
 		hub_unpin_title: 'Hub losmaken',
 		hub_unpin_context: 'Wil je deze Hub losmaken?',
 		submit: 'Bevestig',

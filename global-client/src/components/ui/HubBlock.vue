@@ -8,6 +8,7 @@
 			class="focus-visible:ring-accent-blue-interactive absolute inset-0 z-10 cursor-pointer rounded-none outline-none focus-visible:ring-3 focus-visible:ring-inset"
 			:aria-label="t('home.enter_hub', { hub: hub.hubName })"
 			@click="enterHub(hub)"
+			@contextmenu.prevent="openHubContextMenu"
 		/>
 		<!-- The banner takes whatever height the card has left over: cards in a grid row stretch to the
 		     tallest of them, and that spare height is better spent on the image than left empty. -->
@@ -51,27 +52,44 @@
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
+	// Composables
+	import { usePinnedHubs } from '@global-client/composables/pinnedHubs.composable';
+
 	// Models
 	import { type Hub } from '@global-client/models/Hubs';
+
+	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
 
 	import { useGlobal } from '@global-client/stores/global';
 	import { useMSS } from '@global-client/stores/mss';
 
 	// Stores
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const props = defineProps<{ hub: Hub }>();
 	const router = useRouter();
 	const dialog = useDialog();
+	const contextMenu = useContextMenuStore();
 	const { t } = useI18n();
 	const _mss = useMSS();
-	const _global = useGlobal();
+	const global = useGlobal();
 	const settings = useSettings();
+	const { pinHub, unpinHub } = usePinnedHubs();
 
 	const isMobile = computed(() => settings.isMobileState);
+	const pinned = computed(() => Boolean(global.existsInPinnedHubs(props.hub.hubId)));
 
 	const summary = ref<string>('');
+
+	// Right-clicking a card pins or unpins the hub without entering it, like the hub menu does.
+	function openHubContextMenu(event: MouseEvent) {
+		const items: MenuItem[] = pinned.value
+			? [{ label: t('dialog.hub_unpin_title'), icon: 'push-pin-slash', isDelicate: true, onClick: () => unpinHub(props.hub.hubId) }]
+			: [{ label: t('dialog.hub_pin_title'), icon: 'push-pin', onClick: () => pinHub(props.hub) }];
+		contextMenu.open(items, event.clientX, event.clientY);
+	}
 
 	async function enterHub(hub: Hub) {
 		let canEnterHub = false;

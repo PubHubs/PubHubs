@@ -24,6 +24,7 @@ const en = {
 		close: 'Close',
 		yes: 'Yes',
 		no: 'No',
+		hub_pin_title: 'Pin hub',
 		hub_unpin_title: 'Unpin hub',
 		hub_unpin_context: 'Do you want to unpin this hub?',
 		submit: 'Confirm',
