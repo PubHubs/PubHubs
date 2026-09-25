@@ -80,6 +80,31 @@ describe('Global', () => {
 			expect(settings.language).toHaveLength(2);
 			expect(global.pinnedHubs).toHaveLength(1);
 		});
+		// After PHC restarts it no longer accepts the stored auth token, so the first check of the page
+		// load logs the user out halfway through.
+		test('a token rejected during the check is not reported as logged in', async () => {
+			const global = useGlobal();
+			const replace = vi.fn();
+			global.router = { replace };
+			// The logout clears the user secret, which the tests after this one still read.
+			const userSecret = localStorage.getItem('UserSecret');
+			// @ts-expect-error -- router is injected as plugin, not in store type
+			onTestFinished(() => userSecret && localStorage.setItem('UserSecret', userSecret));
+
+			await api.api(api.apiURLS.login);
+			server.use(
+				http.get('http://testdomain/.ph/user/state', () => HttpResponse.json({ Ok: 'RetryWithNewAuthToken' }, { status: 200 })),
+				http.get('http://testdomain/.ph/user/refresh', () => HttpResponse.json({ Ok: 'ReobtainAuthToken' }, { status: 200 })),
+			);
+
+			const resp = await global.checkLoginAndSettings();
+
+			expect(resp).toEqual(false);
+			expect(global.loggedIn).toEqual(false);
+			expect(replace).toHaveBeenCalledWith(expect.objectContaining({ name: 'login' }));
+			// Nothing may be left for the next login to mistake for its own pinned-hub load.
+			expect(global.pinnedHubsLoad).toBeNull();
+		});
 	});
 
 	describe('login check', () => {
