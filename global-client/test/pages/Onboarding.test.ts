@@ -368,6 +368,6 @@ describe('Onboarding.vue', () => {
 
 		await mountOnboarding();
 
-		expect(push).toHaveBeenCalledWith({ name: 'home' });
+		expect(push).toHaveBeenCalledWith({ name: 'hubs-overview' });
 	});
 });

@@ -34,7 +34,7 @@ class Hub {
 		this.hubName = hubName;
 		this.url = url;
 		this.serverUrl = serverUrl;
-		if (typeof description !== 'undefined') {
+		if (description !== undefined) {
 			this.description = description;
 		} else {
 			this.description = hubId;

@@ -55,7 +55,7 @@
 				<Icon
 					:class="[hoverOverHubremoval ? 'text-on-accent-red' : 'text-accent-red']"
 					class="p-050 rounded-md"
-					type="trash"
+					type="push-pin-slash"
 				/>
 			</div>
 			<draggable
@@ -89,6 +89,9 @@
 	// Hub imports
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
+	// Composables
+	import { usePinnedHubs } from '@global-client/composables/pinnedHubs.composable';
+
 	// Models
 	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
 
@@ -107,6 +110,7 @@
 	const dialog = useDialog();
 	const contextMenu = useContextMenuStore();
 	const { t } = useI18n();
+	const { unpinHub } = usePinnedHubs();
 	const isDragging = ref(false);
 	const hoverOverHubremoval = ref(false);
 
@@ -137,18 +141,8 @@
 
 	// Right-clicking a hub offers "Unpin" as a discoverable alternative to the drag-to-trash gesture.
 	function openHubContextMenu(event: MouseEvent, hub: PinnedHub) {
-		const items: MenuItem[] = [{ label: t('dialog.hub_unpin_title'), icon: 'trash', isDelicate: true, onClick: () => unpinHub(hub) }];
+		const items: MenuItem[] = [{ label: t('dialog.hub_unpin_title'), icon: 'push-pin-slash', isDelicate: true, onClick: () => unpinHub(hub.hubId) }];
 		contextMenu.open(items, event.clientX, event.clientY);
-	}
-
-	async function unpinHub(hub: PinnedHub) {
-		const confirmed = Boolean(await dialog.yesno(t('dialog.hub_unpin_title'), t('dialog.hub_unpin_context'), 'global'));
-		if (!confirmed) return;
-		const index = global.pinnedHubs.findIndex((pinnedHub) => pinnedHub.hubId === hub.hubId);
-		if (index < 0) return;
-		global.removePinnedHub(index);
-		const messagebox = useMessageBox();
-		messagebox.resetMiniclient(hub.hubId);
 	}
 
 	async function confirmationHubRemoval() {

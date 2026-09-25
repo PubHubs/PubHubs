@@ -11,7 +11,7 @@
 				v-safe-html="errorMessage"
 				class="font-headings text-h3 font-semibold"
 			></h3>
-			<router-link :to="{ name: 'home' }">
+			<router-link :to="{ name: 'hubs-overview' }">
 				<Button
 					v-if="errorKey !== 'errors.no_hubs_found'"
 					class="mx-auto block max-w-md rounded-lg py-100"

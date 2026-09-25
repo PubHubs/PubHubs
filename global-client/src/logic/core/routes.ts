@@ -1,8 +1,16 @@
 // Pages
 import Hub from '@global-client/pages/Hub.vue';
 
+// `releasesMiniclients` marks the pages that show the hub overview rather than opening a hub: the
+// pinned-hub miniclients have nothing to stay out of the way of there, so the navigation guard lets
+// them start warming up. See miniclientGate.composable.ts.
 const routes = [
-	{ path: '/', name: 'home', component: () => import('@global-client/pages/Home.vue'), meta: { requiresAuth: true } },
+	{
+		path: '/',
+		name: 'hubs-overview',
+		component: () => import('@global-client/pages/HubsOverview.vue'),
+		meta: { requiresAuth: true, releasesMiniclients: true },
+	},
 	{ path: '/login', name: 'login', component: () => import('@global-client/pages/Login.vue'), meta: { requiresAuth: false } },
 	{
 		path: '/register',
