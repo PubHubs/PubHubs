@@ -25,9 +25,9 @@ const removeHtml = (html: string): string => {
 const escapeHtml = (text: string): string => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // Regex patterns for URL detection
-// Note: These patterns exclude ~ to avoid matching into mention syntax (@name~id~)
-const urlPattern = /\b(?:https?|ftp):\/\/[a-z0-9-+&@#/%?=_|!:,.;]*[a-z0-9-+&@#/%=_|]/gim;
-const pseudoUrlPattern = /(^|[^/])(www\.[a-z0-9-+&@#/%?=_|!:,.;]*[a-z0-9-+&@#/%=_|])/gim;
+// ~ is allowed (e.g. /~user/): mention tokens (@name~id~) are split out before textToHtml runs, and must follow whitespace, which always ends a URL match
+const urlPattern = /\b(?:https?|ftp):\/\/[a-z0-9-+&@#/%?=_|!:,.;~]*[a-z0-9-+&@#/%=_|~]/gim;
+const pseudoUrlPattern = /(^|[^/])(www\.[a-z0-9-+&@#/%?=_|!:,.;~]*[a-z0-9-+&@#/%=_|~])/gim;
 const emailAddressPattern = /(([a-zA-Z0-9_\-.]+)@[a-zA-Z_]+?(?:\.[a-zA-Z]{2,6}))+/gim;
 
 /**

@@ -1,7 +1,18 @@
 <!doctype html>
-<html lang="">
+<html lang="nl">
 	<head>
 		<meta charset="utf-8" />
+		<!--
+			Content Security Policy. `script-src 'self'` is added so that injected scripts that are accidentely not sanitized 
+			are refused to be executed in the dom by the browser.
+
+			'wasm-unsafe-eval' is needed because matrix-js-sdk ships matrix_sdk_crypto_wasm; without it
+			WebAssembly.compile is blocked. 'unsafe-inline' on style-src covers Vue's :style bindings.
+		-->
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https: http:; media-src 'self' blob: data: https: http:; font-src 'self' data:; connect-src 'self' blob: data: https: http: wss: ws:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+		/>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<meta name="viewport" content="width=device-width,initial-scale=1.0,interactive-widget=resizes-content" />
 		<link rel="icon" href="/img/icons/favicon.ico" />

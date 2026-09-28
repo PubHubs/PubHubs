@@ -154,7 +154,8 @@
 
 	const computedClasses = computed(() => {
 		const variantClass = buttonVariants[props.variant ?? 'primary'];
-		const focusClass = props.nofocus ? '' : 'focus:outline-3';
+		// Combined buttons act as toggles that keep focus after a click, so their ring is keyboard-only and raised above the neighbouring button
+		const focusClass = props.nofocus ? '' : buttonGroupCombined ? 'focus-visible:outline-3 focus-visible:z-10' : 'focus:outline-3';
 		const iconClass = isIconOnly.value ? 'min-w-550 w-550 px-100' : 'min-w-1000 px-150'; // Required to make the icon-only button look square
 		const combinedClass = buttonGroupCombined ? 'rounded-none first:rounded-l-md last:rounded-r-md' : '';
 		return [variantClass, iconClass, focusClass, combinedClass];

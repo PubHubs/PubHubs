@@ -55,7 +55,7 @@
 				:items="paginatedItems"
 			/>
 			<div
-				v-if="totalPages > 1"
+				v-if="paginate && totalPages > 1"
 				class="flex items-center gap-200 py-200"
 				:class="isMobile ? 'justify-start px-150' : 'justify-center px-200'"
 			>
@@ -86,13 +86,18 @@
 				{{ t('others.search_nothing_found') }}
 			</p>
 		</template>
-		<p
-			v-else-if="emptyText && items.length === 0"
-			class="text-on-surface-dim text-center"
-			role="status"
-		>
-			{{ emptyText }}
-		</p>
+		<template v-else-if="items.length === 0">
+			<!-- Lets a consumer replace the plain empty text, e.g. with skeletons or a call-to-action card -->
+			<slot name="empty">
+				<p
+					v-if="emptyText"
+					class="text-on-surface-dim text-center"
+					role="status"
+				>
+					{{ emptyText }}
+				</p>
+			</slot>
+		</template>
 	</div>
 </template>
 
@@ -124,6 +129,7 @@
 			sortby?: string | null;
 			hideUntilSearch?: boolean;
 			emptyText?: string;
+			paginate?: boolean;
 		}>(),
 		{
 			items: () => [],
@@ -133,6 +139,7 @@
 			sortby: null,
 			hideUntilSearch: false,
 			emptyText: '',
+			paginate: true,
 		},
 	);
 
@@ -226,6 +233,8 @@
 	const totalPages = computed(() => Math.max(1, Math.ceil(sortedItems.value.length / fillPageSize.value)));
 
 	const paginatedItems = computed(() => {
+		// Page size assumes table rows; card layouts can opt out and show everything
+		if (!props.paginate) return sortedItems.value;
 		const start = (currentPage.value - 1) * fillPageSize.value;
 		return sortedItems.value.slice(start, start + fillPageSize.value);
 	});

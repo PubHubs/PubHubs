@@ -112,6 +112,18 @@ describe('EventTimeLineHandler', () => {
 			expect(sanitizeHtml(phBody)).toContain('Predicate("100&lt;H| + -50&lt;T|")');
 		});
 
+		test('links keep a ~ in their path', () => {
+			const event = timelineHandler.transformEventContent({
+				type: EventType.RoomMessage,
+				room_id: '##room_id##',
+				content: { body: 'see https://www.cs.ru.nl/~user/page and www.example.com/~a~b', msgtype: 'm.text' } as TTextMessageEventContent,
+			} as TEvent);
+
+			const phBody = event.content.ph_body;
+			expect(phBody).toContain('href="https://www.cs.ru.nl/~user/page"');
+			expect(phBody).toContain('href="http://www.example.com/~a~b"');
+		});
+
 		test('typed markup is displayed literally, not applied', () => {
 			const event = timelineHandler.transformEventContent({
 				type: EventType.RoomMessage,

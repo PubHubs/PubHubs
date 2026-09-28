@@ -27,6 +27,7 @@
 					:empty-text="$t('others.empty_users')"
 					sortby="displayname"
 				>
+					<template #actions> </template>
 					<template #filtered="{ items }">
 						<div
 							class="flex flex-col gap-200"
