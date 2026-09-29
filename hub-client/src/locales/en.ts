@@ -46,6 +46,18 @@ const en = {
 		not_send_offline: 'No internet connection. This message was not send.',
 		resend: 'Send again',
 		file_upload: 'File format not supported',
+		file_upload_failed: 'File could not be uploaded',
+		file_upload_unsupported_type: 'Files of type {type} cannot be uploaded here.',
+		// Reached when the file passes our own check but is still refused, which happens when the
+		// server in front of the hub has a lower limit than the hub itself and names no number.
+		file_upload_too_large: 'The server refused this file because it is too large ({size}). Try a smaller file, or compress it first.',
+		file_upload_too_large_max: 'This file is {size}, which is more than the maximum of {max}.',
+		file_upload_read_failed: 'This file could not be read from your device. It may have been moved or renamed, please select it again.',
+		file_upload_network: 'The file could not be sent. Check your internet connection and try again.',
+		file_upload_rate_limited: 'Too many uploads in a short time. Please wait a moment and try again.',
+		file_upload_forbidden: 'You are not allowed to upload files here. Try logging in again.',
+		file_upload_server: 'The hub could not accept this file right now (error {status}). Please try again later.',
+		file_upload_unknown: 'The file could not be uploaded (error {status}). Please try again.',
 		file_download: 'This file could not be downloaded. Please try again.',
 		file_share: 'This file could not be shared in the conversation. Please try again.',
 		no_valid_attribute: 'A secured room needs to have valid attributes',
