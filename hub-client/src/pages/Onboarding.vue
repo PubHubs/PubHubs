@@ -339,6 +339,7 @@
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
+	import { useDialog } from '@hub-client/stores/dialog';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
@@ -348,6 +349,7 @@
 	const router = useRouter();
 	const route = useRoute();
 	const user = useUser();
+	const dialog = useDialog();
 	const hubSettings = useHubSettings();
 	const settings = useSettings();
 	const hubName = ref(hubSettings.hubName);
@@ -387,9 +389,9 @@
 					user.setAvatarUrl(avatarMxcUrl.value);
 				}
 			},
-			() => {
+			(error) => {
 				selectedAvatarFile.value = null;
-				logger.error('Error uploading avatar');
+				dialog.confirm(t('errors.file_upload_failed'), t(error.key, error.params));
 			},
 		);
 	};

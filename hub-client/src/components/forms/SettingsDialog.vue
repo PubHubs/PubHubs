@@ -186,9 +186,9 @@
 				avatarMxcUrl.value = mxUrl;
 				if (mxUrl) user.setAvatarUrl(mxUrl);
 			},
-			() => {
+			(error) => {
 				fileInfo.value = undefined;
-				dialog.confirm(t('errors.file_upload'));
+				dialog.confirm(t('errors.file_upload_failed'), t(error.key, error.params));
 			},
 		);
 	}
