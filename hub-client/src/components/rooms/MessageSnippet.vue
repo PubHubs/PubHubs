@@ -43,7 +43,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed } from 'vue';
+	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -79,20 +79,25 @@
 	const user = useUser();
 	const { t } = useI18n();
 
-	const event = await pubhubs.getEvent(props.room.roomId, props.eventId);
+	// Refetched on edits: the snippet may be rendered before the edit of the replied-to message is applied
+	const event = ref(await pubhubs.getEvent(props.room.roomId, props.eventId));
 
-	const userColor = computed(() => color(event.sender ?? '') || 0);
+	const userColor = computed(() => color(event.value.sender ?? '') || 0);
 	const text = computed(() => {
-		return event.content?.body as string;
+		return event.value.content?.body as string;
 	});
 
 	const redactedMessage = computed(() => {
-		const isDeletedEvent = event.event_id && props.room.isDeletedEvent(event.event_id);
-		const containsRedactedBecause = event.unsigned?.redacted_because !== undefined;
+		const isDeletedEvent = event.value.event_id && props.room.isDeletedEvent(event.value.event_id);
+		const containsRedactedBecause = event.value.unsigned?.redacted_because !== undefined;
 		return isDeletedEvent || containsRedactedBecause;
 	});
 
 	const snippetText = computed(() => {
 		return redactedMessage.value ? t('message.delete.original_message_deleted') : useMentionsDisplay().formatMentions(text.value);
+	});
+
+	watch([() => props.eventId, () => props.room.editsRevision.count], async () => {
+		event.value = await pubhubs.getEvent(props.room.roomId, props.eventId);
 	});
 </script>
