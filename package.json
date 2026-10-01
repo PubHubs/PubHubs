@@ -44,5 +44,8 @@
 		"prettier-plugin-tailwindcss": "^0.7.2",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8"
+	},
+	"overrides": {
+ 		 "brace-expansion@<1.1.21": "1.1.21"
 	}
 }
