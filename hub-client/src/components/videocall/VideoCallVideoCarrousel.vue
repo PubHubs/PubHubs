@@ -3,8 +3,7 @@
 		v-if="totalRemoteStreams === 0"
 		class="flex h-full items-center justify-center"
 	>
-		<!-- TODO add language variable. -->
-		<p>Nobody is here yet</p>
+		<p class="text-on-surface-dim">{{ t('videocall.nobody_here') }}</p>
 	</div>
 	<div v-if="focus[0] && totalRemoteStreams > 1">
 		<div class="mr-200 h-9/12 w-full overflow-x-scroll transition-all">
@@ -12,20 +11,20 @@
 				<div
 					v-for="participant in props.remoteParticipants"
 					:key="getIdentity(participant)"
-					class="flex flex-shrink-0 flex-row space-x-200"
+					class="flex shrink-0 flex-row space-x-200"
 				>
 					<VideoCallVideo
 						v-if="isUnfocused(participant, false)"
 						:username="getIdentity(participant)"
 						:participant="asParticipant(participant)"
-						:size="getSizeUnfocusedScreens()"
+						:size="unfocusedScreenSize"
 						:is-self-view="false"
 					/>
 					<VideoCallScreenShare
 						v-if="isUnfocused(participant, true) && isScreenShareEnabled(participant)"
 						:username="getIdentity(participant)"
 						:participant="asParticipant(participant)"
-						:size="getSizeUnfocusedScreens()"
+						:size="unfocusedScreenSize"
 					/>
 				</div>
 			</div>
@@ -35,20 +34,19 @@
 				v-if="!focus[1]"
 				:username="focus[0].identity"
 				:participant="focus[0]"
-				:size="getSizeFocusScreen()"
+				:size="focusScreenSize"
 				:is-self-view="false"
 			/>
 			<VideoCallScreenShare
 				v-else
 				:username="focus[0].identity"
 				:participant="focus[0]"
-				:size="getSizeFocusScreen()"
+				:size="focusScreenSize"
 			/>
 		</div>
 	</div>
 	<div
 		v-else
-		ref="gridContainer"
 		class="grid w-full justify-center"
 		:style="gridStyle"
 	>
@@ -75,7 +73,8 @@
 
 <script setup lang="ts">
 	import { type Participant } from 'livekit-client';
-	import { computed, ref, watch } from 'vue';
+	import { computed, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import VideoCallScreenShare from '@hub-client/components/videocall/VideoCallScreenShare.vue';
@@ -86,34 +85,20 @@
 	const props = defineProps<{
 		remoteParticipants: unknown[];
 	}>();
+	const { t } = useI18n();
 	const videoCall = useVideoCall();
 	const focus = computed(() => videoCall.focus as [Participant | null, boolean]);
-	const gridContainer = ref<HTMLDivElement | null>(null);
 	const visibleScreenCount = 6;
-	const totalRemoteStreams = computed<number>(() => {
-		return props.remoteParticipants.reduce<number>((streams: number, participant) => {
-			streams += 1;
-			if (isScreenShareEnabled(participant)) {
-				streams += 1;
-			}
-			return streams;
-		}, 0);
-	});
+	const totalRemoteStreams = computed(() =>
+		props.remoteParticipants.reduce<number>((streams, participant) => streams + (isScreenShareEnabled(participant) ? 2 : 1), 0),
+	);
 
 	const allScreens = computed(() => {
-		let screens: Array<{ id: string; type: string; participant: unknown }> = [];
+		const screens: Array<{ id: string; type: 'video' | 'screenShare'; participant: unknown }> = [];
 		props.remoteParticipants.forEach((participant) => {
-			screens.push({
-				id: `video-${getIdentity(participant)}`,
-				type: 'video',
-				participant,
-			});
+			screens.push({ id: `video-${getIdentity(participant)}`, type: 'video', participant });
 			if (isScreenShareEnabled(participant)) {
-				screens.push({
-					id: `screenShare-${getIdentity(participant)}`,
-					type: 'screenShare',
-					participant,
-				});
+				screens.push({ id: `screenShare-${getIdentity(participant)}`, type: 'screenShare', participant });
 			}
 		});
 		return screens;
@@ -142,43 +127,25 @@
 	});
 
 	watch(
-		[props.remoteParticipants],
-		() => {
+		() => props.remoteParticipants,
+		(participants) => {
 			if (!focus.value[0]) return;
 
 			const identityFocused = focus.value[0].identity;
-			const focusedParticipantInCall = props.remoteParticipants.some((remote) => getIdentity(remote) === identityFocused);
-
-			if (!focusedParticipantInCall) {
+			if (!participants.some((remote) => getIdentity(remote) === identityFocused)) {
 				videoCall.toggleFocus(null, false);
 			}
 		},
 		{ deep: true },
 	);
 
-	function getSizeFocusScreen() {
-		return 'w-10/12';
-	}
+	const focusScreenSize = 'w-10/12';
+	const unfocusedScreenSize = 'w-[15vw]';
 
-	function getSizeUnfocusedScreens() {
-		return 'w-[15vw]';
-	}
+	// LiveKit participants have their class type stripped
+	const asParticipant = (participant: unknown): Participant => participant as Participant;
+	const getIdentity = (participant: unknown): string => (participant as { identity?: string }).identity ?? '';
+	const isScreenShareEnabled = (participant: unknown): boolean => (participant as { isScreenShareEnabled?: boolean }).isScreenShareEnabled === true;
 
-	function asParticipant(participant: unknown): Participant {
-		return participant as Participant;
-	}
-
-	function getIdentity(participant: unknown): string {
-		const candidate = participant as { identity?: string };
-		return candidate.identity ?? '';
-	}
-
-	function isScreenShareEnabled(participant: unknown): boolean {
-		const candidate = participant as { isScreenShareEnabled?: boolean };
-		return candidate.isScreenShareEnabled === true;
-	}
-
-	function isUnfocused(participant: unknown, screenShare: boolean) {
-		return !(focus.value[0] === asParticipant(participant) && focus.value[1] === screenShare);
-	}
+	const isUnfocused = (participant: unknown, screenShare: boolean) => !(focus.value[0] === asParticipant(participant) && focus.value[1] === screenShare);
 </script>

@@ -28,19 +28,23 @@
 			/>
 			<div
 				v-if="!participant.isCameraEnabled"
-				class="aspect-video h-full w-full bg-black"
+				class="bg-surface-base flex aspect-video h-full w-full items-center justify-center"
+				:class="placeholderColor"
 			>
-				<Icon
-					type="person"
-					class="h-full w-full text-white"
-				/>
+				<div class="aspect-square h-1/2">
+					<Icon
+						aria-hidden="true"
+						class="h-full! w-full!"
+						type="user"
+					/>
+				</div>
 			</div>
 			<div
 				v-if="!participant.isMicrophoneEnabled || isLocallyMuted"
 				class="bg-opacity-50 p-050 absolute bottom-200 left-200 rounded-full bg-black"
 			>
 				<Icon
-					type="microphone_mute"
+					type="microphone-slash"
 					size="sm"
 					class="text-white"
 				/>
@@ -56,6 +60,8 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 
+	import { useUserColor } from '@hub-client/composables/useUserColor';
+
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
@@ -66,11 +72,15 @@
 		isSelfView: boolean;
 	}>();
 
+	const { color, textColor } = useUserColor();
 	const videoCall = useVideoCall();
 	const user = useUser();
 	const videoEl = ref<HTMLVideoElement | null>(null);
 	const audioEl = ref<HTMLAudioElement | null>(null);
 	const participantUserId = computed(() => computeParticipantId(props.username));
+
+	// The same accent as participant's name
+	const placeholderColor = computed(() => textColor(color(participantUserId.value)));
 	const isLocallyMuted = ref(videoCall.isLocallyMuted(props.username));
 	const isSpeaking = ref(props.participant.isSpeaking);
 

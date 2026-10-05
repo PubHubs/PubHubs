@@ -4,7 +4,7 @@
 			{{ body }}
 		</div>
 		<VideoCallButton
-			v-if="!callEnded"
+			v-if="!callEnded && !inCall"
 			:is-start-button="false"
 			@click="JoinVideoCall()"
 		></VideoCallButton>
@@ -24,6 +24,7 @@
 	import { type TMessageEvent, type TMessageEventContent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	import { useRooms } from '@hub-client/stores/rooms';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	const props = defineProps<{
 		event: TMessageEvent<TVideoCallMessageEventContent>;
@@ -32,6 +33,10 @@
 
 	const router = useRouter();
 	const rooms = useRooms();
+	const videoCall = useVideoCall();
+
+	// Hide the join button for the call you are already sitting in, thread root included.
+	const inCall = computed(() => !!videoCall.livekit_room);
 	const callEnded = ref(false);
 	const duration = ref<string | undefined>(undefined);
 	const body = computed(() => props.event.content?.body ?? '');

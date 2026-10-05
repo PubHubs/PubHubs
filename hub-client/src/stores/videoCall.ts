@@ -81,6 +81,7 @@ const useVideoCall = defineStore('videoCall', {
 			video_track: null as LocalVideoTrack | null,
 			selected_video_device_id: null as string | null,
 			mute_video_track: false,
+			selected_output_device_id: null as string | null,
 
 			screen_share: false,
 
@@ -214,6 +215,8 @@ const useVideoCall = defineStore('videoCall', {
 				await this.livekit_room.connect(this.target_url, this.token, {
 					autoSubscribe: true,
 				});
+
+				await this.applyOutputDevice();
 				return true;
 			} catch {
 				if (this.livekit_room) {
@@ -316,8 +319,12 @@ const useVideoCall = defineStore('videoCall', {
 
 				this.audio_track = null;
 				this.selected_audio_device_id = null;
+				this.mute_audio_track = false;
 				this.video_track = null;
 				this.selected_video_device_id = null;
+				this.mute_video_track = false;
+				this.selected_output_device_id = null;
+				this.screen_share = false;
 				this.focus = [null, false];
 
 				if (errors.length) {
@@ -420,7 +427,7 @@ const useVideoCall = defineStore('videoCall', {
 
 		async toggleAudioTrackMute(should_mute: boolean) {
 			this.mute_audio_track = should_mute;
-			if (!this.livekit_room || !this.audio_track) {
+			if (!this.audio_track) {
 				return;
 			}
 
@@ -433,7 +440,7 @@ const useVideoCall = defineStore('videoCall', {
 
 		async toggleVideoTrackMute(mute: boolean) {
 			this.mute_video_track = mute;
-			if (!this.livekit_room || !this.video_track) {
+			if (!this.video_track) {
 				return;
 			}
 
@@ -444,11 +451,23 @@ const useVideoCall = defineStore('videoCall', {
 			}
 		},
 
-		async toggleScreenShare(screenShare: boolean) {
-			this.screen_share = screenShare;
-			if (!this.livekit_room) return;
+		/**
+		 * @returns whether the screen share is now in the requested state. Starting one opens the
+		 * browser's own picker, which rejects when the user dismisses it or the site is not allowed to
+		 * capture the display at all.
+		 */
+		async toggleScreenShare(screenShare: boolean): Promise<boolean> {
+			if (!this.livekit_room) return false;
 
-			await this.livekit_room.localParticipant.setScreenShareEnabled(this.screen_share);
+			try {
+				await this.livekit_room.localParticipant.setScreenShareEnabled(screenShare);
+				this.screen_share = screenShare;
+				return true;
+			} catch (error) {
+				logger.warn('Could not toggle screen sharing', error);
+				this.screen_share = false;
+				return false;
+			}
 		},
 
 		toggleSelfView(selfView: boolean) {
@@ -468,6 +487,10 @@ const useVideoCall = defineStore('videoCall', {
 					resolution: VideoPresets.h720,
 					deviceId: deviceId,
 				});
+
+				if (this.mute_video_track) {
+					await this.video_track.mute();
+				}
 
 				if (this.livekit_room && this.should_publish_video_track && this.video_track) {
 					await this.livekit_room.localParticipant.publishTrack(this.video_track as LocalVideoTrack);
@@ -491,11 +514,34 @@ const useVideoCall = defineStore('videoCall', {
 					noiseSuppression: true,
 				});
 
+				if (this.mute_audio_track) {
+					await this.audio_track.mute();
+				}
+
 				if (this.livekit_room && this.should_publish_audio_track && this.audio_track) {
 					await this.livekit_room.localParticipant.publishTrack(this.audio_track as LocalAudioTrack);
 				}
 			} else {
 				this.audio_track = null;
+			}
+		},
+
+		async changeOutputDevice(deviceId: string | null) {
+			this.selected_output_device_id = deviceId;
+			await this.applyOutputDevice();
+		},
+
+		/**
+		 * Route remote audio to the selected speaker. Best effort: setSinkId is unsupported in
+		 * Firefox, and there is nothing to route until a room is connected.
+		 */
+		async applyOutputDevice() {
+			if (!this.livekit_room || !this.selected_output_device_id) return;
+
+			try {
+				await this.livekit_room.switchActiveDevice('audiooutput', this.selected_output_device_id);
+			} catch (error) {
+				logger.warn('Could not switch audio output device', error);
 			}
 		},
 
