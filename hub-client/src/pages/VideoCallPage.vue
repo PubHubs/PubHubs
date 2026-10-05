@@ -1,160 +1,166 @@
 <template>
 	<div
 		ref="callContainer"
-		class="dark:bg-gray-middle h-full w-full"
+		class="h-full w-full"
 	>
-		<div
+		<VideoCallPreJoin
 			v-if="!connectInputs"
-			class="flex h-full flex-col items-center justify-center dark:text-white"
-		>
-			<h1 class="mb-400 text-6xl font-bold">Starting video call</h1>
-			<div class="flex flex-col items-center justify-center text-center">
-				<VideoCallPreview />
-				<div class="flex w-1/2 items-center justify-center">
-					<div class="mx-100 w-1/2">
-						<h2>Microphone source</h2>
-						<VideoCallDropDown
-							:value="videoCall.selected_audio_device_id ?? ''"
-							:options="audioOptions"
-							:on-select="
-								(audioDevice: string) => {
-									audioDevice === `no device` ? videoCall.changeAudioDevice(null) : videoCall.changeAudioDevice(audioDevice);
-								}
-							"
-						/>
-					</div>
-					<div class="mx-100 w-1/2">
-						<h2>Video source</h2>
-						<VideoCallDropDown
-							:value="videoCall.selected_video_device_id ?? ''"
-							:options="videoOptions"
-							:on-select="
-								(videoDevice: string) => {
-									videoDevice === `no device` ? videoCall.changeVideoDevice(null) : videoCall.changeVideoDevice(videoDevice);
-								}
-							"
-						/>
-					</div>
-				</div>
-				<div class="flex justify-center gap-100 pt-100">
-					<!-- TODO add language variables -->
-					<Button
-						variant="primary"
-						:disabled="!optionsLoaded"
-						@click="joinRoom"
-						>Join</Button
-					>
-					<Button
-						variant="secondary"
-						@click="findDevices"
-						>Refresh devices</Button
-					>
-					<Button
-						variant="tertiary"
-						@click="goBack"
-						>Exit</Button
-					>
-				</div>
-			</div>
-		</div>
+			@exit="goBack()"
+			@join="joinRoom()"
+		/>
+
 		<div
 			v-else
-			class="relative flex h-full w-full flex-col items-center justify-between overflow-hidden dark:text-white"
+			class="flex h-full w-full flex-col overflow-hidden"
 		>
-			<div class="flex h-full w-full justify-between overflow-hidden">
-				<div class="relative flex h-full w-full flex-col overflow-hidden">
-					<div class="absolute top-200 right-200 z-500">
-						<Button
-							variant="secondary"
-							@click="toggleParticipantList"
-							>{{ showParticipants ? 'Hide Participants' : 'Show Participants' }}</Button
-						>
-						<Button
-							variant="secondary"
-							@click="toggleChat"
-							>{{ showChat ? 'Hide chat' : 'Show chat' }}</Button
-						>
-					</div>
-					<div class="grow">
+			<!-- Same header shape as a room: name on the left, sidebar toggles on the right. -->
+			<div class="border-on-surface-disabled/25 flex h-1000 shrink-0 items-center justify-between gap-200 border-b-2 p-200">
+				<div
+					v-if="currentRoom"
+					class="flex min-w-0 flex-1 items-center gap-150 overflow-hidden"
+				>
+					<Icon type="video" />
+					<H3 class="text-on-surface flex min-w-0">
+						<TruncatedText class="font-headings font-semibold">
+							<PrivateRoomHeader
+								v-if="currentRoom.isPrivateRoom()"
+								:room="currentRoom"
+								:members="currentRoom.getOtherJoinedAndInvitedMembers()"
+							/>
+							<GroupRoomHeader
+								v-else-if="currentRoom.isGroupRoom()"
+								:room="currentRoom"
+								:members="currentRoom.getOtherJoinedAndInvitedMembers()"
+							/>
+							<AdminContactRoomHeader
+								v-else-if="currentRoom.isAdminContactRoom()"
+								:room="currentRoom"
+								:members="currentRoom.getOtherJoinedAndInvitedMembers()"
+							/>
+							<RoomName
+								v-else
+								:room="currentRoom"
+							/>
+						</TruncatedText>
+					</H3>
+				</div>
+
+				<RoomHeaderButtons>
+					<GlobalBarButton
+						type="users"
+						:selected="sidebar.activeTab.value === SidebarTab.Members"
+						:aria-label="t('videocall.participants')"
+						:title="t('videocall.participants')"
+						@click="sidebar.toggleTab(SidebarTab.Members)"
+					/>
+					<GlobalBarButton
+						v-if="videoCall.eventId"
+						type="chat-circle"
+						:selected="sidebar.activeTab.value === SidebarTab.Thread"
+						:aria-label="t('videocall.chat')"
+						:title="t('videocall.chat')"
+						@click="toggleChat()"
+					/>
+				</RoomHeaderButtons>
+			</div>
+
+			<div class="flex flex-1 overflow-hidden">
+				<div class="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+					<div class="grow overflow-hidden">
 						<VideoCallVideoCarrousel :remote-participants="remotes" />
 					</div>
-				</div>
-				<VideoCallParticipantsList
-					v-if="showParticipants"
-					:remote-participants="remotesNames"
-				/>
-				<RoomThread
-					v-if="currentRoom!.getCurrentThreadId() && showChat"
-					:room="currentRoom!"
-					:scroll-to-event-id="currentRoom!.getCurrentEvent()?.eventId"
-					@scrolled-to-event-id="currentRoom!.setCurrentEvent(undefined)"
-				>
-				</RoomThread>
 
-				<div
-					v-if="selfView"
-					class="absolute right-200 bottom-800"
-					:class="{ 'mr-[33%]': showParticipants || showChat }"
-				>
-					<VideoCallVideo
-						:username="localParticipant.identity"
-						:participant="localParticipant"
-						:size="showParticipants || showChat ? 'w-[20vw]' : 'w-[25vw]'"
-						:is-self-view="true"
-					></VideoCallVideo>
+					<div
+						v-if="selfView"
+						class="absolute right-200 bottom-900 w-[25vw] max-w-4000"
+					>
+						<VideoCallVideo
+							:username="localParticipant.identity"
+							:participant="localParticipant"
+							size=""
+							:is-self-view="true"
+						/>
+					</div>
+
+					<VideoCallBottomBar
+						:current-room="currentRoom"
+						:is-fullscreen="isFullscreen"
+						@toggle-fullscreen="toggleFullscreen"
+					/>
 				</div>
+
+				<RoomSidebar
+					:active-tab="sidebar.activeTab.value"
+					:is-mobile="sidebar.isMobile.value ?? false"
+				>
+					<VideoCallParticipantsList
+						v-if="sidebar.activeTab.value === SidebarTab.Members"
+						:remote-participants="remotesNames"
+					/>
+					<RoomThread
+						v-else-if="sidebar.activeTab.value === SidebarTab.Thread && currentRoom?.getCurrentThreadId()"
+						:room="currentRoom"
+						:scroll-to-event-id="currentRoom.getCurrentEvent()?.eventId"
+						@scrolled-to-event-id="currentRoom.setCurrentEvent(undefined)"
+					/>
+				</RoomSidebar>
 			</div>
-			<VideoCallBottomBar
-				:current-room="currentRoom"
-				:is-fullscreen="isFullscreen"
-				@toggle-fullscreen="toggleFullscreen"
-			/>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { Room as LivekitRoom, type LocalParticipant } from 'livekit-client';
+	// Packages
+	import { type LocalParticipant, type RemoteParticipant } from 'livekit-client';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
-	import Button from '@hub-client/components/elements/Button.vue';
-	import VideoCallDropDown from '@hub-client/components/forms/VideoCallDropDown.vue';
+	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import AdminContactRoomHeader from '@hub-client/components/rooms/AdminContactRoomHeader.vue';
+	import GroupRoomHeader from '@hub-client/components/rooms/GroupRoomHeader.vue';
+	import PrivateRoomHeader from '@hub-client/components/rooms/PrivateRoomHeader.vue';
+	import RoomHeaderButtons from '@hub-client/components/rooms/RoomHeaderButtons.vue';
+	import RoomName from '@hub-client/components/rooms/RoomName.vue';
+	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
-	import VideoCallPreview from '@hub-client/components/ui/VideoCallPreview.vue';
+	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import VideoCallBottomBar from '@hub-client/components/videocall/VideoCallBottomBar.vue';
 	import VideoCallParticipantsList from '@hub-client/components/videocall/VideoCallParticipantsList.vue';
+	import VideoCallPreJoin from '@hub-client/components/videocall/VideoCallPreJoin.vue';
 	import VideoCallVideo from '@hub-client/components/videocall/VideoCallVideo.vue';
 	import VideoCallVideoCarrousel from '@hub-client/components/videocall/VideoCallVideoCarrousel.vue';
 
-	import { type Options } from '@hub-client/composables/useFormInputEvents';
+	// Composables
+	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
+	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
+	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
+	const { t } = useI18n();
 	const videoCall = useVideoCall();
 	const router = useRouter();
 	const rooms = useRooms();
+	const sidebar = useSidebar();
 	const logger = createLogger('VideoCallPage');
 	const selfView = computed(() => videoCall.selfView);
 
 	const callContainer = ref<HTMLElement | null>(null);
 	const isFullscreen = ref(false);
 
-	let audioOptions = ref<Options>([]);
-	let videoOptions = ref<Options>([]);
-	let connectInputs = ref(false);
-	let remotes = ref<unknown[]>([]);
-	let remotesNames = ref<string[]>([]);
-	let showParticipants = ref(false);
-	const showChat = computed(() => !!currentRoom.value?.getCurrentThreadId());
-	let optionsLoaded = ref(false);
+	const connectInputs = ref(false);
 
-	let localParticipant = computed(() => {
-		return videoCall.livekit_room?.localParticipant as LocalParticipant;
-	});
+	const remotes = ref<unknown[]>([]);
+	const remotesNames = computed(() => remotes.value.map((participant) => (participant as RemoteParticipant).identity));
+
+	const localParticipant = computed(() => videoCall.livekit_room?.localParticipant as LocalParticipant);
 
 	const currentRoom = computed(() => rooms.rooms[rooms.currentRoomId]);
 	watch(
@@ -167,74 +173,36 @@
 		{ immediate: true },
 	);
 
-	async function findDevices() {
-		optionsLoaded.value = false;
-		const audioDevices = await LivekitRoom.getLocalDevices('audioinput');
+	const syncRemoteParticipants = () => {
+		remotes.value = [...(videoCall.livekit_room?.remoteParticipants.values() ?? [])];
+	};
 
-		audioOptions.value = audioDevices.map((device) => {
-			return { label: device.label, value: device.deviceId };
-		});
-		audioOptions.value.unshift({ label: 'Select device', value: 'no device' });
+	// Every one of these means the participant list may have changed
+	const participantEvents = [
+		'participantConnected',
+		'participantDisconnected',
+		'participantEncryptionStatusChanged',
+		'localTrackPublished',
+		'localTrackUnpublished',
+		'trackPublished',
+		'trackUnpublished',
+		'trackSubscribed',
+		'trackUnsubscribed',
+		'trackMuted',
+		'trackUnmuted',
+		'videoPlaybackChanged',
+		'encryptionError',
+	] as const;
 
-		const videoDevices = await LivekitRoom.getLocalDevices('videoinput');
-
-		videoOptions.value = videoDevices.map((device) => {
-			return { label: device.label, value: device.deviceId };
-		});
-		videoOptions.value.unshift({ label: 'Select device', value: 'no device' });
-		optionsLoaded.value = true;
-
-		if (!videoCall.selected_audio_device_id) {
-			const defaultAudioDevice = audioDevices.find((device) => device.deviceId === 'default') ?? audioDevices[0];
-			if (defaultAudioDevice) {
-				await videoCall.changeAudioDevice(defaultAudioDevice.deviceId);
-			}
-		}
-
-		if (!videoCall.selected_video_device_id) {
-			const defaultVideoDevice = videoDevices.find((device) => device.deviceId === 'default') ?? videoDevices[0];
-			if (defaultVideoDevice) {
-				await videoCall.changeVideoDevice(defaultVideoDevice.deviceId);
-			}
-		}
-	}
-
-	//TODO see if I can combine these two arrays?
-	function syncRemoteParticipants() {
-		const temp: unknown[] = [];
-		const tempNames: string[] = [];
-		videoCall.livekit_room?.remoteParticipants.forEach((p) => {
-			temp.push(p);
-			tempNames.push(p.identity);
-		});
-		remotes.value = temp;
-		remotesNames.value = tempNames;
-	}
-
-	function setupLivekitListeners() {
+	const setupLivekitListeners = () => {
 		if (!videoCall.livekit_room) return;
 		syncRemoteParticipants();
 
 		videoCall.livekit_room.removeAllListeners();
-		videoCall.livekit_room.on('participantConnected', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('participantDisconnected', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('localTrackPublished', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('trackPublished', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('localTrackUnpublished', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('trackUnpublished', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('encryptionError', (e) => {
-			syncRemoteParticipants();
-			void e;
-		});
-		videoCall.livekit_room.on('participantEncryptionStatusChanged', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('trackUnsubscribed', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('trackSubscribed', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('videoPlaybackChanged', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('trackMuted', () => syncRemoteParticipants());
-		videoCall.livekit_room.on('trackUnmuted', () => syncRemoteParticipants());
-	}
+		participantEvents.forEach((event) => videoCall.livekit_room?.on(event, () => syncRemoteParticipants()));
+	};
 
-	async function toggleFullscreen() {
+	const toggleFullscreen = async () => {
 		try {
 			if (document.fullscreenElement) {
 				await document.exitFullscreen();
@@ -244,13 +212,13 @@
 		} catch (error) {
 			logger.error('Could not toggle fullscreen', { error });
 		}
-	}
+	};
 
-	function handleFullscreenChange() {
+	const handleFullscreenChange = () => {
 		isFullscreen.value = !!document.fullscreenElement;
-	}
+	};
 
-	function handleKeydown(event: KeyboardEvent) {
+	const handleKeydown = (event: KeyboardEvent) => {
 		// Don't hijack the key while the user is typing (e.g. in-call chat thread).
 		const target = event.target as HTMLElement | null;
 		if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
@@ -260,12 +228,11 @@
 			event.preventDefault();
 			void toggleFullscreen();
 		}
-	}
+	};
 
-	onMounted(async () => {
+	onMounted(() => {
 		document.addEventListener('fullscreenchange', handleFullscreenChange);
 		document.addEventListener('keydown', handleKeydown);
-		await findDevices();
 		setupLivekitListeners();
 	});
 
@@ -280,7 +247,8 @@
 		},
 	);
 
-	onUnmounted(async () => {
+	onUnmounted(() => {
+		sidebar.closeInstantly();
 		document.removeEventListener('fullscreenchange', handleFullscreenChange);
 		document.removeEventListener('keydown', handleKeydown);
 		if (document.fullscreenElement) {
@@ -290,38 +258,31 @@
 		videoCall.livekit_room.removeAllListeners();
 	});
 
-	async function goBack() {
+	const goBack = () => {
 		if (!currentRoom.value) return;
-		router.push({ name: 'room', params: { id: currentRoom.value.roomId } });
-	}
+		void router.push({ name: 'room', params: { id: currentRoom.value.roomId } });
+	};
 
-	async function joinRoom() {
+	const joinRoom = async () => {
 		const connected = await videoCall.joinCall();
 		if (!connected) return;
 		connectInputs.value = true;
 		videoCall.togglePublishTracks(true);
 		syncRemoteParticipants();
-	}
+	};
 
-	function toggleParticipantList() {
-		if (!currentRoom.value) return;
-		currentRoom.value.setCurrentThreadId(undefined);
-		showParticipants.value = !showParticipants.value;
-	}
+	// RoomThread renders whatever thread the room points at, so open the call's own thread alongside
+	// the tab rather than leaving a stale one selected.
+	const toggleChat = () => {
+		if (!currentRoom.value || !videoCall.eventId) return;
 
-	function toggleChat() {
-		if (!currentRoom.value) return;
-		if (!videoCall.eventId) return;
-		if (showChat.value) {
+		if (sidebar.activeTab.value === SidebarTab.Thread) {
 			currentRoom.value.setCurrentThreadId(undefined);
-		} else {
-			currentRoom.value.setCurrentThreadId(videoCall.eventId);
+			sidebar.close();
+			return;
 		}
-		showParticipants.value = false;
-	}
 
-	// function currentThreadLengthChanged(newLength: number) {
-	// 	if (!currentRoom.value) return;
-	// 	currentRoom.value.setCurrentThreadLength(newLength);
-	// }
+		currentRoom.value.setCurrentThreadId(videoCall.eventId);
+		sidebar.openTab(SidebarTab.Thread);
+	};
 </script>

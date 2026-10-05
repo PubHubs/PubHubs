@@ -30,7 +30,6 @@ vi.mock('livekit-client', async () => {
 
 const ROOM_ID = '!videocallroom:example.org';
 
-
 function makeFakeRoom(isOngoingCall: boolean) {
 	return {
 		roomId: ROOM_ID,
@@ -70,11 +69,11 @@ async function mountVideoCallPage(isOngoingCall: boolean) {
 	});
 	await flushPromises();
 
-	return { wrapper, videoCall };
+	return { wrapper, videoCall, exitLabel: i18n.global.t('videocall.exit') };
 }
 
-function clickExit(wrapper: Awaited<ReturnType<typeof mountVideoCallPage>>['wrapper']) {
-	const exitButton = wrapper.findAll('button').find((button) => button.text() === 'Exit');
+function clickExit({ wrapper, exitLabel }: Awaited<ReturnType<typeof mountVideoCallPage>>) {
+	const exitButton = wrapper.findAll('button').find((button) => button.text() === exitLabel);
 	if (!exitButton) throw new Error('Exit button not found');
 	return exitButton.trigger('click');
 }
@@ -84,23 +83,22 @@ describe('VideoCallPage.vue - Exit button', () => {
 		vi.clearAllMocks();
 	});
 
-	
 	test('while a call is ongoing, Exit navigates away without leaving or ending it', async () => {
-		const { wrapper, videoCall } = await mountVideoCallPage(true);
+		const mounted = await mountVideoCallPage(true);
 
-		await clickExit(wrapper);
+		await clickExit(mounted);
 		await flushPromises();
 
-		expect(videoCall.leaveCall).not.toHaveBeenCalled();
+		expect(mounted.videoCall.leaveCall).not.toHaveBeenCalled();
 	});
 
-	// Only reachable when the RTC session reports no memberships at all 
+	// Only reachable when the RTC session reports no memberships at all
 	test('with no call ongoing, Exit ends the call', async () => {
-		const { wrapper, videoCall } = await mountVideoCallPage(false);
+		const mounted = await mountVideoCallPage(false);
 
-		await clickExit(wrapper);
+		await clickExit(mounted);
 		await flushPromises();
 
-		expect(videoCall.leaveCall).not.toHaveBeenCalled();
+		expect(mounted.videoCall.leaveCall).not.toHaveBeenCalled();
 	});
 });
