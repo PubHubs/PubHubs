@@ -5,6 +5,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 
 import { type TEventReport } from '@hub-client/models/events/TEventReport';
 
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useUser } from '@hub-client/stores/user';
 
 const logger = createLogger('useReports');
@@ -12,6 +13,7 @@ const BATCH_SIZE = 100;
 
 function useModerationManageReports() {
 	// Stores
+	const pubhubs = usePubhubsStore();
 	const user = useUser();
 
 	// Refs
@@ -19,7 +21,9 @@ function useModerationManageReports() {
 	const totalReports = ref(0);
 	const selectedReportId = ref<number>();
 	const selectedReport = ref<TEventReport>();
+	const selectedReportEvent = ref<Record<string, unknown> | null>(null);
 	const isLoading = ref(false);
+	const isLoadingEvent = ref(false);
 
 	// Computed
 	const isAdmin = computed(() => user.isAdministrator);
@@ -72,14 +76,48 @@ function useModerationManageReports() {
 		}
 	};
 
-	const selectReport = (report: TEventReport) => {
+	/**
+	 * Resolves the reported message over the client API, falling back to the event_json stored with
+	 * the report.
+	 */
+	const loadReportEvent = async (report: TEventReport): Promise<Record<string, unknown> | null> => {
+		try {
+			const event = await pubhubs.getEvent(report.room_id, report.event_id);
+			if (event) return event;
+		} catch (error) {
+			logger.error('Reported event is not readable over the client API:', error);
+		}
+
+		const detail = await APIService.fetchReportDetail(isAdmin.value, report.id, report.room_id);
+		return detail.event_json;
+	};
+
+	/**
+	 * Selects a report and loads the message it reports.
+	 */
+	const selectReport = async (report: TEventReport) => {
 		selectedReportId.value = report.id;
 		selectedReport.value = report;
+		selectedReportEvent.value = null;
+		isLoadingEvent.value = true;
+		try {
+			const event = await loadReportEvent(report);
+			if (selectedReportId.value !== report.id) return;
+			selectedReportEvent.value = event;
+		} catch (error) {
+			logger.error('Failed to fetch the reported event:', error);
+		} finally {
+			if (selectedReportId.value === report.id) {
+				isLoadingEvent.value = false;
+			}
+		}
 	};
 
 	const clearSelection = () => {
 		selectedReportId.value = undefined;
 		selectedReport.value = undefined;
+		selectedReportEvent.value = null;
+		isLoadingEvent.value = false;
 	};
 
 	return {
@@ -88,7 +126,9 @@ function useModerationManageReports() {
 		totalReports,
 		selectedReportId,
 		selectedReport,
+		selectedReportEvent,
 		isLoading,
+		isLoadingEvent,
 		// Computed
 		isAdmin,
 		hasMoreReports,
