@@ -2,6 +2,7 @@
 import { createTestingPinia } from '@pinia/testing';
 import { flushPromises, mount } from '@vue/test-utils';
 import type * as LivekitClient from 'livekit-client';
+import { Room as LivekitRoom } from 'livekit-client';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { createRouter, createWebHistory } from 'vue-router';
 
@@ -59,6 +60,8 @@ async function mountVideoCallPage(isOngoingCall: boolean) {
 	const videoCall = useVideoCall(pinia);
 	videoCall.livekit_room = makeFakeLivekitRoom() as unknown as typeof videoCall.livekit_room;
 	videoCall.leaveCall = vi.fn().mockResolvedValue(undefined);
+	videoCall.changeAudioDevice = vi.fn().mockResolvedValue(undefined);
+	videoCall.changeVideoDevice = vi.fn().mockResolvedValue(undefined);
 
 	const wrapper = mount(VideoCallPage, {
 		global: {
@@ -101,4 +104,25 @@ describe('VideoCallPage.vue - Exit button', () => {
 
 		expect(mounted.videoCall.leaveCall).not.toHaveBeenCalled();
 	});
+
+	test('unmounting the page, e.g. by switching rooms, leaves the call and releases the devices', async () => {
+		const { wrapper, videoCall } = await mountVideoCallPage(true);
+
+		wrapper.unmount();
+		await flushPromises();
+
+		expect(videoCall.leaveCall).toHaveBeenCalledTimes(1);
+	});
+
+	test('devices still opening when the page is left are released once they finish', async () => {
+    	let resolveDevices: (devices: MediaDeviceInfo[]) => void = () => {};
+    	vi.mocked(LivekitRoom.getLocalDevices).mockReturnValueOnce(new Promise((resolve) => (resolveDevices = resolve)));
+    	const { wrapper, videoCall } = await mountVideoCallPage(true);
+
+    	wrapper.unmount();
+	    await flushPromises();
+		
+		expect(videoCall.leaveCall).toHaveBeenCalledTimes(1);
+	});
+
 });
