@@ -107,8 +107,11 @@
 	};
 
 	async function leaveCall() {
-		await videoCall.leaveCall();
-		router.push({ name: 'room', params: { id: props.currentRoom.roomId } });
+		try {
+			await videoCall.leaveCall();
+		} finally {
+			router.push({ name: 'room', params: { id: props.currentRoom.roomId } });
+		}
 	}
 
 	const toggleAudio = () => {
