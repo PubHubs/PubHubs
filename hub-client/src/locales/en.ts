@@ -984,6 +984,7 @@ const en = {
 		message_ended: 'Videocall ended',
 		message_joined: 'Joined',
 		message_left: 'Left',
+		message_preview: 'Videocall',
 		message_start: 'Videocall started',
 		microphone_source: 'Microphone',
 		mute_for_me: 'Mute for me',

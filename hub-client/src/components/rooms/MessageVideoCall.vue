@@ -1,7 +1,16 @@
 <template>
 	<div class="gap-050 flex items-center wrap-break-word">
-		<div class="overflow-hidden text-ellipsis">
-			{{ body }}
+		<div
+			v-if="!callEnded"
+			class="overflow-hidden text-ellipsis"
+		>
+			{{ t('videocall.message_start') }}
+		</div>
+		<div
+			v-else
+			class="overflow-hidden text-ellipsis"
+		>
+			{{ t('videocall.message_ended') }}
 		</div>
 		<VideoCallButton
 			v-if="!callEnded && !inCall"
@@ -41,7 +50,6 @@
 	const inCall = computed(() => !!videoCall.livekit_room);
 	const callEnded = ref(false);
 	const duration = ref<string | undefined>(undefined);
-	const body = computed(() => props.event.content?.body ?? '');
 	const currentRoom = rooms.currentRoom;
 	const rtcSession = currentRoom?.getMatrixRTCSession();
 

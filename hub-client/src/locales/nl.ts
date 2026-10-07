@@ -975,6 +975,7 @@ const nl = {
 		message_ended: 'Videogesprek beëindigd',
 		message_joined: 'Aangesloten',
 		message_left: 'Verlaten',
+		message_preview: 'Videogesprek',
 		message_start: 'Videogesprek begonnen',
 		microphone_source: 'Microfoon',
 		mute_for_me: 'Dempen voor mij',
