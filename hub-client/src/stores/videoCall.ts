@@ -124,10 +124,14 @@ const useVideoCall = defineStore('videoCall', {
 			const connected = await this.connectToCall();
 			if (!connected) return false;
 
+			// on demand getting single instance, because the store has no setup context
+			const { getI18n } = await import('@hub-client/i18n');
+			const { t } = getI18n().global;
+
 			// check if first user, if so: message for video call start
 			if (this.rtc_session?.memberships?.length === 1) {
 				// create message for timeline to show the call has started
-				const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? 'VideoCall Started');
+				const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? t('videocall.message_start'));
 				this.eventId = eventId;
 			}
 
@@ -136,7 +140,7 @@ const useVideoCall = defineStore('videoCall', {
 				void (async () => {
 					try {
 						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent;
-						await pubhubs.addMessage(currentRoom.roomId, 'Joined', threadRoot, undefined);
+						await pubhubs.addMessage(currentRoom.roomId, t('videocall.message_joined'), threadRoot, undefined);
 					} catch {
 						// Ignore best-effort "Joined" message failures.
 					}
@@ -251,6 +255,10 @@ const useVideoCall = defineStore('videoCall', {
 
 			this._leaving = true;
 			try {
+				// on demand getting single instance, because the store has no setup context
+				const { getI18n } = await import('@hub-client/i18n');
+				const { t } = getI18n().global;
+
 				// Clean up eventlisteners
 				if (endCallCleanup) {
 					endCallCleanup();
@@ -292,7 +300,7 @@ const useVideoCall = defineStore('videoCall', {
 				if (this.eventId) {
 					try {
 						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
-						await pubhubs.addThreadMessageWithoutLocalEcho(currentRoom.roomId, 'Left', threadRoot);
+						await pubhubs.addThreadMessageWithoutLocalEcho(currentRoom.roomId, t('videocall.message_left'), threadRoot);
 					} catch (error) {
 						errors.push(error);
 					}
@@ -305,7 +313,7 @@ const useVideoCall = defineStore('videoCall', {
 						const isLastMember = this.rtc_session.memberships.length === 1; // check if you are the last participant before leaving, it takes some time for the memberships to sync
 						await this.rtc_session.leaveRoomSession(10);
 						if (isLastMember && this.eventId) {
-							await pubhubs.addEndVideoCallMessage(currentRoom.roomId, this.eventId, 'Ended');
+							await pubhubs.addEndVideoCallMessage(currentRoom.roomId, this.eventId, t('videocall.message_ended'));
 						}
 					} catch (error) {
 						errors.push(error);
@@ -341,13 +349,18 @@ const useVideoCall = defineStore('videoCall', {
 
 			const rtcSession = rooms.currentRoom.getMatrixRTCSession();
 
-			const onMembershipsChanged = () => {
+			const onMembershipsChanged = async () => {
 				if (!rooms.currentRoom) return;
 				if (rtcSession.memberships.length === 0) {
+					const roomId = rooms.currentRoom.roomId;
 					endCallCleanup?.();
 					endCallCleanup = null;
-					router.push({ name: 'room', params: { id: rooms.currentRoom.roomId } });
-					this.leaveCall();
+					router.push({ name: 'room', params: { id: roomId } });
+					try {
+						await this.leaveCall();
+					} catch (error) {
+						logger.error('leavecall falied after membership change ', error);
+					}
 				}
 			};
 

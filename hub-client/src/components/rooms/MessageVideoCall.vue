@@ -9,12 +9,13 @@
 			@click="JoinVideoCall()"
 		></VideoCallButton>
 	</div>
-	<div v-if="duration">Duration: {{ duration }}</div>
+	<div v-if="callEnded && duration">{{ t('videocall.duration') }}: {{ duration }}</div>
 </template>
 
 <script setup lang="ts">
 	import { MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
 	import VideoCallButton from '@hub-client/components/ui/VideoCallButton.vue';
@@ -34,6 +35,7 @@
 	const router = useRouter();
 	const rooms = useRooms();
 	const videoCall = useVideoCall();
+	const { t } = useI18n();
 
 	// Hide the join button for the call you are already sitting in, thread root included.
 	const inCall = computed(() => !!videoCall.livekit_room);
