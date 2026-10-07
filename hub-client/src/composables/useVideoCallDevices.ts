@@ -16,6 +16,24 @@ const logger = createLogger('useVideoCallDevices');
 
 const minimumSpin = 600;
 
+const audioOptions = ref<FieldOption[]>([]);
+const outputOptions = ref<FieldOption[]>([]);
+const videoOptions = ref<FieldOption[]>([]);
+
+const audioDevice = ref<FieldOption>();
+const outputDevice = ref<FieldOption>();
+const videoDevice = ref<FieldOption>();
+
+const access = ref<TDeviceAccess>('pending');
+const devicesLoaded = ref(false);
+const refreshing = ref(false);
+
+let spinTimeout: number | undefined;
+
+let scope: EffectScope | undefined;
+
+let cancelled = false;
+
 const toOption = (device: MediaDeviceInfo): FieldOption => ({ label: device.label, value: device.deviceId });
 
 const usableDevices = (devices: MediaDeviceInfo[]): MediaDeviceInfo[] => devices.filter((device) => device.deviceId && device.label);
@@ -63,22 +81,6 @@ const requestDeviceAccess = async (): Promise<TDeviceAccess> => {
 	return 'unavailable';
 };
 
-const audioOptions = ref<FieldOption[]>([]);
-const outputOptions = ref<FieldOption[]>([]);
-const videoOptions = ref<FieldOption[]>([]);
-
-const audioDevice = ref<FieldOption>();
-const outputDevice = ref<FieldOption>();
-const videoDevice = ref<FieldOption>();
-
-const access = ref<TDeviceAccess>('pending');
-const devicesLoaded = ref(false);
-const refreshing = ref(false);
-
-let spinTimeout: number | undefined;
-
-let scope: EffectScope | undefined;
-
 const startWatching = () => {
 	if (scope) return;
 
@@ -105,6 +107,8 @@ const startWatching = () => {
 };
 
 const resetVideoCallDevices = () => {
+	cancelled = true;
+
 	scope?.stop();
 	scope = undefined;
 	window.clearTimeout(spinTimeout);
@@ -115,6 +119,11 @@ const resetVideoCallDevices = () => {
 	audioDevice.value = undefined;
 	outputDevice.value = undefined;
 	videoDevice.value = undefined;
+
+	const videoCall = useVideoCall();
+	void videoCall.changeAudioDevice(null);
+	void videoCall.changeVideoDevice(null);
+
 	access.value = 'pending';
 	devicesLoaded.value = false;
 	refreshing.value = false;
@@ -130,28 +139,29 @@ function useVideoCallDevices() {
 	startWatching();
 
 	const findDevices = async () => {
-		const audioDevices = usableDevices(await LivekitRoom.getLocalDevices('audioinput'));
-		const outputDevices = usableDevices(await LivekitRoom.getLocalDevices('audiooutput'));
-		const videoDevices = usableDevices(await LivekitRoom.getLocalDevices('videoinput'));
+		const [audioDevices, outputDevices, videoDevices] = await Promise.all([
+			LivekitRoom.getLocalDevices('audioinput').then(usableDevices),
+			LivekitRoom.getLocalDevices('audiooutput').then(usableDevices),
+			LivekitRoom.getLocalDevices('videoinput').then(usableDevices),
+		]);
 
 		audioOptions.value = audioDevices.map(toOption);
 		outputOptions.value = outputDevices.map(toOption);
 		videoOptions.value = videoDevices.map(toOption);
 
+		if (cancelled) return;
+
 		const defaultAudioDeviceId = defaultDeviceId(audioDevices);
-		if (!videoCall.selected_audio_device_id && defaultAudioDeviceId) {
-			await videoCall.changeAudioDevice(defaultAudioDeviceId);
-		}
-
 		const defaultOutputDeviceId = defaultDeviceId(outputDevices);
-		if (!videoCall.selected_output_device_id && defaultOutputDeviceId) {
-			await videoCall.changeOutputDevice(defaultOutputDeviceId);
-		}
-
 		const defaultVideoDeviceId = defaultDeviceId(videoDevices);
-		if (!videoCall.selected_video_device_id && defaultVideoDeviceId) {
-			await videoCall.changeVideoDevice(defaultVideoDeviceId);
-		}
+
+		await Promise.all([
+			!videoCall.selected_audio_device_id && defaultAudioDeviceId ? videoCall.changeAudioDevice(defaultAudioDeviceId) : Promise.resolve(),
+			!videoCall.selected_output_device_id && defaultOutputDeviceId ? videoCall.changeOutputDevice(defaultOutputDeviceId) : Promise.resolve(),
+			!videoCall.selected_video_device_id && defaultVideoDeviceId ? videoCall.changeVideoDevice(defaultVideoDeviceId) : Promise.resolve(),
+		]);
+
+		if (cancelled) return;
 
 		audioDevice.value = optionForDeviceId(audioOptions.value, videoCall.selected_audio_device_id);
 		outputDevice.value = optionForDeviceId(outputOptions.value, videoCall.selected_output_device_id);
@@ -159,6 +169,7 @@ function useVideoCallDevices() {
 	};
 
 	const setUpDevices = async () => {
+		cancelled = false;
 		const startedAt = Date.now();
 		devicesLoaded.value = false;
 		window.clearTimeout(spinTimeout);

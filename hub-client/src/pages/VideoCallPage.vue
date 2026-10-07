@@ -136,6 +136,7 @@
 
 	// Composables
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
+	import { resetVideoCallDevices } from '@hub-client/composables/useVideoCallDevices';
 
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -248,6 +249,8 @@
 	);
 
 	onUnmounted(() => {
+		resetVideoCallDevices();
+		videoCall.leaveCall();
 		sidebar.closeInstantly();
 		document.removeEventListener('fullscreenchange', handleFullscreenChange);
 		document.removeEventListener('keydown', handleKeydown);
