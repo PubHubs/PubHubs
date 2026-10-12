@@ -29,13 +29,14 @@ vi.mock('livekit-client', async () => {
 	};
 });
 
-async function mountBar() {
+async function mountBar({ participantCount = 2 } = {}) {
 	Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query: () => Promise.resolve({ state: 'granted' }) } });
 	Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: () => Promise.resolve({ getTracks: () => [] }) } });
 
 	const i18n = setUpi18n();
 	const pinia = createTestingPinia({ createSpy: vi.fn, stubActions: false });
 	const videoCall = useVideoCall(pinia);
+    videoCall.participant_count = participantCount; // screenshare is only active with multiple users
 	videoCall.leaveCall = vi.fn().mockResolvedValue(undefined);
 
 	const wrapper = mount(VideoCallBottomBar, {

@@ -20,6 +20,7 @@
 			/>
 			<Button
 				icon="screencast"
+				:disabled="!canScreenShare"
 				:title="screenShare ? t('videocall.stop_screen_share') : t('videocall.start_screen_share')"
 				:variant="screenShare ? 'primary' : 'secondary'"
 				@click="void toggleScreenShare()"
@@ -96,6 +97,7 @@
 	const muteAudio = computed(() => videoCall.mute_audio_track);
 	const muteVideo = computed(() => videoCall.mute_video_track);
 	const screenShare = computed(() => videoCall.screen_share);
+	const canScreenShare = computed(() => videoCall.participant_count > 1);
 	const selfView = ref(videoCall.selfView);
 	const showDevices = ref(false);
 	const screenShareRefused = ref(false);
