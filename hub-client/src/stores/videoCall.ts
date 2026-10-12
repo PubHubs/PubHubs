@@ -84,6 +84,7 @@ const useVideoCall = defineStore('videoCall', {
 			selected_output_device_id: null as string | null,
 
 			screen_share: false,
+			participant_count: 0,
 
 			locally_muted_participants: [] as string[],
 			selfView: true,
@@ -351,6 +352,7 @@ const useVideoCall = defineStore('videoCall', {
 
 			const onMembershipsChanged = async () => {
 				if (!rooms.currentRoom) return;
+				this.participant_count = rtcSession.memberships.length;
 				if (rtcSession.memberships.length === 0) {
 					const roomId = rooms.currentRoom.roomId;
 					endCallCleanup?.();
@@ -359,7 +361,7 @@ const useVideoCall = defineStore('videoCall', {
 					try {
 						await this.leaveCall();
 					} catch (error) {
-						logger.error('leavecall falied after membership change ', error);
+						logger.error('leavecall failed after membership change ', error);
 					}
 				}
 			};
