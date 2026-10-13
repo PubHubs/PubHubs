@@ -52,10 +52,16 @@ export class APIService {
 
 	/**
 	 * Fetch a single event report with full details including event_json.
+	 * Admins use the Synapse admin API, stewards the hub endpoint scoped to the rooms they moderate.
+	 * @param isAdmin Whether the user is an admin
 	 * @param reportId The report ID to fetch
+	 * @param roomId The room the report belongs to, required by the steward endpoint
 	 */
-	static async fetchReportDetail(reportId: number): Promise<TEventReportDetail> {
-		return await api_synapse.apiGET<TEventReportDetail>(`${api_synapse.apiURLS.eventReports}/${reportId}`);
+	static async fetchReportDetail(isAdmin: boolean, reportId: number, roomId: string): Promise<TEventReportDetail> {
+		if (isAdmin) {
+			return await api_synapse.apiGET<TEventReportDetail>(`${api_synapse.apiURLS.eventReports}/${reportId}`);
+		}
+		return await api_synapse.apiGET<TEventReportDetail>(`${api_synapse.apiURLS.stewardReports}/${reportId}?room_id=${encodeURIComponent(roomId)}`);
 	}
 
 	/**

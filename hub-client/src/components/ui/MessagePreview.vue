@@ -205,6 +205,8 @@
 		if (msgtype === MsgType.Image) return { icon: 'image-square', text: t('rooms.preview_image') };
 		if (msgtype === MsgType.File) return { icon: 'file', text: content.body || t('rooms.preview_file') };
 		if (msgtype === PubHubsMgType.SignedMessage) return { icon: 'seal-check', text: t('rooms.preview_signed') };
+		if (msgtype === PubHubsMgType.VideoCall) return { icon: '', text: t('videocall.message_preview') };
+
 		if (msgtype.startsWith('pubhubs.voting_widget')) return { icon: 'chart-bar', text: t('rooms.preview_poll') };
 
 		// For text and announcement, use plain-text body

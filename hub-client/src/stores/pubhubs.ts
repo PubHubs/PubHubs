@@ -50,6 +50,7 @@ import {
 	type TVideoCallMessageEventContent,
 	type TWhisperMessageEventContent,
 } from '@hub-client/models/events/TMessageEvent';
+import { withEdit } from '@hub-client/models/events/edits';
 import {
 	type TVotingWidgetClose,
 	type TVotingWidgetEditEventContent,
@@ -373,17 +374,23 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @returns a single event based on roomId/eventId
 		 */
 		async getEvent(roomId: string, eventId: string) {
-			// 1. TimelineManager._timelineEvents — applyEdits() mutates these PubHubs-owned objects.
+			// 1. TimelineManager._timelineEvents — applyEdits() has already written any loaded edit into these.
 			const rooms = useRooms();
 			const timelineEvent = rooms.room(roomId)?.findEventById(eventId);
 			if (timelineEvent) return timelineEvent.event;
 
-			// 2. SDK room — applyEdits() mutates SDK-owned objects for events outside _timelineEvents.
-			const cachedEvent = this.client.getRoom(roomId)?.findEventById(eventId);
-			if (cachedEvent) return cachedEvent.event;
+			// Outside the managed timeline an edit is not necessarily applied yet, so merge the latest known one.
+			// The SDK and the server (MSC3925 bundled aggregation) may know of edits the TimelineManager never loaded.
+			const knownEdit = rooms.room(roomId)?.getLatestEdit(eventId)?.event;
 
-			// 3. Network fallback — returns original unedited content.
-			return await this.client.fetchRoomEvent(roomId, eventId);
+			// 2. Get SDK edits that are not loaded by the timelineManager yet.
+			const cachedEvent = this.client.getRoom(roomId)?.findEventById(eventId);
+			if (cachedEvent) return withEdit(cachedEvent.event, knownEdit ?? cachedEvent.replacingEvent()?.event);
+
+			// 3. The server returns the original content, with the latest edit bundled. For if the sdk does not find anything.
+			const fetchedEvent = await this.client.fetchRoomEvent(roomId, eventId);
+			const bundledEdit = fetchedEvent.unsigned?.['m.relations']?.[RelationType.Replace] as Partial<TBaseEvent> | undefined;
+			return withEdit(fetchedEvent, knownEdit ?? bundledEdit);
 		},
 
 		/**

@@ -124,6 +124,14 @@ const useGlobal = defineStore('global', {
 				} catch (error) {
 					logger.error('Failure getting global settings from server, attempting to load default settings', error);
 				}
+				// PHC rejects an auth token it issued before it restarted, which logs the user out while
+				// the request above is still running and makes it come back empty. Carrying on would
+				// report a login that is already gone, and the caller would start the pinned-hub load
+				// for the default (empty) settings, which getPinnedHubsData would then hand to the user's
+				// next login as already done.
+				if (!localStorage.getItem('PHauthToken')) {
+					return false;
+				}
 				let data: GlobalSettings;
 				if (settingsUserObject) {
 					data = JSON.parse(settingsUserObject) as GlobalSettings;

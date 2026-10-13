@@ -136,7 +136,9 @@
 				<ManageReportSidebar
 					v-if="selectedReport"
 					:report="selectedReport"
+					:event="selectedReportEvent"
 					:is-admin="isAdmin"
+					:is-loading-event="isLoadingEvent"
 					@delete="deleteSelectedReport"
 					@go-to-message="goToMessage"
 				/>
@@ -214,7 +216,9 @@
 		reports,
 		selectedReportId,
 		selectedReport,
+		selectedReportEvent,
 		isLoading,
+		isLoadingEvent,
 		isAdmin,
 		hasMoreReports,
 		oldestReportTimestamp,
@@ -279,13 +283,14 @@
 		currentPage.value = 1;
 	});
 
-	const handleSelectReport = (report: TEventReport) => {
+	const handleSelectReport = async (report: TEventReport) => {
 		if (sidebar.activeTab.value === SidebarTab.ManageReport && selectedReportId.value === report.id) {
 			sidebar.close();
 			return;
 		}
-		selectReport(report);
+		// Open before awaiting: selectReport marks the selection synchronously and then loads the message
 		sidebar.openTab(SidebarTab.ManageReport);
+		await selectReport(report);
 	};
 
 	const prevPage = () => {

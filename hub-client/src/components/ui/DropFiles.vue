@@ -60,7 +60,7 @@
 			type="warning"
 			class="mr-050 inline-block"
 		></Icon
-		>{{ $t('file.upload_error') }}
+		>{{ uploadError }}
 	</div>
 	<div
 		v-if="files.length > 0"
@@ -122,6 +122,7 @@
 
 <script setup lang="ts">
 	import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
@@ -132,7 +133,7 @@
 	import FileIcon from '@hub-client/components/ui/FileIcon.vue';
 	import ProgressBar from '@hub-client/components/ui/ProgressBar.vue';
 
-	import { type ExtendedFile, asyncFileUpload, generateUniqueName } from '@hub-client/composables/fileUpload';
+	import { type ExtendedFile, asyncFileUpload, generateUniqueName, toUploadError } from '@hub-client/composables/fileUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
@@ -157,6 +158,8 @@
 
 	const emit = defineEmits(['update']);
 
+	const { t } = useI18n();
+
 	const { uploadUrl } = useMatrixFiles();
 
 	const pubhubs = usePubhubsStore();
@@ -168,7 +171,8 @@
 	const fileInput = ref<HTMLInputElement | null>(null);
 
 	const files = ref([] as Array<ExtendedFile>);
-	const uploadError = ref(false);
+	// The reason the last upload failed, already translated, or undefined while nothing went wrong.
+	const uploadError = ref<string | undefined>(undefined);
 	const uploadIsActive = ref(false);
 
 	const maxNumberToUpload = computed(() => {
@@ -223,14 +227,14 @@
 	};
 
 	const addFiles = (newFiles: FileList) => {
-		uploadError.value = false;
-		for (let i = 0; i < newFiles.length; i++) {
+		uploadError.value = undefined;
+		for (const element of newFiles) {
 			if (files.value.length >= maxNumberToUpload.value) {
 				break;
 			}
-			const file = newFiles[i] as ExtendedFile;
+			const file = element as ExtendedFile;
 			// prevent double files
-			if (!files.value.find((existing) => file.name === existing.name)) {
+			if (!files.value.some((existing) => file.name === existing.name)) {
 				file.status = FileReader.EMPTY;
 				file.progress = 0;
 				file.blobManager = new BlobManager(file);
@@ -253,11 +257,11 @@
 			file.blobManager?.revoke();
 		});
 		files.value = [];
-		uploadError.value = false;
+		uploadError.value = undefined;
 	};
 
 	const uploadFiles = async () => {
-		uploadError.value = false;
+		uploadError.value = undefined;
 		uploadIsActive.value = true;
 
 		for (const file of files.value) {
@@ -294,15 +298,16 @@
 						} else {
 							file.progress = 0;
 							file.status = FileReader.EMPTY;
-							uploadError.value = true;
+							// The file reached the media server, only the room event could not be sent.
+							uploadError.value = t('errors.file_share');
 						}
 					},
 				);
-			} catch {
-				// Upload failed (e.g., rate limited, network error)
+			} catch (error) {
+				const info = toUploadError(error);
 				file.progress = 0;
 				file.status = FileReader.EMPTY;
-				uploadError.value = true;
+				uploadError.value = t(info.key, info.params);
 			}
 			files.value = files.value.filter((x) => x.status !== FileReader.DONE);
 		}

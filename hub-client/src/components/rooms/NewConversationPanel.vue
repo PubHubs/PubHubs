@@ -437,10 +437,10 @@
 					await pubhubs.setRoomAvatar(roomId, mxUrl);
 				}
 			},
-			() => {
+			(error) => {
 				avatarPreviewUrl.value?.revoke();
 				selectedAvatarFile.value = null;
-				dialog.confirm(t('errors.file_upload'));
+				dialog.confirm(t('errors.file_upload_failed'), t(error.key, error.params));
 			},
 		);
 	}

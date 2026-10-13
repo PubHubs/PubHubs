@@ -1,9 +1,11 @@
 variables:
     # Tag of the rust-stable image from ilab/docker-build, as <rust version>-<pipeline iid>.
-    # It is part of the rust cache keys below, so changing the image starts from a cold
-    # cache instead of restoring artifacts built by the previous toolchain.
     RUST_IMAGE_TAG: 1.97.1-229
     RUST_IMAGE: registry.science.ru.nl/ilab/docker-build/rust-stable:${RUST_IMAGE_TAG}
+    RUSTUP_AUTO_INSTALL: '0'
+    # Node major for the client jobs; keep it equal to the `FROM node:<major>-slim` in
+    # hub-client/Dockerfile.
+    NODE_VERSION: '26'
     DOCKER_DRIVER: overlay2
     CARGO_INCREMENTAL: '0'
     CARGO_NET_RETRY: '3'
@@ -315,7 +317,7 @@ deploy-stable-hubs:
         - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-open-source-dev-matrix
 
 .node-setup:
-    image: node:26
+    image: node:${NODE_VERSION}
     tags: [docker]
     interruptible: true
     variables:
@@ -354,7 +356,7 @@ npm-audit:
     tags:
         - docker
     interruptible: true
-    image: node:26
+    image: node:${NODE_VERSION}
     rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
         - if: $CI_COMMIT_BRANCH == "main"
@@ -478,7 +480,7 @@ deploy-main-globalclient:
         - client-type-check
         - globalclient-unit-test
     tags: [docker]
-    image: node:26
+    image: node:${NODE_VERSION}
     script:
         - cd global-client/dist
         - chmod 600 $UPDATE_GLOBAL_CLIENT_MAIN_KEY
@@ -500,7 +502,7 @@ deploy-stable-globalclient:
         - job: globalclient-unit-test
           optional: true
     tags: [docker]
-    image: node:26
+    image: node:${NODE_VERSION}
     script:
         - cd global-client/dist
         - chmod 600 $UPDATE_GLOBAL_CLIENT_STABLE_KEY

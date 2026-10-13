@@ -1,20 +1,30 @@
 <template>
 	<div class="gap-050 flex items-center wrap-break-word">
-		<div class="overflow-hidden text-ellipsis">
-			{{ body }}
+		<div
+			v-if="!callEnded"
+			class="overflow-hidden text-ellipsis"
+		>
+			{{ t('videocall.message_start') }}
+		</div>
+		<div
+			v-else
+			class="overflow-hidden text-ellipsis"
+		>
+			{{ t('videocall.message_ended') }}
 		</div>
 		<VideoCallButton
-			v-if="!callEnded"
+			v-if="!callEnded && !inCall"
 			:is-start-button="false"
 			@click="JoinVideoCall()"
 		></VideoCallButton>
 	</div>
-	<div v-if="duration">Duration: {{ duration }}</div>
+	<div v-if="callEnded && duration">{{ t('videocall.duration') }}: {{ duration }}</div>
 </template>
 
 <script setup lang="ts">
 	import { MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
 	import VideoCallButton from '@hub-client/components/ui/VideoCallButton.vue';
@@ -24,6 +34,7 @@
 	import { type TMessageEvent, type TMessageEventContent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	import { useRooms } from '@hub-client/stores/rooms';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	const props = defineProps<{
 		event: TMessageEvent<TVideoCallMessageEventContent>;
@@ -32,9 +43,13 @@
 
 	const router = useRouter();
 	const rooms = useRooms();
+	const videoCall = useVideoCall();
+	const { t } = useI18n();
+
+	// Hide the join button for the call you are already sitting in, thread root included.
+	const inCall = computed(() => !!videoCall.livekit_room);
 	const callEnded = ref(false);
 	const duration = ref<string | undefined>(undefined);
-	const body = computed(() => props.event.content?.body ?? '');
 	const currentRoom = rooms.currentRoom;
 	const rtcSession = currentRoom?.getMatrixRTCSession();
 

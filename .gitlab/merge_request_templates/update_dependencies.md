@@ -14,7 +14,7 @@ Also make sure to not squash the commits so we can search for them later.
 ### Dockerfile
 
 - [ ] Check the pinned `cargo install cargo-chef --version XXX` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (releases [here](https://crates.io/crates/cargo-chef/versions)).
-- [ ] Bump the pinned `rust-stable` digest to pick up a new Rust toolchain. It appears in **two** places that must match: `RUST_IMAGE` in the [.gitlab-ci.yml](cicd/.gitlab-ci.yml) and the `FROM` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (`grep -rn rust-stable` finds both). Look in the docker-build ilab repository for the latest pinned rust-stable build.
+- [ ] Bump the pinned `rust-stable` image tag (`<rust version>-<pipeline iid>`) to the build for the `channel` above; if there is none yet, bump `VERSION` in the docker-build ilab repository first by running the rust pipeline there. The tag appears in **two** places that must match: `RUST_IMAGE_TAG` in the [.gitlab-ci.yml](cicd/.gitlab-ci.yml) and the `FROM` in the [pubhubs Dockerfile](pubhubs/Dockerfile) (`grep -rn rust-stable` finds both).
 
 ### Yivi
 
@@ -56,7 +56,7 @@ For reference, dependencies are in `package.json`.
 
 ## CICD
 
-- [ ] Update the node version in the [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml?ref_type=heads#L190) file for global and hub client related jobs.
+- [ ] Update `NODE_VERSION` in the [.gitlab-ci.yml](cicd/.gitlab-ci.yml) for the global and hub client related jobs, together with the `FROM node:XX-slim` in the [hub client Dockerfile](hub-client/Dockerfile).
 
 ## Nix
 

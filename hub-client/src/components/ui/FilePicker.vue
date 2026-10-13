@@ -57,7 +57,7 @@
 		<input
 			ref="elFileInput"
 			type="file"
-			:accept="getTypesAsString(allTypes)"
+			:accept="allTypes.join(',')"
 			class="attach-file"
 			data-testid="file-input"
 			hidden
@@ -98,7 +98,7 @@
 		uploadFile: [blobManager: BlobManager | undefined];
 	}>();
 
-	const { allTypes, imageTypes, getTypesAsString } = useMatrixFiles();
+	const { allTypes, imageTypes } = useMatrixFiles();
 
 	const uri = ref<BlobManager>();
 	const elFileInput = ref<HTMLInputElement | null>(null);

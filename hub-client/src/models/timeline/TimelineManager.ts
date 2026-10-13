@@ -13,8 +13,8 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { type TExpertVerificationMessageContent } from '@hub-client/models/events/TExpertEvent';
-import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { editedContent } from '@hub-client/models/events/edits';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
 
@@ -93,6 +93,8 @@ class TimelineManager {
 	private expertVerificationEvents = shallowReactive(new Map<string, MatrixEvent[]>());
 	// Latest m.replace edit event per target eventId (used to merge edited content into the original)
 	private editEvents: Map<string, MatrixEvent> = new Map();
+	// Bumped whenever an edit changed an event's content, so views that read an event once (e.g. reply snippets) can refresh
+	public readonly editsRevision = shallowReactive({ count: 0 });
 
 	private roomId: string;
 
@@ -231,9 +233,17 @@ class TimelineManager {
 		return event.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Replace;
 	}
 
-	/** Records the latest (by ts) m.replace edit for its target event. */
+	/**
+	 * Records the latest (by ts) m.replace edit for its target event.
+	 * For an original event, records the edit the server bundled with it (MSC3925), which is the only
+	 * source of the edit when the edit event itself lies outside the loaded window.
+	 */
 	private updateEditEvent(event: MatrixEvent): void {
-		if (!this.isEditEvent(event)) return;
+		if (!this.isEditEvent(event)) {
+			const bundledEdit = event.replacingEvent();
+			if (bundledEdit && this.isEditEvent(bundledEdit)) this.updateEditEvent(bundledEdit);
+			return;
+		}
 		const targetEventId = event.getContent()?.[RelationType.RelatesTo]?.event_id;
 		if (!targetEventId) return;
 		const existing = this.editEvents.get(targetEventId);
@@ -256,8 +266,6 @@ class TimelineManager {
 		const changedIds: string[] = [];
 
 		for (const [targetEventId, editEvent] of this.editEvents) {
-			const editTs = editEvent.getTs() ?? 0;
-
 			// Prefer the managed timeline (so we can swap the wrapper for reactivity), fall back to the SDK room.
 			const index = this._timelineEvents.findIndex((e) => e.matrixEvent.getId() === targetEventId);
 			const target = index !== -1 ? this._timelineEvents[index].matrixEvent : room?.findEventById(targetEventId);
@@ -268,19 +276,10 @@ class TimelineManager {
 				continue;
 			}
 
-			const currentContent = target.event.content as TTextMessageEventContent | undefined;
-			// Skip when this (or a newer) edit was already applied.
-			if (currentContent?.ph_edited_ts !== undefined && currentContent.ph_edited_ts >= editTs) continue;
-
-			const newContent = editEvent.getContent()?.['m.new_content'] as TTextMessageEventContent | undefined;
-			if (!newContent) continue;
-
-			const originalRelatesTo = currentContent?.[RelationType.RelatesTo];
-			target.event.content = {
-				...newContent,
-				...(originalRelatesTo ? { [RelationType.RelatesTo]: originalRelatesTo } : {}),
-				ph_edited_ts: editTs,
-			};
+			// Undefined when this (or a newer) edit was already applied.
+			const content = editedContent(target.event, editEvent.event);
+			if (!content) continue;
+			target.event.content = content;
 
 			if (index !== -1) {
 				// Fresh wrapper re-runs the content transform (regenerates ph_body) and changes the prop
@@ -290,7 +289,10 @@ class TimelineManager {
 			changedIds.push(targetEventId);
 		}
 
-		if (changedIds.length > 0) this._timelineVersion++;
+		if (changedIds.length > 0) {
+			this._timelineVersion++;
+			this.editsRevision.count++;
+		}
 		return changedIds;
 	}
 
@@ -365,6 +367,11 @@ class TimelineManager {
 	 * Get all verification events for a target message.
 	 * Returns an array of verification events (one per expert who verified).
 	 */
+	/** Latest known m.replace edit of an event, including edits whose target is not in the loaded timeline. */
+	public getLatestEdit(eventId: string): MatrixEvent | undefined {
+		return this.editEvents.get(eventId);
+	}
+
 	public getVerifications(eventId: string): MatrixEvent[] {
 		return this.expertVerificationEvents.get(eventId) ?? [];
 	}
