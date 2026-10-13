@@ -65,6 +65,7 @@
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useAuthMediaUrl } from '@hub-client/composables/useAuthMediaUrl';
+	import { saveAs } from '@hub-client/composables/useFileDownload';
 	import { useImageActions } from '@hub-client/composables/useImageActions';
 
 	// Models

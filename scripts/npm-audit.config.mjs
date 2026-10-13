@@ -34,5 +34,9 @@ export default {
 			id: 'GHSA-848j-6mx2-7j84',
 			reason: "No fixed version exists: 6.6.1 is the latest elliptic release, and the only upgrade npm can suggest is a major downgrade of vite-plugin-node-polyfills. We do not use elliptic ourselves; it arrives through that plugin's crypto-browserify shim, and the advisory is about the strictness of its ECDSA verification.",
 		},
+		{
+			id: 'GHSA-rj75-hqrm-r3gf',
+			reason: 'A major upgrade of eslint is needed  to remove this dev only vulnerability',
+		},
 	],
 };
