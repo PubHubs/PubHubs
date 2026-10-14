@@ -13,8 +13,8 @@ const SystemDefaults = {
 	mainRoomListRange: 40, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
 	longPressDuration: 250, // Amount of milliseconds for a long-press
 	messageGroupGap: 60 * 60 * 1000, // Amount of miliseconds for the message group threshold
-	MaxNumberFileUploads: 50, // Maximum number of files that can be dropped/uploaded
 	maxLibraryFiles: 100, // Maximum amount of files to store in the file library
+	maxLibraryPages: 5, // Maximum pages of library events to fetch when opening the file library
 	maxPaginationIterations: 5, // Maximum retries to get the retreived visible messages to match the paginationBatchSize
 } as const;
 
