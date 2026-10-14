@@ -6,7 +6,7 @@
 		<p class="text-on-surface-dim text-sm italic">{{ t('state.loading') }}</p>
 	</div>
 	<div
-		v-else-if="eventData"
+		v-else-if="event"
 		class="flex flex-col gap-100"
 	>
 		<div class="bg-surface-sunken rounded p-150">
@@ -112,29 +112,25 @@
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useUser } from '@hub-client/stores/user';
 
 	// Props
 	const props = defineProps<{
-		eventId: string;
-		roomId: string;
+		event?: Record<string, unknown> | null;
+		isLoading?: boolean;
 	}>();
 
 	const logger = createLogger('ReportedMessagePreview');
 	const { t } = useI18n();
 	const matrixFiles = useMatrixFiles();
-	const pubhubs = usePubhubsStore();
 	const userStore = useUser();
 
 	const authMediaUrl = ref<BlobManager>();
-	const eventData = ref<Record<string, unknown> | null>(null);
-	const isLoading = ref(false);
-	let currentFetchId = 0; // Track current fetch to ignore stale responses
+	let currentMediaFetchId = 0; // Track current media fetch to ignore stale responses
 
-	const eventContent = computed(() => eventData.value?.content as Record<string, unknown> | undefined);
-	const eventSender = computed(() => (eventData.value?.sender as string) || '');
-	const eventTimestamp = computed(() => eventData.value?.origin_server_ts as number | undefined);
+	const eventContent = computed(() => props.event?.content as Record<string, unknown> | undefined);
+	const eventSender = computed(() => (props.event?.sender as string) || '');
+	const eventTimestamp = computed(() => props.event?.origin_server_ts as number | undefined);
 	const messageBody = computed(() => (eventContent.value?.body as string) || '');
 	const messageFilename = computed(() => (eventContent.value?.filename as string) || messageBody.value);
 	const messageType = computed(() => eventContent.value?.msgtype as string);
@@ -149,53 +145,36 @@
 		authMediaUrl.value = undefined;
 	};
 
-	const fetchEvent = async () => {
-		const fetchId = ++currentFetchId;
+	/** Fetches the authorized media URL for image and file messages. */
+	const fetchMedia = async () => {
+		const fetchId = ++currentMediaFetchId;
 
-		if (!props.roomId || !props.eventId) {
-			eventData.value = null;
-			cleanupMediaUrl();
-			return;
-		}
+		// Clean up previous media URL before potentially setting a new one
+		cleanupMediaUrl();
 
-		isLoading.value = true;
+		const url = eventContent.value?.url as string | undefined;
+		if (!url) return;
+
 		try {
-			const data = await pubhubs.getEvent(props.roomId, props.eventId);
+			const authorizedUrl = await matrixFiles.getAuthorizedMediaUrl(url);
 
 			// Ignore stale response if a newer fetch has started
-			if (fetchId !== currentFetchId) return;
+			if (fetchId !== currentMediaFetchId) return;
 
-			eventData.value = data;
-
-			// Clean up previous media URL before potentially setting a new one
-			cleanupMediaUrl();
-
-			// Fetch authorized media URL for images/files
-			const content = data?.content as Record<string, unknown> | undefined;
-			const url = content?.url as string | undefined;
-			if (url) {
-				const authorizedUrl = await matrixFiles.getAuthorizedMediaUrl(url);
-
-				// Check again for stale response after second async call
-				if (fetchId !== currentFetchId) return;
-
-				authMediaUrl.value = new BlobManager(authorizedUrl);
-			}
+			authMediaUrl.value = new BlobManager(authorizedUrl);
 		} catch (error) {
 			// Ignore errors from stale requests
-			if (fetchId !== currentFetchId) return;
+			if (fetchId !== currentMediaFetchId) return;
 
-			logger.error('Failed to fetch event:', error);
-			eventData.value = null;
-			cleanupMediaUrl();
-		} finally {
-			if (fetchId === currentFetchId) {
-				isLoading.value = false;
-			}
+			logger.error('Failed to fetch media of event:', error);
 		}
 	};
 
-	watch([() => props.roomId, () => props.eventId], () => fetchEvent(), { immediate: true });
+	watch(
+		() => props.event,
+		() => fetchMedia(),
+		{ immediate: true },
+	);
 
 	onBeforeUnmount(() => {
 		authMediaUrl.value?.revoke();

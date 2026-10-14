@@ -1,27 +1,29 @@
 <template>
-	<div
-		v-if="authMediaUrl?.url"
-		v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadFile() }])"
-		class="bg-surface-base rounded-base border-surface-elevated flex w-fit items-center gap-100 overflow-x-hidden border-3 px-150 py-100"
-	>
-		<Icon
-			class="text-on-surface"
-			type="file"
-			size="sm"
-		/>
-		<span
-			class="hover:cursor-pointer"
-			@click="openFileUrl()"
+	<div class="flex min-w-0 flex-col gap-100">
+		<div
+			v-if="authMediaUrl?.url"
+			v-context-menu="(evt: any) => openMenu(evt, [{ label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadFile() }])"
+			class="bg-surface-base rounded-base border-surface-elevated flex w-fit items-center gap-100 overflow-x-hidden border-3 px-150 py-100"
 		>
-			{{ message.filename }}
-		</span>
+			<Icon
+				class="text-on-surface"
+				type="file"
+				size="sm"
+			/>
+			<span
+				class="hover:cursor-pointer"
+				@click="openFileUrl()"
+			>
+				{{ message.filename }}
+			</span>
+		</div>
+		<!-- Message body with mention support -->
+		<MessageBodyWithMentions
+			v-if="message.body !== message.filename"
+			:body="message.body"
+			:ph-body="message.ph_body"
+		/>
 	</div>
-	<!-- Message body with mention support -->
-	<MessageBodyWithMentions
-		v-if="message.body !== message.filename"
-		:body="message.body"
-		:ph-body="message.ph_body"
-	/>
 </template>
 
 <script setup lang="ts">

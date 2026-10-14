@@ -158,8 +158,8 @@ const useDialog = defineStore('dialog', {
 		async showError(title: string, content: string = '', type: 'global' | 'hub' = 'hub') {
 			// On demand: importing i18n.ts at module scope drags both locale catalogues into the
 			// startup graph of everything that touches this store, the miniclient included.
-			const { setUpi18n } = await import('@hub-client/i18n');
-			const i18n = setUpi18n();
+			const { getI18n } = await import('@hub-client/i18n');
+			const i18n = getI18n();
 			const { t } = i18n.global;
 			const message = t('errors.error', title);
 			return this.show(new DialogProperties(message, content, buttonsOk, true, true, type));

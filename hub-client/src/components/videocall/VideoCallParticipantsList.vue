@@ -1,24 +1,41 @@
 <template>
-	<div class="border-on-surface-dim bg-background relative flex h-full w-full shrink-0 flex-col border-l md:w-[33%]">
-		<div class="bg-surface-base m-150 mb-0 flex items-center gap-100 rounded-md p-100">
-			<!-- TODO: add language variable -->
-			<p class="~text-label-tiny-min/label-tiny-max truncate text-nowrap">Participants ({{ remoteParticipants.length }})</p>
-		</div>
+	<div class="flex h-full flex-col overflow-y-hidden py-200">
+		<SidebarHeader :title="t('videocall.participants_count', { count: remoteParticipants.length + (localParticipantName ? 1 : 0) })" />
 
-		<div
-			v-for="username in remoteParticipants"
-			:key="username"
-		>
-			<ParticipantCard :remote-participant-name="username"></ParticipantCard>
+		<div class="gap-050 flex flex-1 flex-col overflow-y-auto px-200">
+			<ParticipantCard
+				v-if="localParticipantName"
+				:is-self="true"
+				:remote-participant-name="localParticipantName"
+			/>
+			<ParticipantCard
+				v-for="username in remoteParticipants"
+				:key="username"
+				:remote-participant-name="username"
+			/>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
+	// Packages
+	import { computed } from 'vue';
+	import { useI18n } from 'vue-i18n';
+
 	// Components
+	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 	import ParticipantCard from '@hub-client/components/videocall/ParticipantCard.vue';
 
+	// Stores
+	import useVideoCall from '@hub-client/stores/videoCall';
+
+	// Props
 	defineProps<{
 		remoteParticipants: string[];
 	}>();
+
+	const { t } = useI18n();
+	const videoCall = useVideoCall();
+
+	const localParticipantName = computed(() => videoCall.livekit_room?.localParticipant?.identity);
 </script>

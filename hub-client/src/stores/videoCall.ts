@@ -81,8 +81,10 @@ const useVideoCall = defineStore('videoCall', {
 			video_track: null as LocalVideoTrack | null,
 			selected_video_device_id: null as string | null,
 			mute_video_track: false,
+			selected_output_device_id: null as string | null,
 
 			screen_share: false,
+			participant_count: 0,
 
 			locally_muted_participants: [] as string[],
 			selfView: true,
@@ -123,10 +125,14 @@ const useVideoCall = defineStore('videoCall', {
 			const connected = await this.connectToCall();
 			if (!connected) return false;
 
+			// on demand getting single instance, because the store has no setup context
+			const { getI18n } = await import('@hub-client/i18n');
+			const { t } = getI18n().global;
+
 			// check if first user, if so: message for video call start
 			if (this.rtc_session?.memberships?.length === 1) {
 				// create message for timeline to show the call has started
-				const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? 'VideoCall Started');
+				const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? t('videocall.message_start'));
 				this.eventId = eventId;
 			}
 
@@ -135,7 +141,7 @@ const useVideoCall = defineStore('videoCall', {
 				void (async () => {
 					try {
 						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent;
-						await pubhubs.addMessage(currentRoom.roomId, 'Joined', threadRoot, undefined);
+						await pubhubs.addMessage(currentRoom.roomId, t('videocall.message_joined'), threadRoot, undefined);
 					} catch {
 						// Ignore best-effort "Joined" message failures.
 					}
@@ -214,6 +220,8 @@ const useVideoCall = defineStore('videoCall', {
 				await this.livekit_room.connect(this.target_url, this.token, {
 					autoSubscribe: true,
 				});
+
+				await this.applyOutputDevice();
 				return true;
 			} catch {
 				if (this.livekit_room) {
@@ -248,6 +256,10 @@ const useVideoCall = defineStore('videoCall', {
 
 			this._leaving = true;
 			try {
+				// on demand getting single instance, because the store has no setup context
+				const { getI18n } = await import('@hub-client/i18n');
+				const { t } = getI18n().global;
+
 				// Clean up eventlisteners
 				if (endCallCleanup) {
 					endCallCleanup();
@@ -289,7 +301,7 @@ const useVideoCall = defineStore('videoCall', {
 				if (this.eventId) {
 					try {
 						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
-						await pubhubs.addThreadMessageWithoutLocalEcho(currentRoom.roomId, 'Left', threadRoot);
+						await pubhubs.addThreadMessageWithoutLocalEcho(currentRoom.roomId, t('videocall.message_left'), threadRoot);
 					} catch (error) {
 						errors.push(error);
 					}
@@ -302,7 +314,7 @@ const useVideoCall = defineStore('videoCall', {
 						const isLastMember = this.rtc_session.memberships.length === 1; // check if you are the last participant before leaving, it takes some time for the memberships to sync
 						await this.rtc_session.leaveRoomSession(10);
 						if (isLastMember && this.eventId) {
-							await pubhubs.addEndVideoCallMessage(currentRoom.roomId, this.eventId, 'Ended');
+							await pubhubs.addEndVideoCallMessage(currentRoom.roomId, this.eventId, t('videocall.message_ended'));
 						}
 					} catch (error) {
 						errors.push(error);
@@ -316,8 +328,12 @@ const useVideoCall = defineStore('videoCall', {
 
 				this.audio_track = null;
 				this.selected_audio_device_id = null;
+				this.mute_audio_track = false;
 				this.video_track = null;
 				this.selected_video_device_id = null;
+				this.mute_video_track = false;
+				this.selected_output_device_id = null;
+				this.screen_share = false;
 				this.focus = [null, false];
 
 				if (errors.length) {
@@ -334,13 +350,19 @@ const useVideoCall = defineStore('videoCall', {
 
 			const rtcSession = rooms.currentRoom.getMatrixRTCSession();
 
-			const onMembershipsChanged = () => {
+			const onMembershipsChanged = async () => {
 				if (!rooms.currentRoom) return;
+				this.participant_count = rtcSession.memberships.length;
 				if (rtcSession.memberships.length === 0) {
+					const roomId = rooms.currentRoom.roomId;
 					endCallCleanup?.();
 					endCallCleanup = null;
-					router.push({ name: 'room', params: { id: rooms.currentRoom.roomId } });
-					this.leaveCall();
+					router.push({ name: 'room', params: { id: roomId } });
+					try {
+						await this.leaveCall();
+					} catch (error) {
+						logger.error('leavecall failed after membership change ', error);
+					}
 				}
 			};
 
@@ -420,7 +442,7 @@ const useVideoCall = defineStore('videoCall', {
 
 		async toggleAudioTrackMute(should_mute: boolean) {
 			this.mute_audio_track = should_mute;
-			if (!this.livekit_room || !this.audio_track) {
+			if (!this.audio_track) {
 				return;
 			}
 
@@ -433,7 +455,7 @@ const useVideoCall = defineStore('videoCall', {
 
 		async toggleVideoTrackMute(mute: boolean) {
 			this.mute_video_track = mute;
-			if (!this.livekit_room || !this.video_track) {
+			if (!this.video_track) {
 				return;
 			}
 
@@ -444,11 +466,23 @@ const useVideoCall = defineStore('videoCall', {
 			}
 		},
 
-		async toggleScreenShare(screenShare: boolean) {
-			this.screen_share = screenShare;
-			if (!this.livekit_room) return;
+		/**
+		 * @returns whether the screen share is now in the requested state. Starting one opens the
+		 * browser's own picker, which rejects when the user dismisses it or the site is not allowed to
+		 * capture the display at all.
+		 */
+		async toggleScreenShare(screenShare: boolean): Promise<boolean> {
+			if (!this.livekit_room) return false;
 
-			await this.livekit_room.localParticipant.setScreenShareEnabled(this.screen_share);
+			try {
+				await this.livekit_room.localParticipant.setScreenShareEnabled(screenShare);
+				this.screen_share = screenShare;
+				return true;
+			} catch (error) {
+				logger.warn('Could not toggle screen sharing', error);
+				this.screen_share = false;
+				return false;
+			}
 		},
 
 		toggleSelfView(selfView: boolean) {
@@ -468,6 +502,10 @@ const useVideoCall = defineStore('videoCall', {
 					resolution: VideoPresets.h720,
 					deviceId: deviceId,
 				});
+
+				if (this.mute_video_track) {
+					await this.video_track.mute();
+				}
 
 				if (this.livekit_room && this.should_publish_video_track && this.video_track) {
 					await this.livekit_room.localParticipant.publishTrack(this.video_track as LocalVideoTrack);
@@ -491,11 +529,34 @@ const useVideoCall = defineStore('videoCall', {
 					noiseSuppression: true,
 				});
 
+				if (this.mute_audio_track) {
+					await this.audio_track.mute();
+				}
+
 				if (this.livekit_room && this.should_publish_audio_track && this.audio_track) {
 					await this.livekit_room.localParticipant.publishTrack(this.audio_track as LocalAudioTrack);
 				}
 			} else {
 				this.audio_track = null;
+			}
+		},
+
+		async changeOutputDevice(deviceId: string | null) {
+			this.selected_output_device_id = deviceId;
+			await this.applyOutputDevice();
+		},
+
+		/**
+		 * Route remote audio to the selected speaker. Best effort: setSinkId is unsupported in
+		 * Firefox, and there is nothing to route until a room is connected.
+		 */
+		async applyOutputDevice() {
+			if (!this.livekit_room || !this.selected_output_device_id) return;
+
+			try {
+				await this.livekit_room.switchActiveDevice('audiooutput', this.selected_output_device_id);
+			} catch (error) {
+				logger.warn('Could not switch audio output device', error);
 			}
 		},
 

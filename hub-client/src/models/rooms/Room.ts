@@ -695,6 +695,14 @@ export default class Room {
 		return this.timelineManager.relatedEventsRevision;
 	}
 
+	public get editsRevision() {
+		return this.timelineManager.editsRevision;
+	}
+
+	public getLatestEdit(eventId: string): MatrixEvent | undefined {
+		return this.timelineManager.getLatestEdit(eventId);
+	}
+
 	public getVerifications(eventId: string): MatrixEvent[] {
 		return this.timelineManager.getVerifications(eventId);
 	}

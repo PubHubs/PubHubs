@@ -889,7 +889,6 @@
 			const accessToken = pubhubs.Auth.getAccessToken();
 			if (!accessToken) return;
 			fileUpload(
-				t('errors.file_upload'),
 				accessToken,
 				uploadUrl,
 				allTypes,
@@ -904,10 +903,10 @@
 					messageInput.cancelFileUpload();
 					messageInput.state.sendButtonEnabled = isValidMessage();
 				},
-				() => {
-					// On error: reset state so user can try again
+				(error) => {
 					messageInput.cancelFileUpload();
 					messageInput.state.sendButtonEnabled = isValidMessage();
+					dialog.confirm(t('errors.file_upload_failed'), t(error.key, error.params));
 				},
 			);
 		} else if (messageActions.replyingTo && inReplyTo.value) {
@@ -987,22 +986,27 @@
 		const accessToken = pubhubs.Auth.getAccessToken();
 		if (!accessToken) return;
 		messageInput.closeFileUpload();
-		await asyncFileUpload(
-			accessToken,
-			uploadUrl,
-			file,
-			(_progress) => {},
-			async (url) => {
-				const fileInfo: Omit<FileInfo, 'previewUrl'> = {
-					mxcUrl: url,
-					filename: file.name,
-					mimetype: file.type,
-					size: file.size,
-					msgtype: imageTypes.includes(file.type) ? MsgType.Image : MsgType.File,
-				};
-				await pubhubs.editFileMessage(props.room.roomId, originalEvent, caption, fileInfo);
-			},
-		);
+		try {
+			await asyncFileUpload(
+				accessToken,
+				uploadUrl,
+				file,
+				(_progress) => {},
+				async (url) => {
+					const fileInfo: Omit<FileInfo, 'previewUrl'> = {
+						mxcUrl: url,
+						filename: file.name,
+						mimetype: file.type,
+						size: file.size,
+						msgtype: imageTypes.includes(file.type) ? MsgType.Image : MsgType.File,
+					};
+					await pubhubs.editFileMessage(props.room.roomId, originalEvent, caption, fileInfo);
+				},
+				(error) => dialog.confirm(t('errors.file_upload_failed'), t(error.key, error.params)),
+			);
+		} catch {
+			// Already reported to the user through the error callback.
+		}
 		messageInput.cancelFileUpload();
 	}
 
