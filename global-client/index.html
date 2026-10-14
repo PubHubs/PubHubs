@@ -6,10 +6,11 @@
 			Content Security Policy
 
 			frame-src has to be set to allow the global-client to embed the hubs with their distinctive origins.
+			blob: in frame-src lets hubs save files: Firefox treats a download from a blob url in the hub iframe as a navigation of that frame.
 		-->
 		<meta
 			http-equiv="Content-Security-Policy"
-			content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https: http:; media-src 'self' blob: data: https: http:; font-src 'self' data:; connect-src 'self' blob: data: https: http: wss: ws:; frame-src 'self' https: http:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+			content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https: http:; media-src 'self' blob: data: https: http:; font-src 'self' data:; connect-src 'self' blob: data: https: http: wss: ws:; frame-src 'self' blob: https: http:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
 		/>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<meta name="viewport" content="width=device-width,initial-scale=1.0,interactive-widget=resizes-content" />

@@ -19,6 +19,11 @@
 			:type="icon"
 			class="shrink-0"
 		/>
+		<span
+			v-else-if="reserveIconSpace"
+			aria-hidden="true"
+			class="w-300 shrink-0"
+		/>
 		<span class="truncate">{{ label }}</span>
 	</button>
 </template>
@@ -35,10 +40,18 @@
 	import { useSettings } from '@hub-client/stores/settings';
 
 	// Props
-	const props = withDefaults(defineProps<ContextMenuItemProps>(), {
-		disabled: false,
-		variant: '' as ContextVariant,
-	});
+	const props = withDefaults(
+		defineProps<
+			ContextMenuItemProps & {
+				reserveIconSpace?: boolean;
+			}
+		>(),
+		{
+			disabled: false,
+			variant: '' as ContextVariant,
+			reserveIconSpace: false,
+		},
+	);
 
 	// Lifecycle
 	const emit = defineEmits<{

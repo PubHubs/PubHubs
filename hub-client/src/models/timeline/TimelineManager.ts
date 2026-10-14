@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventTimeline, EventType, Filter, type IRoomEvent, type MatrixClient, type MatrixEvent } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventType, Filter, type IRoomEvent, type MatrixClient, type MatrixEvent, MsgType } from 'matrix-js-sdk';
 import { shallowReactive } from 'vue';
 
 // Stores
@@ -189,15 +189,25 @@ class TimelineManager {
 	 * @returns
 	 */
 	async initFileLibrary() {
-		const messageResponse = await this.client.createMessagesRequest(
-			this.roomId,
-			null,
-			SystemDefaults.maxLibraryFiles,
-			Direction.Backward,
-			this.LibraryFilter,
-		);
 		const eventMapper = this.client.getEventMapper();
-		const newEvents = messageResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+		const newEvents: MatrixEvent[] = [];
+		let fileCount = 0;
+		let fromToken: string | null = null;
+		// Signatures and deleted files also fill pages, so keep paging (capped) until enough files are found
+		for (let page = 0; page < SystemDefaults.maxLibraryPages && fileCount < SystemDefaults.maxLibraryFiles; page++) {
+			const messageResponse = await this.client.createMessagesRequest(
+				this.roomId,
+				fromToken,
+				SystemDefaults.maxLibraryFiles,
+				Direction.Backward,
+				this.LibraryFilter,
+			);
+			const pageEvents = messageResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+			newEvents.push(...pageEvents);
+			fileCount += pageEvents.filter((event) => [MsgType.File, MsgType.Image].includes(event.getContent().msgtype as MsgType)).length;
+			if (!messageResponse.end || messageResponse.chunk.length === 0) break;
+			fromToken = messageResponse.end;
+		}
 		const newTimelineEvents = newEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
 		// This is called on opening the filelibrary. Then there may already have been some files added through the sliding sync.
