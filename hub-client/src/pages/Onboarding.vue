@@ -3,138 +3,92 @@
 		<!-- Mobile Layout -->
 		<div
 			v-if="isMobile"
-			class="flex h-full w-full flex-col overflow-hidden"
+			class="bg-surface flex h-full w-full flex-col overflow-hidden"
 		>
-			<HubBanner
-				:banner-url="hubSettings.bannerUrl"
-				:class="'h-[20svh]! shrink-0'"
-			/>
+			<!-- Content: scrolls as a whole, so the banner makes way for the form (also with the keyboard open) -->
+			<div
+				ref="mobileContent"
+				class="min-h-0 flex-1 overflow-y-auto"
+			>
+				<HubBanner
+					:banner-url="hubSettings.bannerUrl"
+					:class="'h-[20svh]! shrink-0'"
+				/>
 
-			<div class="relative flex min-h-0 flex-1 flex-col gap-400 px-200 pt-800">
-				<!-- Hub Icon -->
-				<div class="bg-surface-base p-050 absolute -top-600 h-1200 w-1200 rounded-2xl">
-					<HubIcon
-						:icon-url="hubSettings.iconUrlLight"
-						:icon-url-dark="hubSettings.iconUrlDark"
-					/>
-				</div>
-
-				<!-- Welcome Message -->
-				<div class="flex shrink-0 flex-col gap-100">
-					<H1>{{ isConsentOnly ? t('onboarding.welcome_consent') : t('onboarding.welcome', [hubName]) }}</H1>
-					<P>{{ isConsentOnly ? t('onboarding.welcome_consent_description') : t('onboarding.welcome_description') }}</P>
-				</div>
-
-				<!-- Step 1: Set Username -->
-				<div
-					v-if="step == 1"
-					class="flex min-h-0 flex-1 flex-col justify-between gap-400 pb-200"
-				>
-					<div class="flex min-h-0 flex-1 flex-col gap-400 overflow-y-auto">
-						<!-- Username Input -->
-						<div class="flex flex-col gap-100">
-							<H2>{{ t('onboarding.username_label') }}</H2>
-							<P>{{ t('onboarding.username_description') }}</P>
-							<div class="flex gap-200">
-								<TextField
-									v-model="inputValue"
-									class="placeholder-on-surface-dim! text-label h-10"
-									:validation="{ minLength: 3, maxLength: settings.getDisplayNameMaxLength }"
-									:placeholder="pseudonym"
-								/>
-								<Button @click="fileInput!.click()">
-									<Icon type="image-square" />
-								</Button>
-								<input
-									ref="fileInput"
-									accept="image/png, image/jpeg, image/svg"
-									class="hidden"
-									type="file"
-									@change="handleFileUpload"
-								/>
-							</div>
-							<p class="text-on-surface italic">
-								{{ t('onboarding.username_disclaimer') }}
-							</p>
-						</div>
-
-						<!-- Preview Message -->
-						<div
-							v-if="isUsernameChanged"
-							class="flex flex-col gap-100"
-						>
-							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="bg-surface-base flex w-full items-center gap-300 rounded-xl p-200 xl:w-1/2">
-								<div
-									class="flex aspect-square h-600 w-600 shrink-0 items-center justify-center overflow-hidden rounded-full"
-									:class="textColor(color(user.userId!))"
-								>
-									<img
-										v-if="avatarPreviewUrl?.url"
-										class="h-full w-full"
-										data-testid="avatar"
-										:src="avatarPreviewUrl.url"
-									/>
-									<Icon
-										v-else
-										type="user"
-									/>
-								</div>
-								<div class="flex flex-col gap-100">
-									<div class="flex items-center gap-100">
-										<span
-											v-if="inputValue"
-											:class="`${textColor(color(user.userId!))} text-label truncate font-semibold`"
-											data-testid="display-name"
-										>
-											{{ inputValue }}
-										</span>
-										<span class="text-label-small">|</span>
-										<span class="text-label-small">{{ time }}</span>
-									</div>
-									<P>{{ t('onboarding.message_example_text') }}</P>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<!-- Next Button -->
-					<div class="flex w-full shrink-0 justify-end pt-200">
-						<Button
-							class="w-fit"
-							@click="nextStep"
-						>
-							{{ isUsernameChanged ? t('forms.next') : t('forms.skip') }}
-						</Button>
-					</div>
-				</div>
-
-				<!-- Step 2: Consent -->
-				<div
-					v-if="step === 2"
-					class="flex min-h-0 flex-1 flex-col gap-400 pb-200"
-				>
-					<!-- House Rules -->
-					<div class="flex min-h-0 flex-1 flex-col gap-100 overflow-y-auto">
-						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<MarkdownPreview
-							v-if="consentText"
-							:content="consentText"
-							class="bg-surface-base rounded-3xl p-200 break-all"
+				<div class="relative flex flex-col gap-400 px-200 pt-800 pb-400">
+					<!-- Hub Icon -->
+					<div class="bg-surface-base p-050 absolute -top-500 h-1000 w-1000 rounded-2xl">
+						<HubIcon
+							:icon-url="hubSettings.iconUrlLight"
+							:icon-url-dark="hubSettings.iconUrlDark"
 						/>
 					</div>
 
-					<!-- Consent Checkbox -->
-					<div class="flex shrink-0 items-center gap-100">
-						<Checkbox v-model="hasAgreed" />
-						<span>{{ t('onboarding.consent_text') }}</span>
-					</div>
+					<!-- Step 1: Set Username -->
+					<template v-if="step === 1">
+						<div class="flex flex-col gap-100">
+							<p class="text-label-small text-on-surface-dim">{{ t('onboarding.step', [1, 2]) }}</p>
+							<H1>{{ t('onboarding.welcome', [hubName]) }}</H1>
+							<P>{{ t('onboarding.welcome_description') }}</P>
+						</div>
+						<OnboardingProfileForm
+							v-model="inputValue"
+							v-model:avatar-file="selectedAvatarFile"
+							:pseudonym="pseudonym"
+							@submit="nextStep"
+						/>
+					</template>
 
-					<!-- Buttons -->
-					<div
-						class="flex shrink-0 gap-200"
-						:class="isConsentOnly ? 'justify-end' : 'justify-between'"
+					<!-- Step 2: House Rules -->
+					<template v-if="step === 2">
+						<div class="flex flex-col gap-100">
+							<p
+								v-if="!isConsentOnly"
+								class="text-label-small text-on-surface-dim"
+							>
+								{{ t('onboarding.step', [2, 2]) }}
+							</p>
+							<H1>{{ isConsentOnly ? t('onboarding.welcome_consent') : t('onboarding.house_rules', [hubName]) }}</H1>
+							<P v-if="isConsentOnly">{{ t('onboarding.welcome_consent_description') }}</P>
+						</div>
+						<MarkdownPreview
+							v-if="consentText"
+							:content="consentText"
+						/>
+					</template>
+				</div>
+			</div>
+
+			<!-- Actions: stay at the bottom, within thumb reach -->
+			<div class="border-surface-elevated flex shrink-0 flex-col gap-200 border-t p-200">
+				<!-- Consent Checkbox -->
+				<Checkbox
+					v-if="step === 2"
+					v-model="hasAgreed"
+					class="items-start!"
+				>
+					{{ t('onboarding.consent_text', [hubName]) }}
+				</Checkbox>
+
+				<p
+					v-if="submitError"
+					class="text-accent-error"
+					role="alert"
+				>
+					{{ t('onboarding.submit_error') }}
+				</p>
+
+				<!-- Buttons -->
+				<div class="flex gap-200">
+					<Button
+						v-if="step === 1"
+						class="max-w-none! flex-1"
+						:disabled="!isNameValid"
+						@click="nextStep"
 					>
+						{{ hasProfileChanges ? t('forms.next') : t('forms.skip') }}
+					</Button>
+					<template v-else>
 						<Button
 							v-if="!isConsentOnly"
 							class="text-on-surface w-fit px-0"
@@ -144,13 +98,14 @@
 							{{ t('forms.back') }}
 						</Button>
 						<Button
-							class="w-fit"
-							:disabled="submitted || !hasAgreed"
+							class="max-w-none! flex-1"
+							:disabled="!hasAgreed"
+							:loading="submitted"
 							@click="submit"
 						>
 							{{ t('onboarding.enter_hub') }}
 						</Button>
-					</div>
+					</template>
 				</div>
 			</div>
 		</div>
@@ -184,75 +139,19 @@
 							<P>{{ t('onboarding.welcome_description') }}</P>
 						</div>
 
-						<div class="flex flex-col gap-100">
-							<H2>{{ t('onboarding.username_label') }}</H2>
-							<P>{{ t('onboarding.username_description') }}</P>
-							<div class="flex gap-200">
-								<TextField
-									v-model="inputValue"
-									class="placeholder-on-surface-dim! text-label h-10"
-									:placeholder="pseudonym"
-								/>
-								<Button @click="fileInput!.click()">
-									<Icon type="image-square" />
-								</Button>
-								<input
-									ref="fileInput"
-									accept="image/png, image/jpeg, image/svg"
-									class="hidden"
-									type="file"
-									@change="handleFileUpload"
-								/>
-							</div>
-							<p class="text-on-surface italic">
-								{{ t('onboarding.username_disclaimer') }}
-							</p>
-						</div>
-
-						<!-- Message Preview -->
-						<div
-							v-if="isUsernameChanged"
-							class="flex flex-col gap-100"
-						>
-							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="bg-background flex w-full items-center gap-300 rounded-xl p-200">
-								<div
-									class="flex aspect-square h-600 w-600 shrink-0 items-center justify-center overflow-hidden rounded-full"
-									:class="textColor(color(user.userId!))"
-								>
-									<img
-										v-if="avatarPreviewUrl?.url"
-										class="h-full w-full"
-										data-testid="avatar"
-										:src="avatarPreviewUrl.url"
-									/>
-									<Icon
-										v-else
-										type="user"
-									/>
-								</div>
-								<div class="flex flex-col gap-100">
-									<div class="flex flex-wrap items-center gap-100">
-										<span
-											v-if="inputValue"
-											:class="`${textColor(color(user.userId!))} text-label truncate font-semibold break-all`"
-											data-testid="display-name"
-										>
-											{{ inputValue }}
-										</span>
-										<span class="text-label-small">|</span>
-										<span class="text-label-small">{{ time }}</span>
-									</div>
-									<P>{{ t('onboarding.message_example_text') }}</P>
-								</div>
-							</div>
-						</div>
+						<OnboardingProfileForm
+							v-model="inputValue"
+							v-model:avatar-file="selectedAvatarFile"
+							:pseudonym="pseudonym"
+							@submit="nextStep"
+						/>
 
 						<Button
 							class="w-fit"
+							:disabled="!isNameValid"
 							@click="nextStep"
 						>
-							{{ isUsernameChanged ? t('forms.next') : t('forms.skip') }}
+							{{ hasProfileChanges ? t('forms.next') : t('forms.skip') }}
 						</Button>
 					</div>
 				</div>
@@ -286,13 +185,23 @@
 							<H1>{{ isConsentOnly ? t('onboarding.welcome_consent') : t('onboarding.welcome', [hubName]) }}</H1>
 							<P>{{ isConsentOnly ? t('onboarding.welcome_consent_description') : t('onboarding.welcome_description') }}</P>
 						</div>
-						<div class="flex items-center gap-200">
-							<Checkbox v-model="hasAgreed" />
-							<span>{{ t('onboarding.consent_text') }}</span>
-						</div>
+						<Checkbox
+							v-model="hasAgreed"
+							class="items-start!"
+						>
+							{{ t('onboarding.consent_text', [hubName]) }}
+						</Checkbox>
+						<p
+							v-if="submitError"
+							class="text-accent-error"
+							role="alert"
+						>
+							{{ t('onboarding.submit_error') }}
+						</p>
 						<Button
 							class="w-fit"
-							:disabled="submitted || !hasAgreed"
+							:disabled="!hasAgreed"
+							:loading="submitted"
 							@click="submit"
 						>
 							{{ t('onboarding.enter_hub') }}
@@ -314,28 +223,24 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, onBeforeMount, onBeforeUnmount, ref } from 'vue';
+	import { computed, onBeforeMount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import H1 from '@hub-client/components/elements/H1.vue';
-	import H2 from '@hub-client/components/elements/H2.vue';
-	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
+	import OnboardingProfileForm from '@hub-client/components/forms/OnboardingProfileForm.vue';
 	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
 	import MarkdownPreview from '@hub-client/components/forms/elements/MarkdownPreview.vue';
-	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
 	// Composables
 	import { avatarUpload } from '@hub-client/composables/fileUpload';
-	import { useUserColor } from '@hub-client/composables/useUserColor';
 
 	// Logic
-	import { BlobManager } from '@hub-client/logic/core/blobManager';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
@@ -355,28 +260,30 @@
 	const hubName = ref(hubSettings.hubName);
 	const isMobile = computed(() => settings.isMobileState);
 	const inputValue = ref('');
+	const displayName = computed(() => inputValue.value.trim());
+	// Empty is allowed: it keeps the pseudonym
+	const isNameValid = computed(
+		() => displayName.value === '' || (displayName.value.length >= 3 && displayName.value.length <= settings.getDisplayNameMaxLength),
+	);
 	const pseudonym = ref(user.userId?.split(':')[0].substring(1));
-	const isUsernameChanged = computed(() => inputValue.value !== '');
 	const isConsentOnly = computed(() => route.query.type === 'consent');
 	const originalRoute = route.query.originalRoute;
 	const step = ref(isConsentOnly.value ? 2 : 1);
-	const nextStep = () => (step.value = 2);
+	const nextStep = () => {
+		if (isNameValid.value) step.value = 2;
+	};
 	const prevStep = () => (step.value = 1);
 
-	// Avatar handling
-	const fileInput = ref<HTMLInputElement | null>(null);
-	const avatarMxcUrl = ref<string | null>(null);
-	const avatarPreviewUrl = ref<BlobManager | null>(null);
-	const selectedAvatarFile = ref<File | null>(null);
+	// Both steps share one scroll container on mobile, so start each step at its top
+	const mobileContent = ref<HTMLElement | null>(null);
+	watch(step, () => {
+		if (mobileContent.value) mobileContent.value.scrollTop = 0;
+	});
 
-	const handleFileUpload = (event: Event) => {
-		const file = (event.target as HTMLInputElement)?.files?.[0];
-		if (file) {
-			avatarPreviewUrl.value?.revoke();
-			avatarPreviewUrl.value = new BlobManager(file);
-			selectedAvatarFile.value = file;
-		}
-	};
+	// Avatar handling
+	const avatarMxcUrl = ref<string | null>(null);
+	const selectedAvatarFile = ref<File | null>(null);
+	const hasProfileChanges = computed(() => displayName.value !== '' || selectedAvatarFile.value !== null);
 
 	const uploadAvatar = async () => {
 		if (!selectedAvatarFile.value) return;
@@ -412,8 +319,11 @@
 
 	// Submit
 	const submitted = ref(false);
+	const submitError = ref(false);
 
 	const submit = async () => {
+		submitted.value = true;
+		submitError.value = false;
 		try {
 			if (isConsentOnly.value) {
 				await user.setUserConsentVersion(consentVersion.value);
@@ -421,12 +331,9 @@
 				return;
 			}
 
-			if (inputValue.value !== '') {
-				if (inputValue.value.length < 3) {
-					logger.warn('Display name too short, skipping');
-				} else {
-					await user.setDisplayName(inputValue.value);
-				}
+			// Already validated before leaving step 1
+			if (displayName.value !== '') {
+				await user.setDisplayName(displayName.value);
 			}
 
 			if (selectedAvatarFile.value) {
@@ -438,25 +345,12 @@
 			router.push(typeof originalRoute === 'string' ? originalRoute : '/');
 		} catch (error) {
 			logger.error('Error during submit:', error);
+			submitted.value = false;
+			submitError.value = true;
 		}
 	};
 
-	// Misc
-	const { color, textColor } = useUserColor();
-
-	// TODO: move to a utility folder
-	const now = new Date();
-	const time = now.toLocaleTimeString([], {
-		hour: '2-digit',
-		minute: '2-digit',
-		hour12: false,
-	});
-
 	// Lifecycle
-	onBeforeUnmount(() => {
-		avatarPreviewUrl.value?.revoke();
-	});
-
 	onBeforeMount(() => {
 		loadHubSettings();
 	});
