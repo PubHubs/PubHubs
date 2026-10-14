@@ -717,6 +717,9 @@ const nl = {
 		enter_hub: 'Sla op en betreed de hub',
 		welcome_consent: 'De huisregels van deze hub zijn gewijzigd',
 		welcome_consent_description: 'Accepteer de voorwaarden opnieuw om de hub te betreden.',
+		keep_pseudonym: 'Laat leeg om je pseudoniem {0} te houden.',
+		step: 'Stap {0} van {1}',
+		submit_error: 'Er ging iets mis bij het opslaan. Probeer het opnieuw.',
 
 		info_abt_pseudonym: 'Deze hub heeft je een willekeurige naam gegeven (pseudonym)',
 		info_issue_identity:

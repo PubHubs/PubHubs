@@ -726,6 +726,9 @@ const en = {
 		enter_hub: 'Save and enter the hub',
 		welcome_consent: 'The house rules of this hub have changed',
 		welcome_consent_description: 'Please review the terms before entering.',
+		keep_pseudonym: 'Leave empty to keep your pseudonym {0}.',
+		step: 'Step {0} of {1}',
+		submit_error: 'Something went wrong while saving. Please try again.',
 
 		info_abt_pseudonym: 'This hub has given you a random name (pseudonym)',
 		info_issue_identity:
