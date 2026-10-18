@@ -985,6 +985,7 @@ const en = {
 		},
 	},
 	videocall: {
+		appear_as: "You'll appear as",
 		chat: 'Chat',
 		devices: 'Devices',
 		disable_camera: 'Turn off camera',
@@ -1025,6 +1026,7 @@ const en = {
 		permission_unavailable_title: 'No devices found',
 		prejoin_title: 'Starting video call',
 		refresh_devices: 'Refresh devices',
+		self_label: 'You',
 		show_self_view: 'Show your own video',
 		speaker_source: 'Speaker',
 		start_button: 'Start video call',

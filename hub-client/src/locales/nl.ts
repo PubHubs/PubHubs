@@ -976,6 +976,7 @@ const nl = {
 		},
 	},
 	videocall: {
+		appear_as: 'Je verschijnt als',
 		chat: 'Chat',
 		devices: 'Apparaten',
 		disable_camera: 'Camera uitzetten',
@@ -1016,6 +1017,7 @@ const nl = {
 		permission_unavailable_title: 'Geen apparaten gevonden',
 		prejoin_title: 'Videogesprek starten',
 		refresh_devices: 'Apparaten vernieuwen',
+		self_label: 'Jij',
 		show_self_view: 'Toon je eigen beeld',
 		speaker_source: 'Luidspreker',
 		start_button: 'Start videogesprek',
