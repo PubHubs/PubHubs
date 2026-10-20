@@ -34,6 +34,8 @@ const useRoomLibrary = () => {
 		};
 		try {
 			const response = await fetch(url, options);
+			// Do not hash an error response
+			if (!response.ok) throw new Error(`Could not fetch the file to hash, status ${response.status}`);
 			const blob = await response.blob();
 			//Hash the file
 			const fileArrayBuffer = await blob.arrayBuffer();
@@ -87,9 +89,17 @@ const useRoomLibrary = () => {
 		await pubhubsStore.deleteMessage(roomId, eventId);
 	}
 
-	async function removeFromTimeline(room: Room, eventId: string, signedEvents: Array<MatrixEvent>) {
+	/**
+	 * @returns whether the file was removed from the library
+	 */
+	async function removeFromTimeline(room: Room, eventId: string, signedEvents: Array<MatrixEvent>): Promise<boolean> {
 		try {
 			await pubhubsStore.deleteLibraryMessage(room.roomId, eventId);
+		} catch (error) {
+			logger.error('Unable to update the roomlibrary timeline ' + error);
+			return false;
+		}
+		try {
 			// Remove all the related child events (signed banners) from the timeline
 			for (const relatedEvent of signedEvents) {
 				if (relatedEvent.event.event_id) {
@@ -106,6 +116,7 @@ const useRoomLibrary = () => {
 				room.removeLibraryEvent(relatedEvent.event.event_id);
 			}
 		}
+		return true;
 	}
 
 	// #endregion

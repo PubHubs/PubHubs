@@ -1,40 +1,44 @@
 <template>
 	<div id="filePickerContainer">
+		<!-- overflow-clip, not overflow-hidden: a scroll container here would stop the bar from sticking -->
 		<div
 			v-if="displayFile"
-			class="overflow-hidden"
+			class="overflow-clip"
 		>
-			<div class="rounded-t-base bg-accent-blue/10 border-accent-blue flex h-500 items-center justify-between gap-100 border-b px-200">
-				<div class="flex min-w-0 items-center gap-100">
-					<Icon
-						class="text-accent-blue shrink-0"
-						size="sm"
-						type="file"
-					/>
-					<span class="text-accent-blue text-label-small shrink-0">{{ $t(displayFile.label) }}</span>
-					<span class="text-on-surface-dim text-label-small truncate">
-						{{ displayFile.name }}
-						<template v-if="displayFile.size">({{ filters.formatBytes(displayFile.size, 2) }})</template>
-					</span>
-				</div>
-				<div class="flex items-center gap-100">
-					<Icon
-						type="arrows-clockwise"
-						class="text-accent-blue shrink-0 hover:cursor-pointer"
-						size="sm"
-						@click.stop="openFile"
-					/>
-					<button
-						type="button"
-						class="shrink-0 hover:cursor-pointer"
-						@click="displayFile.onRemove()"
-					>
+			<!-- Sticky with an opaque backing, so the remove button stays in view when the message input scrolls -->
+			<div class="rounded-t-base bg-surface-base sticky top-0 z-10">
+				<div class="rounded-t-base bg-accent-blue/10 border-accent-blue flex h-500 items-center justify-between gap-100 border-b px-200">
+					<div class="flex min-w-0 items-center gap-100">
 						<Icon
-							class="text-accent-blue"
+							class="text-accent-blue shrink-0"
 							size="sm"
-							type="x"
+							type="file"
 						/>
-					</button>
+						<span class="text-accent-blue text-label-small shrink-0">{{ $t(displayFile.label) }}</span>
+						<span class="text-on-surface-dim text-label-small truncate">
+							{{ displayFile.name }}
+							<template v-if="displayFile.size">({{ filters.formatBytes(displayFile.size, 2) }})</template>
+						</span>
+					</div>
+					<div class="flex items-center gap-100">
+						<Icon
+							type="arrows-clockwise"
+							class="text-accent-blue shrink-0 hover:cursor-pointer"
+							size="sm"
+							@click.stop="openFile"
+						/>
+						<button
+							type="button"
+							class="shrink-0 hover:cursor-pointer"
+							@click="displayFile.onRemove()"
+						>
+							<Icon
+								class="text-accent-blue"
+								size="sm"
+								type="x"
+							/>
+						</button>
+					</div>
 				</div>
 			</div>
 			<div
