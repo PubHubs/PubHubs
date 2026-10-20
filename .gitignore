@@ -18,7 +18,7 @@ dist
 # Added by cargo
 /target
 
-# GitLab CI caches.  
+# GitLab CI caches.
 /.cargo/
 /.npm/
 /.cache/
@@ -32,7 +32,6 @@ result
 .vscode
 
 # App
-/ios
 .android
 
 # A local clone of https://github.com/privacybydesign/irmago, if you keep one here.
