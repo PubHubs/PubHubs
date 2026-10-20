@@ -15,6 +15,7 @@ const SystemDefaults = {
 	messageGroupGap: 60 * 60 * 1000, // Amount of miliseconds for the message group threshold
 	maxLibraryFiles: 100, // Maximum amount of files to store in the file library
 	maxLibraryPages: 5, // Maximum pages of library events to fetch when opening the file library
+	maxPublicRoomsPages: 100, // Safety cap on publicRooms pagination (100 rooms per page → 10.000 rooms) so a misbehaving next_batch can never loop forever
 	maxPaginationIterations: 5, // Maximum retries to get the retreived visible messages to match the paginationBatchSize
 } as const;
 

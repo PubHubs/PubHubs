@@ -441,6 +441,7 @@ const en = {
 		discover: 'Discover rooms',
 		room_library: 'Library for room:',
 		no_rooms_found: 'No rooms were found',
+		load_failed: 'The rooms could not be loaded.',
 		unread_messages: 'Unread Messages',
 		last_read_message: 'Last read',
 		one_new_message: '1 new message',

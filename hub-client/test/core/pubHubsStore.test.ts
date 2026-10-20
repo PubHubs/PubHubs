@@ -1,9 +1,11 @@
 // Packages
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Stores
+import { SystemDefaults } from '@hub-client/models/constants';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { useRooms } from '@hub-client/stores/rooms';
 
 describe('PubHubs Store', () => {
 	beforeEach(() => {
@@ -37,6 +39,113 @@ describe('PubHubs Store', () => {
 			pubhubs.client = mockClient(false);
 			x = await pubhubs.getAllPublicRooms();
 			expect(x).toEqual(['1', '2']);
+		});
+
+		test('public rooms pagination stops when the server repeats next_batch', async () => {
+			let calls = 0;
+			const pubhubs = usePubhubsStore() as Partial<any>;
+			pubhubs.client = {
+				publicRooms: () => {
+					calls++;
+					return Promise.resolve({ chunk: [String(calls)], next_batch: 'same' });
+				},
+			};
+			expect(await pubhubs.getAllPublicRooms()).toEqual(['1', '2']);
+			expect(calls).toBe(2);
+		});
+
+		test('public rooms pagination stops on an empty page', async () => {
+			let calls = 0;
+			const pubhubs = usePubhubsStore() as Partial<any>;
+			pubhubs.client = {
+				publicRooms: () => {
+					calls++;
+					return Promise.resolve({ chunk: calls === 1 ? ['1'] : [], next_batch: `batch${calls}` });
+				},
+			};
+			expect(await pubhubs.getAllPublicRooms()).toEqual(['1']);
+			expect(calls).toBe(2);
+		});
+
+		test('public rooms pagination stops at the page limit', async () => {
+			let calls = 0;
+			const pubhubs = usePubhubsStore() as Partial<any>;
+			pubhubs.client = {
+				publicRooms: () => {
+					calls++;
+					return Promise.resolve({ chunk: [String(calls)], next_batch: `batch${calls}` });
+				},
+			};
+			const result = await pubhubs.getAllPublicRooms();
+			expect(calls).toBe(SystemDefaults.maxPublicRoomsPages);
+			expect(result.length).toBe(SystemDefaults.maxPublicRoomsPages);
+		});
+
+		test('concurrent public rooms listing shares one request', async () => {
+			let calls = 0;
+			let respond: (value: { chunk: string[] }) => void = () => {};
+			const pubhubs = usePubhubsStore() as Partial<any>;
+			pubhubs.client = {
+				publicRooms: () => {
+					calls++;
+					return new Promise((resolve) => (respond = resolve));
+				},
+			};
+
+			// A second caller while the first request is in flight must not get the still-empty cache.
+			const first = pubhubs.getAllPublicRooms();
+			const second = pubhubs.getAllPublicRooms();
+			respond({ chunk: ['1'] });
+			expect(await first).toEqual(['1']);
+			expect(await second).toEqual(['1']);
+			expect(calls).toBe(1);
+		});
+
+		test('failed public rooms listing is retried on the next call', async () => {
+			const pubhubs = usePubhubsStore() as Partial<any>;
+			pubhubs.client = {
+				publicRooms: () => Promise.reject(new Error('network')),
+			};
+			await expect(pubhubs.getAllPublicRooms()).rejects.toThrow('network');
+
+			pubhubs.client = { publicRooms: () => Promise.resolve({ chunk: ['1'] }) };
+			expect(await pubhubs.getAllPublicRooms()).toEqual(['1']);
+		});
+
+		test('getPublicRoomsSafe falls back to the cached list on failure', async () => {
+			const pubhubs = usePubhubsStore() as Partial<any>;
+			pubhubs.client = { publicRooms: () => Promise.resolve({ chunk: ['1'] }) };
+			await pubhubs.getAllPublicRooms();
+
+			pubhubs.client = { publicRooms: () => Promise.reject(new Error('network')) };
+			expect(await pubhubs.getPublicRoomsSafe(true)).toEqual(['1']);
+		});
+
+		test('fetchPublicRooms does not reject and keeps the current list on failure', async () => {
+			const pubhubs = usePubhubsStore() as Partial<any>;
+			const rooms = useRooms();
+			pubhubs.client = { publicRooms: () => Promise.resolve({ chunk: [{ room_id: '!a', name: 'A' }] }) };
+			expect(await rooms.fetchPublicRooms()).toBe(true);
+
+			pubhubs.client = { publicRooms: () => Promise.reject(new Error('network')) };
+			expect(await rooms.fetchPublicRooms(true)).toBe(false);
+			expect(rooms.publicRooms).toEqual([{ room_id: '!a', name: 'A' }]);
+		});
+
+		test('joinRoom succeeds when public rooms cannot be fetched', async () => {
+			const pubhubs = usePubhubsStore() as Partial<any>;
+			const rooms = useRooms();
+			const matrixRoom = { roomId: '!a', name: 'A' };
+			pubhubs.client = {
+				publicRooms: () => Promise.reject(new Error('network')),
+				joinRoom: () => Promise.resolve(matrixRoom),
+				store: { storeRoom: vi.fn() },
+			};
+			const initRoom = vi.spyOn(rooms, 'initRoomsWithMatrixRoom').mockImplementation(() => {});
+			vi.spyOn(rooms, 'updateRoomList').mockImplementation(() => {});
+
+			expect(await pubhubs.joinRoom('!a', 'some.type')).toBe(0);
+			expect(initRoom).toHaveBeenCalledWith(matrixRoom, 'A', 'some.type', []);
 		});
 
 		test('plain text', async () => {
