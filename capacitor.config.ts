@@ -39,7 +39,7 @@ function readDevNetworkhostIp(): string | undefined {
 const devNetworkhostIp = readDevNetworkhostIp();
 
 const config: CapacitorConfig = {
-	appId: 'app.pubhubs.net',
+	appId: 'net.pubhubs.app',
 	appName: 'PubHubs',
 	webDir: 'global-client/dist',
 	server: {
