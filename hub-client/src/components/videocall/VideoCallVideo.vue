@@ -4,12 +4,38 @@
 		:class="[props.size, isSpeaking ? 'bg-accent-primary' : 'bg-black']"
 		@click="toggleFocus"
 	>
-		<div class="bg-opacity-50 py-050 absolute top-200 left-200 rounded-md bg-black px-100">
+		<!-- The self-view is too small for the stacked overlay, so it gets a single line instead -->
+		<div
+			v-if="props.isSelfView"
+			class="py-025 px-075 absolute top-200 right-200 left-200 flex w-fit min-w-0 items-center gap-100 rounded-md bg-black"
+		>
+			<span class="text-label-tiny shrink-0 text-white">{{ t('videocall.self_label') }}</span>
+			<RoomBadge
+				v-if="rooms.currentRoom && !rooms.currentRoom.isDirectMessageRoom()"
+				class="px-050! min-w-0 border! py-0!"
+				:user="participantUserId"
+				:room-id="rooms.currentRoom.roomId"
+			/>
+		</div>
+		<div
+			v-else
+			class="text-label-small py-025 gap-025 px-075 absolute top-200 left-200 flex flex-col items-start rounded-md bg-black"
+		>
 			<UserDisplayName
-				class="text-sm text-white"
+				class="text-label-tiny text-white"
 				:user-id="participantUserId"
 				:user-display-name="user.userDisplayName(participantUserId)"
 			/>
+			<span
+				v-if="rooms.currentRoom && !rooms.currentRoom.isDirectMessageRoom()"
+				class="text-label-tiny"
+			>
+				<RoomBadge
+					class="px-050! border! py-0!"
+					:user="participantUserId"
+					:room-id="rooms.currentRoom.roomId"
+				/>
+			</span>
 		</div>
 		<div>
 			<video
@@ -56,12 +82,15 @@
 <script setup lang="ts">
 	import { type Participant, Track } from 'livekit-client';
 	import { computed, nextTick, onMounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
@@ -72,9 +101,11 @@
 		isSelfView: boolean;
 	}>();
 
+	const { t } = useI18n();
 	const { color, textColor } = useUserColor();
 	const videoCall = useVideoCall();
 	const user = useUser();
+	const rooms = useRooms();
 	const videoEl = ref<HTMLVideoElement | null>(null);
 	const audioEl = ref<HTMLAudioElement | null>(null);
 	const participantUserId = computed(() => computeParticipantId(props.username));

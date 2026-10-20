@@ -2,17 +2,7 @@
 	<div class="flex min-w-0 flex-col gap-100">
 		<img
 			v-if="authMediaUrl?.url"
-			v-context-menu="
-				(evt: any) =>
-					openMenu(evt, [
-						{ label: t('menu.copy_image'), icon: 'copy', onClick: () => authMediaUrl?.url && imageActions.copyImage(authMediaUrl.url) },
-						{
-							label: t('menu.save_image'),
-							icon: 'download-simple',
-							onClick: () => authMediaUrl?.url && saveAs(authMediaUrl.url, message.filename ?? message.body ?? 'image'),
-						},
-					])
-			"
+			v-context-menu="(evt: any) => openMenu(evt, imageMenuItems())"
 			:alt="message.body"
 			:src="authMediaUrl.url"
 			class="rounded-base border-surface-elevated max-h-[25rem] w-xs cursor-pointer border-3 object-contain"
@@ -30,6 +20,7 @@
 				@keydown.escape="showFullImage = false"
 			>
 				<img
+					v-context-menu="(evt: any) => openMenu(evt, imageMenuItems())"
 					:alt="message.body"
 					:src="authMediaUrl?.url"
 					class="max-h-[90vh] max-w-[90vw] object-contain"
@@ -69,6 +60,7 @@
 	import { useImageActions } from '@hub-client/composables/useImageActions';
 
 	// Models
+	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	// Stores
@@ -84,6 +76,16 @@
 	const lightboxRef = ref<HTMLElement | null>(null);
 
 	const { authMediaUrl } = useAuthMediaUrl(() => props.message.url);
+
+	// Same menu on the image in the timeline and in the full screen preview
+	const imageMenuItems = (): MenuItem[] => [
+		{ label: t('menu.copy_image'), icon: 'copy', onClick: () => authMediaUrl.value?.url && imageActions.copyImage(authMediaUrl.value.url) },
+		{
+			label: t('menu.save_image'),
+			icon: 'download-simple',
+			onClick: () => authMediaUrl.value?.url && saveAs(authMediaUrl.value.url, props.message.filename ?? props.message.body ?? 'image'),
+		},
+	];
 
 	watch(showFullImage, async (show) => {
 		if (show) {

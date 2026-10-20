@@ -2,7 +2,6 @@
 import { useImageActions } from '@hub-client/composables/useImageActions';
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
-import { type BlobManager } from '@hub-client/logic/core/blobManager';
 import filters from '@hub-client/logic/core/filters';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -11,12 +10,6 @@ import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 const logger = createLogger('FileUpload');
 
 // Types
-interface ExtendedFile extends File {
-	status: number;
-	progress: number;
-	blobManager: BlobManager;
-}
-
 /** Why an upload failed, as far as the client can tell. */
 type UploadErrorReason = 'unsupported_type' | 'too_large' | 'read_failed' | 'network' | 'rate_limited' | 'forbidden' | 'server' | 'unknown';
 
@@ -261,7 +254,8 @@ const runUpload = async (
 			const fileReader = new FileReader();
 			const req = new XMLHttpRequest();
 
-			fileReader.onprogress = onProgress;
+			// Upload progress, not read progress
+			req.upload.onprogress = onProgress;
 
 			fileReader.onerror = () => {
 				reject(new FileUploadError({ reason: 'read_failed', status: 0, key: 'errors.file_upload_read_failed', params: {} }));
@@ -376,7 +370,6 @@ export {
 	getMaxUploadSize,
 	resetMaxUploadSizeCache,
 	FileUploadError,
-	ExtendedFile,
 	type UploadError,
 	type UploadErrorReason,
 };

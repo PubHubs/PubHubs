@@ -3,32 +3,13 @@
 		<SidebarHeader :title="t('others.search')" />
 		<!-- Search input -->
 		<div class="px-200">
-			<div class="bg-surface-sunken flex items-center gap-100 rounded-md px-150 py-100">
-				<Icon
-					class="text-on-surface-dim"
-					size="sm"
-					type="magnifying-glass"
-				/>
-				<input
-					ref="searchInput"
-					v-model="searchTerm"
-					class="text-label-small placeholder:text-on-surface-dim w-full border-none bg-transparent focus:ring-0 focus:outline-0"
-					:placeholder="t('others.search_room')"
-					role="searchbox"
-					type="text"
-					@keydown.enter="search()"
-				/>
-				<button
-					v-if="searchTerm"
-					class="text-on-surface-dim hover:text-on-surface"
-					@click="clearSearch()"
-				>
-					<Icon
-						size="sm"
-						type="x"
-					/>
-				</button>
-			</div>
+			<SidebarSearchField
+				ref="searchInput"
+				v-model="searchTerm"
+				:placeholder="t('others.search_room')"
+				@clear="clearSearch()"
+				@keydown.enter="search()"
+			/>
 		</div>
 
 		<!-- Search results -->
@@ -134,12 +115,12 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import Icon from '@hub-client/components/elements/Icon.vue';
 	import EventTime from '@hub-client/components/rooms/EventTime.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
+	import SidebarSearchField from '@hub-client/components/ui/SidebarSearchField.vue';
 
 	// Composables
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
@@ -154,7 +135,6 @@
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -167,12 +147,11 @@
 	const logger = createLogger('RoomSearch');
 	const { t } = useI18n();
 	const pubhubs = usePubhubsStore();
-	const _rooms = useRooms();
 	const settings = useSettings();
 	const sidebar = useSidebar();
 	const user = useUser();
 
-	const searchInput = ref<HTMLInputElement | null>(null);
+	const searchInput = ref<InstanceType<typeof SidebarSearchField> | null>(null);
 	const searchResultsEl = ref<HTMLElement | null>(null);
 	const { searchTerm, searchResults, searched, isSearching } = useSidebar();
 	const isLoadingMoreBatches = ref(false);

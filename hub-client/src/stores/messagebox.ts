@@ -105,8 +105,6 @@ enum MessageType {
 	ContextMenuOpen = 'contextmenu-open', // Hub asks global to show a context menu
 	ContextMenuSelect = 'contextmenu-select', // Global sends selected item index back to hub
 	ContextMenuClose = 'contextmenu-close', // Global notifies hub that the context menu was dismissed
-	ContextMenuShowModal = 'contextmenu-modal-show', // Hub asks global to dim the bar while a desktop context menu (rendered in the hub iframe) is open
-	ContextMenuHideModal = 'contextmenu-modal-hide', // Hub asks global to stop dimming the bar
 
 	ClipboardWrite = 'clipboard-write', // Hub asks global to write text to clipboard (top-level frame has clipboard access; iframes may not)
 	ClipboardWriteImage = 'clipboard-write-image', // As ClipboardWrite, for an image blob rather than text

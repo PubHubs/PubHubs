@@ -57,7 +57,10 @@
 			@keydown.space.prevent="toggle(disabled)"
 		/>
 
-		<div class="pt-thin">
+		<div
+			v-if="$slots.default"
+			class="pt-thin"
+		>
 			<label
 				class="justify-start"
 				:class="disabled ? 'text-on-surface-disabled' : 'text-surface-on-surface cursor-pointer'"

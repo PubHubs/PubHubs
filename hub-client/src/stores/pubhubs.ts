@@ -33,6 +33,7 @@ import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName
 import { router } from '@hub-client/logic/core/router';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { SyncProfile } from '@hub-client/logic/matrix.logic';
+import { ensureSingleExecution } from '@hub-client/logic/pubhubs';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
@@ -72,8 +73,9 @@ import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
 
 const logger = createLogger('PubHubs');
-const publicRoomsLoading: Promise<TPublicRoom[]> | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
-const updateRoomsPerforming: Promise<void> | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
+// In-flight promises, kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
+const publicRoomsLoading: { current: Promise<TPublicRoom[]> | null } = { current: null };
+const updateRoomsPerforming: { current: Promise<void> | null } = { current: null };
 
 const usePubhubsStore = defineStore('pubhubs', {
 	state: () => ({
@@ -156,39 +158,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 			this.Auth.logout();
 		},
 
-		/**
-		 * To avoid calling the same async method multiple times, we can use this method to ensure
-		 * that only one instance of the async function is running at a time.
-		 *
-		 * @param func - The async function to be executed
-		 * @param stateVar - The state variable to keep track of the current promise
-		 * @returns - The result of the passed async function
-		 */
-		async ensureSingleExecution<T>(func: () => Promise<T>, stateVar: { current: Promise<T> | null }): Promise<T> {
-			// If a promise is already running, return it
-			if (stateVar.current) {
-				return stateVar.current;
-			}
-
-			// Create and store the promise
-			stateVar.current = new Promise<T>((resolve, reject) => {
-				try {
-					resolve(func());
-				} catch (error) {
-					reject(error);
-				} finally {
-					stateVar.current = null; // Reset state after execution
-				}
-			});
-
-			// Return the promise
-			return stateVar.current;
-		},
-
 		async updateRooms() {
-			return this.ensureSingleExecution(() => this.performUpdateRooms(), {
-				current: updateRoomsPerforming,
-			});
+			return ensureSingleExecution(updateRoomsPerforming, () => this.performUpdateRooms());
 		},
 
 		/**
@@ -198,7 +169,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async performUpdateRooms() {
 			const rooms = useRooms();
 
-			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
+			const allPublicRooms = await this.getPublicRoomsSafe(); // all public rooms, including their names
 			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
 			const knownRooms = this.client.getRooms(); // get all the rooms of the matrix js SDK client
 
@@ -247,7 +218,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				if (matrixRoom) {
 					this.client.store.storeRoom(matrixRoom);
 
-					const publicRoomEntry = (await this.getAllPublicRooms()).find((r: TPublicRoom) => r.room_id === roomId);
+					const publicRoomEntry = (await this.getPublicRoomsSafe()).find((r: TPublicRoom) => r.room_id === roomId);
 					const roomName = publicRoomEntry?.name ?? matrixRoom.name ?? undefined;
 
 					let roomType: string = RoomType.PH_MESSAGES_DEFAULT;
@@ -327,8 +298,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return false;
 		},
 
-		async getAllPublicRooms(force: boolean = false) {
-			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(force), { current: publicRoomsLoading });
+		async getAllPublicRooms(force: boolean = false): Promise<TPublicRoom[]> {
+			// A forced refresh must not be satisfied by a fetch that started before the change it wants to see.
+			if (force && publicRoomsLoading.current) {
+				await publicRoomsLoading.current.catch(() => {});
+			}
+			return ensureSingleExecution(publicRoomsLoading, () => this.performGetAllPublicRooms(force));
+		},
+
+		/**
+		 * Like getAllPublicRooms, but never rejects: on a failed fetch the last known (possibly stale or empty) list is returned.
+		 * For callers that only use the public rooms as enrichment (names, types) and should not fail when they can't be fetched.
+		 */
+		async getPublicRoomsSafe(force: boolean = false): Promise<TPublicRoom[]> {
+			try {
+				return await this.getAllPublicRooms(force);
+			} catch (error) {
+				logger.warn('Fetching public rooms failed, using cached list', { error });
+				return this.publicRooms;
+			}
 		},
 
 		// actual performing of publicRooms API call
@@ -341,23 +329,38 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (Date.now() < this.lastPublicCheck + SystemDefaults.publicRoomsReload && !force) {
 				return this.publicRooms;
 			}
+			const previousCheck = this.lastPublicCheck;
 			this.lastPublicCheck = Date.now();
 
-			const limit = 100; // because we need all the public rooms, limit is set high to limit the number of calls, 100 seems to be the internal matrix API max
-			let publicRoomsResponse = await this.client.publicRooms({ limit: limit });
-			let public_rooms = publicRoomsResponse.chunk;
+			try {
+				const limit = 100; // because we need all the public rooms, limit is set high to limit the number of calls, 100 seems to be the internal matrix API max
+				let publicRoomsResponse = await this.client.publicRooms({ limit: limit });
+				let public_rooms = publicRoomsResponse.chunk;
 
-			// Previous versions had a problem, but I cannot reproduce it anymore: DANGER this while loop turns infinite when the generated public rooms request is a POST request. This happens when the optional 'options' parameter is supplied to 'this.client.publicRooms'. Then the pagination doesn't work anymore and the loop becomes infinite.
-			while (publicRoomsResponse.next_batch) {
-				publicRoomsResponse = await this.client.publicRooms({
-					since: publicRoomsResponse.next_batch,
-					limit: limit,
-				});
-				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
+				// Pagination is bounded: stop when the server repeats a token, returns an empty page, or the page cap is reached.
+				let pages = 1;
+				while (publicRoomsResponse.next_batch) {
+					if (pages >= SystemDefaults.maxPublicRoomsPages) {
+						logger.warn('Public rooms pagination stopped: page limit reached', { pages });
+						break;
+					}
+					const since = publicRoomsResponse.next_batch;
+					publicRoomsResponse = await this.client.publicRooms({ since, limit });
+					pages++;
+					public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
+					if (publicRoomsResponse.next_batch === since || publicRoomsResponse.chunk.length === 0) {
+						logger.warn('Public rooms pagination stopped: server returned no progress', { since });
+						break;
+					}
+				}
+
+				this.publicRooms = public_rooms;
+				return public_rooms;
+			} catch (error) {
+				// Don't let a failed fetch mark the (stale or empty) cache as fresh.
+				this.lastPublicCheck = previousCheck;
+				throw error;
 			}
-
-			this.publicRooms = public_rooms;
-			return public_rooms;
 		},
 
 		getAllRooms(): Array<MatrixRoom> {
@@ -404,7 +407,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			try {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: TPublicRoom) => r.room_id === room_id);
+				const publicRoomEntry = (await this.getPublicRoomsSafe()).find((r: TPublicRoom) => r.room_id === room_id);
 				const roomType: string = knownRoomType ?? publicRoomEntry?.room_type ?? getRoomType(matrixRoom);
 				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				roomStore.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);

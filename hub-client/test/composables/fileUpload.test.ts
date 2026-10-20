@@ -11,6 +11,33 @@ const nginxTooLarge =
 
 const fileOf = (bytes: number) => new File([new Uint8Array(bytes)], 'holiday.png', { type: 'image/png' });
 
+// Fake XMLHttpRequest driven by the test
+class FakeRequest {
+	static last: FakeRequest | undefined;
+	upload: { onprogress?: (e: ProgressEvent) => void } = {};
+	onreadystatechange?: () => void;
+	readyState = 0;
+	status = 0;
+	responseText = '';
+	private markSent: () => void = () => {};
+	sent = new Promise<void>((resolve) => (this.markSent = resolve));
+
+	constructor() {
+		FakeRequest.last = this;
+	}
+	open() {}
+	setRequestHeader() {}
+	send() {
+		this.markSent();
+	}
+	finish(uri: string) {
+		this.readyState = 4;
+		this.status = 200;
+		this.responseText = JSON.stringify({ content_uri: uri });
+		this.onreadystatechange?.();
+	}
+}
+
 describe('describeUploadError', () => {
 	test('names the size when the proxy rejects the file with an HTML 413', () => {
 		const error = describeUploadError(413, nginxTooLarge, fileOf(2048));
@@ -61,6 +88,7 @@ describe('asyncFileUpload', () => {
 	const stubXhr = (status: number, responseText: string) => {
 		const sent = vi.fn();
 		class FakeXhr {
+			upload: { onprogress?: (e: ProgressEvent) => void } = {};
 			readyState = 0;
 			status = 0;
 			responseText = '';
@@ -89,6 +117,26 @@ describe('asyncFileUpload', () => {
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
+	});
+
+	test('reports the progress of sending the file', async () => {
+		stubMediaConfig(Promise.reject(new Error('offline')));
+		FakeRequest.last = undefined;
+		vi.stubGlobal('XMLHttpRequest', FakeRequest);
+		const onProgress = vi.fn();
+		const onReady = vi.fn().mockResolvedValue(undefined);
+
+		const done = asyncFileUpload('token', 'https://hub/upload', new File(['content'], 'a.pdf'), onProgress, onReady);
+		// The request is only made once the upload limit has been looked up
+		const request = await vi.waitUntil(() => FakeRequest.last);
+		await request.sent;
+
+		request.upload.onprogress?.({ loaded: 50, total: 100 } as ProgressEvent);
+		expect(onProgress).toHaveBeenCalledWith({ loaded: 50, total: 100 });
+
+		request.finish('mxc://hub/a');
+		await done;
+		expect(onReady).toHaveBeenCalledWith('mxc://hub/a');
 	});
 
 	test('refuses a file over the advertised limit without sending it, and names the limit', async () => {

@@ -73,6 +73,15 @@
 						/>
 					</TransitionGroup>
 
+					<!-- Loading failed: don't claim there are no rooms -->
+					<div
+						v-else-if="loadFailed"
+						class="flex w-full flex-col items-center justify-center gap-200"
+					>
+						<P>{{ t('rooms.load_failed') }}</P>
+						<Button @click="retryLoad">{{ t('common.retry') }}</Button>
+					</div>
+
 					<!-- No results message -->
 					<div
 						v-else
@@ -92,6 +101,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
@@ -111,6 +121,7 @@
 	const roomTimestamps = ref<Record<string, Date>>({});
 	const searchQuery = ref('');
 	const roomsLoaded = ref(false);
+	const loadFailed = ref(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -186,8 +197,9 @@
 		loadTimestamps();
 	});
 
-	onMounted(async () => {
-		await rooms.fetchPublicRooms();
+	async function loadRooms(force: boolean = false) {
+		roomsLoaded.value = false;
+		loadFailed.value = !(await rooms.fetchPublicRooms(force));
 
 		// for quicker searching: add tolower name and topic
 		visiblePublicRooms.value = rooms.visiblePublicRooms.map((room) => ({
@@ -199,5 +211,13 @@
 
 		// Last: dropping the spinner before the grid is filled shows "no rooms found" for a frame.
 		roomsLoaded.value = true;
+	}
+
+	function retryLoad() {
+		void loadRooms(true);
+	}
+
+	onMounted(async () => {
+		await loadRooms();
 	});
 </script>

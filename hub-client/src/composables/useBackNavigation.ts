@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 
 // Composables
 import useGlobalScroll from '@hub-client/composables/useGlobalScroll';
-import { useSidebar } from '@hub-client/composables/useSidebar';
+import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';
@@ -32,12 +32,20 @@ export function useBackNavigation() {
 	const canGoBack = computed(() => sidebar.isOpen.value || forumPostIsOpen.value);
 
 	/**
-	 * Back priority: an open sidebar closes first, then an open forum post goes back to the post
-	 * feed, and only when the hub has nothing left to close does the global client scroll back to
-	 * the menu. Keep this ladder in sync with canGoBack: every step above the last one must be a
-	 * state canGoBack reports as true, or the global client will let the scroll happen instead.
+	 * Back priority: a sidebar details panel returns to its list first, then an open sidebar closes, then an
+	 * open forum post goes back to the post feed, and only when the hub has nothing left to close does the
+	 * global client scroll back to the menu. Keep this ladder in sync with canGoBack: every step above the
+	 * last one must be a state canGoBack reports as true, or the global client will let the scroll happen instead.
 	 */
 	function back() {
+		if (sidebar.activeTab.value === SidebarTab.Members && sidebar.selectedMemberId.value) {
+			sidebar.selectedMemberId.value = null;
+			return;
+		}
+		if (sidebar.activeTab.value === SidebarTab.Library && sidebar.selectedLibraryFileId.value) {
+			sidebar.selectedLibraryFileId.value = null;
+			return;
+		}
 		if (sidebar.isOpen.value) {
 			sidebar.close();
 			return;

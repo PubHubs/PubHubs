@@ -1,303 +1,414 @@
 <template>
-	<div class="flex h-full w-full flex-col py-200">
-		<SidebarHeader :title="t('roomlibrary.library')" />
-		<div class="flex flex-1 flex-col overflow-hidden px-200">
-			<!-- Top: upload area + search/sort (fixed) -->
-			<div class="flex shrink-0 flex-col gap-200">
-				<!-- Upload area -->
-				<div class="w-full">
-					<DropFiles
-						:max-number-of-files="SystemDefaults.maxLibraryFiles"
-						:current-file-names="roomTimeLineFiles.map((x) => x.matrixEvent.event.content?.filename)"
-					/>
-				</div>
+	<div
+		class="relative flex h-full w-full flex-col py-200"
+		@dragenter="onDragEnter"
+		@dragleave="onDragLeave"
+		@dragover.prevent
+		@drop.prevent="onDrop"
+	>
+		<SidebarHeader :title="selectedFile ? t('roomlibrary.file_details') : t('roomlibrary.library')" />
 
-				<!-- Search and sort -->
-				<div class="w-full">
-					<div class="mb-200 flex w-full gap-200">
-						<div class="bg-surface-sunken flex w-2/3 items-center gap-100 rounded-md px-150 py-100">
-							<Icon
-								class="text-on-surface-dim"
-								size="sm"
-								type="magnifying-glass"
-							/>
-							<input
-								v-model="filter"
-								class="text-label-small placeholder:text-on-surface-dim w-full border-none bg-transparent focus:ring-0 focus:outline-0"
-								:placeholder="t('others.search')"
-								role="searchbox"
-								:title="t('others.search')"
-								type="text"
-							/>
-						</div>
-						<div class="flex w-1/3">
-							<PullDownMenu
-								:options="orderByOptionsNames"
-								:selected="order"
-								:title="t('roomlibrary.info.sortby')"
-								:toggle-order="true"
-								@select="setOrderBy($event)"
-							/>
-						</div>
-					</div>
-				</div>
+		<LibraryFileDetails
+			v-if="selectedFile"
+			:actions="detailActions(selectedFile)"
+			:item="selectedFile"
+			:signatures="signaturesOf(selectedFile)"
+			@back="selectedFileId = null"
+		/>
+
+		<!-- v-show keeps the scroll position; min-h-0 instead of overflow-hidden, which clips the search focus ring -->
+		<div
+			v-show="!selectedFile"
+			class="flex min-h-0 flex-1 flex-col"
+		>
+			<!-- Toolbar -->
+			<div class="flex shrink-0 items-center gap-100 px-200 pb-200">
+				<SidebarSearchField
+					v-model="filter"
+					class="min-w-0 grow"
+					:placeholder="t('roomlibrary.search')"
+				/>
+				<input
+					ref="fileInput"
+					class="hidden"
+					data-testid="library-file-input"
+					multiple
+					type="file"
+					@change="onFilesPicked"
+				/>
 			</div>
 
-			<!-- Scrollable file list + pinned footer -->
-			<template v-if="roomTimeLineFiles.length > 0">
-				<div class="flex flex-1 flex-col overflow-hidden">
-					<BarList
-						class="flex flex-1 flex-col overflow-hidden"
-						data-testid="filemanager"
-					>
-						<BarListItem
-							v-if="roles.userIsStewardOrHigher()"
-							class="bg-background! mb-0! flex shrink-0"
-							data-testid="filemanager-admin"
+			<!-- Sort -->
+			<div
+				v-if="files.length > 1"
+				class="flex shrink-0 px-200 pb-100"
+			>
+				<button
+					:aria-label="`${t('roomlibrary.sort.label')}: ${t(`roomlibrary.sort.${sortOrder}`)}`"
+					class="text-label-small text-on-surface-dim hover:text-on-surface hover:bg-surface-elevated rounded-base gap-050 py-050 outline-accent-blue-interactive flex cursor-pointer items-center px-100 transition-colors focus-visible:outline-3"
+					:class="touchTarget"
+					data-testid="library-sort"
+					type="button"
+					@click.stop="openMenu($event, sortMenuItems(), 'library-sort')"
+				>
+					<Icon
+						size="sm"
+						type="arrows-down-up"
+					/>
+					<span>{{ t(`roomlibrary.sort.${sortOrder}`) }}</span>
+					<Icon
+						size="sm"
+						type="caret-down"
+					/>
+				</button>
+			</div>
+
+			<!-- List -->
+			<div class="relative flex flex-1 flex-col overflow-hidden">
+				<div
+					:aria-busy="isLoading"
+					class="flex flex-1 flex-col gap-100 overflow-y-auto px-200 pb-800"
+					data-testid="filemanager-list"
+				>
+					<template v-if="isLoading && files.length === 0">
+						<p
+							class="sr-only"
+							role="status"
 						>
-							<div class="gap-050 flex items-center">
-								<IconButton
-									v-if="!selectedAll"
-									icon="square"
-									size="sm"
-									variant="secondary"
-									@click.stop="selectAll(roomTimeLineFiles)"
-								/>
-								<IconButton
-									v-else
-									icon="check-square"
-									size="sm"
-									variant="secondary"
-									@click.stop="unselectAll()"
-								/>
-								<IconButton
-									v-if="hasSelection()"
-									class="hover:text-accent-red"
-									icon="trash"
-									size="sm"
-									variant="secondary"
-									@click.stop="deleteSelected()"
-								/>
-							</div>
-						</BarListItem>
-						<div
-							class="flex-1 overflow-y-auto"
-							data-testid="filemanager-list"
+							{{ t('common.loading') }}
+						</p>
+						<!-- Loading placeholders, same height as the file rows -->
+						<ul
+							aria-hidden="true"
+							class="gap-050 flex flex-col"
+							data-testid="filemanager-loading"
 						>
-							<template
-								v-for="item in roomTimeLineFiles"
+							<li
+								v-for="n in 4"
+								:key="n"
+								class="rounded-base flex animate-pulse items-center gap-100 p-100"
+							>
+								<div class="bg-surface-elevated rounded-base h-200 w-200 shrink-0" />
+								<!-- 1.3em is the label line height -->
+								<div class="flex min-w-0 grow flex-col">
+									<div class="text-label-small bg-surface-elevated rounded-base h-[1.3em] w-2/3 scale-y-75" />
+									<div class="text-label-tiny bg-surface-elevated rounded-base h-[1.3em] w-1/2 scale-y-75" />
+								</div>
+							</li>
+						</ul>
+					</template>
+					<template v-else>
+						<!-- Uploads -->
+						<ul
+							v-if="uploads.length > 0"
+							class="gap-050 flex flex-col"
+							data-testid="file-list"
+						>
+							<li
+								v-for="upload in uploads"
+								:key="upload.id"
+								class="gap-050 rounded-base flex flex-col p-100"
+							>
+								<div class="flex items-center gap-100 pointer-coarse:gap-200">
+									<FileIcon
+										class="shrink-0"
+										:filename="upload.filename"
+									/>
+									<div class="flex min-w-0 grow flex-col">
+										<span
+											class="text-label-small truncate"
+											:title="upload.filename"
+											>{{ upload.filename }}</span
+										>
+										<!-- A failure wraps, so its reason can be read in full -->
+										<span
+											class="text-label-tiny"
+											:class="upload.status === UploadStatus.Failed ? 'text-accent-error' : 'text-on-surface-dim truncate'"
+											>{{ uploadStatusOf(upload) }}</span
+										>
+									</div>
+									<IconButton
+										v-if="upload.status === UploadStatus.Failed"
+										:aria-label="t('common.retry')"
+										:class="touchTarget"
+										icon="arrow-clockwise"
+										size="sm"
+										:title="t('common.retry')"
+										variant="secondary"
+										@click="retry(upload.id)"
+									/>
+									<IconButton
+										v-if="upload.status !== UploadStatus.Uploading"
+										:aria-label="t('dialog.cancel')"
+										:class="touchTarget"
+										icon="x"
+										size="sm"
+										:title="t('dialog.cancel')"
+										variant="secondary"
+										@click="remove(upload.id)"
+									/>
+								</div>
+								<ProgressBar
+									v-if="upload.status === UploadStatus.Uploading"
+									class="max-h-050"
+									:percentage="upload.progress"
+								/>
+							</li>
+						</ul>
+
+						<!-- Files -->
+						<ul
+							v-if="visibleFiles.length > 0"
+							class="gap-050 flex flex-col"
+							data-testid="filemanager"
+						>
+							<li
+								v-for="item in visibleFiles"
 								:key="item.matrixEvent.getId()"
 							>
-								<BarListItem :class="{ 'bg-accent-error!': isSelected(item) && deletingAll }">
-									<div>
-										<InlineCollapse>
-											<template #visible="{ collapsed, toggle }">
-												<div
-													v-context-menu="(evt: any) => openMenu(evt, contextMenuItems(item, toggle), item.matrixEvent.getId())"
-													class="gap-050 flex h-300 cursor-pointer items-center"
-													:class="{
-														'bg-surface-elevated!': contextMenu.isOpen && contextMenu.currentTargetId === item.matrixEvent.getId(),
-													}"
-													:title="t('menu.download_file')"
-													@click.capture="suppressClickAfterLongPress"
-													@click="downloadItem(item)"
-												>
-													<div
-														v-if="roles.userIsStewardOrHigher()"
-														class="gap-050 flex items-center"
-														@click.stop
-													>
-														<IconButton
-															v-if="isSelected(item)"
-															icon="check-square"
-															size="sm"
-															variant="secondary"
-															@click.stop="removeFromSelection(item)"
-														/>
-														<IconButton
-															v-else
-															icon="square"
-															variant="secondary"
-															size="sm"
-															@click.stop="addToSelection(item)"
-														/>
-													</div>
-													<div v-if="(deletingAll && isSelected(item)) || isDownloading(item.matrixEvent.getContent().url)">
-														<InlineSpinner />
-													</div>
-													<div v-else>
-														<FileIcon :filename="item.matrixEvent.getContent().filename" />
-													</div>
-													<button
-														:aria-label="`${t('menu.download_file')}: ${item.matrixEvent.getContent().filename}`"
-														class="text-label-small min-w-0 grow cursor-pointer truncate text-left"
-														:title="item.matrixEvent.getContent().filename"
-														type="button"
-														@click.stop="downloadItem(item)"
-													>
-														{{ item.matrixEvent.getContent().filename }}
-													</button>
-													<div
-														v-if="isSigned(item.matrixEvent.getId())"
-														:title="t('roomlibrary.info.sign')"
-													>
-														<Icon
-															class="text-accent-blue"
-															type="seal-check"
-															size="sm"
-														/>
-													</div>
-													<IconButton
-														data-testid="filemanager-share"
-														icon="paper-plane-right"
-														size="sm"
-														:title="t('roomlibrary.share_to_timeline')"
-														variant="secondary"
-														@click.stop="shareItem(item)"
-													/>
-													<div class="max-xs:hidden flex min-w-500 justify-end overflow-hidden text-right">
-														<span
-															v-if="order.index <= 1"
-															class="text-label-tiny whitespace-nowrap"
-														>
-															{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 0) }}
-														</span>
-														<EventTimeCompact
-															v-else-if="order.index === 2"
-															:timestamp="item.matrixEvent.getTs()"
-														/>
-														<AvatarDisplayNameCompact
-															v-else-if="order.index === 3"
-															class="text-label-small text-nowrap"
-															:user-display-name="user.userDisplayName(item.matrixEvent.getSender() ?? '')"
-															:user-id="item.matrixEvent.getSender()!"
-														/>
-													</div>
-													<!-- Marks the row whose details panel is open; the panel is toggled from the context menu -->
-													<Icon
-														v-if="!collapsed"
-														class="text-accent-blue"
-														type="info"
-														size="sm"
-													/>
-												</div>
+								<div
+									v-context-menu="(evt: any) => openMenu(evt, menuItems(item), item.matrixEvent.getId())"
+									class="hover:bg-surface-elevated rounded-base flex cursor-pointer items-center gap-100 p-100 pointer-coarse:gap-200"
+									:class="{
+										'bg-surface-elevated': contextMenu.isOpen && contextMenu.currentTargetId === item.matrixEvent.getId(),
+									}"
+									@click.capture="suppressClickAfterLongPress"
+									@click="onRowClick(item)"
+								>
+									<Checkbox
+										v-if="isSelecting"
+										:aria-label="filenameOf(item)"
+										:model-value="isSelected(item)"
+										@click.stop
+										@update:model-value="toggleSelected(item)"
+									/>
+									<InlineSpinner v-if="isDownloading(item.matrixEvent.getContent().url)" />
+									<FileIcon
+										v-else
+										class="shrink-0"
+										:filename="filenameOf(item)"
+									/>
+									<button
+										class="rounded-base outline-accent-blue-interactive flex min-w-0 grow cursor-pointer flex-col text-left focus-visible:outline-3"
+										type="button"
+										@click.stop="onRowClick(item)"
+									>
+										<span class="gap-050 flex min-w-0 items-center">
+											<span
+												class="text-label-small truncate"
+												:title="filenameOf(item)"
+												>{{ filenameOf(item) }}</span
+											>
+											<template v-if="isSigned(item)">
+												<Icon
+													class="text-accent-blue shrink-0"
+													size="sm"
+													:title="t('roomlibrary.info.sign')"
+													type="seal-check"
+												/>
+												<span class="sr-only">{{ t('roomlibrary.info.sign') }}</span>
 											</template>
-											<template #collapsed>
-												<div class="text-md flex flex-wrap items-center gap-100">
-													<div class="flex grow">
-														<div
-															v-if="isSigned(item.matrixEvent.getId())"
-															class="bg-signed text-label-small px-050 flex items-center gap-100 rounded-xs"
-														>
-															<Icon
-																class="text-accent-primary"
-																type="seal-check"
-																size="sm"
-															/>
-															<span class="text-nowrap">{{ $t('roomlibrary.signed') }}</span>
-															<DisplayNameCompact
-																v-for="signedEvent in getAllSignedEventsForFile(item.matrixEvent.getId())"
-																:key="signedEvent.matrixEvent.getId()"
-																:user-display-name="user.userDisplayName(signedEvent.matrixEvent.getSender() ?? '')"
-																:user-id="signedEvent.matrixEvent.getSender()!"
-															/>
-														</div>
-													</div>
-													<div class="text-label-small xs:gap-050 flex items-center md:gap-100">
-														<AvatarDisplayNameCompact
-															v-if="item.matrixEvent.getSender()"
-															:user-display-name="user.userDisplayName(item.matrixEvent.getSender() ?? '')"
-															:user-id="item.matrixEvent.getSender()!"
-														/>
-														<EventTimeCompact :timestamp="item.matrixEvent.getTs()" />
-													</div>
-												</div>
-											</template>
-										</InlineCollapse>
-									</div>
-								</BarListItem>
-							</template>
+										</span>
+										<span class="text-label-tiny text-on-surface-dim truncate">{{ summaryOf(item) }}</span>
+									</button>
+									<template v-if="!isSelecting">
+										<IconButton
+											:aria-label="`${t('menu.download_file')}: ${filenameOf(item)}`"
+											:class="touchTarget"
+											icon="download-simple"
+											size="sm"
+											:title="t('menu.download_file')"
+											variant="secondary"
+											@click.stop="downloadItem(item)"
+										/>
+										<IconButton
+											:aria-label="t('message.context_menu')"
+											:class="touchTarget"
+											data-testid="filemanager-more"
+											icon="dots-three-vertical"
+											size="sm"
+											:title="t('message.context_menu')"
+											variant="secondary"
+											@click.stop="openMenu($event, menuItems(item), item.matrixEvent.getId(), true)"
+										/>
+									</template>
+								</div>
+							</li>
+						</ul>
+						<p
+							v-else-if="files.length > 0"
+							class="text-on-surface-dim p-100 text-center"
+							role="status"
+						>
+							{{ t('others.search_nothing_found') }}
+						</p>
+						<div
+							v-else-if="uploads.length === 0"
+							class="flex flex-1 flex-col items-center justify-center gap-200 px-200 text-center"
+							data-testid="filemanager-empty"
+						>
+							<Icon
+								class="text-on-surface-dim"
+								type="folder-simple"
+							/>
+							<div>
+								<p class="font-semibold">{{ t('roomlibrary.empty') }}</p>
+								<p class="text-on-surface-dim text-label-small">{{ t('roomlibrary.empty_hint') }}</p>
+							</div>
 						</div>
-						<BarListItem class="bg-background! mb-0! flex shrink-0 justify-between">
-							<span>{{ $t('roomlibrary.total_files', roomTimeLineFiles.length, { named: { count: roomTimeLineFiles.length } }) }}</span>
-							<span v-if="roles.userIsStewardOrHigher() && hasSelection()">{{
-								$t('roomlibrary.selected_files', selection.length, { named: { count: selection.length } })
-							}}</span>
-						</BarListItem>
-					</BarList>
+					</template>
 				</div>
-			</template>
+
+				<FloatingActionButton
+					v-if="!isSelecting"
+					class="absolute right-200 bottom-200"
+					data-testid="library-upload"
+					:disabled="remaining === 0"
+					icon="upload-simple"
+					:label="t('file.upload_files')"
+					:title="remaining === 0 ? t('roomlibrary.library_full', [SystemDefaults.maxLibraryFiles]) : t('file.upload_files')"
+					@click="openFilePicker()"
+				/>
+			</div>
+
+			<!-- Footer -->
+			<div
+				v-if="!isLoading || files.length > 0"
+				class="border-on-surface-disabled/25 flex shrink-0 flex-wrap items-center justify-between gap-100 border-t-2 px-200 pt-150"
+				data-testid="filemanager-footer"
+			>
+				<template v-if="isSelecting">
+					<Checkbox
+						:model-value="allSelected"
+						@update:model-value="toggleAll()"
+						>{{ t('roomlibrary.select_all') }}</Checkbox
+					>
+					<span class="text-label-small text-on-surface-dim">{{
+						t('roomlibrary.selected_files', selectedIds.size, { named: { count: selectedIds.size } })
+					}}</span>
+					<div class="flex w-full justify-end gap-100">
+						<Button
+							size="sm"
+							variant="secondary"
+							@click="stopSelecting()"
+							>{{ t('dialog.cancel') }}</Button
+						>
+						<Button
+							data-testid="filemanager-delete-selected"
+							:disabled="selectedIds.size === 0"
+							icon="trash"
+							size="sm"
+							variant="error"
+							@click="deleteSelected()"
+							>{{ t('roomlibrary.delete_selected') }}</Button
+						>
+					</div>
+				</template>
+				<template v-else>
+					<span class="text-label-small text-on-surface-dim">{{
+						t('roomlibrary.file_count', files.length, { named: { count: files.length, max: SystemDefaults.maxLibraryFiles } })
+					}}</span>
+					<Button
+						v-if="canSelect"
+						data-testid="filemanager-select"
+						size="sm"
+						variant="secondary"
+						@click="isSelecting = true"
+						>{{ t('roomlibrary.select') }}</Button
+					>
+				</template>
+			</div>
+		</div>
+
+		<!-- Screen reader announcements -->
+		<p
+			class="sr-only"
+			data-testid="library-announcement"
+			role="status"
+		>
+			{{ uploadAnnouncement }}
+		</p>
+
+		<!-- Drop overlay -->
+		<div
+			v-if="isDraggingFiles"
+			class="border-accent-blue-interactive bg-surface-background/90 rounded-base pointer-events-none absolute inset-100 z-10 flex flex-col items-center justify-center gap-100 border-2 border-dashed p-200 text-center"
+		>
+			<Icon type="upload-simple" />
+			<span>{{ remaining > 0 ? t('roomlibrary.drop_to_upload') : t('roomlibrary.library_full', [SystemDefaults.maxLibraryFiles]) }}</span>
 		</div>
 	</div>
 
-	<template
-		v-for="item in roomTimeLine"
-		:key="item.matrixEvent.event.event_id"
+	<Dialog
+		v-if="signingFile"
+		:buttons="buttonsCancel"
+		:title="t('roomlibrary.sign_file')"
+		:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
+		@close="stopSigning()"
 	>
-		<Dialog
-			v-if="signingMessage && activeEventId === item.matrixEvent.event.event_id"
-			:buttons="buttonsCancel"
-			:title="$t('roomlibrary.sign_file_hash')"
-			:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
-			@close="signingMessage = false"
-		>
-			<div class="flex flex-col items-center gap-200">
-				<div
-					:id="EYiviFlow.Sign"
-					class="text-center"
+		<div class="flex flex-col items-center gap-200">
+			<div
+				:id="EYiviFlow.Sign"
+				class="text-center"
+			/>
+			<div class="flex flex-col items-center text-center">
+				<p>
+					{{ t('roomlibrary.sign_file_hash') }} <span class="italic">{{ filenameOf(signingFile) }}</span
+					>:
+				</p>
+				<InlineSpinner
+					v-if="!fileHash"
+					class="mt-150"
 				/>
-				<div class="text-center">
-					{{ $t('roomlibrary.sign_file_hash') }} `<span class="italic">{{ item.matrixEvent.event.content?.filename }}`</span> :
-					<div class="bg-accent-secondary mt-150 rounded-md border p-100 font-bold wrap-anywhere text-black">{{ showFileHash }}</div>
-					<br />
-					{{ $t('roomlibrary.check_file_hash') }}
-				</div>
+				<template v-else>
+					<div class="bg-accent-secondary rounded-base mt-150 border p-100 font-bold wrap-anywhere text-black">{{ fileHash }}</div>
+					<p class="mt-200">{{ t('roomlibrary.check_file_hash') }}</p>
+				</template>
 			</div>
-		</Dialog>
-	</template>
+		</div>
+	</Dialog>
 </template>
 
 <script lang="ts" setup>
 	// Packages
 	import { type Room as MatrixRoom, MsgType } from 'matrix-js-sdk';
-	import { computed, onMounted, onUnmounted, ref } from 'vue';
+	import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import FloatingActionButton from '@hub-client/components/elements/FloatingActionButton.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
-	import AvatarDisplayNameCompact from '@hub-client/components/rooms/AvatarDisplayNameCompact.vue';
-	import DisplayNameCompact from '@hub-client/components/rooms/DisplayNameCompact.vue';
-	import EventTimeCompact from '@hub-client/components/rooms/EventTimeCompact.vue';
-	import BarList from '@hub-client/components/ui/BarList.vue';
-	import BarListItem from '@hub-client/components/ui/BarListItem.vue';
+	import Checkbox from '@hub-client/components/forms/elements/Checkbox.vue';
+	import LibraryFileDetails from '@hub-client/components/rooms/LibraryFileDetails.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
-	import DropFiles from '@hub-client/components/ui/DropFiles.vue';
 	import FileIcon from '@hub-client/components/ui/FileIcon.vue';
-	import InlineCollapse from '@hub-client/components/ui/InlineCollapse.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
-	import PullDownMenu from '@hub-client/components/ui/PullDownMenu.vue';
+	import ProgressBar from '@hub-client/components/ui/ProgressBar.vue';
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
+	import SidebarSearchField from '@hub-client/components/ui/SidebarSearchField.vue';
 
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { useFileDownload } from '@hub-client/composables/useFileDownload';
+	import { type LibraryUpload, UploadStatus, useLibraryUpload } from '@hub-client/composables/useLibraryUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 	import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
+	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
 	import filters from '@hub-client/logic/core/filters';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 	import { yiviFlow } from '@hub-client/logic/yiviHandler';
 
 	// Models
-	import { type SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
 	import { ContextVariant, type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	import { type YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 	import { SystemDefaults } from '@hub-client/models/constants';
-	import { type TFileMessageEventContent, type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { type TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import type Room from '@hub-client/models/rooms/Room';
 	import { EYiviFlow, type SecuredRoomAttributeResult } from '@hub-client/models/yivi/Tyivi';
@@ -307,7 +418,6 @@
 	import { buttonsCancel, useDialog } from '@hub-client/stores/dialog';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -315,9 +425,24 @@
 		room: Room;
 	}>();
 
+	enum LibrarySort {
+		Newest = 'newest',
+		Oldest = 'oldest',
+		NameAsc = 'name_asc',
+		NameDesc = 'name_desc',
+		Largest = 'largest',
+		Uploader = 'uploader',
+	}
+
+	// Same attribute as signed messages
+	const signingAttribute = 'pbdf.sidn-pbdf.email.email';
+
+	// 40px hit area on touch screens
+	const touchTarget = 'relative pointer-coarse:after:absolute pointer-coarse:after:-inset-100';
+
+	const logger = createLogger('RoomLibrary');
 	const dialog = useDialog();
 	const { t } = useI18n();
-	const rooms = useRooms();
 	const user = useUser();
 	const roles = useRoles();
 	const settings = useSettings();
@@ -331,196 +456,180 @@
 	const { makeHash, deleteMedia, removeFromTimeline } = useRoomLibrary();
 	const { formUrlfromMxc, deleteMediaUrlfromMxc } = useMatrixFiles();
 	const { downloadFile, isDownloading } = useFileDownload();
+	const { formattedTimeInformation } = useTimeFormat();
 
-	const signingMessage = ref<boolean>(false);
-	const selectedAttributes = ref<string[]>(['irma-demo.sidn-pbdf.email.domain']);
-	const activeEventId = ref<string | undefined>(undefined);
-	const expandedSignedEventIds = ref<Set<string>>(new Set());
-	const showFileHash = ref<string>('');
-	const order = ref({ index: 0, order: SortOrder.asc } as SortOption);
-	const filter = ref('');
-
-	const selection = ref([] as Array<TimelineEvent>);
-	const selectedAll = ref(false);
-	const deletingAll = ref(false);
+	const isLoading = ref(true);
 	const libraryVersion = ref(0);
+	const filter = ref('');
+	const sortOrder = ref(LibrarySort.NameAsc);
+	// Hidden while being deleted
+	const pendingDeletion = ref(new Set<string>());
 
-	onMounted(() => {
-		window.addEventListener('keydown', handleEsc);
-		props.room.initFileLibrary();
-	});
+	const selectedFileId = sidebar.selectedLibraryFileId;
+	const isSelecting = ref(false);
+	const selectedIds = ref(new Set<string>());
 
-	onUnmounted(() => {
-		window.removeEventListener('keydown', handleEsc);
-		expandedSignedEventIds.value.clear();
-	});
+	const signingFile = shallowRef<TimelineEvent | null>(null);
+	const fileHash = ref('');
 
-	const orderByOptions: Array<{
-		key: string;
-		name: string;
-		sortable: boolean;
-		sortAsc: (a: TimelineEvent, b: TimelineEvent) => number;
-		sortDesc: (a: TimelineEvent, b: TimelineEvent) => number;
-	}> = [
-		{
-			key: 'name',
-			name: 'roomlibrary.info.name',
-			sortable: true,
-			sortAsc: (a, b) => {
-				if (a.matrixEvent.event.content?.filename && b.matrixEvent.event.content?.filename) {
-					const lowA = (a.matrixEvent.event.content.filename as string).toLowerCase();
-					const lowB = (b.matrixEvent.event.content.filename as string).toLowerCase();
-					return lowA < lowB ? -1 : lowA > lowB ? 1 : 0;
-				}
-				return 0;
-			},
-			sortDesc: (a, b) => {
-				if (a.matrixEvent.event.content?.filename && b.matrixEvent.event.content?.filename) {
-					const lowA = (a.matrixEvent.event.content.filename as string).toLowerCase();
-					const lowB = (b.matrixEvent.event.content.filename as string).toLowerCase();
-					return lowA > lowB ? -1 : lowA < lowB ? 1 : 0;
-				}
-				return 0;
-			},
-		},
-		{
-			key: 'size',
-			name: 'roomlibrary.info.filesize',
-			sortable: true,
-			sortAsc: (a, b) => ((a.matrixEvent.event.content?.info?.size as number) ?? 0) - ((b.matrixEvent.event.content?.info?.size as number) ?? 0),
-			sortDesc: (a, b) => ((b.matrixEvent.event.content?.info?.size as number) ?? 0) - ((a.matrixEvent.event.content?.info?.size as number) ?? 0),
-		},
-		{
-			key: 'date',
-			name: 'roomlibrary.info.filedate',
-			sortable: true,
-			sortAsc: (a, b) => (a.matrixEvent.event.origin_server_ts ?? 0) - (b.matrixEvent.event.origin_server_ts ?? 0),
-			sortDesc: (a, b) => (b.matrixEvent.event.origin_server_ts ?? 0) - (a.matrixEvent.event.origin_server_ts ?? 0),
-		},
-		{
-			key: 'user',
-			name: 'roomlibrary.info.user',
-			sortable: true,
-			sortAsc: (a, b) => (a.matrixEvent.event.sender ?? '').localeCompare(b.matrixEvent.event.sender ?? ''),
-			sortDesc: (a, b) => (b.matrixEvent.event.sender ?? '').localeCompare(a.matrixEvent.event.sender ?? ''),
-		},
-	];
-	const orderByOptionsNames = orderByOptions.map((item) => {
-		return item.name;
-	});
+	const fileInput = ref<HTMLInputElement | null>(null);
+	const dragDepth = ref(0);
+	const isDraggingFiles = computed(() => dragDepth.value > 0);
 
-	const roomTimeLine = computed(() => {
-		// Access libraryVersion to trigger re-computation when files are deleted
+	// #region Library contents
+
+	const libraryEvents = computed(() => {
+		// Access libraryVersion to trigger re-computation when files are loaded or deleted
 		void libraryVersion.value;
-		let timeline = props.room
+		return props.room
 			.getLibraryTimeline()
 			.filter(
 				(e) =>
 					e.matrixEvent.event !== null && e.matrixEvent.event.content && Object.keys(e.matrixEvent.event.content).length > 0 && e.isDeleted === false,
 			);
-		// filter
-		if (filter.value !== '') {
-			timeline = timeline.filter((e) => {
-				const lowerFilter = filter.value.toLocaleLowerCase();
-				if (e.matrixEvent.event.content?.filename) {
-					const filename = (e.matrixEvent.event.content.filename as string).toLocaleLowerCase();
-					return filename.includes(lowerFilter);
-				}
-				return false;
-			});
-		}
-		// order
-		if (order.value.index >= 0) {
-			let func = orderByOptions[order.value.index].sortAsc;
-			if (order.value.order === SortOrder.desc) {
-				func = orderByOptions[order.value.index].sortDesc;
-			}
-			timeline = timeline.sort(func);
-		}
-		return timeline;
 	});
 
-	const roomTimeLineFiles = computed(() => {
-		return roomTimeLine.value.filter((e) => e.matrixEvent.getContent().msgtype === 'm.file' || e.matrixEvent.getContent().msgtype === 'm.image');
+	const files = computed(() =>
+		libraryEvents.value.filter(
+			(e) =>
+				(e.matrixEvent.getContent().msgtype === MsgType.File || e.matrixEvent.getContent().msgtype === MsgType.Image) &&
+				!pendingDeletion.value.has(e.matrixEvent.getId() ?? ''),
+		),
+	);
+
+	// Signature events per file id
+	const signaturesByFile = computed(() => {
+		const signatures = new Map<string, TimelineEvent[]>();
+		for (const event of libraryEvents.value) {
+			const content = event.matrixEvent.getContent();
+			const fileId = content['m.relates_to']?.event_id;
+			if (content.msgtype !== PubHubsMgType.SignedFileMessage || !fileId) continue;
+			signatures.set(fileId, [...(signatures.get(fileId) ?? []), event]);
+		}
+		return signatures;
 	});
 
-	const setOrderBy = (o: SortOption) => {
-		order.value = o;
+	const filenameOf = (item: TimelineEvent): string => item.matrixEvent.getContent().filename ?? item.matrixEvent.getContent().body ?? '';
+	const sizeOf = (item: TimelineEvent): number => item.matrixEvent.getContent().info?.size ?? 0;
+	const uploaderOf = (item: TimelineEvent): string => {
+		const sender = item.matrixEvent.getSender() ?? '';
+		return user.userDisplayName(sender) ?? filters.extractPseudonym(sender);
+	};
+	const signaturesOf = (item: TimelineEvent) => signaturesByFile.value.get(item.matrixEvent.getId() ?? '') ?? [];
+	const isSigned = (item: TimelineEvent) => signaturesOf(item).length > 0;
+
+	const summaryOf = (item: TimelineEvent): string => {
+		const size = item.matrixEvent.getContent().info?.size;
+		return [uploaderOf(item), typeof size === 'number' ? filters.formatBytes(size, 1) : '', formattedTimeInformation(item.matrixEvent.getTs())]
+			.filter((part) => part !== '')
+			.join(' · ');
 	};
 
-	const getAllSignedEventsForFile = (eventId: string | undefined) => {
-		// Get all signed events for the given file (using the event_id to match the related 'original' file event)
-		if (roomTimeLine.value) {
-			const signed = roomTimeLine.value.filter((e) => {
-				return (
-					e.matrixEvent.event.content?.msgtype === PubHubsMgType.SignedFileMessage &&
-					e.matrixEvent.event.content?.['m.relates_to']?.event_id === eventId
-				);
-			});
-			return signed;
+	const byDate = (a: TimelineEvent, b: TimelineEvent) => a.matrixEvent.getTs() - b.matrixEvent.getTs();
+	const byName = (a: TimelineEvent, b: TimelineEvent) => filenameOf(a).localeCompare(filenameOf(b), undefined, { numeric: true, sensitivity: 'base' });
+
+	const sorters: Record<LibrarySort, (a: TimelineEvent, b: TimelineEvent) => number> = {
+		[LibrarySort.Newest]: (a, b) => byDate(b, a),
+		[LibrarySort.Oldest]: byDate,
+		[LibrarySort.NameAsc]: byName,
+		[LibrarySort.NameDesc]: (a, b) => byName(b, a),
+		[LibrarySort.Largest]: (a, b) => sizeOf(b) - sizeOf(a),
+		[LibrarySort.Uploader]: (a, b) => uploaderOf(a).localeCompare(uploaderOf(b), undefined, { sensitivity: 'base' }) || byDate(b, a),
+	};
+
+	const visibleFiles = computed(() => {
+		const term = filter.value.trim().toLocaleLowerCase();
+		const matching = term === '' ? files.value : files.value.filter((item) => filenameOf(item).toLocaleLowerCase().includes(term));
+		return [...matching].sort(sorters[sortOrder.value]);
+	});
+
+	const sortMenuItems = (): MenuItem[] => {
+		return Object.values(LibrarySort).map((option) => ({
+			label: t(`roomlibrary.sort.${option}`),
+			icon: option === sortOrder.value ? 'check' : undefined,
+			onClick: () => (sortOrder.value = option),
+		}));
+	};
+
+	const selectedFile = computed(() => files.value.find((item) => item.matrixEvent.getId() === selectedFileId.value) ?? null);
+
+	// Back to the list when the open file is gone
+	watch(selectedFile, (file) => {
+		if (!file && selectedFileId.value && !isLoading.value) selectedFileId.value = null;
+	});
+
+	const loadLibrary = async () => {
+		const roomId = props.room.roomId;
+		isLoading.value = true;
+		try {
+			await props.room.initFileLibrary();
+		} catch (error) {
+			logger.error('Could not load the file library', error);
 		}
-		return [];
+		// Room changed while loading
+		if (props.room.roomId !== roomId) return;
+		isLoading.value = false;
+		libraryVersion.value++;
 	};
 
-	const isSigned = (eventId: string | undefined) => {
-		return getAllSignedEventsForFile(eventId).length > 0;
-	};
+	// #endregion
 
-	/**
-	 * Actions that do not fit next to the file name live in the right click (or long press) menu.
-	 * @param toggle Opens and closes the details panel of this file, provided by the surrounding InlineCollapse
-	 */
-	function contextMenuItems(item: TimelineEvent, toggle: () => void): MenuItem[] {
-		const eventId = item.matrixEvent.getId();
-		const senderId = item.matrixEvent.event.sender;
-		const items: MenuItem[] = [
-			{ label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadItem(item) },
-			{ label: t('roomlibrary.share_to_timeline'), icon: 'paper-plane-right', onClick: () => shareItem(item) },
-			{ label: t('roomlibrary.file_details'), icon: 'info', onClick: () => toggle() },
-		];
-		if (!isSigned(eventId)) {
-			items.push({
-				label: t('roomlibrary.sign_file'),
-				icon: 'pen-nib',
-				onClick: () => handleSigning(item.matrixEvent.getContent().url, eventId),
-			});
+	// #region Row actions
+
+	const onRowClick = (item: TimelineEvent) => {
+		if (isSelecting.value) {
+			toggleSelected(item);
+		} else {
+			selectedFileId.value = item.matrixEvent.getId() ?? null;
 		}
-		if (user.userId === senderId || roles.userIsStewardOrHigher()) {
-			items.push(
+	};
+
+	const canDelete = (item: TimelineEvent) => user.userId === item.matrixEvent.getSender() || roles.userIsStewardOrHigher();
+
+	// Shared by the file menu and the details panel
+	const fileActions = (item: TimelineEvent, first: MenuItem): MenuItem[] => {
+		const actions: MenuItem[] = [first, { label: t('roomlibrary.share_to_timeline'), icon: 'paper-plane-right', onClick: () => shareItem(item) }];
+		// One signature per file
+		if (!isSigned(item)) {
+			actions.push({ label: t('roomlibrary.sign_file'), icon: 'pen-nib', onClick: () => startSigning(item) });
+		}
+		if (canDelete(item)) {
+			actions.push(
 				{ divider: true, label: '' },
-				{
-					label: t('roomlibrary.delete_file'),
-					icon: 'trash',
-					variant: ContextVariant.delicate,
-					onClick: () => confirmDeletion(item.matrixEvent.getContent(), eventId, senderId),
-				},
+				{ label: t('roomlibrary.delete_file'), icon: 'trash', variant: ContextVariant.delicate, onClick: () => confirmDeletion(item) },
 			);
 		}
-		return items;
-	}
+		return actions;
+	};
+
+	const menuItems = (item: TimelineEvent) =>
+		fileActions(item, { label: t('roomlibrary.file_details'), icon: 'info', onClick: () => (selectedFileId.value = item.matrixEvent.getId() ?? null) });
+
+	const detailActions = (item: TimelineEvent) =>
+		fileActions(item, { label: t('menu.download_file'), icon: 'download-simple', onClick: () => downloadItem(item) });
 
 	/**
 	 * A long press opens the context menu, but the browser still fires a click when the finger is lifted.
 	 * This functions stops propogation after the context menu has been opened.
 	 */
-	function suppressClickAfterLongPress(event: MouseEvent) {
+	const suppressClickAfterLongPress = (event: MouseEvent) => {
 		// Immediate: the row listens for clicks on itself as well, and that listener has to be stopped too.
 		if (contextMenu.isOpen) event.stopImmediatePropagation();
-	}
+	};
 
-	async function downloadItem(item: TimelineEvent) {
+	const downloadItem = async (item: TimelineEvent) => {
 		const content = item.matrixEvent.getContent();
 		const succeeded = await downloadFile(content.url, content.filename ?? content.body ?? 'file');
 		if (!succeeded) {
 			dialog.confirm(t('errors.file_download'));
 		}
-	}
+	};
 
 	/**
 	 * Hands the file to the message input, so the user can add a message before posting it in the timeline.
 	 * The file stays where it is on the media server: nothing is uploaded again.
 	 */
-	function shareItem(item: TimelineEvent) {
+	const shareItem = (item: TimelineEvent) => {
 		const content = item.matrixEvent.getContent();
 		messageActions.sharingFile = {
 			mxcUrl: content.url,
@@ -533,116 +642,227 @@
 		if (isMobile.value && sidebar.activeTab.value === SidebarTab.Library) {
 			sidebar.close();
 		}
-	}
+	};
 
-	function handleEsc(event: KeyboardEvent) {
-		if (event.key === 'Escape' && signingMessage.value) {
-			signingMessage.value = false;
-			activeEventId.value = undefined;
-		}
-	}
+	// #endregion
 
-	async function handleSigning(mxc: string, eventId: string | undefined) {
-		signingMessage.value = true;
-		activeEventId.value = eventId;
+	// #region Signing
+
+	const startSigning = async (item: TimelineEvent) => {
+		const eventId = item.matrixEvent.getId();
+		const roomId = props.room.roomId;
+		signingFile.value = item;
+		fileHash.value = '';
+
 		const accessToken = pubhubs.Auth.getAccessToken();
-		if (accessToken) {
-			const url = formUrlfromMxc(mxc, true);
-			const hashedFile = await makeHash(accessToken, url, props.room as unknown as MatrixRoom);
-			showFileHash.value = hashedFile;
-			yiviFlow(EYiviFlow.Sign, finishedSigningMessage, rooms.currentRoomId ?? '', '#' + EYiviFlow.Sign, selectedAttributes.value, hashedFile);
+		const hash = accessToken
+			? await makeHash(accessToken, formUrlfromMxc(item.matrixEvent.getContent().url, true), props.room as unknown as MatrixRoom)
+			: '';
+
+		// Dialog closed or another file picked meanwhile
+		if (signingFile.value?.matrixEvent.getId() !== eventId) return;
+		if (!hash) {
+			stopSigning();
+			dialog.confirm(t('roomlibrary.sign_error', [filenameOf(item)]));
+			return;
 		}
-	}
+		fileHash.value = hash;
+		yiviFlow(
+			EYiviFlow.Sign,
+			(result: YiviSigningSessionResult | SecuredRoomAttributeResult) => finishedSigning(result as YiviSigningSessionResult, roomId, eventId),
+			roomId,
+			'#' + EYiviFlow.Sign,
+			[signingAttribute],
+			hash,
+		);
+	};
 
-	async function finishedSigningMessage(result: YiviSigningSessionResult | SecuredRoomAttributeResult) {
-		signingMessage.value = false;
-		await pubhubs.addSignedFile(rooms.currentRoomId ?? '', result as YiviSigningSessionResult, activeEventId.value);
-	}
+	const finishedSigning = async (result: YiviSigningSessionResult, roomId: string, eventId: string | undefined) => {
+		stopSigning();
+		await pubhubs.addSignedFile(roomId, result, eventId);
+	};
 
-	async function confirmDeletion(
-		eventContent: TFileMessageEventContent | TImageMessageEventContent,
-		eventId: string | undefined,
-		senderId: string | undefined,
-	) {
-		const confirm = await dialog.okcancel(t('roomlibrary.delete.heading'), t('roomlibrary.delete.content', [eventContent.filename]));
-		if (confirm) {
-			await handleDeletion(eventContent, eventId ?? '', senderId ?? '');
+	const stopSigning = () => {
+		signingFile.value = null;
+		fileHash.value = '';
+	};
+
+	const handleEsc = (event: KeyboardEvent) => {
+		if (event.key === 'Escape' && signingFile.value) {
+			stopSigning();
 		}
-	}
+	};
 
-	async function handleDeletion(eventContent: TFileMessageEventContent | TImageMessageEventContent | undefined, eventId: string, senderId: string) {
-		const canDelete = user.userId === senderId || roles.userIsStewardOrHigher();
-		if (canDelete && eventContent) {
-			const mxc = eventContent.url;
-			const url = deleteMediaUrlfromMxc(mxc);
-			const allSignedEvents = getAllSignedEventsForFile(eventId);
+	// #endregion
 
-			// Hide file from UI immediately (before API calls that may have rate limiting delays)
-			props.room.removeLibraryEvent(eventId);
-			for (const signedEvent of allSignedEvents) {
-				const signedEventId = signedEvent.matrixEvent.getId();
-				if (signedEventId) {
-					props.room.removeLibraryEvent(signedEventId);
-				}
-			}
-			libraryVersion.value++;
+	// #region Deleting
 
-			// Process deletion in background (may take time due to rate limiting)
-			await deleteMedia(url, eventId, props.room.roomId);
-			await removeFromTimeline(
+	/**
+	 * @returns whether the file was deleted
+	 */
+	const deleteFile = async (item: TimelineEvent): Promise<boolean> => {
+		const eventId = item.matrixEvent.getId();
+		if (!eventId || !canDelete(item)) return false;
+
+		pendingDeletion.value.add(eventId);
+		let deleted = false;
+		try {
+			// The media API is admin only for now. For other users the call fails and the file only leaves the library,
+			// so it starts deleting the media as soon as the endpoint allows them.
+			await deleteMedia(deleteMediaUrlfromMxc(item.matrixEvent.getContent().url), eventId, props.room.roomId).catch((error) =>
+				logger.error('Could not delete the media of file ' + eventId, error),
+			);
+			deleted = await removeFromTimeline(
 				props.room,
 				eventId,
-				allSignedEvents.map((e) => e.matrixEvent),
+				signaturesOf(item).map((e) => e.matrixEvent),
 			);
+		} catch (error) {
+			logger.error('Could not delete file ' + eventId, error);
+			deleted = false;
 		}
-	}
+		pendingDeletion.value.delete(eventId);
+		libraryVersion.value++;
+		return deleted;
+	};
 
-	function hasSelection() {
-		return selection.value.length > 0;
-	}
-
-	function addToSelection(item: TimelineEvent) {
-		if (!isSelected(item)) {
-			(selection.value as unknown as TimelineEvent[]).push(item);
+	const confirmDeletion = async (item: TimelineEvent) => {
+		const confirm = await dialog.okcancel(t('roomlibrary.delete.heading'), t('roomlibrary.delete.content', [filenameOf(item)]));
+		if (!confirm) return;
+		if (!(await deleteFile(item))) {
+			dialog.confirm(t('roomlibrary.delete.failed', [filenameOf(item)]));
 		}
-	}
+	};
 
-	function selectAll(all: Array<TimelineEvent>) {
-		selectedAll.value = true;
-		all.forEach((item) => {
-			addToSelection(item);
-		});
-	}
+	// #endregion
 
-	function unselectAll() {
-		selectedAll.value = false;
-		selection.value = [];
-	}
+	// #region Selecting (stewards)
 
-	function isSelected(item: TimelineEvent) {
-		return (selection.value as unknown as TimelineEvent[]).includes(item);
-	}
+	const canSelect = computed(() => roles.userIsStewardOrHigher() && files.value.length > 0);
+	const isSelected = (item: TimelineEvent) => selectedIds.value.has(item.matrixEvent.getId() ?? '');
+	const allSelected = computed(() => visibleFiles.value.length > 0 && visibleFiles.value.every(isSelected));
 
-	function removeFromSelection(item: TimelineEvent) {
-		const index = (selection.value as unknown as TimelineEvent[]).indexOf(item);
-		selection.value.splice(index, 1);
-	}
+	const toggleSelected = (item: TimelineEvent) => {
+		const eventId = item.matrixEvent.getId();
+		if (!eventId) return;
+		if (selectedIds.value.has(eventId)) {
+			selectedIds.value.delete(eventId);
+		} else {
+			selectedIds.value.add(eventId);
+		}
+	};
 
-	async function deleteSelected() {
-		const confirm = await dialog.okcancel(t('roomlibrary.delete.multiple_heading'), t('roomlibrary.delete.multiple_content', [selection.value.length]));
-		if (confirm) {
+	const toggleAll = () => {
+		if (allSelected.value) {
+			selectedIds.value.clear();
+		} else {
+			visibleFiles.value.forEach((item) => selectedIds.value.add(item.matrixEvent.getId() ?? ''));
+		}
+	};
+
+	const stopSelecting = () => {
+		isSelecting.value = false;
+		selectedIds.value.clear();
+	};
+
+	// Files hidden by the search must not stay selected
+	watch(filter, () => selectedIds.value.clear());
+
+	const deleteSelected = async () => {
+		const items = files.value.filter(isSelected);
+		const confirm = await dialog.okcancel(t('roomlibrary.delete.multiple_heading'), t('roomlibrary.delete.multiple_content', [items.length]));
+		if (!confirm) return;
+		stopSelecting();
+		// Delete sequentially to avoid rate limiting
+		let failed = 0;
+		for (const item of items) {
+			if (!(await deleteFile(item))) failed++;
+		}
+		if (failed > 0) {
+			dialog.confirm(t('roomlibrary.delete.multiple_failed'));
+		}
+	};
+
+	// #endregion
+
+	// #region Uploading
+
+	const { uploads, finished, remaining, addFiles, retry, remove } = useLibraryUpload(
+		() => props.room.roomId,
+		() => files.value.map(filenameOf),
+	);
+
+	const uploadAnnouncement = computed(() => {
+		if (!finished.value) return '';
+		return t(finished.value.succeeded ? 'roomlibrary.upload_done' : 'roomlibrary.upload_failed', [finished.value.filename]);
+	});
+
+	const uploadStatusOf = (upload: LibraryUpload): string => {
+		if (upload.status === UploadStatus.Failed) return upload.error ? t(upload.error.key, upload.error.params) : t('file.upload_error');
+		if (upload.status === UploadStatus.Uploading) return t('roomlibrary.uploading', [Math.round(upload.progress)]);
+		return t('roomlibrary.upload_waiting');
+	};
+
+	const openFilePicker = () => {
+		if (!fileInput.value) return;
+		// Reset so the same file can be picked again
+		fileInput.value.value = '';
+		fileInput.value.click();
+	};
+
+	const onFilesPicked = (event: Event) => {
+		const picked = (event.target as HTMLInputElement).files;
+		if (picked) addToUploads(picked);
+	};
+
+	const addToUploads = (newFiles: FileList) => {
+		if (addFiles(newFiles) > 0) {
+			dialog.confirm(t('roomlibrary.files_skipped', [SystemDefaults.maxLibraryFiles]));
+		}
+	};
+
+	const isFileDrag = (event: DragEvent) => event.dataTransfer?.types.includes('Files') ?? false;
+
+	// Counted, as child elements fire these too
+	const onDragEnter = (event: DragEvent) => {
+		if (isFileDrag(event)) dragDepth.value++;
+	};
+
+	const onDragLeave = (event: DragEvent) => {
+		if (isFileDrag(event) && dragDepth.value > 0) dragDepth.value--;
+	};
+
+	const onDrop = (event: DragEvent) => {
+		dragDepth.value = 0;
+		if (event.dataTransfer?.files.length) addToUploads(event.dataTransfer.files);
+	};
+
+	// Keep the browser from opening files dropped outside the sidebar
+	const preventDefault = (event: Event) => event.preventDefault();
+
+	// #endregion
+
+	// Reload on room switch. Declared last because it runs immediately
+	watch(
+		() => props.room.roomId,
+		() => {
+			selectedFileId.value = null;
+			stopSelecting();
 			filter.value = '';
-			deletingAll.value = true;
-			// Delete files sequentially to avoid rate limiting
-			for (const item of selection.value) {
-				await handleDeletion(
-					item.matrixEvent.event.content as TFileMessageEventContent | TImageMessageEventContent | undefined,
-					item.matrixEvent.event.event_id ?? '',
-					item.matrixEvent.event.sender ?? '',
-				);
-			}
-			deletingAll.value = false;
-			unselectAll();
-		}
-	}
+			loadLibrary();
+		},
+		{ immediate: true },
+	);
+
+	onMounted(() => {
+		window.addEventListener('keydown', handleEsc);
+		document.body.addEventListener('dragover', preventDefault);
+		document.body.addEventListener('drop', preventDefault);
+	});
+
+	onUnmounted(() => {
+		window.removeEventListener('keydown', handleEsc);
+		document.body.removeEventListener('dragover', preventDefault);
+		document.body.removeEventListener('drop', preventDefault);
+	});
 </script>

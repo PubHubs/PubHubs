@@ -572,11 +572,21 @@ const useRooms = defineStore('rooms', {
 			});
 		},
 
-		async fetchPublicRooms(force: boolean = false) {
+		/**
+		 * Fetches the public rooms into the store. Never rejects: on failure the current (possibly stale or empty) list is kept.
+		 * @returns whether the fetch succeeded
+		 */
+		async fetchPublicRooms(force: boolean = false): Promise<boolean> {
 			const pubhubs = usePubhubsStore();
-			const rooms = await pubhubs.getAllPublicRooms(force);
-			// TODO its best to sort the publicrooms on adding, then sorting will take place only once
-			this.publicRooms = rooms.toSorted(propCompare('name'));
+			try {
+				const rooms = await pubhubs.getAllPublicRooms(force);
+				// TODO its best to sort the publicrooms on adding, then sorting will take place only once
+				this.publicRooms = rooms.toSorted(propCompare('name'));
+				return true;
+			} catch (error) {
+				logger.warn('Fetching public rooms failed, keeping current list', { error });
+				return false;
+			}
 		},
 
 		// Filter rooms based on type defined. Synapse public rooms doesn't have a type so they are undefined.

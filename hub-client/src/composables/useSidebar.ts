@@ -25,6 +25,8 @@ const activeTab = ref<SidebarTab>(SidebarTab.None);
 const selectedDMRoom = shallowRef<Room | null>(null);
 // User shown in the member-details panel (Members tab). null = member list view.
 const selectedMemberId = ref<string | null>(null);
+// File shown in the file-details panel (Library tab). null = file list view.
+const selectedLibraryFileId = ref<string | null>(null);
 const LAST_DM_ROOM_KEY = 'pubhubs_lastDMRoomId';
 const lastDMRoomId = ref<string | null>(sessionStorage.getItem(LAST_DM_ROOM_KEY));
 const skipTransition = ref(false);
@@ -45,8 +47,9 @@ export function useSidebar() {
 
 	// Open room specific tab
 	function openTab(tab: SidebarTab) {
-		// Switching tabs returns the Members tab to its list view.
+		// Switching tabs returns the Members and Library tabs to their list views.
 		selectedMemberId.value = null;
+		selectedLibraryFileId.value = null;
 		activeTab.value = tab;
 	}
 
@@ -61,6 +64,7 @@ export function useSidebar() {
 		activeTab.value = SidebarTab.None;
 		selectedDMRoom.value = null;
 		selectedMemberId.value = null;
+		selectedLibraryFileId.value = null;
 	}
 
 	// Clear last DM room ID and skip next restore (prevents auto-restore on next DM page visit)
@@ -126,6 +130,7 @@ export function useSidebar() {
 		activeTab.value = SidebarTab.None;
 		selectedDMRoom.value = null;
 		selectedMemberId.value = null;
+		selectedLibraryFileId.value = null;
 	}
 
 	// Close sidebar instantly without animation (used during navigation)
@@ -134,6 +139,7 @@ export function useSidebar() {
 		activeTab.value = SidebarTab.None;
 		selectedDMRoom.value = null;
 		selectedMemberId.value = null;
+		selectedLibraryFileId.value = null;
 		// Reset the flag after a tick so subsequent operations animate normally
 		setTimeout(() => {
 			skipTransition.value = false;
@@ -159,6 +165,7 @@ export function useSidebar() {
 		isOpen,
 		isMobile,
 		selectedMemberId,
+		selectedLibraryFileId,
 		openTab,
 		openMemberProfile,
 		close,
