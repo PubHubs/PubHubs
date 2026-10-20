@@ -431,6 +431,7 @@ const nl = {
 		discover: 'Ontdek kamers',
 		room_library: 'Bibliotheek voor kamer:',
 		no_rooms_found: 'Geen kamers gevonden',
+		load_failed: 'De kamers konden niet worden geladen.',
 		unread_messages: 'Ongelezen berichten',
 		last_read_message: 'Laatst gelezen',
 		one_new_message: '1 nieuw bericht',
