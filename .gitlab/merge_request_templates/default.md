@@ -2,6 +2,7 @@
 
 - [ ] Followed [coding guidelines](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Code-guidelines)
 - [ ] Added to [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md) with appropriate prefix and human readable description.
+- [ ] e2e tests passed
 - [ ] Added new e2e tests
 
 # Review Steps:
