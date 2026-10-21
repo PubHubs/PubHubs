@@ -133,6 +133,7 @@
 	// Logic
 	import { onExternalAppMissing } from '@global-client/logic/linkHandler';
 
+	import { isNetworkError } from '@hub-client/logic/core/networkError';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
@@ -205,7 +206,7 @@
 			await mss.initializeServers();
 			loading.value = false;
 		} catch (error) {
-			router.replace({ name: 'error' });
+			router.replace(isNetworkError(error) ? { name: 'error', query: { errorKey: 'errors.needs_connection' } } : { name: 'error' });
 			logger.error('Could not initialize the servers for the multi-server setup.', { error });
 		}
 	});

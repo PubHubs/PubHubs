@@ -41,6 +41,7 @@
 	import { onMounted, ref, watch } from 'vue';
 
 	// Logic
+	import { hubStorage } from '@hub-client/logic/core/hubStorage';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Components
@@ -59,6 +60,8 @@
 
 	onMounted(async () => {
 		logger.debug('Miniclient.vue onMounted');
+		// Only the handshake with the app shell provides a storage key; running solo there is none.
+		if (hubSettings.isSolo) hubStorage.disable();
 		if (!hubSettings.isSolo) {
 			messagebox.init(MessageBoxType.Child);
 			// Register AFTER init (which calls reset and clears callbacks).
@@ -67,7 +70,7 @@
 				hubActive.value = content.active === true;
 				logger.debug(`HubActive → ${hubActive.value}`);
 			});
-			await messagebox.startCommunication(hubSettings.parentUrl, 'parentFrame', hubSettings.hubUrl);
+			await messagebox.startCommunication(hubSettings.parentUrl, 'parentFrame', { hubServerUrl: hubSettings.hubUrl });
 			// Wait for HubActive (sent by the global client right after the
 			// handshake). Fall back to Independent after a timeout (e.g. old
 			// global client without this protocol).

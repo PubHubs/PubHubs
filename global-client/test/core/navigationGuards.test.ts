@@ -7,8 +7,12 @@ import type { RouteLocationNormalized } from 'vue-router';
 import { createNavigationGuard } from '@global-client/logic/core/navigationGuards';
 import { routes } from '@global-client/logic/core/routes';
 
+// Models
+import { Hub } from '@global-client/models/Hubs';
+
 // Stores
 import { useGlobal } from '@global-client/stores/global';
+import { useHubs } from '@global-client/stores/hubs';
 
 import { useSettings } from '@hub-client/stores/settings';
 
@@ -147,6 +151,56 @@ describe('navigation guard', () => {
 			const guard = createNavigationGuard();
 
 			expect(await guard(location('hubs-overview'), location('hub'))).toBeUndefined();
+		});
+
+		// The load waits for PHC and for every pinned hub, which offline can take long. With the pinned
+		// hubs already in the hubs store (from the copy on this device) it refreshes them in the background.
+		test('do not hold a navigation up once they are all in the hubs store', async () => {
+			const global = loginAs(true);
+			global.pinnedHubs = [{ hubId: 'testhub0id', hubName: 'TestHub0' }];
+			useHubs().addHub(new Hub('testhub0id', 'TestHub0', 'http://hubtest0/client', 'http://hubtest0/'));
+			vi.mocked(global.getPinnedHubsData).mockReturnValue(new Promise(() => {}));
+			const guard = createNavigationGuard();
+
+			expect(await guard(location('hubs-overview'), location('hub'))).toBeUndefined();
+			expect(global.getPinnedHubsData).toHaveBeenCalled();
+		});
+
+		test('hold a navigation up while one of them is not in the hubs store yet', async () => {
+			const global = loginAs(true);
+			global.pinnedHubs = [{ hubId: 'testhub0id', hubName: 'TestHub0' }];
+			let finishLoad!: () => void;
+			vi.mocked(global.getPinnedHubsData).mockReturnValue(new Promise<void>((resolve) => (finishLoad = resolve)));
+			const guard = createNavigationGuard();
+
+			let passed = false;
+			const navigation = guard(location('hubs-overview'), location('hub')).then(() => (passed = true));
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(passed).toBe(false);
+
+			finishLoad();
+			await navigation;
+			expect(passed).toBe(true);
+		});
+
+		// The pinned-hub load is kept for the session, so starting it from a navigation before the login
+		// check has loaded the settings that hold the pinned hubs would load none of them.
+		test('a navigation during the login check waits for the pinned hubs to be known', async () => {
+			const global = useGlobal();
+			let finishCheck!: (loggedIn: boolean) => void;
+			const check = new Promise<boolean>((resolve) => (finishCheck = resolve));
+			vi.spyOn(global, 'checkLoginAndSettings').mockReturnValue(check);
+			const pinnedAtLoad: string[][] = [];
+			vi.spyOn(global, 'getPinnedHubsData').mockImplementation(async () => {
+				pinnedAtLoad.push(global.pinnedHubs.map((hub) => hub.hubId));
+			});
+
+			const navigation = createNavigationGuard()(location('hubs-overview'), location('hub'));
+			global.pinnedHubs = [{ hubId: 'testhub0id', hubName: 'TestHub0' }];
+			finishCheck(true);
+			await navigation;
+
+			expect(pinnedAtLoad).toEqual([['testhub0id']]);
 		});
 	});
 

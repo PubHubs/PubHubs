@@ -58,6 +58,11 @@ function nativeHubOrigin(hubId: string, protocol: string): string {
 	return `${protocol}//${nativeHubLabel(hubId)}${NATIVE_HUB_HOST_SUFFIX}`;
 }
 
+/** Whether a page with this hostname runs on a hub's origin in the native app. */
+function isNativeHubOrigin(hostname: string): boolean {
+	return hostname.endsWith(NATIVE_HUB_HOST_SUFFIX);
+}
+
 /**
  * Stops a hub-client page that runs on one hub's native origin but was told (through `?hubId=`) it is a
  * different hub. Otherwise a compromised hub could navigate its own iframe to another hub's origin, point
@@ -78,4 +83,4 @@ function assertNativeHubOriginMatchesHubId(hostname: string, hubId: string | nul
 	}
 }
 
-export { assertNativeHubOriginMatchesHubId, nativeHubLabel, nativeHubOrigin };
+export { assertNativeHubOriginMatchesHubId, isNativeHubOrigin, nativeHubLabel, nativeHubOrigin };

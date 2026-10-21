@@ -14,6 +14,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 - [IMPROVED] Updated the hub overview and discover page.
 - [BUG] Fixed that ~ would break url links.
+- [BUG] Fixed that the 'System' theme only followed the system theme when PubHubs was (re)loaded.
 
 ## 18 September 2026 - v3.5.5
 

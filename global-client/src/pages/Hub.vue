@@ -18,6 +18,7 @@
 	import { cacheBust } from '@global-client/logic/utils/cacheBust';
 	import { hubIndexBase, hubMatrixApiUrl } from '@global-client/logic/utils/nativeHubClient';
 
+	import { isNetworkError } from '@hub-client/logic/core/networkError';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 	import { assert } from '@hub-client/logic/utils/assert';
 	// Logic
@@ -123,7 +124,8 @@
 					}
 				} catch (error) {
 					logger.error('Error during Hub MSS login', { error });
-					router.push({ name: 'error' });
+					// Entering a hub for the first time needs PHC and the hub; say so rather than show an error.
+					router.push(isNetworkError(error) ? { name: 'error', query: { errorKey: 'errors.needs_connection' } } : { name: 'error' });
 				}
 				break;
 			}

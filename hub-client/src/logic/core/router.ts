@@ -132,7 +132,9 @@ router.beforeEach((to, from) => {
 	// Notify parent iframe about non-room navigation
 	// Send the route name (e.g. non-room navigations such as discover-rooms) so the global-client URL preserves it for refresh.
 	// For home, I am sending a empty string to keep the URL clean, the hub-client stays at its default route / which is home
-	if (!['room', 'error-page-room'].includes(to.name as string) && from.name !== undefined) {
+	// Onboarding and error pages are left out: they are passing states, and restoring one from the
+	// parent's URL would show them again (onboarding even without its type) after the cause is gone.
+	if (!['room', 'error-page-room', 'onboarding', 'error-page'].includes(to.name as string) && from.name !== undefined) {
 		const routeName = to.name === 'home' ? '' : (to.name as string);
 		messagebox.sendMessage(new Message(MessageType.RoomChange, routeName));
 	}

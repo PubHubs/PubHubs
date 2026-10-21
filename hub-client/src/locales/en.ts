@@ -9,6 +9,9 @@ const en = {
 		description: 'Card issued with the following attributes:',
 	},
 	state: {
+		hub_offline: 'No connection to this hub. What you see may be out of date.',
+		rooms_offline: 'Rooms can be shown once there is a connection.',
+		room_offline: 'This room can be shown once there is a connection.',
 		button_request: 'Request access',
 		initial: 'Checking whether hub client has access to cookies and local storage...',
 		requesting: 'Requesting access...',
@@ -38,6 +41,9 @@ const en = {
 		go_back: 'Go back',
 	},
 	errors: {
+		// Shown for things that need the servers (entering a hub for the first time, logging in) while
+		// they can't be reached.
+		needs_connection: 'This needs an internet connection. Check your connection and try again.',
 		oops: 'OOPS!',
 		error: 'Unfortunately an error occured. Please <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a>.\n\n {0}',
 		server: 'Server error',

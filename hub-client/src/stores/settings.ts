@@ -1,6 +1,7 @@
 // Packages
 import { Capacitor } from '@capacitor/core';
 import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
 // Logic
 import { CONFIG } from '@hub-client/logic/logging/Config';
@@ -94,6 +95,17 @@ interface Settings {
 }
 
 let readyHandler: ((e: MessageEvent) => void) | null = null;
+
+// Whether the system prefers a dark theme. matchMedia() itself is not reactive, so getActiveTheme
+// would keep the system theme it first saw; this ref follows the media query's change events instead.
+const systemPrefersDark = ref(false);
+if (globalThis.matchMedia) {
+	const darkQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
+	systemPrefersDark.value = darkQuery.matches;
+	darkQuery.addEventListener('change', (event) => {
+		systemPrefersDark.value = event.matches;
+	});
+}
 
 const defaultSettings: Settings = {
 	theme: Theme.System,
@@ -203,7 +215,7 @@ const useSettings = defineStore('settings', {
 			if (state.theme !== Theme.System) {
 				return state.theme;
 			}
-			if (globalThis.matchMedia('(prefers-color-scheme: dark)').matches) {
+			if (systemPrefersDark.value) {
 				return Theme.Dark;
 			}
 			return Theme.Light;

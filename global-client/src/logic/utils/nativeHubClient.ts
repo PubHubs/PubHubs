@@ -3,9 +3,16 @@
 // (see hub-client/src/logic/utils/nativeHubOrigin.ts).
 import { Capacitor } from '@capacitor/core';
 
+import { createLogger } from '@hub-client/logic/logging/Logger';
 import { nativeHubOrigin } from '@hub-client/logic/utils/nativeHubOrigin';
 
 import { type Hub } from '@global-client/models/Hubs';
+
+import { useLocalStores } from '@global-client/stores/localStores';
+
+import { type HandshakeOptions } from '@hub-client/stores/messagebox';
+
+const logger = createLogger('NativeHubClient');
 
 type HubAddress = Pick<Hub, 'hubId' | 'url' | 'serverUrl'>;
 
@@ -29,10 +36,19 @@ function hubMatrixApiUrl(serverUrl: string): string {
 	return serverUrl.replace(/\/$/, '');
 }
 
-// In the native app the hub's origin does not fix which server its client talks to (that comes in through
-// the iframe's query string), so the handshake has the client confirm it. See messagebox's startCommunication.
-function hubHandshakeServerUrl(hub: HubAddress): string | undefined {
-	return Capacitor.isNativePlatform() ? hubMatrixApiUrl(hub.serverUrl) : undefined;
+// Extra handshake data for the hub's iframes, native app only (see HandshakeOptions in messagebox.ts):
+// the hub server url the hub-client must confirm, and the key for the hub's own encrypted storage. The
+// key is left out when the user secret is not available; the hub then keeps its data in memory.
+async function hubHandshakeOptions(hub: HubAddress): Promise<HandshakeOptions> {
+	if (!Capacitor.isNativePlatform()) return {};
+	const hubServerUrl = hubMatrixApiUrl(hub.serverUrl);
+	try {
+		const localStores = await useLocalStores().retrieve();
+		return { hubServerUrl, hubStorageKey: localStores ? await localStores.hubStorageKey(hub.hubId) : undefined };
+	} catch (error) {
+		logger.warn('Could not derive the hub storage key; the hub keeps its data in memory', { error });
+		return { hubServerUrl };
+	}
 }
 
-export { hubClientOrigin, hubHandshakeServerUrl, hubIndexBase, hubMatrixApiUrl, hubMiniclientBase };
+export { hubClientOrigin, hubHandshakeOptions, hubIndexBase, hubMatrixApiUrl, hubMiniclientBase };

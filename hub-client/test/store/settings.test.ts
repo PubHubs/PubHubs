@@ -1,7 +1,7 @@
 // Packages
 import { EventType } from 'matrix-js-sdk';
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Stores
 import { useSettings } from '@hub-client/stores/settings';
@@ -75,6 +75,26 @@ describe('Settings Store', () => {
 				label: 'Systeem',
 				value: 'system',
 			});
+		});
+
+		test('getActiveTheme follows the system theme when it changes', async () => {
+			// A media query list whose answer can be switched, as the system does when its theme changes.
+			const darkQuery = Object.assign(new EventTarget(), { matches: false });
+			vi.stubGlobal('matchMedia', () => darkQuery);
+			// The store reads the media query when it is loaded, so load it again with the one above.
+			vi.resetModules();
+			const freshPinia = await import('pinia');
+			freshPinia.setActivePinia(freshPinia.createPinia());
+			const { useSettings: useFreshSettings, Theme } = await import('@hub-client/stores/settings');
+			const freshSettings = useFreshSettings();
+			freshSettings.setTheme(Theme.System);
+
+			expect(freshSettings.getActiveTheme).toBe(Theme.Light);
+			darkQuery.matches = true;
+			darkQuery.dispatchEvent(Object.assign(new Event('change'), { matches: true }));
+			expect(freshSettings.getActiveTheme).toBe(Theme.Dark);
+
+			vi.unstubAllGlobals();
 		});
 	});
 });
