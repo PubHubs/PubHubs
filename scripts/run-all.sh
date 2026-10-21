@@ -7,8 +7,11 @@ SESSION=pubhubs
 # output stays readable.  Press Ctrl+C again to close the pane.
 hold='echo "=== command finished; press Ctrl+C to close this pane ==="; sleep 3600'
 
+host_flags=()
+[[ -n "$PH_HOST" ]] && host_flags=(--host "$PH_HOST")
+
 # Start new session detached with first command
-tmux new-session -d -s $SESSION -n pubhubs "mask run yivi; $hold"
+tmux new-session -d -s $SESSION -n pubhubs "mask run yivi ${host_flags[*]}; $hold"
 
 function cleanup() {
 	mask run all cleanup
@@ -26,7 +29,7 @@ tmux split-window -h -t "$SESSION:0" "mask run client; $hold"
 # Create hub tab with first command for the hub
 hub_server_flags=()
 [[ "$PH_NO_POSTGRES" == "true" ]] && hub_server_flags=(--no-postgres)
-tmux new-window -t "$SESSION:1" -n hub "mask run hub server 0 ${hub_server_flags[*]}; $hold"
+tmux new-window -t "$SESSION:1" -n hub "mask run hub server 0 ${hub_server_flags[*]} ${host_flags[*]}; $hold"
 
 # Create split and run the hub client
 tmux split-window -h -t "$SESSION:1" "mask run hub client 0; $hold"
