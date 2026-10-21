@@ -69,6 +69,7 @@ def production_config(**overrides) -> dict:
 def generate(config: dict, environment: str = "development", **kwargs) -> dict:
     """Run update_config over `config` and return the resulting live config."""
     kwargs.setdefault("hub_client_url", None)
+    kwargs.setdefault("hub_dev_url", None)
     kwargs.setdefault("hub_server_url", None)
     kwargs.setdefault("public_yivi_url", None)
     kwargs.setdefault("replace_sqlite3_by_postgres", None)
@@ -401,6 +402,17 @@ class ModulesTest(unittest.TestCase):
         live = generate(base_config(), hub_client_url="http://localhost:9999")
         api = module_named(live, "conf.modules.pubhubs.HubClientApi")
         self.assertEqual(api["config"]["client_url"], "http://localhost:9999")
+
+    def test_hub_dev_url_argument_sets_dev_url_next_to_the_client_url(self):
+        live = generate(base_config(), hub_client_url="http://192.168.1.2:8001", hub_dev_url="http://localhost:8001")
+        api = module_named(live, "conf.modules.pubhubs.HubClientApi")
+        self.assertEqual(api["config"]["client_url"], "http://192.168.1.2:8001")
+        self.assertEqual(api["config"]["dev_url"], "http://localhost:8001")
+
+    def test_dev_url_is_left_unset_when_not_passed(self):
+        live = generate(base_config())
+        api = module_named(live, "conf.modules.pubhubs.HubClientApi")
+        self.assertNotIn("dev_url", api["config"])
 
     def test_public_yivi_url_argument_overrides_the_config(self):
         live = generate(base_config(), public_yivi_url="http://192.168.1.2:8008/")
