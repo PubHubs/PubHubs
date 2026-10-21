@@ -9,9 +9,10 @@ android {
         buildConfig true
     }
     defaultConfig {
-        applicationId "nl.pubhubs.client"
+        applicationId "net.pubhubs.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        // Set on every release, see "Release builds" in docs/app/README.md. F-Droid reads these literals.
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -21,8 +22,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release builds are signed only when these variables are set, as in CI. F-Droid builds without them
+    // and signs with its own key.
+    def releaseKeystore = System.getenv('PUBHUBS_KEYSTORE')
+    signingConfigs {
+        if (releaseKeystore) {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv('PUBHUBS_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('PUBHUBS_KEY_ALIAS')
+                keyPassword System.getenv('PUBHUBS_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseKeystore) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

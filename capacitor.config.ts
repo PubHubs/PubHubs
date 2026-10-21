@@ -24,7 +24,8 @@ const NATIVE_SHELL_APP_HOSTNAME = 'pubhubs-app.invalid';
  *
  * Generated into the gitignored capacitor.config.local.json by `scripts/sync-networkhost-ip.js`, the
  * same way Info.plist's ATS exception is — see docs/app/README.md. Absent in builds that never run that
- * script (e.g. CI/release), leaving allowNavigation at just ['localhost'].
+ * script (e.g. CI/release), leaving allowNavigation at just ['localhost']. Release syncs set
+ * PUBHUBS_RELEASE so a leftover file from local development is ignored too.
  */
 function readDevNetworkhostIp(): string | undefined {
 	const localConfigPath = path.join(__dirname, 'capacitor.config.local.json');
@@ -40,14 +41,15 @@ function readDevNetworkhostIp(): string | undefined {
 	}
 }
 
-const devNetworkhostIp = readDevNetworkhostIp();
+const devNetworkhostIp = process.env.PUBHUBS_RELEASE ? undefined : readDevNetworkhostIp();
 
 const config: CapacitorConfig = {
 	appId: 'net.pubhubs.app',
 	appName: 'PubHubs',
 	webDir: 'global-client/dist',
 	server: {
-		cleartext: true,
+		// Plain HTTP is only needed to reach local development servers; release builds stay HTTPS-only.
+		cleartext: !process.env.PUBHUBS_RELEASE,
 		hostname: NATIVE_SHELL_APP_HOSTNAME,
 		androidScheme: 'https',
 		iosScheme: 'capacitor',

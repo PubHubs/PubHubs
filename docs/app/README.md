@@ -48,6 +48,23 @@ The app bundles hub-client (`npm run build:hub:native`, under `/hub/`) and serve
 
 See [HUB_ISOLATION.md](HUB_ISOLATION.md) for the design, the extra checks, the Android verification and the known gaps (notably Capacitor's native bridge on iOS), and [IOS_ISOLATION_TEST.md](IOS_ISOLATION_TEST.md) for the iOS test plan.
 
+## Release builds
+
+Release builds talk to production, using the committed `global-client/config/client-config.production.js`. It's in the repository because F-Droid builds the app from our source.
+
+- `npm run cap:sync:android:release` builds the clients with that config and syncs them into `android/`. It sets `PUBHUBS_RELEASE`, so `capacitor.config.ts` turns off cleartext traffic and ignores `capacitor.config.local.json`.
+- Then, in `android/`:
+  - `./gradlew bundleRelease` builds the app bundle for the Play Store, in `app/build/outputs/bundle/release/`;
+  - `./gradlew assembleRelease` builds the APK, in `app/build/outputs/apk/release/`.
+- **Signing:** set `PUBHUBS_KEYSTORE` (an absolute path), `PUBHUBS_KEYSTORE_PASSWORD`, `PUBHUBS_KEY_ALIAS` and `PUBHUBS_KEY_PASSWORD`. Without them the release build is unsigned, which is what F-Droid expects; it signs with its own key.
+- **Version:** set `versionCode` and `versionName` in `android/app/build.gradle` on every release; F-Droid reads them from there.
+  - `versionName` is the release version without the `v`, for example `3.6.0`.
+  - `versionCode` is `MAJOR * 10000 + MINOR * 100 + PATCH`, for example `30600`. Play only accepts a version code once, and it has to go up.
+  - Release candidates (`-rc0`) usually share the commit, and so the version code, with the final release. Only upload final releases to Play; share release candidates as an APK or through Play's internal app sharing, which doesn't need a new version code.
+- **CI:** on a final release tag (`vX.Y.Z`), the `build-android` job builds the signed app bundle and APK and keeps them as job artifacts; upload the bundle to Play by hand.
+  - It runs in the `android-build` image from `ilab/docker-build`, and fails when `versionName`/`versionCode` don't match the tag.
+  - It signs with the upload key from the CI variables `PUBHUBS_KEYSTORE_BASE64` (the keystore, base64-encoded), `PUBHUBS_KEYSTORE_PASSWORD`, `PUBHUBS_KEY_ALIAS` and `PUBHUBS_KEY_PASSWORD`. They are protected, so release tags have to be protected too.
+
 ## Future notes:
 
 - **LiveKit (video calls) real-device support is unresolved, for a reason unrelated to HTTP/HTTPS.** `_video_call_web.py` hands the browser the same `LIVEKIT_URL` it uses server-side (see `docs/development/VIDEO_CALL_TROUBLESHOOTING.md`), which `start_testhub.py` sets to `http://localhost:{port}` — a real device can't reach the dev machine's `localhost` regardless of scheme, so real-device video calls were likely already broken before plain HTTP was reintroduced here, for the same "real device can't resolve localhost" reason described at the top of this doc.
