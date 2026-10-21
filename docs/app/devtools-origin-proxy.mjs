@@ -10,7 +10,7 @@
 // This script listens on 127.0.0.1:9334, drops the Origin header, and forwards to port 9333.
 //
 // Usage:
-//   adb forward tcp:9333 localabstract:webview_devtools_remote_$(adb shell pidof nl.pubhubs.client)
+//   adb forward tcp:9333 localabstract:webview_devtools_remote_$(adb shell pidof net.pubhubs.app)
 //   curl -s 127.0.0.1:9333/json | grep '"id"'
 //   node docs/app/devtools-origin-proxy.mjs
 // then type into Chromium's address bar:

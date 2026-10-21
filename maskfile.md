@@ -304,7 +304,7 @@ npx cap doctor android
 Uses `pidcat` (or falls back to `adb logcat`) with the app package name.
 
 ```sh
-adb logcat --pid="$(adb shell pidof -s nl.pubhubs.client 2>/dev/null || echo 0)" 2>/dev/null | head -c 50000
+adb logcat --pid="$(adb shell pidof -s net.pubhubs.app 2>/dev/null || echo 0)" 2>/dev/null | head -c 50000
 ```
 
 ### ios

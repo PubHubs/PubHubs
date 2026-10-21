@@ -358,20 +358,21 @@ const useUser = defineStore('user', {
 				}
 			} catch (error) {
 				if (isNetworkError(error)) {
-					// Go by the last answer from the hub. Without one, let the user in for now: nothing can be
-					// done in the hub without a connection anyway, and this runs again once the hub is back.
+					// Go by the last answer from the hub. Without one, ask for consent: a request the hub's CORS
+					// policy blocks looks just like an unreachable hub, while the rest of the hub may still work,
+					// so letting the user in would skip the house rules. This runs again once the hub is back.
 					const cached = await hubStorage.get<ConsentState>(CONSENT_STORAGE_KEY);
 					logger.warn('The hub is unreachable; using the last known consent state', { cached });
-					if (!cached) return false;
-					this.needsConsent = cached.needsConsent;
-					this.needsOnboarding = cached.needsOnboarding;
+					this.needsConsent = cached?.needsConsent ?? true;
+					this.needsOnboarding = cached?.needsOnboarding ?? false;
 				} else {
 					logger.error('Could not check if user needs consent, ', error);
 					router.push({ name: 'error-page' });
 					this.needsConsent = true;
 				}
 			}
-			if (this.needsConsent || this.needsOnboarding) {
+			// Already on the onboarding page (a re-check on reconnect): pushing it again would make it its own originalRoute.
+			if ((this.needsConsent || this.needsOnboarding) && router.currentRoute.value.name !== 'onboarding') {
 				const onboardingType = this.needsOnboarding ? OnboardingType.full : OnboardingType.consent;
 				router.push({ name: 'onboarding', query: { type: onboardingType, originalRoute: router.currentRoute.value.path } });
 			}

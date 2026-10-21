@@ -41,11 +41,20 @@ describe('the hub without its server', () => {
 		push = vi.spyOn(router, 'push').mockResolvedValue(undefined);
 	});
 
-	test('without a known consent state, lets the user in and shows no error', async () => {
+	// A request the hub's CORS policy blocks fails just like one to an unreachable hub.
+	test('without a known consent state, asks for consent', async () => {
 		vi.spyOn(api_synapse, 'apiGET').mockImplementation(unreachable);
 		const user = useUser();
-		expect(await user.fetchIfUserNeedsConsent()).toBe(false);
-		expect(user.needsConsent).toBe(false);
+		expect(await user.fetchIfUserNeedsConsent()).toBe(true);
+		expect(user.needsConsent).toBe(true);
+		expect(push).toHaveBeenCalledTimes(1);
+		expect(push.mock.calls[0][0]).toMatchObject({ name: 'onboarding', query: { type: 'consent' } });
+	});
+
+	test('does not send the user to onboarding again from the onboarding page', async () => {
+		vi.spyOn(router.currentRoute, 'value', 'get').mockReturnValue({ ...router.currentRoute.value, name: 'onboarding', path: '/onboarding' });
+		vi.spyOn(api_synapse, 'apiGET').mockImplementation(unreachable);
+		expect(await useUser().fetchIfUserNeedsConsent()).toBe(true);
 		expect(push).not.toHaveBeenCalled();
 	});
 

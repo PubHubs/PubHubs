@@ -25,6 +25,7 @@ Before this work, going offline broke the app in ways that also bite on flaky co
 2. **No destructive action on a network error.**
    - Destructive means: logging out, deleting tokens, replacing settings with defaults, setting `needsConsent`, or navigating to an error page.
    - A `NetworkError` leaves the current state alone and schedules a retry.
+   - One exception: a failed consent check with no known consent state asks for consent. A request the hub's CORS policy blocks looks just like an unreachable hub, while the rest of the hub may still work, so letting the user in would skip the house rules.
 
 3. **Reachability per server, not one global flag.**
    - `hub-client/src/logic/core/reachability.ts` tracks every origin the app talks to (PHC, each hub server) as `online`, `offline` or `unknown`.
