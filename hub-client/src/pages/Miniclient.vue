@@ -67,7 +67,7 @@
 				hubActive.value = content.active === true;
 				logger.debug(`HubActive → ${hubActive.value}`);
 			});
-			await messagebox.startCommunication(hubSettings.parentUrl);
+			await messagebox.startCommunication(hubSettings.parentUrl, 'parentFrame', hubSettings.hubUrl);
 			// Wait for HubActive (sent by the global client right after the
 			// handshake). Fall back to Independent after a timeout (e.g. old
 			// global client without this protocol).

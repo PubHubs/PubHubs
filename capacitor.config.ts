@@ -13,6 +13,10 @@ import path from 'node:path';
  */
 const NATIVE_SHELL_APP_HOSTNAME = 'pubhubs-app.invalid';
 
+// Each hub's bundled hub-client runs on a subdomain of this, '<label>.hubs.pubhubs-app.invalid', so hubs
+// are isolated from the app and from each other. These are not in allowNavigation on purpose: see
+// android/.../HubOriginWebViewClient.java, which serves them, and hub-client's nativeHubOrigin.ts.
+
 /**
  * Dev-only extra host the WebView may navigate to, on top of 'localhost'. Android needs this for the
  * hub-client iframe itself (shouldOverrideUrlLoading fires for iframe navigation too), iOS only for

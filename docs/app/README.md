@@ -42,6 +42,12 @@ the QR code (see https://irma.app/docs/yivi-app/#developer-mode) — a one-time,
 qr-code flow works over plain HTTP with no other infrastructure needed. See also
 `docs/development/LOCAL_DEVELOPMENT.md`.
 
+## Hub isolation
+
+The app bundles hub-client (`npm run build:hub:native`, under `/hub/`) and serves it on a separate origin per hub, `<label>.hubs.pubhubs-app.invalid`, with the label derived from the hub ID. That keeps each hub away from the app shell (which holds the user's PubHubs login) and from the other hubs, as on the web. Android serves those hosts from `HubOriginWebViewClient`; iOS needs no serving code.
+
+See [HUB_ISOLATION.md](HUB_ISOLATION.md) for the design, the extra checks, the Android verification and the known gaps (notably Capacitor's native bridge on iOS), and [IOS_ISOLATION_TEST.md](IOS_ISOLATION_TEST.md) for the iOS test plan.
+
 ## Future notes:
 
 - **LiveKit (video calls) real-device support is unresolved, for a reason unrelated to HTTP/HTTPS.** `_video_call_web.py` hands the browser the same `LIVEKIT_URL` it uses server-side (see `docs/development/VIDEO_CALL_TROUBLESHOOTING.md`), which `start_testhub.py` sets to `http://localhost:{port}` — a real device can't reach the dev machine's `localhost` regardless of scheme, so real-device video calls were likely already broken before plain HTTP was reintroduced here, for the same "real device can't resolve localhost" reason described at the top of this doc.

@@ -16,11 +16,15 @@ import { clickOutside, contextMenu, focus, safeHtml, twClass } from '@hub-client
 import '@hub-client/logic/core/polyfillPromiseWithResolvers';
 import { router } from '@hub-client/logic/core/router';
 import { getLogLevel } from '@hub-client/logic/logging/Logger';
+import { hubId } from '@hub-client/logic/utils/hubId';
+import { assertNativeHubOriginMatchesHubId } from '@hub-client/logic/utils/nativeHubOrigin';
 
 // Pages
 import App from '@hub-client/pages/App.vue';
 
 import { setUpi18n } from '@hub-client/i18n';
+
+assertNativeHubOriginMatchesHubId(window.location.hostname, hubId);
 
 if (import.meta.env.VITE_SIMULATE_BLOCKED_IDB) {
 	// Simulate a storage-blocked third-party iframe: indexedDB.open never settles.

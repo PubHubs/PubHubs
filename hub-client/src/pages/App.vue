@@ -207,7 +207,7 @@
 	async function startMessageBox() {
 		if (!hubSettings.isSolo) {
 			messagebox.init(MessageBoxType.Child);
-			await messagebox.startCommunication(hubSettings.parentUrl);
+			await messagebox.startCommunication(hubSettings.parentUrl, 'parentFrame', hubSettings.hubUrl);
 
 			// Ask for Hub name etc.
 			messagebox.addCallback('parentFrame', MessageType.HubInformation, (message: Message) => {

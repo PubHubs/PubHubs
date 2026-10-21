@@ -2,6 +2,7 @@ import logging
 from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
 from ._constants import CLIENT_URL, GLOBAL_CLIENT_URL, DEV_URL, YIVI_URL, CLIENT_YIVI_URL, PUBLIC_YIVI_URL
+from ._native_app import own_native_hub_origins
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
@@ -29,10 +30,11 @@ class HubClientApiConfig(object):
     
     @property
     def allowed_origins(self) -> list:
+        # own_native_hub_origins: where the native app runs this hub's client, see _native_app.py
         if isinstance(self._config.get(DEV_URL), str):
-            return [self._config[CLIENT_URL], self._config[DEV_URL]]
+            return [self._config[CLIENT_URL], self._config[DEV_URL], *own_native_hub_origins()]
         else:
-            return [self._config[CLIENT_URL]]
+            return [self._config[CLIENT_URL], *own_native_hub_origins()]
 
     @property
     def yivi_url_web(self) -> str:
