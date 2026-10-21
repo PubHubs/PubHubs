@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 
 // Logic
 import filters from '@hub-client/logic/core/filters';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Stores
 import { type Theme, type TimeFormat, useSettings } from '@hub-client/stores/settings';
@@ -47,7 +48,9 @@ import { type Theme, type TimeFormat, useSettings } from '@hub-client/stores/set
 /**
  * Origins of the official PubHubs native app shells (Capacitor). Under these shells, global-client runs
  * at a fixed platform origin unrelated to a hub's configured PARENT_URL, so a hub-client CHILD trusts
- * these too, as exact-match origins, same as any other origin check here.
+ * these too, as exact-match origins, same as any other origin check here. Only the CHILD does: in the
+ * native app each hub's client runs on its own origin (see nativeHubOrigin.ts), which the PARENT is
+ * given as `url` and matches exactly.
  *
  * SECURITY: 'pubhubs-app.invalid' is deliberately not a generic hostname like 'localhost' — '.invalid'
  * is reserved by RFC 2606 to never be resolvable, so only this app's own WebViewLocalServer (Android) /
@@ -59,6 +62,8 @@ const NATIVE_SHELL_ORIGINS = [
 	'capacitor://pubhubs-app.invalid', // iOS (capacitor.config.ts: iosScheme 'capacitor', hostname 'pubhubs-app.invalid')
 	'https://pubhubs-app.invalid', // Android (capacitor.config.ts: androidScheme 'https', hostname 'pubhubs-app.invalid')
 ];
+
+const logger = createLogger('MessageBox');
 
 /**
  * The id of the iframe used to embed the hub's client.
@@ -164,6 +169,7 @@ const useMessageBox = defineStore('messagebox', {
 			inIframe: false, // Is the messagebox inside an iframe? Used to determine if a hub is on its own or inside an iframe of the global client.
 			type: MessageBoxType.Unset, // Parent or Child
 			receiverUrlMap: new Map<string, string>(), // The id of the iframe mapped to the url to which this messagebox can send and receive messages
+			hubServerUrlMap: new Map<string, string>(), // The id of the iframe mapped to the hub server url both sides must agree on, see startCommunication
 			handshake: new Map<string, HandshakeState>(), // Handshake state
 			callbacks: new Map<string, { [index in MessageType]: (message: Message) => void }>(), // List of callbacks per MessageType
 			_windowMessageListener: new Map<string, (event: MessageEvent) => void>(), // Event listener, set at init
@@ -206,13 +212,17 @@ const useMessageBox = defineStore('messagebox', {
 		 *
 		 * @param url url of the other side
 		 * @param [id='parentFrame'] the iframe id of the other side (the main frame does not have such an id, so the id will then be 'parentFrame')
+		 * @param [hubServerUrl] the hub server url. A PARENT that passes it sends it along in the handshake, and a
+		 *   CHILD then only completes the handshake if its own hub server url (passed here too) is the same. The
+		 *   native app uses this: there a hub's origin does not pin down which server the hub-client talks to,
+		 *   as the server url comes in through the iframe's query string.
 		 *
 		 * @returns a Promise that resolves true once the handshake is ready. Add callbacks after that.
 		 *   Resolves false instead when this handshake is abandoned — superseded by a later
 		 *   startCommunication on the same id, or torn down by reset/resetCurrentHub/resetMiniclient —
 		 *   in which case the caller must not go on to register callbacks for what is now a stale frame.
 		 */
-		startCommunication(url: string, id: string = 'parentFrame'): Promise<boolean> {
+		startCommunication(url: string, id: string = 'parentFrame', hubServerUrl?: string): Promise<boolean> {
 			// A pending handshake on this id belongs to a frame we are about to stop listening to, so its
 			// resolve is unreachable from here on. Settle it as abandoned rather than leaving its caller
 			// awaiting forever.
@@ -220,6 +230,11 @@ const useMessageBox = defineStore('messagebox', {
 
 			return new Promise((resolve, reject) => {
 				this.receiverUrlMap.set(id, url);
+				if (hubServerUrl === undefined) {
+					this.hubServerUrlMap.delete(id);
+				} else {
+					this.hubServerUrlMap.set(id, hubServerUrl);
+				}
 				this._pendingHandshake.set(id, resolve);
 
 				// If Child: start handshake with parent
@@ -264,6 +279,8 @@ const useMessageBox = defineStore('messagebox', {
 										timeformat: settings.timeformat as TimeFormat,
 										language: settings.language,
 										isNativeApp: settings.isNativeApp,
+										isNativeDebugApp: settings.isNativeDebugApp,
+										hubServerUrl: this.hubServerUrlMap.get(id),
 									}),
 									id,
 								);
@@ -282,12 +299,28 @@ const useMessageBox = defineStore('messagebox', {
 									timeformat: TimeFormat;
 									language: string;
 									isNativeApp?: boolean;
+									isNativeDebugApp?: boolean;
+									hubServerUrl?: string;
 								};
+								if (settingsContent.hubServerUrl !== undefined) {
+									const ownHubServerUrl = this.hubServerUrlMap.get(id);
+									if (
+										ownHubServerUrl === undefined ||
+										filters.removeTrailingSlash(ownHubServerUrl) !== filters.removeTrailingSlash(settingsContent.hubServerUrl)
+									) {
+										logger.error('Handshake refused: the parent expects a different hub server', {
+											expected: settingsContent.hubServerUrl,
+											own: ownHubServerUrl,
+										});
+										return;
+									}
+								}
 								settings.setTheme(settingsContent.theme);
 								settings.setTimeFormat(settingsContent.timeformat);
 								settings.setLanguage(settingsContent.language);
 								// Only the parent can tell: Capacitor's platform-detection bridge isn't exposed inside this iframe.
 								settings.setIsNativeApp(settingsContent.isNativeApp ?? false);
+								settings.setIsNativeDebugApp(settingsContent.isNativeDebugApp ?? false);
 								this.handshake.set(id, HandshakeState.Ready);
 								this._pendingHandshake.delete(id);
 								resolve(true);
@@ -337,6 +370,7 @@ const useMessageBox = defineStore('messagebox', {
 			this.inIframe = globalThis.self !== window.top;
 			this.type = MessageBoxType.Unset;
 			this.receiverUrlMap.clear();
+			this.hubServerUrlMap.clear();
 			this.handshake.clear();
 			this.callbacks.clear();
 		},
@@ -354,6 +388,7 @@ const useMessageBox = defineStore('messagebox', {
 			this.abandonHandshake(iframeHubId);
 			this._windowMessageListener.delete(iframeHubId);
 			this.receiverUrlMap.delete(iframeHubId);
+			this.hubServerUrlMap.delete(iframeHubId);
 			this.handshake.delete(iframeHubId);
 			this.callbacks.delete(iframeHubId);
 		},
@@ -367,6 +402,7 @@ const useMessageBox = defineStore('messagebox', {
 			this.abandonHandshake(fullMiniclientId);
 			this._windowMessageListener.delete(fullMiniclientId);
 			this.receiverUrlMap.delete(fullMiniclientId);
+			this.hubServerUrlMap.delete(fullMiniclientId);
 			this.handshake.delete(fullMiniclientId);
 			this.callbacks.delete(fullMiniclientId);
 		},

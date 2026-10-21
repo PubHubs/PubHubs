@@ -163,4 +163,65 @@ describe('MessageBox Store', () => {
 			expect(messageboxParent.isReady(iframeHubId)).toBe(false);
 		});
 	});
+
+	// The native app has the child confirm the hub server url the parent expects, since a hub's origin does
+	// not pin it down there. See startCommunication's hubServerUrl.
+	describe('hub server url agreement', () => {
+		const parentUrl = 'https://pubhubs-app.invalid';
+
+		function dispatchSettingsReply(hubServerUrl?: string) {
+			window.dispatchEvent(
+				new MessageEvent('message', {
+					origin: parentUrl,
+					data: { type: MessageType.Settings, content: { theme: 'light', timeformat: '24', language: 'en', hubServerUrl } },
+				}),
+			);
+		}
+
+		beforeEach(() => {
+			vi.stubGlobal('top', 'parent');
+			vi.stubGlobal('self', 'child');
+			messageboxChild.init(MessageBoxType.Child);
+			messageboxChild.startCommunication(parentUrl, 'parentFrame', 'https://hub.example/');
+		});
+
+		test('completes when the parent expects the same server, ignoring a trailing slash', () => {
+			dispatchSettingsReply('https://hub.example');
+			expect(messageboxChild.isReady('parentFrame')).toBe(true);
+		});
+
+		test('completes when the parent does not check (web)', () => {
+			dispatchSettingsReply(undefined);
+			expect(messageboxChild.isReady('parentFrame')).toBe(true);
+		});
+
+		test('refuses when the parent expects another server', () => {
+			dispatchSettingsReply('https://evil.example');
+			expect(messageboxChild.isReady('parentFrame')).toBe(false);
+		});
+
+		test('refuses when the child has no server url to compare', () => {
+			messageboxChild.init(MessageBoxType.Child);
+			messageboxChild.startCommunication(parentUrl);
+			dispatchSettingsReply('https://hub.example');
+			expect(messageboxChild.isReady('parentFrame')).toBe(false);
+		});
+
+		test('a parent sends the server url it was given along in its handshake reply', () => {
+			vi.stubGlobal('self', 'parent');
+			messageboxParent.init(MessageBoxType.Parent);
+			const sent: { message: Message; url: string }[] = [];
+			messageboxParent.resolveTarget = (id: string) => ({
+				[id]: { window: { postMessage: (message: Message, url: string) => sent.push({ message, url }) }, receiverUrl: 'https://hub-origin.example' },
+			});
+			messageboxParent.startCommunication('https://hub-origin.example', iframeHubId, 'https://hub.example');
+
+			window.dispatchEvent(new MessageEvent('message', { origin: 'https://hub-origin.example', data: { type: MessageType.Sync, content: '' } }));
+
+			expect(messageboxParent.isReady(iframeHubId)).toBe(true);
+			expect(sent).toHaveLength(1);
+			expect(sent[0].message.type).toBe(MessageType.Settings);
+			expect((sent[0].message.content as { hubServerUrl?: string }).hubServerUrl).toBe('https://hub.example');
+		});
+	});
 });

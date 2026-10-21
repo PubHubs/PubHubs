@@ -8,6 +8,7 @@ import { useMiniclientGate } from '@global-client/composables/miniclientGate.com
 import { copyImageNatively } from '@global-client/logic/nativeClipboard';
 import { shareFileNatively } from '@global-client/logic/nativeFileShare';
 import { type LocalStore } from '@global-client/logic/utils/localStore';
+import { hubClientOrigin, hubHandshakeServerUrl } from '@global-client/logic/utils/nativeHubClient';
 
 import { type FileShareRequest } from '@hub-client/logic/core/requestFileShare';
 import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -133,7 +134,7 @@ const useHubs = defineStore('hubs', {
 
 			// Start conversation with hub frame and sync latest settings. A false result means this
 			// handshake was superseded or torn down while we waited, so the frame it belonged to is gone.
-			if (!(await messagebox.startCommunication(this.hubs[hubId].url, frameId))) return;
+			if (!(await messagebox.startCommunication(hubClientOrigin(this.hubs[hubId]), frameId, hubHandshakeServerUrl(this.hubs[hubId])))) return;
 
 			// Hub client signals when it transitions to having unread messages
 			messagebox.addCallback(frameId, MessageType.UnreadMessages, () => {
@@ -212,7 +213,7 @@ const useHubs = defineStore('hubs', {
 				// Start conversation with hub frame and sync latest settings. A false result means a later
 				// hub change superseded this one while we waited; that call owns currentHubId now, so
 				// registering callbacks here would attach them to a hub the user already left.
-				if (!(await messagebox.startCommunication(this.currentHub.url, iframeHubId))) return;
+				if (!(await messagebox.startCommunication(hubClientOrigin(this.currentHub), iframeHubId, hubHandshakeServerUrl(this.currentHub)))) return;
 
 				// The main hub iframe reuses iframeHubId across hubs — read currentHubId
 				// at message-arrival time so callbacks always use the current hub.

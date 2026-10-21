@@ -181,6 +181,8 @@ const useSettings = defineStore('settings', {
 		// which is the frame Capacitor exposes its bridge to; the hub client always
 		// reads false here and is told the real value over the messagebox.
 		isNativeApp: Capacitor.isNativePlatform(),
+		// Whether that native app is a debug build. Same story as isNativeApp.
+		isNativeDebugApp: Capacitor.DEBUG ?? false,
 	}),
 
 	getters: {
@@ -306,6 +308,10 @@ const useSettings = defineStore('settings', {
 			this.isNativeApp = isNativeApp;
 		},
 
+		setIsNativeDebugApp(isNativeDebugApp: boolean) {
+			this.isNativeDebugApp = isNativeDebugApp;
+		},
+
 		sendSettings() {
 			const messagebox = useMessageBox();
 			if (messagebox.type === MessageBoxType.Parent) {
@@ -315,6 +321,7 @@ const useSettings = defineStore('settings', {
 						timeformat: this.timeformat as TimeFormat,
 						language: this.language,
 						isNativeApp: this.isNativeApp,
+						isNativeDebugApp: this.isNativeDebugApp,
 					}),
 				);
 			}
