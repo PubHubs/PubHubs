@@ -102,7 +102,7 @@
 	}
 
 	async function loadHubSettings() {
-		const hubSettingsJSON = await hubSettings.getHubJSON();
+		const hubSettingsJSON = await hubSettings.getHubJSON().catch(() => undefined);
 		hubDescription.value = hubSettingsJSON?.description ?? '';
 		hubContact.value = hubSettingsJSON?.contact ?? '';
 	}

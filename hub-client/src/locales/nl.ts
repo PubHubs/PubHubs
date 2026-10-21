@@ -9,6 +9,9 @@ const nl = {
 		description: 'Kaart uitgegeven met de volgende kenmerken:',
 	},
 	state: {
+		hub_offline: 'Geen verbinding met deze hub. Wat je ziet is mogelijk niet actueel.',
+		rooms_offline: 'Kamers kunnen worden getoond zodra er verbinding is.',
+		room_offline: 'Deze kamer kan worden getoond zodra er verbinding is.',
 		button_request: 'Verleen toegang',
 		initial: 'Controleren of de hub client toegang heeft tot cookies en lokale opslag...',
 		requesting: 'Toegang verlenen...',
@@ -38,6 +41,7 @@ const nl = {
 		go_back: 'Ga terug',
 	},
 	errors: {
+		needs_connection: 'Hiervoor is een internetverbinding nodig. Controleer je verbinding en probeer het opnieuw.',
 		oops: 'OEPS!',
 		error: 'Helaas, er is een fout opgetreden. <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">Neem contact op met de ontwikkelaars</a>.\n\n {0}',
 		server: 'Serverfout',

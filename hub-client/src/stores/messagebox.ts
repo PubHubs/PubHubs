@@ -3,7 +3,9 @@ import { defineStore } from 'pinia';
 
 // Logic
 import filters from '@hub-client/logic/core/filters';
+import { hubStorage } from '@hub-client/logic/core/hubStorage';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { isNativeHubOrigin } from '@hub-client/logic/utils/nativeHubOrigin';
 
 // Stores
 import { type Theme, type TimeFormat, useSettings } from '@hub-client/stores/settings';
@@ -48,9 +50,9 @@ import { type Theme, type TimeFormat, useSettings } from '@hub-client/stores/set
 /**
  * Origins of the official PubHubs native app shells (Capacitor). Under these shells, global-client runs
  * at a fixed platform origin unrelated to a hub's configured PARENT_URL, so a hub-client CHILD trusts
- * these too, as exact-match origins, same as any other origin check here. Only the CHILD does: in the
- * native app each hub's client runs on its own origin (see nativeHubOrigin.ts), which the PARENT is
- * given as `url` and matches exactly.
+ * these too, as exact-match origins, same as any other origin check here. On its own origin in the
+ * native app (see nativeHubOrigin.ts) a CHILD trusts only these, see startCommunication. Only the CHILD
+ * does: the PARENT is given each hub's origin as `url` and matches it exactly.
  *
  * SECURITY: 'pubhubs-app.invalid' is deliberately not a generic hostname like 'localhost' — '.invalid'
  * is reserved by RFC 2606 to never be resolvable, so only this app's own WebViewLocalServer (Android) /
@@ -64,6 +66,20 @@ const NATIVE_SHELL_ORIGINS = [
 ];
 
 const logger = createLogger('MessageBox');
+
+/**
+ * Extra handshake data, only used by the native app (see startCommunication).
+ *
+ * - hubServerUrl: a PARENT sends it along; a CHILD passes its own, and only completes the handshake if
+ *   they are the same. In the native app a hub's origin does not pin down which server the hub-client
+ *   talks to, as the server url comes in through the iframe's query string.
+ * - hubStorageKey: a PARENT sends the key for the hub's own encrypted storage (HubStorage). A CHILD
+ *   that gets none (the web) keeps its data in memory.
+ */
+type HandshakeOptions = {
+	hubServerUrl?: string;
+	hubStorageKey?: string;
+};
 
 /**
  * The id of the iframe used to embed the hub's client.
@@ -169,7 +185,7 @@ const useMessageBox = defineStore('messagebox', {
 			inIframe: false, // Is the messagebox inside an iframe? Used to determine if a hub is on its own or inside an iframe of the global client.
 			type: MessageBoxType.Unset, // Parent or Child
 			receiverUrlMap: new Map<string, string>(), // The id of the iframe mapped to the url to which this messagebox can send and receive messages
-			hubServerUrlMap: new Map<string, string>(), // The id of the iframe mapped to the hub server url both sides must agree on, see startCommunication
+			handshakeOptions: new Map<string, HandshakeOptions | Promise<HandshakeOptions>>(), // The id of the iframe mapped to its extra handshake data, see HandshakeOptions
 			handshake: new Map<string, HandshakeState>(), // Handshake state
 			callbacks: new Map<string, { [index in MessageType]: (message: Message) => void }>(), // List of callbacks per MessageType
 			_windowMessageListener: new Map<string, (event: MessageEvent) => void>(), // Event listener, set at init
@@ -212,29 +228,42 @@ const useMessageBox = defineStore('messagebox', {
 		 *
 		 * @param url url of the other side
 		 * @param [id='parentFrame'] the iframe id of the other side (the main frame does not have such an id, so the id will then be 'parentFrame')
-		 * @param [hubServerUrl] the hub server url. A PARENT that passes it sends it along in the handshake, and a
-		 *   CHILD then only completes the handshake if its own hub server url (passed here too) is the same. The
-		 *   native app uses this: there a hub's origin does not pin down which server the hub-client talks to,
-		 *   as the server url comes in through the iframe's query string.
+		 * @param [options] extra handshake data for the native app, see HandshakeOptions. A PARENT may pass a
+		 *   promise: it starts listening right away (so the child's first message isn't missed) and only
+		 *   waits for the options when it answers. A CHILD must pass a plain object.
 		 *
 		 * @returns a Promise that resolves true once the handshake is ready. Add callbacks after that.
 		 *   Resolves false instead when this handshake is abandoned — superseded by a later
 		 *   startCommunication on the same id, or torn down by reset/resetCurrentHub/resetMiniclient —
 		 *   in which case the caller must not go on to register callbacks for what is now a stale frame.
 		 */
-		startCommunication(url: string, id: string = 'parentFrame', hubServerUrl?: string): Promise<boolean> {
+		startCommunication(url: string, id: string = 'parentFrame', options: HandshakeOptions | Promise<HandshakeOptions> = {}): Promise<boolean> {
 			// A pending handshake on this id belongs to a frame we are about to stop listening to, so its
 			// resolve is unreachable from here on. Settle it as abandoned rather than leaving its caller
 			// awaiting forever.
 			this.abandonHandshake(id);
+			// The main hub iframe keeps its id when the user switches hubs: the new hub's frame must not be
+			// taken as ready, nor reach the callbacks set up for the previous hub, before its own handshake.
+			// Only for a PARENT: a CHILD sets some callbacks before its handshake on purpose (Miniclient.vue).
+			if (this.type === MessageBoxType.Parent) {
+				this.handshake.delete(id);
+				this.callbacks.delete(id);
+			}
+
+			// On its origin in the native app a hub-client only takes the app itself as its parent. The
+			// configured url (PARENT_URL) comes in through the iframe's query string there, which whoever
+			// embeds the frame chooses: another hub's frame could name itself. Until the app has answered,
+			// there is nowhere to send to (see resolveTarget).
+			const onNativeHubOrigin = this.type === MessageBoxType.Child && isNativeHubOrigin(window.location.hostname);
+			const trustedUrl = onNativeHubOrigin ? undefined : url;
 
 			return new Promise((resolve, reject) => {
-				this.receiverUrlMap.set(id, url);
-				if (hubServerUrl === undefined) {
-					this.hubServerUrlMap.delete(id);
+				if (trustedUrl === undefined) {
+					this.receiverUrlMap.delete(id);
 				} else {
-					this.hubServerUrlMap.set(id, hubServerUrl);
+					this.receiverUrlMap.set(id, trustedUrl);
 				}
+				this.handshakeOptions.set(id, options);
 				this._pendingHandshake.set(id, resolve);
 
 				// If Child: start handshake with parent
@@ -242,7 +271,7 @@ const useMessageBox = defineStore('messagebox', {
 					// The child doesn't yet know if the parent's real origin is the configured `url` or a
 					// native-shell origin, so this first, non-sensitive ping broadcasts with targetOrigin '*'.
 					// The reply's event.origin is validated below before anything sensitive is sent to it.
-					this.sendMessage(new Message(MessageType.Sync), id, true);
+					window.parent.postMessage(new Message(MessageType.Sync), '*');
 					this.handshake.set(id, HandshakeState.Started);
 				}
 
@@ -257,8 +286,15 @@ const useMessageBox = defineStore('messagebox', {
 					}
 
 					this._windowMessageListener.set(id, (event: MessageEvent) => {
-						const expectedUrl = this.receiverUrlMap.get(id) ?? url;
-						const originMatchesConfigured = filters.removeTrailingSlash(event.origin) === filters.removeTrailingSlash(expectedUrl);
+						if (this.type === MessageBoxType.Child) {
+							// A CHILD only talks to its parent. In the native app that parent must also be the app
+							// itself, not a frame another hub put this one in.
+							if (event.source !== window.parent) return;
+							if (onNativeHubOrigin && window.parent !== window.top) return;
+						}
+						const expectedUrl = this.receiverUrlMap.get(id) ?? trustedUrl;
+						const originMatchesConfigured =
+							expectedUrl !== undefined && filters.removeTrailingSlash(event.origin) === filters.removeTrailingSlash(expectedUrl);
 						const originIsTrustedNativeShell = this.type === MessageBoxType.Child && NATIVE_SHELL_ORIGINS.includes(event.origin);
 
 						if (originMatchesConfigured || originIsTrustedNativeShell) {
@@ -273,21 +309,34 @@ const useMessageBox = defineStore('messagebox', {
 							// Answer to handshake as parent
 							if (message.type === MessageType.Sync && this.type === MessageBoxType.Parent) {
 								// console.log('<= ' + this.type + ' RECEIVED handshake:', this.receiverUrl);
-								this.sendMessage(
-									new Message(MessageType.Settings, {
-										theme: settings.theme as Theme,
-										timeformat: settings.timeformat as TimeFormat,
-										language: settings.language,
-										isNativeApp: settings.isNativeApp,
-										isNativeDebugApp: settings.isNativeDebugApp,
-										hubServerUrl: this.hubServerUrlMap.get(id),
-									}),
-									id,
-								);
+								void (async () => {
+									let handshakeOptions: HandshakeOptions | undefined;
+									try {
+										handshakeOptions = await this.handshakeOptions.get(id);
+									} catch (error) {
+										// Answering without them would skip the child's checks, so don't answer.
+										logger.error('Could not prepare the handshake; not answering it', { id, error });
+										return;
+									}
+									// Abandoned (superseded or torn down) while the options were being prepared.
+									if (this._pendingHandshake.get(id) !== resolve) return;
+									this.sendMessage(
+										new Message(MessageType.Settings, {
+											theme: settings.theme as Theme,
+											timeformat: settings.timeformat as TimeFormat,
+											language: settings.language,
+											isNativeApp: settings.isNativeApp,
+											isNativeDebugApp: settings.isNativeDebugApp,
+											hubServerUrl: handshakeOptions?.hubServerUrl,
+											hubStorageKey: handshakeOptions?.hubStorageKey,
+										}),
+										id,
+									);
 
-								this.handshake.set(id, HandshakeState.Ready);
-								this._pendingHandshake.delete(id);
-								resolve(true);
+									this.handshake.set(id, HandshakeState.Ready);
+									this._pendingHandshake.delete(id);
+									resolve(true);
+								})();
 							}
 
 							// Answer to handshake as child
@@ -301,9 +350,18 @@ const useMessageBox = defineStore('messagebox', {
 									isNativeApp?: boolean;
 									isNativeDebugApp?: boolean;
 									hubServerUrl?: string;
+									hubStorageKey?: string;
 								};
+								// In the native app a hub's origin does not pin down its server, so there only the
+								// handshake reply, which names the server, completes the handshake. A settings change
+								// is sent to every frame and can arrive first: it carries no server, and is left for
+								// the reply, which brings the current settings as well.
+								if (!this.isReady(id) && settingsContent.hubServerUrl === undefined && isNativeHubOrigin(window.location.hostname)) {
+									return;
+								}
 								if (settingsContent.hubServerUrl !== undefined) {
-									const ownHubServerUrl = this.hubServerUrlMap.get(id);
+									const ownOptions = this.handshakeOptions.get(id);
+									const ownHubServerUrl = ownOptions && !('then' in ownOptions) ? ownOptions.hubServerUrl : undefined;
 									if (
 										ownHubServerUrl === undefined ||
 										filters.removeTrailingSlash(ownHubServerUrl) !== filters.removeTrailingSlash(settingsContent.hubServerUrl)
@@ -321,6 +379,14 @@ const useMessageBox = defineStore('messagebox', {
 								// Only the parent can tell: Capacitor's platform-detection bridge isn't exposed inside this iframe.
 								settings.setIsNativeApp(settingsContent.isNativeApp ?? false);
 								settings.setIsNativeDebugApp(settingsContent.isNativeDebugApp ?? false);
+								// Later Settings messages (settings changes) carry no key; only the handshake opens storage.
+								if (!this.isReady(id)) {
+									if (settingsContent.hubStorageKey) {
+										void hubStorage.open(settingsContent.hubStorageKey);
+									} else {
+										hubStorage.disable();
+									}
+								}
 								this.handshake.set(id, HandshakeState.Ready);
 								this._pendingHandshake.delete(id);
 								resolve(true);
@@ -370,7 +436,7 @@ const useMessageBox = defineStore('messagebox', {
 			this.inIframe = globalThis.self !== window.top;
 			this.type = MessageBoxType.Unset;
 			this.receiverUrlMap.clear();
-			this.hubServerUrlMap.clear();
+			this.handshakeOptions.clear();
 			this.handshake.clear();
 			this.callbacks.clear();
 		},
@@ -388,7 +454,7 @@ const useMessageBox = defineStore('messagebox', {
 			this.abandonHandshake(iframeHubId);
 			this._windowMessageListener.delete(iframeHubId);
 			this.receiverUrlMap.delete(iframeHubId);
-			this.hubServerUrlMap.delete(iframeHubId);
+			this.handshakeOptions.delete(iframeHubId);
 			this.handshake.delete(iframeHubId);
 			this.callbacks.delete(iframeHubId);
 		},
@@ -402,7 +468,7 @@ const useMessageBox = defineStore('messagebox', {
 			this.abandonHandshake(fullMiniclientId);
 			this._windowMessageListener.delete(fullMiniclientId);
 			this.receiverUrlMap.delete(fullMiniclientId);
-			this.hubServerUrlMap.delete(fullMiniclientId);
+			this.handshakeOptions.delete(fullMiniclientId);
 			this.handshake.delete(fullMiniclientId);
 			this.callbacks.delete(fullMiniclientId);
 		},
@@ -444,14 +510,13 @@ const useMessageBox = defineStore('messagebox', {
 		 *
 		 * @param message Message
 		 * @param [id='parentFrame'] the id of the target that the message needs to be sent to
-		 * @param [unsafeInitialHandshake=false] only used internally for the CHILD's very first (non-sensitive) handshake ping.
 		 */
-		sendMessage(message: Message, id: string = 'parentFrame', unsafeInitialHandshake: boolean = false) {
+		sendMessage(message: Message, id: string = 'parentFrame') {
 			if (this.isConnected) {
 				const target = this.resolveTarget(id);
 				for (const id in target) {
 					// console.log('=> ' + this.type + ' SEND', message, target[id].receiverUrl);
-					target[id].window.postMessage(message, unsafeInitialHandshake ? '*' : target[id].receiverUrl);
+					target[id].window.postMessage(message, target[id].receiverUrl);
 				}
 			}
 		},
@@ -503,4 +568,4 @@ const useMessageBox = defineStore('messagebox', {
 	},
 });
 
-export { iframeHubId, miniClientId, Message, MessageBoxType, MessageType, NATIVE_SHELL_ORIGINS, useMessageBox };
+export { iframeHubId, miniClientId, Message, MessageBoxType, MessageType, NATIVE_SHELL_ORIGINS, useMessageBox, type HandshakeOptions };

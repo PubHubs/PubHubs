@@ -13,9 +13,15 @@ public class MainActivity extends BridgeActivity {
         // picks up plugins registered beforehand.
         registerPlugin(LinkHandlerPlugin.class);
         registerPlugin(ImageClipboardPlugin.class);
+        registerPlugin(SystemBarColorPlugin.class);
         super.onCreate(savedInstanceState);
 
         getBridge().setWebViewClient(new HubOriginWebViewClient(getBridge()));
+
+        // The layout root scrolls sideways between the menu and the hub. Its CSS
+        // (no-scrollbar) hides the scroll bar the page draws, but Android draws the
+        // WebView's own scroll bar natively, which only this switches off.
+        getBridge().getWebView().setHorizontalScrollBarEnabled(false);
 
         // Debug builds only: lets the native shell (served from https://pubhubs-app.invalid) fetch
         // plain-HTTP dev addresses (PHC/global-client/hub-client/Matrix API) without being blocked as

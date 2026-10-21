@@ -19,6 +19,7 @@ import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { type RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 import { type RoomMessageEventContent, type TimelineEvents } from 'matrix-js-sdk/lib/types';
 import { defineStore } from 'pinia';
+import { watch } from 'vue';
 
 // Composables
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -30,6 +31,7 @@ import { Authentication } from '@hub-client/logic/core/authentication';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { removeHtml } from '@hub-client/logic/core/htmlText';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
+import { installOfflineSimulation, onReconnect, reachabilityOf, registerProbe, trackedFetch, whenReachable } from '@hub-client/logic/core/reachability';
 import { router } from '@hub-client/logic/core/router';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { SyncProfile } from '@hub-client/logic/matrix.logic';
@@ -70,6 +72,7 @@ import { useConnection } from '@hub-client/stores/connection';
 import { useDialog } from '@hub-client/stores/dialog';
 import { useMessageActions } from '@hub-client/stores/message-actions';
 import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
+import { useSettings } from '@hub-client/stores/settings';
 import { useUser } from '@hub-client/stores/user';
 
 const logger = createLogger('PubHubs');
@@ -120,12 +123,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 				const { init, startSync } = useMatrix();
 				init(_client as MatrixClient);
-				startSync(options.unreadOnly ? SyncProfile.UnreadOnly : SyncProfile.Full); // Do not await this async function, since it will be running continuously in the background
+				this.watchHubServer(_client as MatrixClient);
+				// Offline, matrix-js-sdk retries its first request (push rules) without any pause, so only
+				// start once the hub server answers. Not awaited: syncing runs in the background.
+				void whenReachable(this.client.baseUrl).then(() => startSync(options.unreadOnly ? SyncProfile.UnreadOnly : SyncProfile.Full));
 
 				logger.debug('PubHubs.logged in ()');
-
-				const connection = useConnection();
-				connection.on();
 
 				const newUserId = user.userId;
 				if (newUserId !== null) {
@@ -137,15 +140,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 					if (!options.unreadOnly) {
 						user.fetchIsAdministrator(this.client as MatrixClient);
 						user.fetchIfUserNeedsConsent();
+						// Checked against the cached answer while the hub was unreachable; check for real now.
+						onReconnect(this.client.baseUrl, () => user.fetchIfUserNeedsConsent().then(() => undefined));
 
 						// Deliberately not awaited. This is two network operations — the profile lookup, and
 						// inside setProfile a download of the user's own avatar — and App.vue keeps the whole
 						// hub UI behind `v-if="setupReady"` until login() resolves. Nothing rendered at that
 						// point needs either; the name and avatar fill in when they arrive.
-						void this.client
-							.getProfileInfo(newUserId)
-							.then((profile) => user.setProfile(profile))
-							.catch((error) => logger.debug('There is no profile information (avatar or displayname) for this user.', { error }));
+						const client = this.client;
+						const loadProfile = () =>
+							client
+								.getProfileInfo(newUserId)
+								.then((profile) => user.setProfile(profile))
+								.catch((error) => logger.debug('There is no profile information (avatar or displayname) for this user.', { error }));
+						// The last known profile first: without a connection the lookup may fail, or not answer at all.
+						void user.restoreOwnProfile().finally(loadProfile);
+						// Likewise the room list, shown in the menu until the first sync is in.
+						void useRooms().restoreRoomList();
+						// Shown from the copy on this device while the hub was unreachable; load it for real now.
+						onReconnect(client.baseUrl, loadProfile);
 					}
 				}
 			} catch (error: unknown) {
@@ -156,6 +169,23 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		logout() {
 			this.Auth.logout();
+		},
+
+		/**
+		 * Keep track of whether this hub's server can be reached (see logic/core/reachability.ts), and
+		 * mirror that in the connection store.
+		 */
+		watchHubServer(client: MatrixClient) {
+			const baseUrl = client.baseUrl;
+			if (import.meta.env.DEV || useSettings().isNativeDebugApp) installOfflineSimulation();
+			registerProbe(baseUrl, () => trackedFetch(`${baseUrl}/_matrix/client/versions`));
+			const connection = useConnection();
+			// Unknown counts as on, as before this was tracked.
+			watch(
+				() => reachabilityOf(baseUrl),
+				(state) => (state === 'offline' ? connection.off() : connection.on()),
+				{ immediate: true },
+			);
 		},
 
 		async updateRooms() {

@@ -12,6 +12,8 @@ let pinia;
 
 describe('hubs Store', () => {
 	beforeEach(() => {
+		// The store starts from the hub list cached on this device; start every test without one.
+		localStorage.removeItem('ph:hubs-cache');
 		pinia = createPinia();
 		setActivePinia(pinia);
 	});

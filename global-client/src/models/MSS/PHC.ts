@@ -470,6 +470,14 @@ export default class PHCServer {
 	}
 
 	async getDecryptedUserObject(handle: string) {
+		return (await this.getDecryptedUserObjectWithHash(handle))?.data ?? null;
+	}
+
+	/**
+	 * Like {@link getDecryptedUserObject}, but also returns the hash the object is stored under, to pass
+	 * to {@link encryptAndStoreObjectIfUnchanged} later.
+	 */
+	async getDecryptedUserObjectWithHash(handle: string): Promise<{ data: string; hash: string } | null> {
 		// Retrieve the contents of the object and the userSecret
 		const getObjectResp = await this.getUserObject(handle);
 		if (!getObjectResp?.object) {
@@ -486,7 +494,7 @@ export default class PHCServer {
 		// Decode the data
 		const decoder = new TextDecoder();
 		const decodedData = decoder.decode(decryptedData);
-		return decodedData;
+		return { data: decodedData, hash: getObjectResp.details.hash };
 	}
 
 	/**
@@ -667,6 +675,76 @@ export default class PHCServer {
 		const encodedUserSecret = new Uint8Array(Buffer.from(userSecret, 'base64'));
 		const encryptedData = await this.encryptData(encodedData, encodedUserSecret);
 		await this.storeObject(handle, encryptedData, overwriteHash);
+	}
+
+	/**
+	 * Store an object only if the stored copy is still the one the caller last saw: the object stored
+	 * under `expectedHash`, or no object at all when `expectedHash` is null. Unlike
+	 * {@link encryptAndStoreObject}, a copy changed in the meantime (by another device) is never
+	 * overwritten; the caller gets `conflict` and is expected to reload, merge and try again.
+	 *
+	 * @returns `stored` with the new hash, `conflict`, or `loggedOut` when the auth token could not be
+	 *   refreshed (the logout procedure has been triggered then).
+	 */
+	async encryptAndStoreObjectIfUnchanged<T>(
+		handle: string,
+		data: T,
+		expectedHash: string | null,
+	): Promise<{ result: 'stored'; hash: string } | { result: 'conflict' } | { result: 'loggedOut' }> {
+		const userSecret = await this.getUserSecretInfo();
+		assert.isDefined(userSecret, 'Could not retrieve the userSecret from localstorage.');
+		const encodedData = new TextEncoder().encode(JSON.stringify(data));
+		const object = await this.encryptData(encodedData, new Uint8Array(Buffer.from(userSecret, 'base64')));
+
+		const maxAttempts = 3;
+		let tokenRefreshed = false;
+		for (let attempts = 0; attempts < maxAttempts; attempts++) {
+			const options = {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/octet-stream',
+					Authorization: (await this._getAuthToken()) ?? '',
+				},
+				body: object as unknown as Uint8Array,
+			};
+			const url =
+				expectedHash === null
+					? this._phcAPI.apiURLS.newObject + '/' + handle
+					: this._phcAPI.apiURLS.overwriteObject + '/' + handle + '/' + expectedHash;
+			const resp = await handleErrors<TPHC.StoreObjectResp>(() => this._phcAPI.api<TPHC.PHCStoreObjectResp>(url, options));
+			switch (resp) {
+				case 'PleaseRetry':
+					continue;
+				case 'RetryWithNewAuthToken':
+					if (!tokenRefreshed && (await this._refreshAndRetry())) {
+						tokenRefreshed = true;
+						continue;
+					}
+					return { result: 'loggedOut' };
+				// MissingHash: an object appeared where we expected none. HashDidNotMatch / NotFound: the
+				// object we expected was replaced or removed. All mean our copy is out of date.
+				case 'MissingHash':
+				case 'HashDidNotMatch':
+				case 'NotFound':
+					this._userStateObjects = undefined;
+					return { result: 'conflict' };
+				case 'NoChanges':
+					assert.isNotNull(expectedHash, 'NoChanges cannot be the answer to storing a new object.');
+					return { result: 'stored', hash: expectedHash };
+				default:
+					if ('QuotumReached' in resp) {
+						throw new Error(`Could not store the user object with handle ${handle}, because the quotum is reached.`);
+					} else if ('Stored' in resp) {
+						this._userStateObjects = resp.Stored.stored_objects;
+						const details = this._userStateObjects[handle];
+						assert.isDefined(details, `The object with handle ${handle} is missing from the state PHC returned after storing it.`);
+						return { result: 'stored', hash: details.hash };
+					} else {
+						throw new Error('Unknown response for storing a user object.');
+					}
+			}
+		}
+		throw new Error(`Could not store the user object with handle ${handle}: PHC kept asking to retry.`);
 	}
 
 	// #region Hub Login

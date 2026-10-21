@@ -269,8 +269,10 @@
 	);
 
 	const isMobile = computed(() => settings.isMobileState);
-	const hasPublicRooms = computed(() => rooms.loadedPublicRooms.length > 0 || !rooms.roomsLoaded);
-	const hasSecuredRooms = computed(() => rooms.loadedSecuredRooms.length > 0 || notifications.notifications.length > 0 || !rooms.roomsLoaded);
+	// While loading without a list as last known, the sections stay, to show that rooms are coming.
+	const loadingWithoutStoredList = computed(() => !rooms.roomsLoaded && !rooms.showsStoredRoomList);
+	const hasPublicRooms = computed(() => rooms.menuPublicRooms.length > 0 || loadingWithoutStoredList.value);
+	const hasSecuredRooms = computed(() => rooms.menuSecuredRooms.length > 0 || notifications.notifications.length > 0 || loadingWithoutStoredList.value);
 
 	const isHubAdmin = computed(() => roles.userIsHubAdmin());
 	const isModerator = computed(() => roles.userIsHubStewardOrHigher());

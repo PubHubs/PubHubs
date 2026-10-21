@@ -90,11 +90,20 @@
 				</MenuItem>
 			</template>
 		</template>
-		<template v-if="!roomsLoaded && currentJoinedRooms.length === 0">
-			<MenuItemSkeleton
-				v-for="n in 3"
-				:key="n"
-			/>
+		<template v-if="!roomsLoaded && !rooms.showsStoredRoomList && currentJoinedRooms.length === 0">
+			<!-- Offline the list can't load, so don't pretend it is loading. -->
+			<li
+				v-if="!connection.isOn"
+				class="text-label-small px-100 opacity-70"
+			>
+				{{ t('state.rooms_offline') }}
+			</li>
+			<template v-else>
+				<MenuItemSkeleton
+					v-for="n in 3"
+					:key="n"
+				/>
+			</template>
 		</template>
 	</Menu>
 	<RoomLoginDialog
@@ -134,6 +143,7 @@
 	import { DirectRooms, PublicRooms, type RoomListRoom, RoomType, SecuredRooms, showsUnreadState } from '@hub-client/models/rooms/TBaseRoom';
 	import { TNotificationType } from '@hub-client/models/users/TNotification';
 
+	import { useConnection } from '@hub-client/stores/connection';
 	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -159,6 +169,7 @@
 	const route = useRoute();
 	const router = useRouter();
 	const rooms = useRooms();
+	const connection = useConnection();
 	const pubhubs = usePubhubsStore();
 	const { copyRoomUrl } = useClipboard();
 	const { scrollToEnd } = useGlobalScroll();
@@ -166,14 +177,15 @@
 	const dialogOpen = ref<string | null>(null);
 	const dialog = useDialog();
 
+	// Until the first sync is in, the rooms as last known on this device (see rooms.showsStoredRoomList).
 	const currentJoinedRooms = computed(() => {
 		if (props.roomTypes.every((t) => PublicRooms.includes(t))) {
-			return rooms.loadedPublicRooms;
+			return rooms.menuPublicRooms;
 		}
 		if (props.roomTypes.every((t) => SecuredRooms.includes(t))) {
-			return rooms.loadedSecuredRooms;
+			return rooms.menuSecuredRooms;
 		}
-		return rooms.loadedPrivateRooms;
+		return rooms.menuPrivateRooms;
 	});
 
 	const roomsLoaded = computed(() => {

@@ -589,6 +589,16 @@ const useMSS = defineStore('mss', {
 			return object;
 		},
 
+		/** A user object with the hash it is stored under, for {@link storeUserObjectIfUnchanged}. */
+		async requestUserObjectWithHash(handle: string): Promise<{ data: string; hash: string } | null> {
+			return await this.phcServer.getDecryptedUserObjectWithHash(handle);
+		},
+
+		/** Store a user object unless it changed since it was loaded with `expectedHash`, see PHCServer.encryptAndStoreObjectIfUnchanged. */
+		async storeUserObjectIfUnchanged<T>(handle: string, data: T, expectedHash: string | null) {
+			return await this.phcServer.encryptAndStoreObjectIfUnchanged<T>(handle, data, expectedHash);
+		},
+
 		async storeUserObject<T>(handle: string, data: T): Promise<void> {
 			const object = await this.phcServer.getUserObject(handle);
 			let overwriteHash: string | undefined = undefined;

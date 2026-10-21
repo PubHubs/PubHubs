@@ -7,8 +7,9 @@ import { useMiniclientGate } from '@global-client/composables/miniclientGate.com
 // Logic
 import { copyImageNatively } from '@global-client/logic/nativeClipboard';
 import { shareFileNatively } from '@global-client/logic/nativeFileShare';
+import { loadHubsCache, saveHubsCache } from '@global-client/logic/utils/hubsCache';
 import { type LocalStore } from '@global-client/logic/utils/localStore';
-import { hubClientOrigin, hubHandshakeServerUrl } from '@global-client/logic/utils/nativeHubClient';
+import { hubClientOrigin, hubHandshakeOptions } from '@global-client/logic/utils/nativeHubClient';
 
 import { type FileShareRequest } from '@hub-client/logic/core/requestFileShare';
 import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -51,7 +52,8 @@ const useHubs = defineStore('hubs', {
 		return {
 			currentHubId: '' as string,
 			currentRoomId: '' as string,
-			hubs: {} as { [index: string]: Hub },
+			// Starts from the last known hub list, so hubs can be shown and opened while PHC is unreachable.
+			hubs: loadHubsCache(),
 		};
 	},
 
@@ -118,6 +120,16 @@ const useHubs = defineStore('hubs', {
 	actions: {
 		async addHub(hub: Hub) {
 			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.hubName, hub.url, hub.serverUrl), hub);
+			saveHubsCache(this.hubs);
+		},
+
+		/** Forget hubs PHC no longer lists. */
+		retainHubs(hubIds: string[]) {
+			const keep = new Set(hubIds);
+			for (const hubId of Object.keys(this.hubs)) {
+				if (!keep.has(hubId)) delete this.hubs[hubId];
+			}
+			saveHubsCache(this.hubs);
 		},
 
 		addHubs(hubs: HubList) {
@@ -134,7 +146,7 @@ const useHubs = defineStore('hubs', {
 
 			// Start conversation with hub frame and sync latest settings. A false result means this
 			// handshake was superseded or torn down while we waited, so the frame it belonged to is gone.
-			if (!(await messagebox.startCommunication(hubClientOrigin(this.hubs[hubId]), frameId, hubHandshakeServerUrl(this.hubs[hubId])))) return;
+			if (!(await messagebox.startCommunication(hubClientOrigin(this.hubs[hubId]), frameId, hubHandshakeOptions(this.hubs[hubId])))) return;
 
 			// Hub client signals when it transitions to having unread messages
 			messagebox.addCallback(frameId, MessageType.UnreadMessages, () => {
@@ -213,7 +225,7 @@ const useHubs = defineStore('hubs', {
 				// Start conversation with hub frame and sync latest settings. A false result means a later
 				// hub change superseded this one while we waited; that call owns currentHubId now, so
 				// registering callbacks here would attach them to a hub the user already left.
-				if (!(await messagebox.startCommunication(hubClientOrigin(this.currentHub), iframeHubId, hubHandshakeServerUrl(this.currentHub)))) return;
+				if (!(await messagebox.startCommunication(hubClientOrigin(this.currentHub), iframeHubId, hubHandshakeOptions(this.currentHub)))) return;
 
 				// The main hub iframe reuses iframeHubId across hubs — read currentHubId
 				// at message-arrival time so callbacks always use the current hub.
