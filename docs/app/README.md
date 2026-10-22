@@ -64,6 +64,7 @@ Release builds talk to production, using the committed `global-client/config/cli
 - **CI:** on a final release tag (`vX.Y.Z`), the `build-android` job builds the signed app bundle and APK and keeps them as job artifacts; upload the bundle to Play by hand.
   - It runs in the `android-build` image from `ilab/docker-build`, and fails when `versionName`/`versionCode` don't match the tag.
   - It signs with the upload key from the CI variables `PUBHUBS_KEYSTORE_BASE64` (the keystore, base64-encoded), `PUBHUBS_KEYSTORE_PASSWORD`, `PUBHUBS_KEY_ALIAS` and `PUBHUBS_KEY_PASSWORD`. They are protected, so release tags have to be protected too.
+  - In merge requests and on main, `android-build-check` builds the app unsigned whenever something it depends on changed (`android/`, `capacitor.config.ts`, the npm package files, `global-client/config/`, the CI file), so a broken app build shows up before the release tag.
 
 ## Future notes:
 
