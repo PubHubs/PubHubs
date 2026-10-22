@@ -8,7 +8,19 @@
 			>
 				<Logo />
 			</a>
-			<div class="flex h-200 items-center justify-center gap-100">
+			<div class="flex h-200 items-center justify-center gap-300">
+				<p
+					v-if="reviewMode"
+					class="text-accent-primary flex items-center gap-100 font-bold"
+				>
+					{{ $t('review_mode.label') }}
+					<button
+						class="cursor-pointer underline"
+						@click="switchReviewMode(false, '/login')"
+					>
+						{{ $t('review_mode.leave') }}
+					</button>
+				</p>
 				<p
 					v-if="settings.language === 'nl'"
 					class="hover:text-accent-primary cursor-pointer font-bold"
@@ -32,11 +44,16 @@
 	// Components
 	import Logo from '@global-client/components/ui/Logo.vue';
 
+	// Logic
+	import { inReviewMode, switchReviewMode } from '@global-client/logic/reviewMode';
+
 	// Stores
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const globalClientUrl: string = _env.PUBHUBS_URL;
+	// Shown on the login and register pages, so a reviewer (or anyone who ended up here) can switch back.
+	const reviewMode = inReviewMode();
 
 	function changeLanguage(language: string) {
 		settings.setLanguage(language, true);

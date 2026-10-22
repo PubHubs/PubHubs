@@ -245,6 +245,13 @@ const nl = {
 		loading_yivi: 'Yivi laden...',
 		yivi_app_missing: 'De Yivi app kon niet worden geopend. Controleer of de app geïnstalleerd is en probeer het opnieuw.',
 	},
+	review_mode: {
+		enter_title: 'Overschakelen naar de review-omgeving?',
+		enter_text:
+			'Dit is bedoeld voor app store-reviewers. PubHubs gebruikt dan een aparte testomgeving, waar je je registreert met demogegevens van Yivi. Op de inlogpagina kun je weer terugschakelen.',
+		label: 'Review-omgeving',
+		leave: 'Verlaten',
+	},
 	logout: {
 		logout: 'Logout',
 		logout_sure: 'Weet je zeker dat je PubHubs wilt verlaten?',
