@@ -27,6 +27,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [INTERNAL, NEW] Hub owners can ask for their hub to be registered with an issue form on the GitHub mirror; the team's steps are in the GitLab `add-hub` issue template.
 - [INTERNAL, NEW] The pipeline of a merge request fails when it doesn't add to CHANGELOG.md (unless it has the `No changelog` label), and that of a release tag (also `-rcN`) when CHANGELOG.md has no entries under its version, which the GitHub release takes as its notes.
 - [INTERNAL] The draft GitHub release's notes leave out the changelog's INTERNAL entries; a release with only those says "Internal changes only.".
+- [INTERNAL] The copyright in LICENSE is the Privacy by Design Foundation's (Stichting Privacy by Design), which PubHubs belongs to, instead of iHub's.
 
 ## 18 September 2026 - v3.5.5
 
