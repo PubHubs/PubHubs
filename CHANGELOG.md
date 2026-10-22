@@ -12,10 +12,16 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not merged yet
 
+- [IMPROVED] The room library has been redesigned
 - [IMPROVED] Updated the hub overview and discover page.
+- [IMPROVED] Users are no longer logged out when PubHubs Central restarts. An auth token can now be refreshed until the user has been inactive for 90 days, and at most a year after logging in.
+- [IMPROVED] File uploads now give feedback in the UI when they fail, instead of silently being handled.
 - [BUG] Fixed that ~ would break url links.
 - [BUG] Fixed that the 'System' theme only followed the system theme when PubHubs was (re)loaded.
 - [BUG] Fixed that a logout could redirect a user from the register page.
+- [BUG] Fixed that a reply showed the original message instead of the edited one.
+- [BUG] Fixed that longer messages were sometimes cut off.
+- [BUG] Fixed that pinned hubs were not loaded on the first login after a PubHubs Central restart.
 - [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
 
 ## 18 September 2026 - v3.5.5
