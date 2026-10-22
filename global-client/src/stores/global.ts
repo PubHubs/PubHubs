@@ -302,8 +302,10 @@ const useGlobal = defineStore('global', {
 			const mss = useMSS();
 			mss.logout();
 
-			// TODO: find a way router can be part of a store that TypeScript swallows.
-			// @ts-expect-error -- router is injected as plugin, not in store type
+			// Only reroute on logout if the user is on a page that needs a login (authtoken)
+			if (!this.router.currentRoute.value.meta.requiresAuth) {
+				return;
+			}
 			await this.router.replace({
 				name: 'login',
 				query: message ? { message: message.key, messageValues: message.values?.join(',') } : undefined,
@@ -361,7 +363,6 @@ const useGlobal = defineStore('global', {
 			} catch (error) {
 				logger.error('Could not store the global settings', error);
 				if (!isNetworkError(error)) {
-					// @ts-expect-error -- router is injected as plugin, not in store type
 					this.router.push({ name: 'error' });
 				}
 			}
