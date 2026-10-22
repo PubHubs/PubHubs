@@ -256,6 +256,13 @@ const en = {
 		loading_yivi: 'Loading Yivi...',
 		yivi_app_missing: 'Could not open the Yivi app. Please make sure it is installed, then try again.',
 	},
+	review_mode: {
+		enter_title: 'Switch to the review environment?',
+		enter_text:
+			'This is for app store reviewers. PubHubs then uses a separate test environment, where you register with Yivi demo credentials. You can switch back on the login page.',
+		label: 'Review environment',
+		leave: 'Leave',
+	},
 	logout: {
 		logout: 'Logout',
 		logout_sure: 'Are you sure you want to logout?',

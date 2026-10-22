@@ -66,6 +66,16 @@ Release builds talk to production, using the committed `global-client/config/cli
   - It signs with the upload key from the CI variables `PUBHUBS_KEYSTORE_BASE64` (the keystore, base64-encoded), `PUBHUBS_KEYSTORE_PASSWORD`, `PUBHUBS_KEY_ALIAS` and `PUBHUBS_KEY_PASSWORD`. They are protected, so release tags have to be protected too.
   - In merge requests and on main, `android-build-check` builds the app unsigned whenever something it depends on changed (`android/`, `capacitor.config.ts`, the npm package files, `global-client/config/`, the CI file), so a broken app build shows up before the release tag.
 
+## Review mode
+
+App store reviewers can't log in with a real Yivi identity, so the app has a hidden switch to a separate environment where they register with Yivi demo credentials.
+
+- **Switching on:** tap the mascot on the login page ten times in quick succession, and confirm. The app clears the session and the hub list on this device, and reloads on the register page.
+- **Switching off:** the "Review environment" label in the header of the login and register pages has a "Leave" button. Logging out doesn't leave review mode, because the app also logs out by itself, for example when a session expires.
+- **Which environment:** `REVIEW_PHC_URL` in `global-client/config/client-config.production.js`; for now main (`https://phc-main.pubhubs.net`). While the `ph:review-mode` key is set in `localStorage`, that file sets `PHC_URL` to it before any module loads. Everything else (auths server, transcryptor, hubs) comes from that PHC.
+- **Where:** only in the native app, and only with a `REVIEW_PHC_URL` configured, so not in development or on the web. The code is in `global-client/src/logic/reviewMode.ts`.
+- The demo email address the reviewers use is effectively their password: anyone can issue themselves Yivi demo credentials with the same value. Keep it long and random, and only give it to the store.
+
 ## Future notes:
 
 - **LiveKit (video calls) real-device support is unresolved, for a reason unrelated to HTTP/HTTPS.** `_video_call_web.py` hands the browser the same `LIVEKIT_URL` it uses server-side (see `docs/development/VIDEO_CALL_TROUBLESHOOTING.md`), which `start_testhub.py` sets to `http://localhost:{port}` — a real device can't reach the dev machine's `localhost` regardless of scheme, so real-device video calls were likely already broken before plain HTTP was reintroduced here, for the same "real device can't resolve localhost" reason described at the top of this doc.

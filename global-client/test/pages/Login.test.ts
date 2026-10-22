@@ -1,4 +1,5 @@
 // Packages
+import { Capacitor } from '@capacitor/core';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -16,6 +17,11 @@ import Login from '@global-client/pages/Login.vue';
 import { useMSS } from '@global-client/stores/mss';
 
 import { setUpi18n } from '@hub-client/i18n';
+import { useDialog } from '@hub-client/stores/dialog';
+
+// The review mode tests pretend to be the native app, where this would reach for a native plugin that
+// isn't there in tests. On the web it does nothing anyway.
+vi.mock('@global-client/logic/linkHandler', () => ({ onExternalAppMissing: async () => () => {} }));
 
 const pageShow = (persisted: boolean) => {
 	const event = new Event('pageshow');
@@ -169,5 +175,63 @@ describe('Login.vue', () => {
 		await flushPromises();
 
 		expect(mss.cancelEnter).not.toHaveBeenCalled();
+	});
+
+	describe('review mode', () => {
+		const tapMascot = async (wrapper: Awaited<ReturnType<typeof mountLogin>>, times: number) => {
+			for (let i = 0; i < times; i++) await wrapper.find('figure').trigger('click');
+			await flushPromises();
+		};
+
+		afterEach(() => {
+			delete _env.REVIEW_PHC_URL;
+			localStorage.clear();
+			vi.unstubAllGlobals();
+		});
+
+		test('Ten taps on the mascot in the app offer the review environment, and switch to it', async () => {
+			vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+			_env.REVIEW_PHC_URL = 'https://phc-review.example';
+			const location = { hash: '', reload: vi.fn() };
+			vi.stubGlobal('location', location);
+			const yesno = vi.spyOn(useDialog(), 'yesno').mockResolvedValue(true);
+			const wrapper = await mountLogin();
+
+			await tapMascot(wrapper, 9);
+			expect(yesno).not.toHaveBeenCalled();
+			await tapMascot(wrapper, 1);
+
+			expect(yesno).toHaveBeenCalledTimes(1);
+			expect(localStorage.getItem('ph:review-mode')).not.toBeNull();
+			expect(location.hash).toBe('/register');
+			expect(location.reload).toHaveBeenCalledTimes(1);
+			wrapper.unmount();
+		});
+
+		test('Saying no to the dialog keeps the app where it is', async () => {
+			vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+			_env.REVIEW_PHC_URL = 'https://phc-review.example';
+			const location = { hash: '', reload: vi.fn() };
+			vi.stubGlobal('location', location);
+			vi.spyOn(useDialog(), 'yesno').mockResolvedValue(false);
+			const wrapper = await mountLogin();
+
+			await tapMascot(wrapper, 10);
+
+			expect(localStorage.getItem('ph:review-mode')).toBeNull();
+			expect(location.reload).not.toHaveBeenCalled();
+			wrapper.unmount();
+		});
+
+		test('On the web the mascot is just a picture', async () => {
+			_env.REVIEW_PHC_URL = 'https://phc-review.example';
+			const yesno = vi.spyOn(useDialog(), 'yesno');
+			const wrapper = await mountLogin();
+
+			await tapMascot(wrapper, 10);
+
+			expect(yesno).not.toHaveBeenCalled();
+			wrapper.unmount();
+		});
 	});
 });
