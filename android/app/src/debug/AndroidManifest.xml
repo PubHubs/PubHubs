@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Debug-variant-only overlay. Merged into the main manifest for debug builds and absent from
+        release ones, so the relaxed cleartext-traffic config below can never ship.
+
+        Specifying any network security config supersedes the manifest's
+        android:usesCleartextTraffic, and the default for targetSdk 28+ is false — which would break
+        global-client's plain-HTTP PHC/PubHubs URLs in dev. See docs/app/README.md.
+    -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+
+</manifest>

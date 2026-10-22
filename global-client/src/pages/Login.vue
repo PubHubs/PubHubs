@@ -68,7 +68,7 @@
 										<!-- Yivi injects content here - must be empty -->
 										<div
 											ref="yiviMountPoint"
-											class="yivi-mount absolute inset-0 z-50"
+											class="yivi-mount relative inset-0 z-50"
 										/>
 									</div>
 									<!-- Popup tail, centered on the login button -->
@@ -131,6 +131,9 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Logic
+	import { onExternalAppMissing } from '@global-client/logic/linkHandler';
+
+	import { isNetworkError } from '@hub-client/logic/core/networkError';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
@@ -162,6 +165,8 @@
 	const loading = ref<boolean>(true);
 	const qrLoading = ref<boolean>(false);
 	const error = ref<{ key: string; values?: string[] } | undefined>();
+
+	let removeExternalAppMissingListener: (() => void) | null = null;
 
 	// The element the Yivi widget renders into, inside the popup above the login button.
 	const yiviMountPoint = ref<HTMLElement | null>(null);
@@ -201,10 +206,23 @@
 			await mss.initializeServers();
 			loading.value = false;
 		} catch (error) {
-			router.replace({ name: 'error' });
+			router.replace(isNetworkError(error) ? { name: 'error', query: { errorKey: 'errors.needs_connection' } } : { name: 'error' });
 			logger.error('Could not initialize the servers for the multi-server setup.', { error });
 		}
 	});
+
+	// In the native app the Yivi button is a link the OS has to route to the Yivi
+	// app; when nothing can handle it the tap goes nowhere, so report it here.
+	onMounted(async () => {
+		removeExternalAppMissingListener = await onExternalAppMissing((url) => {
+			error.value = { key: 'login.yivi_app_missing', values: [] };
+			show.value = false;
+			qrLoading.value = false;
+			logger.error('No app on this device could open the Yivi link.', { url });
+		});
+	});
+
+	onUnmounted(() => removeExternalAppMissingListener?.());
 
 	onUnmounted(() => {
 		window.removeEventListener('pageshow', closePopupOnPageShow);

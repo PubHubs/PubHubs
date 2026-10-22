@@ -49,15 +49,7 @@ def main():
     parser = argparse.ArgumentParser(
             description="Spins up a hub container for local development")
 
-    parser.add_argument("--mode",
-                        choices=("networkhost", "localhost"),
-                        default="localhost",
-                        help="Which hostname to use to (have clients) contact the clients and other servers:"
-                        " localhost or 'networkhost', the IP address of the local internet interface. "
-                        "Currently pubhubs does not work under 'networkhost' due to it not being a 'secure context' for crypto in the browser. "
-                        "The networkhost _is_, however, always used for the hub server url (public_baseurl): "
-                        "it must match the url PHC advertises for this hub, and the yivi app contacts the hub via it. ")
-    parser.add_argument("--networkhost", 
+    parser.add_argument("--networkhost",
                         default=None,
                         help="Use this networkhost (e.g. '1.2.3.4', '[1::2]') instead of trying to autodetect it. Used e.g. by the yivi app to contact the hub.")
     parser.add_argument("--replace-sqlite3-by-postgres",
@@ -94,19 +86,26 @@ def main():
             s.connect(("k.root-servers.net", 53))
             networkhost = "[" + s.getsockname()[0] + "]"
 
-    match args.mode:
-        case "networkhost":
-            host = networkhost
-        case "localhost":
-            host = "localhost"
-        case _:
-            raise RuntimeError(f"unknown mode {args.mode}")
-
-    hub_client_url = f"http://{host}:{8001+args.number}"
-    # always the networkhost: it must match the url PHC advertises for this hub (from which the
-    # hub resolves its own id), and the yivi app (which cannot use localhost) contacts the hub via it
+    # hub_client_url: the hub's iframe src, handed to the global client via PHC's `.ph/info`. Plain HTTP
+    # on the networkhost IP, mirroring the PHC/global-client pattern — see docs/app/README.md.
+    hub_client_url = f"http://{networkhost}:{8001+args.number}"
+    # hub_dev_url: the same hub client opened on localhost, as in a desktop browser or the e2e tests. The
+    # hub only answers requests from its client_url and dev_url, so without this one its own endpoints
+    # (consent, hub settings, ...) are blocked from localhost.
+    hub_dev_url = f"http://localhost:{8001+args.number}"
+    # hub_server_url (public_baseurl): used server-side by PHC/yivi to reach the hub directly, so it
+    # stays on the plain-http `networkhost` url from pubhubs.toml, unrelated to the browser-facing URL
+    # above (that's hub-client's own HUB_URL, see maskfile.md's "hub client (n)").
     hub_server_url = f"http://{networkhost}:{8008+args.number}"
-    global_client_url = f"http://{host}:8080"
+    # public_yivi_url: the hub's advertised Yivi disclosure-session proxy URL (_synapse/client/yiviproxy,
+    # QR-encoded for the Yivi app, polled by the browser). Same plain-http address as hub_server_url —
+    # enable Yivi's own "developer mode" on the phone scanning the QR code, or it'll refuse a plain-HTTP
+    # session-pointer URL. See docs/app/README.md. Trailing slash: _web.py concatenates the yiviproxy
+    # path onto this as-is.
+    public_yivi_url = f"{hub_server_url}/"
+    # global_client_url: the native app shell's own origin check (modules/pubhubs/HubClientApi.py),
+    # unrelated to the above — always localhost, regardless of platform. See docs/app/README.md.
+    global_client_url = "http://localhost:8080"
 
     replace_sqlite3_by_postgres = ()
     if args.replace_sqlite3_by_postgres != None: 
@@ -142,7 +141,9 @@ def main():
                     "pubhubs-hub",
                     "--environment", "development",
                     "--hub-client-url", hub_client_url,
+                    "--hub-dev-url", hub_dev_url,
                     "--hub-server-url", hub_server_url,
+                    "--public-yivi-url", public_yivi_url,
                     "--global-client-url", global_client_url,
                     *replace_sqlite3_by_postgres,
                     *server_name,

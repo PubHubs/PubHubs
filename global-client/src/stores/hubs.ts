@@ -5,8 +5,13 @@ import { type RouteParams } from 'vue-router';
 import { useMiniclientGate } from '@global-client/composables/miniclientGate.composable';
 
 // Logic
+import { copyImageNatively } from '@global-client/logic/nativeClipboard';
+import { shareFileNatively } from '@global-client/logic/nativeFileShare';
+import { loadHubsCache, saveHubsCache } from '@global-client/logic/utils/hubsCache';
 import { type LocalStore } from '@global-client/logic/utils/localStore';
+import { hubClientOrigin, hubHandshakeOptions } from '@global-client/logic/utils/nativeHubClient';
 
+import { type FileShareRequest } from '@hub-client/logic/core/requestFileShare';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { assert } from '@hub-client/logic/utils/assert';
 
@@ -47,7 +52,8 @@ const useHubs = defineStore('hubs', {
 		return {
 			currentHubId: '' as string,
 			currentRoomId: '' as string,
-			hubs: {} as { [index: string]: Hub },
+			// Starts from the last known hub list, so hubs can be shown and opened while PHC is unreachable.
+			hubs: loadHubsCache(),
 		};
 	},
 
@@ -114,6 +120,16 @@ const useHubs = defineStore('hubs', {
 	actions: {
 		async addHub(hub: Hub) {
 			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.hubName, hub.url, hub.serverUrl), hub);
+			saveHubsCache(this.hubs);
+		},
+
+		/** Forget hubs PHC no longer lists. */
+		retainHubs(hubIds: string[]) {
+			const keep = new Set(hubIds);
+			for (const hubId of Object.keys(this.hubs)) {
+				if (!keep.has(hubId)) delete this.hubs[hubId];
+			}
+			saveHubsCache(this.hubs);
 		},
 
 		addHubs(hubs: HubList) {
@@ -130,7 +146,7 @@ const useHubs = defineStore('hubs', {
 
 			// Start conversation with hub frame and sync latest settings. A false result means this
 			// handshake was superseded or torn down while we waited, so the frame it belonged to is gone.
-			if (!(await messagebox.startCommunication(this.hubs[hubId].url, frameId))) return;
+			if (!(await messagebox.startCommunication(hubClientOrigin(this.hubs[hubId]), frameId, hubHandshakeOptions(this.hubs[hubId])))) return;
 
 			// Hub client signals when it transitions to having unread messages
 			messagebox.addCallback(frameId, MessageType.UnreadMessages, () => {
@@ -209,7 +225,7 @@ const useHubs = defineStore('hubs', {
 				// Start conversation with hub frame and sync latest settings. A false result means a later
 				// hub change superseded this one while we waited; that call owns currentHubId now, so
 				// registering callbacks here would attach them to a hub the user already left.
-				if (!(await messagebox.startCommunication(this.currentHub.url, iframeHubId))) return;
+				if (!(await messagebox.startCommunication(hubClientOrigin(this.currentHub), iframeHubId, hubHandshakeOptions(this.currentHub)))) return;
 
 				// The main hub iframe reuses iframeHubId across hubs — read currentHubId
 				// at message-arrival time so callbacks always use the current hub.
@@ -342,6 +358,27 @@ const useHubs = defineStore('hubs', {
 					});
 				});
 
+				// As ClipboardWrite, for an image. Same reason: the hub's iframe cannot
+				// reach the clipboard. A hub only asks in the native app, which is also
+				// the only place the web clipboard API cannot do this -- hence the plugin.
+				messagebox.addCallback(iframeHubId, MessageType.ClipboardWriteImage, (message: Message) => {
+					const image = message.content as Blob;
+					copyImageNatively(image).catch((err) => {
+						logger.error('Failed to write the image to clipboard:', err);
+					});
+				});
+
+				// Save a hub's file and offer it to the OS from the top-level frame, the
+				// only one Capacitor runs plugins for. Registered per hub frame, so only
+				// the active hub can ask.
+				messagebox.addCallback(iframeHubId, MessageType.FileShare, (message: Message) => {
+					const { blob, filename } = message.content as FileShareRequest;
+					shareFileNatively(blob, filename).catch((err) => {
+						// Dismissing the system sheet rejects too, so this is not necessarily a failure.
+						logger.error('Failed to hand the file to the system sheet:', err);
+					});
+				});
+
 				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, async () => {
 					global.removeAccessToken(this.currentHubId);
 					// Save settings to persist the token removal before reloading
@@ -355,7 +392,7 @@ const useHubs = defineStore('hubs', {
 });
 
 function sendNotification(hubName: string) {
-	const img = '/client/img/icons/favicon-32x32.png';
+	const img = `${import.meta.env.BASE_URL}img/icons/favicon-32x32.png`;
 	const i18n = setUpi18n();
 	const language = useSettings().language;
 	setLanguage(i18n, language);

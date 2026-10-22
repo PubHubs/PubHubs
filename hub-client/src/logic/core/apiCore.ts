@@ -1,3 +1,6 @@
+// Logic
+import { trackedFetch } from '@hub-client/logic/core/reachability';
+
 // Types
 type ApiUrls = {
 	[index: string]: string;
@@ -90,7 +93,8 @@ class Api {
 			options.headers = { ...options.headers, Authorization: 'Bearer ' + this.accessToken };
 		}
 		// console.log(url);
-		const response = await fetch(url, options as RequestInit);
+		// Throws NetworkError when the server can't be reached, see logic/core/networkError.ts.
+		const response = await trackedFetch(url, options as RequestInit);
 		if (!response.ok) {
 			// Handle 401 Unauthorized - trigger re-authentication
 			if (response.status === 401 && this.onUnauthorized) {
@@ -180,7 +184,7 @@ class Api {
 			throw new Error(`Unsupported file type: ${blob.type}`);
 		}
 
-		const response = await fetch(url, {
+		const response = await trackedFetch(url, {
 			method: 'POST',
 			headers: {
 				'Content-Type': blob.type, // Dynamically set based on the Blob's type

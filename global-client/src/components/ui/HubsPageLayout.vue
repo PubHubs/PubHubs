@@ -8,6 +8,7 @@
 			<slot />
 		</div>
 		<InstallPrompt
+			v-if="!useSettings().isNativeApp"
 			:browser="device.getBrowserName()"
 			:operating-system="device.getMobileOS()"
 		/>
@@ -21,6 +22,8 @@
 
 	// Logic
 	import device from '@hub-client/logic/core/device';
+
+	import { useSettings } from '@hub-client/stores/settings';
 
 	defineProps<{
 		icon: string;

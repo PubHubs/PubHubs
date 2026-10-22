@@ -9,6 +9,9 @@ const en = {
 		description: 'Card issued with the following attributes:',
 	},
 	state: {
+		hub_offline: 'No connection to this hub. What you see may be out of date.',
+		rooms_offline: 'Rooms can be shown once there is a connection.',
+		room_offline: 'This room can be shown once there is a connection.',
 		button_request: 'Request access',
 		initial: 'Checking whether hub client has access to cookies and local storage...',
 		requesting: 'Requesting access...',
@@ -38,6 +41,9 @@ const en = {
 		go_back: 'Go back',
 	},
 	errors: {
+		// Shown for things that need the servers (entering a hub for the first time, logging in) while
+		// they can't be reached.
+		needs_connection: 'This needs an internet connection. Check your connection and try again.',
 		oops: 'OOPS!',
 		error: 'Unfortunately an error occured. Please <a href="https://www.pubhubs.net/en/help/contact/" target="_blank" class="text-accent-primary">contact the developers</a>.\n\n {0}',
 		server: 'Server error',
@@ -248,6 +254,7 @@ const en = {
 		mascot_alt: '{0} mascot',
 		login_again: 'You have been logged out. Please log in again to continue.',
 		loading_yivi: 'Loading Yivi...',
+		yivi_app_missing: 'Could not open the Yivi app. Please make sure it is installed, then try again.',
 	},
 	logout: {
 		logout: 'Logout',
@@ -733,6 +740,9 @@ const en = {
 		enter_hub: 'Save and enter the hub',
 		welcome_consent: 'The house rules of this hub have changed',
 		welcome_consent_description: 'Please review the terms before entering.',
+		keep_pseudonym: 'Leave empty to keep your pseudonym {0}.',
+		step: 'Step {0} of {1}',
+		submit_error: 'Something went wrong while saving. Please try again.',
 
 		info_abt_pseudonym: 'This hub has given you a random name (pseudonym)',
 		info_issue_identity:

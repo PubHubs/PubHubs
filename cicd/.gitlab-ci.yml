@@ -6,6 +6,9 @@ variables:
     # Node major for the client jobs; keep it equal to the `FROM node:<major>-slim` in
     # hub-client/Dockerfile.
     NODE_VERSION: '26'
+    # The android-build image from ilab/docker-build, for the Android app, as
+    # <compileSdk>-<pipeline iid>.
+    ANDROID_IMAGE: registry.science.ru.nl/ilab/docker-build/android-build:36-232
     DOCKER_DRIVER: overlay2
     CARGO_INCREMENTAL: '0'
     CARGO_NET_RETRY: '3'
@@ -25,6 +28,7 @@ before_script:
 stages: # List of stages for jobs, and their order of execution
     - tests
     - publish-images
+    - build-app
     - deploy-own
 
 # Shared by every job that builds an image.
@@ -507,3 +511,46 @@ deploy-stable-globalclient:
         - cd global-client/dist
         - chmod 600 $UPDATE_GLOBAL_CLIENT_STABLE_KEY
         - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_STABLE_KEY
+
+# Builds the Android app on a release tag: the app bundle for the Play Store and an APK, both signed
+# with the upload key. See "Release builds" in docs/app/README.md. Uploading to Play is still by hand.
+build-android:
+    stage: build-app
+    rules:
+        - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    tags:
+        - docker
+    image: $ANDROID_IMAGE
+    variables:
+        GRADLE_USER_HOME: ${CI_PROJECT_DIR}/.gradle-home
+        npm_config_cache: ${CI_PROJECT_DIR}/.npm
+    cache:
+        key: android-build
+        paths:
+            - .gradle-home/caches
+            - .gradle-home/wrapper
+            - .npm
+    script:
+        - !reference [.version, script]
+        # The version in build.gradle has to be set for this release (see the merge-to-stable template);
+        # Play only takes each version code once.
+        - VERSION_NAME="${CI_COMMIT_TAG#v}"
+        - VERSION_CODE=$(echo "${VERSION_NAME}" | awk -F. '{ print $1 * 10000 + $2 * 100 + $3 }')
+        - >
+            grep -qF "versionName \"${VERSION_NAME}\"" android/app/build.gradle && grep -qE "^ *versionCode ${VERSION_CODE}$" android/app/build.gradle
+            || { echo "android/app/build.gradle needs versionName \"${VERSION_NAME}\" and versionCode ${VERSION_CODE}"; exit 1; }
+        # The signing variables are protected, so they are only there on protected tags.
+        - test -n "${PUBHUBS_KEYSTORE_BASE64}" || { echo "PUBHUBS_KEYSTORE_BASE64 is not set; is the tag protected?"; exit 1; }
+        - export PUBHUBS_KEYSTORE="$(mktemp)"
+        - echo "${PUBHUBS_KEYSTORE_BASE64}" | base64 -d > "${PUBHUBS_KEYSTORE}"
+        - npm ci
+        - npm run cap:sync:android:release
+        - cd android
+        - ./gradlew --no-daemon bundleRelease assembleRelease
+        - rm "${PUBHUBS_KEYSTORE}"
+    artifacts:
+        name: pubhubs-android-${CI_COMMIT_TAG}
+        paths:
+            - android/app/build/outputs/bundle/release/app-release.aab
+            - android/app/build/outputs/apk/release/app-release.apk
+        expire_in: never

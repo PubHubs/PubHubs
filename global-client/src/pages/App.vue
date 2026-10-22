@@ -44,6 +44,8 @@
 
 <script lang="ts" setup>
 	// Packages
+	import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
+	import { StatusBar, Style } from '@capacitor/status-bar';
 	import { computed, onMounted, onUnmounted, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
@@ -59,7 +61,12 @@
 	import useRootScroll from '@global-client/composables/useRootScroll';
 
 	// Logic
+	import { phc_api } from '@global-client/logic/core/api';
+	import { setSystemBarColorNatively } from '@global-client/logic/nativeSystemBars';
+
 	import device from '@hub-client/logic/core/device';
+	import { isNetworkError } from '@hub-client/logic/core/networkError';
+	import { installOfflineSimulation, onReconnect, registerProbe } from '@hub-client/logic/core/reachability';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
@@ -149,6 +156,7 @@
 		messagebox.init(MessageBoxType.Parent);
 
 		addHubs();
+		watchPHCReachability();
 
 		// Watch for changes in the permission for notifications by the user to reflect these changes once the user opens the settings dialog
 		if ('permissions' in navigator) {
@@ -171,9 +179,27 @@
 			if (!isLoggedIn) return;
 			await global.getPinnedHubsData();
 		} catch (error) {
-			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
 			logger.error('Error adding hubs', { error });
+			// Unreachable with nothing cached: the list fills in once PHC is back (watchPHCReachability).
+			if (isNetworkError(error)) return;
+			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
 		}
+	}
+
+	/**
+	 * When PHC can't be reached the app runs on the copies on this device (see docs/app/OFFLINE.md).
+	 * Once PHC answers again, reload the settings (merging changes made meanwhile, and storing the
+	 * result, see global.finishLogin), and refresh the hub list.
+	 */
+	function watchPHCReachability() {
+		if (import.meta.env.DEV || Capacitor.DEBUG) installOfflineSimulation();
+		if (!phc_api) return;
+		const phc = phc_api;
+		registerProbe(phc.baseURL, () => phc.apiGET(phc.apiURLS.welcome));
+		onReconnect(phc.baseURL, async () => {
+			await global.checkLoginAndSettings();
+		});
+		onReconnect(phc.baseURL, addHubs);
 	}
 
 	function setTheme(theme: string) {
@@ -181,7 +207,8 @@
 		const isDark = theme === 'dark';
 		html.classList.toggle('dark', isDark);
 
-		const themeColor = isDark ? '#464545' : '#ffffff';
+		// Read after toggling the class above, so this is the background of the theme just applied.
+		const themeColor = getComputedStyle(html).getPropertyValue('--surface-background').trim();
 		let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
 		if (!meta) {
 			meta = document.createElement('meta');
@@ -189,6 +216,21 @@
 			document.head.appendChild(meta);
 		}
 		meta.content = themeColor;
+
+		syncStatusBar(isDark, themeColor);
+	}
+
+	// Keeps the native system bars in sync with the app's current theme: on iOS the reserved status bar strip (see capacitor.config.ts plugins.StatusBar.overlaysWebView), on Android the status bar and the navigation bar.
+	async function syncStatusBar(isDark: boolean, backgroundColor: string) {
+		if (Capacitor.getPlatform() === 'android') {
+			await setSystemBarColorNatively(backgroundColor);
+			await SystemBars.setStyle({ style: isDark ? SystemBarsStyle.Dark : SystemBarsStyle.Light });
+			return;
+		}
+		if (Capacitor.getPlatform() !== 'ios') return;
+
+		await StatusBar.setBackgroundColor({ color: backgroundColor });
+		await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
 	}
 
 	// Lifecycle hook

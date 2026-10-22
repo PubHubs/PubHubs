@@ -10,6 +10,8 @@
 //   npm update <package>          picks up a fixed patch or minor release without touching package.json
 //   npm audit fix                 the same, for everything npm can fix on its own
 //   a bump in package.json        when the fix needs a new major or minor of a direct dependency
+//   an "overrides" entry          when the vulnerable package sits under a dependency that has not
+//                                 released a fix yet, and a compatible version can be forced in its place
 //
 // Each entry takes:
 //   id       the advisory id as the check prints it (a GHSA id, or `npm-<number>` without one)
@@ -31,6 +33,10 @@ export default {
 		{
 			id: 'GHSA-848j-6mx2-7j84',
 			reason: "No fixed version exists: 6.6.1 is the latest elliptic release, and the only upgrade npm can suggest is a major downgrade of vite-plugin-node-polyfills. We do not use elliptic ourselves; it arrives through that plugin's crypto-browserify shim, and the advisory is about the strictness of its ECDSA verification.",
+		},
+		{
+			id: 'GHSA-rj75-hqrm-r3gf',
+			reason: 'A major upgrade of eslint is needed  to remove this dev only vulnerability',
 		},
 	],
 };

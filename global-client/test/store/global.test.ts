@@ -118,7 +118,8 @@ describe('Global', () => {
 
 			const resp = await global.checkLoginAndSettings();
 
-			expect(resp).toEqual(false);
+			// Logged in on the settings on this device (see docs/app/OFFLINE.md).
+			expect(resp).toEqual(true);
 			expect(localStorage.getItem('PHauthToken')).toEqual(authToken);
 			expect(localStorage.getItem('UserSecret')).toEqual(userSecret);
 		});

@@ -1,3 +1,5 @@
+// This must stay the first import: it patches `Promise.withResolvers` for older WKWebView/iOS versions,
+// and needs to run before any other bundled module (matrix-js-sdk in particular) could ever call it.
 // Packages
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
@@ -11,13 +13,18 @@ import '@hub-client/assets/datepicker.css';
 import '@hub-client/assets/tailwind.css';
 
 import { clickOutside, contextMenu, focus, safeHtml, twClass } from '@hub-client/logic/core/directives';
+import '@hub-client/logic/core/polyfillPromiseWithResolvers';
 import { router } from '@hub-client/logic/core/router';
 import { getLogLevel } from '@hub-client/logic/logging/Logger';
+import { hubId } from '@hub-client/logic/utils/hubId';
+import { assertNativeHubOriginMatchesHubId } from '@hub-client/logic/utils/nativeHubOrigin';
 
 // Pages
 import App from '@hub-client/pages/App.vue';
 
 import { setUpi18n } from '@hub-client/i18n';
+
+assertNativeHubOriginMatchesHubId(window.location.hostname, hubId);
 
 if (import.meta.env.VITE_SIMULATE_BLOCKED_IDB) {
 	// Simulate a storage-blocked third-party iframe: indexedDB.open never settles.

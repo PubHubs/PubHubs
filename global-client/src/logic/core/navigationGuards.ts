@@ -9,6 +9,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
+import { useHubs } from '@global-client/stores/hubs';
 
 import { useSettings } from '@hub-client/stores/settings';
 
@@ -28,13 +29,15 @@ const createNavigationGuard = () => {
 		}
 
 		const global = useGlobal();
-		const isLoggedIn = await global.checkLoginAndSettings();
+		// The settings are loaded once per session; later navigations need no round trip to PHC.
+		const isLoggedIn = global.loggedIn || (await global.checkLoginAndSettings());
 		if (isLoggedIn) {
-			try {
-				await global.getPinnedHubsData();
-			} catch (error) {
-				logger.error('Could not load the pinned hubs', { error });
-			}
+			const load = global.getPinnedHubsData().catch((error) => logger.error('Could not load the pinned hubs', { error }));
+			// The hub page looks its hub up in the hubs store, so the navigation waits while a pinned hub
+			// is missing there. Otherwise (usually thanks to the copy on this device) the load, which waits
+			// for PHC and every pinned hub, refreshes them in the background.
+			const hubs = useHubs();
+			if (global.pinnedHubs.some((hub) => !hubs.hubExists(hub.hubId))) await load;
 		}
 		if (to.meta.requiresAuth && !isLoggedIn) {
 			restoredLastVisitedHub = false;

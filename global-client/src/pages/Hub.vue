@@ -16,7 +16,9 @@
 	import { useRoute, useRouter } from 'vue-router';
 
 	import { cacheBust } from '@global-client/logic/utils/cacheBust';
+	import { hubIndexBase, hubMatrixApiUrl } from '@global-client/logic/utils/nativeHubClient';
 
+	import { isNetworkError } from '@hub-client/logic/core/networkError';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 	import { assert } from '@hub-client/logic/utils/assert';
 	// Logic
@@ -94,7 +96,7 @@
 
 		switch (state.kind) {
 			case Status.GlobalNotLoggedIn:
-				hubUrl.value = `${hub.url}?${new URLSearchParams({ hubId, cb: cacheBust })}#/hub/`;
+				hubUrl.value = `${hubIndexBase(hub)}?${new URLSearchParams({ hubId, cb: cacheBust, HUB_URL: hubMatrixApiUrl(hub.serverUrl), PARENT_URL: window.location.origin })}#/hub/`;
 				break;
 			case Status.MSSHubNotLoggedIn: {
 				try {
@@ -117,12 +119,13 @@
 							userId: enterCompleteResp.mxid,
 						});
 						// TODO make sure that accessToken is no longer passed in query parameter
-						hubUrl.value = `${hub.url}?${new URLSearchParams({ newToken: 'true', accessToken: authInfo, hubId, cb: cacheBust })}`;
+						hubUrl.value = `${hubIndexBase(hub)}?${new URLSearchParams({ newToken: 'true', accessToken: authInfo, hubId, cb: cacheBust, HUB_URL: hubMatrixApiUrl(hub.serverUrl), PARENT_URL: window.location.origin })}`;
 						break;
 					}
 				} catch (error) {
 					logger.error('Error during Hub MSS login', { error });
-					router.push({ name: 'error' });
+					// Entering a hub for the first time needs PHC and the hub; say so rather than show an error.
+					router.push(isNetworkError(error) ? { name: 'error', query: { errorKey: 'errors.needs_connection' } } : { name: 'error' });
 				}
 				break;
 			}
@@ -132,7 +135,7 @@
 					userId: state.userId,
 				});
 				// TODO: make sure that accessToken is no longer passed in query parameter
-				hubUrl.value = `${hub.url}?${new URLSearchParams({ accessToken: authInfo, hubId, cb: cacheBust })}`;
+				hubUrl.value = `${hubIndexBase(hub)}?${new URLSearchParams({ accessToken: authInfo, hubId, cb: cacheBust, HUB_URL: hubMatrixApiUrl(hub.serverUrl), PARENT_URL: window.location.origin })}`;
 				break;
 			}
 		}

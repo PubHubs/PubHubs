@@ -9,6 +9,7 @@ import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 import { propCompare } from '@hub-client/logic/core/extensions';
+import { hubStorage } from '@hub-client/logic/core/hubStorage';
 import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -74,6 +75,35 @@ let noticeUserIdPromise: Promise<string> | null = null;
 // per store instance.
 let initialRoomsLoadedPromise: Promise<void> | null = null;
 
+// The room list as last known, kept in HubStorage: a hub-client starts from nothing each time its hub
+// is opened, and the rooms only come in with the first sync (or not at all without a connection).
+const ROOM_LIST_STORAGE_KEY = 'roomList';
+const ROOM_LIST_STORE_DELAY_MS = 1_000;
+type StoredRoom = Pick<RoomListRoom, 'roomId' | 'roomType' | 'name'>;
+let roomListStoreTimer: ReturnType<typeof setTimeout> | null = null;
+
+function publicRoomsIn(list: RoomListRoom[]): RoomListRoom[] {
+	return list.filter((room) => room.isHidden === false && room.roomType && PublicRooms.includes(room.roomType as RoomType));
+}
+
+function securedRoomsIn(list: RoomListRoom[]): RoomListRoom[] {
+	return list.filter((room) => room.isHidden === false && room.roomType && SecuredRooms.includes(room.roomType as RoomType));
+}
+
+function privateRoomsIn(list: RoomListRoom[]): RoomListRoom[] {
+	const user = useUser();
+	return list.filter((room) => {
+		if (room.isHidden === false && room.roomType && DirectRooms.includes(room.roomType as RoomType)) {
+			// Group DMs have user-chosen names and don't use name-encoding to track visibility, so always show them.
+			if (room.roomType === RoomType.PH_MESSAGES_DM) {
+				return isVisiblePrivateRoom(room.name, user.user.userId);
+			}
+			return true;
+		}
+		return false;
+	});
+}
+
 function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
 	if (!room.accepted) {
 		return false;
@@ -91,6 +121,7 @@ const useRooms = defineStore('rooms', {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
 			roomList: [] as Array<RoomListRoom>, // Sorted list of rooms for menu. TODO: split into a Map<roomId, RoomListRoom> for O(1) lookup + a sorted [name, roomId][] array for display order
+			cachedRoomList: [] as Array<RoomListRoom>, // The room list as last known, for the menu until the first sync is in. Only ever shown, see showsStoredRoomList.
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			publicSecuredRoomMetadata: new Map<string, TSecuredRoomPublicMetadata>(),
@@ -124,17 +155,7 @@ const useRooms = defineStore('rooms', {
 
 		/** Private rooms (DMs, group DMs, admin/steward contact) from the room list. */
 		loadedPrivateRooms(): RoomListRoom[] {
-			const user = useUser();
-			return this.roomList.filter((room) => {
-				if (room.isHidden === false && room.roomType && DirectRooms.includes(room.roomType as RoomType)) {
-					// Group DMs have user-chosen names and don't use name-encoding to track visibility, so always show them.
-					if (room.roomType === RoomType.PH_MESSAGES_DM) {
-						return isVisiblePrivateRoom(room.name, user.user.userId);
-					}
-					return true;
-				}
-				return false;
-			});
+			return privateRoomsIn(this.roomList);
 		},
 
 		/** Private Room instances for consumers that need full Room objects (e.g. DirectMessage). */
@@ -143,11 +164,32 @@ const useRooms = defineStore('rooms', {
 		},
 
 		loadedPublicRooms(): RoomListRoom[] {
-			return this.roomList.filter((room) => room.isHidden === false && room.roomType && PublicRooms.includes(room.roomType as RoomType));
+			return publicRoomsIn(this.roomList);
 		},
 
 		loadedSecuredRooms(): RoomListRoom[] {
-			return this.roomList.filter((room) => room.isHidden === false && room.roomType && SecuredRooms.includes(room.roomType as RoomType));
+			return securedRoomsIn(this.roomList);
+		},
+
+		/** Until the first sync is in, the menu shows the room list as last known (see restoreRoomList). */
+		showsStoredRoomList(state): boolean {
+			return !state.initialRoomsLoaded && state.cachedRoomList.length > 0;
+		},
+
+		menuRoomList(): RoomListRoom[] {
+			return this.showsStoredRoomList ? this.cachedRoomList : this.roomList;
+		},
+
+		menuPublicRooms(): RoomListRoom[] {
+			return publicRoomsIn(this.menuRoomList);
+		},
+
+		menuSecuredRooms(): RoomListRoom[] {
+			return securedRoomsIn(this.menuRoomList);
+		},
+
+		menuPrivateRooms(): RoomListRoom[] {
+			return privateRoomsIn(this.menuRoomList);
 		},
 
 		/**
@@ -340,6 +382,30 @@ const useRooms = defineStore('rooms', {
 			// Rooms are added to roomList with unreadState 'unknown'. Compute the
 			// real state now that all rooms and the SDK are ready.
 			this.refreshAllUnreadStates();
+			// The real list replaces the one last known, which is kept up to date from here on.
+			this.cachedRoomList = [];
+			this.scheduleStoreRoomList();
+		},
+
+		/** Show the room list as last known until the first sync is in. */
+		async restoreRoomList() {
+			const stored = await hubStorage.get<StoredRoom[]>(ROOM_LIST_STORAGE_KEY);
+			if (!stored || this.initialRoomsLoaded) return;
+			// No unread state from a copy that may be out of date.
+			this.cachedRoomList = stored.map((room) => ({ ...room, stateEvents: [], isHidden: false, unreadState: 'unknown' }));
+		},
+
+		/**
+		 * Keep the room list in HubStorage, shortly after it changed; only once it is complete. A store
+		 * already planned takes the list as it is by then, so a busy sync stores it at most once a delay.
+		 */
+		scheduleStoreRoomList() {
+			if (!this.initialRoomsLoaded || roomListStoreTimer) return;
+			roomListStoreTimer = setTimeout(() => {
+				roomListStoreTimer = null;
+				const rooms: StoredRoom[] = this.roomList.filter((room) => !room.isHidden).map(({ roomId, roomType, name }) => ({ roomId, roomType, name }));
+				void hubStorage.set(ROOM_LIST_STORAGE_KEY, rooms);
+			}, ROOM_LIST_STORE_DELAY_MS);
 		},
 
 		/**
@@ -480,12 +546,14 @@ const useRooms = defineStore('rooms', {
 				this.roomList.push(roomListRoom);
 			}
 			this.roomList.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+			this.scheduleStoreRoomList();
 		},
 
 		setRoomListHidden(roomId: string, isHidden: boolean) {
 			const room = this.roomList.find((room) => room.roomId === roomId);
 			if (room) {
 				room.isHidden = isHidden;
+				this.scheduleStoreRoomList();
 			}
 		},
 
@@ -500,6 +568,7 @@ const useRooms = defineStore('rooms', {
 			}
 			// Re-sort the list since name changed
 			this.roomList.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+			this.scheduleStoreRoomList();
 		},
 
 		/**
@@ -548,6 +617,7 @@ const useRooms = defineStore('rooms', {
 			}
 			delete this.rooms[roomId];
 			this.roomList = this.roomList.filter((room) => room.roomId !== roomId);
+			this.scheduleStoreRoomList();
 		},
 
 		// replace the current rooms in the store with the new ones

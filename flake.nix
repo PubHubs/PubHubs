@@ -48,7 +48,13 @@
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ rust-overlay.overlays.default ];
+            config = {
+              allowUnfree = true;
+              android_sdk.accept_license = true;
+            };
           };
+
+
           # Pinned to match ./rust-toolchain.toml so Nix, CI (rustup) and local all
           # build on the identical rustc.
           rustToolchain = (pkgs.rust-bin.fromRustupToolchainFile ./pubhubs/rust-toolchain.toml).override {
@@ -56,6 +62,17 @@
               "rust-analyzer"
               "rust-src"
             ];
+          };
+
+          # Compose Android SDK for Capacitor builds.
+          # Versions match global-client/android/variables.gradle.
+          androidSdk = pkgs.androidenv.composeAndroidPackages {
+            platformVersions = [ "35" "36" ];
+            buildToolsVersions = [ "35.0.0" ];
+            includeEmulator = false;
+            includeSources = false;
+            includeSystemImages = false;
+            includeNDK = false;
           };
 
           # Python with the dependencies the hub modules import, so `mask test hub` runs
@@ -95,8 +112,13 @@
                 cargo-edit # 0.13.13
                 cargo-watch # 8.5.3
 
-                # Other
+                # Android / Capacitor
                 android-tools # 37.0.0
+                androidSdk.androidsdk
+                openjdk21
+                android-studio
+
+                # Other
                 mask # 0.11.7
                 openssl # 3.6.3
                 pkg-config # 0.29.2
@@ -107,6 +129,11 @@
                 # Custom packages
                 (pkgs.callPackage ./packages/yivi.nix { }) # 1.3.1
               ];
+
+            # Android SDK tooling expects these environment variables.
+            ANDROID_SDK_ROOT = "${androidSdk.androidsdk}/libexec/android-sdk";
+            ANDROID_HOME = "${androidSdk.androidsdk}/libexec/android-sdk";
+            JAVA_HOME = "${pkgs.openjdk21}";
           };
         }
       );

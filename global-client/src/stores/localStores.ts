@@ -7,7 +7,7 @@ import { LocalStores } from '@global-client/logic/utils/localStore';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Stores
-import { useGlobal } from '@global-client/stores/global';
+import { hasSession } from '@global-client/stores/global';
 import { useMSS } from '@global-client/stores/mss';
 
 const logger = createLogger('localStores');
@@ -27,7 +27,8 @@ const useLocalStores = defineStore('localStores', () => {
 
 	async function retrieve(): Promise<LocalStores | null> {
 		if (instance) return instance;
-		if (!useGlobal().loggedIn) {
+		// A session, not loggedIn: the login check reads the cached settings from here before it sets that.
+		if (!hasSession()) {
 			logger.warn('retrieve() called while not logged in — LocalStore unavailable');
 			return null;
 		}

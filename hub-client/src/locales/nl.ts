@@ -9,6 +9,9 @@ const nl = {
 		description: 'Kaart uitgegeven met de volgende kenmerken:',
 	},
 	state: {
+		hub_offline: 'Geen verbinding met deze hub. Wat je ziet is mogelijk niet actueel.',
+		rooms_offline: 'Kamers kunnen worden getoond zodra er verbinding is.',
+		room_offline: 'Deze kamer kan worden getoond zodra er verbinding is.',
 		button_request: 'Verleen toegang',
 		initial: 'Controleren of de hub client toegang heeft tot cookies en lokale opslag...',
 		requesting: 'Toegang verlenen...',
@@ -38,6 +41,7 @@ const nl = {
 		go_back: 'Ga terug',
 	},
 	errors: {
+		needs_connection: 'Hiervoor is een internetverbinding nodig. Controleer je verbinding en probeer het opnieuw.',
 		oops: 'OEPS!',
 		error: 'Helaas, er is een fout opgetreden. <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">Neem contact op met de ontwikkelaars</a>.\n\n {0}',
 		server: 'Serverfout',
@@ -239,6 +243,7 @@ const nl = {
 		mascot_alt: '{0}-mascotte',
 		login_again: 'Je bent uitgelogd. Log opnieuw in om verder te gaan.',
 		loading_yivi: 'Yivi laden...',
+		yivi_app_missing: 'De Yivi app kon niet worden geopend. Controleer of de app geïnstalleerd is en probeer het opnieuw.',
 	},
 	logout: {
 		logout: 'Logout',
@@ -723,6 +728,9 @@ const nl = {
 		enter_hub: 'Sla op en betreed de hub',
 		welcome_consent: 'De huisregels van deze hub zijn gewijzigd',
 		welcome_consent_description: 'Accepteer de voorwaarden opnieuw om de hub te betreden.',
+		keep_pseudonym: 'Laat leeg om je pseudoniem {0} te houden.',
+		step: 'Stap {0} van {1}',
+		submit_error: 'Er ging iets mis bij het opslaan. Probeer het opnieuw.',
 
 		info_abt_pseudonym: 'Deze hub heeft je een willekeurige naam gegeven (pseudonym)',
 		info_issue_identity:

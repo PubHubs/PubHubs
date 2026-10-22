@@ -49,13 +49,14 @@
 
 	// Logic
 	import { PubHubsInvisibleMsgType, PubHubsMgType } from '@hub-client/logic/core/events';
+	// Stores
+	import { hubStorage } from '@hub-client/logic/core/hubStorage';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 	import { hubId } from '@hub-client/logic/utils/hubId';
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 
-	// Stores
 	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { type HubInformation } from '@hub-client/stores/hub-settings';
@@ -205,9 +206,11 @@
 	};
 
 	async function startMessageBox() {
+		// Only the handshake with the app shell provides a storage key; running solo there is none.
+		if (hubSettings.isSolo) hubStorage.disable();
 		if (!hubSettings.isSolo) {
 			messagebox.init(MessageBoxType.Child);
-			await messagebox.startCommunication(hubSettings.parentUrl);
+			await messagebox.startCommunication(hubSettings.parentUrl, 'parentFrame', { hubServerUrl: hubSettings.hubUrl });
 
 			// Ask for Hub name etc.
 			messagebox.addCallback('parentFrame', MessageType.HubInformation, (message: Message) => {
