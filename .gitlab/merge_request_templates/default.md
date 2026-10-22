@@ -1,7 +1,7 @@
 # Coding steps
 
 - [ ] Followed [coding guidelines](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Code-guidelines)
-- [ ] Added to [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md) with appropriate prefix and human readable description. (If there is nothing to add, give the merge request the `no-changelog` label, or its pipeline fails.)
+- [ ] Added to [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md) with appropriate prefix and human readable description. (If there is nothing to add, give the merge request the `No changelog` label, or its pipeline fails.)
 - [ ] e2e tests passed
 - [ ] Added new e2e tests
 
