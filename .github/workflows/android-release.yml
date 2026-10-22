@@ -1,0 +1,107 @@
+# On a final release tag (vX.Y.Z): the Android app as a signed APK, with its checksum and a build
+# provenance attestation, in a draft GitHub release, for people who don't get the app from a store.
+# Our repository lives on the Radboud University's GitLab and is push-mirrored here, where this runs.
+# GitLab CI's build-android job builds the same tag for the Play Store; see "Release builds" in
+# docs/app/README.md.
+name: Android release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+# Read-only unless a job asks for more.
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and release the APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # The version in build.gradle has to be set for this release (see the merge-to-stable template).
+      - name: Tag matches the version in build.gradle
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          code=$(echo "$version" | awk -F. '{ print $1 * 10000 + $2 * 100 + $3 }')
+          if ! grep -qF "versionName \"$version\"" android/app/build.gradle || ! grep -qE "^ *versionCode $code$" android/app/build.gradle; then
+            echo "android/app/build.gradle needs versionName \"$version\" and versionCode $code"; exit 1
+          fi
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/**/*.gradle', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The checkout has no tags, so the clients get their version from PH_VERSION (see vite.config.ts).
+      - name: Build the clients with the production config and sync them into the app
+        env:
+          PH_VERSION: ${{ github.ref_name }}
+        run: npm run cap:sync:android:release
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PUBHUBS_KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build the signed APK
+        working-directory: android
+        env:
+          PUBHUBS_KEYSTORE: ${{ runner.temp }}/upload.jks
+          PUBHUBS_KEYSTORE_PASSWORD: ${{ secrets.PUBHUBS_KEYSTORE_PASSWORD }}
+          PUBHUBS_KEY_ALIAS: ${{ secrets.PUBHUBS_KEY_ALIAS }}
+          PUBHUBS_KEY_PASSWORD: ${{ secrets.PUBHUBS_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Name the APK, verify its signature, and write its checksum
+        run: |
+          apk="pubhubs-${GITHUB_REF_NAME}.apk"
+          mv android/app/build/outputs/apk/release/app-release.apk "$apk"
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n1)
+          "$apksigner" verify --verbose --print-certs "$apk"
+          sha256sum "$apk" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: pubhubs-${{ github.ref_name }}.apk
+
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The notes are this version's part of CHANGELOG.md, under a heading like
+          # "## 18 September 2026 - v3.5.5".
+          awk -v v="- ${GITHUB_REF_NAME}" '/^## / { on = substr($0, length($0) - length(v) + 1) == v; next } on' CHANGELOG.md > notes.md
+          notes=(--generate-notes)
+          if grep -q '[^[:space:]]' notes.md; then notes=(--notes-file notes.md); fi
+          gh release create "$GITHUB_REF_NAME" "pubhubs-${GITHUB_REF_NAME}.apk" SHA256SUMS \
+            --verify-tag --draft --title "PubHubs ${GITHUB_REF_NAME#v}" "${notes[@]}"
