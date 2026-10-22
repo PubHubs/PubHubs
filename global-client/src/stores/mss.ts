@@ -430,7 +430,7 @@ const useMSS = defineStore('mss', {
 			const maxAttempts = 4;
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
 				if (attempt > 0) {
-					delay(attempt - 1);
+					await delay(attempt - 1);
 				}
 
 				const sealedPPP = await this.phcServer.pppEP();

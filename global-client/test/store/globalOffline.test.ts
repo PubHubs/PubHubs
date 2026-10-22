@@ -164,15 +164,15 @@ describe('the app shell without PHC', () => {
 		expect(storedHubIds).toEqual(global.pinnedHubs.map((h) => h.hubId));
 	});
 
-	test('still logs out when PHC refuses rather than being unreachable', async () => {
-		const secret = localStorage.getItem('UserSecret')!;
+	// Unlike being unreachable, this fails the check, but the stored login stays: a token that is no
+	// longer valid is caught by the refresh endpoint, which logs out properly.
+	test('fails the check when PHC refuses rather than being unreachable, keeping the stored login', async () => {
 		const token = localStorage.getItem('PHauthToken')!;
 		server.use(http.get('http://testdomain/.ph/user/state', () => HttpResponse.json({ Err: 'InternalError' })));
 		const global = restart();
 		expect(await global.checkLoginAndSettings()).toBe(false);
-		expect(localStorage.getItem('PHauthToken')).toBeNull();
-		localStorage.setItem('UserSecret', secret);
-		localStorage.setItem('PHauthToken', token);
+		expect(global.loggedIn).toBe(false);
+		expect(localStorage.getItem('PHauthToken')).toBe(token);
 	});
 });
 

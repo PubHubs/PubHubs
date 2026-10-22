@@ -218,13 +218,12 @@ const useGlobal = defineStore('global', {
 					await this.setGlobalSettings(cached ? cloneSettings(cached.current) : cloneSettings(defaultGlobalSettings));
 					return this.finishLogin();
 				}
+				// Keep the stored login: this also runs on every navigation, and a network hiccup or PHC
+				// being restarted must not log the user out. An auth token that is really no longer valid
+				// is caught by the refresh endpoint, which logs out properly.
 				logger.error('Failure to set global settings', error);
 				this.loggedIn = false;
 				loadedSettings = null;
-				// Remove PHauthToken and userSecret from local storage in case the enterEP did successfully return an authToken for the user
-				localStorage.removeItem('PHauthToken');
-				localStorage.removeItem('UserSecret');
-				localStorage.removeItem('UserSecretVersion');
 				return false;
 			}
 		},

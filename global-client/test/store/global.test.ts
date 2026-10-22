@@ -105,6 +105,24 @@ describe('Global', () => {
 			// Nothing may be left for the next login to mistake for its own pinned-hub load.
 			expect(global.pinnedHubsLoad).toBeNull();
 		});
+		// The check runs on every page load and navigation, so an unreachable PHC (slow network,
+		// or a deploy restarting it) must fail this check only, not log the user out.
+		test('a network failure during the check keeps the stored login', async () => {
+			const global = useGlobal();
+
+			await api.api(api.apiURLS.login);
+			const authToken = localStorage.getItem('PHauthToken');
+			const userSecret = localStorage.getItem('UserSecret');
+			expect(authToken).not.toBeNull();
+			server.use(http.get('http://testdomain/.ph/user/welcome', () => HttpResponse.error()));
+
+			const resp = await global.checkLoginAndSettings();
+
+			// Logged in on the settings on this device (see docs/app/OFFLINE.md).
+			expect(resp).toEqual(true);
+			expect(localStorage.getItem('PHauthToken')).toEqual(authToken);
+			expect(localStorage.getItem('UserSecret')).toEqual(userSecret);
+		});
 	});
 
 	describe('login check', () => {
