@@ -51,7 +51,12 @@
           };
           # Pinned to match ./rust-toolchain.toml so Nix, CI (rustup) and local all
           # build on the identical rustc.
-          rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./pubhubs/rust-toolchain.toml;
+          rustToolchain = (pkgs.rust-bin.fromRustupToolchainFile ./pubhubs/rust-toolchain.toml).override {
+            extensions = [
+              "rust-analyzer"
+              "rust-src"
+            ];
+          };
 
           # Python with the dependencies the hub modules import, so `mask test hub` runs
           # the Synapse module tests without a virtualenv.  Keep in sync with the direct
