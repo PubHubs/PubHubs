@@ -70,7 +70,7 @@ stages: # List of stages for jobs, and their order of execution
 
 # Every merge request adds its change to CHANGELOG.md (see the merge request template).  This job is
 # only in the pipeline of a merge request that leaves CHANGELOG.md alone, and fails there.  A merge
-# request with nothing for the changelog gets the `no-changelog` label instead.
+# request with nothing for the changelog gets the `No changelog` label instead.
 changelog-check:
     stage: tests
     tags:
@@ -82,12 +82,12 @@ changelog-check:
           changes:
               - CHANGELOG.md
           when: never
-        - if: $CI_MERGE_REQUEST_LABELS =~ /(^|,)no-changelog(,|$)/
+        - if: $CI_MERGE_REQUEST_LABELS =~ /(^|,)No changelog(,|$)/
           when: never
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     script:
         - echo "Add this merge request's change to the 'Changed not merged yet' part of CHANGELOG.md, with its prefix."
-        - echo "Or, if it has nothing to add, give the merge request the no-changelog label and run a new pipeline (retrying this job is not enough)."
+        - echo "Or, if it has nothing to add, give the merge request the 'No changelog' label and run a new pipeline (retrying this job is not enough)."
         - exit 1
 
 # A release's notes on GitHub are its version's part of CHANGELOG.md, under a heading like
