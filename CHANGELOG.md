@@ -24,6 +24,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed that pinned hubs were not loaded on the first login after a PubHubs Central restart.
 - [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
 - [INTERNAL, NEW] Hub owners can ask for their hub to be registered with an issue form on the GitHub mirror; the team's steps are in the GitLab `add-hub` issue template.
+- [INTERNAL, NEW] The pipeline of a merge request fails when it doesn't add to CHANGELOG.md (unless it has the `no-changelog` label), and that of a release tag (also `-rcN`) when CHANGELOG.md has no entries under its version, which the GitHub release takes as its notes.
 
 ## 18 September 2026 - v3.5.5
 

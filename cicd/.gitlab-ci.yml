@@ -68,6 +68,45 @@ stages: # List of stages for jobs, and their order of execution
         - export PH_VERSION="${CI_COMMIT_TAG:-$(git describe --tags)}"
         - echo "Version=${PH_VERSION}"
 
+# Every merge request adds its change to CHANGELOG.md (see the merge request template).  This job is
+# only in the pipeline of a merge request that leaves CHANGELOG.md alone, and fails there.  A merge
+# request with nothing for the changelog gets the `no-changelog` label instead.
+changelog-check:
+    stage: tests
+    tags:
+        - docker
+    interruptible: true
+    image: alpine:3
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes:
+              - CHANGELOG.md
+          when: never
+        - if: $CI_MERGE_REQUEST_LABELS =~ /(^|,)no-changelog(,|$)/
+          when: never
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    script:
+        - echo "Add this merge request's change to the 'Changed not merged yet' part of CHANGELOG.md, with its prefix."
+        - echo "Or, if it has nothing to add, give the merge request the no-changelog label and run a new pipeline (retrying this job is not enough)."
+        - exit 1
+
+# A release's notes on GitHub are its version's part of CHANGELOG.md, under a heading like
+# "## 18 September 2026 - v3.5.5" (see .github/workflows/android-release.yml).  This fails when that
+# part is missing or empty, already on the vX.Y.Z-rc0 tag, so it can be fixed before the release is
+# tagged.  The deploys don't wait for it.
+changelog-release-check:
+    stage: tests
+    tags:
+        - docker
+    image: alpine:3
+    rules:
+        - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
+    script:
+        - VERSION="${CI_COMMIT_TAG%%-*}"
+        - awk -v v="- ${VERSION}" '/^## / { on = substr($0, length($0) - length(v) + 1) == v; next } on' CHANGELOG.md > notes.md
+        - grep -q '[^[:space:]]' notes.md || { echo "CHANGELOG.md has no entries under a heading ending in '- ${VERSION}'"; exit 1; }
+        - cat notes.md
+
 .rust-job:
     stage: tests
     tags:
