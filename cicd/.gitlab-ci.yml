@@ -90,8 +90,8 @@ changelog-check:
         - echo "Or, if it has nothing to add, give the merge request the 'No changelog' label and run a new pipeline (retrying this job is not enough)."
         - exit 1
 
-# A release's notes on GitHub are its version's part of CHANGELOG.md, under a heading like
-# "## 18 September 2026 - v3.5.5" (see .github/workflows/android-release.yml).  This fails when that
+# A release's notes on GitHub are its version's part of CHANGELOG.md, without its INTERNAL entries, under a
+# heading like "## 18 September 2026 - v3.5.5" (see .github/workflows/android-release.yml).  This fails when that
 # part is missing or empty, already on the vX.Y.Z-rc0 tag, so it can be fixed before the release is
 # tagged.  The deploys don't wait for it.
 changelog-release-check:

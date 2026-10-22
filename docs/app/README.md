@@ -142,8 +142,9 @@ the app from our source.
 - **GitHub:** our [GitHub mirror](https://github.com/PubHubs/PubHubs) gets the same tags, and its
   `.github/workflows/android-release.yml` builds a signed APK there for people who don't use a
   store. It puts the APK, its `SHA256SUMS` and a build provenance attestation in a **draft**
-  release, with the version's part of `CHANGELOG.md` as notes (GitLab CI's `changelog-release-check`
-  fails already on the `-rc0` tag when that part is missing); someone publishes it by hand. It signs
+  release, with the version's part of `CHANGELOG.md` as notes, without its `INTERNAL` entries
+  (GitLab CI's `changelog-release-check` fails already on the `-rc0` tag when that part is
+  missing); someone publishes it by hand. It signs
   with GitHub secrets of the same names. To test the app, run that workflow by hand from GitHub's
   Actions tab on any branch, with a version like `3.6.0-test.1`: it builds that branch into a GitHub
   **pre-release** under the tag `v3.6.0-test.1`, which it makes on GitHub only. Don't push such a
