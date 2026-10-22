@@ -1,13 +1,12 @@
 <template>
 	<div class="bg-surface border-surface-elevated flex h-[80px] w-full items-center border-b-3 px-300 py-200">
 		<div class="flex h-full w-full items-center justify-between gap-800">
-			<a
+			<router-link
 				class="h-full py-100"
-				:href="globalClientUrl"
-				rel="noopener noreferrer"
+				:to="{ name: 'login' }"
 			>
 				<Logo />
-			</a>
+			</router-link>
 			<div class="flex h-200 items-center justify-center gap-300">
 				<p
 					v-if="reviewMode"
@@ -51,7 +50,6 @@
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
-	const globalClientUrl: string = _env.PUBHUBS_URL;
 	// Shown on the login and register pages, so a reviewer (or anyone who ended up here) can switch back.
 	const reviewMode = inReviewMode();
 
