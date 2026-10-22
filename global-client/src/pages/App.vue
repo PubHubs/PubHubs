@@ -23,9 +23,11 @@
 			"
 		/>
 
-		<!-- 0-width element for snapping -->
+		<!-- 0-width element for snapping to the end. Only rendered along with the hub iframe (see Hub.vue):
+		     until then the layout fits the screen and this snap point coincides with the global bar's, and
+		     Chrome may keep it when the hub widens the layout, opening the hub on its page instead of its menu. -->
 		<div
-			v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')"
+			v-if="route.name === 'hub' && hubs.currentHubExists"
 			class="w-0 shrink-0 snap-end"
 			:class="!isMobile && 'hidden'"
 		/>
@@ -90,7 +92,7 @@
 	const installPromptStore = useInstallPromptStore();
 	const route = useRoute();
 	const router = useRouter();
-	const _hubs = useHubs();
+	const hubs = useHubs();
 
 	// Wrapping the getter inside a computed to trigger the watch function to save any changes in global settings
 	const computedGlobalSettings = computed(() => global.getGlobalSettings);
