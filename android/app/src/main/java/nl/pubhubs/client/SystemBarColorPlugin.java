@@ -2,7 +2,6 @@ package nl.pubhubs.client;
 
 import android.graphics.Color;
 import android.os.Build;
-import android.view.View;
 import android.view.Window;
 
 import com.getcapacitor.Plugin;
@@ -14,9 +13,11 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  * Gives the status bar and the navigation bar the app's background colour.
  *
  * <p>From Android 15 on, apps are drawn edge to edge and the system bars are
- * transparent. Capacitor keeps the WebView out from under them by padding the
- * WebView's parent, so what shows behind the bars is that parent's background.
- * The page's CSS cannot reach it, so we colour the parent from here.
+ * transparent. Capacitor's SystemBars keeps the WebView out from under them by
+ * padding the window's decor view, so what shows behind the bars is the decor
+ * view's background. The page's CSS cannot reach it, so we colour it from here.
+ * SystemBars.setStyle resets that background to the theme's window background,
+ * so call this after it.
  *
  * <p>Before Android 15 the system paints the bars itself, in the colours the
  * window asks for.
@@ -42,7 +43,7 @@ public class SystemBarColorPlugin extends Plugin {
 
         getActivity().runOnUiThread(() -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                ((View) getBridge().getWebView().getParent()).setBackgroundColor(color);
+                getActivity().getWindow().getDecorView().setBackgroundColor(color);
             } else {
                 setWindowBarColors(color);
             }

@@ -223,8 +223,9 @@
 	// Keeps the native system bars in sync with the app's current theme: on iOS the reserved status bar strip (see capacitor.config.ts plugins.StatusBar.overlaysWebView), on Android the status bar and the navigation bar.
 	async function syncStatusBar(isDark: boolean, backgroundColor: string) {
 		if (Capacitor.getPlatform() === 'android') {
-			await setSystemBarColorNatively(backgroundColor);
+			// In this order: setStyle resets the colour behind the bars to the theme's window background.
 			await SystemBars.setStyle({ style: isDark ? SystemBarsStyle.Dark : SystemBarsStyle.Light });
+			await setSystemBarColorNatively(backgroundColor);
 			return;
 		}
 		if (Capacitor.getPlatform() !== 'ios') return;

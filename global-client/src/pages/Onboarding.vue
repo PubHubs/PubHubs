@@ -1,8 +1,8 @@
 <template>
-	<div class="flex w-full max-w-screen flex-col">
+	<div class="flex h-svh w-full max-w-screen flex-col">
 		<AuthHeader />
 
-		<div class="h-[calc(100svh-80px)] overflow-y-auto">
+		<div class="min-h-0 flex-1 overflow-y-auto">
 			<!-- Registration section -->
 			<section
 				class="bg-background flex flex-col overflow-x-hidden"

@@ -11,11 +11,11 @@
 
 	<div
 		v-else
-		class="flex w-full flex-col"
+		class="flex h-svh w-full flex-col"
 	>
 		<AuthHeader />
 
-		<div class="bg-background h-[calc(100svh-80px)] w-full">
+		<div class="bg-background min-h-0 w-full flex-1">
 			<div
 				class="flex h-full w-full items-center justify-center"
 				:class="isMobile ? 'flex-col' : 'flex-row'"
