@@ -1,0 +1,67 @@
+# Our repository lives on the Radboud University's GitLab and is push-mirrored here, so a hub is
+# registered by the PubHubs team, not by a pull request. The team's steps are in the add-hub issue
+# template in .gitlab/issue_templates/.
+name: Register a hub
+description: Ask the PubHubs team to add your hub to PubHubs Central.
+title: "Register a hub: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before you ask, read [Deploying a hub](https://github.com/PubHubs/PubHubs/blob/main/docs/deploy/hub/README.md). The PubHubs team adds your hub to PubHubs Central and contacts you here for the deploy token you need to pull the hub images.
+
+        **This issue is public.** Don't put anything here that you don't want to be seen.
+  - type: input
+    id: organisation
+    attributes:
+      label: Organisation
+      description: Who will run the hub.
+      placeholder: The Library
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Hub name
+      description: The name that will be displayed in PubHubs.
+      placeholder: The Library
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Hub description
+      description: A short text describing your hub. It is displayed with the hub name on the PubHubs homepage, and a hub admin can change it later in the client.
+      placeholder: Find help for the digital world at The Library
+    validations:
+      required: true
+  - type: input
+    id: handle
+    attributes:
+      label: Handle
+      description: A short name for your hub in links, of lower-case letters, digits and underscores. It can't be removed later, only added to.
+      placeholder: thelibrary
+    validations:
+      required: true
+  - type: input
+    id: server-domain
+    attributes:
+      label: Hub server domain
+      description: Where your hub server will be hosted. Choose a user-friendly domain, as users sometimes see it (for example in the Yivi app). It should differ from the hub client domain, and neither should be a subdomain of the other.
+      placeholder: hub.librarywebsite.com
+    validations:
+      required: true
+  - type: input
+    id: client-domain
+    attributes:
+      label: Hub client domain
+      description: Where your hub client will be hosted.
+      placeholder: pubhubs.librarywebsite.com
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: We have been in contact with the PubHubs team about running a hub.
+          required: true
+        - label: We have a server and the domains above, with TLS, as described in Deploying a hub.
