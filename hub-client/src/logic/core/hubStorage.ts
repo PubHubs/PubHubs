@@ -1,6 +1,6 @@
 /**
  * HubStorage: encrypted key-value storage in the hub's own IndexedDB, for the native app, where every
- * hub runs on its own origin (see docs/app/HUB_ISOLATION.md and docs/app/OFFLINE.md).
+ * hub runs on its own origin (see docs/app/hub-isolation.md and docs/app/offline.md).
  *
  * The key is derived by the app shell from the user secret and the hub id, and handed to the hub in
  * the messagebox handshake. Logging out deletes the user secret, which makes everything stored here

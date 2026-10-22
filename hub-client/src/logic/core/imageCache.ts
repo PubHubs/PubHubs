@@ -1,6 +1,6 @@
 /**
  * Device copies of public hub images (hub icons and banners), so they still show while the hub can't
- * be reached (see docs/app/OFFLINE.md). Keyed by address, in this context's own IndexedDB: the app
+ * be reached (see docs/app/offline.md). Keyed by address, in this context's own IndexedDB: the app
  * shell and every hub frame each have their own.
  *
  * Only for images anyone can fetch without logging in: entries are not encrypted, unlike HubStorage.

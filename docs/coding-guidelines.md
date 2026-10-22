@@ -1,10 +1,10 @@
-## Coding guidelines
+# Coding guidelines
 
----
+How we write the TypeScript and Vue code of the global client and the hub client.
 
-### Annotation
+## Annotation
 
-We use [JSDoc](https://jsdoc.app) annotations to describe the purpose of parameters and return values. Since TypeScript already provides the types, omit type information from the JSDoc.'
+We use [JSDoc](https://jsdoc.app) annotations to describe the purpose of parameters and return values. Since TypeScript already provides the types, omit type information from the JSDoc.
 
 VSCode has built-in functionality to generate JSDoc documentation, which you can activate by typing `/**` above a function. Because we are using TypeScript, you can refrain from using types in the JSDoc annotation.
 
@@ -60,9 +60,7 @@ const setLastReadMessage = (
 };
 ```
 
----
-
-### Order of aspects
+## Order of aspects
 
 We order the aspects in all `*.ts` and `*.vue` files as following:
 
@@ -79,9 +77,7 @@ We order the aspects in all `*.ts` and `*.vue` files as following:
 
 > Question: Should we use region markers to divide these?
 
----
-
-### Imports
+## Imports
 
 Imports are automatically sorted by the [Prettier](https://prettier.io) formatter. This will split up the imports into the order defined in the `.prettierrc`.
 
@@ -103,9 +99,7 @@ import { useGlobal } from "@global-client/stores/global";
 import { useDialog } from "@hub-client/stores/dialog";
 ```
 
----
-
-### Props definition
+## Props definition
 
 We handle props definition in the following way.
 
@@ -127,9 +121,7 @@ withDefaults(
 );
 ```
 
----
-
-### Functions
+## Functions
 
 We use [arrow functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions) (`=>`) as the default way to define functions, where this is possible. Arrow functions are preferred because they provide a shorter, more readable syntax.
 
@@ -153,9 +145,7 @@ For short, single-expression functions, use the implicit return:
 const isActive = (room: Room): boolean => room.state === "active";
 ```
 
----
-
-### Exporting
+## Exporting
 
 For clarity, instead of exporting functions or variables in-line, we export them in a single block at the end of the file where possible. Note that some files, such as composables or Pinia stores will still rely on `export default`.
 
@@ -171,31 +161,23 @@ const myFunction = () => {
 export { myConst, myFunction };
 ```
 
----
-
-### Error handling
-
-...
-
----
-
-### Pinia stores
+## Pinia stores
 
 Stores are responsible for holding reactive state and exposing it to components. We follow a clear separation between stores and composables.
 
-#### What belongs in the store
+### What belongs in the store
 
 - State: Raw reactive data.
 - Getters: Only for derived/computed values. Do not create getters that simply return state, as Pinia already exposes state reactively.
 - Actions: Thin state mutations (setters). No API calls, no orchestration, no routing.
 
-#### What belongs in the composable
+### What belongs in the composable
 
 - API calls combined with state updates
 - Orchestration logic (e.g., fetch data, then update store, then navigate)
 - Reading from external sources (e.g., Matrix SDK) using store state
 
-#### Getters
+### Getters
 
 - Use `this.` to access state inside getters, not destructured parameters.
 - Only create a getter when it adds logic. Accessing `userStore.userId` directly is preferred over a pass-through getter, since a getter with the same name as a state property causes infinite recursion in Pinia (see issue [#1331](https://github.com/vuejs/pinia/issues/1331)).
@@ -220,7 +202,7 @@ userId(): string | undefined {
 },
 ```
 
-#### Actions
+### Actions
 
 - Keep actions as thin state mutations. Move logic to composables.
 - Actions that accept arguments and set state are fine.
@@ -238,7 +220,7 @@ async fetchIsAdmin(client: MatrixClient) {
 },
 ```
 
-#### State grouping
+### State grouping
 
 Group related state properties with comments, and keep the same order in both the type definition and the initial state:
 
@@ -254,8 +236,6 @@ type State = {
 };
 ```
 
----
-
-### Typing
+## Typing
 
 We avoid interfaces!

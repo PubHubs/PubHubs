@@ -1,6 +1,6 @@
 /**
  * The last known hub directory, so the app can show and open hubs while PHC can't be reached (see
- * docs/app/OFFLINE.md). Kept in plain localStorage: it is PHC's public hub list, and not tied to a user.
+ * docs/app/offline.md). Kept in plain localStorage: it is PHC's public hub list, and not tied to a user.
  */
 import { Hub } from '@global-client/models/Hubs';
 

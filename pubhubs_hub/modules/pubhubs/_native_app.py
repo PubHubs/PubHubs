@@ -2,8 +2,8 @@
 
 The app bundles the hub client and serves it for every hub on an origin of its own,
 <label>.hubs.pubhubs-app.invalid, with the label derived from the hub id.  The same label is
-computed by hub-client (src/logic/utils/nativeHubOrigin.ts) and by the Android app
-(HubOriginWebViewClient.java); keep them in sync.
+computed by hub-client (src/logic/utils/nativeHubOrigin.ts); keep the two in sync (their tests
+share test vectors).  The Android app (HubOriginWebViewClient.java) only checks a host's shape.
 
 Core resolves the hub id from PHC and records it here, so that HubClientApi, a separate module,
 can allow exactly this hub's own native origins in CORS."""

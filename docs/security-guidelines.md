@@ -1,8 +1,8 @@
-## Security Guidelines
+# Security guidelines
 
-These are security guidelines educating on software mistakes that can impact the security of PubHubs.
+Mistakes that weaken the security of PubHubs, and how to avoid them.
 
-### XSS Injection
+## XSS injection
 
 Make sure all messages that are rendered are sanitized, because users can inject HTML and scripts through
 the Synapse message API. Anything that reaches the client from `/_matrix/...` is attacker-controlled: the
@@ -80,7 +80,7 @@ const event = await pubhubs.getEvent(roomId, eventId);
 snippetHtml.value = event.content.ph_body ?? escapeHtml(event.content.body ?? '');
 ```
 
-### SQL Injection
+## SQL injection
 
 If SQL statements are not properly prepared, users can inject SQL into a request and read sensitive hub
 data or corrupt the database by updating or deleting rows, tables or the whole schema. In the Synapse
@@ -132,7 +132,7 @@ txn.execute(command.format(table_name=table_name, column_name=column_name, colum
 Also prefer Synapse's own helpers (`simple_select_list`, `simple_upsert`, ...) when they fit: they build
 the statement and bind the values for you.
 
-### Improper Access Control
+## Improper access control
 
 When editing or creating an endpoint in a Synapse PubHubs module, you need to add the proper access
 control so that unauthorized users cannot read sensitive data or execute functions that are only meant for
@@ -192,7 +192,7 @@ Further point:
 - Derive the acting user from the token (`user_id` handed to you by the decorator, i.e.
   `module_api.get_user_by_req`). Never take a `user_id` from the body or query string as the identity.
 
-### Leaking Secrets
+## Leaking secrets
 
 When writing code, or when editing the project pipeline, we need to be careful not to leak secrets through
 logging, endpoints or the repository. **Do not put the `ops` repository, or any secret from it, in an agent
@@ -254,7 +254,7 @@ script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 ```
 
-### Allocation of Resources Without Limits or Throttling
+## Allocation of resources without limits or throttling
 
 It is important to keep in mind max-sizes, max-tries, throttling and load-balancing whenever you use an existing endpoint or add a new endpoint.
 
