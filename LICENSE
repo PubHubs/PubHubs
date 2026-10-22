@@ -189,17 +189,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-   This product bundles Bootstrap v5.1.3, which is available under a
-   "MIT" license. For details, see pubhubs/static/assets/css/front.css and pubhubs/static/assets/js/bootstrap.js.
-
-   This product bundles WorkSans, which is available under a
-   "Open Font License" license. For the files, see pubhubs/static/assets/fonts and global-client/src/assets/fonts.
-   
    This product bundles Atkinson Hyperlegible Font, which is available under a
-   "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts and global-client/src/assets/fonts.
+   "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts.
 
    This product bundles Inter, which is available under a
    "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts.
 
    This product bundles Noto Color Emoji, which is available under a
-   "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts and global-client/src/assets/fonts.
+   "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts.
