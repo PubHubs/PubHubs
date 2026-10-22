@@ -25,7 +25,15 @@ import {
 	type SignedIdentifyingAttrs,
 	isResult,
 } from '@global-client/models/MSS/TGeneral';
-import { type Attr, type Constellation, type HubInformation, PHCEnterMode, type UserSecretObject, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
+import {
+	type Attr,
+	type Constellation,
+	type HubInformation,
+	PHCEnterMode,
+	type UserSecretObject,
+	attrValueKey,
+	getHashedUserSecretData,
+} from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 import { type ResolvedUserSecretObjects } from '@global-client/models/MSS/UserSecret';
 
@@ -156,7 +164,7 @@ const useMSS = defineStore('mss', {
 		): Promise<{ error: false; response: Record<string, AttrKeyResp> } | { error: true; response: string }> {
 			const authServer = await this.getAuthServer();
 			// Request attribute keys for all identifying attributes used to login.
-			const attrKeyReq = this.buildAttributeKeyRequest(signedIdentifyingAttrs, userSecretObject);
+			const attrKeyReq = await this.buildAttributeKeyRequest(signedIdentifyingAttrs, userSecretObject);
 			return await authServer.attrKeysEP(attrKeyReq);
 		},
 
@@ -665,17 +673,12 @@ const useMSS = defineStore('mss', {
 			}
 		},
 
-		buildAttributeKeyRequest(signedIdentifyingAttrs: SignedIdentifyingAttrs, userSecretObject: UserSecretObject | null): AuthAttrKeyReq {
+		async buildAttributeKeyRequest(signedIdentifyingAttrs: SignedIdentifyingAttrs, userSecretObject: UserSecretObject | null): Promise<AuthAttrKeyReq> {
 			const attrKeyReq: AuthAttrKeyReq = {};
+			const userSecretData = userSecretObject ? await getHashedUserSecretData(userSecretObject) : null;
 
 			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs)) {
-				let timestamp = null;
-
-				if (isUserSecretObjectNew(userSecretObject)) {
-					timestamp = userSecretObject?.data?.[attr.id]?.[attr.value]?.ts ?? null;
-				} else if (userSecretObject) {
-					timestamp = userSecretObject?.[attr.id]?.[attr.value]?.ts ?? null;
-				}
+				const timestamp = userSecretData?.[attr.id]?.[await attrValueKey(attr.id, attr.value)]?.ts ?? null;
 
 				attrKeyReq[handle] = {
 					attr: attr.signedAttr,
