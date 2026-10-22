@@ -3,7 +3,7 @@
  *
  * Code that handles a failed request must not take a destructive step (log out, drop tokens, fall
  * back to defaults, show an error page) on a network error: the state it would throw away is most
- * likely still valid. See docs/app/OFFLINE.md.
+ * likely still valid. See docs/app/offline.md.
  */
 
 /** A request that never got an answer: no network, an unreachable server, or a timeout. */

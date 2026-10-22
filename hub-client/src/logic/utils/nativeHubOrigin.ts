@@ -4,9 +4,9 @@
  * each hub apart from the app shell (`pubhubs-app.invalid`) and from the other hubs, just like on the
  * web where every hub serves hub-client from its own domain.
  *
- * The same label is computed by the Android app (HubOriginWebViewClient.java), which serves the bundle on
- * these hosts, and by the hub itself (pubhubs_hub/modules/pubhubs/_native_app.py), which allows its own
- * origins in CORS. Keep the three in sync.
+ * The same label is computed by the hub itself (pubhubs_hub/modules/pubhubs/_native_app.py), which allows
+ * its own origins in CORS; keep the two in sync (their tests share test vectors). The Android app
+ * (HubOriginWebViewClient.java), which serves the bundle on these hosts, only checks a host's shape.
  */
 
 const NATIVE_HUB_HOST_SUFFIX = '.hubs.pubhubs-app.invalid';

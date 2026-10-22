@@ -189,7 +189,7 @@
 	}
 
 	/**
-	 * When PHC can't be reached the app runs on the copies on this device (see docs/app/OFFLINE.md).
+	 * When PHC can't be reached the app runs on the copies on this device (see docs/app/offline.md).
 	 * Once PHC answers again, reload the settings (merging changes made meanwhile, and storing the
 	 * result, see global.finishLogin), and refresh the hub list.
 	 */

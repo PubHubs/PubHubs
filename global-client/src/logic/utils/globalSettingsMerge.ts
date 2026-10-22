@@ -1,7 +1,7 @@
 /**
  * Three-way merge of the global settings, for when the copy at PHC changed (on another device) since
  * this device last loaded it. `base` is what this device loaded, `local` what it wants to store now,
- * `remote` what PHC has now. See docs/app/OFFLINE.md.
+ * `remote` what PHC has now. See docs/app/offline.md.
  *
  * - Theme, time format, language, last visited hub: a local change wins, otherwise the remote value.
  * - Pinned hubs: a hub added or removed on either side is added or removed. Local order is kept, with

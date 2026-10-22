@@ -1,4 +1,7 @@
-# iOS hub isolation: what to test
+# iOS test plan for hub isolation
+
+The checks from [Hub isolation](hub-isolation.md) that still have to be run on an iPhone. Android
+passed them all. Fill in the results at the bottom when you run them.
 
 ## Setup
 
@@ -47,7 +50,9 @@ Force-quit the app, relaunch, open hub 0, and in **hub 0**:
 
 ## 2. The shell can't be navigated to a hub
 
-**Why:** iOS has no native block for this, unlike Android. Otherwise a hub page could replace the app.
+**Why:** otherwise a hub page could replace the app. Android has its own block for this; on iOS we
+rely on Capacitor's navigation policy (`WebViewDelegationHandler`), which cancels top-level
+navigations away from the app's own URL, and that hasn't been checked on a device yet.
 
 In the **shell**:
 

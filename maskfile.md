@@ -402,7 +402,7 @@ Don't forget to build the hub image and setup the hub's directory using the
 
 - no_postgres
     - flags: --no-postgres
-    - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
+    - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db; see docs/development.md.
 - host
     - flags: --host
     - type: string

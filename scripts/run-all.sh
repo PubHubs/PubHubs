@@ -11,7 +11,9 @@ host_flags=()
 [[ -n "$PH_HOST" ]] && host_flags=(--host "$PH_HOST")
 
 # Start new session detached with first command
-tmux new-session -d -s $SESSION -n pubhubs "mask run yivi ${host_flags[*]}; $hold"
+# Pass YIVI_HOST on explicitly: panes get the tmux server's environment, which predates this
+# shell when a tmux server was already running.
+tmux new-session -d -s $SESSION -e "YIVI_HOST=${YIVI_HOST:-}" -n pubhubs "mask run yivi ${host_flags[*]}; $hold"
 
 function cleanup() {
 	mask run all cleanup

@@ -8,7 +8,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before you ask, read [Deploying a hub](https://github.com/PubHubs/PubHubs/blob/main/docs/deploy/hub/README.md). The PubHubs team adds your hub to PubHubs Central and contacts you here for the deploy token you need to pull the hub images.
+        Before you ask, read [Running a hub](https://github.com/PubHubs/PubHubs/blob/main/docs/running-a-hub.md). The PubHubs team adds your hub to PubHubs Central and contacts you here for the deploy token you need to pull the hub images.
 
         **This issue is public.** Don't put anything here that you don't want to be seen.
   - type: input
@@ -64,4 +64,4 @@ body:
       options:
         - label: We have been in contact with the PubHubs team about running a hub.
           required: true
-        - label: We have a server and the domains above, with TLS, as described in Deploying a hub.
+        - label: We have a server and the domains above, with TLS, as described in Running a hub.

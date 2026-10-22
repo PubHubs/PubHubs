@@ -1,175 +1,154 @@
-# PubHubs — Public hubs for community networks
+<img src="docs/images/pubhubs-logo.svg" width="64" alt="" />
 
-PubHubs (Public Hubs) is a European community network built on public values: openness, transparency and collective stewardship. It connects people across local hubs (i.e. neighbourhoods, sports clubs, schools, museums, patient organisations, libraries, municipalities) while protecting participants’ data and enabling trustworthy communication.
+# PubHubs
 
----
+**Public hubs for community networks.**
 
-## Contact & quick links
+One login for all your communities. What you say in one stays there. PubHubs is a European community
+network built on public values: openness, transparency and collective stewardship. It is used by
+hubs in the Netherlands, and still in active development. See [Getting started](#1-getting-started).
 
-- Website / info: [https://pubhubs.net](https://pubhubs.net)
-- If you want to get involved or test: please contact the team via our website.
-- Found a security problem? See [SECURITY.md](SECURITY.md).
+<br/>
 
----
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square)](LICENSE)
 
-# Current status
+You probably belong to several communities: a sports club, a patient association, a neighbourhood
+group. Online, each lives on a platform that wants your attention, shows you ads, and knows who you
+are everywhere.
 
-This project is **in active development** and moving through test phases. The repository is a mirror of internal work and may be subject to major changes before a stable release. If you or your organisation want to help test or contribute, contact the team first.
+On PubHubs, every community has its own **hub**, run by the organisation itself: a neighbourhood
+association, a school, a museum, a library, a municipality. You log in once, and move between hubs
+with a click. In each hub you are someone else: a random name unless you choose one, and nothing
+ties you to who you are in another hub. Where it matters, a room can ask you to prove something
+about yourself, such as that you live in the neighbourhood, so you know who you are talking to.
 
----
+<br/>
 
-## Architecture
+## 1 Getting started
 
-- **PubHubs central** — Central authentication and identity management (issues pseudonyms to hubs). Implemented in Rust.
-- **Global client** — Web client that navigates between hubs (embeds hub clients via iframe). Implemented in TypeScript + Vue.
-- **Hub servers** — Customised Matrix homeservers (based on Synapse) extended with PubHubs Python modules; by default hubs are not federated inside PubHubs.
-- **Hub clients** — Matrix-based clients embedded in the Global Client with PubHubs-specific features (secured rooms, attribute-based access). Implemented in TypeScript + Vue.
-- **Identity / attributes** — Handled by [Yivi](https://yivi.app) (used for login and attribute-based access).
+1. **Install [Yivi](https://yivi.app)** on your phone. It is the app you log in with. Add your email
+   address and phone number to it; Yivi checks them.
+2. **Open [app.pubhubs.net](https://app.pubhubs.net)** and choose **Register**. Scan the QR code
+   with Yivi and share your email address and phone number. You get a PubHubs card in Yivi, which
+   you log in with from then on. In the PubHubs app, Yivi opens on the same phone instead.
+3. **Find your hubs.** The compass shows every hub. Enter one, look around, and join its rooms.
+4. **On your phone**, add PubHubs to your home screen from the browser, to open it like an app.
 
----
+**The PubHubs app.** An app for Android is on its way: to Google Play and F-Droid, and as an APK on
+our [GitHub releases](https://github.com/PubHubs/PubHubs/releases). An app for iPhone follows
+later. The app works like the website, and also opens hubs you already know when there's no
+connection.
 
-### Important files & directories
+The [help pages](https://www.pubhubs.net/en/help/) explain the rest, also for hub admins and
+moderators.
 
-| Path / Name                       | Type | Purpose                                                            | Notes                                      |
-| --------------------------------- | ---: | ------------------------------------------------------------------ | ------------------------------------------ |
-| [flake.nix](./flake.nix)          | file | Nix flake with reproducible developer environment and dependencies | Use this to create dev shells.             |
-| [global-client](./global-client/) |  dir | Global client source (TypeScript + Vue)                            | Embeds hub clients via iframe.             |
-| [hub-client](./hub-client/)       |  dir | Hub client source (TypeScript + Vue)                               | Matrix client customisations.              |
-| [pubhubs](./pubhubs/)             |  dir | PubHubs Central (Rust)                                             | Central login & identity platform.         |
-| [pubhubs_hub](./pubhubs_hub/)     |  dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration. |
+<br/>
 
----
+## 2 Privacy and safety
 
-## Developer quickstart
+- **Hubs don't know who you are.** Your email address and phone number are only used to log in; no
+  hub sees them. Each hub knows you by its own pseudonym, such as `04a-d83`, until you pick a name.
+- **Nobody can link your hubs.** PubHubs Central doesn't learn which hubs you enter, and your
+  pseudonyms in two hubs can't be linked, not even by the hubs together.
+- **Secured rooms** ask you to disclose something with Yivi, such as your email domain or age,
+  before you join. Everyone in the room has disclosed the same, so you know who you are talking to.
+- **No ads, no feed.** There is no central timeline and no algorithm deciding what you see.
+- **Stays in the hub.** Hubs are not federated: what is said in a hub stays on that hub's server.
 
-### 1. Clone the repo
+The code is open, and the cryptography behind the pseudonyms is published in
+[a paper](https://academic.oup.com/logcom/article/34/7/1377/7319213). Found a security problem? See
+the [security policy](SECURITY.md).
 
-Our main repository is on the Radboud University's GitLab, but external developers can use our [GitHub mirror](https://github.com/PubHubs/PubHubs). `main` is our devemopment branch, while `stable` is our production branch.
+<br/>
 
-### 2. Install dependencies
+## Table of contents
 
-See the [Nix flake](./flake.nix) for the required dependencies and their version. You can use the Nix package manager to install these, or install them manually.
+- [3 Documentation](#3-documentation)
+- [4 What you can do](#4-what-you-can-do)
+- [5 Questions or issues?](#5-questions-or-issues)
+- [6 License](#6-license)
 
-With Nix installed, use the following command to enter a development shell:
+<br/>
 
-```sh
-# If using Nix:
-nix develop
-```
+## 3 Documentation
 
-### 3. Development commands
+If you want to run a hub, work on PubHubs, or build something on top of it:
 
-We use the the [Mask CLI task runner](https://github.com/jacobdeichert/mask) to document and provide shortcuts to the development commands we use. See the [Maskfile](./maskfile.md) for all available commands, or run `mask run help` to see what is available.
+- [**Running a hub**](docs/running-a-hub.md) - Hosting a hub server and client, the reverse proxy,
+  video calls, admins and updates.
+  [Contact the PubHubs team](https://www.pubhubs.net/en/help/contact/) first, so your hub can be
+  added to PubHubs.
+- [**Development**](docs/development.md) - Setup, running everything on your own computer, logging
+  in with Yivi, checks and tests. Start here to work on PubHubs.
+- [**Architecture**](docs/architecture.md) - The components, how logging in and entering a hub work,
+  and how the code is laid out.
+- [**Hub API**](docs/hub-api.md) - The endpoints the PubHubs modules add to a hub.
+- [**Hub client**](docs/hub-client.md) - Where things are in the hub client: stores, styling, icons
+  and languages.
+- [**Video calls**](docs/video-calls.md) - How a call works, and how to debug one.
+- [**The app**](docs/app/README.md) - The Android and iOS app: building and releasing it, review mode
+  for the app stores, what hubs need for it, and how it keeps hubs apart and works offline.
+- [**Coding guidelines**](docs/coding-guidelines.md) and
+  [**security guidelines**](docs/security-guidelines.md) - How we write the code, and the security
+  mistakes to avoid.
 
-> On Windows, make sure to run these in Git bash, instead of the normal terminal.
+Changes are in [CHANGELOG.md](CHANGELOG.md).
 
-#### On first use
+<br/>
 
-on first use, we need to run some commands to install dependencies and set up some directories:
+## 4 What you can do
 
-```sh
-mask run init
-```
+### 4.1 Hubs
 
-```sh
-npm install
-```
+The compass shows every hub, with what it is about. The hubs you use are in the sidebar, with the
+number of new messages. In each hub you choose your own name and photo, or none at all.
 
-This will setup all Node modules and install our pre-commit hook that handles formatting before committing.
+### 4.2 Rooms
 
-Now you're ready to start developing.
+- **Public rooms** are open to everyone in the hub.
+- **Secured rooms**, marked with a shield, ask you to disclose something with Yivi first. You only
+  share what the room asks for: if it needs you to be over 18, it doesn't learn your date of birth.
+- **Forum rooms** hold posts with their own discussions, instead of one stream of messages.
+- **Direct messages** are private conversations with one or more members.
 
-### 4. What needs to be running
+### 4.3 Messages
 
-PubHubs consists of two main components:
+Reply in threads, react, share files and images, and find them back in a room's library or with
+search. **Polls** and **schedulers** help a group decide or find a date. A **signed message** shows
+what you disclosed with Yivi, such as your profession, for statements that need it.
 
-1. `Pubhubs Central`, which manages the global login
-    - [./pubhubs](./pubhubs/) folder contains the backend
-    - [./global-client](./global-client/) folder contains the client
+### 4.4 Video calls
 
-2. The `Hubs`, which run the Synapse server and Matrix client
-    - [/pubhubs_hub](./pubhubs_hub/) folder contains the synapse server
-        - [/pubhubs_hub/testhub[0-4]](./pubhubs_hub/testhub0) folders contain the test hubs
-    - [/hub-client](./hub-client/) folder contains the hub client
+Start a call from a room, and others in the room join from the message it posts. Share your screen
+once others have joined.
 
-To run the local development, you need to run six things locally:
+### 4.5 Moderation
 
-- The Yivi server `mask run yivi`
-- The Garage S3 server, `mask run s3`
-- The PubHubs central server `mask run servers`
-- The PubHubs central client `mask run client`
-- The Hub server(s) `mask run hub server [0-4]`
-- The Hub client(s) `mask run hub client [0-4]`
+Rooms can have moderators. Members can report a message to them, and moderators can post
+announcements, whisper to a member privately, or give a yellow card (kick) or a red card (ban). Hub
+admins set up the hub, its rooms and who moderates them.
 
-You can run these all at once in the following way:
+### 4.6 Your way
 
-```sh
-mask run all
-```
+PubHubs is in English and Dutch, in light or dark mode or following your system, and works on your
+phone as well as on your computer.
 
-> [!INFO]
-> If you want to specify the url to use for Yivi, for example when unable to connect because of network restrictions, you can do the following:
->
-> ```sh
-> YIVI_HOST=192.168.0.2 mask run all
-> ```
+<br/>
 
-Alternatively, if you are only making changes to the hub, you can run the hub client against our [staging server](https://main.pubhubs.ihub.ru.nl). To do so, you can run:
+## 5 Questions or issues?
 
-```sh
-mask run hub mainclient
-```
+For help with using PubHubs, see the [help pages](https://www.pubhubs.net/en/help/) or
+[contact the team](https://www.pubhubs.net/en/help/contact/). Found a bug, or have an idea? Please
+[open an issue](https://github.com/PubHubs/PubHubs/issues) on GitHub. Security problems go
+privately, as described in the [security policy](SECURITY.md).
 
-This will run the hub client at port `8001`, but to access it you need a url with an access token. You can get this by running:
+The main repository is on
+[Radboud University's GitLab](https://gitlab.science.ru.nl/ilab/pubhubs_canonical), and is mirrored
+to [GitHub](https://github.com/PubHubs/PubHubs).
 
-```sh
-mask run hub mainclient enter
-```
+<br/>
 
-This will show a QR-code in the terminal, which can be scanned with your Yivi app (see next section). Once registered, you'll get a URL with the access token.
+## 6 License
 
-### 5. Logging in
-
-To access the hubs, you have to login using the Yivi app. To do so, the app must be set to developer mode. This can be done by navigating to the `more` menu and clicking the 'App Id' a couple of times.
-
-#### Making yourself admin
-
-After the first login on your local development, there won't be any rooms in the hub yet. To make these, you'll first have to make yourself admin of the hub. To do so, go to the folder of the running hub (ex. `./pubhubs_hub/testhub0`) and run the following:
-
-```sh
-sudo sqlite3 homeserver.db
-
-# Inside sqlite
-UPDATE users SET admin = 1; # Note that this will make all the existing users admin, use 'WHERE' to specify
-
-# Afterwards, quit with ctrl + d, or:
-quit;
-```
-
-If the hub is using PostgreSQL instead of SQLite3, use the following instead:
-
-```sh
-docker exec -it pubhubs-testhub0 sudo -u postgres psql hub # For testhub0
-
-# Inside psql
-UPDATE users SET admin = 1; # Note that this will make all the existing users admin, use 'WHERE' to specify
-
-# Afterwards, quit with:
-\q
-```
-
-After doing this, restart the hub server, or close `mask run all` and run it again to gain admin access.
-
-### 6. Solutions for common issues
-
-- If Yivi cannot communicate with your local development setup, allow the yivi ports 8188 and 8189 in your firewall.
-- If Yivi still doesn't communicate with your local development, and you are on eduroam, you might have to use a VPN such as Tailscale to connect your development machine and your phone.
-- Is you run into CORS issues, disable HTPPS-only in your browser.
-
----
-
-## Further documentation & changelog
-
-- [CHANGELOG.md](./CHANGELOG.md)
-- [Deploy docs](./docs/deploy/)
-- [Dev docs](./docs/development/)
+Licensed under the [Apache License 2.0](LICENSE). Bundled fonts and libraries, and their licences,
+are listed at the end of the license file.

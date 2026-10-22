@@ -12,7 +12,7 @@
 // Usage:
 //   adb forward tcp:9333 localabstract:webview_devtools_remote_$(adb shell pidof net.pubhubs.app)
 //   curl -s 127.0.0.1:9333/json | grep '"id"'
-//   node docs/app/devtools-origin-proxy.mjs
+//   node scripts/devtools-origin-proxy.mjs
 // then type into Chromium's address bar:
 //   devtools://devtools/bundled/inspector.html?ws=127.0.0.1:9334/devtools/page/<id>
 //

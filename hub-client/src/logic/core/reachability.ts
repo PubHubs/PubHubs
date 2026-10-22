@@ -1,6 +1,6 @@
 /**
  * Which servers can currently be reached, tracked per origin (PHC, each hub server), because one
- * server can be down while the others are fine. See docs/app/OFFLINE.md.
+ * server can be down while the others are fine. See docs/app/offline.md.
  *
  * Every JavaScript context (the app shell and each hub frame) has its own instance. The state is fed
  * by the outcome of real requests ({@link trackedFetch}), and by the window's online/offline events
