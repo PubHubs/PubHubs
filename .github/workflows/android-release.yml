@@ -118,10 +118,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # The notes are this version's part of CHANGELOG.md, under a heading like
-          # "## 18 September 2026 - v3.5.5".
-          awk -v v="- ${GITHUB_REF_NAME}" '/^## / { on = substr($0, length($0) - length(v) + 1) == v; next } on' CHANGELOG.md > notes.md
+          # "## 18 September 2026 - v3.5.5", without the entries for developers only: those with
+          # INTERNAL in their prefix, such as [INTERNAL] or [BUG, INTERNAL], with their indented lines.
+          awk -v v="- ${GITHUB_REF_NAME}" '/^## / { on = substr($0, length($0) - length(v) + 1) == v; next } on' CHANGELOG.md > all.md
+          awk '/^- / { internal = /^- \[[^]]*INTERNAL[^]]*\]/ } !internal' all.md > notes.md
           notes=(--generate-notes)
-          if grep -q '[^[:space:]]' notes.md; then notes=(--notes-file notes.md); fi
+          if grep -q '[^[:space:]]' notes.md; then notes=(--notes-file notes.md)
+          elif grep -q '[^[:space:]]' all.md; then notes=(--notes "Internal changes only.")
+          fi
           gh release create "$GITHUB_REF_NAME" "pubhubs-${GITHUB_REF_NAME}.apk" SHA256SUMS \
             --verify-tag --draft --title "PubHubs ${GITHUB_REF_NAME#v}" "${notes[@]}"
 
