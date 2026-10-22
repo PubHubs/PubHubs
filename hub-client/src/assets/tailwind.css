@@ -7,14 +7,14 @@
 	font-display: swap;
 	font-family: 'inter';
 	font-style: normal;
-	src: url('./fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+	src: url('./fonts/Inter-VariableFont_opsz,wght.woff2') format('woff2');
 }
 
 @font-face {
 	font-display: swap;
 	font-family: 'inter';
 	font-style: italic;
-	src: url('./fonts/Inter-Italic-VariableFont_opsz,wght.ttf') format('truetype');
+	src: url('./fonts/Inter-Italic-VariableFont_opsz,wght.woff2') format('woff2');
 }
 
 @font-face {
