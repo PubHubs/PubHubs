@@ -8,6 +8,7 @@ PubHubs (Public Hubs) is a European community network built on public values: op
 
 - Website / info: [https://pubhubs.net](https://pubhubs.net)
 - If you want to get involved or test: please contact the team via our website.
+- Found a security problem? See [SECURITY.md](SECURITY.md).
 
 ---
 
