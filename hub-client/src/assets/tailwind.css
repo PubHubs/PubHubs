@@ -21,14 +21,14 @@
 	font-display: swap;
 	font-family: 'atkinson_hyperlegible';
 	font-style: normal;
-	src: url('./fonts/AtkinsonHyperlegibleNext-VariableFont_wght.ttf') format('truetype');
+	src: url('./fonts/AtkinsonHyperlegibleNext-VariableFont_wght.woff2') format('woff2');
 }
 
 @font-face {
 	font-display: swap;
 	font-family: 'atkinson_hyperlegible';
 	font-style: italic;
-	src: url('./fonts/AtkinsonHyperlegibleNext-Italic-VariableFont_wght.ttf') format('truetype');
+	src: url('./fonts/AtkinsonHyperlegibleNext-Italic-VariableFont_wght.woff2') format('woff2');
 }
 
 @font-face {
@@ -36,7 +36,7 @@
 	font-family: 'notocoloremoji';
 	font-style: normal;
 	font-weight: 400;
-	src: url('./fonts/NotoColorEmoji-Regular.ttf') format('truetype');
+	src: url('./fonts/NotoColorEmoji-Regular.woff2') format('woff2');
 }
 
 :root {
@@ -391,7 +391,7 @@
 	}
 
 	/* System emoji fonts first. Every current mobile and desktop platform ships one, so the
-	   bundled notocoloremoji fallback (a 24 MB .ttf) is only fetched on the rare platform that
+	   bundled notocoloremoji fallback (a 5 MB .woff2) is only fetched on the rare platform that
 	   has none, instead of by every phone that opens the emoji picker. */
 	.emoji-font {
 		font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', notocoloremoji;
