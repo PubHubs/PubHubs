@@ -85,7 +85,7 @@
 	--on-accent-secondary: #ffffff;
 
 	/* Fonts */
-	--font-atkinson: 'Atkinson Hyperlegible', sans-serif;
+	--font-atkinson: 'atkinson_hyperlegible', sans-serif;
 	--font-inter: 'Inter', sans-serif;
 }
 

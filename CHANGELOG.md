@@ -21,6 +21,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed that a logout could redirect a user from the register page.
 - [BUG] Fixed that a reply showed the original message instead of the edited one.
 - [BUG] Fixed that longer messages were sometimes cut off.
+- [BUG] Fixed that headings were shown in a fallback font instead of Atkinson Hyperlegible.
 - [BUG] Fixed that pinned hubs were not loaded on the first login after a PubHubs Central restart.
 - [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
 - [IMPROVED] The documentation has been restructured and brought up to date, and a CONTRIBUTING.md explains that contributions go through the PubHubs team.
