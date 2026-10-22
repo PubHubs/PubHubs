@@ -512,6 +512,42 @@ deploy-stable-globalclient:
         - chmod 600 $UPDATE_GLOBAL_CLIENT_STABLE_KEY
         - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_STABLE_KEY
 
+# Builds the Android app, unsigned, in merge requests and on main when something the app build depends
+# on changed, so a broken app build shows up before a release tag does. build-android below does the
+# signed build on release tags.
+android-build-check:
+    stage: tests
+    tags:
+        - docker
+    interruptible: true
+    image: $ANDROID_IMAGE
+    variables:
+        GRADLE_USER_HOME: ${CI_PROJECT_DIR}/.gradle-home
+        npm_config_cache: ${CI_PROJECT_DIR}/.npm
+    cache:
+        key: android-build
+        paths:
+            - .gradle-home/caches
+            - .gradle-home/wrapper
+            - .npm
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes: &android-build-inputs
+              - android/**/*
+              - capacitor.config.ts
+              - package.json
+              - package-lock.json
+              - global-client/config/**/*
+              - cicd/.gitlab-ci.yml
+        - if: $CI_COMMIT_BRANCH == "main"
+          changes: *android-build-inputs
+    script:
+        - npm ci --prefer-offline --no-audit --no-fund
+        - npm run cap:sync:android:release
+        - cd android
+        # PUBHUBS_KEYSTORE is unset, so this builds unsigned (see android/app/build.gradle).
+        - ./gradlew --no-daemon assembleRelease
+
 # Builds the Android app on a release tag: the app bundle for the Play Store and an APK, both signed
 # with the upload key. See "Release builds" in docs/app/README.md. Uploading to Play is still by hand.
 build-android:
