@@ -3,12 +3,19 @@
 # Our repository lives on the Radboud University's GitLab and is push-mirrored here, where this runs.
 # GitLab CI's build-android job builds the same tag for the Play Store; see "Release builds" in
 # docs/app/README.md.
+# Run by hand, it builds the chosen branch as a test version (like 3.6.0-test.1) into a GitHub
+# pre-release. Its tag is only made here, never on GitLab, whose CI deploys stable on any tag.
 name: Android release
 
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Test version, a release version with a suffix, like 3.6.0-test.1
+        required: true
 
 # Read-only unless a job asks for more.
 permissions:
@@ -27,11 +34,22 @@ jobs:
       contents: write
       id-token: write
       attestations: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
+      # The suffix keeps a test tag apart from the release tags that come from GitLab.
+      - name: Test version has a suffix
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.]+$ ]]; then
+            echo "The test version needs a suffix, like 3.6.0-test.1"; exit 1
+          fi
+
       # The version in build.gradle has to be set for this release (see the merge-to-stable template).
       - name: Tag matches the version in build.gradle
+        if: github.event_name == 'push'
         run: |
           version="${GITHUB_REF_NAME#v}"
           code=$(echo "$version" | awk -F. '{ print $1 * 10000 + $2 * 100 + $3 }')
@@ -63,7 +81,7 @@ jobs:
       # The checkout has no tags, so the clients get their version from PH_VERSION (see vite.config.ts).
       - name: Build the clients with the production config and sync them into the app
         env:
-          PH_VERSION: ${{ github.ref_name }}
+          PH_VERSION: ${{ env.TAG }}
         run: npm run cap:sync:android:release
 
       - name: Decode keystore
@@ -82,7 +100,7 @@ jobs:
 
       - name: Name the APK, verify its signature, and write its checksum
         run: |
-          apk="pubhubs-${GITHUB_REF_NAME}.apk"
+          apk="pubhubs-${TAG}.apk"
           mv android/app/build/outputs/apk/release/app-release.apk "$apk"
           apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n1)
           "$apksigner" verify --verbose --print-certs "$apk"
@@ -92,9 +110,10 @@ jobs:
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: pubhubs-${{ github.ref_name }}.apk
+          subject-path: pubhubs-${{ env.TAG }}.apk
 
       - name: Draft the release
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -105,3 +124,11 @@ jobs:
           if grep -q '[^[:space:]]' notes.md; then notes=(--notes-file notes.md); fi
           gh release create "$GITHUB_REF_NAME" "pubhubs-${GITHUB_REF_NAME}.apk" SHA256SUMS \
             --verify-tag --draft --title "PubHubs ${GITHUB_REF_NAME#v}" "${notes[@]}"
+
+      - name: Make the pre-release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" "pubhubs-${TAG}.apk" SHA256SUMS --target "$GITHUB_SHA" --prerelease \
+            --title "PubHubs ${TAG#v}" --notes "Test build of ${GITHUB_REF_NAME} at ${GITHUB_SHA}, not a release."
