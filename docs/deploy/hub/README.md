@@ -10,7 +10,7 @@ Besides an option for remote access such as SSH, port 80 and 443 need to be acce
 
 ### Linking to PubHubs Central
 
-To be able to join the PubHubs network, you will need to provide the following information about your future Hub to the pubhubs team:
+To be able to join the PubHubs network, you will need to provide the following information about your future Hub to the pubhubs team, for example with the [Register a hub](https://github.com/PubHubs/PubHubs/issues/new?template=add-hub.yml) form on our GitHub mirror:
 
 - **Hub name** - the name that will be displayed in PubHubs.
 - **Hub description** - a short text describing your hub. This will be displayed with the Hub name on the PubHubs homepage, and can be changed later in the client by an hub-admin.
