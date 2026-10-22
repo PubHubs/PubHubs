@@ -1,7 +1,7 @@
 # Coding steps
 
 - [ ] Followed [coding guidelines](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Code-guidelines)
-- [ ] Added to [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md) with appropriate prefix and human readable description. (If there is nothing to add, give the merge request the `No changelog` label, or its pipeline fails.)
+- [ ] Added to [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md) with appropriate prefix and human readable description. (If there is nothing to add, give the merge request the `No changelog` label, or its pipeline fails. The `changelog-check` job only looks at the labels when a pipeline is created, so after adding the label run a new pipeline; retrying the job is not enough. The job comes from this branch's CI file, so if it still asks for an older label, rebase on main.)
 - [ ] e2e tests passed
 - [ ] Added new e2e tests
 
