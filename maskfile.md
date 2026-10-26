@@ -28,6 +28,10 @@ This requires [tmux](https://github.com/tmux/tmux) to be installed.
 - no_postgres
     - flags: --no-postgres
     - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
+- host
+    - flags: --host
+    - type: string
+    - desc: Passed through to the yivi and hub server panes, see their --host (e.g. a Tailscale IP)
 
 **OPTIONS**
 
@@ -36,7 +40,7 @@ This requires [tmux](https://github.com/tmux/tmux) to be installed.
     - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
 
 ```sh
-PH_NO_POSTGRES="$no_postgres" sh scripts/run-all.sh
+PH_HOST="$host" PH_NO_POSTGRES="$no_postgres" sh scripts/run-all.sh
 ```
 
 #### cleanup
@@ -300,7 +304,7 @@ npx cap doctor android
 Uses `pidcat` (or falls back to `adb logcat`) with the app package name.
 
 ```sh
-adb logcat --pid="$(adb shell pidof -s nl.pubhubs.client 2>/dev/null || echo 0)" 2>/dev/null | head -c 50000
+adb logcat --pid="$(adb shell pidof -s net.pubhubs.app 2>/dev/null || echo 0)" 2>/dev/null | head -c 50000
 ```
 
 ### ios
@@ -398,7 +402,11 @@ Don't forget to build the hub image and setup the hub's directory using the
 
 - no_postgres
     - flags: --no-postgres
-    - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db — see docs/development/LOCAL_DEVELOPMENT.md.
+    - desc: Keep running on sqlite instead of auto-migrating to the embedded postgres. If this hub already migrated (homeserver.db.bak present), first `mv` it back to homeserver.db; see docs/development.md.
+- host
+    - flags: --host
+    - type: string
+    - desc: Override the networkhost the hub uses for its server url (e.g. a Tailscale IP). Must match the networkhost PHC uses. Falls back to YIVI_HOST.
 
 ```sh
 echo "Running testhub${n}"
@@ -406,8 +414,8 @@ echo "Running testhub${n}"
 cd pubhubs_hub
 postgres_flag=()
 [[ "$no_postgres" == "true" ]] && postgres_flag=(--no-replace-sqlite3-by-postgres)
-networkhost_ip="$(node ../scripts/print-networkhost-ip.js)"
-python3 start_testhub.py --networkhost "${networkhost_ip}" "${postgres_flag[@]}" "${n}"
+hub_host="${host:-${YIVI_HOST:-$(node ../scripts/print-networkhost-ip.js)}}"
+python3 start_testhub.py --networkhost "${hub_host}" "${postgres_flag[@]}" "${n}"
 ```
 
 #### client (n)

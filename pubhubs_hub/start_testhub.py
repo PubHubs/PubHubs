@@ -89,6 +89,10 @@ def main():
     # hub_client_url: the hub's iframe src, handed to the global client via PHC's `.ph/info`. Plain HTTP
     # on the networkhost IP, mirroring the PHC/global-client pattern — see docs/app/README.md.
     hub_client_url = f"http://{networkhost}:{8001+args.number}"
+    # hub_dev_url: the same hub client opened on localhost, as in a desktop browser or the e2e tests. The
+    # hub only answers requests from its client_url and dev_url, so without this one its own endpoints
+    # (consent, hub settings, ...) are blocked from localhost.
+    hub_dev_url = f"http://localhost:{8001+args.number}"
     # hub_server_url (public_baseurl): used server-side by PHC/yivi to reach the hub directly, so it
     # stays on the plain-http `networkhost` url from pubhubs.toml, unrelated to the browser-facing URL
     # above (that's hub-client's own HUB_URL, see maskfile.md's "hub client (n)").
@@ -137,6 +141,7 @@ def main():
                     "pubhubs-hub",
                     "--environment", "development",
                     "--hub-client-url", hub_client_url,
+                    "--hub-dev-url", hub_dev_url,
                     "--hub-server-url", hub_server_url,
                     "--public-yivi-url", public_yivi_url,
                     "--global-client-url", global_client_url,

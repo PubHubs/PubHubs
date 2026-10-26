@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name">PubHubs</string>
     <string name="title_activity_main">PubHubs</string>
-    <string name="package_name">nl.pubhubs.client</string>
-    <string name="custom_url_scheme">nl.pubhubs.client</string>
+    <string name="package_name">net.pubhubs.app</string>
+    <string name="custom_url_scheme">net.pubhubs.app</string>
 
     <!-- Push notifications (nl.pubhubs.client.push) - deliberately generic: the payload never
          carries message content, sender, or room information to put here. -->

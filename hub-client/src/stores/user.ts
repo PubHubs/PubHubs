@@ -10,6 +10,8 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 // Logic
 import { api_synapse } from '@hub-client/logic/core/api';
 import filters from '@hub-client/logic/core/filters';
+import { hubStorage } from '@hub-client/logic/core/hubStorage';
+import { isNetworkError } from '@hub-client/logic/core/networkError';
 import { router } from '@hub-client/logic/core/router';
 import { type ConsentJSONParser } from '@hub-client/logic/json-utility';
 import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -54,6 +56,30 @@ type State = {
 };
 
 const logger = createLogger('User');
+
+// The last consent answer from the hub, kept in HubStorage for when the hub can't be reached.
+const CONSENT_STORAGE_KEY = 'consent';
+type ConsentState = { needsConsent: boolean; needsOnboarding: boolean };
+
+// The user's own profile as last known, kept in HubStorage for when the hub can't be reached (the hub
+// sidebar shows it). The avatar is kept as the image itself: the blob: URL it is shown from is gone
+// after a restart.
+const OWN_PROFILE_STORAGE_KEY = 'ownProfile';
+type OwnProfile = { displayName?: string; contentAvatarUrl?: string; avatarDataUrl?: string };
+
+async function toDataUrl(objectUrl: string): Promise<string | undefined> {
+	try {
+		const blob = await (await fetch(objectUrl)).blob();
+		const bytes = new Uint8Array(await blob.arrayBuffer());
+		let binary = '';
+		// In chunks: spreading a whole image into one call can exceed the argument limit.
+		for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+		return `data:${blob.type};base64,${btoa(binary)}`;
+	} catch (error) {
+		logger.warn('Could not keep the avatar image', { error });
+		return undefined;
+	}
+}
 
 const useUser = defineStore('user', {
 	state: (): State => ({
@@ -189,6 +215,7 @@ const useUser = defineStore('user', {
 			if (this.userId) {
 				const existing = this.usersProfile.get(this.userId) ?? {};
 				this.setUserProfile(this.userId, { ...existing, displayName: name });
+				void this.storeOwnProfile();
 			}
 		},
 
@@ -214,6 +241,7 @@ const useUser = defineStore('user', {
 			if (this.userId) {
 				const existing = this.usersProfile.get(this.userId) ?? {};
 				this.setUserProfile(this.userId, { ...existing, contentAvatarUrl: avatarUrl, avatarUrl: authorizedUrl });
+				void this.storeOwnProfile();
 			}
 		},
 
@@ -241,6 +269,34 @@ const useUser = defineStore('user', {
 			}
 
 			this.setUserProfile(this.userId, profileData);
+			void this.storeOwnProfile();
+		},
+
+		/** Keep the own profile in HubStorage, see {@link restoreOwnProfile}. */
+		async storeOwnProfile() {
+			if (!this.userId) return;
+			const profile = this.usersProfile.get(this.userId);
+			if (!profile) return;
+			const avatarUrl = profile.avatarUrl;
+			const avatarDataUrl = avatarUrl?.startsWith('blob:') ? await toDataUrl(avatarUrl) : avatarUrl?.startsWith('data:') ? avatarUrl : undefined;
+			await hubStorage.set<OwnProfile>(OWN_PROFILE_STORAGE_KEY, {
+				displayName: profile.displayName,
+				contentAvatarUrl: profile.contentAvatarUrl,
+				avatarDataUrl,
+			});
+		},
+
+		/** Show the own profile as last known, for when the hub can't be reached. */
+		async restoreOwnProfile() {
+			const cached = await hubStorage.get<OwnProfile>(OWN_PROFILE_STORAGE_KEY);
+			if (!cached || !this.userId) return;
+			const existing = this.usersProfile.get(this.userId) ?? {};
+			this.setUserProfile(this.userId, {
+				...existing,
+				displayName: cached.displayName,
+				contentAvatarUrl: cached.contentAvatarUrl,
+				avatarUrl: cached.avatarDataUrl,
+			});
 		},
 
 		// Profile setter method for all users.
@@ -249,17 +305,18 @@ const useUser = defineStore('user', {
 			this.usersProfile.set(userId, profileData);
 		},
 
+		/**
+		 * @throws when the hub could not store the consent; the caller has to tell the user, who would
+		 *   otherwise be sent back to the house rules without knowing why.
+		 */
 		async setUserConsentVersion(version: number): Promise<void> {
 			const data = {
 				version: version,
 			};
-			try {
-				await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=consent`, data);
-				this.needsConsent = false;
-				this.needsOnboarding = false;
-			} catch (error) {
-				logger.error(error);
-			}
+			await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=consent`, data);
+			this.needsConsent = false;
+			this.needsOnboarding = false;
+			void hubStorage.set<ConsentState>(CONSENT_STORAGE_KEY, { needsConsent: false, needsOnboarding: false });
 		},
 		// #endregion
 
@@ -297,13 +354,25 @@ const useUser = defineStore('user', {
 				if (response) {
 					this.needsConsent = response.needs_consent;
 					this.needsOnboarding = response.needs_onboarding;
+					void hubStorage.set<ConsentState>(CONSENT_STORAGE_KEY, { needsConsent: this.needsConsent, needsOnboarding: this.needsOnboarding });
 				}
 			} catch (error) {
-				logger.error('Could not check if user needs consent, ', error);
-				router.push({ name: 'error-page' });
-				this.needsConsent = true;
+				if (isNetworkError(error)) {
+					// Go by the last answer from the hub. Without one, ask for consent: a request the hub's CORS
+					// policy blocks looks just like an unreachable hub, while the rest of the hub may still work,
+					// so letting the user in would skip the house rules. This runs again once the hub is back.
+					const cached = await hubStorage.get<ConsentState>(CONSENT_STORAGE_KEY);
+					logger.warn('The hub is unreachable; using the last known consent state', { cached });
+					this.needsConsent = cached?.needsConsent ?? true;
+					this.needsOnboarding = cached?.needsOnboarding ?? false;
+				} else {
+					logger.error('Could not check if user needs consent, ', error);
+					router.push({ name: 'error-page' });
+					this.needsConsent = true;
+				}
 			}
-			if (this.needsConsent || this.needsOnboarding) {
+			// Already on the onboarding page (a re-check on reconnect): pushing it again would make it its own originalRoute.
+			if ((this.needsConsent || this.needsOnboarding) && router.currentRoute.value.name !== 'onboarding') {
 				const onboardingType = this.needsOnboarding ? OnboardingType.full : OnboardingType.consent;
 				router.push({ name: 'onboarding', query: { type: onboardingType, originalRoute: router.currentRoute.value.path } });
 			}

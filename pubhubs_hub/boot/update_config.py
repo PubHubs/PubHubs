@@ -178,8 +178,9 @@ class UpdateConfig:
     )
 
     def __init__(self, config_env: str, hub_client_url, hub_server_url, public_yivi_url, global_client_url,
-                 replace_sqlite3_by_postgres, server_name):
+                 replace_sqlite3_by_postgres, server_name, hub_dev_url=None):
         self._hub_client_url = hub_client_url
+        self._hub_dev_url = hub_dev_url
         self._hub_server_url = hub_server_url
         self._public_yivi_url = public_yivi_url
         self._global_client_url = global_client_url
@@ -489,6 +490,8 @@ class UpdateConfig:
             config = module.setdefault("config", {})
             if self._hub_client_url is not None:
                 config["client_url"] = self._hub_client_url
+            if self._hub_dev_url is not None:
+                config["dev_url"] = self._hub_dev_url
             if self._global_client_url is not None:
                 config["global_client_url"] = self._global_client_url
             if self._public_yivi_url is not None:
@@ -664,7 +667,7 @@ def main():
 
 def run(input_file, output_file, environment,
         hub_client_url=None, hub_server_url=None, public_yivi_url=None, global_client_url=None,
-        replace_sqlite3_by_postgres=None, server_name=None):
+        replace_sqlite3_by_postgres=None, server_name=None, hub_dev_url=None):
     _configure_logging()
 
     homeserver_file_path = input_file
@@ -674,6 +677,7 @@ def run(input_file, output_file, environment,
     # Update config homeserver, output as homeserver.live
     update_config_module = UpdateConfig(config_env,
                                         hub_client_url=hub_client_url,
+                                        hub_dev_url=hub_dev_url,
                                         hub_server_url=hub_server_url,
                                         public_yivi_url=public_yivi_url,
                                         global_client_url=global_client_url,

@@ -4,8 +4,10 @@ Before merging to stable:
 - [ ] You're merging from main into stable (and not from some feature branch.)
 - [ ] Run the PubHubs e2e test (https://gitlab.science.ru.nl/pubhubs/pubhubs-e2e-test)
 - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
+- [ ] If this release changes what the [website](https://gitlab.science.ru.nl/ilab/pubhubs-website) describes, update it too: its features page, help and FAQ (see its `docs/content.md`). A feature that ships loses its `<InDevelopment />` label there.
 - [ ] Scan through all changes in merge request to see if there is any issue.
 - [ ] Set the new version number ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
+- [ ] Set the same version as `versionName` and `versionCode` in [android/app/build.gradle](android/app/build.gradle) (see "Release builds" in [docs/app/README.md](docs/app/README.md)).
 - [ ] Before proceeding with the following steps please check that the pipeline has been succeeded.
 - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
 
@@ -22,7 +24,7 @@ Test by hand:
 
                 To make yourself a hub admin:
                 - log into ilab@ph.ru.nl using the [id_ilab](https://gitlab.science.ru.nl/ilab/ops/-/blob/main/ssh/id_ilab?ref_type=heads) key, via yourscienceaccountname@lilo.science.ru.nl (see also [the wiki](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Infrastructure))
-                - See [Making yourself admin](../../README.md#making-yourself-admin) in the README. Use `WHERE name='@XXX-XXX:main.testhub-matrix.ihub.ru.nl'` (replacing `XXX-XXX` with your short pseudonym) instead of making all users admin. For the Docker container name, use `testhub-matrix-main`.
+                - See [Making yourself admin](../../docs/development.md#making-yourself-admin) in docs/development.md. Use `WHERE name='@XXX-XXX:main.testhub-matrix.ihub.ru.nl'` (replacing `XXX-XXX` with your short pseudonym) instead of making all users admin. For the Docker container name, use `testhub-matrix-main`.
 
             - [ ] With the admin user:
                 - [ ] Create one or more new secured room with mulitple profile attributes and a non profile attributes.

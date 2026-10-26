@@ -1,5 +1,11 @@
 // Packages
-import { vi } from 'vitest';
+import { beforeEach, vi } from 'vitest';
+
+// The hubs store starts from the hub list kept on this device (hubsCache.ts), so without this the
+// hubs one test loaded would show up in the next.
+beforeEach(() => {
+	localStorage.removeItem('ph:hubs-cache');
+});
 
 // @ts-expect-error
 global._env = {

@@ -78,8 +78,8 @@ impl App {
             register_only_with_unique_attrs,
         } = req.into_inner();
 
-        let auth_token_user_id = if let Some(auth_token) = auth_token {
-            let Ok(user_id) = app.open_auth_token(auth_token.into_inner()) else {
+        let auth_token_inner = if let Some(auth_token) = auth_token {
+            let Ok(inner) = app.open_auth_token_inner(auth_token.into_inner(), false) else {
                 return Ok(EnterResp::RetryWithNewAuthToken);
             };
 
@@ -88,9 +88,15 @@ impl App {
                 return Err(api::ErrorCode::BadRequest);
             }
 
-            Some(user_id)
+            Some(inner)
         } else {
             None
+        };
+        let auth_token_user_id = auth_token_inner.as_ref().map(|inner| inner.user_id);
+
+        let session_start = match (&identifying_attr, &auth_token_inner) {
+            (None, Some(inner)) => inner.session_start,
+            _ => jwt::NumericDate::now(),
         };
 
         if auth_token_user_id.is_none() && identifying_attr.is_none() {
@@ -537,7 +543,7 @@ impl App {
         }
         let user_state = new_user_state;
 
-        let auth_token_package = app.issue_auth_token(&user_state)?;
+        let auth_token_package = app.issue_auth_token(&user_state, session_start)?;
 
         Ok(EnterResp::Entered {
             new_account,
@@ -635,24 +641,36 @@ impl App {
         app: Rc<Self>,
         auth_token: actix_web::web::Header<AuthToken>,
     ) -> api::Result<RefreshResp> {
-        let Ok((user_state, _)) = app
-            // the `true` means we allow expired access tokens
-            .open_auth_token_and_get_user_state_ext(auth_token.into_inner(), true)
-            .await?
-        else {
+        // the `true` means we allow expired access tokens
+        let Ok(inner) = app.open_auth_token_inner(auth_token.into_inner(), true) else {
             return Ok(RefreshResp::ReobtainAuthToken);
         };
 
-        Ok(match app.issue_auth_token(&user_state)? {
-            Ok(atp) => RefreshResp::Success(atp),
-            Err(atdr) => RefreshResp::Denied(atdr),
-        })
+        if !inner.may_be_refreshed(
+            jwt::NumericDate::now(),
+            app.auth_token_max_idle,
+            app.auth_session_max_duration,
+        ) {
+            return Ok(RefreshResp::ReobtainAuthToken);
+        }
+
+        let (user_state, _) = app.get_auth_token_user_state(inner.user_id).await?;
+
+        Ok(
+            match app.issue_auth_token(&user_state, inner.session_start)? {
+                Ok(atp) => RefreshResp::Success(atp),
+                Err(atdr) => RefreshResp::Denied(atdr),
+            },
+        )
     }
 
     /// Issues auth token for given user, if allowed
+    ///
+    /// `session_start` is when the user last logged in, carried over from token to token.
     fn issue_auth_token(
         &self,
         user_state: &UserState,
+        session_start: jwt::NumericDate,
     ) -> api::Result<Result<AuthTokenPackage, AuthTokenDeniedReason>> {
         if user_state.could_be_banned_by.is_empty() {
             return Ok(Err(AuthTokenDeniedReason::NoBannableAttribute));
@@ -670,6 +688,7 @@ impl App {
                 user_id: user_state.id,
                 iat,
                 exp,
+                session_start,
             }
             .seal(&self.auth_token_secret)?,
         }))
@@ -687,6 +706,10 @@ pub(super) struct AuthTokenInner {
 
     /// When this token was issued.
     iat: jwt::NumericDate,
+
+    /// When the user logged in, i.e. the `iat` of the first token in the chain of refreshes that
+    /// led to this token.
+    session_start: jwt::NumericDate,
 }
 
 impl AuthTokenInner {
@@ -704,28 +727,56 @@ impl AuthTokenInner {
         crypto::unseal(&*sealed.inner, key, b"")
     }
 
-    /// Opens this [`AuthToken`], returning the enclosed user's [`Id`].
-    fn open(self, accept_expired: bool) -> Result<Id, Opaque> {
+    /// Checks whether this [`AuthToken`] is still valid, unless `accept_expired` is set.
+    fn open(self, accept_expired: bool) -> Result<Self, Opaque> {
         if !accept_expired && self.exp < jwt::NumericDate::now() {
             return Err(OPAQUE);
         }
 
-        Ok(self.user_id)
+        Ok(self)
+    }
+
+    /// Whether a new auth token may be issued based on this (possibly expired) one at `now`,
+    /// without the user logging in again.
+    fn may_be_refreshed(
+        &self,
+        now: jwt::NumericDate,
+        max_idle: core::time::Duration,
+        max_session: core::time::Duration,
+    ) -> bool {
+        if self.exp.add_clamp(max_idle.as_secs()) < now {
+            log::debug!(
+                "refusing to refresh auth token of idle user {}",
+                self.user_id
+            );
+            return false;
+        }
+
+        if self.session_start.add_clamp(max_session.as_secs()) < now {
+            log::debug!(
+                "refusing to refresh auth token of user {}: session too old",
+                self.user_id
+            );
+            return false;
+        }
+
+        true
     }
 }
 
 impl App {
     /// Opens the given [`AuthToken`] returning the enclosed user's [`Id`].
     pub(super) fn open_auth_token(&self, auth_token: AuthToken) -> Result<Id, Opaque> {
-        self.open_auth_token_ext(auth_token, false)
+        Ok(self.open_auth_token_inner(auth_token, false)?.user_id)
     }
 
-    /// Like [`Self::open_auth_token`], but with the option to accept an expired auth token.
-    pub(super) fn open_auth_token_ext(
+    /// Like [`Self::open_auth_token`], but returns the whole contents of the auth token, and has
+    /// the option to accept an expired auth token.
+    pub(super) fn open_auth_token_inner(
         &self,
         auth_token: AuthToken,
         accept_expired: bool,
-    ) -> Result<Id, Opaque> {
+    ) -> Result<AuthTokenInner, Opaque> {
         AuthTokenInner::unseal(&auth_token, &self.auth_token_secret)?.open(accept_expired)
     }
 
@@ -736,30 +787,26 @@ impl App {
         &self,
         auth_token: AuthToken,
     ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
-        self.open_auth_token_and_get_user_state_ext(auth_token, false)
-            .await
-    }
-
-    /// Like [`Self::open_auth_token_and_get_user_state`] but with the option to accept an expired auth
-    /// token.
-    pub(super) async fn open_auth_token_and_get_user_state_ext(
-        &self,
-        auth_token: AuthToken,
-        accept_expired: bool,
-    ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
-        let Ok(user_id) = self.open_auth_token_ext(auth_token, accept_expired) else {
+        let Ok(user_id) = self.open_auth_token(auth_token) else {
             return Ok(Err(OPAQUE));
         };
 
-        Ok(Ok(self
-            .get_object::<UserState>(&user_id)
+        Ok(Ok(self.get_auth_token_user_state(user_id).await?))
+    }
+
+    /// Retrieves the [`UserState`] of the user an auth token was issued to.
+    async fn get_auth_token_user_state(
+        &self,
+        user_id: Id,
+    ) -> api::Result<(UserState, object_store::UpdateVersion)> {
+        self.get_object::<UserState>(&user_id)
             .await?
             .ok_or_else(|| {
                 log::error!(
                     "auth token refers to non- (or no longer) existing user with id {user_id}",
                 );
                 api::ErrorCode::InternalError
-            })?))
+            })
     }
 }
 
@@ -883,5 +930,59 @@ impl UserState {
                 .map(|(handle, uod)| (handle, uod.into_user_version(&app.user_object_hmac_secret)))
                 .collect(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const DAY: u64 = 24 * 60 * 60;
+    const MAX_IDLE: core::time::Duration = core::time::Duration::from_secs(90 * DAY);
+    const MAX_SESSION: core::time::Duration = core::time::Duration::from_secs(365 * DAY);
+
+    fn token(session_start: u64, exp: u64) -> AuthTokenInner {
+        AuthTokenInner {
+            user_id: Id::random(),
+            exp: jwt::NumericDate::new_clamp(exp),
+            iat: jwt::NumericDate::new_clamp(exp - 3600),
+            session_start: jwt::NumericDate::new_clamp(session_start),
+        }
+    }
+
+    fn may_be_refreshed_at(token: &AuthTokenInner, now: u64) -> bool {
+        token.may_be_refreshed(jwt::NumericDate::new_clamp(now), MAX_IDLE, MAX_SESSION)
+    }
+
+    #[test]
+    fn refresh_limits() {
+        let start = 1_000_000_000;
+
+        // recently expired token of a fresh session
+        assert!(may_be_refreshed_at(
+            &token(start, start + 3600),
+            start + 7200
+        ));
+
+        // idle limit, measured from expiry
+        let t = token(start, start + 3600);
+        assert!(may_be_refreshed_at(&t, start + 3600 + 90 * DAY));
+        assert!(!may_be_refreshed_at(&t, start + 3600 + 90 * DAY + 1));
+
+        // session limit, measured from login, regardless of activity
+        let t = token(start, start + 365 * DAY - 60);
+        assert!(may_be_refreshed_at(&t, start + 365 * DAY));
+        assert!(!may_be_refreshed_at(&t, start + 365 * DAY + 1));
+    }
+
+    #[test]
+    fn auth_token_keeps_session_start() {
+        let key: crypto::SealingKey = b"test"
+            .as_slice()
+            .derive_sealing_key(sha2::Sha256::new(), "test");
+
+        let t = token(1_000_000_000, 1_000_003_600);
+        let inner = AuthTokenInner::unseal(&t.seal(&key).unwrap(), &key).unwrap();
+        assert_eq!(inner.session_start, t.session_start);
     }
 }

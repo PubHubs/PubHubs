@@ -36,7 +36,8 @@
 
 	// Fetched instead of bound straight to `<img src>`: the icon lives on the hub's plain-HTTP dev
 	// address, which the native shell's https origin would auto-upgrade. See the composable.
-	const { src } = useImageObjectUrl(() => props.iconUrl);
+	// Cached, so the icon also shows while the hub can't be reached.
+	const { src } = useImageObjectUrl(() => props.iconUrl, { cache: true });
 
 	let fallback = ref(false);
 	let imageLoaded = ref(false);

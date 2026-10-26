@@ -2,6 +2,7 @@
 import * as sdk from 'matrix-js-sdk';
 import { type ICreateClientOpts, type MatrixClient } from 'matrix-js-sdk';
 
+import { trackedFetch } from '@hub-client/logic/core/reachability';
 import { CONFIG } from '@hub-client/logic/logging/Config';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -207,7 +208,8 @@ class Authentication {
 		// Video call information supplied to synapse client about starting the video call.
 		const videoCallInfo = { deviceId: 'template', useE2eForGroupCall: true, useLivekitForGroupCalls: true };
 		const store = await this._createSyncStore();
-		const authWithVideoCallInfo = { ...auth, ...videoCallInfo, store };
+		// trackedFetch keeps the hub server's reachability state current (logic/core/reachability.ts).
+		const authWithVideoCallInfo = { ...auth, ...videoCallInfo, store, fetchFn: trackedFetch };
 
 		this.client = sdk.createClient(authWithVideoCallInfo);
 

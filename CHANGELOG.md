@@ -12,8 +12,26 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not merged yet
 
+- [IMPROVED] The room library has been redesigned
 - [IMPROVED] Updated the hub overview and discover page.
+- [IMPROVED] Users are no longer logged out when PubHubs Central restarts. An auth token can now be refreshed until the user has been inactive for 90 days, and at most a year after logging in.
+- [IMPROVED] File uploads now give feedback in the UI when they fail, instead of silently being handled.
+- [IMPROVED] The app's fonts are WOFF2 instead of TTF, so they download faster; the emoji font went from 24 MB to 5 MB.
 - [BUG] Fixed that ~ would break url links.
+- [BUG] Fixed that the 'System' theme only followed the system theme when PubHubs was (re)loaded.
+- [BUG] Fixed that a logout could redirect a user from the register page.
+- [BUG] Fixed that a reply showed the original message instead of the edited one.
+- [BUG] Fixed that longer messages were sometimes cut off.
+- [BUG] Fixed that headings were shown in a fallback font instead of Atkinson Hyperlegible.
+- [BUG] Fixed that text was shown in a fallback font instead of Inter, whose files were missing.
+- [BUG] Fixed that pinned hubs were not loaded on the first login after a PubHubs Central restart.
+- [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
+- [IMPROVED] The documentation has been restructured and brought up to date, and a CONTRIBUTING.md explains that contributions go through the PubHubs team.
+- [INTERNAL, NEW] Hub owners can ask for their hub to be registered with an issue form on the GitHub mirror; the team's steps are in the GitLab `add-hub` issue template.
+- [INTERNAL, NEW] The pipeline of a merge request fails when it doesn't add to CHANGELOG.md (unless it has the `No changelog` label), and that of a release tag (also `-rcN`) when CHANGELOG.md has no entries under its version, which the GitHub release takes as its notes.
+- [INTERNAL] The draft GitHub release's notes leave out the changelog's INTERNAL entries; a release with only those says "Internal changes only.".
+- [INTERNAL] The copyright in LICENSE is the Privacy by Design Foundation's (Stichting Privacy by Design), which PubHubs belongs to, instead of iHub's.
+- [INTERNAL] The merge-to-stable template asks to update the website when a release changes what it describes.
 
 ## 18 September 2026 - v3.5.5
 

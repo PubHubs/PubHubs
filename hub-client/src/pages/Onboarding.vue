@@ -75,7 +75,7 @@
 					class="text-accent-error"
 					role="alert"
 				>
-					{{ t('onboarding.submit_error') }}
+					{{ t(submitError) }}
 				</p>
 
 				<!-- Buttons -->
@@ -196,7 +196,7 @@
 							class="text-accent-error"
 							role="alert"
 						>
-							{{ t('onboarding.submit_error') }}
+							{{ t(submitError) }}
 						</p>
 						<Button
 							class="w-fit"
@@ -241,6 +241,7 @@
 	import { avatarUpload } from '@hub-client/composables/fileUpload';
 
 	// Logic
+	import { isNetworkError } from '@hub-client/logic/core/networkError';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
@@ -309,7 +310,10 @@
 	const consentText = ref('');
 
 	const loadHubSettings = async () => {
-		const hubSettingsJSON = await hubSettings.getHubJSON();
+		const hubSettingsJSON = await hubSettings.getHubJSON().catch((error) => {
+			logger.warn('Could not load the hub settings', { error });
+			return undefined;
+		});
 
 		if (hubSettingsJSON) {
 			consentVersion.value = hubSettingsJSON.version ? hubSettingsJSON.version : hubSettings.hubConsentVersion;
@@ -319,11 +323,12 @@
 
 	// Submit
 	const submitted = ref(false);
-	const submitError = ref(false);
+	// The message to show under the form when saving failed.
+	const submitError = ref<string | null>(null);
 
 	const submit = async () => {
 		submitted.value = true;
-		submitError.value = false;
+		submitError.value = null;
 		try {
 			if (isConsentOnly.value) {
 				await user.setUserConsentVersion(consentVersion.value);
@@ -346,7 +351,7 @@
 		} catch (error) {
 			logger.error('Error during submit:', error);
 			submitted.value = false;
-			submitError.value = true;
+			submitError.value = isNetworkError(error) ? 'errors.needs_connection' : 'onboarding.submit_error';
 		}
 	};
 

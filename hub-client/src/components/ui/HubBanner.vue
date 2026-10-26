@@ -40,5 +40,6 @@
 
 	// Fetched instead of bound straight to `<img src>`: the banner lives on the hub's plain-HTTP dev
 	// address, which the native shell's https origin would auto-upgrade. See the composable.
-	const { src } = useImageObjectUrl(() => props.bannerUrl);
+	// Cached, so the banner also shows while the hub can't be reached.
+	const { src } = useImageObjectUrl(() => props.bannerUrl, { cache: true });
 </script>

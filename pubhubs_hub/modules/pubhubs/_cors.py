@@ -60,7 +60,7 @@ def set_allow_origin_header(
 ) -> None:
     """
     This function is necessary because only 1 origin can be given to Access-Control-Allow-Origin at a time
-    Set cors header based on the origin of the request, if it is in the allowed list (Currently either the client_url or dev_url).
+    Set cors header based on the origin of the request, if it is in the allowed list (the client_url, the dev_url, and the native app origins of this hub).
     
     Args:
         request

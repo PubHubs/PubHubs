@@ -39,6 +39,14 @@ async function deriveHubHash(rawSecret: Uint8Array, hubId: string): Promise<stri
 	return bytesToHex(await deriveBytes(rawSecret, 'ph:localstore:hub-id:' + hubId), 8);
 }
 
+/**
+ * The key a hub frame encrypts its own storage with (hub-client's HubStorage), base64. Derived per hub,
+ * so a hub can't compute another hub's key, nor the user secret.
+ */
+async function deriveHubStorageKey(rawSecret: Uint8Array, hubId: string): Promise<string> {
+	return btoa(String.fromCharCode(...(await deriveBytes(rawSecret, 'ph:hubstorage:' + hubId))));
+}
+
 async function deriveEncryptionKey(rawSecret: Uint8Array): Promise<CryptoKey> {
 	const keyBytes = await deriveBytes(rawSecret, 'ph:localstore:encryption-key');
 	return crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
@@ -72,6 +80,14 @@ export class LocalStores {
 	private cache = new Map<string, Promise<LocalStore>>();
 
 	constructor(private readonly userSecretBase64: string) {}
+
+	/** The key for a hub's own storage, see deriveHubStorageKey. */
+	hubStorageKey(hubId: string): Promise<string> {
+		return deriveHubStorageKey(
+			Uint8Array.from(atob(this.userSecretBase64), (c) => c.charCodeAt(0)),
+			hubId,
+		);
+	}
 
 	/** Get the cached LocalStore for a hub, or create one. */
 	getOrCreate(hubId: string): Promise<LocalStore> {

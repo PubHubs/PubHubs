@@ -35,6 +35,10 @@ const objectWithEmailOnly = (): TPHC.UserSecretObjectNew => ({ version: 1, data:
 const cardAttr = { signedAttr: 'jwt', id: 'ph_card', value: 'card-pseudonym' };
 const cardAttrKeys = { ph_card: { latest_key: ['a2V5', 'ts-2'] as [string, string], old_key: null } };
 
+// The keys the entries for the attribute values above are stored under once rewritten.
+const EMAIL_KEY = await TPHC.attrValueKey('email', 'someone@example.com');
+const CARD_KEY = await TPHC.attrValueKey('ph_card', 'card-pseudonym');
+
 describe('A PubHubs card issued after the login that stored the user secret', () => {
 	beforeEach(() => {
 		// `getUserSecretInfo()` reaches for the global store to check a user is logged in.
@@ -61,9 +65,9 @@ describe('A PubHubs card issued after the login that stored the user secret', ()
 		await manager.addIdentifyingAttr(cardAttrKeys, { ph_card: cardAttr }, objectWithEmailOnly(), null);
 
 		const data = storedObject('usersecret').data;
-		expect(data.ph_card['card-pseudonym'].encUserSecret).toBe(Buffer.from(SECRET).toString('base64'));
+		expect(data.ph_card[CARD_KEY].encUserSecret).toBe(Buffer.from(SECRET).toString('base64'));
 		// The entry the account already had is kept, so the other attribute still opens it.
-		expect(data.email['someone@example.com']).toEqual(EMAIL_ENTRY);
+		expect(data.email[EMAIL_KEY]).toEqual(EMAIL_ENTRY);
 		// Both copies are written, the backup last.
 		expect(objectStore.stored.usersecretbackup).toEqual(objectStore.stored.usersecret);
 	});
@@ -80,7 +84,7 @@ describe('A PubHubs card issued after the login that stored the user secret', ()
 		const rotatedKeys = { ph_card: { latest_key: ['bmV3', 'ts-3'] as [string, string], old_key: 'a2V5' } };
 
 		await expect(nextLogin.storeUserSecretObject(rotatedKeys, { ph_card: cardAttr }, storedObject('usersecret'), null)).resolves.toBeUndefined();
-		expect(storedObject('usersecret').data.ph_card['card-pseudonym'].ts).toBe('ts-3');
+		expect(storedObject('usersecret').data.ph_card[CARD_KEY].ts).toBe('ts-3');
 	});
 
 	test('reports rather than invents a secret when the session has none', async () => {

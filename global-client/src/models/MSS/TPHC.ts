@@ -146,7 +146,8 @@ export type PHCStoreObjectResp = Result<StoreObjectResp, ErrorCode>;
 
 export type UserSecretData = {
 	[attrId: string]: {
-		[attrValue: string]: {
+		// From version 2 on the key is attrValueKey(attrId, attrValue), before that the attribute value itself.
+		[attrValueKey: string]: {
 			ts: string;
 			encUserSecret: string;
 		};
@@ -170,6 +171,37 @@ export function getUserSecretData(obj: UserSecretObject): UserSecretData {
 	} else {
 		return obj;
 	}
+}
+
+/**
+ * The key the entry for an attribute value is stored under in a user secret object: SHA-256 over
+ * `${attrId}\u0000${attrValue}`, base64url encoded without padding. PHC stores the object as it is,
+ * so keying by the value itself would hand PHC every user's email address.
+ */
+export async function attrValueKey(attrId: string, attrValue: string): Promise<string> {
+	const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${attrId}\u0000${attrValue}`));
+	return btoa(String.fromCharCode(...new Uint8Array(digest)))
+		.replaceAll('+', '-')
+		.replaceAll('/', '_')
+		.replace(/=+$/, '');
+}
+
+/**
+ * The data of a user secret object with every entry under its attrValueKey(), whatever version the
+ * object was written in. Objects from before version 2 (including the bare map without a version)
+ * are keyed by the attribute value itself; those keys are hashed here, every one of them, so an
+ * object written from the result holds no attribute value. Returns a new map and leaves `obj` as it is.
+ */
+export async function getHashedUserSecretData(obj: UserSecretObject): Promise<UserSecretData> {
+	const keysAreHashed = isUserSecretObjectNew(obj) && obj.version >= 2;
+	const hashedData: UserSecretData = {};
+	for (const [attrId, entries] of Object.entries(getUserSecretData(obj))) {
+		hashedData[attrId] = {};
+		for (const [key, entry] of Object.entries(entries)) {
+			hashedData[attrId][keysAreHashed ? key : await attrValueKey(attrId, key)] = entry;
+		}
+	}
+	return hashedData;
 }
 
 export type PppResp = 'RetryWithNewAuthToken' | { Success: string };

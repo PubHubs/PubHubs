@@ -9,6 +9,9 @@ const nl = {
 		description: 'Kaart uitgegeven met de volgende kenmerken:',
 	},
 	state: {
+		hub_offline: 'Geen verbinding met deze hub. Wat je ziet is mogelijk niet actueel.',
+		rooms_offline: 'Kamers kunnen worden getoond zodra er verbinding is.',
+		room_offline: 'Deze kamer kan worden getoond zodra er verbinding is.',
 		button_request: 'Verleen toegang',
 		initial: 'Controleren of de hub client toegang heeft tot cookies en lokale opslag...',
 		requesting: 'Toegang verlenen...',
@@ -38,6 +41,7 @@ const nl = {
 		go_back: 'Ga terug',
 	},
 	errors: {
+		needs_connection: 'Hiervoor is een internetverbinding nodig. Controleer je verbinding en probeer het opnieuw.',
 		oops: 'OEPS!',
 		error: 'Helaas, er is een fout opgetreden. <a href="https://www.pubhubs.net/nl/help/contact/" target="_blank" class="text-accent-primary">Neem contact op met de ontwikkelaars</a>.\n\n {0}',
 		server: 'Serverfout',
@@ -240,6 +244,13 @@ const nl = {
 		login_again: 'Je bent uitgelogd. Log opnieuw in om verder te gaan.',
 		loading_yivi: 'Yivi laden...',
 		yivi_app_missing: 'De Yivi app kon niet worden geopend. Controleer of de app geïnstalleerd is en probeer het opnieuw.',
+	},
+	review_mode: {
+		enter_title: 'Overschakelen naar de review-omgeving?',
+		enter_text:
+			'Dit is bedoeld voor app store-reviewers. PubHubs gebruikt dan een aparte testomgeving, waar je je registreert met demogegevens van Yivi. Op de inlogpagina kun je weer terugschakelen.',
+		label: 'Review-omgeving',
+		leave: 'Verlaten',
 	},
 	logout: {
 		logout: 'Logout',

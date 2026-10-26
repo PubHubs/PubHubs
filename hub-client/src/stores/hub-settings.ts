@@ -8,12 +8,16 @@ import { useImageActions } from '@hub-client/composables/useImageActions';
 
 // Logic
 import { api_synapse as api } from '@hub-client/logic/core/api';
+import { hubStorage } from '@hub-client/logic/core/hubStorage';
+import { isNetworkError } from '@hub-client/logic/core/networkError';
 import { type HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 import { CONFIG } from '@hub-client/logic/logging/Config';
 
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { FeatureFlag, Theme, useSettings } from '@hub-client/stores/settings';
+
+const HUB_SETTINGS_STORAGE_KEY = 'hubSettings';
 
 // Types
 type HubInformation = {
@@ -216,10 +220,22 @@ const useHubSettings = defineStore('hub-settings', {
 		async deleteBanner() {
 			await api.apiDELETE(api.apiURLS.hubBanner);
 		},
+		/**
+		 * The hub's settings (description, contact, house rules). Kept in HubStorage, so the last copy is
+		 * there while the hub can't be reached; only then is the network error passed on.
+		 */
 		async getHubJSON(): Promise<HubSettingsJSONParser | undefined> {
 			const settings = useSettings();
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				const response = await api.apiGET<HubSettingsJSONParser>(api.apiURLS.hubSettings);
+				let response: HubSettingsJSONParser;
+				try {
+					response = await api.apiGET<HubSettingsJSONParser>(api.apiURLS.hubSettings);
+					void hubStorage.set(HUB_SETTINGS_STORAGE_KEY, response);
+				} catch (error) {
+					const cached = isNetworkError(error) ? await hubStorage.get<HubSettingsJSONParser>(HUB_SETTINGS_STORAGE_KEY) : undefined;
+					if (!cached) throw error;
+					response = cached;
+				}
 				this._summary = response.summary;
 				this._description = response.description;
 				this._contact = response.contact;

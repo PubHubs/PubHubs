@@ -4,6 +4,7 @@ import { server } from '../mocks/server';
 import { HttpResponse, http } from 'msw';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
+import type { Router } from 'vue-router';
 
 // Logic
 import { api } from '@global-client/logic/core/api';
@@ -85,11 +86,12 @@ describe('Global', () => {
 		test('a token rejected during the check is not reported as logged in', async () => {
 			const global = useGlobal();
 			const replace = vi.fn();
-			global.router = { replace };
+			global.router = { replace, currentRoute: { value: { meta: { requiresAuth: true } } } } as unknown as Router;
 			// The logout clears the user secret, which the tests after this one still read.
 			const userSecret = localStorage.getItem('UserSecret');
-			// @ts-expect-error -- router is injected as plugin, not in store type
-			onTestFinished(() => userSecret && localStorage.setItem('UserSecret', userSecret));
+			onTestFinished(() => {
+				if (userSecret) localStorage.setItem('UserSecret', userSecret);
+			});
 
 			await api.api(api.apiURLS.login);
 			server.use(
@@ -104,6 +106,49 @@ describe('Global', () => {
 			expect(replace).toHaveBeenCalledWith(expect.objectContaining({ name: 'login' }));
 			// Nothing may be left for the next login to mistake for its own pinned-hub load.
 			expect(global.pinnedHubsLoad).toBeNull();
+		});
+		// The check runs on every page load and navigation, so an unreachable PHC (slow network,
+		// or a deploy restarting it) must fail this check only, not log the user out.
+		test('a network failure during the check keeps the stored login', async () => {
+			const global = useGlobal();
+
+			await api.api(api.apiURLS.login);
+			const authToken = localStorage.getItem('PHauthToken');
+			const userSecret = localStorage.getItem('UserSecret');
+			expect(authToken).not.toBeNull();
+			server.use(http.get('http://testdomain/.ph/user/welcome', () => HttpResponse.error()));
+
+			const resp = await global.checkLoginAndSettings();
+
+			// Logged in on the settings on this device (see docs/app/offline.md).
+			expect(resp).toEqual(true);
+			expect(localStorage.getItem('PHauthToken')).toEqual(authToken);
+			expect(localStorage.getItem('UserSecret')).toEqual(userSecret);
+		});
+		// A Yivi obtain link opens the registration page in a browser that may still hold the auth
+		// token of an earlier session. The guard's check rejects it before the page is shown, and the
+		// logout must not cancel that navigation by sending the user to the login page.
+		test('a token rejected during the first navigation leaves the route to the guard', async () => {
+			const global = useGlobal();
+			const replace = vi.fn();
+			// The router's start location, which carries no meta.
+			global.router = { replace, currentRoute: { value: { meta: {} } } } as unknown as Router;
+			const userSecret = localStorage.getItem('UserSecret');
+			onTestFinished(() => {
+				if (userSecret) localStorage.setItem('UserSecret', userSecret);
+			});
+
+			await api.api(api.apiURLS.login);
+			server.use(
+				http.get('http://testdomain/.ph/user/state', () => HttpResponse.json({ Ok: 'RetryWithNewAuthToken' }, { status: 200 })),
+				http.get('http://testdomain/.ph/user/refresh', () => HttpResponse.json({ Ok: 'ReobtainAuthToken' }, { status: 200 })),
+			);
+
+			const resp = await global.checkLoginAndSettings();
+
+			expect(resp).toEqual(false);
+			expect(localStorage.getItem('PHauthToken')).toBeNull();
+			expect(replace).not.toHaveBeenCalled();
 		});
 	});
 

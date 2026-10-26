@@ -57,7 +57,12 @@
 
           # Pinned to match ./rust-toolchain.toml so Nix, CI (rustup) and local all
           # build on the identical rustc.
-          rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./pubhubs/rust-toolchain.toml;
+          rustToolchain = (pkgs.rust-bin.fromRustupToolchainFile ./pubhubs/rust-toolchain.toml).override {
+            extensions = [
+              "rust-analyzer"
+              "rust-src"
+            ];
+          };
 
           # Compose Android SDK for Capacitor builds.
           # Versions match global-client/android/variables.gradle.

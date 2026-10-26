@@ -44,6 +44,7 @@
 
 <script lang="ts" setup>
 	// Packages
+	import { Capacitor } from '@capacitor/core';
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
@@ -56,6 +57,8 @@
 	import { usePinnedHubs } from '@global-client/composables/pinnedHubs.composable';
 
 	// Models
+	import { createLogger } from '@hub-client/logic/logging/Logger';
+
 	import { type Hub } from '@global-client/models/Hubs';
 
 	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
@@ -77,6 +80,7 @@
 	const global = useGlobal();
 	const settings = useSettings();
 	const { pinHub, unpinHub } = usePinnedHubs();
+	const logger = createLogger('HubBlock');
 
 	const isMobile = computed(() => settings.isMobileState);
 	const pinned = computed(() => Boolean(global.existsInPinnedHubs(props.hub.hubId)));
@@ -92,17 +96,21 @@
 	}
 
 	async function enterHub(hub: Hub) {
-		let canEnterHub = false;
-		try {
-			// entering only the hub would generate a CORS-error.
-			// Since we only need to know if the hub is running, we can send a no-cors.
-			// The response will be empty, but the type 'opaque' will indicate the url is up and running
-			const response = await fetch(hub.url, { mode: 'no-cors' });
-			if (response.type === 'opaque') {
-				canEnterHub = true;
+		// The native app runs its own copy of hub-client (nativeHubClient.ts), so whether hub.url is up
+		// says nothing there, and checking it would keep a known hub from opening offline.
+		let canEnterHub = Capacitor.isNativePlatform();
+		if (!canEnterHub) {
+			try {
+				// entering only the hub would generate a CORS-error.
+				// Since we only need to know if the hub is running, we can send a no-cors.
+				// The response will be empty, but the type 'opaque' will indicate the url is up and running
+				const response = await fetch(hub.url, { mode: 'no-cors' });
+				if (response.type === 'opaque') {
+					canEnterHub = true;
+				}
+			} catch {
+				// intentionally left empty
 			}
-		} catch {
-			// intentionally left empty
 		}
 		if (canEnterHub) {
 			router.push({ name: 'hub', params: { name: hub.name } });
@@ -115,7 +123,10 @@
 		loadHubSettings(props.hub);
 	});
 	async function loadHubSettings(hub: Hub): Promise<void> {
-		const hubSettingsJSON = await hub.getHubJSON();
+		const hubSettingsJSON = await hub.getHubJSON().catch((error) => {
+			logger.warn(`Could not load the settings of hub ${hub.name}`, { error });
+			return undefined;
+		});
 		if (hubSettingsJSON) {
 			summary.value = hubSettingsJSON.summary ? hubSettingsJSON.summary : props.hub.description;
 		} else {

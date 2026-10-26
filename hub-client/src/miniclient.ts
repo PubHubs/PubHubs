@@ -9,9 +9,13 @@ import '@hub-client/assets/tailwind.css';
 // Components
 import Badge from '@hub-client/components/elements/Badge.vue';
 
+import { hubId } from '@hub-client/logic/utils/hubId';
+import { assertNativeHubOriginMatchesHubId } from '@hub-client/logic/utils/nativeHubOrigin';
+
 // Pages
 import Miniclient from '@hub-client/pages/Miniclient.vue';
 
+assertNativeHubOriginMatchesHubId(window.location.hostname, hubId);
 adjustClientConfig();
 
 const pinia = createPinia();

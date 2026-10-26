@@ -65,6 +65,9 @@ def main():
 
     parser.add_argument("--hub-client-url", default=None,
                         help="Overwrites the hub client url in the homeserver configuration")
+    parser.add_argument("--hub-dev-url", default=None,
+                        help="Sets dev_url in the HubClientApi module configuration: a second hub client url "
+                             "whose requests the hub accepts, for local development")
     parser.add_argument("--hub-server-url", default=None,
                         help="Overwrites the hub server url (public_baseurl) in the homeserver configuration")
     parser.add_argument("--public-yivi-url", default=None,
@@ -254,6 +257,7 @@ class Program:
                           output_file=live_config_path,
                           environment=self._args.environment,
                           hub_client_url=self._args.hub_client_url,
+                          hub_dev_url=self._args.hub_dev_url,
                           hub_server_url=self._args.hub_server_url,
                           public_yivi_url=self._args.public_yivi_url,
                           global_client_url=self._args.global_client_url,

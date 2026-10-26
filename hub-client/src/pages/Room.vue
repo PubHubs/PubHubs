@@ -163,6 +163,19 @@
 				</RoomSidebar>
 			</div>
 		</template>
+		<!-- Not known yet, e.g. opened from the room list as last known before the first sync is in. -->
+		<div
+			v-else-if="isLoading"
+			class="flex h-full w-full items-center justify-center"
+		>
+			<p
+				v-if="!connection.isOn"
+				class="text-label-small px-200 text-center opacity-70"
+			>
+				{{ t('state.room_offline') }}
+			</p>
+			<InlineSpinner v-else />
+		</div>
 	</div>
 	<!-- Secure room join dialog -->
 	<RoomLoginDialog
@@ -216,6 +229,7 @@
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 
+	import { useConnection } from '@hub-client/stores/connection';
 	import { DialogOk, useDialog } from '@hub-client/stores/dialog';
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
@@ -233,6 +247,7 @@
 	const logger = createLogger('Room');
 
 	const { t } = useI18n();
+	const connection = useConnection();
 	const route = useRoute();
 	const rooms = useRooms();
 	const user = useUser();

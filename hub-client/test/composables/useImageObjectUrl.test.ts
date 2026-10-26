@@ -6,6 +6,8 @@ import { defineComponent, h, nextTick } from 'vue';
 // Composables
 import { useImageObjectUrl } from '@hub-client/composables/useImageObjectUrl';
 
+import { type ImageCacheBackend, setImageCacheBackendForTests } from '@hub-client/logic/core/imageCache';
+
 const ICON_URL = 'http://hub.test:8008/_synapse/client/hub/icon';
 
 // jsdom implements neither, and BlobManager needs both.
@@ -16,13 +18,13 @@ const revokeObjectURL = vi.fn();
  * Mounts a host component so the composable's onMounted/onBeforeUnmount hooks actually run, and
  * exposes what it returned.
  */
-const mountWith = (getUrl: () => string | undefined) => {
+const mountWith = (getUrl: () => string | undefined, options?: { cache?: boolean }) => {
 	let composable: ReturnType<typeof useImageObjectUrl>;
 
 	const wrapper = mount(
 		defineComponent({
 			setup() {
-				composable = useImageObjectUrl(getUrl);
+				composable = useImageObjectUrl(getUrl, options);
 				return () => h('div');
 			},
 		}),
@@ -108,5 +110,86 @@ describe('useImageObjectUrl', () => {
 		wrapper.unmount();
 
 		expect(revokeObjectURL).toHaveBeenCalledWith('blob:hub-media');
+	});
+
+	describe('with the device cache', () => {
+		let entries: Map<string, { type: string; data: ArrayBuffer }>;
+
+		const cachedText = async () => {
+			const entry = entries.get(ICON_URL);
+			return entry ? new TextDecoder().decode(entry.data) : undefined;
+		};
+		const blobText = async (index: number) => await (createObjectURL.mock.calls[index] as unknown as [Blob])[0].text();
+
+		beforeEach(() => {
+			entries = new Map();
+			const memory: ImageCacheBackend = {
+				get: async (url) => entries.get(url),
+				put: async (url, image) => void entries.set(url, image),
+				delete: async (url) => void entries.delete(url),
+			};
+			setImageCacheBackendForTests(memory);
+		});
+
+		afterEach(() => {
+			setImageCacheBackendForTests(null);
+		});
+
+		test('keeps a copy of a fetched image', async () => {
+			vi.mocked(fetch).mockResolvedValue({ ok: true, status: 200, blob: async () => new Blob(['fresh'], { type: 'image/png' }) } as Response);
+
+			mountWith(() => ICON_URL, { cache: true });
+
+			await vi.waitFor(async () => expect(await cachedText()).toBe('fresh'));
+			expect(entries.get(ICON_URL)?.type).toBe('image/png');
+		});
+
+		test('shows the copy when the hub cannot be reached', async () => {
+			entries.set(ICON_URL, { type: 'image/png', data: new TextEncoder().encode('saved').buffer as ArrayBuffer });
+			vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'));
+
+			const { composable } = mountWith(() => ICON_URL, { cache: true });
+
+			await vi.waitFor(() => expect(composable.src.value).toBe('blob:hub-media'));
+			expect(await blobText(0)).toBe('saved');
+			expect(entries.has(ICON_URL)).toBe(true);
+		});
+
+		test('shows the copy while fetching, then the fetched image', async () => {
+			entries.set(ICON_URL, { type: 'image/png', data: new TextEncoder().encode('saved').buffer as ArrayBuffer });
+			let respond!: (response: Response) => void;
+			vi.mocked(fetch).mockReturnValue(new Promise((resolve) => (respond = resolve)));
+
+			const { composable } = mountWith(() => ICON_URL, { cache: true });
+			await vi.waitFor(() => expect(composable.src.value).toBe('blob:hub-media'));
+			expect(await blobText(0)).toBe('saved');
+
+			respond({ ok: true, status: 200, blob: async () => new Blob(['fresh'], { type: 'image/png' }) } as Response);
+			await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(2));
+			expect(await blobText(1)).toBe('fresh');
+			expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+		});
+
+		test('drops the copy when the hub says the image is gone', async () => {
+			entries.set(ICON_URL, { type: 'image/png', data: new TextEncoder().encode('saved').buffer as ArrayBuffer });
+			vi.mocked(fetch).mockResolvedValue({ ok: false, status: 404, blob: async () => new Blob() } as Response);
+
+			const { composable } = mountWith(() => ICON_URL, { cache: true });
+
+			await vi.waitFor(() => expect(entries.has(ICON_URL)).toBe(false));
+			expect(composable.src.value).toBe(ICON_URL);
+		});
+
+		test('without the option, neither reads nor writes the cache', async () => {
+			entries.set(ICON_URL, { type: 'image/png', data: new TextEncoder().encode('saved').buffer as ArrayBuffer });
+			vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'));
+
+			const { composable } = mountWith(() => ICON_URL);
+			await settle();
+			await new Promise((resolve) => setTimeout(resolve));
+
+			expect(composable.src.value).toBe(ICON_URL);
+			expect(createObjectURL).not.toHaveBeenCalled();
+		});
 	});
 });

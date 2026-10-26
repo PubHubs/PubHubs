@@ -39,6 +39,7 @@ from ._hhpp import (
     parse_verifying_key,
 )
 from ._base64url import b64url_decode, b64url_encode
+from ._native_app import set_own_hub_id
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -110,6 +111,15 @@ class Core:
         self._constellation_last_update_triggered = 0
         self._phc_verifying_key = None # CompositeKey, set by get_constellation
         self.trigger_get_constellation()
+        # Keep trying until our hub id is known (e.g. PHC was not up yet when we booted): the native
+        # app's CORS origins depend on it, and a user with a saved access token never goes through
+        # enter-complete, which would otherwise be the only thing to retry.  On every instance, since
+        # each worker process keeps its own copy of the hub id (see _native_app.py).
+        api.looping_background_call(self.retry_unresolved_hub_id, 10_000, run_on_all_instances=True)
+
+    def retry_unresolved_hub_id(self):
+        if self._hub_id is None:
+            self.trigger_get_constellation()
 
     @staticmethod
     def parse_config(config):
@@ -191,6 +201,7 @@ class Core:
         if self._hub_id is None:
             logger.info(f"resolved our hub id: {ids[0]}")
         self._hub_id = ids[0]
+        set_own_hub_id(self._hub_id)
 
 def normalize_hub_url(url):
     """Reduces a url to lowercased scheme://host:port, dropping any path, so a hub's

@@ -1,0 +1,138 @@
+# On a final release tag (vX.Y.Z): the Android app as a signed APK, with its checksum and a build
+# provenance attestation, in a draft GitHub release, for people who don't get the app from a store.
+# Our repository lives on the Radboud University's GitLab and is push-mirrored here, where this runs.
+# GitLab CI's build-android job builds the same tag for the Play Store; see "Release builds" in
+# docs/app/README.md.
+# Run by hand, it builds the chosen branch as a test version (like 3.6.0-test.1) into a GitHub
+# pre-release. Its tag is only made here, never on GitLab, whose CI deploys stable on any tag.
+name: Android release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Test version, a release version with a suffix, like 3.6.0-test.1
+        required: true
+
+# Read-only unless a job asks for more.
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and release the APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # The suffix keeps a test tag apart from the release tags that come from GitLab.
+      - name: Test version has a suffix
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.]+$ ]]; then
+            echo "The test version needs a suffix, like 3.6.0-test.1"; exit 1
+          fi
+
+      # The version in build.gradle has to be set for this release (see the merge-to-stable template).
+      - name: Tag matches the version in build.gradle
+        if: github.event_name == 'push'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          code=$(echo "$version" | awk -F. '{ print $1 * 10000 + $2 * 100 + $3 }')
+          if ! grep -qF "versionName \"$version\"" android/app/build.gradle || ! grep -qE "^ *versionCode $code$" android/app/build.gradle; then
+            echo "android/app/build.gradle needs versionName \"$version\" and versionCode $code"; exit 1
+          fi
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/**/*.gradle', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The checkout has no tags, so the clients get their version from PH_VERSION (see vite.config.ts).
+      - name: Build the clients with the production config and sync them into the app
+        env:
+          PH_VERSION: ${{ env.TAG }}
+        run: npm run cap:sync:android:release
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PUBHUBS_KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build the signed APK
+        working-directory: android
+        env:
+          PUBHUBS_KEYSTORE: ${{ runner.temp }}/upload.jks
+          PUBHUBS_KEYSTORE_PASSWORD: ${{ secrets.PUBHUBS_KEYSTORE_PASSWORD }}
+          PUBHUBS_KEY_ALIAS: ${{ secrets.PUBHUBS_KEY_ALIAS }}
+          PUBHUBS_KEY_PASSWORD: ${{ secrets.PUBHUBS_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Name the APK, verify its signature, and write its checksum
+        run: |
+          apk="pubhubs-${TAG}.apk"
+          mv android/app/build/outputs/apk/release/app-release.apk "$apk"
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n1)
+          "$apksigner" verify --verbose --print-certs "$apk"
+          sha256sum "$apk" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: pubhubs-${{ env.TAG }}.apk
+
+      - name: Draft the release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The notes are this version's part of CHANGELOG.md, under a heading like
+          # "## 18 September 2026 - v3.5.5", without the entries for developers only: those with
+          # INTERNAL in their prefix, such as [INTERNAL] or [BUG, INTERNAL], with their indented lines.
+          awk -v v="- ${GITHUB_REF_NAME}" '/^## / { on = substr($0, length($0) - length(v) + 1) == v; next } on' CHANGELOG.md > all.md
+          awk '/^- / { internal = /^- \[[^]]*INTERNAL[^]]*\]/ } !internal' all.md > notes.md
+          notes=(--generate-notes)
+          if grep -q '[^[:space:]]' notes.md; then notes=(--notes-file notes.md)
+          elif grep -q '[^[:space:]]' all.md; then notes=(--notes "Internal changes only.")
+          fi
+          gh release create "$GITHUB_REF_NAME" "pubhubs-${GITHUB_REF_NAME}.apk" SHA256SUMS \
+            --verify-tag --draft --title "PubHubs ${GITHUB_REF_NAME#v}" "${notes[@]}"
+
+      - name: Make the pre-release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" "pubhubs-${TAG}.apk" SHA256SUMS --target "$GITHUB_SHA" --prerelease \
+            --title "PubHubs ${TAG#v}" --notes "Test build of ${GITHUB_REF_NAME} at ${GITHUB_SHA}, not a release."
