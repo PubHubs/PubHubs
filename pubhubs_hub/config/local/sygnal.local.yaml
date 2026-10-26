@@ -57,3 +57,4 @@ apps:
     #    topic: net.pubhubs.app
     #    platform: sandbox # matches App.entitlements' aps-environment: development (Xcode debug builds)
     #    push_type: background # pushes are silent (content-available only), see NativePushPlugin.swift
+    #    convert_device_token_to_hex: false # NativePushPlugin.swift already sends the token as hex, not base64

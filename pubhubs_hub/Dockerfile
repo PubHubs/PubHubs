@@ -28,9 +28,10 @@ COPY --chmod=755 config/local/sygnal.local.yaml /conf/sygnal.local.yaml
 # pip installing it straight into Synapse's environment risks a version resolution silently
 # up/downgrading one of Synapse's own pins. Only started when a hub opts in with a /data/sygnal.yaml
 # (see boot/start_hub.py) - disabled by default, so this costs every hub some image size but nothing
-# at runtime unless configured.
+# at runtime unless configured. Sygnal isn't published on PyPI, so it's installed from its pinned
+# GitHub release instead.
 RUN python3 -m venv /opt/sygnal-venv && \
-	/opt/sygnal-venv/bin/pip install --no-cache-dir matrix-sygnal
+	/opt/sygnal-venv/bin/pip install --no-cache-dir https://github.com/element-hq/sygnal/archive/refs/tags/v0.17.0.tar.gz
 
 # One layer on purpose: each of these steps used to be its own RUN, and every layer costs another
 # image layer plus its own filesystem snapshot.

@@ -2,6 +2,8 @@ import json
 import logging
 from json.decoder import JSONDecodeError
 
+from twisted.web.http_headers import Headers
+
 from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.http.site import SynapseRequest
 from synapse.module_api import ModuleApi
@@ -37,7 +39,11 @@ class PushGatewayProxyServlet(DirectServeJsonResource):
         content = request.content.read()
 
         try:
-            resp = await self._module_api.http_client.request("POST", _SYGNAL_URL, content, request.requestHeaders)
+            # Only Content-Type: forwarding the incoming headers wholesale duplicates Host and
+            # Content-Length (the HTTP client sets its own), which Sygnal's Twisted server answers
+            # with a bare 400 before Sygnal itself ever sees the request.
+            resp = await self._module_api.http_client.request("POST", _SYGNAL_URL, content,
+                                                              Headers({b"Content-Type": [b"application/json"]}))
         except Exception as e:
             logger.warning(f"push gateway proxy: Sygnal not reachable at {_SYGNAL_URL}: {e}")
             respond_with_json(request, 502, {"error": "push gateway unavailable"})
