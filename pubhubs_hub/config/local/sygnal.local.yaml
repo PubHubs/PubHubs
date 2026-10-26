@@ -56,5 +56,5 @@ apps:
     #    team_id: T5VXGLDWLZ # Apple Developer Team ID (project.pbxproj's DEVELOPMENT_TEAM)
     #    topic: net.pubhubs.app
     #    platform: sandbox # matches App.entitlements' aps-environment: development (Xcode debug builds)
-    #    push_type: background # pushes are silent (content-available only), see NativePushPlugin.swift
+    #    push_type: alert # generic visible alert, built by modules/pubhubs/_push_gateway_proxy.py
     #    convert_device_token_to_hex: false # NativePushPlugin.swift already sends the token as hex, not base64

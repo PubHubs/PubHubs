@@ -12,6 +12,7 @@
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		9A1000022B3C4D5E6F708193 /* NativePushPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1000012B3C4D5E6F708192 /* NativePushPlugin.swift */; };
+		9A1000082B3C4D5E6F708199 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 9A1000072B3C4D5E6F708198 /* Localizable.strings */; };
 		9A1000042B3C4D5E6F708195 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1000032B3C4D5E6F708194 /* MainViewController.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
@@ -34,6 +35,8 @@
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		9A1000012B3C4D5E6F708192 /* NativePushPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativePushPlugin.swift; sourceTree = "<group>"; };
 		9A1000032B3C4D5E6F708194 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		9A1000092B3C4D5E6F70819A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		9A10000A2B3C4D5E6F70819B /* nl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		9A1000052B3C4D5E6F708196 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -74,6 +77,7 @@
 				9A1000032B3C4D5E6F708194 /* MainViewController.swift */,
 				9A1000012B3C4D5E6F708192 /* NativePushPlugin.swift */,
 				9A1000052B3C4D5E6F708196 /* App.entitlements */,
+				9A1000072B3C4D5E6F708198 /* Localizable.strings */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -121,9 +125,6 @@
 						LastSwiftMigration = 1100;
 						ProvisioningStyle = Manual;
 						SystemCapabilities = {
-							com.apple.BackgroundModes = {
-								enabled = 1;
-							};
 							com.apple.Push = {
 								enabled = 1;
 							};
@@ -163,6 +164,7 @@
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
+				9A1000082B3C4D5E6F708199 /* Localizable.strings in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -199,6 +201,15 @@
 				3DFFE572302B5435005190AC /* nl */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		9A1000072B3C4D5E6F708198 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9A1000092B3C4D5E6F70819A /* en */,
+				9A10000A2B3C4D5E6F70819B /* nl */,
+			);
+			name = Localizable.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

@@ -57,18 +57,4 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
     }
 
-    func application(
-        _ application: UIApplication,
-        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
-        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
-    ) {
-        // Capacitor core doesn't proxy this callback, so NativePushPlugin is handed the
-        // payload directly. It only ever contains an opaque hub_id, never message content.
-        guard let plugin = NativePushPlugin.shared else {
-            completionHandler(.noData)
-            return
-        }
-        plugin.handleRemoteNotification(userInfo: userInfo, completionHandler: completionHandler)
-    }
-
 }

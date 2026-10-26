@@ -1,0 +1,3 @@
+/* Push notifications, see en.lproj/Localizable.strings. */
+"push_notification_title" = "PubHubs";
+"push_notification_body" = "Je hebt nieuwe berichten";

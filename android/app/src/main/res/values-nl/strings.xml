@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PubHubs</string>
+    <string name="title_activity_main">PubHubs</string>
+
+    <!-- Push notifications, see values/strings.xml. Same text as iOS's
+         ios/App/App/nl.lproj/Localizable.strings. -->
+    <string name="push_channel_name">Nieuwe berichten</string>
+    <string name="push_notification_title">PubHubs</string>
+    <string name="push_notification_body">Je hebt nieuwe berichten</string>
+</resources>

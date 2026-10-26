@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import UserNotifications
 import Capacitor
 
 /// Registers for Apple Push Notification service (APNs) and hands the
@@ -10,28 +11,25 @@ import Capacitor
 /// android/app/src/{gplay,fdroid}/java/.../push/NativePushPlugin.java), so
 /// global-client/src/logic/nativePush.ts can stay platform-agnostic.
 ///
-/// Pushes are expected to be silent (`content-available: 1`, no
-/// `alert`/`sound`/`badge`) and to carry only an opaque `hub_id` — never
-/// message content. This plugin never inspects or forwards anything beyond
-/// that: the app treats every push purely as a "go check that hub" signal
-/// and fetches real state over its own authenticated Sliding Sync channel.
+/// Pushes are visible alerts with a generic, app-localized text (the hub's
+/// gateway proxy only sends localization keys, see
+/// pubhubs_hub/modules/pubhubs/_push_gateway_proxy.py) plus an opaque
+/// `hub_id` - never message content. That gives the same result as Android,
+/// where the app shows the same generic notification itself (LocalNotifier):
+/// in the background iOS shows the alert, and tapping it opens that hub; in the
+/// foreground the alert is suppressed and the app just goes to that hub.
 @objc(NativePushPlugin)
-public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin {
+public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProtocol {
     public let identifier = "NativePushPlugin"
     public let jsName = "NativePush"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "register", returnType: CAPPluginReturnPromise)
     ]
 
-    /// AppDelegate hands received remote notifications to this instance
-    /// directly, since Capacitor core only proxies the registration
-    /// callbacks (`capacitorDidRegisterForRemoteNotifications` and
-    /// `capacitorDidFailToRegisterForRemoteNotifications`) via
-    /// NotificationCenter, not `didReceiveRemoteNotification`.
-    static weak var shared: NativePushPlugin?
-
     override public func load() {
-        NativePushPlugin.shared = self
+        // Capacitor's NotificationRouter is the UNUserNotificationCenter delegate and forwards
+        // remote notifications to this handler (the same hook @capacitor/push-notifications uses).
+        bridge?.notificationRouter.pushNotificationHandler = self
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(didRegister(_:)),
@@ -70,19 +68,25 @@ public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin {
         notifyListeners("pushUnavailable", data: ["reason": "registration_failed"])
     }
 
-    /// Called by `AppDelegate.application(_:didReceiveRemoteNotification:fetchCompletionHandler:)`.
-    func handleRemoteNotification(
-        userInfo: [AnyHashable: Any],
-        completionHandler: @escaping (UIBackgroundFetchResult) -> Void
-    ) {
-        guard let hubId = userInfo["hub_id"] as? String else {
-            completionHandler(.noData)
-            return
-        }
-        // retainUntilConsumed: a push received while backgrounded/killed can fire before the JS
-        // layer has re-attached its "pushReceived" listener after cold start; without this the
-        // event would be dropped on the floor instead of delivered once JS is ready for it.
+    // MARK: - NotificationHandlerProtocol
+
+    /// A push arrived while the app is in the foreground: like Android (FcmService only shows
+    /// its notification when the app isn't in the foreground), don't show the alert, just tell JS.
+    public func willPresent(notification: UNNotification) -> UNNotificationPresentationOptions {
+        emitPushReceived(notification.request.content.userInfo)
+        return []
+    }
+
+    /// The user tapped the alert: open that hub, like tapping Android's notification does.
+    public func didReceive(response: UNNotificationResponse) {
+        emitPushReceived(response.notification.request.content.userInfo)
+    }
+
+    private func emitPushReceived(_ userInfo: [AnyHashable: Any]) {
+        guard let hubId = userInfo["hub_id"] as? String else { return }
+        // retainUntilConsumed: a tap can cold-start the app, firing before the JS layer has
+        // attached its "pushReceived" listener; without this the event would be dropped instead
+        // of delivered once JS is ready for it.
         notifyListeners("pushReceived", data: ["hub_id": hubId], retainUntilConsumed: true)
-        completionHandler(.newData)
     }
 }

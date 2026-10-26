@@ -86,20 +86,6 @@ function pushGatewayUrl(serverUrl: string): string {
 }
 
 /**
- * Extra pusher `data` the gateway merges into every push it sends for this pusher. Sygnal's APNs
- * pushkin only sends room_id/event_id (+ counts) for `event_id_only`, so without this the push
- * has neither the `hub_id` NativePushPlugin.swift looks for nor the `content-available` flag
- * that lets iOS wake the app for it.
- *
- * NEEDS FOLLOW-UP: Sygnal still adds room_id/event_id, which then reach Apple - stricter than
- * the "opaque hub_id only" design allows. Fixing that needs payload filtering on the hub side.
- */
-function defaultPayload(hubId: string, transport: string): { default_payload?: Record<string, unknown> } {
-	if (transport !== 'apns') return {};
-	return { default_payload: { hub_id: hubId, aps: { 'content-available': 1 } } };
-}
-
-/**
  * Registers or deletes the Matrix pusher identifying `deviceToken` for one hub.
  *
  * NEEDS VERIFICATION once a real hub push gateway (Sygnal) exists to test against: for the
@@ -128,8 +114,10 @@ async function setPusher(hubId: string, hubAccessToken: string, serverUrl: strin
 				kind: 'http',
 				lang: 'en',
 				// event_id_only: Synapse strips everything but room_id/event_id before forwarding to the
-				// gateway - see the push notifications plan for why this must stay enforced hub-side too.
-				data: { url: pushGatewayUrl(serverUrl), format: 'event_id_only', ...defaultPayload(hubId, deviceToken.transport) },
+				// gateway. The hub's gateway proxy enforces this too, and itself adds the hub_id (and
+				// for iOS the generic alert) every platform's push carries - see
+				// pubhubs_hub/modules/pubhubs/_push_gateway_proxy.py's sanitize_notification().
+				data: { url: pushGatewayUrl(serverUrl), format: 'event_id_only' },
 				append: false,
 			};
 

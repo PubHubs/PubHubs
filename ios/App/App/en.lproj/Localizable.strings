@@ -1,0 +1,5 @@
+/* Push notifications: the hub's gateway proxy only sends these keys, never message content
+   (pubhubs_hub/modules/pubhubs/_push_gateway_proxy.py). Same keys and text as Android's
+   android/app/src/main/res/values/strings.xml. */
+"push_notification_title" = "PubHubs";
+"push_notification_body" = "You have new messages";
