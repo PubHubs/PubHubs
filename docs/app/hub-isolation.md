@@ -99,8 +99,9 @@ For DevTools where `chrome://inspect` doesn't work, as on GrapheneOS, see
   every hub frame. Capacitor registers its `bridge` message handler with
   `WKUserContentController.add(_:name:)`, which exposes `window.webkit.messageHandlers.bridge` to
   every frame, and `WebViewDelegationHandler.userContentController(_:didReceive:)` never looks at
-  `message.frameInfo`. A hub frame can therefore probably call native plugins (Filesystem, Share,
-  ...); the replies go to the main frame, so it can't read them. Capacitor's script also runs in
+  `message.frameInfo`. A hub frame can therefore call native plugins (Filesystem, Share, ...),
+  confirmed on an iPhone 8 on 26 October 2026; the replies go to the main frame, so it can't read
+  them. Capacitor's script also runs in
   every frame on iOS, so `Capacitor.isNativePlatform()` is `true` in hub frames. This was already so
   with hubs loaded from their own domains. The fix is native: drop bridge messages unless
   `frameInfo.isMainFrame` and `frameInfo.securityOrigin.host == "pubhubs-app.invalid"`, for example
@@ -114,8 +115,10 @@ For DevTools where `chrome://inspect` doesn't work, as on GrapheneOS, see
 
 ## Still open
 
-- Run the [iOS test plan](ios-isolation-test.md): IndexedDB on the hub origins (the first run found no
-  databases in the hub frames), a top-level navigation to a hub, and the wrong-server check.
+- IndexedDB on the hub origins doesn't persist on iOS: WebKit treats them as third-party to the shell
+  (`document.hasStorageAccess()` is `false` there), so the hub client runs from memory. The navigation
+  and wrong-server checks passed; see the [iOS test plan](ios-isolation-test.md#results) (iPhone 8 on
+  iOS 16.7 and the iOS 26.2 simulator).
 - Fix the iOS native bridge gap.
 - External hubs need a release with the CORS change before their users can use them in the app; see
   [What hubs need for the app](README.md#what-hubs-need-for-the-app).
