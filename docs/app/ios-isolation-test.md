@@ -79,10 +79,24 @@ location.search = q.toString();
 
 ## Results
 
-Date: ______ Device / iOS: ______ Commit: ______
+Date: 26 October 2026 Device / iOS: iPhone 8 / iOS 16.7.16, and iPhone 11 simulator / iOS 26.2 Commit: 80ac65995
+
+Both gave the same results.
 
 | Test | Result | Notes |
 | --- | --- | --- |
-| 1. IndexedDB persists | | |
-| 2. Shell navigation refused | | |
-| 3. Wrong server refused | | |
+| 1. IndexedDB persists | ❌ | Writing works, but `indexedDB.databases()` lists nothing in hub frames, not even the probe right after writing it, and the marker is gone after a restart. The shell lists `pubhubs-image-cache`. `document.hasStorageAccess()` is `false` in hub frames and `true` in the shell: WebKit treats the hub origins as third-party to the shell, so their storage is not persisted. |
+| 2. Shell navigation refused | ✅ | The top frame stays `capacitor://pubhubs-app.invalid`. |
+| 3. Wrong server refused | ✅ | Run as written, the reloaded frame gets no handshake reply at all, because the shell only answers a `Sync` while its own `startCommunication` is pending. So it stays blank without logging the refusal. After sending the shell's reply (`settings` with the real `hubServerUrl`) to it from the shell: `Handshake refused: the parent expects a different hub server`. No request to `evil.example`. |
+
+The other checks from the [Android table](hub-isolation.md#checks-on-android), on the iPhone 8 only:
+
+| Check | Result |
+| --- | --- |
+| A hub's origin matches the label derived from its `hubId` | ✅ |
+| `parent.document`, `parent.localStorage`, `top.location.href` throw `SecurityError` in a hub | ✅ |
+| No `PHauthToken` or `UserSecret` in a hub's `localStorage` | ✅ |
+| `parent.frames`: the hub's own frames are readable, the other hub's frames blocked | ✅ |
+| The shell can't read `contentWindow.document` of hub frames | ✅ |
+| A hub frame loaded on another hub's origin, with its own `hubId`: "hub-client refuses to start" | ✅ |
+| No native bridge in hub frames | ❌ `Capacitor.isNativePlatform()` is `true` and `webkit.messageHandlers.bridge` exists. A hub frame's `StatusBar.getInfo` and `Filesystem.readdir` calls ran natively; the replies went to the shell. |
