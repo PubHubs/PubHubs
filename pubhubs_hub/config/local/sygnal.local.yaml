@@ -47,12 +47,13 @@ apps:
     # config - it's what global-client/src/logic/nativePush.ts's APP_ID_BY_TRANSPORT.apns sends as
     # the Matrix pusher's `app_id`, and is unrelated to `topic` below. `topic` DOES have to be the
     # app's real bundle id (ios/App/App.xcodeproj's PRODUCT_BUNDLE_IDENTIFIER, currently
-    # 'nl.pubhubs.client') - that's what actually goes to APNs, and delivery silently fails if it's
-    # wrong.
+    # 'net.pubhubs.app') - that's what actually goes to APNs, which rejects every push
+    # (DeviceTokenNotForTopic) if it's wrong.
     #nl.pubhubs.client.ios:
     #    type: apns
     #    keyfile: /data/sygnal-apns-key.p8 # your Apple "Auth Key" (.p8), dropped next to this file
     #    key_id: REPLACE_ME # shown in the Apple Developer portal next to the key
-    #    team_id: REPLACE_ME # your Apple Developer Team ID
-    #    topic: nl.pubhubs.client
+    #    team_id: T5VXGLDWLZ # Apple Developer Team ID (project.pbxproj's DEVELOPMENT_TEAM)
+    #    topic: net.pubhubs.app
     #    platform: sandbox # matches App.entitlements' aps-environment: development (Xcode debug builds)
+    #    push_type: background # pushes are silent (content-available only), see NativePushPlugin.swift
