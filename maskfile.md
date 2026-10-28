@@ -564,6 +564,44 @@ cd pubhubs
 cargo test
 ```
 
+### ios-push (n)
+
+> End-to-end test of iOS push notifications via testhub n, on the Simulator or a device
+
+Not part of `mask test all`: it needs PHC, testhub n with Sygnal and an APNs key, and the app
+logged in to that hub. See docs/app/ios-push-test.md.
+
+**OPTIONS**
+
+- target
+    - flags: --target
+    - type: string
+    - desc: simulator (default) or device
+- udid
+    - flags: --udid
+    - type: string
+    - desc: The Simulator to use when several are booted
+- pushkey
+    - flags: --pushkey
+    - type: string
+    - desc: APNs device token to push to, instead of looking it up
+- only
+    - flags: --only
+    - type: string
+    - desc: Comma-separated steps to run (gateway, e2e, foreground, tap); the checks they depend on always run
+- non_interactive
+    - flags: --non-interactive
+    - desc: Never prompt; skips the visual checks and the tap step
+
+```sh
+args=(--target "${target:-simulator}")
+[[ -n "$udid" ]] && args+=(--udid "$udid")
+[[ -n "$pushkey" ]] && args+=(--pushkey "$pushkey")
+[[ -n "$only" ]] && args+=(--only "$only")
+[[ "$non_interactive" == "true" ]] && args+=(--non-interactive)
+python3 scripts/test-ios-push.py "${args[@]}" "${n}"
+```
+
 ---
 
 ## check

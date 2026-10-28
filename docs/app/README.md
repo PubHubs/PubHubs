@@ -9,6 +9,8 @@ More detail:
 - [Hub isolation](hub-isolation.md): how the app keeps hubs apart from the shell and from each
   other, and the [iOS test plan](ios-isolation-test.md) for it.
 - [Offline](offline.md): how the app keeps working without a connection.
+- [iOS push notification test](ios-push-test.md): setting up push for a test hub, and
+  `mask test ios-push`.
 
 ## How it fits together
 
