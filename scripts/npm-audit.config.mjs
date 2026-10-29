@@ -35,8 +35,8 @@ export default {
 			reason: "No fixed version exists: 6.6.1 is the latest elliptic release, and the only upgrade npm can suggest is a major downgrade of vite-plugin-node-polyfills. We do not use elliptic ourselves; it arrives through that plugin's crypto-browserify shim, and the advisory is about the strictness of its ECDSA verification.",
 		},
 		{
-			id: 'GHSA-rj75-hqrm-r3gf',
-			reason: 'A major upgrade of eslint is needed  to remove this dev only vulnerability',
+			id: 'GHSA-gcqx-w48m-w2h4',
+			reason: 'No fixed version exists: 4.3.1 is the latest deepmerge release. yivi-client and yivi-web only use it to merge their own defaults with the options object our code passes in, and @rollup/plugin-node-resolve (through vite-plugin-pwa) only at build time, so no server data or user input reaches mergeObject().',
 		},
 	],
 };
