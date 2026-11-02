@@ -42,6 +42,24 @@ npm run cap:run:ios        # the same for iOS (Xcode, on a Mac)
 these (`build`, `copy`, `sync`, `update`, `open`, `run`, `doctor`, and `log` for Android); `copy`
 doesn't rebuild the hub client, so after a hub client change it serves a stale `/hub/`.
 
+**iOS smoke test.** `npm run test:ios` (or `mask run ios test`) runs `scripts/ios-smoke-test.sh`.
+It builds the app with `cap:sync:ios`, installs it on a Simulator (default iPhone 11, on the newest
+runtime) or on a device, and launches it. It fails when Capacitor doesn't load the shell, or when,
+during the next 30 seconds, the app logs a JS error (`⚡️  [error]`), a WebView load failure or
+crashes. Logs and a screenshot (Simulator only) go to `ios/DerivedData/smoke-test/results/`.
+Options: `--simulator <name|udid>`, `--os <version>`, `--device <name|udid>`, `--list`,
+`--no-sync`, `--timeout <s>`, and `--ignore-error <regex>` for a hub you don't run locally. For
+example: `npm run test:ios -- --simulator "iPhone 17 Pro" --ignore-error "Testhub 1"`.
+
+- It only catches errors. The production web build doesn't log info, so nothing confirms that a
+  page rendered; check the screenshot. With PHC down, a logged-in app falls back to its offline
+  cache and only warns, so that still passes.
+- A device needs the *PubHubs - development* profile and certificate (see
+  [App Store (iOS)](#app-store-ios)); devices get no screenshot. `--list` shows them by name.
+  Devices on iOS 17 and later go through `devicectl`. Older ones, which `devicectl` doesn't
+  support, go through `ios-deploy` (`brew install ios-deploy`), which runs the app under a debugger,
+  so `--keep-running` doesn't apply there.
+
 **Reaching your computer.** A phone can't reach `localhost` on your computer, and PubHubs Central
 hands out hub addresses on your computer's network address anyway (the `networkhost` in
 `pubhubs.toml`). So the app uses that address too:
@@ -166,6 +184,29 @@ the app from our source.
   (`assetlinks.json`) need the fingerprints of Google's app signing key (in Play Console under App
   integrity) and of F-Droid's key, not the upload key.
 
+### App Store (iOS)
+
+- The app runs under Yivi's Apple Developer team, **Stichting Privacy by Design** (Team ID
+  `T5VXGLDWLZ`). We have no access to *Certificates, Identifiers & Profiles*, so Yivi creates the
+  certificates and provisioning profiles from CSRs we send them. We keep the private keys.
+- Because of that, signing is **manual**. Automatic signing can't work without that access. Debug
+  uses the *Apple Development* identity with the profile **PubHubs - development**, which only
+  allows the devices registered in it. Release uses *iPhone Distribution: Stichting Privacy by
+  Design* with **PubHubs app-store**. A new test device or capability means asking Yivi for a new
+  profile.
+- Keys, `.p12`s, certificates and profiles are never in this repository. They're in the team's
+  password manager. The certificates and profiles expire on **2027-10-19**, and the APNs
+  certificates on 2027-11-18.
+- **Build for TestFlight/App Store:** `npm run cap:sync:ios:release`. It uses the production client
+  config, sets `PUBHUBS_RELEASE` (no cleartext traffic, `capacitor.config.local.json` ignored) and
+  generates `Info.plist` without the networkhost address. Don't use `cap:sync:ios` for this: that
+  one bakes your LAN address into the build.
+- Then in Xcode: scheme **App**, *Any iOS Device (arm64)*, Product → **Archive**, and in Organizer
+  **Distribute App → App Store Connect** with *manual* signing (*PubHubs app-store*). Use an Apple
+  ID that Yivi invited to the team as App Manager. Raise `CURRENT_PROJECT_VERSION` for every upload,
+  and set `MARKETING_VERSION` to the release version. Run `npm run cap:sync:ios` again afterwards
+  to go back to development.
+
 ## Review mode
 
 App store reviewers can't log in with a real Yivi identity, so the app has a hidden switch to a
@@ -218,6 +259,5 @@ Setting up for a review:
   `LIVEKIT_URL` as `http://localhost:<port>`, which a phone can't reach.
 - **The iOS native bridge** is reachable from hub frames; see
   [Hub isolation](hub-isolation.md#known-gaps).
-- **iOS release builds** keep the development App Transport Security exceptions from
-  `Info.template.plist` (`NSAllowsLocalNetworking` and the networkhost address), since nothing
-  removes them for release yet.
+- **iOS release builds** keep `NSAllowsLocalNetworking` and the `localhost` App Transport Security
+  exception from `Info.template.plist`. `cap:sync:ios:release` only removes the networkhost address.
