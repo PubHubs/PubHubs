@@ -16,6 +16,10 @@
  *
  * Wired into `npm run cap:sync:ios` / `cap:run:ios` / `cap:open:ios` (see package.json), so this never
  * needs to be run by hand.
+ *
+ * With PUBHUBS_RELEASE set (`npm run cap:sync:ios:release`), it generates Info.plist without the
+ * networkhost ATS exception and leaves capacitor.config.local.json alone, so no development address
+ * ends up in a TestFlight/App Store build.
  */
 import { REPO_ROOT, resolveNetworkhostIp } from './lib/resolve-networkhost-ip.js';
 import fs from 'node:fs';
@@ -29,6 +33,9 @@ const NETWORKHOST_IP_PLACEHOLDER = '__NETWORKHOST_IP__';
 // Used only when no networkhost.ip/source_ip_for is configured yet, so Info.plist still exists and
 // Xcode can build. Never actually reached over the network — real-device testing needs a real IP.
 const FALLBACK_IP = '127.0.0.1';
+
+// The template's dev-only comment plus the `<key>__NETWORKHOST_IP__</key><dict>…</dict>` entry.
+const NETWORKHOST_IP_ENTRY_RE = /\n\t*<!-- Dev-only:[\s\S]*?-->\n\t*<key>__NETWORKHOST_IP__<\/key>\n\t*<dict>[\s\S]*?<\/dict>/;
 
 function generateInfoPlist(ip) {
 	const template = fs.readFileSync(INFO_PLIST_TEMPLATE, 'utf8');
@@ -51,6 +58,19 @@ function generateInfoPlist(ip) {
 	console.log(`sync-networkhost-ip: generated Info.plist with ATS exception for ${ip}`);
 }
 
+function generateReleaseInfoPlist() {
+	const template = fs.readFileSync(INFO_PLIST_TEMPLATE, 'utf8');
+	if (!NETWORKHOST_IP_ENTRY_RE.test(template)) {
+		console.error(`sync-networkhost-ip: expected to find the dev-only ${NETWORKHOST_IP_PLACEHOLDER} entry in ${path.relative(REPO_ROOT, INFO_PLIST_TEMPLATE)}, but it's missing.`);
+		console.error('The template structure may have changed — please update it by hand instead of guessing. See docs/app/README.md.');
+		process.exitCode = 1;
+		return;
+	}
+
+	fs.writeFileSync(INFO_PLIST, template.replace(NETWORKHOST_IP_ENTRY_RE, ''));
+	console.log('sync-networkhost-ip: generated release Info.plist (no networkhost ATS exception)');
+}
+
 function syncCapacitorConfigLocal(ip) {
 	const content = JSON.stringify({ networkhostIp: ip }, null, '\t') + '\n';
 	if (fs.existsSync(CAPACITOR_CONFIG_LOCAL) && fs.readFileSync(CAPACITOR_CONFIG_LOCAL, 'utf8') === content) {
@@ -63,6 +83,11 @@ function syncCapacitorConfigLocal(ip) {
 }
 
 async function main() {
+	if (process.env.PUBHUBS_RELEASE) {
+		generateReleaseInfoPlist();
+		return;
+	}
+
 	let ip = null;
 	try {
 		ip = await resolveNetworkhostIp();
