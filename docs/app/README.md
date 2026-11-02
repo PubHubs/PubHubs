@@ -50,6 +50,7 @@ crashes. Logs and a screenshot (Simulator only) go to `ios/DerivedData/smoke-tes
 Options: `--simulator <name|udid>`, `--os <version>`, `--device <name|udid>`, `--list`,
 `--no-sync`, `--timeout <s>`, and `--ignore-error <regex>` for a hub you don't run locally. For
 example: `npm run test:ios -- --simulator "iPhone 17 Pro" --ignore-error "Testhub 1"`.
+
 - It only catches errors. The production web build doesn't log info, so nothing confirms that a
   page rendered; check the screenshot. With PHC down, a logged-in app falls back to its offline
   cache and only warns, so that still passes.
