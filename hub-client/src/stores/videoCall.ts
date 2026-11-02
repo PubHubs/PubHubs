@@ -19,6 +19,7 @@ import {
 import { type MatrixRTCSession, MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
 import { defineStore } from 'pinia';
 
+import { VideocallStateType } from '@hub-client/logic/core/events';
 import { MatrixKeyProvider } from '@hub-client/logic/core/matrixKeyProvider';
 import { router } from '@hub-client/logic/core/router';
 import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -130,9 +131,15 @@ const useVideoCall = defineStore('videoCall', {
 			const { t } = getI18n().global;
 
 			// check if first user, if so: message for video call start
-			if (this.rtc_session?.memberships?.length === 1) {
+			// check by < 2 because connectcall starts async method sometimes leading to no members yet
+			if ((this.rtc_session?.memberships?.length ?? 0) < 2) {
 				// create message for timeline to show the call has started
-				const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? t('videocall.message_start'));
+				const eventId = await pubhubs.addVideoCallMessage(
+					currentRoom.roomId,
+					VideocallStateType.Started,
+					message ?? t('videocall.state.started'),
+					undefined,
+				);
 				this.eventId = eventId;
 			}
 
@@ -140,8 +147,10 @@ const useVideoCall = defineStore('videoCall', {
 			if (this.eventId) {
 				void (async () => {
 					try {
-						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent;
-						await pubhubs.addMessage(currentRoom.roomId, t('videocall.message_joined'), threadRoot, undefined);
+						const threadRoot = currentRoom.isDirectMessageRoom()
+							? undefined
+							: ((await pubhubs.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent);
+						await pubhubs.addVideoCallMessage(currentRoom.roomId, VideocallStateType.Joined, t('videocall.state.joined'), threadRoot);
 					} catch {
 						// Ignore best-effort "Joined" message failures.
 					}
@@ -300,8 +309,10 @@ const useVideoCall = defineStore('videoCall', {
 				// send left-message
 				if (this.eventId) {
 					try {
-						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
-						await pubhubs.addThreadMessageWithoutLocalEcho(currentRoom.roomId, t('videocall.message_left'), threadRoot);
+						const threadRoot = currentRoom.isDirectMessageRoom()
+							? undefined
+							: ((await pubhubs.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent);
+						await pubhubs.addVideoCallMessage(currentRoom.roomId, VideocallStateType.Left, t('videocall.state.left'), threadRoot);
 					} catch (error) {
 						errors.push(error);
 					}
@@ -309,12 +320,23 @@ const useVideoCall = defineStore('videoCall', {
 
 				// leave rtc session
 				// if necessary: send end message
-				if (this.rtc_session) {
+				if (this.rtc_session && this.eventId) {
 					try {
 						const isLastMember = this.rtc_session.memberships.length === 1; // check if you are the last participant before leaving, it takes some time for the memberships to sync
 						await this.rtc_session.leaveRoomSession(10);
 						if (isLastMember && this.eventId) {
-							await pubhubs.addEndVideoCallMessage(currentRoom.roomId, this.eventId, t('videocall.message_ended'));
+							if (currentRoom.isDirectMessageRoom()) {
+								// DirectMessageRooms cannot have threads: edit original videcallmessage and add end message
+								await pubhubs.addEndVideoCallMessage(
+									currentRoom.roomId,
+									VideocallStateType.StartedEnded,
+									this.eventId,
+									t('videocall.state.startedended'),
+								);
+								await pubhubs.addVideoCallMessage(currentRoom.roomId, VideocallStateType.Ended, t('videocall.state.ended'), undefined);
+							} else {
+								await pubhubs.addEndVideoCallMessage(currentRoom.roomId, VideocallStateType.Ended, this.eventId, t('videocall.state.ended'));
+							}
 						}
 					} catch (error) {
 						errors.push(error);
