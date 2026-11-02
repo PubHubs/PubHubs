@@ -26,6 +26,7 @@
 		"patch:ios-networkhost-ip": "node scripts/patch-ios-client-config-ip.js",
 		"cap:sync:ios": "npm run sync:networkhost-ip && npm run build:global:native && npm run build:hub:native && npm run patch:ios-networkhost-ip && npx cap sync ios",
 		"cap:sync:android": "npm run sync:networkhost-ip && npm run build:global:native && npm run build:hub:native && npx cap sync android",
+		"cap:sync:ios:release": "PUBHUBS_RELEASE=1 npm run sync:networkhost-ip && npm run build:native:release && PUBHUBS_RELEASE=1 npx cap sync ios",
 		"cap:sync:android:release": "npm run build:native:release && PUBHUBS_RELEASE=1 npx cap sync android",
 		"cap:open:android": "npm run sync:networkhost-ip && npx cap open android",
 		"cap:run:android": "npm run sync:networkhost-ip && npm run build:global:native && npm run build:hub:native && npx cap run android",

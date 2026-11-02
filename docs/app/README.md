@@ -168,6 +168,29 @@ the app from our source.
   (`assetlinks.json`) need the fingerprints of Google's app signing key (in Play Console under App
   integrity) and of F-Droid's key, not the upload key.
 
+### App Store (iOS)
+
+- The app runs under Yivi's Apple Developer team, **Stichting Privacy by Design** (Team ID
+  `T5VXGLDWLZ`). We have no access to *Certificates, Identifiers & Profiles*, so Yivi creates the
+  certificates and provisioning profiles from CSRs we send them. We keep the private keys.
+- Because of that, signing is **manual**. Automatic signing can't work without that access. Debug
+  uses the *Apple Development* identity with the profile **PubHubs - development**, which only
+  allows the devices registered in it. Release uses *iPhone Distribution: Stichting Privacy by
+  Design* with **PubHubs app-store**. A new test device or capability means asking Yivi for a new
+  profile.
+- Keys, `.p12`s, certificates and profiles are never in this repository. They're in the team's
+  password manager. The certificates and profiles expire on **2027-10-19**, and the APNs
+  certificates on 2027-11-18.
+- **Build for TestFlight/App Store:** `npm run cap:sync:ios:release`. It uses the production client
+  config, sets `PUBHUBS_RELEASE` (no cleartext traffic, `capacitor.config.local.json` ignored) and
+  generates `Info.plist` without the networkhost address. Don't use `cap:sync:ios` for this: that
+  one bakes your LAN address into the build.
+- Then in Xcode: scheme **App**, *Any iOS Device (arm64)*, Product → **Archive**, and in Organizer
+  **Distribute App → App Store Connect** with *manual* signing (*PubHubs app-store*). Use an Apple
+  ID that Yivi invited to the team as App Manager. Raise `CURRENT_PROJECT_VERSION` for every upload,
+  and set `MARKETING_VERSION` to the release version. Run `npm run cap:sync:ios` again afterwards
+  to go back to development.
+
 ## Review mode
 
 App store reviewers can't log in with a real Yivi identity, so the app has a hidden switch to a
@@ -220,6 +243,5 @@ Setting up for a review:
   `LIVEKIT_URL` as `http://localhost:<port>`, which a phone can't reach.
 - **The iOS native bridge** is reachable from hub frames; see
   [Hub isolation](hub-isolation.md#known-gaps).
-- **iOS release builds** keep the development App Transport Security exceptions from
-  `Info.template.plist` (`NSAllowsLocalNetworking` and the networkhost address), since nothing
-  removes them for release yet.
+- **iOS release builds** keep `NSAllowsLocalNetworking` and the `localhost` App Transport Security
+  exception from `Info.template.plist`. `cap:sync:ios:release` only removes the networkhost address.
