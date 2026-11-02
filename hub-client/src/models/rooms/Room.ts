@@ -26,7 +26,7 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 // Logic
 import { api_synapse } from '@hub-client/logic/core/api';
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { PubHubsMgType, VideocallStateType } from '@hub-client/logic/core/events';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { mergeStateEvents } from '@hub-client/logic/utils/roomUtils';
 
@@ -1064,7 +1064,9 @@ export default class Room {
 	public getLastVideoCallTimeLineEvent(): MatrixEvent | undefined {
 		const timeline = this.getLiveTimelineEvents();
 
-		const lastVideoCallMessage = timeline.findLast((e) => e.event.content?.msgtype === PubHubsMgType.VideoCall);
+		const lastVideoCallMessage = timeline.findLast(
+			(e) => e.event.content?.msgtype === PubHubsMgType.VideoCall && e.event.content?.videocallstate === VideocallStateType.Started,
+		);
 		if (!lastVideoCallMessage || !lastVideoCallMessage.event.event_id) {
 			return undefined;
 		}

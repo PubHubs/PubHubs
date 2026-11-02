@@ -1,24 +1,15 @@
 <template>
 	<div class="gap-050 flex items-center wrap-break-word">
-		<div
-			v-if="!callEnded"
-			class="overflow-hidden text-ellipsis"
-		>
-			{{ t('videocall.message_start') }}
-		</div>
-		<div
-			v-else
-			class="overflow-hidden text-ellipsis"
-		>
-			{{ t('videocall.message_ended') }}
+		<div class="overflow-hidden text-ellipsis">
+			{{ t(`videocall.state.${props.event.content.videocallstate}`) }}
 		</div>
 		<VideoCallButton
-			v-if="!callEnded && !inCall"
+			v-if="!isThreadEvent && !callEnded && !inCall"
 			:is-start-button="false"
 			@click="JoinVideoCall()"
 		></VideoCallButton>
 	</div>
-	<div v-if="callEnded && duration">{{ t('videocall.duration') }}: {{ duration }}</div>
+	<div v-if="props.event.content.videocallstate === VideocallStateType.Ended">{{ t('videocall.duration') }}: {{ duration }}</div>
 </template>
 
 <script setup lang="ts">
@@ -29,9 +20,10 @@
 
 	import VideoCallButton from '@hub-client/components/ui/VideoCallButton.vue';
 
-	import { PubHubsMgType } from '@hub-client/logic/core/events';
+	import { PubHubsMgType, VideocallStateType } from '@hub-client/logic/core/events';
 
-	import { type TMessageEvent, type TMessageEventContent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { RelationType } from '@hub-client/models/constants';
+	import { type TMessageEvent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	import { useRooms } from '@hub-client/stores/rooms';
 	import useVideoCall from '@hub-client/stores/videoCall';
@@ -55,11 +47,15 @@
 
 	watch(
 		() => currentRoom?.relatedEventsRevision.count,
-		() => checkHasCallEnded(),
+		() => {
+			if (!isThreadEvent.value) checkHasCallEnded();
+		},
 	);
 
+	const isThreadEvent = computed(() => props.event.content?.['m.relates_to']?.rel_type === RelationType.Thread);
+
 	function onMemberShipsChanged() {
-		checkHasCallEnded();
+		if (!isThreadEvent.value) checkHasCallEnded();
 	}
 
 	async function JoinVideoCall() {
@@ -70,12 +66,16 @@
 	}
 
 	onMounted(() => {
-		checkHasCallEnded();
-		rtcSession?.on(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+		if (!isThreadEvent.value) {
+			checkHasCallEnded();
+			rtcSession?.on(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+		}
 	});
 
 	onUnmounted(() => {
-		rtcSession?.off(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+		if (!isThreadEvent.value) {
+			rtcSession?.off(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+		}
 	});
 
 	async function checkHasCallEnded() {
@@ -84,9 +84,13 @@
 		// catch all ended videocalls and calculate their duration
 		const relatedEvents = currentRoom.getRelatedEvents(props.event.event_id).map((x) => x.matrixEvent);
 		for (const event of relatedEvents) {
-			const newContent = event.event.content as TMessageEventContent;
-			if (props.event.event_id !== event.event.event_id && newContent.msgtype === PubHubsMgType.VideoCallEnded) {
-				duration.value = calculateDuration(props.event.content?.timestamp ?? 0, newContent.timestamp);
+			const newContent = event.event.content as TVideoCallMessageEventContent;
+			if (
+				props.event.event_id !== event.event.event_id &&
+				newContent.msgtype === PubHubsMgType.VideoCall &&
+				newContent.videocallstate === VideocallStateType.Ended
+			) {
+				duration.value = calculateDuration(props.event.origin_server_ts, newContent.timestamp);
 				callEnded.value = true;
 				return; // need to return from the method, therefore the for-loop
 			}

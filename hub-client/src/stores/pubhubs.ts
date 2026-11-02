@@ -28,7 +28,7 @@ import { useMatrix } from '@hub-client/composables/matrix.composable';
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 import { APIService } from '@hub-client/logic/core/apiService';
 import { Authentication } from '@hub-client/logic/core/authentication';
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { PubHubsMgType, type VideocallStateType } from '@hub-client/logic/core/events';
 import { removeHtml } from '@hub-client/logic/core/htmlText';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 import { installOfflineSimulation, onReconnect, reachabilityOf, registerProbe, trackedFetch, whenReachable } from '@hub-client/logic/core/reachability';
@@ -49,7 +49,6 @@ import {
 	type TMentions,
 	type TMessageEvent,
 	type TTextMessageEventContent,
-	type TVideoCallEndedMessageEventContent,
 	type TVideoCallMessageEventContent,
 	type TWhisperMessageEventContent,
 } from '@hub-client/models/events/TMessageEvent';
@@ -942,36 +941,46 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @param text
 		 * @returns
 		 */
-		async addVideoCallMessage(roomId: string, text: string): Promise<string> {
+		async addVideoCallMessage(roomId: string, state: VideocallStateType, text: string, threadRoot: TMessageEvent | undefined): Promise<string> {
 			const content: TVideoCallMessageEventContent = {
 				msgtype: PubHubsMgType.VideoCall,
 				body: text,
+				videocallstate: state,
 				timestamp: Date.now(),
 			};
+
+			if (threadRoot) {
+				this._addRelatesToMessageContent(content as unknown as TTextMessageEventContent, threadRoot, undefined);
+			}
 			// @ts-expect-error -- SDK sendMessage typing does not include custom videocall content shape
-			const response = await this.client.sendMessage(roomId, content);
+			const response = await this.client.sendMessage(roomId, null, content);
 			return response.event_id;
 		},
 
 		/**
-		 * Adds the message that a videocall was ended
+		 * Adds the message that a videocall was ended as an edit to the opening-message
 		 * @param roomId
-		 * @param eventId
+		 * @param videocallEventId
 		 * @param text
 		 */
-		async addEndVideoCallMessage(roomId: string, eventId: string, text: string) {
-			const content: TVideoCallEndedMessageEventContent = {
-				msgtype: PubHubsMgType.VideoCallEnded,
+		async addEndVideoCallMessage(roomId: string, state: VideocallStateType, videoCallEventId: string, text: string) {
+			const newContent: TVideoCallMessageEventContent = {
+				msgtype: PubHubsMgType.VideoCall,
 				body: text,
-				'm.relates_to': {
-					rel_type: PubHubsMgType.VideoCallEnded,
-					event_id: eventId,
-				},
+				videocallstate: state,
 				timestamp: Date.now(),
 			};
-
-			// @ts-expect-error -- SDK sendEvent typing does not include custom videocall modify payload
-			await this.client.sendEvent(roomId, PubHubsMgType.VideoCallModify, content);
+			const content = {
+				...newContent,
+				// Fallback body for clients that don't understand edits (Matrix convention).
+				body: '* ' + (newContent.body ?? text),
+				'm.new_content': newContent,
+				[RelationType.RelatesTo]: {
+					rel_type: RelationType.Replace,
+					event_id: videoCallEventId,
+				},
+			};
+			await this.client.sendMessage(roomId, null, content as unknown as RoomMessageEventContent);
 		},
 
 		/**
