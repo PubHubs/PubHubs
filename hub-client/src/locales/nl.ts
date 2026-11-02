@@ -997,6 +997,9 @@ const nl = {
 		devices: 'Apparaten',
 		disable_camera: 'Camera uitzetten',
 		duration: 'Duur',
+		e2ee_blocked_body:
+			'Videogesprekken zijn end-to-end versleuteld, en deze browser of sessie kan ze niet versleutelen. Probeer een recente versie van Chrome, Firefox of Safari, en zorg dat de site gegevens mag opslaan.',
+		e2ee_blocked_title: 'Versleutelde gesprekken zijn hier niet beschikbaar',
 		enable_camera: 'Camera aanzetten',
 		exit: 'Sluiten',
 		exit_fullscreen: 'Volledig scherm sluiten',
@@ -1043,6 +1046,7 @@ const nl = {
 		start_screen_share: 'Deel je scherm',
 		start_tooltip: 'Start videogesprek',
 		stop_screen_share: 'Stop met je scherm delen',
+		undecryptable: 'Kan deze video niet ontsleutelen',
 		unmute_for_me: 'Dempen opheffen voor mij',
 		unmute_microphone: 'Microfoon aanzetten',
 		video_source: 'Camera',

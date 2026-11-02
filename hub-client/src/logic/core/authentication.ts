@@ -2,6 +2,7 @@
 import * as sdk from 'matrix-js-sdk';
 import { type ICreateClientOpts, type MatrixClient } from 'matrix-js-sdk';
 
+import { api_matrix } from '@hub-client/logic/core/api';
 import { trackedFetch } from '@hub-client/logic/core/reachability';
 import { CONFIG } from '@hub-client/logic/logging/Config';
 import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -89,6 +90,9 @@ class Authentication {
 	private baseUrl: string;
 	private clientUrl: string;
 	private client!: MatrixClient;
+
+	/** Whether this device's encryption started, so it can take part in anything end-to-end encrypted (today: video calls). Set by login(). */
+	public e2eeAvailable = false;
 
 	constructor() {
 		this.baseUrl = CONFIG._env.HUB_URL;
@@ -189,11 +193,90 @@ class Authentication {
 		return memoryStore;
 	}
 
+	// Every hub entry registers a new device, and a crypto store belongs to exactly one device.
+	private _cryptoDatabasePrefix(): string {
+		return `pubhubs-crypto-${this.user.userId}-${this.client.getDeviceId()}`;
+	}
+
+	/**
+	 * Delete the crypto stores of this user's earlier devices: those devices are gone, so their stores can never be used again.
+	 * Done at login because logging out happens in the global client, which cannot reach this hub's storage.
+	 */
+	private async _deleteStaleCryptoStores(): Promise<void> {
+		if (!window.indexedDB.databases) return;
+
+		const userPrefix = `pubhubs-crypto-${this.user.userId}-`;
+		const ownPrefix = `${this._cryptoDatabasePrefix()}::`;
+		try {
+			for (const { name } of await window.indexedDB.databases()) {
+				if (name?.startsWith(userPrefix) && !name.startsWith(ownPrefix)) {
+					window.indexedDB.deleteDatabase(name);
+				}
+			}
+		} catch (error) {
+			logger.warn('Could not clean up crypto stores of earlier devices', { error });
+		}
+	}
+
+	/**
+	 * Whether this device's crypto store is gone (e.g. browser storage cleared, or Safari purging iframe storage)
+	 * while Synapse still holds keys it uploaded earlier. If anything is uncertain, answers false.
+	 */
+	private async _deviceLostItsKeys(): Promise<boolean> {
+		if (!window.indexedDB.databases) return false;
+
+		const storeName = `${this._cryptoDatabasePrefix()}::matrix-sdk-crypto`;
+		try {
+			const databases = await window.indexedDB.databases();
+			if (databases.some(({ name }) => name === storeName)) return false;
+
+			const userId = this.user.userId ?? '';
+			const deviceId = this.client.getDeviceId() ?? '';
+			const response = await api_matrix.apiPOST<{ device_keys?: Record<string, Record<string, unknown>> }>(api_matrix.apiURLS.keysQuery, {
+				device_keys: { [userId]: [deviceId] },
+			});
+			return !!response.device_keys?.[userId]?.[deviceId];
+		} catch (error) {
+			logger.warn('Could not check whether this device still has its encryption keys', { error });
+			return false;
+		}
+	}
+
+	/**
+	 * Start client-side encryption, used for end-to-end encrypted video calls. Must run before the client starts
+	 * syncing: matrix-js-sdk wires the crypto backend into the sync when startClient() runs.
+	 * Never throws — without encryption the hub still works, only video calls are unavailable.
+	 */
+	private async _initCrypto(): Promise<boolean> {
+		// The crypto store keeps its own IndexedDB database, independent of the sync store, and must survive a reload:
+		// an in-memory one would mint new identity keys for an existing device, which Synapse rejects.
+		if (!(await indexedDBIsUsable())) {
+			logger.warn('No persistent storage in this context; end-to-end encrypted video calls are unavailable');
+			return false;
+		}
+
+		await this._deleteStaleCryptoStores();
+		if (await this._deviceLostItsKeys()) {
+			// Synapse refuses new keys for a device that already has some, so this device can never encrypt again.
+			// Asking the global client for a new access token gets this hub a fresh device.
+			logger.warn('This device lost its encryption keys; requesting a new device');
+			this._clearAuth();
+			return false;
+		}
+		try {
+			await this.client.initRustCrypto({ cryptoDatabasePrefix: this._cryptoDatabasePrefix() });
+			return true;
+		} catch (error) {
+			logger.error('Could not start encryption; end-to-end encrypted video calls are unavailable', { error });
+			return false;
+		}
+	}
+
 	/**
 	 * Actual login method
 	 */
 
-	async login() {
+	async login(options: { withCrypto?: boolean } = {}) {
 		this.user = useUser();
 
 		// First check if we have an accesstoken stored
@@ -205,15 +288,24 @@ class Authentication {
 
 		auth.timelineSupport = true;
 
+		// The client must know the device Synapse issued with this token: per-device keys (e.g. video call E2EE) are addressed to it.
+		api_matrix.setAccessToken(auth.accessToken ?? '');
+		const [store, { device_id: deviceId }] = await Promise.all([
+			this._createSyncStore(),
+			api_matrix.apiGET<{ device_id: string }>(api_matrix.apiURLS.whoami),
+		]);
+
 		// Video call information supplied to synapse client about starting the video call.
-		const videoCallInfo = { deviceId: 'template', useE2eForGroupCall: true, useLivekitForGroupCalls: true };
-		const store = await this._createSyncStore();
+		const videoCallInfo = { deviceId, useE2eForGroupCall: true, useLivekitForGroupCalls: true };
 		// trackedFetch keeps the hub server's reachability state current (logic/core/reachability.ts).
 		const authWithVideoCallInfo = { ...auth, ...videoCallInfo, store, fetchFn: trackedFetch };
 
 		this.client = sdk.createClient(authWithVideoCallInfo);
 
 		if (this.client.baseUrl === this.baseUrl) {
+			if (options.withCrypto) {
+				this.e2eeAvailable = await this._initCrypto();
+			}
 			if (newToken === 'true' && auth.accessToken && auth.userId) {
 				this._storeAccessTokenAndUserId(auth.accessToken, auth.userId);
 			}

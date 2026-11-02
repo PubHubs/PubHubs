@@ -1008,6 +1008,9 @@ const en = {
 		devices: 'Devices',
 		disable_camera: 'Turn off camera',
 		duration: 'Duration',
+		e2ee_blocked_body:
+			'Video calls are end-to-end encrypted, and this browser or session cannot encrypt them. Try a recent version of Chrome, Firefox or Safari, and make sure the site may store data.',
+		e2ee_blocked_title: 'Encrypted calls are not available here',
 		enable_camera: 'Turn on camera',
 		exit: 'Exit',
 		exit_fullscreen: 'Exit fullscreen',
@@ -1054,6 +1057,7 @@ const en = {
 		start_screen_share: 'Share your screen',
 		start_tooltip: 'Start videocall',
 		stop_screen_share: 'Stop sharing your screen',
+		undecryptable: 'Cannot decrypt this video',
 		unmute_for_me: 'Unmute for me',
 		unmute_microphone: 'Unmute microphone',
 		video_source: 'Camera',

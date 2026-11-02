@@ -43,6 +43,7 @@ function makeFakeLivekitRoom() {
 		remoteParticipants: new Map(),
 		removeAllListeners: vi.fn(),
 		on: vi.fn(),
+		off: vi.fn(),
 	};
 }
 
@@ -112,6 +113,34 @@ describe('VideoCallPage.vue - Exit button', () => {
 		await flushPromises();
 
 		expect(videoCall.leaveCall).toHaveBeenCalledTimes(1);
+	});
+
+	test("leaves LiveKit's own room listeners in place, since its E2EE manager depends on them", async () => {
+		const { wrapper, videoCall } = await mountVideoCallPage(true);
+		const room = videoCall.livekit_room as unknown as Record<'removeAllListeners' | 'on' | 'off', ReturnType<typeof vi.fn>>;
+
+		wrapper.unmount();
+		await flushPromises();
+
+		expect(room.removeAllListeners).not.toHaveBeenCalled();
+		expect(room.on).toHaveBeenCalled();
+		expect(room.off.mock.calls).toEqual(room.on.mock.calls);
+	});
+
+	test('marks a participant undecryptable on an encryption error and clears it once their media decrypts', async () => {
+		const { videoCall } = await mountVideoCallPage(true);
+		const room = videoCall.livekit_room as unknown as { on: ReturnType<typeof vi.fn> };
+		const handlerFor = (event: string) =>
+			room.on.mock.calls
+				.filter(([name]) => name === event)
+				.map(([, handler]) => handler)
+				.at(-1);
+
+		handlerFor('encryptionError')(new Error('bad key'), { identity: '@b:hub:DEV2', isLocal: false });
+		expect(videoCall.undecryptable_participants).toEqual(['@b:hub:DEV2']);
+
+		handlerFor('participantEncryptionStatusChanged')(true, { identity: '@b:hub:DEV2', isLocal: false });
+		expect(videoCall.undecryptable_participants).toEqual([]);
 	});
 
 	test('devices still opening when the page is left are released once they finish', async () => {

@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { type LocalParticipant, type RemoteParticipant } from 'livekit-client';
+	import { type LocalParticipant, type Participant, type RemoteParticipant } from 'livekit-client';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
@@ -182,7 +182,6 @@
 	const participantEvents = [
 		'participantConnected',
 		'participantDisconnected',
-		'participantEncryptionStatusChanged',
 		'localTrackPublished',
 		'localTrackUnpublished',
 		'trackPublished',
@@ -192,15 +191,35 @@
 		'trackMuted',
 		'trackUnmuted',
 		'videoPlaybackChanged',
-		'encryptionError',
 	] as const;
 
+	// Never removeAllListeners(): LiveKit's E2EE manager listens on the same room (e.g. TrackSubscribed) to set up decryption.
+	let removeLivekitListeners: (() => void) | null = null;
+
 	const setupLivekitListeners = () => {
-		if (!videoCall.livekit_room) return;
+		const livekitRoom = videoCall.livekit_room;
+		if (!livekitRoom) return;
 		syncRemoteParticipants();
 
-		videoCall.livekit_room.removeAllListeners();
-		participantEvents.forEach((event) => videoCall.livekit_room?.on(event, () => syncRemoteParticipants()));
+		removeLivekitListeners?.();
+		const handler = () => syncRemoteParticipants();
+		const onEncryptionError = (error: Error, participant?: Participant) => {
+			logger.warn('Could not decrypt call media', { error, participant: participant?.identity });
+			if (participant && !participant.isLocal) videoCall.setParticipantDecryptable(participant.identity, false);
+			syncRemoteParticipants();
+		};
+		const onEncryptionStatus = (encrypted: boolean, participant?: Participant) => {
+			if (participant && encrypted) videoCall.setParticipantDecryptable(participant.identity, true);
+			syncRemoteParticipants();
+		};
+		participantEvents.forEach((event) => livekitRoom.on(event, handler));
+		livekitRoom.on('encryptionError', onEncryptionError);
+		livekitRoom.on('participantEncryptionStatusChanged', onEncryptionStatus);
+		removeLivekitListeners = () => {
+			participantEvents.forEach((event) => livekitRoom.off(event, handler));
+			livekitRoom.off('encryptionError', onEncryptionError);
+			livekitRoom.off('participantEncryptionStatusChanged', onEncryptionStatus);
+		};
 	};
 
 	const toggleFullscreen = async () => {
@@ -257,8 +276,8 @@
 		if (document.fullscreenElement) {
 			void document.exitFullscreen().catch((error) => logger.error('Could not exit fullscreen on unmount', { error }));
 		}
-		if (!videoCall.livekit_room) return;
-		videoCall.livekit_room.removeAllListeners();
+		removeLivekitListeners?.();
+		removeLivekitListeners = null;
 	});
 
 	const goBack = () => {

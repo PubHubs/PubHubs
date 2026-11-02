@@ -10,6 +10,15 @@
 			<H1>{{ t('videocall.prejoin_title') }}</H1>
 
 			<div class="flex w-full max-w-7000 flex-col gap-200 lg:gap-300">
+				<div
+					v-if="videoCall.e2eeBlocked"
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.e2ee_blocked_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{ t('videocall.e2ee_blocked_body') }}</span>
+				</div>
+
 				<VideoCallPreview />
 
 				<div
@@ -38,7 +47,7 @@
 					>
 					<Button
 						variant="primary"
-						:disabled="!devicesLoaded"
+						:disabled="!devicesLoaded || videoCall.e2eeBlocked"
 						@click="emit('join')"
 						>{{ t('videocall.join') }}</Button
 					>
@@ -69,9 +78,10 @@
 	// Models
 	import { type TPermissionNotice } from '@hub-client/models/videocall/TDeviceAccess';
 
-	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
+	// Stores
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	const emit = defineEmits<{
 		join: [];
@@ -79,6 +89,7 @@
 	}>();
 
 	const { t } = useI18n();
+	const videoCall = useVideoCall();
 	const { access, devicesLoaded, setUpDevices } = useVideoCallDevices();
 	const rooms = useRooms();
 	const user = useUser();
