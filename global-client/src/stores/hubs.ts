@@ -390,6 +390,8 @@ const useHubs = defineStore('hubs', {
 });
 
 function sendNotification(hubName: string) {
+	// The iOS app's WKWebView has no Notifications API at all, so check before using it.
+	if (!('Notification' in globalThis)) return;
 	const img = `${import.meta.env.BASE_URL}img/icons/favicon-32x32.png`;
 	const i18n = setUpi18n();
 	const language = useSettings().language;

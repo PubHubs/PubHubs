@@ -32,6 +32,7 @@
 		"cap:run:android": "npm run sync:networkhost-ip && npm run build:global:native && npm run build:hub:native && npx cap run android",
 		"cap:open:ios": "npm run sync:networkhost-ip && npx cap open ios",
 		"cap:run:ios": "npm run sync:networkhost-ip && npm run build:global:native && npm run build:hub:native && npm run patch:ios-networkhost-ip && npx cap run ios",
+		"test:ios": "bash scripts/ios-smoke-test.sh",
 		"generate:icons": "npx --yes @capacitor/assets@3 generate --ios --android --iconBackgroundColor '#001242'"
 	},
 	"lint-staged": {

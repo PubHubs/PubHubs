@@ -367,6 +367,16 @@ npm run cap:open:ios
 npm run cap:run:ios
 ```
 
+#### test
+
+> Smoke-test the iOS app on a Simulator (default iPhone 11): build, install, launch, watch for errors
+
+For options (`--simulator`, `--device`, `--ignore-error`, ...) use `npm run test:ios -- <options>`.
+
+```sh
+npm run test:ios
+```
+
 #### doctor
 
 > Check Capacitor setup (Xcode, CocoaPods, dependencies, config)

@@ -61,7 +61,9 @@ function generateInfoPlist(ip) {
 function generateReleaseInfoPlist() {
 	const template = fs.readFileSync(INFO_PLIST_TEMPLATE, 'utf8');
 	if (!NETWORKHOST_IP_ENTRY_RE.test(template)) {
-		console.error(`sync-networkhost-ip: expected to find the dev-only ${NETWORKHOST_IP_PLACEHOLDER} entry in ${path.relative(REPO_ROOT, INFO_PLIST_TEMPLATE)}, but it's missing.`);
+		console.error(
+			`sync-networkhost-ip: expected to find the dev-only ${NETWORKHOST_IP_PLACEHOLDER} entry in ${path.relative(REPO_ROOT, INFO_PLIST_TEMPLATE)}, but it's missing.`,
+		);
 		console.error('The template structure may have changed — please update it by hand instead of guessing. See docs/app/README.md.');
 		process.exitCode = 1;
 		return;
