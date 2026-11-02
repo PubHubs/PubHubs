@@ -27,7 +27,7 @@
 		"@privacybydesign/yivi-web": "^1.0.3",
 		"pinia": "^4.0.3",
 		"vue": "^3.2.13",
-		"vue-i18n": "11.4.10",
+		"vue-i18n": "11.4.14",
 		"vue-router": "^5.0.4",
 		"vuedraggable": "^4"
 	},

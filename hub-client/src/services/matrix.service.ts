@@ -261,7 +261,7 @@ class MatrixService {
 			const joinPromises: Promise<void>[] = [];
 
 			for (const [roomId, roomData] of Object.entries(roomList)) {
-				currentUser.loadFromSlidingSync(roomData);
+				void currentUser.loadFromSlidingSync(roomData);
 
 				// Get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
 				const latestRoomMemberInfo = roomData.required_state

@@ -35,8 +35,14 @@ export default {
 			reason: "No fixed version exists: 6.6.1 is the latest elliptic release, and the only upgrade npm can suggest is a major downgrade of vite-plugin-node-polyfills. We do not use elliptic ourselves; it arrives through that plugin's crypto-browserify shim, and the advisory is about the strictness of its ECDSA verification.",
 		},
 		{
-			id: 'GHSA-rj75-hqrm-r3gf',
-			reason: 'A major upgrade of eslint is needed  to remove this dev only vulnerability',
+			id: 'GHSA-gcqx-w48m-w2h4',
+			reason: 'No fixed version exists: 4.3.1 is the latest deepmerge release. yivi-client and yivi-web only use it to merge their own defaults with the options object our code passes in, and @rollup/plugin-node-resolve (through vite-plugin-pwa) only at build time, so no server data or user input reaches mergeObject().',
+			expires: '2027-01-31',
+		},
+		{
+			id: 'GHSA-g3hv-75wg-m249',
+			reason: 'Only minimatch 11 is fixed, and no dependent accepts it yet: eslint and @eslint/* want ^3, @trivago/prettier-plugin-sort-imports ^9, filelist (jake/ejs, under workbox-build) ^5, typescript-eslint and editorconfig ^10. An override to 11 would break the ^3 consumers, whose API differs. Dev tooling only: the patterns it matches come from our own lint, format and build config, not from user input, so the denial of service is not reachable by an attacker.',
+			expires: '2027-03-01',
 		},
 	],
 };

@@ -16,7 +16,7 @@
 				/>
 				<div class="flex items-center gap-200">
 					<Avatar
-						:avatar-url="blobUrl?.url"
+						:avatar-url="previewUrl"
 						class="outline-surface-elevated h-800 w-800 rounded-full outline-3"
 					/>
 					<div class="flex gap-150">
@@ -79,7 +79,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+	import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -109,7 +109,11 @@
 	const fileInfo = ref<File>();
 
 	const avatarMxcUrl = ref<string | undefined>(undefined);
+	// Only for the chosen file. The current avatar is the user store's blob, which posts and the sidebar still show, so the dialog must not revoke it.
 	const blobUrl = ref<BlobManager>();
+	const avatarRemoved = ref(false);
+	// Follows the store, so an avatar that is still loading (or replaced by a sync) shows here too.
+	const previewUrl = computed(() => blobUrl.value?.url ?? (avatarRemoved.value ? undefined : user.userAvatar(user.userId ?? '')));
 
 	formState.setData({
 		displayName: {
@@ -134,7 +138,6 @@
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());
 		formState.data.displayName.value = user.userDisplayName(user.userId ?? '') ?? '';
-		blobUrl.value = new BlobManager(user.userAvatar(user.userId ?? ''));
 	});
 
 	onBeforeUnmount(() => {
@@ -196,7 +199,8 @@
 	async function removeAvatar() {
 		avatarMxcUrl.value = '';
 		blobUrl.value?.revoke();
-		blobUrl.value = new BlobManager(undefined);
+		blobUrl.value = undefined;
+		avatarRemoved.value = true;
 		fileInfo.value = undefined;
 		getSubmitButton().enabled = true;
 	}
