@@ -42,6 +42,23 @@ npm run cap:run:ios        # the same for iOS (Xcode, on a Mac)
 these (`build`, `copy`, `sync`, `update`, `open`, `run`, `doctor`, and `log` for Android); `copy`
 doesn't rebuild the hub client, so after a hub client change it serves a stale `/hub/`.
 
+**iOS smoke test.** `npm run test:ios` (or `mask run ios test`) runs `scripts/ios-smoke-test.sh`.
+It builds the app with `cap:sync:ios`, installs it on a Simulator (default iPhone 11, on the newest
+runtime) or on a device, and launches it. It fails when Capacitor doesn't load the shell, or when,
+during the next 30 seconds, the app logs a JS error (`⚡️  [error]`), a WebView load failure or
+crashes. Logs and a screenshot (Simulator only) go to `ios/DerivedData/smoke-test/results/`.
+Options: `--simulator <name|udid>`, `--os <version>`, `--device <name|udid>`, `--list`,
+`--no-sync`, `--timeout <s>`, and `--ignore-error <regex>` for a hub you don't run locally. For
+example: `npm run test:ios -- --simulator "iPhone 17 Pro" --ignore-error "Testhub 1"`.
+- It only catches errors. The production web build doesn't log info, so nothing confirms that a
+  page rendered; check the screenshot. With PHC down, a logged-in app falls back to its offline
+  cache and only warns, so that still passes.
+- A device needs the *PubHubs - development* profile and certificate (see
+  [App Store (iOS)](#app-store-ios)); devices get no screenshot. `--list` shows them by name.
+  Devices on iOS 17 and later go through `devicectl`. Older ones, which `devicectl` doesn't
+  support, go through `ios-deploy` (`brew install ios-deploy`), which runs the app under a debugger,
+  so `--keep-running` doesn't apply there.
+
 **Reaching your computer.** A phone can't reach `localhost` on your computer, and PubHubs Central
 hands out hub addresses on your computer's network address anyway (the `networkhost` in
 `pubhubs.toml`). So the app uses that address too:
