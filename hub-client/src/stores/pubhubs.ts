@@ -85,6 +85,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		client: {} as MatrixClient,
 		publicRooms: [] as TPublicRoom[],
 		lastPublicCheck: 0,
+		e2eeAvailable: false,
 	}),
 
 	getters: {
@@ -112,7 +113,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async login(options: { unreadOnly?: boolean } = {}) {
 			logger.debug('START PubHubs.login');
 			try {
-				const _client = await this.Auth.login();
+				// Crypto must start before sync; the unread-only miniclient never joins calls, so it skips it.
+				const _client = await this.Auth.login({ withCrypto: !options.unreadOnly });
+				this.e2eeAvailable = this.Auth.e2eeAvailable;
 
 				logger.debug('PubHubs.logged in (X) - started client');
 				this.client = _client as MatrixClient;
