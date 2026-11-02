@@ -455,7 +455,7 @@
 <script setup lang="ts">
 	// Packages
 	import { MatrixEvent, MsgType } from 'matrix-js-sdk';
-	import { capitalize, computed, onBeforeUnmount, onMounted, ref } from 'vue';
+	import { capitalize, computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -490,6 +490,7 @@
 	import { useModerationHideMessage } from '@hub-client/composables/moderation/hide-message.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
+	import { timelineScrollRootKey } from '@hub-client/composables/useTimelineScroll';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
@@ -581,6 +582,7 @@
 	const isVisible = ref(false);
 	const hasBeenVisible = ref(false);
 	let observer: IntersectionObserver | null = null;
+	const timelineScrollRoot = inject(timelineScrollRootKey, null);
 
 	onMounted(() => {
 		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
@@ -597,8 +599,10 @@
 					});
 				},
 				{
-					root: null, // viewport
-					rootMargin: '500px', // Start loading 500px before entering viewport
+					// The timeline's scroll container when the bubble is inside it, so rootMargin also applies there (falls back to the viewport,
+					// e.g. for the preview in the delete dialog, which the timeline renders outside its scroll container)
+					root: timelineScrollRoot?.value?.contains(messageRoot.value) ? timelineScrollRoot.value : null,
+					rootMargin: '500px', // Start loading 500px before entering the visible area
 					threshold: 0,
 				},
 			);
