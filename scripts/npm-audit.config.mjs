@@ -37,6 +37,7 @@ export default {
 		{
 			id: 'GHSA-gcqx-w48m-w2h4',
 			reason: 'No fixed version exists: 4.3.1 is the latest deepmerge release. yivi-client and yivi-web only use it to merge their own defaults with the options object our code passes in, and @rollup/plugin-node-resolve (through vite-plugin-pwa) only at build time, so no server data or user input reaches mergeObject().',
+			expires: '2027-01-31',
 		},
 		{
 			id: 'GHSA-g3hv-75wg-m249',

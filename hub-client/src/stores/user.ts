@@ -81,6 +81,27 @@ async function toDataUrl(objectUrl: string): Promise<string | undefined> {
 	}
 }
 
+// An empty name or avatar comes as '', null or undefined; all mean the same.
+const orUndefined = (value?: string | null): string | undefined => value || undefined;
+
+function revokeBlobUrl(url?: string) {
+	if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+}
+
+// Profile updates per user (per room), run one after the other so they land in the order they came in.
+const profileUpdates = new Map<string, Promise<void>>();
+
+function queueProfileUpdate(userId: string, update: () => Promise<void>): Promise<void> {
+	const next = (profileUpdates.get(userId) ?? Promise.resolve())
+		.then(update)
+		.catch((error) => logger.warn('Could not update the profile of a user', { userId, error }));
+	profileUpdates.set(userId, next);
+	void next.finally(() => {
+		if (profileUpdates.get(userId) === next) profileUpdates.delete(userId);
+	});
+	return next;
+}
+
 const useUser = defineStore('user', {
 	state: (): State => ({
 		client: undefined,
@@ -160,43 +181,37 @@ const useUser = defineStore('user', {
 			);
 			if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
 
-			const { getAuthorizedMediaUrl } = useMatrixFiles();
-
-			membersOnlyProfileUpdate.forEach(async (member) => {
-				const memberToUpdate = this.usersProfile.get(member.sender);
-
-				// data is going to be set async. So we already add a userprofile from the current data that we know of
-				if (!memberToUpdate) {
-					this.setUserProfile(member.sender, { displayName: member.content.displayname, contentAvatarUrl: member.content.avatar_url });
-				}
-
-				// only update the member if not available yet in userProfile, or if displayname/avatarurl has changed
-				if (
-					!memberToUpdate ||
-					memberToUpdate?.displayName !== member.content.displayname ||
-					memberToUpdate?.contentAvatarUrl !== member.content.avatar_url
-				) {
-					const profile: UserProfile = {};
-
-					if (memberToUpdate?.displayName !== member.content.displayname) {
-						profile.displayName = member.content.displayname ?? undefined;
-					}
-
-					if (memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
-						// Revoke old avatar blob URL before replacing
-						if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
-							URL.revokeObjectURL(memberToUpdate.avatarUrl);
-						}
-						const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
-						profile.avatarUrl = avatarUrl;
-						profile.contentAvatarUrl = member.content.avatar_url;
-					}
-
-					this.setUserProfile(member.sender, profile);
-				}
-			});
+			const updates = membersOnlyProfileUpdate.map((member) =>
+				queueProfileUpdate(member.sender, () => this.applyMemberProfile(member.sender, member.content.displayname, member.content.avatar_url)),
+			);
+			await Promise.all(updates);
 
 			return true;
+		},
+
+		/**
+		 * Brings the cached profile of a user up to date with the name and avatar from a member event.
+		 * Only runs through {@link queueProfileUpdate}: it compares with the cached entry when it runs,
+		 * and the avatar download in between would otherwise let an older update win.
+		 */
+		async applyMemberProfile(userId: string, displayname?: string | null, avatar_url?: string | null) {
+			const displayName = orUndefined(displayname);
+			const contentAvatarUrl = orUndefined(avatar_url);
+			const current = this.usersProfile.get(userId);
+
+			// The name first, so it shows while the avatar is still downloading.
+			if (!current || orUndefined(current.displayName) !== displayName) {
+				this.setUserProfile(userId, { displayName });
+			}
+
+			if (current && orUndefined(current.contentAvatarUrl) === contentAvatarUrl) return;
+
+			const { getAuthorizedMediaUrl } = useMatrixFiles();
+			const avatarUrl = contentAvatarUrl ? await getAuthorizedMediaUrl(contentAvatarUrl) : undefined;
+			const oldAvatarUrl = this.usersProfile.get(userId)?.avatarUrl;
+			this.setUserProfile(userId, { avatarUrl, contentAvatarUrl });
+			// Only now that it is no longer shown.
+			if (oldAvatarUrl !== avatarUrl) revokeBlobUrl(oldAvatarUrl);
 		},
 
 		// Storing my  UserId
@@ -213,17 +228,13 @@ const useUser = defineStore('user', {
 				return;
 			}
 			if (this.userId) {
-				const existing = this.usersProfile.get(this.userId) ?? {};
-				this.setUserProfile(this.userId, { ...existing, displayName: name });
+				this.setUserProfile(this.userId, { displayName: orUndefined(name) });
 				void this.storeOwnProfile();
 			}
 		},
 
 		async setAvatarUrl(avatarUrl: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
-
-			const { getAuthorizedMediaUrl } = useMatrixFiles();
-			const authorizedUrl = await getAuthorizedMediaUrl(avatarUrl);
 
 			try {
 				await this.client.setAvatarUrl(avatarUrl);
@@ -232,43 +243,52 @@ const useUser = defineStore('user', {
 				return;
 			}
 
-			// Revoke old avatar blob URL before replacing
-			const oldAvatar = this.userId ? this.usersProfile.get(this.userId)?.avatarUrl : undefined;
-			if (oldAvatar?.startsWith('blob:')) {
-				URL.revokeObjectURL(oldAvatar);
-			}
+			const userId = this.userId;
+			if (!userId) return;
+			const contentAvatarUrl = orUndefined(avatarUrl);
 
-			if (this.userId) {
-				const existing = this.usersProfile.get(this.userId) ?? {};
-				this.setUserProfile(this.userId, { ...existing, contentAvatarUrl: avatarUrl, avatarUrl: authorizedUrl });
-				void this.storeOwnProfile();
-			}
+			// Queued with the member events, which also bring this change: whichever comes first downloads it.
+			await queueProfileUpdate(userId, async () => {
+				if (orUndefined(this.usersProfile.get(userId)?.contentAvatarUrl) === contentAvatarUrl) return;
+				const { getAuthorizedMediaUrl } = useMatrixFiles();
+				// An empty one removes the avatar; there is nothing to download.
+				const authorizedUrl = contentAvatarUrl ? await getAuthorizedMediaUrl(contentAvatarUrl) : undefined;
+				const oldAvatar = this.usersProfile.get(userId)?.avatarUrl;
+				this.setUserProfile(userId, { contentAvatarUrl, avatarUrl: authorizedUrl });
+				if (oldAvatar !== authorizedUrl) revokeBlobUrl(oldAvatar);
+			});
+			void this.storeOwnProfile();
 		},
 
 		// Profile setter method for me.
-		// This method is used during login of me.
-		async setProfile(profile: { avatar_url?: string; displayname?: string }) {
-			if (!this.userId) return;
+		// This method is used during login of me. The server leaves out a name or avatar that was
+		// cleared, so a missing one clears what restoreOwnProfile brought back.
+		async setProfile(profile: { avatar_url?: string | null; displayname?: string | null }) {
+			const userId = this.userId;
+			if (!userId) return;
 
-			const existing = this.usersProfile.get(this.userId) ?? {};
-			const profileData: UserProfile = { ...existing };
+			const displayName = orUndefined(profile.displayname);
+			const contentAvatarUrl = orUndefined(profile.avatar_url);
 
-			if (profile.displayname !== undefined) {
-				profileData.displayName = profile.displayname;
-			}
+			await queueProfileUpdate(userId, async () => {
+				const current = this.usersProfile.get(userId);
+				const profileData: UserProfile = { displayName };
 
-			if (profile.avatar_url !== undefined) {
-				const { getAuthorizedMediaUrl } = useMatrixFiles();
-				const authorizedUrl = await getAuthorizedMediaUrl(profile.avatar_url);
-				const oldAvatar = this.usersProfile.get(this.userId)?.avatarUrl;
-				if (oldAvatar?.startsWith('blob:')) {
-					URL.revokeObjectURL(oldAvatar);
+				// A data: URL is the copy restoreOwnProfile brought back; download the avatar for real.
+				const needsAvatar = contentAvatarUrl !== orUndefined(current?.contentAvatarUrl) || !current?.avatarUrl || current.avatarUrl.startsWith('data:');
+				if (!contentAvatarUrl) {
+					profileData.avatarUrl = undefined;
+					profileData.contentAvatarUrl = undefined;
+				} else if (needsAvatar) {
+					const { getAuthorizedMediaUrl } = useMatrixFiles();
+					profileData.avatarUrl = await getAuthorizedMediaUrl(contentAvatarUrl);
+					profileData.contentAvatarUrl = contentAvatarUrl;
 				}
-				profileData.avatarUrl = authorizedUrl;
-				profileData.contentAvatarUrl = profile.avatar_url;
-			}
 
-			this.setUserProfile(this.userId, profileData);
+				const oldAvatar = this.usersProfile.get(userId)?.avatarUrl;
+				this.setUserProfile(userId, profileData);
+				if ('avatarUrl' in profileData && oldAvatar !== profileData.avatarUrl) revokeBlobUrl(oldAvatar);
+			});
 			void this.storeOwnProfile();
 		},
 
@@ -290,9 +310,7 @@ const useUser = defineStore('user', {
 		async restoreOwnProfile() {
 			const cached = await hubStorage.get<OwnProfile>(OWN_PROFILE_STORAGE_KEY);
 			if (!cached || !this.userId) return;
-			const existing = this.usersProfile.get(this.userId) ?? {};
 			this.setUserProfile(this.userId, {
-				...existing,
 				displayName: cached.displayName,
 				contentAvatarUrl: cached.contentAvatarUrl,
 				avatarUrl: cached.avatarDataUrl,
@@ -300,9 +318,10 @@ const useUser = defineStore('user', {
 		},
 
 		// Profile setter method for all users.
-		// This method is used when syncing profiles of users.
+		// This method is used when syncing profiles of users. Merges into the cached profile: only the
+		// fields given change, a field given as undefined is cleared.
 		setUserProfile(userId: string, profileData: UserProfile) {
-			this.usersProfile.set(userId, profileData);
+			this.usersProfile.set(userId, { ...this.usersProfile.get(userId), ...profileData });
 		},
 
 		/**
