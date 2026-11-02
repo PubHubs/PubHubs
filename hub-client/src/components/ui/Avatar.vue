@@ -67,6 +67,8 @@
 	});
 
 	async function getImage() {
+		// A new image is not loaded yet: keep the placeholder until it is, also when it fails to load.
+		if (image.value !== props.avatarUrl) loaded.value = false;
 		image.value = props.avatarUrl;
 	}
 
