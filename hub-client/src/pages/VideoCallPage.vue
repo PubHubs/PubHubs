@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { type LocalParticipant, type Participant, type RemoteParticipant } from 'livekit-client';
+	import { CryptorError, CryptorErrorReason, type LocalParticipant, type Participant, type RemoteParticipant } from 'livekit-client';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
@@ -205,6 +205,14 @@
 		const handler = () => syncRemoteParticipants();
 		const onEncryptionError = (error: Error, participant?: Participant) => {
 			logger.warn('Could not decrypt call media', { error, participant: participant?.identity });
+
+			// LiveKit 2.22's E2EE worker hands over a plain Error ("MissingKey: …"), not a CryptorError; accept both forms
+			const isMissingKey =
+				(error instanceof CryptorError && error.reason === CryptorErrorReason.MissingKey) ||
+				error.message.startsWith(CryptorErrorReason[CryptorErrorReason.MissingKey]);
+			if (isMissingKey) return;
+
+			// other errors set the decryption error-overlay on the video
 			if (participant && !participant.isLocal) videoCall.setParticipantDecryptable(participant.identity, false);
 			syncRemoteParticipants();
 		};
