@@ -32,15 +32,12 @@ This requires [tmux](https://github.com/tmux/tmux) to be installed.
     - flags: --host
     - type: string
     - desc: Passed through to the yivi and hub server panes, see their --host (e.g. a Tailscale IP)
-
-**OPTIONS**
-
-- no_postgres
-    - flags: --no-postgres
-    - desc: Passed through to the hub server pane, see `mask run hub server`'s --no-postgres.
+- localhost_client
+    - flags: --localhost-client
+    - desc: Passed through to the hub server pane, see `mask run hub server`'s --localhost-client (for testing video calls in a desktop browser).
 
 ```sh
-PH_HOST="$host" PH_NO_POSTGRES="$no_postgres" sh scripts/run-all.sh
+PH_HOST="$host" PH_NO_POSTGRES="$no_postgres" PH_LOCALHOST_CLIENT="$localhost_client" sh scripts/run-all.sh
 ```
 
 #### cleanup
@@ -417,6 +414,9 @@ Don't forget to build the hub image and setup the hub's directory using the
     - flags: --host
     - type: string
     - desc: Override the networkhost the hub uses for its server url (e.g. a Tailscale IP). Must match the networkhost PHC uses. Falls back to YIVI_HOST.
+- localhost_client
+    - flags: --localhost-client
+    - desc: Hand out localhost as hub client url instead of the networkhost. Use this for testing video calls in a desktop browser (needs a secure context); breaks the native app.
 
 ```sh
 echo "Running testhub${n}"
@@ -424,8 +424,10 @@ echo "Running testhub${n}"
 cd pubhubs_hub
 postgres_flag=()
 [[ "$no_postgres" == "true" ]] && postgres_flag=(--no-replace-sqlite3-by-postgres)
+localhost_flag=()
+[[ "$localhost_client" == "true" ]] && localhost_flag=(--localhost-client)
 hub_host="${host:-${YIVI_HOST:-$(node ../scripts/print-networkhost-ip.js)}}"
-python3 start_testhub.py --networkhost "${hub_host}" "${postgres_flag[@]}" "${n}"
+python3 start_testhub.py --networkhost "${hub_host}" "${postgres_flag[@]}" "${localhost_flag[@]}" "${n}"
 ```
 
 #### client (n)
