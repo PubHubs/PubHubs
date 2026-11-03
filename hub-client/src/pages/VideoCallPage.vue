@@ -202,7 +202,10 @@
 		syncRemoteParticipants();
 
 		removeLivekitListeners?.();
-		const handler = () => syncRemoteParticipants();
+		const handler = () => {
+			syncRemoteParticipants();
+			videoCall.syncScreenShare();
+		};
 		const onEncryptionError = (error: Error, participant?: Participant) => {
 			logger.warn('Could not decrypt call media', { error, participant: participant?.identity });
 

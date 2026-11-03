@@ -544,6 +544,13 @@ const useVideoCall = defineStore('videoCall', {
 			}
 		},
 
+		/**
+		 * Follows LiveKit, because our screen share can also end outside our button (e.g. the browser's "Stop sharing").
+		 */
+		syncScreenShare() {
+			this.screen_share = this.livekit_room?.localParticipant.isScreenShareEnabled ?? false;
+		},
+
 		toggleSelfView(selfView: boolean) {
 			this.selfView = !selfView;
 		},
