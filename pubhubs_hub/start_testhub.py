@@ -52,6 +52,9 @@ def main():
     parser.add_argument("--networkhost",
                         default=None,
                         help="Use this networkhost (e.g. '1.2.3.4', '[1::2]') instead of trying to autodetect it. Used e.g. by the yivi app to contact the hub.")
+    parser.add_argument("--localhost-client",
+                        action="store_true",
+                        help="Hand out http://localhost:<port> as hub client url instead of the networkhost. Needed for video calls in a desktop browser (camera/mic and E2EE require a secure context, which plain-http localhost is but a LAN IP is not). Breaks the native app, which needs the networkhost.")
     parser.add_argument("--replace-sqlite3-by-postgres",
                         help="Passed to start_hub.py",
                         action=argparse.BooleanOptionalAction)
@@ -88,7 +91,9 @@ def main():
 
     # hub_client_url: the hub's iframe src, handed to the global client via PHC's `.ph/info`. Plain HTTP
     # on the networkhost IP, mirroring the PHC/global-client pattern — see docs/app/README.md.
-    hub_client_url = f"http://{networkhost}:{8001+args.number}"
+    # --localhost-client swaps in localhost for desktop video-call testing (secure context needed).
+    client_host = "localhost" if args.localhost_client else networkhost
+    hub_client_url = f"http://{client_host}:{8001+args.number}"
     # hub_dev_url: the same hub client opened on localhost, as in a desktop browser or the e2e tests. The
     # hub only answers requests from its client_url and dev_url, so without this one its own endpoints
     # (consent, hub settings, ...) are blocked from localhost.
