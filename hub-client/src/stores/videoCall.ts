@@ -229,6 +229,7 @@ const useVideoCall = defineStore('videoCall', {
 				this.addEndCallListener();
 
 				const matrix_key_provider = new MatrixKeyProvider();
+
 				// LiveKit hands the provider to its worker; it must not be a Vue proxy.
 				this.matrix_key_provider = markRaw(matrix_key_provider);
 				matrix_key_provider.setRTCSession(this.rtc_session as MatrixRTCSession);
@@ -356,7 +357,7 @@ const useVideoCall = defineStore('videoCall', {
 
 				// leave rtc session
 				// if necessary: send end message
-				if (this.rtc_session && this.eventId) {
+				if (this.rtc_session) {
 					try {
 						const isLastMember = !(await this.someoneElseInCall()); // decided before leaving, see joinCall
 						await this.rtc_session.leaveRoomSession(10);
