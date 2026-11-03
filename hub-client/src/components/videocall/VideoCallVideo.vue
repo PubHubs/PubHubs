@@ -66,6 +66,12 @@
 				</div>
 			</div>
 			<div
+				v-if="videoCall.undecryptable_participants.includes(props.username)"
+				class="bg-surface-base absolute inset-0 flex items-center justify-center rounded-md p-200 text-center"
+			>
+				<span class="text-label-small text-on-surface-dim">{{ t('videocall.undecryptable') }}</span>
+			</div>
+			<div
 				v-if="!participant.isMicrophoneEnabled || isLocallyMuted"
 				class="bg-opacity-50 p-050 absolute bottom-200 left-200 rounded-full bg-black"
 			>

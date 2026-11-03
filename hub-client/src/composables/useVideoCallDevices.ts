@@ -76,6 +76,7 @@ const requestDeviceAccess = async (): Promise<TDeviceAccess> => {
 			return 'granted';
 		} catch (error) {
 			if ((error as DOMException).name === 'NotAllowedError') return 'denied';
+			logger.warn('Could not get device access', error);
 		}
 	}
 	return 'unavailable';
