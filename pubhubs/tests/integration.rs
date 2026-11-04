@@ -82,18 +82,20 @@ async fn main_integration_test() {
     // credential makes a real outbound call to Google, which needs a genuine service account
     // and isn't suitable for this offline test - see the PushPlatform::Fcm case below instead.
     let apns_test_pem: String = {
+        use p256::elliptic_curve::Generate as _;
         use p256::pkcs8::EncodePrivateKey as _;
-        p256::ecdsa::SigningKey::random(&mut rsa::rand_core::OsRng)
+        p256::ecdsa::SigningKey::generate()
             .to_pkcs8_pem(Default::default())
             .unwrap()
             .to_string()
     };
-    config.phc.as_mut().unwrap().push.apns = Some(pubhubs::servers::config::phc::push::ApnsConfig {
-        key_id: "TESTKEYID1".to_string(),
-        team_id: "TESTTEAMID".to_string(),
-        private_key: apns_test_pem.clone(),
-        token_validity: Duration::from_secs(3000),
-    });
+    config.phc.as_mut().unwrap().push.apns =
+        Some(pubhubs::servers::config::phc::push::ApnsConfig {
+            key_id: "TESTKEYID1".to_string(),
+            team_id: "TESTTEAMID".to_string(),
+            private_key: apns_test_pem.clone(),
+            token_validity: Duration::from_secs(3000),
+        });
 
     // Change randomly generated admin key to a symmetric one we know.
     let admin_key = pubhubs::misc::serde_ext::bytes_wrapper::B16::from_bytes([7u8; 32]);

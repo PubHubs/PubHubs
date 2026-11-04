@@ -1335,11 +1335,11 @@ mod tests {
     #[test]
     fn test_es256() {
         use p256::ecdsa::signature::Verifier as _;
+        use p256::elliptic_curve::Generate as _;
         use p256::pkcs8::EncodePrivateKey as _;
 
-        // P-256 keygen is fast (unlike RSA's), so a random key roundtrip is cheap here; reuse
-        // rsa's re-exported rand_core, which resolves to the same rand_core version p256 uses.
-        let raw_sk = p256::ecdsa::SigningKey::random(&mut rsa::rand_core::OsRng);
+        // P-256 keygen is fast (unlike RSA's), so a random key roundtrip is cheap here.
+        let raw_sk = p256::ecdsa::SigningKey::generate();
         let pem = raw_sk.to_pkcs8_pem(Default::default()).unwrap();
 
         let sk = ES256Sk::from_pkcs8_pem(&pem).unwrap();

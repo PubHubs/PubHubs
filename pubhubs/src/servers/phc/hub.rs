@@ -163,14 +163,13 @@ impl App {
         // its own verifying key - unlike `handle_hub_ping`, which is shared code also used by
         // the transcryptor and authentication server, and so uses the `phc_verifying_key` they
         // learn of via the constellation instead.
-        let (req, hub_handle) =
-            match signed_req
-                .into_inner()
-                .open(app.shared.signing_key.verifying_key())
-            {
-                Ok(opened) => opened,
-                Err(toe) => return toe.default_verdict(PushCredentialsResp::RetryWithNewTicket),
-            };
+        let (req, hub_handle) = match signed_req
+            .into_inner()
+            .open(app.shared.signing_key.verifying_key())
+        {
+            Ok(opened) => opened,
+            Err(toe) => return toe.default_verdict(PushCredentialsResp::RetryWithNewTicket),
+        };
 
         match req.platform {
             PushPlatform::Fcm => app.mint_fcm_push_credential(&hub_handle).await,
@@ -183,7 +182,10 @@ impl App {
     ///
     /// See [`PushCredentialsEP`]'s docs for why hubs request this from PHC instead of holding
     /// the service account themselves.
-    async fn mint_fcm_push_credential(&self, hub_handle: &Handle) -> api::Result<PushCredentialsResp> {
+    async fn mint_fcm_push_credential(
+        &self,
+        hub_handle: &Handle,
+    ) -> api::Result<PushCredentialsResp> {
         let Some(fcm) = &self.push_fcm else {
             return Ok(PushCredentialsResp::NotConfigured);
         };
@@ -330,6 +332,7 @@ mod tests {
 
     #[test]
     fn credential_sources_parse_from_config() {
+        use p256::elliptic_curve::Generate as _;
         use p256::pkcs8::EncodePrivateKey as _;
 
         let rsa_sk = jwt::RS256Sk::random(2048).unwrap();
@@ -341,7 +344,7 @@ mod tests {
         let fcm = FcmCredentialSource::from_config(&fcm_config).unwrap();
         assert_eq!(fcm.client_email, fcm_config.client_email);
 
-        let ec_sk = p256::ecdsa::SigningKey::random(&mut rsa::rand_core::OsRng);
+        let ec_sk = p256::ecdsa::SigningKey::generate();
         let apns_config = push_config::ApnsConfig {
             key_id: "ABC123DEFG".to_string(),
             team_id: "TEAM123456".to_string(),
