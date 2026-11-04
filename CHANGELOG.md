@@ -30,7 +30,9 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed zooming in/out on App's Login screen when clicking on mascotte
 - [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
 - [NEW] iOS capacitor stuff added, ready for testing
-- [NEW] Push notifications in App
+- [NEW] Push notifications in the app (iOS, Android from the Play Store, and Android from F-Droid through UnifiedPush), without hubs learning the device: PHC sends them through the transcryptor, and hubs need no configuration (see docs/app/push.md).
+  - Migration: give PHC the APNs key and Firebase service account under `phc.push` in its config.
+  - [INTERNAL] Migration: the Android release jobs need `GOOGLE_SERVICES_JSON_BASE64` (GitLab variable and GitHub secret), and F-Droid's build recipe must use the `fdroid` flavor.
 - [IMPROVED] The documentation has been restructured and brought up to date, and a CONTRIBUTING.md explains that contributions go through the PubHubs team.
 - [INTERNAL, NEW] Hub owners can ask for their hub to be registered with an issue form on the GitHub mirror; the team's steps are in the GitLab `add-hub` issue template.
 - [INTERNAL, NEW] The pipeline of a merge request fails when it doesn't add to CHANGELOG.md (unless it has the `No changelog` label), and that of a release tag (also `-rcN`) when CHANGELOG.md has no entries under its version, which the GitHub release takes as its notes.

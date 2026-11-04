@@ -239,9 +239,8 @@
 
 	// Lifecycle hook
 	onMounted(initializeSettings);
-	// No-ops on the web; see nativePush.ts for why the router has to be handed in rather than
-	// re-acquired there via useRouter() (that composable needs an active component context).
-	onMounted(() => initNativePush(router));
+	// Does nothing on the web. The router is handed in because useRouter() needs a component context.
+	onMounted(() => void initNativePush(router));
 
 	onUnmounted(() => {
 		settings.stopListeningMobile();

@@ -1,10 +1,9 @@
 import Capacitor
 
-/// Subclasses the stock Capacitor bridge view controller only so we can
-/// register our own native plugins (Capacitor's autolinking only covers
-/// plugins installed as npm packages, not local ones like NativePushPlugin —
-/// see docs/app/README.md and the push notifications plan for why push
-/// isn't installed as `@capacitor/push-notifications`).
+/// Registers the app's own plugins: Capacitor only finds plugins installed as
+/// npm packages. Push is our own plugin, because Android's F-Droid build can't
+/// have @capacitor/push-notifications (Firebase), and all platforms share one
+/// plugin contract (see global-client/src/logic/nativePush.ts).
 class MainViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(NativePushPlugin())

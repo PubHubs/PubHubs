@@ -622,12 +622,17 @@ build-android:
         - echo "${PUBHUBS_KEYSTORE_BASE64}" | base64 -d > "${PUBHUBS_KEYSTORE}"
         - npm ci
         - npm run cap:sync:android:release
+        # The gplay build's Firebase project, for push notifications (see android/app/build.gradle).
+        - test -n "${GOOGLE_SERVICES_JSON_BASE64}" || { echo "GOOGLE_SERVICES_JSON_BASE64 is not set"; exit 1; }
+        - echo "${GOOGLE_SERVICES_JSON_BASE64}" | base64 -d > android/app/src/gplay/google-services.json
         - cd android
-        - ./gradlew --no-daemon bundleRelease assembleRelease
+        # gplay for the Play Store (bundle) and as APK; fdroid, without Google code, as APK.
+        - ./gradlew --no-daemon bundleGplayRelease assembleGplayRelease assembleFdroidRelease
         - rm "${PUBHUBS_KEYSTORE}"
     artifacts:
         name: pubhubs-android-${CI_COMMIT_TAG}
         paths:
-            - android/app/build/outputs/bundle/release/app-release.aab
-            - android/app/build/outputs/apk/release/app-release.apk
+            - android/app/build/outputs/bundle/gplayRelease/app-gplay-release.aab
+            - android/app/build/outputs/apk/gplay/release/app-gplay-release.apk
+            - android/app/build/outputs/apk/fdroid/release/app-fdroid-release.apk
         expire_in: never

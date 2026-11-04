@@ -14,12 +14,8 @@ import nl.pubhubs.client.push.PushEvents;
 
 public class MainActivity extends BridgeActivity {
 
-    /**
-     * Intent extra {@link nl.pubhubs.client.push.LocalNotifier} attaches to the notification it
-     * shows for a push received while there was no live plugin instance to tell directly (see
-     * PushEvents). Carries only the opaque hub id, never message content.
-     */
-    public static final String EXTRA_PUSH_HUB_ID = "nl.pubhubs.client.push.HUB_ID";
+    /** The push's tag, on the intent of a {@link nl.pubhubs.client.push.LocalNotifier} notification. */
+    public static final String EXTRA_PUSH_TAG = "nl.pubhubs.client.push.TAG";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -27,9 +23,7 @@ public class MainActivity extends BridgeActivity {
         // picks up plugins registered beforehand.
         registerPlugin(LinkHandlerPlugin.class);
         registerPlugin(ImageClipboardPlugin.class);
-        // NativePushPlugin resolves to whichever flavor's implementation (gplay/FCM or
-        // fdroid/UnifiedPush) is on this build variant's classpath - see
-        // src/{gplay,fdroid}/java/nl/pubhubs/client/push/NativePushPlugin.java.
+        // FCM in the gplay build, UnifiedPush in the fdroid build (src/{gplay,fdroid}/java/.../push/).
         registerPlugin(NativePushPlugin.class);
         registerPlugin(SystemBarColorPlugin.class);
         super.onCreate(savedInstanceState);
@@ -82,28 +76,21 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onNewIntent(Intent intent) {
-        // launchMode="singleTask" (AndroidManifest.xml) means a tapped notification while the
-        // app is already running arrives here rather than through a fresh onCreate.
+        // launchMode="singleTask": a notification tapped while the app runs arrives here.
         super.onNewIntent(intent);
         handlePushIntent(intent);
     }
 
-    /**
-     * If {@code intent} came from tapping a {@link nl.pubhubs.client.push.LocalNotifier}
-     * notification, relays it to the JS layer as the same "pushReceived" event a push handled
-     * while the app was already running would produce, so both paths converge on one code path
-     * in global-client's nativePush.ts.
-     */
+    /** A tapped push notification: hand its tag to JS, which opens the hub. */
     private void handlePushIntent(Intent intent) {
         if (intent == null) return;
 
-        String hubId = intent.getStringExtra(EXTRA_PUSH_HUB_ID);
-        if (hubId == null) return;
+        String tag = intent.getStringExtra(EXTRA_PUSH_TAG);
+        if (tag == null) return;
 
-        // consume it, so rotating the screen or otherwise recreating the activity doesn't
-        // re-deliver the same event
-        intent.removeExtra(EXTRA_PUSH_HUB_ID);
+        // Consumed, so recreating the activity (e.g. rotating) doesn't deliver it again.
+        intent.removeExtra(EXTRA_PUSH_TAG);
 
-        PushEvents.notifyPushReceived(hubId);
+        PushEvents.notifyPushReceived(tag);
     }
 }

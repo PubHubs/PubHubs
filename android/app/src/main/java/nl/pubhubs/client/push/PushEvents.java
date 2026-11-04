@@ -5,17 +5,14 @@ import android.util.Log;
 import com.getcapacitor.JSObject;
 
 /**
- * Lets a push transport's background {@code Service} (FcmService in the gplay flavor,
- * UnifiedPushService in the fdroid flavor) hand events to the {@code NativePush} plugin instance
- * when the app happens to be running, without the two flavors' otherwise-separate
- * {@code NativePushPlugin} classes needing to duplicate this bookkeeping. See
- * {@link PushEventEmitter}'s doc for why this goes through an interface rather than a direct
- * {@code com.getcapacitor.Plugin} reference.
+ * Hands events from a push transport's Service (FcmService in the gplay build, UnifiedPushService
+ * in the fdroid build) to the NativePush plugin, when the app is running.
  *
- * <p>The plugin instance may not exist at all when a Service method runs: Android can start this
- * process purely to deliver a push, with no WebView/Activity (and so no Capacitor bridge/plugin)
- * around it. Callers must not assume {@link #notifyPushReceived} reaches the JS layer - that is
- * exactly why {@link LocalNotifier} exists as a separate, always-works fallback.
+ * <p>Android may start the process only to deliver a push, without an Activity or plugin, so
+ * callers can't count on the JS layer hearing about it: that's what {@link LocalNotifier} is for.
+ *
+ * <p>A push carries only a random tag, which global-client/src/logic/nativePush.ts maps to the
+ * hub it belongs to.
  */
 public final class PushEvents {
 
@@ -26,18 +23,12 @@ public final class PushEvents {
 
     private PushEvents() {}
 
-    /** Called by NativePushPlugin.load() in each flavor. */
+    /** Called by NativePushPlugin.load() in each build. */
     public static void setActivePlugin(PushEventEmitter plugin) {
         activePlugin = plugin;
     }
 
-    /**
-     * Called by MainActivity's onResume/onPause. Lets a push transport's Service (FcmService /
-     * UnifiedPushService) decide whether {@link LocalNotifier} should also show a system
-     * notification: if the app is already in the foreground, {@link #notifyPushReceived} alone
-     * is enough - JS can react immediately - and a system notification on top would just be a
-     * redundant, distracting duplicate of what the app itself is about to show/do.
-     */
+    /** Called by MainActivity's onResume/onPause: in the foreground, JS handles a push itself. */
     public static void setAppInForeground(boolean inForeground) {
         appInForeground = inForeground;
     }
@@ -46,12 +37,13 @@ public final class PushEvents {
         return appInForeground;
     }
 
-    public static void notifyTokenReceived(String transport, String token) {
-        Log.d(TAG, "token received (transport=" + transport + ", pluginAttached=" + (activePlugin != null) + ")");
+    /** A new device token, or for UnifiedPush an endpoint (plus its keys in {@code extra}). */
+    public static void notifyTokenReceived(String transport, String token, JSObject extra) {
+        Log.d(TAG, "token received (transport=" + transport + ")");
         PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
-        JSObject data = new JSObject();
+        JSObject data = extra != null ? extra : new JSObject();
         data.put("transport", transport);
         data.put("token", token);
         plugin.emitPushTokenReceived(data);
@@ -67,17 +59,25 @@ public final class PushEvents {
         plugin.emitPushUnavailable(data);
     }
 
-    /**
-     * @param hubId Opaque hub identifier from the push payload - never room/event/message
-     *     content, see the push notifications plan.
-     */
-    public static void notifyPushReceived(String hubId) {
-        Log.d(TAG, "push received (hubId=" + hubId + ", pluginAttached=" + (activePlugin != null) + ", foreground=" + appInForeground + ")");
+    public static void notifyPushReceived(String tag) {
+        Log.d(TAG, "push received (foreground=" + appInForeground + ")");
         PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
         JSObject data = new JSObject();
-        data.put("hub_id", hubId);
+        data.put("tag", tag);
         plugin.emitPushReceived(data);
+    }
+
+    /**
+     * What a Service does with a push: tell JS, and unless the app is in the foreground (where JS
+     * just opens the hub), show the generic notification.
+     */
+    public static void handlePush(android.content.Context context, String tag) {
+        if (tag == null || tag.isEmpty()) return;
+        notifyPushReceived(tag);
+        if (!isAppInForeground()) {
+            LocalNotifier.show(context, tag);
+        }
     }
 }

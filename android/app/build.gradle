@@ -41,26 +41,18 @@ android {
                 signingConfig signingConfigs.release
             }
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
-    // Two push-notification transports, so PubHubs can ship both a Play Store build and an
-    // F-Droid build: F-Droid's build servers cannot fetch Google's proprietary Maven artifacts
-    // at all, so any Firebase/Play-Services dependency must be completely absent from that
-    // variant, not merely unused at runtime. Each flavor gets its own
-    // nl.pubhubs.client.push.NativePushPlugin implementation via source-set overrides (see
-    // src/gplay/java/.../push/ and src/fdroid/java/.../push/) - shared code (MainActivity,
-    // PushEvents, LocalNotifier) never references Firebase or UnifiedPush symbols directly, so it
-    // compiles identically for both. See the push notifications plan for the full rationale.
+    // Two builds that differ only in how push notifications arrive (see src/{gplay,fdroid}/java/.../push/):
+    // gplay (Play Store) through Firebase Cloud Messaging, fdroid through UnifiedPush. F-Droid
+    // doesn't accept Google's libraries in any form, so nothing Firebase may reach the fdroid build.
     flavorDimensions "distribution"
     productFlavors {
-        // Play Store / general APK build: FCM via Firebase Cloud Messaging.
         gplay {
             dimension "distribution"
         }
-        // F-Droid build: no Google dependency at all. Uses UnifiedPush instead, which requires
-        // the end user to have a UnifiedPush distributor (e.g. ntfy) installed.
         fdroid {
             dimension "distribution"
         }
@@ -84,40 +76,22 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 
-    // gplay flavor only: Firebase Cloud Messaging, for src/gplay/.../push/NativePushPlugin.java
-    // and FcmService.java. The BoM pins compatible versions of all Firebase artifacts; only
-    // firebase-messaging itself is actually used.
     gplayImplementation platform("com.google.firebase:firebase-bom:$firebaseBomVersion")
     gplayImplementation "com.google.firebase:firebase-messaging"
-
-    // fdroid flavor only: UnifiedPush, for src/fdroid/.../push/NativePushPlugin.java and
-    // UnifiedPushService.java. Google-free, self-hostable push - see the push notifications plan.
     fdroidImplementation "org.unifiedpush.android:connector:$unifiedPushConnectorVersion"
 }
 
 apply from: 'capacitor.build.gradle'
 
-// Applied only when the gplay flavor's google-services.json is actually present (gitignored;
-// each build/developer/CI job supplies their own - see cicd/.gitlab-ci.yml's
-// android-assemble-gplay job). Confirmed by actually building both flavors locally (no
-// google-services.json anywhere in this sandbox originally, so this needed live verification,
-// not just reasoning about it):
-//   - Applying the plugin at all - regardless of this file-existence guard - registers a
-//     process<Variant>GoogleServices task for *every* variant, gplay and fdroid alike. That task
-//     hard-fails fdroid's build ("File google-services.json is missing") the moment the gplay
-//     file exists anywhere in the module, even though fdroid never asked for one. This *did*
-//     reproduce locally, so the fix below is verified, not guessed.
-//   - The fix: explicitly disable the google-services task for every non-gplay variant, so the
-//     plugin only ever does real work for gplay. This is deliberately name-matching rather than
-//     using AGP's variant-filtering API, to keep this readable without extra imports.
+// The Firebase project of the gplay build (gitignored; CI writes it from GOOGLE_SERVICES_JSON_BASE64).
+// The plugin would also want one for fdroid, so its task is switched off there.
 if (file('src/gplay/google-services.json').exists()) {
     apply plugin: 'com.google.gms.google-services'
-
     tasks.configureEach { task ->
         if (task.name.startsWith('process') && task.name.endsWith('GoogleServices') && !task.name.contains('Gplay')) {
             task.enabled = false
         }
     }
 } else {
-    logger.info("src/gplay/google-services.json not found - gplay push notifications won't work, fdroid is unaffected")
+    logger.info("src/gplay/google-services.json not found: push notifications won't work in the gplay build")
 }

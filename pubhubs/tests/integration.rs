@@ -1,7 +1,6 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
-use base64ct::{Base64UrlUnpadded, Encoding as _};
 use indexmap::IndexMap;
 
 use pubhubs::{
@@ -75,27 +74,6 @@ async fn main_integration_test() {
         .url = pubhubs::servers::config::host_aliases::UrlPwa::PerhapsWithAlias(
         "memory://".parse().unwrap(),
     );
-
-    // Configure PHC with a fake, test-only APNs auth key (not a real Apple key), so the
-    // push-credentials test below can mint and verify a real ES256 JWT without needing an
-    // actual Apple Developer account. FCM is deliberately left unconfigured: minting an FCM
-    // credential makes a real outbound call to Google, which needs a genuine service account
-    // and isn't suitable for this offline test - see the PushPlatform::Fcm case below instead.
-    let apns_test_pem: String = {
-        use p256::elliptic_curve::Generate as _;
-        use p256::pkcs8::EncodePrivateKey as _;
-        p256::ecdsa::SigningKey::generate()
-            .to_pkcs8_pem(Default::default())
-            .unwrap()
-            .to_string()
-    };
-    config.phc.as_mut().unwrap().push.apns =
-        Some(pubhubs::servers::config::phc::push::ApnsConfig {
-            key_id: "TESTKEYID1".to_string(),
-            team_id: "TESTTEAMID".to_string(),
-            private_key: apns_test_pem.clone(),
-            token_validity: Duration::from_secs(3000),
-        });
 
     // Change randomly generated admin key to a symmetric one we know.
     let admin_key = pubhubs::misc::serde_ext::bytes_wrapper::B16::from_bytes([7u8; 32]);
@@ -210,7 +188,6 @@ async fn main_integration_test() {
                     jwt::HS256(admin_key.into_inner().into_vec()),
                     yivi_server_sk,
                     hub_listener,
-                    apns_test_pem,
                 ))
                 .await;
             drop(shutdown_sender); // causes the servers to stop
@@ -227,7 +204,6 @@ async fn main_integration_test_local(
     admin_key: jwt::HS256,
     yivi_server_sk: yivi::SigningKey,
     hub_listener: std::net::TcpListener,
-    apns_test_pem: String,
 ) {
     let client = client::Client::builder()
         .agent(client::Agent::IntegrationTest)
@@ -464,81 +440,7 @@ async fn main_integration_test_local(
         assert_eq!(served_by, name);
     }
 
-    // Exercise PushCredentialsEP: mint an APNs credential via the same ticket-based hub auth
-    // flow, and check PHC returns a well-formed, correctly-signed ES256 JWT - entirely offline,
-    // using the fake APNs key configured in `main_integration_test` above.
-    {
-        let ts_req = api::phc::hub::TicketSigned::new(
-            ticket.clone(),
-            api::Signed::new(
-                &mock_hub.context.sk,
-                &api::phc::hub::PushCredentialsReq {
-                    platform: api::phc::hub::PushPlatform::Apns,
-                },
-                Duration::from_secs(10),
-            )
-            .unwrap(),
-        );
-
-        let api::phc::hub::PushCredentialsResp::Success(creds) = client
-            .query::<api::phc::hub::PushCredentialsEP>(&constellation.phc_url, &ts_req)
-            .with_retry()
-            .await
-            .unwrap()
-        else {
-            panic!("expected PushCredentialsResp::Success for Apns");
-        };
-
-        let parts: Vec<&str> = creds.token.split('.').collect();
-        assert_eq!(parts.len(), 3, "a compact JWT has exactly two dots");
-
-        let header: serde_json::Value =
-            serde_json::from_slice(&Base64UrlUnpadded::decode_vec(parts[0]).unwrap()).unwrap();
-        assert_eq!(header["alg"], "ES256");
-        assert_eq!(header["kid"], "TESTKEYID1");
-
-        let claims: serde_json::Value =
-            serde_json::from_slice(&Base64UrlUnpadded::decode_vec(parts[1]).unwrap()).unwrap();
-        assert_eq!(claims["iss"], "TESTTEAMID");
-
-        // check the signature against the (fake, test-only) APNs key configured above
-        use p256::ecdsa::signature::Verifier as _;
-        use p256::pkcs8::DecodePrivateKey as _;
-        let apns_test_sk = p256::ecdsa::SigningKey::from_pkcs8_pem(&apns_test_pem).unwrap();
-        let signed_part = format!("{}.{}", parts[0], parts[1]);
-        let signature =
-            p256::ecdsa::Signature::from_slice(&Base64UrlUnpadded::decode_vec(parts[2]).unwrap())
-                .unwrap();
-        apns_test_sk
-            .verifying_key()
-            .verify(signed_part.as_bytes(), &signature)
-            .expect("APNs credential should be signed by the configured key");
-
-        // FCM was deliberately left unconfigured (see main_integration_test) - PHC should say so
-        // plainly rather than attempting (and failing) to reach Google.
-        let ts_req = api::phc::hub::TicketSigned::new(
-            ticket.clone(),
-            api::Signed::new(
-                &mock_hub.context.sk,
-                &api::phc::hub::PushCredentialsReq {
-                    platform: api::phc::hub::PushPlatform::Fcm,
-                },
-                Duration::from_secs(10),
-            )
-            .unwrap(),
-        );
-
-        let resp = client
-            .query::<api::phc::hub::PushCredentialsEP>(&constellation.phc_url, &ts_req)
-            .with_retry()
-            .await
-            .unwrap();
-
-        assert!(matches!(
-            resp,
-            api::phc::hub::PushCredentialsResp::NotConfigured
-        ));
-    }
+    test_push(&client, &constellation).await;
 
     let attrs = request_attributes(
         &client,
@@ -1796,4 +1698,113 @@ async fn handle_enter_complete(
         new_user: true,
         mxid: "mxid".to_string(),
     }))
+}
+
+/// Pushes from a hub, through the transcryptor, to PHC.  No push credentials are configured, so
+/// nothing reaches Apple; this checks the relay and that PHC can read what the app encrypts.
+async fn test_push(client: &client::Client, constellation: &servers::Constellation) {
+    use aws_lc_rs::{aead, agreement, hkdf};
+    use base64ct::{Base64UrlUnpadded, Encoding as _};
+
+    let info = client
+        .query::<api::phc::push::InfoEP>(&constellation.phc_url, NoPayload)
+        .with_retry()
+        .await
+        .unwrap();
+    let phc_public = Base64UrlUnpadded::decode_vec(&info.blob_key).unwrap();
+    assert_eq!(phc_public.len(), 65);
+    assert_eq!(
+        Base64UrlUnpadded::decode_vec(&info.vapid_key)
+            .unwrap()
+            .len(),
+        65
+    );
+
+    // Encrypt a blob the way global-client/src/logic/pushBlob.ts does.
+    let seal = |plaintext: &[u8]| -> String {
+        let ephemeral = agreement::PrivateKey::generate(&agreement::ECDH_P256).unwrap();
+        let ephemeral_public = ephemeral.compute_public_key().unwrap().as_ref().to_vec();
+        let mut key = [0u8; 32];
+        agreement::agree(
+            &ephemeral,
+            agreement::UnparsedPublicKey::new(&agreement::ECDH_P256, &phc_public),
+            (),
+            |secret| {
+                struct Len;
+                impl hkdf::KeyType for Len {
+                    fn len(&self) -> usize {
+                        32
+                    }
+                }
+                hkdf::Salt::new(hkdf::HKDF_SHA256, &[])
+                    .extract(secret)
+                    .expand(
+                        &[b"pubhubs push blob v1", &ephemeral_public, &phc_public],
+                        Len,
+                    )
+                    .unwrap()
+                    .fill(&mut key)
+                    .unwrap();
+                Ok(())
+            },
+        )
+        .unwrap();
+        let iv = [7u8; 12];
+        let mut in_out = plaintext.to_vec();
+        aead::LessSafeKey::new(aead::UnboundKey::new(&aead::AES_256_GCM, &key).unwrap())
+            .seal_in_place_append_tag(
+                aead::Nonce::assume_unique_for_key(iv),
+                aead::Aad::empty(),
+                &mut in_out,
+            )
+            .unwrap();
+        let mut blob = vec![1u8];
+        blob.extend_from_slice(&ephemeral_public);
+        blob.extend_from_slice(&iv);
+        blob.extend_from_slice(&in_out);
+        Base64UrlUnpadded::encode_string(&blob)
+    };
+
+    let push = |blob: String| api::tr::Push {
+        blob,
+        high_prio: false,
+    };
+    let resp = client
+        .query::<api::tr::PushEP>(
+            &constellation.transcryptor_url,
+            &api::tr::PushReq {
+                pushes: vec![
+                    // PHC can read this, but has no APNs credentials: try again later.
+                    push(seal(br#"{"transport":"apns","token":"00ff","tag":"tag1"}"#)),
+                    // Garbage, and a readable blob with a bad target: never going to work.
+                    push("garbage".to_string()),
+                    push(seal(br#"{"transport":"sms","tag":"tag2"}"#)),
+                    // A UnifiedPush endpoint PHC refuses to post to.
+                    push(seal(
+                        br#"{"transport":"webpush","endpoint":"https://localhost/up","p256dh":"x","auth":"y","tag":"tag3"}"#,
+                    )),
+                ],
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap();
+    assert_eq!(
+        resp,
+        api::tr::PushResp {
+            rejected: vec![1, 2, 3],
+            failed: vec![0],
+        }
+    );
+
+    // The transcryptor checks sizes before bothering PHC.
+    assert!(
+        client
+            .query::<api::tr::PushEP>(
+                &constellation.transcryptor_url,
+                &api::tr::PushReq { pushes: vec![] },
+            )
+            .await
+            .is_err()
+    );
 }

@@ -5,8 +5,8 @@
     <string name="package_name" translatable="false">net.pubhubs.app</string>
     <string name="custom_url_scheme" translatable="false">net.pubhubs.app</string>
 
-    <!-- Push notifications (nl.pubhubs.client.push) - deliberately generic: the payload never
-         carries message content, sender, or room information to put here. -->
+    <!-- Push notifications (push/LocalNotifier.java). Generic on purpose: a push carries no message,
+         sender, room or hub. Same text as iOS's Localizable.strings. -->
     <string name="push_channel_name">New messages</string>
     <string name="push_notification_title">PubHubs</string>
     <string name="push_notification_body">You have new messages</string>

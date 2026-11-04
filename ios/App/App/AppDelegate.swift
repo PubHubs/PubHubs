@@ -46,10 +46,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
-    // MARK: - Push notifications (see NativePushPlugin.swift)
+    // MARK: - Push notifications (NativePushPlugin.swift picks these up)
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        // Capacitor core forwards this to NativePushPlugin via NotificationCenter.
         NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
     }
 

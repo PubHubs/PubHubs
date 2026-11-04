@@ -9,8 +9,8 @@ More detail:
 - [Hub isolation](hub-isolation.md): how the app keeps hubs apart from the shell and from each
   other, and the [iOS test plan](ios-isolation-test.md) for it.
 - [Offline](offline.md): how the app keeps working without a connection.
-- [iOS push notification test](ios-push-test.md): setting up push for a test hub, and
-  `mask test ios-push`.
+- [Push notifications](push.md): how pushes reach the app without hubs learning the device, and
+  the [iOS push test](ios-push-test.md) (`mask test ios-push`).
 
 ## How it fits together
 
@@ -133,9 +133,14 @@ the app from our source.
 - `npm run cap:sync:android:release` builds the clients with that config and syncs them into
   `android/`. It sets `PUBHUBS_RELEASE`, so `capacitor.config.ts` turns off cleartext traffic and
   ignores `capacitor.config.local.json`.
-- Then, in `android/`, `./gradlew bundleRelease` builds the app bundle for the Play Store (in
-  `app/build/outputs/bundle/release/`), and `./gradlew assembleRelease` the APK (in
-  `app/build/outputs/apk/release/`).
+- The app has two builds, which differ only in how push notifications arrive (see [Push
+  notifications](push.md)): **gplay**, through Firebase, and **fdroid**, through UnifiedPush and
+  without any Google code. F-Droid's build recipe must pick `fdroid` (`gradle: [fdroid]`).
+- Then, in `android/`, `./gradlew bundleGplayRelease` builds the app bundle for the Play Store (in
+  `app/build/outputs/bundle/gplayRelease/`), and `./gradlew assembleGplayRelease assembleFdroidRelease`
+  the APKs (in `app/build/outputs/apk/{gplay,fdroid}/release/`). The gplay build needs the Firebase
+  project's `google-services.json` in `android/app/src/gplay/` (gitignored; CI writes it from
+  `GOOGLE_SERVICES_JSON_BASE64`).
 - **Signing:** set `PUBHUBS_KEYSTORE` (an absolute path), `PUBHUBS_KEYSTORE_PASSWORD`,
   `PUBHUBS_KEY_ALIAS` and `PUBHUBS_KEY_PASSWORD`. Without them the release build is unsigned, which
   is what F-Droid expects; it signs with its own key.

@@ -11,13 +11,10 @@ import Capacitor
 /// android/app/src/{gplay,fdroid}/java/.../push/NativePushPlugin.java), so
 /// global-client/src/logic/nativePush.ts can stay platform-agnostic.
 ///
-/// Pushes are visible alerts with a generic, app-localized text (the hub's
-/// gateway proxy only sends localization keys, see
-/// pubhubs_hub/modules/pubhubs/_push_gateway_proxy.py) plus an opaque
-/// `hub_id` - never message content. That gives the same result as Android,
-/// where the app shows the same generic notification itself (LocalNotifier):
-/// in the background iOS shows the alert, and tapping it opens that hub; in the
-/// foreground the alert is suppressed and the app just goes to that hub.
+/// PHC sends the pushes (pubhubs/src/servers/phc/push.rs): a generic alert from
+/// this app's Localizable.strings keys, plus a random `tag` that nativePush.ts
+/// maps to the hub. In the background iOS shows the alert, and tapping it opens
+/// that hub; in the foreground there's no alert and the app goes to the hub.
 @objc(NativePushPlugin)
 public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProtocol {
     public let identifier = "NativePushPlugin"
@@ -83,10 +80,10 @@ public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerP
     }
 
     private func emitPushReceived(_ userInfo: [AnyHashable: Any]) {
-        guard let hubId = userInfo["hub_id"] as? String else { return }
+        guard let tag = userInfo["tag"] as? String else { return }
         // retainUntilConsumed: a tap can cold-start the app, firing before the JS layer has
         // attached its "pushReceived" listener; without this the event would be dropped instead
         // of delivered once JS is ready for it.
-        notifyListeners("pushReceived", data: ["hub_id": hubId], retainUntilConsumed: true)
+        notifyListeners("pushReceived", data: ["tag": tag], retainUntilConsumed: true)
     }
 }

@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    gplay-flavor-only manifest additions, merged only into the Play Store / general APK build.
-    Nothing Firebase-related may appear in src/main or src/fdroid - see the push notifications
-    plan and app/build.gradle's flavor comments for why.
--->
+<!-- gplay build only: Firebase Cloud Messaging. Nothing Firebase may be in src/main or src/fdroid. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <service
@@ -14,10 +10,7 @@
             </intent-filter>
         </service>
 
-        <!-- Default small icon/colour FCM uses for any notification-payload message it might
-             ever auto-render. We never send one (see FcmService: data-only, no `notification`
-             block - see the push notifications plan), so this is defensive/unused in practice,
-             but Firebase Messaging expects it to be present. -->
+        <!-- For notification messages, which PHC doesn't send (data only, see FcmService). -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@mipmap/ic_launcher" />

@@ -4,8 +4,16 @@ import { watch } from 'vue';
 import type { Router } from 'vue-router';
 
 // Logic
+import { phc_api } from '@global-client/logic/core/api';
+import { type PushTarget, base64UrlEncode, encryptPushBlob, randomId } from '@global-client/logic/pushBlob';
+import { handleErrors } from '@global-client/logic/utils/mssUtils';
+
 import { Api } from '@hub-client/logic/core/apiCore';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+
+// Models
+import { type Hub } from '@global-client/models/Hubs';
+import { type ErrorCode, type Result } from '@global-client/models/MSS/TGeneral';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
@@ -14,222 +22,252 @@ import { useHubs } from '@global-client/stores/hubs';
 const logger = createLogger('NativePush');
 
 /**
- * JS-facing glue for the native "NativePush" Capacitor plugin - one implementation per platform
- * (android/app/src/gplay/.../push/NativePushPlugin.java for FCM, .../fdroid/.../push/NativePushPlugin.java
- * for UnifiedPush, ios/App/App/NativePushPlugin.swift for APNs), all sharing this one contract so
- * this file never needs to know which platform/flavor it's running on.
+ * Native push notifications, through the app's own "NativePush" plugin: APNs on iOS
+ * (ios/App/App/NativePushPlugin.swift), FCM in Android's gplay build and UnifiedPush in its fdroid
+ * build (android/app/src/{gplay,fdroid}/java/nl/pubhubs/client/push/).
  *
- * Every push is a data-only wake-up signal carrying nothing but an opaque `hub_id` - never a room,
- * event, sender, or message. This module never treats a push as a data source itself: receiving
- * one only tells the app which hub to open/refresh, exactly like tapping the hub normally would.
- * See the push notifications plan for the full design.
+ * Hubs must not be able to link a user by their device's push token, so no hub ever gets it. Per hub,
+ * the app registers a Matrix pusher with a random pushkey and, in its data, a "blob": the token
+ * encrypted for PHC together with a random tag for that hub. The hub relays the blob through the
+ * transcryptor to PHC (pubhubs_hub/modules/pubhubs/_push_gateway_proxy.py), so PHC can read the
+ * token but doesn't learn the hub. PHC pushes just the tag, which this module maps back to the hub,
+ * and opens it. See pubhubs/src/servers/phc/push.rs.
  */
 
-type PushTokenReceivedEvent = { transport: string; token: string };
-type PushUnavailableEvent = { reason: string };
-type PushReceivedEvent = { hub_id: string };
+type DeviceToken = { transport: 'apns' | 'fcm'; token: string } | { transport: 'webpush'; token: string; p256dh: string; auth: string };
 
 type NativePushPlugin = {
-	/** Fire-and-forget: requests the notification permission, then kicks off async registration.
-	 *  Always resolves - failures surface via the "pushUnavailable" event instead of a rejection. */
-	register(): Promise<void>;
-	addListener(eventName: 'pushTokenReceived', listenerFunc: (event: PushTokenReceivedEvent) => void): Promise<PluginListenerHandle>;
-	addListener(eventName: 'pushUnavailable', listenerFunc: (event: PushUnavailableEvent) => void): Promise<PluginListenerHandle>;
-	addListener(eventName: 'pushReceived', listenerFunc: (event: PushReceivedEvent) => void): Promise<PluginListenerHandle>;
+	/** Asks for permission and registers; the token arrives as "pushTokenReceived". Always resolves.
+	 *  `vapid` is PHC's VAPID key, needed by UnifiedPush. */
+	register(options: { vapid: string }): Promise<void>;
+	addListener(eventName: 'pushTokenReceived', listenerFunc: (event: DeviceToken) => void): Promise<PluginListenerHandle>;
+	addListener(eventName: 'pushUnavailable', listenerFunc: (event: { reason: string }) => void): Promise<PluginListenerHandle>;
+	addListener(eventName: 'pushReceived', listenerFunc: (event: { tag: string }) => void): Promise<PluginListenerHandle>;
 };
 
 const NativePush = registerPlugin<NativePushPlugin>('NativePush');
 
-/** Device push token, persisted locally: it identifies *this device*, never synced across
- *  devices via PHC's globalsettings object (unlike the rest of GlobalSettings) - same reasoning
- *  as `PHauthToken` being kept in plain localStorage rather than that synced object. */
-const STORAGE_KEY = 'nativePushToken';
+/** Returned by PHC's `.ph/push/info`. */
+type PushInfo = { blob_key: string; blob_key_id: string; vapid_key: string };
 
-type DeviceToken = { transport: string; token: string };
-
-/**
- * Matrix `app_id` for pushers/set, one per native build variant. Must match the app_id each
- * flavor's Java/Swift plugin implicitly assumes on the server side.
- */
-const APP_ID_BY_TRANSPORT: Record<string, string> = {
-	fcm: 'nl.pubhubs.client.gplay',
-	unifiedpush: 'nl.pubhubs.client.fdroid',
-	apns: 'nl.pubhubs.client.ios',
+/** This device's pusher on one hub. */
+type HubPusher = {
+	pushkey: string;
+	tag: string;
+	/** Changes when the pusher must be registered again (see registrationId). */
+	registrationId: string;
 };
 
-function loadDeviceToken(): DeviceToken | null {
-	const raw = localStorage.getItem(STORAGE_KEY);
-	if (!raw) return null;
+/** Local to this device, never synced: the token identifies the device, the pushers the hubs. */
+const DEVICE_KEY = 'nativePushDevice';
+const PUSHERS_KEY = 'nativePushPushers';
+
+/** One app id for every platform: which one would tell hubs something. */
+const APP_ID = 'nl.pubhubs.client';
+
+/** How long a push tap waits for an unknown hub to show up in the hub list (e.g. on first start). */
+const HUB_WAIT_MS = 15_000;
+
+type AuthenticatedHub = { hubId: string; accessToken: string; serverUrl: string };
+
+let pushInfo: PushInfo | undefined;
+
+function load<T>(key: string): T | undefined {
 	try {
-		return JSON.parse(raw) as DeviceToken;
+		return JSON.parse(localStorage.getItem(key) ?? 'null') ?? undefined;
 	} catch {
-		return null;
+		return undefined;
 	}
 }
 
-function storeDeviceToken(deviceToken: DeviceToken | null): void {
-	if (deviceToken) {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(deviceToken));
-	} else {
-		localStorage.removeItem(STORAGE_KEY);
-	}
+function loadPushers(): Record<string, HubPusher> {
+	return load<Record<string, HubPusher>>(PUSHERS_KEY) ?? {};
 }
 
-/**
- * Always the hub's own push gateway, reverse-proxied under the hub's own domain at the Matrix
- * Push Gateway API's standard path - never a shared/third-party gateway, see the push
- * notifications plan. This means no separate discovery mechanism is needed: any hub that wants
- * push support just needs to route this one path to its own Sygnal instance.
- */
+function savePushers(pushers: Record<string, HubPusher>): void {
+	localStorage.setItem(PUSHERS_KEY, JSON.stringify(pushers));
+}
+
+/** The hub's own push gateway, at the Push Gateway API's standard path under the hub's address. */
 function pushGatewayUrl(serverUrl: string): string {
 	return `${serverUrl}_matrix/push/v1/notify`;
 }
 
-/**
- * Registers or deletes the Matrix pusher identifying `deviceToken` for one hub.
- *
- * NEEDS VERIFICATION once a real hub push gateway (Sygnal) exists to test against: for the
- * "unifiedpush" transport, `pushkey` below is the UnifiedPush endpoint URL the OS handed back.
- * Whether Sygnal's webpush pushkin accepts that as `pushkey` verbatim, or expects it encoded
- * differently, is unconfirmed - see the push notifications plan's "spike this early" note on
- * Sygnal + UnifiedPush.
- */
-async function setPusher(hubId: string, hubAccessToken: string, serverUrl: string, deviceToken: DeviceToken, remove: boolean): Promise<void> {
-	const appId = APP_ID_BY_TRANSPORT[deviceToken.transport];
-	if (!appId) {
-		logger.error(`unknown transport '${deviceToken.transport}', not touching the pusher for hub ${hubId}`);
-		return;
-	}
-
-	const api = new Api(serverUrl, { pushersSet: '_matrix/client/v3/pushers/set' });
-	api.setAccessToken(hubAccessToken);
-
-	const body = remove
-		? { app_id: appId, pushkey: deviceToken.token, kind: null }
-		: {
-				app_id: appId,
-				app_display_name: 'PubHubs',
-				device_display_name: 'PubHubs',
-				pushkey: deviceToken.token,
-				kind: 'http',
-				lang: 'en',
-				// event_id_only: Synapse strips everything but room_id/event_id before forwarding to the
-				// gateway. The hub's gateway proxy enforces this too, and itself adds the hub_id (and
-				// for iOS the generic alert) every platform's push carries - see
-				// pubhubs_hub/modules/pubhubs/_push_gateway_proxy.py's sanitize_notification().
-				data: { url: pushGatewayUrl(serverUrl), format: 'event_id_only' },
-				append: false,
-			};
-
-	try {
-		await api.apiPOST(api.apiURLS.pushersSet, body);
-		logger.info(`${remove ? 'deleted' : 'registered'} pusher for hub ${hubId} (transport=${deviceToken.transport})`);
-	} catch (error) {
-		logger.error(`failed to ${remove ? 'delete' : 'register'} the pusher for hub ${hubId}: ${error}`);
-	}
-}
-
-type AuthenticatedHub = { hubId: string; accessToken: string; serverUrl: string };
-
-/** Every hub the user is currently authenticated against, with what's needed to call its Matrix API. */
+/** Every hub the user is currently logged in to, with what's needed to call its Matrix API. */
 function authenticatedHubs(): AuthenticatedHub[] {
-	const global = useGlobal();
 	const hubs = useHubs();
-	const result: AuthenticatedHub[] = [];
-	for (const pinned of global.pinnedHubs) {
-		if (!pinned.accessToken) continue;
+	return useGlobal().pinnedHubs.flatMap((pinned) => {
 		const serverUrl = hubs.hub(pinned.hubId)?.serverUrl;
-		if (!serverUrl) continue;
-		result.push({ hubId: pinned.hubId, accessToken: pinned.accessToken, serverUrl });
-	}
-	return result;
+		return pinned.accessToken && serverUrl ? [{ hubId: pinned.hubId, accessToken: pinned.accessToken, serverUrl }] : [];
+	});
 }
 
 /**
- * Reacts to hubs gaining or losing an authenticated access token (login/logout, pin/unpin),
- * registering or deleting that hub's pusher accordingly - using whatever device token is
- * currently known. A hub with no device token known yet is simply skipped for now; it catches up
- * once `onTokenReceived` below runs.
- *
- * A hub that *loses* its access token needs the token it *had* (still valid at the moment it was
- * removed) to authenticate the deletion call - watch()'s previous-value argument gives us exactly
- * that, which a naive "re-check current state" approach could not.
+ * Changes whenever a hub's pusher must be registered again: another device token or PHC key, another
+ * hub address, or another login (Synapse deletes a pusher with the access token it was made with).
+ * Hashed, as this is stored.
+ */
+async function registrationId(hub: AuthenticatedHub, device: DeviceToken, info: PushInfo): Promise<string> {
+	const input = new TextEncoder().encode(JSON.stringify([info.blob_key_id, device, hub.serverUrl, hub.accessToken]));
+	return base64UrlEncode(new Uint8Array(await crypto.subtle.digest('SHA-256', input)));
+}
+
+function pushTarget(device: DeviceToken, tag: string): PushTarget {
+	return device.transport === 'webpush'
+		? { transport: 'webpush', endpoint: device.token, p256dh: device.p256dh, auth: device.auth, tag }
+		: { transport: device.transport, token: device.token, tag };
+}
+
+function matrixApi(hub: AuthenticatedHub): Api {
+	const api = new Api(hub.serverUrl, { pushersSet: '_matrix/client/v3/pushers/set' });
+	api.setAccessToken(hub.accessToken);
+	return api;
+}
+
+/** Registers (or updates) this device's pusher on `hub`, unless that's already done. */
+async function registerPusher(hub: AuthenticatedHub, device: DeviceToken, info: PushInfo): Promise<void> {
+	const pusher = loadPushers()[hub.hubId] ?? { pushkey: randomId(), tag: randomId(), registrationId: '' };
+	const id = await registrationId(hub, device, info);
+	if (pusher.registrationId === id) return;
+
+	const api = matrixApi(hub);
+	try {
+		await api.apiPOST(api.apiURLS.pushersSet, {
+			app_id: APP_ID,
+			app_display_name: 'PubHubs',
+			device_display_name: 'PubHubs',
+			pushkey: pusher.pushkey,
+			kind: 'http',
+			lang: 'en',
+			data: {
+				url: pushGatewayUrl(hub.serverUrl),
+				// Synapse then only sends ids to the gateway, which only passes on the blob anyway.
+				format: 'event_id_only',
+				blob: await encryptPushBlob(info.blob_key, pushTarget(device, pusher.tag)),
+			},
+			append: false,
+		});
+		savePushers({ ...loadPushers(), [hub.hubId]: { ...pusher, registrationId: id } });
+		logger.info(`registered pusher for hub ${hub.hubId}`);
+	} catch (error) {
+		logger.error(`failed to register the pusher for hub ${hub.hubId}: ${error}`);
+	}
+}
+
+/** Deletes this device's pusher on a hub the user unpinned, with the access token it still had. */
+async function deletePusher(hub: AuthenticatedHub): Promise<void> {
+	const pushers = loadPushers();
+	const pusher = pushers[hub.hubId];
+	if (!pusher) return;
+	delete pushers[hub.hubId];
+	savePushers(pushers);
+
+	const api = matrixApi(hub);
+	try {
+		await api.apiPOST(api.apiURLS.pushersSet, { app_id: APP_ID, pushkey: pusher.pushkey, kind: null });
+		logger.info(`deleted pusher for hub ${hub.hubId}`);
+	} catch (error) {
+		// Logging out of the hub deletes the pusher too.
+		logger.warn(`failed to delete the pusher for hub ${hub.hubId}: ${error}`);
+	}
+}
+
+let syncing: Promise<void> = Promise.resolve();
+
+/** Brings every logged-in hub's pusher up to date. One at a time, so a new hub gets one pushkey and tag. */
+function syncPushers(): Promise<void> {
+	syncing = syncing.then(async () => {
+		const device = load<DeviceToken>(DEVICE_KEY);
+		const info = pushInfo;
+		if (!device || !info) return;
+		await Promise.all(authenticatedHubs().map((hub) => registerPusher(hub, device, info)));
+	});
+	return syncing;
+}
+
+/** How long a hub must stay unpinned before its pusher is deleted: settings reloads briefly empty the list. */
+const UNPIN_GRACE_MS = 5_000;
+
+/**
+ * Registers pushers for hubs the user logs in to, and deletes them for hubs the user unpins. A hub that
+ * only loses its access token (e.g. while settings load) keeps its pusher: logging out of the hub
+ * deletes it on the hub's side anyway, and a new login registers again.
  */
 function trackAuthenticatedHubs(): void {
 	watch(
 		authenticatedHubs,
 		(current, previous) => {
-			const deviceToken = loadDeviceToken();
-			if (!deviceToken) return;
-
-			const previousById = new Map((previous ?? []).map((hub) => [hub.hubId, hub]));
+			void syncPushers();
 			const currentIds = new Set(current.map((hub) => hub.hubId));
-
-			for (const hub of current) {
-				const before = previousById.get(hub.hubId);
-				if (!before || before.accessToken !== hub.accessToken) {
-					void setPusher(hub.hubId, hub.accessToken, hub.serverUrl, deviceToken, false);
-				}
-			}
-
-			for (const before of previous ?? []) {
-				if (!currentIds.has(before.hubId)) {
-					void setPusher(before.hubId, before.accessToken, before.serverUrl, deviceToken, true);
-				}
+			for (const hub of previous ?? []) {
+				if (currentIds.has(hub.hubId)) continue;
+				setTimeout(() => {
+					if (!useGlobal().pinnedHubs.some((pinned) => pinned.hubId === hub.hubId)) void deletePusher(hub);
+				}, UNPIN_GRACE_MS);
 			}
 		},
 		{ deep: true, immediate: true },
 	);
 }
 
-/** A new (or refreshed) device token arrived: register it for every authenticated hub, and
- *  best-effort clean up the previous token's pusher on each of them if it changed. */
-async function onTokenReceived(deviceToken: DeviceToken): Promise<void> {
-	logger.info(`token received (transport=${deviceToken.transport})`);
-	const previous = loadDeviceToken();
-	storeDeviceToken(deviceToken);
+/** The hub with `hubId`, waiting a while if the hub list hasn't got it yet (a tap can cold-start the app). */
+function whenHubKnown(hubId: string): Promise<Hub | undefined> {
+	const hubs = useHubs();
+	const known = hubs.hub(hubId);
+	if (known) return Promise.resolve(known);
 
-	const hubs = authenticatedHubs();
-	await Promise.all(hubs.map((hub) => setPusher(hub.hubId, hub.accessToken, hub.serverUrl, deviceToken, false)));
-
-	if (previous && (previous.transport !== deviceToken.transport || previous.token !== deviceToken.token)) {
-		await Promise.all(hubs.map((hub) => setPusher(hub.hubId, hub.accessToken, hub.serverUrl, previous, true)));
-	}
+	return new Promise((resolve) => {
+		const timer = setTimeout(() => {
+			stop();
+			resolve(undefined);
+		}, HUB_WAIT_MS);
+		const stop = watch(
+			() => hubs.hub(hubId),
+			(hub) => {
+				if (!hub) return;
+				clearTimeout(timer);
+				stop();
+				resolve(hub);
+			},
+		);
+	});
 }
 
-/**
- * Call once, after the router is available (see `global-client/src/pages/App.vue`). No-ops on
- * the web (browser Notification API + Sliding Sync already cover that case, see hubs.ts's
- * `sendNotification`, left untouched by this module).
- */
-function initNativePush(router: Router): void {
-	if (!Capacitor.isNativePlatform()) return;
+/** A push arrived (app in the foreground) or was tapped: open its hub, as clicking it would. */
+async function openHub(router: Router, tag: string): Promise<void> {
+	const hubId = Object.entries(loadPushers()).find(([, pusher]) => pusher.tag === tag)?.[0];
+	if (!hubId) {
+		logger.warn('push for an unknown tag');
+		return;
+	}
+	logger.info(`push for hub ${hubId}`);
+	const hub = await whenHubKnown(hubId);
+	if (hub) await router.push({ name: 'hub', params: { name: hub.name } });
+}
 
-	logger.debug('initNativePush: registering');
+/** Call once, after the router is available (App.vue). Does nothing on the web, where Notification and Sliding Sync already cover this. */
+async function initNativePush(router: Router): Promise<void> {
+	if (!Capacitor.isNativePlatform() || !phc_api) return;
+	const phc = phc_api;
+
+	await NativePush.addListener('pushReceived', ({ tag }) => void openHub(router, tag));
+	await NativePush.addListener('pushUnavailable', ({ reason }) => logger.warn(`unavailable (${reason})`));
+	await NativePush.addListener('pushTokenReceived', (device) => {
+		logger.info(`device token received (${device.transport})`);
+		localStorage.setItem(DEVICE_KEY, JSON.stringify(device));
+		void syncPushers();
+	});
+
+	try {
+		pushInfo = await handleErrors<PushInfo>(() => phc.apiGET<Result<PushInfo, ErrorCode>>(phc.apiURLS.pushInfo));
+	} catch (error) {
+		// Pushers stay as they are; the next start tries again.
+		logger.warn(`could not get PHC's push keys: ${error}`);
+		return;
+	}
+
 	trackAuthenticatedHubs();
-
-	NativePush.addListener('pushTokenReceived', ({ transport, token }) => {
-		void onTokenReceived({ transport, token });
-	});
-
-	NativePush.addListener('pushUnavailable', ({ reason }) => {
-		// "no_distributor" (fdroid, no UnifiedPush app installed) and "vapid_required" are the
-		// reasons most worth a user-facing prompt eventually; left as a log line for now - wiring
-		// up that UI is a separate piece of work from getting the mechanism working.
-		logger.warn(`unavailable (${reason})`);
-	});
-
-	NativePush.addListener('pushReceived', ({ hub_id }) => {
-		logger.info(`push received (hub_id=${hub_id})`);
-		const hub = useHubs().hub(hub_id);
-		if (!hub) return;
-		// Same route a user clicking the hub in the UI would take (see HubBlock.vue/HubMenu.vue) -
-		// the hub's own Sliding Sync then fetches the real unread state; the push is never itself a
-		// data source.
-		void router.push({ name: 'hub', params: { name: hub.name } });
-	});
-
-	void NativePush.register();
+	await NativePush.register({ vapid: pushInfo.vapid_key });
 }
 
 export { initNativePush };

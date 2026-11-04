@@ -1,17 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    fdroid-flavor-only manifest additions, merged only into the F-Droid build. This flavor has no
-    Firebase/Google Play Services dependency anywhere - see app/build.gradle's flavor comments.
-
-    The intent-filter action below is org.unifiedpush.android.connector.PushService's own
-    ACTION_PUSH_EVENT constant value, confirmed by decompiling connector-3.3.5.aar (no
-    javadoc/source jar was available to check directly) - see NativePushPlugin.java's class doc.
--->
+<!-- fdroid build only: UnifiedPush, no Google code (see app/build.gradle). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
-        <!-- exported="true": a distributor app (a separate application the user installed, e.g.
-             ntfy) needs to bind to / send intents to this service - it is not an internal
-             component. -->
+        <!-- Exported: the distributor app (e.g. ntfy) delivers to it. The action is
+             org.unifiedpush.android.connector.PushService.ACTION_PUSH_EVENT. -->
         <service
             android:name=".push.UnifiedPushService"
             android:exported="true">

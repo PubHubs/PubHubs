@@ -26,11 +26,6 @@ def set_own_hub_id(hub_id):
     _own_hub_id = hub_id
 
 
-def own_hub_id():
-    """This hub's id (unpadded base64url), or None while Core has not resolved it yet."""
-    return _own_hub_id
-
-
 def native_hub_label(hub_id):
     """Lowercase unpadded base32 of the 32-byte hub id: hostnames ignore case, base64url does not."""
     return base64.b32encode(b64url_decode(hub_id)).decode("ascii").rstrip("=").lower()

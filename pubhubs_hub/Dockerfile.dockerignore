@@ -9,4 +9,3 @@
 !config
 !config/local
 !config/local/livekit.local.yaml
-!config/local/sygnal.local.yaml

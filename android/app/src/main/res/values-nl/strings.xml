@@ -3,8 +3,7 @@
     <string name="app_name">PubHubs</string>
     <string name="title_activity_main">PubHubs</string>
 
-    <!-- Push notifications, see values/strings.xml. Same text as iOS's
-         ios/App/App/nl.lproj/Localizable.strings. -->
+    <!-- Push notifications, see values/strings.xml. -->
     <string name="push_channel_name">Nieuwe berichten</string>
     <string name="push_notification_title">PubHubs</string>
     <string name="push_notification_body">Je hebt nieuwe berichten</string>

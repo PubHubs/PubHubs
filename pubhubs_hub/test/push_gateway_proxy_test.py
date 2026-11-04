@@ -1,16 +1,13 @@
-"""Tests for the notification rewriting in modules/pubhubs/_push_gateway_proxy.py: every platform
-gets the same content-free push, carrying only the hub id."""
+"""Tests for modules/pubhubs/_push_gateway_proxy.py: only the app's encrypted blob leaves the hub."""
 
 import sys
 import unittest
 
 sys.path.append("modules")
-from pubhubs._push_gateway_proxy import sanitize_notification
-
-HUB_ID = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+from pubhubs._push_gateway_proxy import gateway_response, push_request
 
 
-def notify_body(app_id, prio="low"):
+def notify_body(devices, prio="low"):
     """A notify body as Synapse sends it for a pusher with `format: event_id_only`."""
     return {
         "notification": {
@@ -18,43 +15,49 @@ def notify_body(app_id, prio="low"):
             "room_id": "!room:hub",
             "counts": {"unread": 3},
             "prio": prio,
-            "devices": [{
-                "app_id": app_id,
-                "pushkey": "token",
-                "pushkey_ts": 0,
-                "data": {"format": "event_id_only", "default_payload": {"from": "client"}},
-            }],
+            "devices": devices,
         }
     }
 
 
-class SanitizeNotificationTest(unittest.TestCase):
-    def test_strips_everything_but_event_id(self):
-        notification = sanitize_notification(notify_body("nl.pubhubs.client.gplay"), HUB_ID)["notification"]
-        self.assertEqual(set(notification), {"event_id", "prio", "devices"})
-        self.assertEqual(notification["event_id"], "$event")
+def device(pushkey, blob=None):
+    data = {"format": "event_id_only"}
+    if blob is not None:
+        data["blob"] = blob
+    return {"app_id": "nl.pubhubs.client", "pushkey": pushkey, "pushkey_ts": 0, "data": data}
 
-    def test_every_platform_gets_the_hub_id(self):
-        for app_id in ("nl.pubhubs.client.ios", "nl.pubhubs.client.gplay", "nl.pubhubs.client.fdroid"):
-            device = sanitize_notification(notify_body(app_id), HUB_ID)["notification"]["devices"][0]
-            self.assertEqual(device["data"]["default_payload"]["hub_id"], HUB_ID)
-            # Whatever the client put in default_payload is replaced, not merged.
-            self.assertNotIn("from", device["data"]["default_payload"])
-            self.assertEqual(device["data"]["format"], "event_id_only")
-            self.assertEqual(device["pushkey"], "token")
 
-    def test_apns_gets_generic_alert_and_high_priority(self):
-        notification = sanitize_notification(notify_body("nl.pubhubs.client.ios", prio="low"), HUB_ID)["notification"]
-        self.assertEqual(notification["prio"], "high")
-        aps = notification["devices"][0]["data"]["default_payload"]["aps"]
-        self.assertEqual(aps["alert"], {"title-loc-key": "push_notification_title", "loc-key": "push_notification_body"})
-        self.assertNotIn("content-available", aps)
+class PushRequestTest(unittest.TestCase):
+    def test_only_the_blob_and_priority_go_out(self):
+        pushes, pushkeys, without_blob = push_request(notify_body([device("key1", "BLOB")], prio="high"))
+        self.assertEqual(pushes, [{"blob": "BLOB", "high_prio": True}])
+        self.assertEqual(pushkeys, ["key1"])
+        self.assertEqual(without_blob, [])
 
-    def test_android_keeps_synapse_priority_and_gets_no_aps(self):
-        for prio in ("low", "high"):
-            notification = sanitize_notification(notify_body("nl.pubhubs.client.gplay", prio=prio), HUB_ID)["notification"]
-            self.assertEqual(notification["prio"], prio)
-            self.assertNotIn("aps", notification["devices"][0]["data"]["default_payload"])
+    def test_low_priority(self):
+        pushes, _, _ = push_request(notify_body([device("key1", "BLOB")]))
+        self.assertEqual(pushes, [{"blob": "BLOB", "high_prio": False}])
+
+    def test_pushers_without_blob_are_rejected(self):
+        # e.g. pushers from app builds that registered the device token itself
+        body = notify_body([device("old"), device("key1", "BLOB")])
+        pushes, pushkeys, without_blob = push_request(body)
+        self.assertEqual(pushkeys, ["key1"])
+        self.assertEqual(without_blob, ["old"])
+        self.assertEqual(gateway_response({"Ok": {"rejected": [], "failed": []}}, pushkeys, without_blob),
+                         (200, {"rejected": ["old"]}))
+
+
+class GatewayResponseTest(unittest.TestCase):
+    def test_rejected_indices_become_pushkeys(self):
+        self.assertEqual(gateway_response({"Ok": {"rejected": [1]}}, ["a", "b"], []), (200, {"rejected": ["b"]}))
+
+    def test_failed_or_errors_make_synapse_retry(self):
+        self.assertEqual(gateway_response({"Ok": {"rejected": [], "failed": [0]}}, ["a"], [])[0], 502)
+        self.assertEqual(gateway_response({"Err": "PleaseRetry"}, ["a"], [])[0], 502)
+
+    def test_ignores_out_of_range_indices(self):
+        self.assertEqual(gateway_response({"Ok": {"rejected": [5]}}, ["a"], []), (200, {"rejected": []}))
 
 
 if __name__ == "__main__":

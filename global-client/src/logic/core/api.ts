@@ -29,6 +29,7 @@ const phc_api = _env.PHC_URL
 			polymorphicPseudonymPackage: '.ph/user/ppp',
 			hashedHubPseudonymPackage: '.ph/user/hhpp',
 			CardPseudPackage: '.ph/user/card-pseud',
+			pushInfo: '.ph/push/info',
 		})
 	: null;
 

@@ -592,7 +592,7 @@ cargo test
 
 > End-to-end test of iOS push notifications via testhub n, on the Simulator or a device
 
-Not part of `mask test all`: it needs PHC, testhub n with Sygnal and an APNs key, and the app
+Not part of `mask test all`: it needs PHC with an APNs key, the transcryptor, testhub n, and the app
 logged in to that hub. See docs/app/ios-push-test.md.
 
 **OPTIONS**
@@ -608,7 +608,7 @@ logged in to that hub. See docs/app/ios-push-test.md.
 - pushkey
     - flags: --pushkey
     - type: string
-    - desc: APNs device token to push to, instead of looking it up
+    - desc: Pushkey of the hub's pusher to push to, instead of looking it up
 - only
     - flags: --only
     - type: string

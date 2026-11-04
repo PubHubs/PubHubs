@@ -100,6 +100,7 @@ impl Deref for App {
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         EhppEP::add_to(self, sc, App::handle_ehpp);
+        PushEP::add_to(self, sc, App::handle_push);
         api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
     }
 
@@ -169,6 +170,40 @@ impl App {
         signed_req: web::Json<api::phc::hub::TicketSigned<api::server::PingReq>>,
     ) -> api::Result<api::server::PingResp> {
         crate::servers::AppBase::<Server>::handle_hub_ping(app, signed_req).await
+    }
+
+    /// Implements [`PushEP`]: relays a hub's pushes to PHC, without saying which hub they come from.
+    async fn handle_push(app: Rc<Self>, req: web::Json<PushReq>) -> api::Result<PushResp> {
+        let running_state = app.running_state_or_please_retry()?;
+
+        let PushReq { pushes } = req.into_inner();
+        if pushes.is_empty()
+            || pushes.len() > MAX_PUSHES_PER_REQ
+            || pushes
+                .iter()
+                .any(|push| push.blob.len() > MAX_PUSH_BLOB_LEN)
+        {
+            return Err(api::ErrorCode::BadRequest);
+        }
+
+        let sealed = api::Sealed::new(
+            &api::phc::push::SendReq { pushes },
+            &running_state.phc_sealing_secret,
+        )?;
+
+        use api::ApiResultExt as _;
+        match app
+            .client
+            .query::<api::phc::push::SendEP>(&running_state.constellation.phc_url, sealed)
+            .await
+            .into_server_result()?
+        {
+            api::phc::push::SendResp::Success(resp) => Ok(resp),
+            api::phc::push::SendResp::RetryWithNewSecret => {
+                log::warn!("PHC could not open our pushes; is our constellation outdated?");
+                Err(api::ErrorCode::PleaseRetry)
+            }
+        }
     }
 
     /// Implements [`EhppEP`]

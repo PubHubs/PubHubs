@@ -20,18 +20,6 @@ COPY --from=yivi_build /go/bin/yivi /usr/bin/yivi
 # v1.13.5 is what `latest` resolved to when this was pinned.
 COPY --from=livekit/livekit-server:v1.13.5 /livekit-server /usr/bin/livekit-server
 COPY --chmod=755 config/local/livekit.local.yaml /conf/livekit.local.yaml
-COPY --chmod=755 config/local/sygnal.local.yaml /conf/sygnal.local.yaml
-
-# Sygnal (Matrix push gateway, see modules/pubhubs/_push_gateway_proxy.py) in its own venv,
-# deliberately isolated from Synapse's: matrix-sygnal and matrix-synapse are separate Matrix.org
-# projects that happen to share a dependency family (Twisted, attrs, prometheus_client, ...), and
-# pip installing it straight into Synapse's environment risks a version resolution silently
-# up/downgrading one of Synapse's own pins. Only started when a hub opts in with a /data/sygnal.yaml
-# (see boot/start_hub.py) - disabled by default, so this costs every hub some image size but nothing
-# at runtime unless configured. Sygnal isn't published on PyPI, so it's installed from its pinned
-# GitHub release instead.
-RUN python3 -m venv /opt/sygnal-venv && \
-	/opt/sygnal-venv/bin/pip install --no-cache-dir https://github.com/element-hq/sygnal/archive/refs/tags/v0.17.0.tar.gz
 
 # One layer on purpose: each of these steps used to be its own RUN, and every layer costs another
 # image layer plus its own filesystem snapshot.

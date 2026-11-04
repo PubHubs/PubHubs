@@ -112,6 +112,9 @@ For DevTools where `chrome://inspect` doesn't work, as on GrapheneOS, see
   falls back to `addJavascriptInterface`, which every frame can reach.
 - **No process isolation.** Android's WebView runs all frames in one renderer process, so this is
   origin isolation, not site or process isolation. Spectre-class attacks are out of scope.
+- **Push notifications.** Hubs never get the device's push token: each gets a random pushkey and a
+  blob only PHC can read, and pushes go through the transcryptor, so PHC doesn't learn the hub. Push
+  timing remains a weak signal; see [Push notifications](push.md#who-learns-what).
 
 ## Still open
 

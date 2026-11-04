@@ -3,15 +3,15 @@
 
 Walks the chain one link at a time, so a failure points at the broken link:
 
-  hub         testhub<n> runs, Sygnal is up and the hub resolved its hub id from PHC
-  config      the hub's sygnal.yaml has a sane `nl.pubhubs.client.ios` app
-  credentials Apple accepts the .p8 key for that environment (no notification is sent)
-  token       the APNs device token of the target (read from the Simulator, or the hub's pushers)
-  pusher      the hub has a pusher for that token, pointing at the hub's current address
-  gateway     a push straight to the hub's push gateway reaches Apple and shows the banner
-  e2e         a real message in a room makes Synapse push, and shows the banner
+  hub         testhub<n> runs and got the constellation from PHC (so it knows the transcryptor)
+  config      pubhubs/pubhubs.toml has APNs credentials for PHC ([phc.push.apns])
+  credentials Apple accepts that key for that environment (no notification is sent)
+  token       the app's pusher on the hub (from the Simulator's storage, or the hub's newest pusher)
+  pusher      the pusher has a blob and points at the hub's current address
+  gateway     a push to the hub's push gateway goes through the transcryptor and PHC to Apple
+  e2e         a real message in a room makes Synapse push, and Apple accepts it
   foreground  with the app open, a push shows no banner but reaches JS as `pushReceived`
-  tap         tapping the banner hands the hub id to JS (interactive only)
+  tap         tapping the banner hands the push's tag to JS (interactive only)
 
 For local test hubs only: the e2e step sends a real message as another user of the hub, using an
 access token it reads from the hub's database. See docs/app/ios-push-test.md.
@@ -27,6 +27,7 @@ import signal
 import subprocess
 import sys
 import time
+import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -36,7 +37,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HUB_DIR = REPO_ROOT / "pubhubs_hub"
 
 BUNDLE_ID = "net.pubhubs.app"
-APP_ID = "nl.pubhubs.client.ios"
+APP_ID = "nl.pubhubs.client"
+PHC_CONFIGS = [REPO_ROOT / "pubhubs" / "pubhubs.toml", REPO_ROOT / "pubhubs" / "pubhubs.default.toml"]
 APNS_HOSTS = {"sandbox": "api.sandbox.push.apple.com", "production": "api.push.apple.com"}
 SETTINGS_APP = "com.apple.Preferences"
 
@@ -97,6 +99,7 @@ class Context:
         self.public_baseurl = None
         self.apns = None
         self.pushkey = args.pushkey
+        self.tag = None  # the push's tag for this hub; only known on the Simulator
         self.pusher = None  # (user_id, data)
         self.line_open = False  # the runner printed a step's name and waits to print its result
 
@@ -126,9 +129,10 @@ class Context:
         return json.loads(run("docker", "exec", "-i", self.container, "python3", "-", path, input=READ_YAML).stdout)
 
     def notify(self, event_id):
-        """POST a notification to the hub's push gateway, shaped like Synapse's for an event_id_only pusher."""
+        """POST a notification to the hub's push gateway, as Synapse does for the pusher."""
+        data = {k: v for k, v in self.pusher[1].items() if k != "url"}
         body = {"notification": {"event_id": event_id, "prio": "low", "devices": [
-            {"app_id": APP_ID, "pushkey": self.pushkey, "pushkey_ts": 0, "data": {"format": "event_id_only"}}]}}
+            {"app_id": APP_ID, "pushkey": self.pushkey, "pushkey_ts": 0, "data": data}]}}
         request = urllib.request.Request(f"{self.local_url}/_matrix/push/v1/notify", data=json.dumps(body).encode(),
                                          headers={"Content-Type": "application/json"}, method="POST")
         try:
@@ -147,18 +151,17 @@ class Context:
         except urllib.error.HTTPError as e:
             return e.code, {}
 
-    def sygnal_dispatch(self, event_id, since, timeout=20):
-        """Wait for Sygnal to send `event_id` to Apple; return the log lines of that request."""
-        sending = re.compile(r"\[([0-9a-f-]{36})\] Sending \(attempt \d+\) => .* event:" + re.escape(event_id) + r"\b")
+    def gateway_answers(self, since, timeout=20):
+        """Wait for Synapse to call the push gateway; return the status codes it got. 200 means PHC
+        delivered the push (or that Apple rejected the token: then Synapse deletes the pusher)."""
+        answered = re.compile(r'Processed request: .* (\d{3}) "POST /_matrix/push/v1/notify')
         deadline = time.time() + timeout
         while time.time() < deadline:
-            logs = self.logs(since)
-            match = sending.search(logs)
-            if match:
-                time.sleep(1)  # let Sygnal log Apple's answer too
-                return [line for line in self.logs(since).splitlines() if f"[{match.group(1)}]" in line]
+            codes = answered.findall(self.logs(since))
+            if codes:
+                return codes
             time.sleep(1)
-        return None
+        return []
 
     # --- target ---
 
@@ -232,8 +235,10 @@ class SimConsole:
         run("xcrun", "simctl", "launch", self.ctx.udid, BUNDLE_ID)  # only activates an app that runs already
         time.sleep(2)
 
-    def received_hub_id(self):
-        return f'"hub_id":"{self.ctx.hub_id}"' in self.path.read_text(errors="replace")
+    def received_push(self):
+        log = self.path.read_text(errors="replace")
+        # The plugin event as Capacitor logs it, or nativePush.ts's own log line.
+        return f'"tag":"{self.ctx.tag}"' in log or f"push for hub {self.ctx.hub_id}" in log
 
     def __exit__(self, *exc):
         self.process.send_signal(signal.SIGINT)
@@ -250,14 +255,9 @@ def step_hub(ctx):
     if run("docker", "inspect", "-f", "{{.State.Running}}", ctx.container, check=False).stdout.strip() != "true":
         raise Fail(f"{ctx.container} isn't running: `mask run hub server {ctx.n}`")
     logs = ctx.logs()
-    if "No /data/sygnal.yaml found" in logs:
-        raise Fail(f"Sygnal is off: copy pubhubs_hub/config/local/sygnal.local.yaml to {ctx.hub_dir}/sygnal.yaml, "
-                   "fill it in and restart the hub")
-    if "SygnalLoggedSite starting" not in logs:
-        raise Fail("Sygnal didn't start; check the hub's log")
     hub_ids = re.findall(r"resolved our hub id: (\S+)", logs)
     if not hub_ids:
-        raise Fail("the hub hasn't resolved its hub id, so its push gateway refuses every push. Is PHC running, "
+        raise Fail("the hub hasn't got the constellation, so its push gateway doesn't know where to push. Is PHC running, "
                    "and was the hub started on the networkhost PHC uses (did your IP change)?")
     ctx.hub_id = hub_ids[-1]
     ctx.public_baseurl = ctx.read_yaml("/data/homeserver.live.yaml")["public_baseurl"].rstrip("/")
@@ -265,33 +265,26 @@ def step_hub(ctx):
 
 
 def step_config(ctx):
-    app = ctx.read_yaml("/data/sygnal.yaml").get("apps", {}).get(APP_ID)
-    if not app:
-        raise Fail(f"no `{APP_ID}` app in {ctx.hub_dir}/sygnal.yaml")
-    problems = []
-    if app.get("type") != "apns":
-        problems.append(f"type is {app.get('type')!r}, not 'apns'")
-    if app.get("topic") != BUNDLE_ID:
-        problems.append(f"topic is {app.get('topic')!r}, not {BUNDLE_ID!r} (Apple answers DeviceTokenNotForTopic)")
-    if app.get("convert_device_token_to_hex", True) is not False:
-        problems.append("convert_device_token_to_hex must be false: the app sends hex tokens, not base64")
-    for key in ("keyfile", "key_id", "team_id"):
-        if not app.get(key):
-            problems.append(f"{key} is missing")
-    platform = app.get("platform", "production")
-    if platform not in APNS_HOSTS:
-        problems.append(f"platform is {platform!r}")
-    if problems:
-        raise Fail("; ".join(problems))
-    keyfile = app["keyfile"]
-    if not keyfile.startswith("/data/"):
-        raise Fail(f"keyfile {keyfile} isn't under /data, so this suite can't find it on the host")
-    ctx.apns = {"key_id": app["key_id"], "team_id": app["team_id"], "platform": platform,
-                "keyfile": ctx.hub_dir / keyfile.removeprefix("/data/")}
-    if not ctx.apns["keyfile"].is_file():
-        raise Fail(f"{ctx.apns['keyfile']} doesn't exist")
-    note = "" if platform == "sandbox" else " - debug builds from Xcode get sandbox tokens, which fail here"
-    return f"key {app['key_id']}, platform {platform}{note}"
+    path = next((p for p in PHC_CONFIGS if p.is_file()), None)
+    if path is None:
+        raise Fail("no PHC config found")
+    apns = tomllib.loads(path.read_text()).get("phc", {}).get("push", {}).get("apns")
+    if not apns:
+        raise Fail(f"no [phc.push.apns] in {path}: copy pubhubs.default.toml to pubhubs/pubhubs.toml and add it "
+                   "(see docs/app/ios-push-test.md), then restart PHC")
+    missing = [key for key in ("key_id", "team_id", "private_key") if not apns.get(key)]
+    if missing:
+        raise Fail(f"[phc.push.apns] lacks {', '.join(missing)}")
+    if apns.get("topic", BUNDLE_ID) != BUNDLE_ID:
+        raise Fail(f"topic is {apns['topic']!r}, not {BUNDLE_ID!r} (Apple answers DeviceTokenNotForTopic)")
+    platform = "sandbox" if apns.get("sandbox") else "production"
+    ctx.out_dir.mkdir(parents=True, exist_ok=True)
+    keyfile = ctx.out_dir / "apns-key.p8"
+    keyfile.write_text(apns["private_key"])
+    keyfile.chmod(0o600)
+    ctx.apns = {"key_id": apns["key_id"], "team_id": apns["team_id"], "platform": platform, "keyfile": keyfile}
+    note = "" if platform == "sandbox" else " - debug builds from Xcode get sandbox tokens: set sandbox = true"
+    return f"{path.name}: key {apns['key_id']}, {platform}{note}"
 
 
 def apns_jwt(keyfile, key_id, team_id):
@@ -324,22 +317,19 @@ def step_credentials(ctx):
     raise Fail(f"Apple answered {status} {reason}" + (f": {hints[reason]}" if reason in hints else ""))
 
 
-def simulator_tokens(udid=None):
-    """APNs tokens the app stored (localStorage `nativePushToken`) on one or every Simulator."""
+def simulator_storage(udid, key):
+    """The app's localStorage values for `key` on the Simulator `udid`, parsed as JSON."""
     devices = Path.home() / "Library/Developer/CoreSimulator/Devices"
-    pattern = f"{udid or '*'}/data/Containers/Data/Application/*/Library/WebKit/{BUNDLE_ID}/WebsiteData/**/localstorage.sqlite3"
-    tokens = set()
+    pattern = f"{udid}/data/Containers/Data/Application/*/Library/WebKit/{BUNDLE_ID}/WebsiteData/**/localstorage.sqlite3"
+    values = []
     for db in devices.glob(pattern):
-        result = run("sqlite3", "-readonly", str(db), "select hex(value) from ItemTable where key='nativePushToken';",
-                     check=False)
+        result = run("sqlite3", "-readonly", str(db), f"select hex(value) from ItemTable where key='{key}';", check=False)
         for value in result.stdout.split():
             try:
-                stored = json.loads(bytes.fromhex(value).decode("utf-16-le"))
+                values.append(json.loads(bytes.fromhex(value).decode("utf-16-le")))
             except ValueError:
                 continue
-            if stored.get("transport") == "apns":
-                tokens.add(stored["token"])
-    return tokens
+    return values
 
 
 def step_token(ctx):
@@ -354,32 +344,31 @@ def step_token(ctx):
         ctx.udid = booted[0]["udid"]
         if run("xcrun", "simctl", "get_app_container", ctx.udid, BUNDLE_ID, check=False).returncode != 0:
             raise Fail(f"{BUNDLE_ID} isn't installed on {booted[0]['name']}: `npm run cap:run:ios`")
-        if not ctx.pushkey:
-            tokens = simulator_tokens(ctx.udid)
-            if len(tokens) != 1:
-                raise Fail("the app has no APNs token stored yet: open it and allow notifications"
-                           if not tokens else "found several APNs tokens, pick one with --pushkey")
-            ctx.pushkey = tokens.pop()
-        return f"{booted[0]['name']} ({ctx.udid}), token {ctx.pushkey[:16]}…"
+        devices = [d for d in simulator_storage(ctx.udid, "nativePushDevice") if d and d.get("transport") == "apns"]
+        if not devices:
+            raise Fail("the app has no APNs token yet: open it and allow notifications")
+        pushers = [p[ctx.hub_id] for p in simulator_storage(ctx.udid, "nativePushPushers") if p and ctx.hub_id in p]
+        if not pushers:
+            raise Fail(f"the app has no pusher on testhub{ctx.n}: log in to the hub in the app")
+        ctx.pushkey = ctx.pushkey or pushers[0]["pushkey"]
+        ctx.tag = pushers[0]["tag"]
+        return f"{booted[0]['name']} ({ctx.udid}), token {devices[0]['token'][:16]}…, pushkey {ctx.pushkey[:8]}…"
 
     if ctx.pushkey:
-        return f"token {ctx.pushkey[:16]}… (--pushkey)"
-    simulators = simulator_tokens()
-    pushers = [p for p in ctx.query("select pushkey, ts, data from pushers where app_id = ? order by ts desc", APP_ID)
-               if p[0] not in simulators]
+        return f"pushkey {ctx.pushkey[:8]}… (--pushkey)"
+    # The hub can't tell iOS from Android, or one device from another: that's the point.
+    pushers = ctx.query("select pushkey, ts, data from pushers where app_id = ? order by ts desc", APP_ID)
     if not pushers:
-        raise Fail(f"no iOS pusher from a device on testhub{ctx.n}: log in to it in the app on the device")
-    # Prefer a pusher that points at the hub's current address: older ones are from earlier networks.
-    pushers.sort(key=lambda p: json.loads(p[2]).get("url", "").startswith(ctx.public_baseurl), reverse=True)
+        raise Fail(f"no pusher on testhub{ctx.n}: log in to it in the app on the device")
     ctx.pushkey = pushers[0][0]
-    others = f" ({len(pushers) - 1} other device pusher(s); use --pushkey to pick)" if len(pushers) > 1 else ""
-    return f"token {ctx.pushkey[:16]}…{others}"
+    others = f" ({len(pushers) - 1} other pusher(s); use --pushkey to pick)" if len(pushers) > 1 else ""
+    return f"newest pusher, pushkey {ctx.pushkey[:8]}…{others}"
 
 
 def step_pusher(ctx):
     rows = ctx.query("select user_name, data, enabled from pushers where app_id = ? and pushkey = ?", APP_ID, ctx.pushkey)
     if not rows:
-        raise Fail(f"no pusher for this token on testhub{ctx.n}: log in to the hub in the app (it registers on launch)")
+        raise Fail(f"no pusher with this pushkey on testhub{ctx.n}: log in to the hub in the app")
     user, data, enabled = rows[0]
     data = json.loads(data)
     ctx.pusher = (user, data)
@@ -391,29 +380,26 @@ def step_pusher(ctx):
                    "relaunch the app so it registers again")
     if data.get("format") != "event_id_only":
         raise Fail(f"pusher format is {data.get('format')!r}, not 'event_id_only'")
+    if not data.get("blob"):
+        raise Fail("the pusher has no blob: it's from an older app build; relaunch the app")
     return f"{user} -> {data['url']}"
 
 
-def check_dispatch(ctx, event_id, since):
-    lines = ctx.sygnal_dispatch(event_id, since)
-    if lines is None:
-        raise Fail("Sygnal never sent this push to Apple")
-    bad = [line for line in lines if re.search(r"WARNING|ERROR|was rejected|Temporary failure", line)]
-    if bad:
-        raise Fail("Sygnal: " + bad[0].split("] ", 2)[-1])
+def check_gateway_answer(status, body):
+    """The push gateway answers 200 once PHC delivered the push, and lists the pushkey as rejected
+    when Apple (or PHC) refused it for good."""
+    if status != 200:
+        raise Fail(f"push gateway answered {status}: {body.strip()[:200]} (is the transcryptor running, and PHC "
+                   "configured? See PHC's log)")
+    if json.loads(body).get("rejected"):
+        raise Fail("the push was rejected: Apple refused the token (a sandbox token on production, or "
+                   "the other way round, or the app was reinstalled), or PHC couldn't read the blob")
 
 
 def step_gateway(ctx):
     ctx.to_background()
-    since = int(time.time()) - 1
     event_id = f"$ios-push-test-gateway-{int(time.time())}"
-    status, body = ctx.notify(event_id)
-    if status != 200:
-        raise Fail(f"push gateway answered {status}: {body.strip()[:200]}")
-    rejected = json.loads(body).get("rejected")
-    if rejected:
-        raise Fail("Apple rejected the token (BadDeviceToken/Unregistered, or a sandbox token on production)")
-    check_dispatch(ctx, event_id, since)
+    check_gateway_answer(*ctx.notify(event_id))
     return f"Apple accepted it; {ctx.check_banner('gateway')}"
 
 
@@ -456,35 +442,32 @@ def step_e2e(ctx):
                                   token, {"msgtype": "m.text", "body": f"iOS push test {datetime.datetime.now():%H:%M:%S}"})
     if status != 200:
         raise Fail(f"sending as {sender} in {room_id} failed: {status}")
-    event_id = response["event_id"]
-    lines = ctx.sygnal_dispatch(event_id, since)
-    if lines is None:
+    codes = ctx.gateway_answers(since)
+    if not codes:
         failed = re.search(r"Failed to push data to " + re.escape(f"{user}/{APP_ID}/{ctx.pushkey}") + r": (.*)",
                            ctx.logs(since))
         raise Fail(f"Synapse couldn't reach the push gateway: {failed.group(1)}" if failed else
-                   f"Synapse didn't push for {event_id}: is the room muted, or are push rules off for {user}?")
-    check_dispatch(ctx, event_id, since)
-    return f"{sender} wrote in {room_id}, Apple accepted Synapse's push; {ctx.check_banner('e2e')}"
+                   f"Synapse didn't push for {response['event_id']}: is the room muted, or are push rules off for {user}?")
+    if codes[-1] != "200":
+        problem = re.findall(r"push gateway: (.*)", ctx.logs(since))
+        raise Fail(f"the push gateway answered {codes[-1]}" + (f": {problem[-1]}" if problem else ""))
+    return f"{sender} wrote in {room_id}, the push went through; {ctx.check_banner('e2e')}"
 
 
 def step_foreground(ctx):
     if ctx.simulator:
         with SimConsole(ctx, "foreground") as console:
             console.to_foreground()
-            status, body = ctx.notify(f"$ios-push-test-foreground-{int(time.time())}")
-            if status != 200 or json.loads(body).get("rejected"):
-                raise Fail(f"push gateway answered {status}: {body.strip()[:200]}")
+            check_gateway_answer(*ctx.notify(f"$ios-push-test-foreground-{int(time.time())}"))
             time.sleep(4)
             ctx.screenshot("foreground")
-            if not console.received_hub_id():
-                raise Fail(f"JS never got pushReceived with hub_id {ctx.hub_id} (see {console.path})")
-        return f"JS got pushReceived(hub_id={ctx.hub_id}); screenshot should show no banner"
+            if not console.received_push():
+                raise Fail(f"JS never got the push with tag {ctx.tag} (see {console.path})")
+        return f"JS got the push for hub {ctx.hub_id}; screenshot should show no banner"
     if not ctx.interactive:
         raise Skip("needs someone watching the device")
     ctx.wait_for_user("Open PubHubs on the device and keep it in the foreground")
-    status, body = ctx.notify(f"$ios-push-test-foreground-{int(time.time())}")
-    if status != 200 or json.loads(body).get("rejected"):
-        raise Fail(f"push gateway answered {status}: {body.strip()[:200]}")
+    check_gateway_answer(*ctx.notify(f"$ios-push-test-foreground-{int(time.time())}"))
     ctx.ask(f"No banner, and the app switched to testhub{ctx.n}?")
     return "no banner, app went to the hub"
 
@@ -495,17 +478,15 @@ def step_tap(ctx):
 
     def push_and_tap():
         ctx.to_background()
-        status, body = ctx.notify(f"$ios-push-test-tap-{int(time.time())}")
-        if status != 200 or json.loads(body).get("rejected"):
-            raise Fail(f"push gateway answered {status}: {body.strip()[:200]}")
+        check_gateway_answer(*ctx.notify(f"$ios-push-test-tap-{int(time.time())}"))
         ctx.wait_for_user("Tap the banner")
         time.sleep(3)
 
     if ctx.simulator:
         with SimConsole(ctx, "tap") as console:
             push_and_tap()
-            if not console.received_hub_id():
-                raise Fail(f"JS never got pushReceived with hub_id {ctx.hub_id} (see {console.path})")
+            if not console.received_push():
+                raise Fail(f"JS never got the push with tag {ctx.tag} (see {console.path})")
     else:
         push_and_tap()
     ctx.ask(f"Did PubHubs open, on testhub{ctx.n}?")
@@ -531,7 +512,7 @@ def main():
     parser.add_argument("hub", type=int, nargs="?", default=0, help="test hub number (default 0)")
     parser.add_argument("--target", choices=("simulator", "device"), default="simulator")
     parser.add_argument("--udid", help="Simulator to use when several are booted")
-    parser.add_argument("--pushkey", help="APNs device token to push to, instead of looking it up")
+    parser.add_argument("--pushkey", help="pushkey of the hub's pusher to push to, instead of looking it up")
     parser.add_argument("--room", help="room for the e2e message (default: the smallest shared room)")
     parser.add_argument("--sender-token", help="access token to send the e2e message with (needs --room)")
     parser.add_argument("--only", help="comma-separated steps to run (plus the ones they depend on)")

@@ -40,6 +40,7 @@ from ._hhpp import (
 )
 from ._base64url import b64url_decode, b64url_encode
 from ._native_app import set_own_hub_id
+from ._push_gateway_proxy import set_transcryptor_url
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -182,6 +183,7 @@ class Core:
 
         self._constellation = constellation
         self._phc_verifying_key = phc_verifying_key
+        set_transcryptor_url(constellation.get('transcryptor_url'))
         logger.info(f"retrieved constellation with id {self._constellation['id']}")
 
         # Resolve our own hub id (to verify the hub-id mac in enter-complete) from PHC's advertised

@@ -249,9 +249,8 @@ pub enum MessageCode {
     /// Seals the transcryptor's master encryption key part in its discovery info.
     MasterEncKeyPart = 14,
 
-    /// Hub's request for a short-lived push-notification credential (see
-    /// [`crate::api::phc::hub::PushCredentialsEP`]).
-    PushCredentialsReq = 15,
+    /// Pushes the transcryptor relays to PHC, see [`crate::api::phc::push::SendEP`].
+    PushSendReq = 15,
 
     /// Only used as an example in a doctest
     Example = 65535,

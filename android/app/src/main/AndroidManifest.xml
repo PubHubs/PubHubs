@@ -48,8 +48,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Runtime-requested on API 33+ by push.NativePushPlugin's register(); a no-op permission
-         (implicitly granted) on older APIs. Needed to show the LocalNotifier fallback and, on the
-         gplay flavor, for FCM's default notification behaviour. -->
+    <!-- Push notifications (@capacitor/push-notifications). Asked for at runtime on API 33+. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

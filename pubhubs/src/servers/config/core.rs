@@ -416,11 +416,68 @@ pub mod phc {
         #[serde(default)]
         pub hub_cache: crate::servers::phc::HubCacheConfig,
 
-        /// Secrets PHC mints short-lived, hub-scoped push-notification credentials from (see
-        /// [`api::phc::hub::PushCredentialsEP`]).  Absent platforms respond with
-        /// [`api::phc::hub::PushCredentialsResp::NotConfigured`].
+        /// Credentials for sending push notifications to the app (see `servers/phc/push.rs`).
+        /// Without them, pushes to that platform fail.  UnifiedPush needs none.
         #[serde(default)]
         pub push: push::PushConfig,
+    }
+
+    /// See [`ExtraConfig::push`].
+    pub mod push {
+        /// See [`super::ExtraConfig::push`].
+        #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Default)]
+        #[serde(deny_unknown_fields)]
+        pub struct PushConfig {
+            /// Apple Push Notification service, for iOS.
+            #[serde(default)]
+            pub apns: Option<ApnsConfig>,
+
+            /// Firebase Cloud Messaging, for the Android Play build.
+            #[serde(default)]
+            pub fcm: Option<FcmConfig>,
+        }
+
+        /// An APNs auth key (`.p8`), see the Apple Developer portal under Keys.
+        #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+        #[serde(deny_unknown_fields)]
+        pub struct ApnsConfig {
+            /// The key's id, the `<KEYID>` in `AuthKey_<KEYID>.p8`.
+            pub key_id: String,
+
+            /// The Apple Developer Team ID.
+            pub team_id: String,
+
+            /// The contents of the `.p8` file (PKCS#8 PEM).
+            pub private_key: String,
+
+            /// The app's bundle id.
+            #[serde(default = "default_apns_topic")]
+            pub topic: String,
+
+            /// Use APNs' sandbox, for app builds from Xcode, instead of production (TestFlight and
+            /// the App Store).
+            #[serde(default)]
+            pub sandbox: bool,
+        }
+
+        fn default_apns_topic() -> String {
+            "net.pubhubs.app".to_string()
+        }
+
+        /// A Firebase service account (Project settings, Service accounts) of the Firebase project
+        /// the app's `google-services.json` is from.
+        #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+        #[serde(deny_unknown_fields)]
+        pub struct FcmConfig {
+            /// `project_id` from the service account JSON.
+            pub project_id: String,
+
+            /// `client_email` from the service account JSON.
+            pub client_email: String,
+
+            /// `private_key` from the service account JSON (PKCS#8 PEM).
+            pub private_key: String,
+        }
     }
 
     fn default_auth_token_validity() -> core::time::Duration {
@@ -444,73 +501,6 @@ pub mod phc {
     fn default_card_pseud_validity() -> core::time::Duration {
         core::time::Duration::from_secs(30)
         // no user interaction required
-    }
-
-    /// Config for [`api::phc::hub::PushCredentialsEP`]'s underlying platform secrets.  See
-    /// [`ExtraConfig::push`].
-    pub mod push {
-        use super::*;
-
-        #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Default)]
-        #[serde(deny_unknown_fields)]
-        pub struct PushConfig {
-            /// Absent ⇒ PHC cannot mint FCM credentials.
-            #[serde(default)]
-            pub fcm: Option<FcmConfig>,
-
-            /// Absent ⇒ PHC cannot mint APNs credentials.
-            #[serde(default)]
-            pub apns: Option<ApnsConfig>,
-        }
-
-        /// Google Firebase service account used to mint short-lived FCM HTTP v1 OAuth2 access
-        /// tokens (via the standard service-account JWT-bearer flow).  Fields correspond
-        /// directly to those in the service account JSON downloaded from the Firebase console.
-        #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
-        #[serde(deny_unknown_fields)]
-        pub struct FcmConfig {
-            /// `client_email` from the service account JSON.
-            pub client_email: String,
-
-            /// `private_key` (PKCS8 PEM, RSA) from the service account JSON.
-            pub private_key: String,
-
-            /// How long minted access tokens should be valid for.  Google caps this at one hour;
-            /// values above that are rejected by Google, not clamped here.
-            #[serde(with = "time_ext::human_duration")]
-            #[serde(default = "default_fcm_token_validity")]
-            pub token_validity: core::time::Duration,
-        }
-
-        fn default_fcm_token_validity() -> core::time::Duration {
-            core::time::Duration::from_secs(3600) // Google's maximum
-        }
-
-        /// Apple Push Notification service (APNs) token-based authentication key ("auth key" /
-        /// `.p8`), used to mint short-lived provider authentication tokens.
-        #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
-        #[serde(deny_unknown_fields)]
-        pub struct ApnsConfig {
-            /// The key id (`kid`), shown in the Apple Developer portal next to the key.
-            pub key_id: String,
-
-            /// The Apple Developer Team ID (`iss`).
-            pub team_id: String,
-
-            /// The `.p8` file's contents (PKCS8 PEM, EC P-256).
-            pub private_key: String,
-
-            /// How long minted tokens should be valid for before the hub's push gateway should
-            /// request a fresh one.  Apple has no hard cap, but recommends refreshing well within
-            /// an hour.
-            #[serde(with = "time_ext::human_duration")]
-            #[serde(default = "default_apns_token_validity")]
-            pub token_validity: core::time::Duration,
-        }
-
-        fn default_apns_token_validity() -> core::time::Duration {
-            core::time::Duration::from_secs(50 * 60) // 50 minutes
-        }
     }
 }
 
