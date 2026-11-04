@@ -27,6 +27,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed that headings were shown in a fallback font instead of Atkinson Hyperlegible.
 - [BUG] Fixed that text was shown in a fallback font instead of Inter, whose files were missing.
 - [BUG] Fixed that pinned hubs were not loaded on the first login after a PubHubs Central restart.
+- [BUG] Fixed zooming in/out on App's Login screen when clicking on mascotte
 - [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
 - [NEW] iOS capacitor stuff added, ready for testing
 - [IMPROVED] The documentation has been restructured and brought up to date, and a CONTRIBUTING.md explains that contributions go through the PubHubs team.
@@ -35,6 +36,8 @@ _Please add a brief description of any changes and any migrations to be performe
 - [INTERNAL] The draft GitHub release's notes leave out the changelog's INTERNAL entries; a release with only those says "Internal changes only.".
 - [INTERNAL] The copyright in LICENSE is the Privacy by Design Foundation's (Stichting Privacy by Design), which PubHubs belongs to, instead of iHub's.
 - [INTERNAL] The merge-to-stable template asks to update the website when a release changes what it describes.
+- [INTERNAL] --localhost-client option added to mask and start_testhub.py for making hubs run as localhost
+- [INTERNAL] Added testflight release command for iOS
 
 ## 18 September 2026 - v3.5.5
 

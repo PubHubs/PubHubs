@@ -30,7 +30,8 @@ tmux split-window -h -t "$SESSION:0" "mask run client; $hold"
 
 # Create hub tab with first command for the hub
 hub_server_flags=()
-[[ "$PH_NO_POSTGRES" == "true" ]] && hub_server_flags=(--no-postgres)
+[[ "$PH_NO_POSTGRES" == "true" ]] && hub_server_flags+=(--no-postgres)
+[[ "$PH_LOCALHOST_CLIENT" == "true" ]] && hub_server_flags+=(--localhost-client)
 tmux new-window -t "$SESSION:1" -n hub "mask run hub server 0 ${hub_server_flags[*]} ${host_flags[*]}; $hold"
 
 # Create split and run the hub client

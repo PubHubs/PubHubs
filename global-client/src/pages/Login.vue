@@ -25,7 +25,7 @@
 					:class="isMobile ? 'h-2/5 w-full px-600' : 'h-full w-1/2 px-2000'"
 				>
 					<figure
-						class="h-auto w-full"
+						class="h-auto w-full touch-manipulation select-none"
 						@click="onMascotTap"
 					>
 						<img
