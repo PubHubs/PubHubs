@@ -364,6 +364,18 @@ npm run cap:open:ios
 npm run cap:run:ios
 ```
 
+#### release
+
+> Build the web app with the production config, sync it to the native project and open Xcode, for TestFlight/App Store
+
+Includes review mode (see docs/app/README.md). Archive in Xcode afterwards. Don't run `mask run ios build`,
+`copy`, `run` or `open` in between: they put the development config back.
+
+```sh
+npm run cap:sync:ios:release
+npx cap open ios
+```
+
 #### test
 
 > Smoke-test the iOS app on a Simulator (default iPhone 11): build, install, launch, watch for errors
