@@ -105,6 +105,7 @@
 			return;
 		}
 
+		await currentRoom.refreshCallActive();
 		if (!currentRoom.hasActiveCall()) {
 			callEnded.value = true;
 			if (!duration.value) duration.value = 'Unknown';
