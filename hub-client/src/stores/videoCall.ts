@@ -7,6 +7,7 @@ import {
 	type LocalVideoTrack,
 	type Participant,
 	type RemoteParticipant,
+	RoomEvent,
 	type RoomOptions,
 	ScreenSharePresets,
 	Track,
@@ -17,7 +18,7 @@ import {
 	createLocalVideoTrack,
 	isE2EESupported,
 } from 'livekit-client';
-import { type MatrixRTCSession, MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
+import { type MatrixRTCSession } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
 import { defineStore } from 'pinia';
 import { markRaw } from 'vue';
 
@@ -90,7 +91,6 @@ const useVideoCall = defineStore('videoCall', {
 			selected_output_device_id: null as string | null,
 
 			screen_share: false,
-			participant_count: 0,
 
 			locally_muted_participants: [] as string[],
 			undecryptable_participants: [] as string[], // LiveKit identities whose media we cannot decrypt
@@ -136,10 +136,6 @@ const useVideoCall = defineStore('videoCall', {
 			const currentRoom = rooms.currentRoom;
 			if (!currentRoom) return false;
 
-			// Decide before joining: the session recalculates its members asynchronously, so right after joining it may
-			// not count our own membership yet, or still hold the previous call's.
-			const startsNewCall = !(await this.someoneElseInCall());
-
 			const connected = await this.connectToCall();
 			if (!connected) return false;
 
@@ -147,8 +143,8 @@ const useVideoCall = defineStore('videoCall', {
 			const { getI18n } = await import('@hub-client/i18n');
 			const { t } = getI18n().global;
 
-			// first user: message for video call start
-			if (startsNewCall) {
+			// first user: message for video call start (Livekit knows who is actually connected, Matrix memberships can linger for minutes)
+			if (this.livekit_room?.remoteParticipants.size === 0) {
 				// create message for timeline to show the call has started
 				const eventId = await pubhubs.addVideoCallMessage(
 					currentRoom.roomId,
@@ -173,17 +169,6 @@ const useVideoCall = defineStore('videoCall', {
 				})();
 			}
 			return true;
-		},
-
-		/** Whether another device than ours is currently in the current room's call. */
-		async someoneElseInCall(): Promise<boolean> {
-			const currentRoom = useRooms().currentRoom;
-			if (!currentRoom) return false;
-
-			const client = currentRoom.matrixRoom.client;
-			const rtcSession = currentRoom.getMatrixRTCSession();
-			await rtcSession.ensureRecalculateSessionMembers();
-			return rtcSession.memberships.some((membership) => !(membership.userId === client.getUserId() && membership.deviceId === client.getDeviceId()));
 		},
 
 		/**
@@ -226,7 +211,6 @@ const useVideoCall = defineStore('videoCall', {
 					membershipEventExpiryMs: MembershipExpiryTime,
 					manageMediaKeys: true,
 				});
-				this.addEndCallListener();
 
 				const matrix_key_provider = new MatrixKeyProvider();
 
@@ -263,6 +247,7 @@ const useVideoCall = defineStore('videoCall', {
 				await this.livekit_room.connect(this.target_url, this.token, {
 					autoSubscribe: true,
 				});
+				this.addCallListeners();
 
 				await this.applyOutputDevice();
 				return true;
@@ -308,13 +293,14 @@ const useVideoCall = defineStore('videoCall', {
 				const { getI18n } = await import('@hub-client/i18n');
 				const { t } = getI18n().global;
 
-				// Clean up eventlisteners
+				// Clean up eventlisteners. Keep this before livekitroom.disconnect to prevent listener-loop
 				if (endCallCleanup) {
 					endCallCleanup();
 					endCallCleanup = null;
 				}
 
 				const errors: unknown[] = [];
+				const isLastMember = this.livekit_room.remoteParticipants.size === 0;
 
 				// disconnect the livekit room
 				try {
@@ -359,7 +345,6 @@ const useVideoCall = defineStore('videoCall', {
 				// if necessary: send end message
 				if (this.rtc_session) {
 					try {
-						const isLastMember = !(await this.someoneElseInCall()); // decided before leaving, see joinCall
 						await this.rtc_session.leaveRoomSession(10);
 						if (isLastMember && this.eventId) {
 							if (currentRoom.isDirectMessageRoom()) {
@@ -403,30 +388,27 @@ const useVideoCall = defineStore('videoCall', {
 			}
 		},
 
-		addEndCallListener() {
-			const rooms = useRooms();
-			if (!rooms.currentRoom) return;
+		addCallListeners() {
+			const livekitRoom = this.livekit_room;
+			if (!livekitRoom) return;
 
-			const rtcSession = rooms.currentRoom.getMatrixRTCSession();
-
-			const onMembershipsChanged = async () => {
-				if (!rooms.currentRoom) return;
-				this.participant_count = rtcSession.memberships.length;
-				if (rtcSession.memberships.length === 0) {
-					const roomId = rooms.currentRoom.roomId;
-					endCallCleanup?.();
-					endCallCleanup = null;
-					router.push({ name: 'room', params: { id: roomId } });
-					try {
-						await this.leaveCall();
-					} catch (error) {
-						logger.error('leavecall failed after membership change ', error);
-					}
+			// Server closed the room, removed us, or reconnecting failed: we are no longer in the call.
+			const onDisconnected = async () => {
+				const roomId = useRooms().currentRoom?.roomId;
+				endCallCleanup?.();
+				endCallCleanup = null;
+				if (roomId) router.push({ name: 'room', params: { id: roomId } });
+				try {
+					await this.leaveCall();
+				} catch (error) {
+					logger.error('leaveCall failed after LiveKit disconnect', error);
 				}
 			};
 
-			rtcSession.on(MatrixRTCSessionEvent.MembershipsChanged, onMembershipsChanged);
-			endCallCleanup = () => rtcSession.off(MatrixRTCSessionEvent.MembershipsChanged, onMembershipsChanged);
+			livekitRoom.on(RoomEvent.Disconnected, onDisconnected);
+			endCallCleanup = () => {
+				livekitRoom.off(RoomEvent.Disconnected, onDisconnected);
+			};
 		},
 
 		async toggleAudioTrack(should_publish: boolean) {

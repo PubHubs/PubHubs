@@ -36,7 +36,6 @@ async function mountBar({ participantCount = 2 } = {}) {
 	const i18n = setUpi18n();
 	const pinia = createTestingPinia({ createSpy: vi.fn, stubActions: false });
 	const videoCall = useVideoCall(pinia);
-    videoCall.participant_count = participantCount; // screenshare is only active with multiple users
 	videoCall.leaveCall = vi.fn().mockResolvedValue(undefined);
 
 	const wrapper = mount(VideoCallBottomBar, {

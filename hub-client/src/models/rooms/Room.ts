@@ -79,6 +79,10 @@ export default class Room {
 	/** Whether the first sliding sync response has been received for this room's subscription */
 	public syncDataReceived: boolean = false;
 
+	/** Whether anyone is connected to this room's call, according to LiveKit. Public for Vue reactivity. */
+	public callActive: boolean = false;
+	private callActiveRequestId = 0;
+
 	// timelinemanager of currently shown events
 	private timelineManager: TimelineManager;
 
@@ -727,6 +731,9 @@ export default class Room {
 	 * Initialization room timeline: subscribes to sliding sync and loads initial messages
 	 */
 	public async initTimeline() {
+		// check if a livekitcall is active
+		void this.refreshCallActive();
+
 		this.syncDataReceived = false;
 		this.timelineManager.initRoomTimeline(this.matrixRoom.roomId);
 
@@ -1057,8 +1064,23 @@ export default class Room {
 		await api_synapse.apiPOST(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId, {});
 	}
 
+	/**
+	 * API call that checks whether anyone is connected to this room's LiveKit call.
+	 * Matrix memberships are not used: they can linger for minutes after a crash or failed leave.
+	 */
+	public async refreshCallActive(): Promise<void> {
+		const requestId = ++this.callActiveRequestId;
+		try {
+			const response = await api_synapse.apiGET<{ active: boolean }>(api_synapse.apiURLS.videoCallStatus + '?room_id=' + encodeURIComponent(this.roomId));
+			// A later refresh may have started meanwhile; only the newest answer counts.
+			if (requestId === this.callActiveRequestId) this.callActive = response.active;
+		} catch (error) {
+			logger.warn('Could not fetch call status', error);
+		}
+	}
+
 	public hasActiveCall(): boolean {
-		return this.getMatrixRTCSession().memberships.length > 0;
+		return this.callActive;
 	}
 
 	public getLastVideoCallTimeLineEvent(): MatrixEvent | undefined {
