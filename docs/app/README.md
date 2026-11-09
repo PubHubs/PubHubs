@@ -11,6 +11,8 @@ More detail:
 - [Offline](offline.md): how the app keeps working without a connection.
 - [iOS push notification test](ios-push-test.md): setting up push for a test hub, and
   `mask test ios-push`.
+- [Push notification strategies](push-strategies.md): four ways to send push notifications while
+  keeping hubs apart, compared.
 
 ## How it fits together
 
