@@ -16,6 +16,7 @@ import { VideocallStateType } from '@hub-client/logic/core/events';
 const livekit = vi.hoisted(() => ({
 	rooms: [] as Array<{ options: unknown; setE2EEEnabled: ReturnType<typeof vi.fn>; connect: ReturnType<typeof vi.fn> }>,
 	supported: true,
+	remoteIdentities: [] as string[], // who else is connected to the Livekit room when we connect
 }));
 
 vi.mock('livekit-client', async () => {
@@ -26,6 +27,9 @@ vi.mock('livekit-client', async () => {
 		connect = vi.fn().mockResolvedValue(undefined);
 		disconnect = vi.fn().mockResolvedValue(undefined);
 		switchActiveDevice = vi.fn();
+		on = vi.fn();
+		off = vi.fn();
+		remoteParticipants = new Map(livekit.remoteIdentities.map((identity) => [identity, { identity }]));
 		constructor(options: unknown) {
 			this.options = options;
 			livekit.rooms.push(this);
@@ -78,6 +82,7 @@ describe('videoCall store', () => {
 		vi.clearAllMocks();
 		livekit.rooms.length = 0;
 		livekit.supported = true;
+		livekit.remoteIdentities = [];
 	});
 
 	describe('toggleScreenShare', () => {
@@ -207,46 +212,42 @@ describe('videoCall store', () => {
 			Object.assign(pubhubs, { addVideoCallMessage, getEvent: vi.fn().mockResolvedValue({}), addMessage: vi.fn().mockResolvedValue(undefined) });
 			return { addVideoCallMessage };
 		}
-
-		test('starts a new call when nobody else is in it, even before the session counts our own membership', async () => {
-			enterCallRoom({ memberships: [] });
-			const { addVideoCallMessage } = stubMessages();
-
-			await useVideoCall().joinCall();
-
-			const startedCalls = addVideoCallMessage.mock.calls.filter(([, state]) => state === VideocallStateType.Started);
-			expect(startedCalls).toHaveLength(1);
+		
+		test('starts a new call when nobody else is connected', async () => {
+				enterCallRoom();
+				const { addVideoCallMessage } = stubMessages();
+				await useVideoCall().joinCall();
+				const startedCalls = addVideoCallMessage.mock.calls.filter(([, state]) => state === VideocallStateType.Started);
+				expect(startedCalls).toHaveLength(1);
 		});
 
-		test('ignores a leftover membership of our own device from the previous call', async () => {
-			enterCallRoom({ memberships: [{ userId: '@a:hub', deviceId: 'DEV1' }] });
-			const { addVideoCallMessage } = stubMessages();
-
-			await useVideoCall().joinCall();
-
-			const startedCalls = addVideoCallMessage.mock.calls.filter(([, state]) => state === VideocallStateType.Started);
-			expect(startedCalls).toHaveLength(1);
+		test('ignores a leftover Matrix membership when nobody is connected to LiveKit', async () => {
+				enterCallRoom({ memberships: [{ userId: '@b:hub', deviceId: 'DEV2' }] });
+				const { addVideoCallMessage } = stubMessages();
+				await useVideoCall().joinCall();
+				const startedCalls = addVideoCallMessage.mock.calls.filter(([, state]) => state === VideocallStateType.Started);
+				expect(startedCalls).toHaveLength(1);
 		});
 
-		test('joins the ongoing call, without announcing a new one, when someone else is already in it', async () => {
-			enterCallRoom({ memberships: [{ userId: '@b:hub', deviceId: 'DEV2' }] });
-			const { addVideoCallMessage } = stubMessages();
-
-			await useVideoCall().joinCall();
-
-			expect(addVideoCallMessage).not.toHaveBeenCalled();
+		test('joins the ongoing call, without announcing a new one, when someone else is connected', async () => {
+				livekit.remoteIdentities = ['@b:hub:DEV2'];
+				enterCallRoom();
+				const { addVideoCallMessage } = stubMessages();
+				await useVideoCall().joinCall();
+				expect(addVideoCallMessage).not.toHaveBeenCalled();
 		});
 	});
 
 	describe('leaveCall "call ended" message', () => {
-		function inCall(memberships: Array<{ userId: string; deviceId: string }>, { isDirectMessageRoom = false } = {}) {
-			setUpi18n();
-			const { rtcSession } = enterCallRoom({ memberships, isDirectMessageRoom });
-			const videoCall = useVideoCall();
+		function inCall(remoteIdentities: string[], { isDirectMessageRoom = false } = {}) {
+        	setUpi18n();
+        	const { rtcSession } = enterCallRoom({ isDirectMessageRoom });
+        	const videoCall = useVideoCall();
 			videoCall.livekit_room = {
 				localParticipant: { audioTrackPublications: new Map(), videoTrackPublications: new Map() },
-				disconnect: vi.fn().mockResolvedValue(undefined),
-			} as never;
+            	remoteParticipants: new Map(remoteIdentities.map((identity) => [identity, { identity }])),
+	        	disconnect: vi.fn().mockResolvedValue(undefined),
+         	} as never;
 			videoCall.rtc_session = rtcSession as never;
 			videoCall.eventId = '$start';
 			videoCall.changeAudioDevice = vi.fn().mockResolvedValue(undefined);
@@ -261,7 +262,7 @@ describe('videoCall store', () => {
 			return { videoCall, addEndVideoCallMessage, addVideoCallMessage };
 		}
 
-		test('ends the call when we are the last one, even if the session has not counted our own membership', async () => {
+		test('ends the call when nobody else is connected', async () => {
 			const { videoCall, addEndVideoCallMessage } = inCall([]);
 
 			await videoCall.leaveCall();
@@ -270,7 +271,7 @@ describe('videoCall store', () => {
 		});
 
 		test('keeps the call going for the others when someone else is still in it', async () => {
-			const { videoCall, addEndVideoCallMessage } = inCall([{ userId: '@b:hub', deviceId: 'DEV2' }]);
+			const { videoCall, addEndVideoCallMessage } = inCall(['@b:hub:DEV2']);
 
 			await videoCall.leaveCall();
 

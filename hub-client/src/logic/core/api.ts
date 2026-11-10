@@ -28,6 +28,7 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	notice: 'client/notices',
 	securedRoomPublicMetadata: 'client/secured_room/public_metadata',
 	videoCall: 'client/videocall',
+	videoCallStatus: 'client/videocall/status',
 
 	// Client Steward APIs
 	stewardSecuredRooms: 'client/steward/secured_rooms',

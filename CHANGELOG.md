@@ -17,6 +17,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [IMPROVED] Users are no longer logged out when PubHubs Central restarts. An auth token can now be refreshed until the user has been inactive for 90 days, and at most a year after logging in.
 - [IMPROVED] File uploads now give feedback in the UI when they fail, instead of silently being handled.
 - [IMPROVED] The app's fonts are WOFF2 instead of TTF, so they download faster; the emoji font went from 24 MB to 5 MB.
+- [BUG] Fixed that a fast switch of Hubs (or leave) can leave iframe blank
 - [BUG] Fixed that changing the display name or avatar could wipe the other one, and that the avatar could disappear after closing the profile settings.
 - [BUG] Fixed that new messages stay blank or below visible area in timeline
 - [BUG] Fixed that ~ would break url links.

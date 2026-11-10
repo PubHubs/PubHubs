@@ -43,7 +43,12 @@
 
 	onMounted(onRouteChange);
 
+	// Entering a hub takes a while (fetching it, the hub login), and the user can leave the page or move to another hub meanwhile.
+	// Only the newest run (latest user action) may be shown.
+	let currentRun = 0;
+
 	onUnmounted(() => {
+		currentRun++;
 		hubs.changeHub({
 			name: '',
 			roomId: '',
@@ -55,7 +60,11 @@
 	const hubUrl = ref('');
 
 	async function onRouteChange() {
-		const hubName = route.params.name as string;
+		const runId = ++currentRun;
+		const superseded = () => runId !== currentRun;
+		// The route moves on with the user, so keep the one this run is for.
+		const params = { ...route.params };
+		const hubName = params.name as string;
 		// Only pinned hubs are loaded at startup, so a hub the user has not pinned yet is fetched here.
 		if (!hubs.hubId(hubName)) {
 			try {
@@ -63,6 +72,7 @@
 			} catch (error) {
 				logger.error(`Could not load hub '${hubName}'`, { error });
 			}
+			if (superseded()) return;
 		}
 		let hubId = undefined;
 		const maxAttempts = 4;
@@ -74,6 +84,7 @@
 			}
 			if (!hubId) {
 				await delay(attempt);
+				if (superseded()) return;
 			}
 		}
 		if (!hubId) {
@@ -82,22 +93,30 @@
 		}
 		if (!hubs.hubExists(hubId)) {
 			await hubs.changeHub({ id: '', roomId: '' });
+			if (superseded()) return;
 		}
-		await handleHubAuth(hubId);
-		await hubs.changeHub(route.params);
+		const authenticated = await handleHubAuth(hubId, superseded);
+		if (!authenticated || superseded()) return;
+		await hubs.changeHub(params);
+		if (superseded()) return;
 		settings.setLastVisitedHub(hubId);
 	}
 
-	async function handleHubAuth(id: string) {
+	/** Sets the iframe url for entering the hub. Returns whether that worked; if not, the user has been sent elsewhere already (or the run is superseded). */
+	async function handleHubAuth(id: string, superseded: () => boolean): Promise<boolean> {
 		const hub = hubs.hub(id);
-		if (!hub) return;
+		if (!hub) {
+			logger.error(`Could not find hub '${id}'`);
+			router.push({ name: 'hubs-overview' });
+			return false;
+		}
 		const hubId = hub.hubId ?? '';
 		const state = hubloggedinstatus(hubId);
 
 		switch (state.kind) {
 			case Status.GlobalNotLoggedIn:
 				hubUrl.value = `${hubIndexBase(hub)}?${new URLSearchParams({ hubId, cb: cacheBust, HUB_URL: hubMatrixApiUrl(hub.serverUrl), PARENT_URL: window.location.origin })}#/hub/`;
-				break;
+				return true;
 			case Status.MSSHubNotLoggedIn: {
 				try {
 					const maxAttempts = 4;
@@ -105,29 +124,32 @@
 						if (attempt > 0) {
 							await delay(attempt - 1);
 						}
+						if (superseded()) return false;
 						const mss = useMSS();
 						const enterStartResp: EnterStartResp | undefined = await hub.enterStartEP();
 						assert.isDefined(enterStartResp, 'Something went wrong receiving/handling the response from enterStartEP.');
 						const hhpp = await mss.enterHub(id, enterStartResp);
 						assert.isDefined(hhpp, 'Something went wrong with getting the signedHhpp.');
 						const enterCompleteResp = await hub.enterCompleteEP(enterStartResp.state, hhpp);
-						if (enterCompleteResp === 'RetryFromStart' && attempt < maxAttempts) continue;
-						else if (enterCompleteResp === 'RetryFromStart') throw new Error('Max attemps for RetryFromStart were passed');
+						if (enterCompleteResp === 'RetryFromStart' && attempt < maxAttempts - 1) continue;
+						else if (enterCompleteResp === 'RetryFromStart') throw new Error('Max attempts for RetryFromStart were passed');
 						assert.isDefined(enterCompleteResp, 'Something went wrong receiving/handling a response from enterCompleteEP.');
+						if (superseded()) return false;
 						const authInfo = JSON.stringify({
 							token: enterCompleteResp.access_token,
 							userId: enterCompleteResp.mxid,
 						});
 						// TODO make sure that accessToken is no longer passed in query parameter
 						hubUrl.value = `${hubIndexBase(hub)}?${new URLSearchParams({ newToken: 'true', accessToken: authInfo, hubId, cb: cacheBust, HUB_URL: hubMatrixApiUrl(hub.serverUrl), PARENT_URL: window.location.origin })}`;
-						break;
+						return true;
 					}
 				} catch (error) {
 					logger.error('Error during Hub MSS login', { error });
+					if (superseded()) return false;
 					// Entering a hub for the first time needs PHC and the hub; say so rather than show an error.
 					router.push(isNetworkError(error) ? { name: 'error', query: { errorKey: 'errors.needs_connection' } } : { name: 'error' });
 				}
-				break;
+				return false;
 			}
 			case Status.MSSAccessToken: {
 				const authInfo = JSON.stringify({
@@ -136,9 +158,10 @@
 				});
 				// TODO: make sure that accessToken is no longer passed in query parameter
 				hubUrl.value = `${hubIndexBase(hub)}?${new URLSearchParams({ accessToken: authInfo, hubId, cb: cacheBust, HUB_URL: hubMatrixApiUrl(hub.serverUrl), PARENT_URL: window.location.origin })}`;
-				break;
+				return true;
 			}
 		}
+		return false;
 	}
 
 	enum Status {

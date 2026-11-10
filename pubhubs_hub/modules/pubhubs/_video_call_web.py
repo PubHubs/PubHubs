@@ -59,6 +59,22 @@ async def _create_room(room_name):
     await lkapi.aclose()
 
 
+async def _call_is_active(room_name: str) -> bool:
+    """Whether anyone is connected to the room's LiveKit call; a room that does not exist on livekit roomlist has no call."""
+    livekit_url, livekit_api_key, livekit_api_secret = _get_livekit_settings()
+    lkapi = api.LiveKitAPI(livekit_url, livekit_api_key, livekit_api_secret)
+    try:
+        # list_participants fails for a room that does not exist, so check that first.
+        rooms = await lkapi.room.list_rooms(api.ListRoomsRequest(names=[room_name]))
+        if not rooms.rooms:
+            return False
+        # Not num_participants from list_rooms: that count can be 0 while someone is connected.
+        participants = await lkapi.room.list_participants(api.ListParticipantsRequest(room=room_name))
+        return len(participants.participants) > 0
+    finally:
+        await lkapi.aclose()
+
+
 async def _generate_access_token(pseudonym, username, room_name):
     livekit_url, livekit_api_key, livekit_api_secret = _get_livekit_settings()
 
@@ -83,6 +99,7 @@ class VideoCallServlet(DirectServeJsonResource):
         self.config = config
         self.store = store
         self.module_api = api
+        self.putChild(b"status", VideoCallStatusServlet(api))
 
     async def _may_use_video_call(self, user_id: str, room_id: str) -> bool:
         """Only secured rooms require the Yivi-disclosure allow-list check —
@@ -139,3 +156,27 @@ class VideoCallServlet(DirectServeJsonResource):
         except TypeError as e:
             logger.exception("Failed to create LiveKit room")
             respond_with_json(request, 400, {"errors": f"{str(e)}"}, True)
+
+
+class VideoCallStatusServlet(DirectServeJsonResource):
+    """GET /_synapse/client/videocall/status?room_id=<id>: whether anyone is connected to the room's call."""
+
+    def __init__(self, module_api: ModuleApi):
+        super().__init__()
+        self.module_api = module_api
+
+    async def _async_render_GET(self, request: SynapseRequest):
+        user = await self.module_api.get_user_by_req(request)
+        user_id = user.authenticated_entity
+        room_id = parse_string(request, "room_id", required=True)
+
+        # Only joined members may see whether a call is going on.
+        room_state = await self.module_api.get_room_state(room_id, [(EventTypes.Member, user_id)])
+        member_event = room_state.get((EventTypes.Member, user_id))
+        if not member_event or member_event.membership != "join":
+            respond_with_json(request, 403, {"error": "User is not a member of this room"}, True)
+            return
+
+        # Synapse runs on Twisted, not asyncio; the LiveKit API needs a running asyncio loop, so give it its own in a worker thread.
+        active = await self.module_api.defer_to_thread(asyncio.run, _call_is_active(room_id))
+        respond_with_json(request, 200, {"active": active}, True)
