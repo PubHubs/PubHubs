@@ -12,9 +12,11 @@ import Capacitor
 /// global-client/src/logic/nativePush.ts can stay platform-agnostic.
 ///
 /// PHC sends the pushes (pubhubs/src/servers/phc/push.rs): a generic alert from
-/// this app's Localizable.strings keys, plus a random `tag` that nativePush.ts
-/// maps to the hub. In the background iOS shows the alert, and tapping it opens
-/// that hub; in the foreground there's no alert and the app goes to the hub.
+/// this app's Localizable.strings keys, a badge of 1, and a `sealed_tag` (a random
+/// tag, encrypted afresh for every push) that nativePush.ts opens and maps to the
+/// hub. In the background iOS shows the alert, and tapping it opens that hub; in
+/// the foreground there's no alert and the app goes to the hub. The badge is
+/// cleared whenever the app becomes active.
 @objc(NativePushPlugin)
 public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProtocol {
     public let identifier = "NativePushPlugin"
@@ -39,6 +41,21 @@ public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerP
             name: .capacitorDidFailToRegisterForRemoteNotifications,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(clearBadge),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+    }
+
+    /// Pushes set the badge to 1 ("something new"); opening the app has shown it.
+    @objc private func clearBadge() {
+        if #available(iOS 16.0, *) {
+            UNUserNotificationCenter.current().setBadgeCount(0)
+        } else {
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
     }
 
     @objc func register(_ call: CAPPluginCall) {
@@ -80,10 +97,10 @@ public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerP
     }
 
     private func emitPushReceived(_ userInfo: [AnyHashable: Any]) {
-        guard let tag = userInfo["tag"] as? String else { return }
+        guard let sealedTag = userInfo["sealed_tag"] as? String else { return }
         // retainUntilConsumed: a tap can cold-start the app, firing before the JS layer has
         // attached its "pushReceived" listener; without this the event would be dropped instead
         // of delivered once JS is ready for it.
-        notifyListeners("pushReceived", data: ["tag": tag], retainUntilConsumed: true)
+        notifyListeners("pushReceived", data: ["sealed_tag": sealedTag], retainUntilConsumed: true)
     }
 }

@@ -7,11 +7,12 @@ Walks the chain one link at a time, so a failure points at the broken link:
   config      pubhubs/pubhubs.toml has APNs credentials for PHC ([phc.push.apns])
   credentials Apple accepts that key for that environment (no notification is sent)
   token       the app's pusher on the hub (from the Simulator's storage, or the hub's newest pusher)
-  pusher      the pusher has a blob and points at the hub's current address
-  gateway     a push to the hub's push gateway goes through the transcryptor and PHC to Apple
+  pusher      the pusher has a v2 blob and points at the hub's current address
+  gateway     a push to the hub's push gateway goes through the transcryptor (with the hub's ticket)
+              and PHC to Apple
   e2e         a real message in a room makes Synapse push, and Apple accepts it
   foreground  with the app open, a push shows no banner but reaches JS as `pushReceived`
-  tap         tapping the banner hands the push's tag to JS (interactive only)
+  tap         tapping the banner hands the push's sealed tag to JS, which opens the hub (interactive only)
 
 For local test hubs only: the e2e step sends a real message as another user of the hub, using an
 access token it reads from the hub's database. See docs/app/ios-push-test.md.
@@ -99,7 +100,6 @@ class Context:
         self.public_baseurl = None
         self.apns = None
         self.pushkey = args.pushkey
-        self.tag = None  # the push's tag for this hub; only known on the Simulator
         self.pusher = None  # (user_id, data)
         self.line_open = False  # the runner printed a step's name and waits to print its result
 
@@ -237,8 +237,9 @@ class SimConsole:
 
     def received_push(self):
         log = self.path.read_text(errors="replace")
-        # The plugin event as Capacitor logs it, or nativePush.ts's own log line.
-        return f'"tag":"{self.ctx.tag}"' in log or f"push for hub {self.ctx.hub_id}" in log
+        # nativePush.ts's log line: the sealed tag differs on every push, so only once JS opened it
+        # and found the hub do we know the push was for this hub.
+        return f"push for hub {self.ctx.hub_id}" in log
 
     def __exit__(self, *exc):
         self.process.send_signal(signal.SIGINT)
@@ -351,7 +352,6 @@ def step_token(ctx):
         if not pushers:
             raise Fail(f"the app has no pusher on testhub{ctx.n}: log in to the hub in the app")
         ctx.pushkey = ctx.pushkey or pushers[0]["pushkey"]
-        ctx.tag = pushers[0]["tag"]
         return f"{booted[0]['name']} ({ctx.udid}), token {devices[0]['token'][:16]}…, pushkey {ctx.pushkey[:8]}…"
 
     if ctx.pushkey:
@@ -382,6 +382,9 @@ def step_pusher(ctx):
         raise Fail(f"pusher format is {data.get('format')!r}, not 'event_id_only'")
     if not data.get("blob"):
         raise Fail("the pusher has no blob: it's from an older app build; relaunch the app")
+    blob = data["blob"]
+    if base64.urlsafe_b64decode(blob + "=" * (-len(blob) % 4))[:1] != b"\x02":
+        raise Fail("the pusher has an old (v1) blob, which PHC rejects: install a new app build and relaunch it")
     return f"{user} -> {data['url']}"
 
 
@@ -389,8 +392,8 @@ def check_gateway_answer(status, body):
     """The push gateway answers 200 once PHC delivered the push, and lists the pushkey as rejected
     when Apple (or PHC) refused it for good."""
     if status != 200:
-        raise Fail(f"push gateway answered {status}: {body.strip()[:200]} (is the transcryptor running, and PHC "
-                   "configured? See PHC's log)")
+        raise Fail(f"push gateway answered {status}: {body.strip()[:200]} (is the transcryptor running, did the "
+                   "hub get a ticket from PHC, and is PHC configured? See the hub's and PHC's logs)")
     if json.loads(body).get("rejected"):
         raise Fail("the push was rejected: Apple refused the token (a sandbox token on production, or "
                    "the other way round, or the app was reinstalled), or PHC couldn't read the blob")
@@ -462,7 +465,7 @@ def step_foreground(ctx):
             time.sleep(4)
             ctx.screenshot("foreground")
             if not console.received_push():
-                raise Fail(f"JS never got the push with tag {ctx.tag} (see {console.path})")
+                raise Fail(f"JS never got the push for hub {ctx.hub_id} (see {console.path})")
         return f"JS got the push for hub {ctx.hub_id}; screenshot should show no banner"
     if not ctx.interactive:
         raise Skip("needs someone watching the device")
@@ -486,7 +489,7 @@ def step_tap(ctx):
         with SimConsole(ctx, "tap") as console:
             push_and_tap()
             if not console.received_push():
-                raise Fail(f"JS never got the push with tag {ctx.tag} (see {console.path})")
+                raise Fail(f"JS never got the push for hub {ctx.hub_id} (see {console.path})")
     else:
         push_and_tap()
     ctx.ask(f"Did PubHubs open, on testhub{ctx.n}?")

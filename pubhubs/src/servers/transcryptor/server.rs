@@ -5,6 +5,7 @@ use actix_web::web;
 
 use crate::common::{elgamal, kem};
 use crate::misc::crypto;
+use crate::misc::rate_limit::RateLimiter;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::phcrypto;
 use crate::{
@@ -48,8 +49,15 @@ impl servers::Details for Details {
         })
     }
 
-    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
-        Ok(ExtraSharedState {})
+    fn create_extra_shared_state(config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+        let limits = &config.transcryptor.as_ref().unwrap().push_limits;
+        Ok(ExtraSharedState {
+            push_limits: std::sync::Mutex::new(PushLimiters {
+                per_hub: RateLimiter::new(limits.per_hub),
+                per_blob: RateLimiter::new(limits.per_blob),
+                blob_hash_key: crypto::random_32_bytes(),
+            }),
+        })
     }
 
     fn create_extra_server_state(config: &servers::Config) -> anyhow::Result<ExtraServerState> {
@@ -64,7 +72,30 @@ impl servers::Details for Details {
     }
 }
 
-pub struct ExtraSharedState {}
+pub struct ExtraSharedState {
+    /// Shared by all workers, so the limits hold for the whole transcryptor.
+    push_limits: std::sync::Mutex<PushLimiters>,
+}
+
+/// Rate limits for [`PushEP`], see [`crate::servers::config::transcryptor::PushLimits`].
+struct PushLimiters {
+    per_hub: RateLimiter<crate::handle::Handle>,
+
+    /// Keyed by a hash of the blob, with a key that's random per run, so this map holds no blobs.
+    per_blob: RateLimiter<[u8; 32]>,
+    blob_hash_key: [u8; 32],
+}
+
+impl PushLimiters {
+    fn blob_key(&self, blob: &str) -> [u8; 32] {
+        use sha2::Digest as _;
+        sha2::Sha256::new()
+            .chain_update(self.blob_hash_key)
+            .chain_update(blob.as_bytes())
+            .finalize()
+            .into()
+    }
+}
 
 pub struct ExtraServerState {
     pub(super) decap_key: kem::DecapKey,
@@ -173,10 +204,22 @@ impl App {
     }
 
     /// Implements [`PushEP`]: relays a hub's pushes to PHC, without saying which hub they come from.
-    async fn handle_push(app: Rc<Self>, req: web::Json<PushReq>) -> api::Result<PushResp> {
+    ///
+    /// Logs no blobs or hubs, and nothing per push (see `docs/app/push.md`).
+    async fn handle_push(
+        app: Rc<Self>,
+        signed_req: web::Json<api::phc::hub::TicketSigned<PushReq>>,
+    ) -> api::Result<PushResp> {
         let running_state = app.running_state_or_please_retry()?;
 
-        let PushReq { pushes } = req.into_inner();
+        let (PushReq { pushes }, hub) = match signed_req
+            .into_inner()
+            .open(&running_state.phc_verifying_key)
+        {
+            Ok(opened) => opened,
+            Err(toe) => return toe.default_verdict(PushResp::RetryWithNewTicket),
+        };
+
         if pushes.is_empty()
             || pushes.len() > MAX_PUSHES_PER_REQ
             || pushes
@@ -186,8 +229,35 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         }
 
+        // Which pushes to relay.  Pushes to a blob that was pushed to too often are dropped, and
+        // reported as delivered: the device shows one notification for a burst anyway.
+        let relay: Vec<usize> = {
+            let mut limits = app
+                .shared
+                .extra
+                .push_limits
+                .lock()
+                .map_err(|_| api::ErrorCode::InternalError)?;
+            let limits = &mut *limits;
+            if !limits.per_hub.allow(hub) {
+                return Ok(PushResp::TooManyPushes);
+            }
+            (0..pushes.len())
+                .filter(|&i| {
+                    let key = limits.blob_key(&pushes[i].blob);
+                    limits.per_blob.allow(key)
+                })
+                .collect()
+        };
+
+        if relay.is_empty() {
+            return Ok(PushResp::Success(PushResult::default()));
+        }
+
         let sealed = api::Sealed::new(
-            &api::phc::push::SendReq { pushes },
+            &api::phc::push::SendReq {
+                pushes: relay.iter().map(|&i| pushes[i].clone()).collect(),
+            },
             &running_state.phc_sealing_secret,
         )?;
 
@@ -198,7 +268,19 @@ impl App {
             .await
             .into_server_result()?
         {
-            api::phc::push::SendResp::Success(resp) => Ok(resp),
+            // PHC's indices are into `relay`; map them back to the hub's.
+            api::phc::push::SendResp::Success(result) => Ok(PushResp::Success(PushResult {
+                rejected: result
+                    .rejected
+                    .iter()
+                    .filter_map(|&i| relay.get(i).copied())
+                    .collect(),
+                failed: result
+                    .failed
+                    .iter()
+                    .filter_map(|&i| relay.get(i).copied())
+                    .collect(),
+            })),
             api::phc::push::SendResp::RetryWithNewSecret => {
                 log::warn!("PHC could not open our pushes; is our constellation outdated?");
                 Err(api::ErrorCode::PleaseRetry)

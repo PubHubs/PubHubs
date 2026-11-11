@@ -209,7 +209,7 @@ pub mod push {
     #[serde(deny_unknown_fields)]
     #[must_use]
     pub enum SendResp {
-        Success(crate::api::tr::PushResp),
+        Success(crate::api::tr::PushResult),
 
         /// PHC could not open the request: the transcryptor should check the constellation (the
         /// shared secret changed) and try again.

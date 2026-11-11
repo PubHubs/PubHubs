@@ -33,6 +33,8 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] iOS capacitor stuff added, ready for testing
 - [NEW] Push notifications in the app (iOS, Android from the Play Store, and Android from F-Droid through UnifiedPush), without hubs learning the device: PHC sends them through the transcryptor, and hubs need no configuration (see docs/app/push.md).
   - Migration: give PHC the APNs key and Firebase service account under `phc.push` in its config.
+  - Hubs make their own signing key on first start (`/data/pubhubs_hub_signing_key.json`, or `hub_signing_key_path` in the pubhubs module config), and get a ticket from PHC with it to push through the transcryptor. Keep the key file with the hub's data.
+  - Apple, Google and the UnifiedPush server see different random bytes in every push, so they can't tell which pushes come from the same hub.
   - [INTERNAL] Migration: the Android release jobs need `GOOGLE_SERVICES_JSON_BASE64` (GitLab variable and GitHub secret), and F-Droid's build recipe must use the `fdroid` flavor.
 - [IMPROVED] The documentation has been restructured and brought up to date, and a CONTRIBUTING.md explains that contributions go through the PubHubs team.
 - [INTERNAL, NEW] Hub owners can ask for their hub to be registered with an issue form on the GitHub mirror; the team's steps are in the GitLab `add-hub` issue template.

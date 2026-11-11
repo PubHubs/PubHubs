@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets;
  *
  * <p>PHC sends Web Push (RFC 8291) messages, encrypted for the keys the connector generated and
  * hands over with the endpoint, so the UnifiedPush server only sees ciphertext. The connector
- * decrypts them; the content is {@code {"tag": ...}}.
+ * decrypts them; the content is {@code {"sealed_tag": ...}}.
  */
 public class UnifiedPushService extends PushService {
 
@@ -49,13 +49,13 @@ public class UnifiedPushService extends PushService {
     @Override
     public void onMessage(@NonNull PushMessage message, @NonNull String instance) {
         if (!message.getDecrypted()) return; // not from PHC
-        String tag;
+        String sealedTag;
         try {
             JSONObject json = new JSONObject(new String(message.getContent(), StandardCharsets.UTF_8));
-            tag = json.optString("tag", null);
+            sealedTag = json.optString("sealed_tag", null);
         } catch (Exception e) {
             return;
         }
-        PushEvents.handlePush(getApplicationContext(), tag);
+        PushEvents.handlePush(getApplicationContext(), sealedTag);
     }
 }

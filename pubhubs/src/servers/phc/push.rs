@@ -1,18 +1,25 @@
 //! Push notifications to the app, sent by PHC for hubs.
 //!
 //! The app puts its device's push token (or UnifiedPush endpoint), encrypted for PHC, in each hub's
-//! Matrix pusher: a fresh "blob" per hub, together with a random tag per hub.  A hub relays the blob
-//! through the transcryptor ([`api::tr::PushEP`]), which forwards it to PHC ([`SendEP`]) without
-//! saying which hub it came from.  PHC decrypts it and sends a push carrying only the tag, which
-//! the app maps back to the hub.  So:
+//! Matrix pusher: a fresh "blob" per hub, together with a random tag per hub and a random tag key per
+//! device.  A hub relays the blob through the transcryptor ([`api::tr::PushEP`]), which forwards it
+//! to PHC ([`SendEP`]) without saying which hub it came from.  PHC decrypts it and sends a push
+//! carrying only the tag, encrypted afresh with the tag key (the "sealed tag"), which the app
+//! decrypts and maps back to the hub.  So:
 //!
 //! - hubs only see random blobs, so they can't link their users by push token;
 //! - PHC sees push tokens and tags, but not which hubs they belong to;
 //! - the transcryptor sees which hub sends a blob, but can't read it;
+//! - Apple, Google and the UnifiedPush server see different random bytes in every push, so they
+//!   can't tell which pushes come from the same hub;
 //! - only Apple's and Google's credentials, held by PHC, can push to iOS and Play builds.
+//!
+//! PHC logs no tokens, endpoints, tags or blobs, and nothing per push: only counts, every
+//! [`STATS_INTERVAL`].
 //!
 //! See also docs/app/push.md.
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -27,15 +34,22 @@ use crate::misc::jwt::{self, SigningKey as _};
 use crate::servers::config::phc::push::{ApnsConfig, FcmConfig, PushConfig};
 
 use api::phc::push::*;
-use api::tr::{MAX_PUSHES_PER_REQ, Push, PushResp};
+use api::tr::{MAX_PUSHES_PER_REQ, Push, PushResult};
 
 use super::server::App;
 
-/// Version byte of the blob format, see [`BlobKey::open`].
-const BLOB_VERSION: u8 = 1;
+/// Version byte of the blob format, see [`BlobKey::open`].  Version 1 had no tag key, and is no
+/// longer accepted: its pushers are rejected, and the app registers again.
+const BLOB_VERSION: u8 = 2;
 
 /// HKDF info prefix for blobs; must match global-client/src/logic/pushBlob.ts.
-const BLOB_INFO: &[u8] = b"pubhubs push blob v1";
+const BLOB_INFO: &[u8] = b"pubhubs push blob v2";
+
+/// AES-GCM associated data of a sealed tag, see [`seal_tag`]; must match pushBlob.ts.
+const TAG_AAD: &[u8] = b"pubhubs push tag v1";
+
+/// How often PHC logs how many pushes it delivered.
+const STATS_INTERVAL: std::time::Duration = std::time::Duration::from_secs(10 * 60);
 
 /// How long a push may wait at Apple, Google or the UnifiedPush server for an offline device.
 const PUSH_TTL_SECS: u64 = 24 * 60 * 60;
@@ -45,15 +59,28 @@ const PUSH_TTL_SECS: u64 = 24 * 60 * 60;
 const TITLE_LOC_KEY: &str = "push_notification_title";
 const BODY_LOC_KEY: &str = "push_notification_body";
 
-/// Where a blob says to push to, and the tag to send.  Must match pushBlob.ts.
+/// What a blob holds: where to push to, and the tag to send, sealed with the tag key.  Must match
+/// pushBlob.ts.
+#[derive(Deserialize, Debug)]
+struct Target {
+    #[serde(flatten)]
+    to: Destination,
+
+    /// Random, one per hub (base64url).  The app maps it back to the hub.
+    tag: String,
+
+    /// Random, 32 bytes, one per device (base64url).  See [`seal_tag`].
+    tag_key: String,
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(tag = "transport", rename_all = "snake_case")]
-enum Target {
+enum Destination {
     /// iOS: a hex APNs device token.
-    Apns { token: String, tag: String },
+    Apns { token: String },
 
     /// Android Play build: an FCM registration token.
-    Fcm { token: String, tag: String },
+    Fcm { token: String },
 
     /// Android F-Droid build: a UnifiedPush (Web Push) endpoint and the device's message
     /// encryption keys (RFC 8291), all base64url.
@@ -61,16 +88,31 @@ enum Target {
         endpoint: String,
         p256dh: String,
         auth: String,
-        tag: String,
     },
 }
 
-impl Target {
-    fn tag(&self) -> &str {
-        match self {
-            Target::Apns { tag, .. } | Target::Fcm { tag, .. } | Target::Webpush { tag, .. } => tag,
-        }
-    }
+/// The tag as the push carries it: `nonce (12) ‖ AES-256-GCM(tag_key, tag)` with associated data
+/// [`TAG_AAD`], base64url.  A fresh nonce every time, so Apple and Google never see the same bytes
+/// twice, and can't group a device's pushes by hub.
+fn seal_tag(tag_key: &[u8; 32], tag: &str) -> Option<String> {
+    let nonce: [u8; 12] = crate::misc::crypto::random_32_bytes()[..12]
+        .try_into()
+        .ok()?;
+    seal_tag_with_nonce(tag_key, nonce, tag)
+}
+
+fn seal_tag_with_nonce(tag_key: &[u8; 32], nonce: [u8; 12], tag: &str) -> Option<String> {
+    let key = aead::LessSafeKey::new(aead::UnboundKey::new(&aead::AES_256_GCM, tag_key).ok()?);
+    let mut in_out = tag.as_bytes().to_vec();
+    key.seal_in_place_append_tag(
+        aead::Nonce::assume_unique_for_key(nonce),
+        aead::Aad::from(TAG_AAD),
+        &mut in_out,
+    )
+    .ok()?;
+    let mut sealed = nonce.to_vec();
+    sealed.extend_from_slice(&in_out);
+    Some(Base64UrlUnpadded::encode_string(&sealed))
 }
 
 /// What happened to one push.
@@ -307,6 +349,21 @@ impl PushKeys {
             .transpose()
             .map_err(|err| err.context("parsing phc.push.fcm"))?;
 
+        // Whether pushes can work at all; the credentials themselves are never logged.
+        log::info!(
+            "push: APNs {}, FCM {}, UnifiedPush on",
+            match &apns {
+                Some(apns) if apns.config.sandbox => "on (sandbox)",
+                Some(_) => "on",
+                None => "off (no phc.push.apns)",
+            },
+            if fcm.is_some() {
+                "on"
+            } else {
+                "off (no phc.push.fcm)"
+            },
+        );
+
         Ok(Arc::new(Self {
             blob_key: BlobKey::new(&derive_p256_scalar(seed, "pubhubs-phc-push-blob-key"))?,
             vapid_key: es256_key(&derive_p256_scalar(seed, "pubhubs-phc-push-vapid-key"))?,
@@ -331,6 +388,30 @@ pub(super) struct PushState {
 
     /// `sub` of VAPID tokens: how push services can reach PubHubs.
     vapid_subject: String,
+
+    /// What happened to pushes since they were last logged.
+    stats: RefCell<Stats>,
+}
+
+/// Counts of what happened to pushes, logged every [`STATS_INTERVAL`] instead of anything per push.
+struct Stats {
+    since: std::time::Instant,
+    delivered: u64,
+    rejected: u64,
+
+    /// Failed pushes, by kind of error.  The kinds hold no tokens, endpoints, hosts or tags.
+    failed: BTreeMap<String, u64>,
+}
+
+impl Stats {
+    fn new() -> Self {
+        Self {
+            since: std::time::Instant::now(),
+            delivered: 0,
+            rejected: 0,
+            failed: BTreeMap::new(),
+        }
+    }
 }
 
 impl PushState {
@@ -348,49 +429,83 @@ impl PushState {
             } else {
                 "mailto:contact@pubhubs.net".to_string()
             },
+            stats: RefCell::new(Stats::new()),
         }
     }
 
+    fn count(&self, outcome: &Result<Outcome, String>) {
+        let mut stats = self.stats.borrow_mut();
+        match outcome {
+            Ok(Outcome::Delivered) => stats.delivered += 1,
+            Ok(Outcome::Rejected) => stats.rejected += 1,
+            Ok(Outcome::Failed) => *stats.failed.entry("unknown".to_string()).or_default() += 1,
+            Err(kind) => *stats.failed.entry(kind.clone()).or_default() += 1,
+        }
+        if stats.since.elapsed() < STATS_INTERVAL {
+            return;
+        }
+        let failed: u64 = stats.failed.values().sum();
+        let level = if failed > 0 {
+            log::Level::Warn
+        } else {
+            log::Level::Info
+        };
+        log::log!(
+            level,
+            "push, last {} minutes (this worker): {} delivered, {} rejected, {} failed {:?}",
+            stats.since.elapsed().as_secs() / 60,
+            stats.delivered,
+            stats.rejected,
+            failed,
+            stats.failed,
+        );
+        *stats = Stats::new();
+    }
+
     async fn deliver(&self, push: &Push) -> Outcome {
+        let outcome = self
+            .try_deliver(push)
+            .await
+            .map_err(|err| format!("{err:#}"));
+        self.count(&outcome);
+        outcome.unwrap_or(Outcome::Failed)
+    }
+
+    /// Errors are only kinds of errors, without identifiers: they're logged, see [`Stats`].
+    async fn try_deliver(&self, push: &Push) -> anyhow::Result<Outcome> {
         let Some(plaintext) = self.keys.blob_key.open(&push.blob) else {
-            log::debug!("push: could not decrypt a blob");
-            return Outcome::Rejected;
+            return Ok(Outcome::Rejected);
         };
-        let target: Target = match serde_json::from_slice(&plaintext) {
-            Ok(target) => target,
-            Err(err) => {
-                log::debug!("push: blob has no valid target: {err}");
-                return Outcome::Rejected;
-            }
+        let Ok(target) = serde_json::from_slice::<Target>(&plaintext) else {
+            return Ok(Outcome::Rejected);
         };
-        let tag = target.tag();
+        let tag = &target.tag;
         if tag.is_empty()
             || tag.len() > 64
             || !tag
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
         {
-            log::debug!("push: blob has an invalid tag");
-            return Outcome::Rejected;
+            return Ok(Outcome::Rejected);
         }
+        let Some(tag_key) = Base64UrlUnpadded::decode_vec(&target.tag_key)
+            .ok()
+            .and_then(|key| <[u8; 32]>::try_from(key).ok())
+        else {
+            return Ok(Outcome::Rejected);
+        };
+        let sealed_tag =
+            seal_tag(&tag_key, tag).ok_or_else(|| anyhow::anyhow!("sealing the tag failed"))?;
 
-        let result = match &target {
-            Target::Apns { token, tag } => self.send_apns(token, tag).await,
-            Target::Fcm { token, tag } => self.send_fcm(token, tag, push.high_prio).await,
-            Target::Webpush {
+        match &target.to {
+            Destination::Apns { token } => self.send_apns(token, &sealed_tag).await,
+            Destination::Fcm { token } => self.send_fcm(token, &sealed_tag).await,
+            Destination::Webpush {
                 endpoint,
                 p256dh,
                 auth,
-                tag,
-            } => {
-                self.send_webpush(endpoint, p256dh, auth, tag, push.high_prio)
-                    .await
-            }
-        };
-        result.unwrap_or_else(|err| {
-            log::warn!("push: sending failed: {err:#}");
-            Outcome::Failed
-        })
+            } => self.send_webpush(endpoint, p256dh, auth, &sealed_tag).await,
+        }
     }
 
     fn apns_token(&self, apns: &Apns) -> anyhow::Result<String> {
@@ -409,7 +524,7 @@ impl PushState {
         Ok(token)
     }
 
-    async fn send_apns(&self, token: &str, tag: &str) -> anyhow::Result<Outcome> {
+    async fn send_apns(&self, token: &str, sealed_tag: &str) -> anyhow::Result<Outcome> {
         let Some(apns) = &self.keys.apns else {
             anyhow::bail!("no APNs credentials configured (phc.push.apns)");
         };
@@ -425,8 +540,10 @@ impl PushState {
             "aps": {
                 "alert": {"title-loc-key": TITLE_LOC_KEY, "loc-key": BODY_LOC_KEY},
                 "sound": "default",
+                // Just "something new": the push has no count.  The app clears it when opened.
+                "badge": 1,
             },
-            "tag": tag,
+            "sealed_tag": sealed_tag,
         });
         let mut resp = self
             .http
@@ -511,7 +628,7 @@ impl PushState {
         Ok(token.access_token)
     }
 
-    async fn send_fcm(&self, token: &str, tag: &str, high_prio: bool) -> anyhow::Result<Outcome> {
+    async fn send_fcm(&self, token: &str, sealed_tag: &str) -> anyhow::Result<Outcome> {
         let Some(fcm) = &self.keys.fcm else {
             anyhow::bail!("no FCM credentials configured (phc.push.fcm)");
         };
@@ -522,9 +639,10 @@ impl PushState {
         let body = serde_json::json!({
             "message": {
                 "token": token,
-                "data": {"tag": tag},
+                "data": {"sealed_tag": sealed_tag},
                 "android": {
-                    "priority": if high_prio { "HIGH" } else { "NORMAL" },
+                    // Always: Synapse's priority would say something about the message.
+                    "priority": "HIGH",
                     "ttl": format!("{PUSH_TTL_SECS}s"),
                 },
             }
@@ -544,7 +662,12 @@ impl PushState {
         if status.is_success() {
             return Ok(Outcome::Delivered);
         }
+        // FCM's error message may quote the token, so only its error code goes into the log.
         let error = String::from_utf8_lossy(&resp.body().await.unwrap_or_default()).into_owned();
+        let code = serde_json::from_str::<serde_json::Value>(&error)
+            .ok()
+            .and_then(|v| v["error"]["status"].as_str().map(str::to_owned))
+            .unwrap_or_default();
         match status.as_u16() {
             404 => Ok(Outcome::Rejected),
             400 if error.contains("UNREGISTERED") || error.contains("registration token") => {
@@ -554,7 +677,7 @@ impl PushState {
                 self.fcm_token.replace(None);
                 anyhow::bail!("FCM refused our access token")
             }
-            _ => anyhow::bail!("FCM answered {status}: {error}"),
+            _ => anyhow::bail!("FCM answered {status} {code}"),
         }
     }
 
@@ -563,8 +686,7 @@ impl PushState {
         endpoint: &str,
         p256dh: &str,
         auth: &str,
-        tag: &str,
-        high_prio: bool,
+        sealed_tag: &str,
     ) -> anyhow::Result<Outcome> {
         let Some(origin) = webpush_origin(endpoint) else {
             return Ok(Outcome::Rejected);
@@ -579,7 +701,7 @@ impl PushState {
             return Ok(Outcome::Rejected);
         }
 
-        let payload = serde_json::to_vec(&serde_json::json!({"tag": tag}))?;
+        let payload = serde_json::to_vec(&serde_json::json!({"sealed_tag": sealed_tag}))?;
         let as_private = agreement::PrivateKey::generate(&agreement::ECDH_P256)
             .map_err(|_| anyhow::anyhow!("generating P-256 key"))?;
         let salt: [u8; 16] = crate::misc::crypto::random_32_bytes()[..16].try_into()?;
@@ -610,15 +732,17 @@ impl PushState {
             .insert_header(("content-encoding", "aes128gcm"))
             .insert_header(("content-type", "application/octet-stream"))
             .insert_header(("ttl", PUSH_TTL_SECS.to_string()))
-            .insert_header(("urgency", if high_prio { "high" } else { "normal" }))
+            // Always: Synapse's priority would say something about the message.
+            .insert_header(("urgency", "high"))
             .send_body(body)
             .await
-            .map_err(|err| anyhow::anyhow!("Web Push to {origin}: {err}"))?;
+            // Not the error itself: it may name the push server, which can be the user's own.
+            .map_err(|_| anyhow::anyhow!("Web Push: could not reach the push server"))?;
 
         match resp.status().as_u16() {
             200..=299 => Ok(Outcome::Delivered),
             404 | 410 => Ok(Outcome::Rejected),
-            status => anyhow::bail!("Web Push to {origin} answered {status}"),
+            status => anyhow::bail!("Web Push answered {status}"),
         }
     }
 }
@@ -725,7 +849,7 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         }
 
-        let mut resp = PushResp::default();
+        let mut resp = PushResult::default();
         for (i, push) in req.pushes.iter().enumerate() {
             match app.push.deliver(push).await {
                 Outcome::Delivered => {}
@@ -741,6 +865,8 @@ impl App {
 mod tests {
     use super::*;
 
+    const SEALED_TAG_VECTOR: &str = "ZGVmZ2hpamtsbW5vPHq5Sx-bOfMTCCwAaO1J2m67GfJh9fIVu0ZT";
+
     fn test_keys() -> Arc<PushKeys> {
         PushKeys::new(b"test seed", &PushConfig::default()).unwrap()
     }
@@ -748,7 +874,7 @@ mod tests {
     #[test]
     fn blob_roundtrip() {
         let keys = test_keys();
-        let plaintext = br#"{"transport":"apns","token":"00ff","tag":"abc"}"#;
+        let plaintext = br#"{"transport":"apns","token":"00ff","tag":"abc","tag_key":"k"}"#;
         let blob = BlobKey::seal(&keys.blob_key.public, plaintext);
         assert_eq!(keys.blob_key.open(&blob).unwrap(), plaintext);
 
@@ -778,14 +904,65 @@ mod tests {
         );
         let plaintext = keys
             .blob_key
-            .open("AQRZDfa6AytsGvhT4rBzF0l1lTftGDz5sr_xxWzKf7MkTHwVMD6N5s0Pv4mDsFzGHEp_pApBnoAG5CEgzdcQ2qpuPMdfLTkBWDlsJDZkoyrayLM81q2lEozjqdJBizQ7I-adIfVyDmdMpsKVfWyw_lEU2yzcDr4piuXePWtyxBjmdhVwHrcT4XyraQQ505lnWzsVM6iKFrIE6k1q66-CGXSzfBYCYklFDzZLh4XLPcadZWyadWLHHy8gU5tTId3RYs1zqHk")
+            .open("AgRkMNUy0bcopMgnnSZoKe_erramKtpWefkwDj9K1bEB8TobYXbA1ieunFMnkwnyUJSIToJ-HAjp-kYjhEtgleBlR81b0DUW5WfC46SoPN1hW2UiIQnEhoU6jhTfuiIXLLQlRYg3fO3LrYA3svInyrihLBVQR6Jupumy6D5qNlMtJ4cL3S1V7GAsXgilLu1b5--hxGDSqBx8fi34O2Zw60Ms3Fv2id1mh7cDEqZ0CTZBI8VDYk9IiL6RQRxt3mNxg1qejgE9Qrhx44QufTktnZzpyylWKl2IHd6esnTZaRJzagFH6_KAH_Pwb9dmlVQ9vnVYnQ6TfmR_GYQ1VA")
             .unwrap();
-        let Target::Webpush { endpoint, tag, .. } = serde_json::from_slice(&plaintext).unwrap()
-        else {
+        let target: Target = serde_json::from_slice(&plaintext).unwrap();
+        let Destination::Webpush { endpoint, .. } = target.to else {
             panic!("expected a webpush target");
         };
         assert_eq!(endpoint, "https://ntfy.sh/upTEST");
-        assert_eq!(tag, "tag-from-js");
+        assert_eq!(target.tag, "tag-from-js");
+        assert_eq!(
+            target.tag_key,
+            "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+        );
+    }
+
+    /// Version 1 blobs (without a tag key) are no longer accepted.
+    #[test]
+    fn rejects_v1_blobs() {
+        let keys = test_keys();
+        let blob = BlobKey::seal(&keys.blob_key.public, b"{}");
+        let mut bytes = Base64UrlUnpadded::decode_vec(&blob).unwrap();
+        bytes[0] = 1;
+        assert!(
+            keys.blob_key
+                .open(&Base64UrlUnpadded::encode_string(&bytes))
+                .is_none()
+        );
+    }
+
+    /// The same vector is opened by global-client/test/logic/pushBlob.test.ts.
+    #[test]
+    fn sealed_tag_vector() {
+        let tag_key: [u8; 32] = core::array::from_fn(|i| i as u8);
+        let nonce: [u8; 12] = core::array::from_fn(|i| 100 + i as u8);
+        assert_eq!(
+            seal_tag_with_nonce(&tag_key, nonce, "tag-from-js").unwrap(),
+            SEALED_TAG_VECTOR
+        );
+    }
+
+    #[test]
+    fn sealed_tags_differ_every_time() {
+        let tag_key = [7u8; 32];
+        let a = seal_tag(&tag_key, "tag").unwrap();
+        let b = seal_tag(&tag_key, "tag").unwrap();
+        assert_ne!(a, b, "Apple and Google must not see the same bytes twice");
+
+        let sealed = Base64UrlUnpadded::decode_vec(&a).unwrap();
+        let (nonce, ciphertext) = sealed.split_at(12);
+        let key =
+            aead::LessSafeKey::new(aead::UnboundKey::new(&aead::AES_256_GCM, &tag_key).unwrap());
+        let mut in_out = ciphertext.to_vec();
+        let tag = key
+            .open_in_place(
+                aead::Nonce::try_assume_unique_for_key(nonce).unwrap(),
+                aead::Aad::from(TAG_AAD),
+                &mut in_out,
+            )
+            .unwrap();
+        assert_eq!(tag, b"tag");
     }
 
     #[test]
@@ -804,11 +981,20 @@ mod tests {
     #[test]
     fn targets_parse() {
         let target: Target = serde_json::from_str(
-            r#"{"transport":"webpush","endpoint":"https://ntfy.sh/up1","p256dh":"x","auth":"y","tag":"t"}"#,
+            r#"{"transport":"webpush","endpoint":"https://ntfy.sh/up1","p256dh":"x","auth":"y","tag":"t","tag_key":"k"}"#,
         )
         .unwrap();
-        assert_eq!(target.tag(), "t");
-        assert!(serde_json::from_str::<Target>(r#"{"transport":"sms","tag":"t"}"#).is_err());
+        assert_eq!(target.tag, "t");
+        assert!(matches!(target.to, Destination::Webpush { .. }));
+        assert!(
+            serde_json::from_str::<Target>(r#"{"transport":"sms","tag":"t","tag_key":"k"}"#)
+                .is_err()
+        );
+        assert!(
+            serde_json::from_str::<Target>(r#"{"transport":"apns","token":"00","tag":"t"}"#)
+                .is_err(),
+            "v2 blobs must have a tag key"
+        );
     }
 
     #[test]

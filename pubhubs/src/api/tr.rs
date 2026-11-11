@@ -62,11 +62,11 @@ pub enum EhppResp {
 /// from, while the hub, which knows who it pushes to, can't read them.  Together this stops hubs
 /// from linking their users by push token, and PHC from learning which hubs a device is on.
 ///
-/// Not authenticated: blobs are only known to the hub that stores them (and the transcryptor), and
-/// a push never carries content, only a random tag the app maps to the hub.
+/// Only hubs may push: the request is a [`phc::hub::TicketSigned`].  The transcryptor uses the hub
+/// it learns from the ticket only to rate limit, per hub and per blob, and doesn't pass it on.
 pub struct PushEP {}
 impl EndpointDetails for PushEP {
-    type RequestType = PushReq;
+    type RequestType = phc::hub::TicketSigned<PushReq>;
     type ResponseType = Result<PushResp>;
 
     const METHOD: http::Method = http::Method::POST;
@@ -86,22 +86,38 @@ pub struct PushReq {
     pub pushes: Vec<Push>,
 }
 
+having_message_code!(PushReq, TranscryptorPushReq);
+
 /// One push, see [`PushEP`].
+///
+/// There's no priority: every push is sent urgent, since Synapse's priority says something about
+/// the message.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Push {
     /// The blob from the Matrix pusher's data, as is (base64url).
     pub blob: String,
-
-    /// Whether the push is urgent (Synapse's `prio: high`).  Pushes to iOS are always sent urgent.
-    #[serde(default)]
-    pub high_prio: bool,
 }
 
-/// Returned by [`PushEP`] and [`phc::push::SendEP`]: what happened to each [`Push`], by index.
+/// Returned by [`PushEP`].
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+#[must_use]
+pub enum PushResp {
+    Success(PushResult),
+
+    /// The ticket is not (or no longer) valid: get a new one from PHC, and try again.
+    RetryWithNewTicket,
+
+    /// This hub sent too many pushes recently: try again later.
+    TooManyPushes,
+}
+
+/// What happened to each [`Push`], by index.  Pushes that are not mentioned were delivered, or
+/// dropped because that blob was pushed to too often recently.
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct PushResp {
+pub struct PushResult {
     /// These blobs will never work again (unreadable, or the device token is no longer valid):
     /// the hub should delete their pushers.
     #[serde(default)]

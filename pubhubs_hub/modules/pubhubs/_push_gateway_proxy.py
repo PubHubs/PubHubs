@@ -7,6 +7,8 @@ from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.http.site import SynapseRequest
 from synapse.module_api import ModuleApi
 
+from ._hub_signing import TRANSCRYPTOR_PUSH_REQ
+
 logger = logging.getLogger("synapse.contrib." + __name__)
 
 # The transcryptor's url, from the constellation; set by Core.get_constellation.
@@ -18,20 +20,28 @@ def set_transcryptor_url(url):
     _transcryptor_url = url
 
 
+# The hub's tickets (_hub_signing.HubTickets): the transcryptor only relays pushes from hubs.
+_hub_tickets = None
+
+
+def set_hub_tickets(tickets):
+    global _hub_tickets
+    _hub_tickets = tickets
+
+
 def push_request(body: dict):
     """Turns a Push Gateway API notify body from Synapse into the pushes for the transcryptor's
     `.ph/push` endpoint, and the pushkeys they belong to.
 
     Only the blob the app put in the pusher's data goes out (the device's push token, encrypted for
-    PHC), and whether the push is urgent: no room, event, sender, counts or pushkey. Pushers without
-    a blob are from older app versions; they're returned separately so Synapse deletes them."""
+    PHC): no room, event, sender, counts, priority or pushkey. Pushers without a blob are from older
+    app versions; they're returned separately so Synapse deletes them."""
     notification = body.get("notification", {})
-    high_prio = notification.get("prio") == "high"
     pushes, pushkeys, without_blob = [], [], []
     for device in notification.get("devices", []):
         blob = (device.get("data") or {}).get("blob")
         if isinstance(blob, str) and blob:
-            pushes.append({"blob": blob, "high_prio": high_prio})
+            pushes.append({"blob": blob})
             pushkeys.append(device.get("pushkey"))
         else:
             without_blob.append(device.get("pushkey"))
@@ -42,6 +52,13 @@ def gateway_response(transcryptor_resp: dict, pushkeys: list, without_blob: list
     """The (status, body) to answer Synapse with, given the transcryptor's answer. Synapse deletes
     the pushers of `rejected` pushkeys, and retries later when the status isn't 200."""
     ok = transcryptor_resp.get("Ok")
+    if ok == "RetryWithNewTicket":
+        if _hub_tickets is not None:
+            _hub_tickets.forget_ticket()
+        return 502, {"error": "push relay wants a new ticket"}
+    if ok == "TooManyPushes":
+        return 502, {"error": "push relay: too many pushes from this hub, try again later"}
+    ok = ok.get("Success") if isinstance(ok, dict) else None
     if not isinstance(ok, dict):
         return 502, {"error": f"push relay answered {transcryptor_resp}"}
     if ok.get("failed"):
@@ -81,9 +98,16 @@ class PushGatewayProxyServlet(DirectServeJsonResource):
             respond_with_json(request, 502, {"error": "push relay not known yet"})
             return
 
+        signed = await _hub_tickets.ticket_signed({"pushes": pushes}, TRANSCRYPTOR_PUSH_REQ) if _hub_tickets else None
+        if signed is None:
+            # No ticket from PHC yet (e.g. PHC can't reach our .ph/info): let Synapse retry.
+            logger.warning("push gateway: no ticket from PHC yet, not forwarding push")
+            respond_with_json(request, 502, {"error": "no ticket for the push relay yet"})
+            return
+
         url = urljoin(_transcryptor_url, ".ph/push")
         try:
-            resp = await self._module_api.http_client.post_json_get_json(url, {"pushes": pushes})
+            resp = await self._module_api.http_client.post_json_get_json(url, signed)
         except Exception as e:
             logger.warning(f"push gateway: could not reach the push relay at {url}: {e}")
             respond_with_json(request, 502, {"error": "push relay unavailable"})

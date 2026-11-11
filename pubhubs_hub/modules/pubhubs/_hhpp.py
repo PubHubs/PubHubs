@@ -127,6 +127,12 @@ def parse_verifying_key(vk):
     )
 
 
+def _message_representative(signing_input):
+    """M' = PREFIX ‖ LABEL ‖ len(ctx) ‖ ctx ‖ SHA-512(signing_input), the message both halves of a
+    composite signature sign.  Mirrors `message_representative` in src/common/dsa.rs."""
+    return _PREFIX + _LABEL + bytes([len(_CTX)]) + _CTX + hashlib.sha512(signing_input).digest()
+
+
 def verify(signing_input, signature, key, mldsa_ctx):
     """Verify a composite signature (ML-DSA-65 sig ‖ ed25519 sig, both over `M'`).  `mldsa_ctx` is
     the context passed to the ML-DSA primitive (empty for the bespoke variant, the Label for the
@@ -136,8 +142,7 @@ def verify(signing_input, signature, key, mldsa_ctx):
         return False
     ml_sig = signature[:_MLDSA65_SIG_LEN]
     ed_sig = signature[_MLDSA65_SIG_LEN:]
-    # M' = PREFIX ‖ LABEL ‖ len(ctx) ‖ ctx ‖ SHA-512(signing_input), the message both halves sign.
-    m_prime = _PREFIX + _LABEL + bytes([len(_CTX)]) + _CTX + hashlib.sha512(signing_input).digest()
+    m_prime = _message_representative(signing_input)
     try:
         key.ml.verify(ml_sig, m_prime, mldsa_ctx)
         key.ed.verify(ed_sig, m_prime)

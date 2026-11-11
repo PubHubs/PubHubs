@@ -5,7 +5,7 @@ import type { Router } from 'vue-router';
 
 // Logic
 import { phc_api } from '@global-client/logic/core/api';
-import { type PushTarget, base64UrlEncode, encryptPushBlob, randomId } from '@global-client/logic/pushBlob';
+import { BLOB_VERSION, type PushTarget, base64UrlEncode, encryptPushBlob, openSealedTag, randomId } from '@global-client/logic/pushBlob';
 import { handleErrors } from '@global-client/logic/utils/mssUtils';
 
 import { Api } from '@hub-client/logic/core/apiCore';
@@ -30,8 +30,10 @@ const logger = createLogger('NativePush');
  * the app registers a Matrix pusher with a random pushkey and, in its data, a "blob": the token
  * encrypted for PHC together with a random tag for that hub. The hub relays the blob through the
  * transcryptor to PHC (pubhubs_hub/modules/pubhubs/_push_gateway_proxy.py), so PHC can read the
- * token but doesn't learn the hub. PHC pushes just the tag, which this module maps back to the hub,
- * and opens it. See pubhubs/src/servers/phc/push.rs.
+ * token but doesn't learn the hub. PHC pushes just the tag, sealed afresh every time with this
+ * device's tag key (also in the blob), so Apple and Google can't tell which pushes come from the same
+ * hub. This module opens the sealed tag, maps it back to the hub, and opens that. See
+ * pubhubs/src/servers/phc/push.rs.
  */
 
 type DeviceToken = { transport: 'apns' | 'fcm'; token: string } | { transport: 'webpush'; token: string; p256dh: string; auth: string };
@@ -42,7 +44,7 @@ type NativePushPlugin = {
 	register(options: { vapid: string }): Promise<void>;
 	addListener(eventName: 'pushTokenReceived', listenerFunc: (event: DeviceToken) => void): Promise<PluginListenerHandle>;
 	addListener(eventName: 'pushUnavailable', listenerFunc: (event: { reason: string }) => void): Promise<PluginListenerHandle>;
-	addListener(eventName: 'pushReceived', listenerFunc: (event: { tag: string }) => void): Promise<PluginListenerHandle>;
+	addListener(eventName: 'pushReceived', listenerFunc: (event: { sealed_tag: string }) => void): Promise<PluginListenerHandle>;
 };
 
 const NativePush = registerPlugin<NativePushPlugin>('NativePush');
@@ -61,6 +63,8 @@ type HubPusher = {
 /** Local to this device, never synced: the token identifies the device, the pushers the hubs. */
 const DEVICE_KEY = 'nativePushDevice';
 const PUSHERS_KEY = 'nativePushPushers';
+/** One per device, in every blob: PHC seals the tag with it. */
+const TAG_KEY_KEY = 'nativePushTagKey';
 
 /** One app id for every platform: which one would tell hubs something. */
 const APP_ID = 'nl.pubhubs.client';
@@ -88,6 +92,16 @@ function savePushers(pushers: Record<string, HubPusher>): void {
 	localStorage.setItem(PUSHERS_KEY, JSON.stringify(pushers));
 }
 
+/** This device's tag key, made the first time it's needed. */
+function tagKey(): string {
+	let key = load<string>(TAG_KEY_KEY);
+	if (!key) {
+		key = randomId(32);
+		localStorage.setItem(TAG_KEY_KEY, JSON.stringify(key));
+	}
+	return key;
+}
+
 /** The hub's own push gateway, at the Push Gateway API's standard path under the hub's address. */
 function pushGatewayUrl(serverUrl: string): string {
 	return `${serverUrl}_matrix/push/v1/notify`;
@@ -103,19 +117,20 @@ function authenticatedHubs(): AuthenticatedHub[] {
 }
 
 /**
- * Changes whenever a hub's pusher must be registered again: another device token or PHC key, another
- * hub address, or another login (Synapse deletes a pusher with the access token it was made with).
- * Hashed, as this is stored.
+ * Changes whenever a hub's pusher must be registered again: another device token, PHC key or blob
+ * format, another hub address, or another login (Synapse deletes a pusher with the access token it
+ * was made with). Hashed, as this is stored.
  */
 async function registrationId(hub: AuthenticatedHub, device: DeviceToken, info: PushInfo): Promise<string> {
-	const input = new TextEncoder().encode(JSON.stringify([info.blob_key_id, device, hub.serverUrl, hub.accessToken]));
+	const input = new TextEncoder().encode(JSON.stringify([BLOB_VERSION, info.blob_key_id, device, hub.serverUrl, hub.accessToken]));
 	return base64UrlEncode(new Uint8Array(await crypto.subtle.digest('SHA-256', input)));
 }
 
 function pushTarget(device: DeviceToken, tag: string): PushTarget {
+	const tag_key = tagKey();
 	return device.transport === 'webpush'
-		? { transport: 'webpush', endpoint: device.token, p256dh: device.p256dh, auth: device.auth, tag }
-		: { transport: device.transport, token: device.token, tag };
+		? { transport: 'webpush', endpoint: device.token, p256dh: device.p256dh, auth: device.auth, tag, tag_key }
+		: { transport: device.transport, token: device.token, tag, tag_key };
 }
 
 function matrixApi(hub: AuthenticatedHub): Api {
@@ -234,8 +249,9 @@ function whenHubKnown(hubId: string): Promise<Hub | undefined> {
 }
 
 /** A push arrived (app in the foreground) or was tapped: open its hub, as clicking it would. */
-async function openHub(router: Router, tag: string): Promise<void> {
-	const hubId = Object.entries(loadPushers()).find(([, pusher]) => pusher.tag === tag)?.[0];
+async function openHub(router: Router, sealedTag: string): Promise<void> {
+	const tag = await openSealedTag(tagKey(), sealedTag);
+	const hubId = tag && Object.entries(loadPushers()).find(([, pusher]) => pusher.tag === tag)?.[0];
 	if (!hubId) {
 		logger.warn('push for an unknown tag');
 		return;
@@ -250,7 +266,7 @@ async function initNativePush(router: Router): Promise<void> {
 	if (!Capacitor.isNativePlatform() || !phc_api) return;
 	const phc = phc_api;
 
-	await NativePush.addListener('pushReceived', ({ tag }) => void openHub(router, tag));
+	await NativePush.addListener('pushReceived', ({ sealed_tag }) => void openHub(router, sealed_tag));
 	await NativePush.addListener('pushUnavailable', ({ reason }) => logger.warn(`unavailable (${reason})`));
 	await NativePush.addListener('pushTokenReceived', (device) => {
 		logger.info(`device token received (${device.transport})`);

@@ -11,8 +11,8 @@ import com.getcapacitor.JSObject;
  * <p>Android may start the process only to deliver a push, without an Activity or plugin, so
  * callers can't count on the JS layer hearing about it: that's what {@link LocalNotifier} is for.
  *
- * <p>A push carries only a random tag, which global-client/src/logic/nativePush.ts maps to the
- * hub it belongs to.
+ * <p>A push carries only a sealed tag: a random tag, encrypted afresh for every push. Only
+ * global-client/src/logic/nativePush.ts can open it, and maps the tag to the hub it belongs to.
  */
 public final class PushEvents {
 
@@ -59,13 +59,13 @@ public final class PushEvents {
         plugin.emitPushUnavailable(data);
     }
 
-    public static void notifyPushReceived(String tag) {
+    public static void notifyPushReceived(String sealedTag) {
         Log.d(TAG, "push received (foreground=" + appInForeground + ")");
         PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
         JSObject data = new JSObject();
-        data.put("tag", tag);
+        data.put("sealed_tag", sealedTag);
         plugin.emitPushReceived(data);
     }
 
@@ -73,11 +73,11 @@ public final class PushEvents {
      * What a Service does with a push: tell JS, and unless the app is in the foreground (where JS
      * just opens the hub), show the generic notification.
      */
-    public static void handlePush(android.content.Context context, String tag) {
-        if (tag == null || tag.isEmpty()) return;
-        notifyPushReceived(tag);
+    public static void handlePush(android.content.Context context, String sealedTag) {
+        if (sealedTag == null || sealedTag.isEmpty()) return;
+        notifyPushReceived(sealedTag);
         if (!isAppInForeground()) {
-            LocalNotifier.show(context, tag);
+            LocalNotifier.show(context, sealedTag);
         }
     }
 }

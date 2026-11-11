@@ -64,11 +64,11 @@ the background or foreground, and to say what you saw.
 | config | `pubhubs/pubhubs.toml` has `[phc.push.apns]` with the app's topic | yes |
 | credentials | Apple accepts the key for the configured environment. Uses an all-zero device token, so nothing is delivered | yes |
 | token | Simulator: the token and this hub's pusher the app stored. Device: the hub's newest pusher | yes |
-| pusher | the hub has that pusher, with a blob, pointing at the hub's *current* address | yes |
-| gateway | a push to the hub's push gateway goes through the transcryptor and PHC to Apple, and the banner shows | Apple's answer yes, banner by prompt |
+| pusher | the hub has that pusher, with a v2 blob, pointing at the hub's *current* address | yes |
+| gateway | a push to the hub's push gateway goes through the transcryptor (with the hub's ticket) and PHC to Apple, and the banner shows | Apple's answer yes, banner by prompt |
 | e2e | a message from another user in a room you're in makes Synapse push, and the banner shows | Apple's answer yes, banner by prompt |
-| foreground | with the app open, no banner shows, and JS gets `pushReceived` with the hub's tag | Simulator yes (console), device by prompt |
-| tap | tapping the banner hands the tag to JS and opens the hub | needs a tap |
+| foreground | with the app open, no banner shows, and JS gets `pushReceived`, opens the sealed tag and finds the hub | Simulator yes (console), device by prompt |
+| tap | tapping the banner hands the sealed tag to JS and opens the hub | needs a tap |
 
 The **e2e** step sends a real message ("iOS push test HH:MM:SS"). It picks another local user who
 shares the smallest room with you, and uses an access token it reads from the hub's database. That's

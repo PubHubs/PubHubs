@@ -16,12 +16,18 @@ import nl.pubhubs.client.R;
 
 /**
  * Shows the generic "You have new messages" notification for a push; tapping it opens the app on
- * the push's hub. Pushes are data only on Android (FCM and UnifiedPush alike), so this is how the
- * user sees them. The notification shows nothing about the hub or the message.
+ * the hub of the latest push. Pushes are data only on Android (FCM and UnifiedPush alike), so this
+ * is how the user sees them. The notification shows nothing about the hub or the message.
  */
 public final class LocalNotifier {
 
     private static final String CHANNEL_ID = "pubhubs_push";
+
+    /**
+     * One notification for all pushes: a new push replaces it. The sealed tag differs on every push,
+     * and the notification doesn't name the hub anyway.
+     */
+    private static final int NOTIFICATION_ID = 1;
 
     private LocalNotifier() {}
 
@@ -39,7 +45,7 @@ public final class LocalNotifier {
 
     // areNotificationsEnabled() covers the POST_NOTIFICATIONS check, which lint can't see.
     @SuppressLint("MissingPermission")
-    public static void show(Context context, String tag) {
+    public static void show(Context context, String sealedTag) {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         if (!notificationManager.areNotificationsEnabled()) return;
 
@@ -47,13 +53,11 @@ public final class LocalNotifier {
 
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        intent.putExtra(MainActivity.EXTRA_PUSH_TAG, tag);
+        intent.putExtra(MainActivity.EXTRA_PUSH_TAG, sealedTag);
 
-        // One notification per hub: a new push for the same hub replaces it.
-        int id = tag.hashCode();
         PendingIntent pendingIntent = PendingIntent.getActivity(
             context,
-            id,
+            NOTIFICATION_ID,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
@@ -68,6 +72,6 @@ public final class LocalNotifier {
             .setAutoCancel(true)
             .setContentIntent(pendingIntent);
 
-        notificationManager.notify(id, builder.build());
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
     }
 }

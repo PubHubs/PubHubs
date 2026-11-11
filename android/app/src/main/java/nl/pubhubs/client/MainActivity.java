@@ -14,7 +14,7 @@ import nl.pubhubs.client.push.PushEvents;
 
 public class MainActivity extends BridgeActivity {
 
-    /** The push's tag, on the intent of a {@link nl.pubhubs.client.push.LocalNotifier} notification. */
+    /** The push's sealed tag, on the intent of a {@link nl.pubhubs.client.push.LocalNotifier} notification. */
     public static final String EXTRA_PUSH_TAG = "nl.pubhubs.client.push.TAG";
 
     @Override
@@ -81,7 +81,7 @@ public class MainActivity extends BridgeActivity {
         handlePushIntent(intent);
     }
 
-    /** A tapped push notification: hand its tag to JS, which opens the hub. */
+    /** A tapped push notification: hand its sealed tag to JS, which opens the hub. */
     private void handlePushIntent(Intent intent) {
         if (intent == null) return;
 

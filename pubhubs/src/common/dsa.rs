@@ -462,6 +462,29 @@ mod tests {
         assert_eq!(signed.open(vk, None).unwrap(), message);
     }
 
+    /// Hubs sign their requests in Python (`pubhubs_hub/modules/pubhubs/_hub_signing.py`).  Checks
+    /// that a key and a `Signed` message made there work here: the same seeds give the same
+    /// verifying key, and the signature, claims and message code are accepted.
+    #[test]
+    fn python_hub_vector() {
+        #[derive(serde::Deserialize)]
+        struct Vector {
+            signing_key: SigningKeyBytes,
+            verifying_key: VerifyingKeyBytes,
+            signed_ticket_req: crate::api::Signed<crate::api::phc::hub::TicketReq>,
+        }
+        let vector: Vector = serde_json::from_str(include_str!("dsa_python_vector.json")).unwrap();
+
+        let sk = vector.signing_key.decode().unwrap();
+        assert_eq!(sk.verifying_key().encode(), vector.verifying_key);
+
+        let req = vector
+            .signed_ticket_req
+            .open(&vector.verifying_key.decode().unwrap(), None)
+            .unwrap();
+        assert_eq!(req.handle, "testhub".parse().unwrap());
+    }
+
     #[test]
     fn encode_decode_roundtrip() {
         let sk = SigningKey::generate().unwrap();

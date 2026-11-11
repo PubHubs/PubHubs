@@ -252,6 +252,9 @@ pub enum MessageCode {
     /// Pushes the transcryptor relays to PHC, see [`crate::api::phc::push::SendEP`].
     PushSendReq = 15,
 
+    /// Pushes a hub asks the transcryptor to relay, see [`crate::api::tr::PushEP`].
+    TranscryptorPushReq = 16,
+
     /// Only used as an example in a doctest
     Example = 65535,
 }

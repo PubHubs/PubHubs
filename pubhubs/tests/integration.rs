@@ -440,7 +440,7 @@ async fn main_integration_test_local(
         assert_eq!(served_by, name);
     }
 
-    test_push(&client, &constellation).await;
+    test_push(&client, &constellation, &ticket, &mock_hub.context.sk).await;
 
     let attrs = request_attributes(
         &client,
@@ -1701,8 +1701,14 @@ async fn handle_enter_complete(
 }
 
 /// Pushes from a hub, through the transcryptor, to PHC.  No push credentials are configured, so
-/// nothing reaches Apple; this checks the relay and that PHC can read what the app encrypts.
-async fn test_push(client: &client::Client, constellation: &servers::Constellation) {
+/// nothing reaches Apple; this checks the relay, the hub's ticket, the rate limit per blob, and that
+/// PHC can read what the app encrypts.
+async fn test_push(
+    client: &client::Client,
+    constellation: &servers::Constellation,
+    ticket: &api::phc::hub::Ticket,
+    hub_sk: &api::SigningKey,
+) {
     use aws_lc_rs::{aead, agreement, hkdf};
     use base64ct::{Base64UrlUnpadded, Encoding as _};
 
@@ -1739,7 +1745,7 @@ async fn test_push(client: &client::Client, constellation: &servers::Constellati
                 hkdf::Salt::new(hkdf::HKDF_SHA256, &[])
                     .extract(secret)
                     .expand(
-                        &[b"pubhubs push blob v1", &ephemeral_public, &phc_public],
+                        &[b"pubhubs push blob v2", &ephemeral_public, &phc_public],
                         Len,
                     )
                     .unwrap()
@@ -1758,52 +1764,95 @@ async fn test_push(client: &client::Client, constellation: &servers::Constellati
                 &mut in_out,
             )
             .unwrap();
-        let mut blob = vec![1u8];
+        let mut blob = vec![2u8];
         blob.extend_from_slice(&ephemeral_public);
         blob.extend_from_slice(&iv);
         blob.extend_from_slice(&in_out);
         Base64UrlUnpadded::encode_string(&blob)
     };
 
-    let push = |blob: String| api::tr::Push {
-        blob,
-        high_prio: false,
+    let push = |blob: String| api::tr::Push { blob };
+    let signed = |pushes: Vec<api::tr::Push>, sk: &api::SigningKey| {
+        api::phc::hub::TicketSigned::new(
+            ticket.clone(),
+            api::Signed::new(sk, &api::tr::PushReq { pushes }, Duration::from_secs(10)).unwrap(),
+        )
     };
+    const TAG_KEY: &str = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8";
+    let apns = seal(
+        format!(r#"{{"transport":"apns","token":"00ff","tag":"tag1","tag_key":"{TAG_KEY}"}}"#)
+            .as_bytes(),
+    );
+
     let resp = client
         .query::<api::tr::PushEP>(
             &constellation.transcryptor_url,
-            &api::tr::PushReq {
-                pushes: vec![
+            &signed(
+                vec![
                     // PHC can read this, but has no APNs credentials: try again later.
-                    push(seal(br#"{"transport":"apns","token":"00ff","tag":"tag1"}"#)),
+                    push(apns.clone()),
                     // Garbage, and a readable blob with a bad target: never going to work.
                     push("garbage".to_string()),
-                    push(seal(br#"{"transport":"sms","tag":"tag2"}"#)),
+                    push(seal(
+                        format!(r#"{{"transport":"sms","tag":"tag2","tag_key":"{TAG_KEY}"}}"#)
+                            .as_bytes(),
+                    )),
                     // A UnifiedPush endpoint PHC refuses to post to.
                     push(seal(
-                        br#"{"transport":"webpush","endpoint":"https://localhost/up","p256dh":"x","auth":"y","tag":"tag3"}"#,
+                        format!(r#"{{"transport":"webpush","endpoint":"https://localhost/up","p256dh":"x","auth":"y","tag":"tag3","tag_key":"{TAG_KEY}"}}"#)
+                            .as_bytes(),
                     )),
+                    // A version 1 blob, without a tag key.
+                    push(seal(br#"{"transport":"apns","token":"00ff","tag":"tag4"}"#)),
                 ],
-            },
+                hub_sk,
+            ),
         )
         .with_retry()
         .await
         .unwrap();
     assert_eq!(
         resp,
-        api::tr::PushResp {
-            rejected: vec![1, 2, 3],
+        api::tr::PushResp::Success(api::tr::PushResult {
+            rejected: vec![1, 2, 3, 4],
             failed: vec![0],
-        }
+        })
+    );
+
+    // The same blob again, six times.  The default per-blob burst is 5, and it was pushed to once
+    // already: 4 are relayed (and fail, as before), the other 2 are dropped without telling the hub.
+    let resp = client
+        .query::<api::tr::PushEP>(
+            &constellation.transcryptor_url,
+            &signed(vec![push(apns.clone()); 6], hub_sk),
+        )
+        .with_retry()
+        .await
+        .unwrap();
+    assert_eq!(
+        resp,
+        api::tr::PushResp::Success(api::tr::PushResult {
+            rejected: vec![],
+            failed: vec![0, 1, 2, 3],
+        })
+    );
+
+    // Signed by a key other than the one in the hub's ticket: refused.
+    let other_sk = api::SigningKey::generate().unwrap();
+    assert!(
+        client
+            .query::<api::tr::PushEP>(
+                &constellation.transcryptor_url,
+                &signed(vec![push(apns.clone())], &other_sk),
+            )
+            .await
+            .is_err()
     );
 
     // The transcryptor checks sizes before bothering PHC.
     assert!(
         client
-            .query::<api::tr::PushEP>(
-                &constellation.transcryptor_url,
-                &api::tr::PushReq { pushes: vec![] },
-            )
+            .query::<api::tr::PushEP>(&constellation.transcryptor_url, &signed(vec![], hub_sk),)
             .await
             .is_err()
     );

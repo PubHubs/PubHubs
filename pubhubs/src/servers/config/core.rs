@@ -527,6 +527,48 @@ pub mod transcryptor {
         ///
         /// Generate using `cargo run tools generate decap-key`
         pub decap_key: Option<kem::DecapKeyBytes>,
+
+        /// Limits on the pushes hubs relay through the transcryptor, see [`crate::api::tr::PushEP`].
+        #[serde(default)]
+        pub push_limits: PushLimits,
+    }
+
+    /// See [`ExtraConfig::push_limits`].
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct PushLimits {
+        /// Per hub.  Over this, the hub is told to try again later (Synapse retries with backoff).
+        /// A message in a big room gives a push for every member with the app, at once.
+        #[serde(default = "default_push_limit_per_hub")]
+        pub per_hub: crate::misc::rate_limit::Rate,
+
+        /// Per blob, so per device on one hub.  Over this, pushes are dropped: the device shows one
+        /// notification for a burst anyway.
+        #[serde(default = "default_push_limit_per_blob")]
+        pub per_blob: crate::misc::rate_limit::Rate,
+    }
+
+    impl Default for PushLimits {
+        fn default() -> Self {
+            Self {
+                per_hub: default_push_limit_per_hub(),
+                per_blob: default_push_limit_per_blob(),
+            }
+        }
+    }
+
+    fn default_push_limit_per_hub() -> crate::misc::rate_limit::Rate {
+        crate::misc::rate_limit::Rate {
+            burst: 2000,
+            per_minute: 3000,
+        }
+    }
+
+    fn default_push_limit_per_blob() -> crate::misc::rate_limit::Rate {
+        crate::misc::rate_limit::Rate {
+            burst: 5,
+            per_minute: 6,
+        }
     }
 }
 

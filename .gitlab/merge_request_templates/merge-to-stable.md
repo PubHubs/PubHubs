@@ -51,6 +51,7 @@ Test by hand:
         **NOTE:** do not worry when the transcryptor does not immediately come back up. The transcryptor is rebuilt from source code when a new version is detected, which may take around 5-10 minutes.
 
     - [ ] Check that all servers start up and are reachable https://uptime.pubhubs.net/dashboard/29
+    - [ ] Check that push notifications are set up: PHC's log says `push: APNs on, FCM on`, and PHC answers `GET .ph/push/info`.
     - [ ] Check that the following works on https://app.pubhubs.net :
         - [ ] Turn off dev mode in Yivi app.
         - [ ] Test basic pubhubs functionality (see above)

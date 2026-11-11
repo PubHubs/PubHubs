@@ -40,7 +40,8 @@ from ._hhpp import (
 )
 from ._base64url import b64url_decode, b64url_encode
 from ._native_app import set_own_hub_id
-from ._push_gateway_proxy import set_transcryptor_url
+from ._push_gateway_proxy import set_hub_tickets, set_transcryptor_url
+from ._hub_signing import DEFAULT_KEY_PATH, HubTickets, load_or_create_key
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -55,6 +56,8 @@ class Config:
     phc_url: str = None
     hub_client_url: str = None
     hub_info_update_interval: int = 60
+    # The hub's own signing key, made on first start (see _hub_signing.py).
+    hub_signing_key_path: str = DEFAULT_KEY_PATH
 
 class Core:
     def __init__(self, config: dict, api: ModuleApi):
@@ -97,6 +100,12 @@ class Core:
         if self._config != None:
             hub_info['hub_client_url'] = self._config.hub_client_url
 
+            # PHC reads the verifying key from here when the hub asks for a ticket.
+            signing_key = load_or_create_key(self._config.hub_signing_key_path)
+            hub_info['verifying_key'] = signing_key.verifying_key()
+            self._tickets = HubTickets(signing_key, api.http_client)
+            set_hub_tickets(self._tickets)
+
         api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP({ 'Ok': hub_info }, self._config.hub_info_update_interval))
 
         # new, multi-server setup
@@ -131,7 +140,8 @@ class Core:
         return Config(
                 phc_url = config['phc_url'],
                 hub_client_url = config.get('hub_client_url'),
-                hub_info_update_interval = config.get('hub_info_update_interval', Config.hub_info_update_interval))
+                hub_info_update_interval = config.get('hub_info_update_interval', Config.hub_info_update_interval),
+                hub_signing_key_path = config.get('hub_signing_key_path', Config.hub_signing_key_path))
 
     def trigger_get_constellation(self):
         now = time.time()
@@ -190,7 +200,11 @@ class Core:
         # hubs, matching our public_baseurl against the hub urls (ignoring paths: PHC advertises
         # the hub server url with the /_synapse/client/ path attached).
         my_url = normalize_hub_url(self._api.public_baseurl)
-        ids = [h['id'] for h in ok_json['hubs'].values() if normalize_hub_url(h['url']) == my_url]
+        mine = [(handle, h) for handle, h in ok_json['hubs'].items() if normalize_hub_url(h['url']) == my_url]
+        ids = [h['id'] for _, h in mine]
+        if len(mine) == 1:
+            # for tickets, see _hub_signing.py
+            self._tickets.set_hub(self._config.phc_url, mine[0][0])
         if len(ids) != 1:
             logger.error(f"cannot resolve our hub id: expected exactly one advertised hub at {my_url} "
                          f"(our public_baseurl, {self._api.public_baseurl}), found {len(ids)}; "
