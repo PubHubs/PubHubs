@@ -23,9 +23,64 @@ the same experience and battery use as A, and needs no push setup in the hubs.
 **Maybe later C.** C builds on B, so B is not wasted work. It hides from PHC how many hubs a
 device uses and gives better notifications, but costs battery and the largest change to the app.
 
-Still open: the [improvement for B](#improvement-a-different-looking-tag-on-every-push) (a
-different-looking tag on every push), and the abuse protection for the transcryptor's `.ph/push`
-(a hub ticket and a rate limit, see the comparison).
+### Open decisions within B
+
+Each has a recommendation, not yet a decision.
+
+**Privacy**
+
+1. **The tag improvement: yes or no.** Apple and Google now see a fixed tag per device and hub (see
+   [the improvement for B](#improvement-a-different-looking-tag-on-every-push)). *Recommended:
+   yes.* It's cheap, and it's the biggest remaining leak to Apple and Google.
+2. **Timing at the transcryptor.** It relays every push immediately, so PHC sees exactly when each
+   hub pushes, which helps match pushes to hubs. The other choice is to hold pushes briefly and send
+   them on in batches, with a short random delay. *Recommended: start with immediate relaying, and
+   write down that we accept this.* Batching costs a few seconds per notification.
+3. **Pass on Synapse's priority or not.** The gateway passes `high_prio` on to PHC and FCM. That
+   says something about the message, since Synapse sets it per event. *Recommended: always the
+   same priority, high.* On iOS PHC already always sends priority 10.
+4. **Logging and retention at PHC and the transcryptor.** Which tokens, tags, timestamps and hub
+   identities end up in logs, and for how long. The privacy claims only hold if this is limited.
+   *Recommended: no tokens or tags in logs, and no timing per push beyond what's needed to debug.*
+5. **Classical or post-quantum crypto for the blob.** Today it's P-256 and AES-GCM, as WebCrypto
+   offers. Hybrid ML-KEM would match the keys between the servers, but needs a JS library.
+   *Recommended: classical for now, recorded as a known gap.*
+
+**Abuse**
+
+6. **Protecting `.ph/push`.** It's unauthenticated now: anyone with a blob can push to that device,
+   and the endpoint can be flooded. Options: require a hub ticket (the transcryptor knows the hub
+   anyway), rate limits per hub and per blob, and at PHC per token. *Recommended: hub ticket plus
+   rate limits in the transcryptor.*
+
+**What the user gets**
+
+7. **Which events cause a push.** Every message, or only DMs and mentions, and whether the user can
+   choose per hub. This uses Synapse's normal push rules, so it's a default and a setting, not new
+   plumbing.
+8. **Collapsing several messages into one notification.** Should a burst of messages give one
+   notification, and where: on the device (Android `LocalNotifier`, iOS thread grouping), or at
+   PHC? An `apns-collapse-id` per tag would give Apple the fixed id again. *Recommended: on the
+   device.*
+9. **Badge counts.** In B the push has no count, so the badge stays empty, or the app sets it after
+   opening. Real counts are what C adds.
+10. **Pushes for the web client too.** PHC already sends Web Push for F-Droid, so browsers could get
+    pushes with little extra work. Is that in scope?
+
+**Running it**
+
+11. **Who holds the APNs `.p8` and the FCM service account, and how they're rotated.** Also: a
+    separate sandbox config for builds from Xcode?
+12. **Changing PHC's blob key.** It's derived from `enc_key`, and changing it makes every app
+    register again. Should PHC accept the old key for a while during the switch?
+13. **When PHC or the transcryptor is down.** Synapse retries with backoff, and pushes expire after
+    PHC's TTL. Is that acceptable, or should the monitoring of PHC and the transcryptor also cover
+    push?
+
+**Cleanup**
+
+14. **Remove option A's code from this branch:** Sygnal and its config in the hub image, the
+    ~515-line PHC endpoint for short-lived Apple/Google tokens, and `hub_id` in the push.
 
 ## How a push travels, per option
 
