@@ -44,7 +44,8 @@ type NativePushPlugin = {
 	register(options: { vapid: string }): Promise<void>;
 	addListener(eventName: 'pushTokenReceived', listenerFunc: (event: DeviceToken) => void): Promise<PluginListenerHandle>;
 	addListener(eventName: 'pushUnavailable', listenerFunc: (event: { reason: string }) => void): Promise<PluginListenerHandle>;
-	addListener(eventName: 'pushReceived', listenerFunc: (event: { sealed_tag: string }) => void): Promise<PluginListenerHandle>;
+	/** The user tapped a push notification. Not fired for pushes that merely arrive: navigating then would take the user away from what they're doing. */
+	addListener(eventName: 'pushTapped', listenerFunc: (event: { sealed_tag: string }) => void): Promise<PluginListenerHandle>;
 };
 
 const NativePush = registerPlugin<NativePushPlugin>('NativePush');
@@ -122,7 +123,11 @@ function authenticatedHubs(): AuthenticatedHub[] {
  * was made with). Hashed, as this is stored.
  */
 async function registrationId(hub: AuthenticatedHub, device: DeviceToken, info: PushInfo): Promise<string> {
-	const input = new TextEncoder().encode(JSON.stringify([BLOB_VERSION, info.blob_key_id, device, hub.serverUrl, hub.accessToken]));
+	// The device's fields one by one, not the object: the native side sends them in no fixed order
+	// (iOS's dictionaries), and a different order must not count as a new token. Otherwise the app
+	// would register again on every hub at every start, which hubs could use to link a user.
+	const deviceFields = device.transport === 'webpush' ? [device.transport, device.token, device.p256dh, device.auth] : [device.transport, device.token];
+	const input = new TextEncoder().encode(JSON.stringify([BLOB_VERSION, info.blob_key_id, deviceFields, hub.serverUrl, hub.accessToken]));
 	return base64UrlEncode(new Uint8Array(await crypto.subtle.digest('SHA-256', input)));
 }
 
@@ -189,7 +194,10 @@ async function deletePusher(hub: AuthenticatedHub): Promise<void> {
 
 let syncing: Promise<void> = Promise.resolve();
 
-/** Brings every logged-in hub's pusher up to date. One at a time, so a new hub gets one pushkey and tag. */
+/**
+ * Brings every logged-in hub's pusher up to date. Calls are queued, so two syncs never register the same
+ * hub at once and a new hub gets one pushkey and tag; within a sync the hubs are done in parallel.
+ */
 function syncPushers(): Promise<void> {
 	syncing = syncing.then(async () => {
 		const device = load<DeviceToken>(DEVICE_KEY);
@@ -248,7 +256,7 @@ function whenHubKnown(hubId: string): Promise<Hub | undefined> {
 	});
 }
 
-/** A push arrived (app in the foreground) or was tapped: open its hub, as clicking it would. */
+/** A push notification was tapped: open its hub, as clicking it would, unless the user is already in it (keeping the room they're in). */
 async function openHub(router: Router, sealedTag: string): Promise<void> {
 	const tag = await openSealedTag(tagKey(), sealedTag);
 	const hubId = tag && Object.entries(loadPushers()).find(([, pusher]) => pusher.tag === tag)?.[0];
@@ -258,7 +266,10 @@ async function openHub(router: Router, sealedTag: string): Promise<void> {
 	}
 	logger.info(`push for hub ${hubId}`);
 	const hub = await whenHubKnown(hubId);
-	if (hub) await router.push({ name: 'hub', params: { name: hub.name } });
+	if (!hub) return;
+	const current = router.currentRoute.value;
+	if (current.name === 'hub' && current.params.name === hub.name) return;
+	await router.push({ name: 'hub', params: { name: hub.name } });
 }
 
 /** Call once, after the router is available (App.vue). Does nothing on the web, where Notification and Sliding Sync already cover this. */
@@ -266,7 +277,7 @@ async function initNativePush(router: Router): Promise<void> {
 	if (!Capacitor.isNativePlatform() || !phc_api) return;
 	const phc = phc_api;
 
-	await NativePush.addListener('pushReceived', ({ sealed_tag }) => void openHub(router, sealed_tag));
+	await NativePush.addListener('pushTapped', ({ sealed_tag }) => void openHub(router, sealed_tag));
 	await NativePush.addListener('pushUnavailable', ({ reason }) => logger.warn(`unavailable (${reason})`));
 	await NativePush.addListener('pushTokenReceived', (device) => {
 		logger.info(`device token received (${device.transport})`);

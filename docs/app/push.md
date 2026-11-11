@@ -33,7 +33,9 @@ hub's Synapse ─▶ hub's push gateway   (sends on only the blob, with the hub'
   PHC's VAPID key. The push carries only the **sealed tag**: the tag, encrypted with the tag key and
   a fresh random nonce, so it looks different every time. If a token is no longer valid, PHC says so,
   and the hub's Synapse deletes the pusher.
-- **The app** opens the sealed tag with its tag key, looks the tag up, and opens that hub.
+- **The app**, when the user taps the notification, opens the sealed tag with its tag key, looks the
+  tag up, and opens that hub. With the app open there's no notification, and the app stays where it
+  is: it shows new messages itself.
 
 Every push is sent with high priority, and on iOS with a badge of 1, which the app clears when it's
 opened. Android shows one notification for all pushes; a new push replaces it.
@@ -62,12 +64,19 @@ accepted for now:
 
 - **Only hubs can push.** `.ph/push` wants a `TicketSigned` request: a ticket from PHC, which names
   the hub and its verifying key, and the request, signed with the hub's key.
+- **Only to the hub's own pushers.** The hub's push gateway is at a public address, and PHC's blob
+  key is public, so anyone could post made-up blobs to it. The gateway only passes on a push whose
+  pushkey and blob match a pusher in Synapse's `pushers` table, and quietly drops the rest.
+- **Only to public addresses.** A UnifiedPush endpoint comes from whoever made the blob. PHC only
+  posts to https on the default port, to a host name that resolves to public addresses only: it
+  checks the addresses when connecting, so a name that resolves to an internal address is refused.
 - **Rate limits** in the transcryptor, shared by its workers and kept in memory only:
-  - per hub (default: bursts of 2000, 3000 a minute). Over it, the hub is told `TooManyPushes`, and
-    Synapse tries again later;
+  - per hub, counting pushes, not requests (default: bursts of 2000, 3000 a minute). Over it, the
+    hub is told `TooManyPushes`, and Synapse tries again later;
   - per blob, so per device on one hub (default: bursts of 5, 6 a minute). Over it, pushes are
-    dropped quietly: the device shows one notification for a burst anyway. The limiter keys on a
-    hash of the blob, with a key that's random per run.
+    dropped quietly: the device shows one notification for a burst anyway. Pushes that PHC couldn't
+    deliver don't count, so Synapse's retries aren't dropped. The limiter keys on a hash of the
+    blob, with a key that's random per run.
 
   Change them under `transcryptor.push_limits` (`per_hub` and `per_blob`, each `burst` and
   `per_minute`).

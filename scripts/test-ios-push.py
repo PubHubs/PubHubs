@@ -11,7 +11,7 @@ Walks the chain one link at a time, so a failure points at the broken link:
   gateway     a push to the hub's push gateway goes through the transcryptor (with the hub's ticket)
               and PHC to Apple
   e2e         a real message in a room makes Synapse push, and Apple accepts it
-  foreground  with the app open, a push shows no banner but reaches JS as `pushReceived`
+  foreground  with the app open, a push shows no banner and doesn't reach JS (so the app stays put)
   tap         tapping the banner hands the push's sealed tag to JS, which opens the hub (interactive only)
 
 For local test hubs only: the e2e step sends a real message as another user of the hub, using an
@@ -130,16 +130,26 @@ class Context:
 
     def notify(self, event_id):
         """POST a notification to the hub's push gateway, as Synapse does for the pusher."""
-        data = {k: v for k, v in self.pusher[1].items() if k != "url"}
+        # The pusher's data as it is now, as Synapse would send it: the app may have registered again
+        # since the pusher step (with a fresh blob), and the gateway drops pushes whose blob doesn't
+        # match the pusher's.
+        rows = self.query("select data from pushers where app_id = ? and pushkey = ?", APP_ID, self.pushkey)
+        current = json.loads(rows[0][0]) if rows else self.pusher[1]
+        data = {k: v for k, v in current.items() if k != "url"}
         body = {"notification": {"event_id": event_id, "prio": "low", "devices": [
             {"app_id": APP_ID, "pushkey": self.pushkey, "pushkey_ts": 0, "data": data}]}}
         request = urllib.request.Request(f"{self.local_url}/_matrix/push/v1/notify", data=json.dumps(body).encode(),
                                          headers={"Content-Type": "application/json"}, method="POST")
+        since = int(time.time()) - 1
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
-                return response.status, response.read().decode()
+                answer = response.status, response.read().decode()
         except urllib.error.HTTPError as e:
             return e.code, e.read().decode()
+        # A push the gateway drops still gets a 200: only its log says so.
+        if "push gateway: dropped" in self.logs(since):
+            raise Fail("the hub's push gateway dropped the push: its blob doesn't match the pusher's")
+        return answer
 
     def matrix(self, method, path, token, body=None):
         request = urllib.request.Request(f"{self.local_url}{path}", method=method,
@@ -236,12 +246,25 @@ class SimConsole:
         time.sleep(2)
 
     def received_push(self):
+        """Whether the plugin handed a push to JS. Capacitor logs every event it passes to JS
+        (`TO JS {"sealed_tag": ...}`), whatever JS's log level; nativePush.ts's own "push for hub"
+        line is info, which release builds don't print. The plugin only does this for a tap, so
+        whether the push was for this hub shows in the app, not here."""
         log = self.path.read_text(errors="replace")
-        # nativePush.ts's log line: the sealed tag differs on every push, so only once JS opened it
-        # and found the hub do we know the push was for this hub.
-        return f"push for hub {self.ctx.hub_id}" in log
+        return '"sealed_tag"' in log or f"push for hub {self.ctx.hub_id}" in log
+
+    def wait_for_push(self, timeout=20):
+        """Whether the push reaches JS within `timeout` seconds. A tap may bring the app back with a
+        reloaded WebView, and the tap only reaches JS once that has loaded."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if self.received_push():
+                return True
+            time.sleep(0.5)
+        return self.received_push()
 
     def __exit__(self, *exc):
+        # Stops the app too: it runs attached to this console.
         self.process.send_signal(signal.SIGINT)
         try:
             self.process.wait(timeout=5)
@@ -464,35 +487,41 @@ def step_foreground(ctx):
             check_gateway_answer(*ctx.notify(f"$ios-push-test-foreground-{int(time.time())}"))
             time.sleep(4)
             ctx.screenshot("foreground")
-            if not console.received_push():
-                raise Fail(f"JS never got the push for hub {ctx.hub_id} (see {console.path})")
-        return f"JS got the push for hub {ctx.hub_id}; screenshot should show no banner"
+            if console.received_push():
+                raise Fail(f"the app handed a push to JS in the foreground; it should only do that for a tap (see {console.path})")
+        return "JS didn't get the push; screenshot should show no banner"
     if not ctx.interactive:
         raise Skip("needs someone watching the device")
     ctx.wait_for_user("Open PubHubs on the device and keep it in the foreground")
     check_gateway_answer(*ctx.notify(f"$ios-push-test-foreground-{int(time.time())}"))
-    ctx.ask(f"No banner, and the app switched to testhub{ctx.n}?")
-    return "no banner, app went to the hub"
+    ctx.ask("No banner, and the app stayed where it was?")
+    return "no banner, app stayed put"
 
 
 def step_tap(ctx):
     if not ctx.interactive:
         raise Skip("needs someone to tap the banner")
 
-    def push_and_tap():
+    # Get ready first, then push: a banner only stays up for about 5 seconds, too short to read a
+    # prompt that comes after it.
+    def push():
         ctx.to_background()
+        ctx.wait_for_user("Get ready to tap the banner as soon as it shows. To send the push")
         check_gateway_answer(*ctx.notify(f"$ios-push-test-tap-{int(time.time())}"))
-        ctx.wait_for_user("Tap the banner")
-        time.sleep(3)
+        ctx.say("Tap the banner now. Missed it? Swipe down from the top and tap it in Notification Center.")
 
     if ctx.simulator:
         with SimConsole(ctx, "tap") as console:
-            push_and_tap()
-            if not console.received_push():
-                raise Fail(f"JS never got the push for hub {ctx.hub_id} (see {console.path})")
+            push()
+            # Time to tap, plus time for the app to come back (its WebView may reload first).
+            if not console.wait_for_push(timeout=60):
+                raise Fail(f"the tap never reached JS (see {console.path})")
+            # Ask while the console still runs: leaving it stops the app.
+            ctx.ask(f"Did PubHubs open, on testhub{ctx.n}?")
     else:
-        push_and_tap()
-    ctx.ask(f"Did PubHubs open, on testhub{ctx.n}?")
+        push()
+        ctx.wait_for_user("Once you've tapped it")
+        ctx.ask(f"Did PubHubs open, on testhub{ctx.n}?")
     return "tap opened the hub"
 
 

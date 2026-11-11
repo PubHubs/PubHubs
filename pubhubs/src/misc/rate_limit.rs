@@ -39,10 +39,28 @@ impl<K: Hash + Eq> RateLimiter<K> {
 
     /// Takes a token for `key`, if there is one.
     pub fn allow(&mut self, key: K) -> bool {
-        self.allow_at(key, Instant::now())
+        self.allow_n(key, 1)
     }
 
+    /// Takes `n` tokens for `key` if there are that many, and none otherwise.
+    pub fn allow_n(&mut self, key: K, n: u32) -> bool {
+        self.allow_n_at(key, n, Instant::now())
+    }
+
+    /// Gives back a token taken for `key`, e.g. when what it was taken for didn't happen after all.
+    pub fn refund(&mut self, key: &K) {
+        let burst = self.rate.burst as f64;
+        if let Some(bucket) = self.buckets.get_mut(key) {
+            bucket.tokens = (bucket.tokens + 1.0).min(burst);
+        }
+    }
+
+    #[cfg(test)]
     fn allow_at(&mut self, key: K, now: Instant) -> bool {
+        self.allow_n_at(key, 1, now)
+    }
+
+    fn allow_n_at(&mut self, key: K, n: u32, now: Instant) -> bool {
         if now.duration_since(self.last_prune) >= PRUNE_INTERVAL {
             self.prune(now);
         }
@@ -57,8 +75,9 @@ impl<K: Hash + Eq> RateLimiter<K> {
         bucket.tokens = (bucket.tokens + elapsed * per_second).min(burst);
         bucket.last = now;
 
-        if bucket.tokens >= 1.0 {
-            bucket.tokens -= 1.0;
+        let n = n as f64;
+        if bucket.tokens >= n {
+            bucket.tokens -= n;
             true
         } else {
             false
@@ -100,6 +119,27 @@ mod tests {
         // one token per second
         assert!(rl.allow_at("a", t0 + Duration::from_secs(1)));
         assert!(!rl.allow_at("a", t0 + Duration::from_secs(1)));
+    }
+
+    #[test]
+    fn several_at_once_and_refunds() {
+        let mut rl = RateLimiter::new(Rate {
+            burst: 5,
+            per_minute: 60,
+        });
+        let t0 = Instant::now();
+        assert!(rl.allow_n_at("a", 3, t0));
+        assert!(!rl.allow_n_at("a", 3, t0), "only 2 left: takes none");
+        assert!(rl.allow_n_at("a", 2, t0));
+        assert!(!rl.allow_at("a", t0));
+        rl.refund(&"a");
+        assert!(rl.allow_at("a", t0));
+        // refunds never go over the burst
+        for _ in 0..10 {
+            rl.refund(&"a");
+        }
+        assert!(rl.allow_n_at("a", 5, t0));
+        assert!(!rl.allow_at("a", t0));
     }
 
     #[test]

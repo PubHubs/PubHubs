@@ -239,7 +239,8 @@ impl App {
                 .lock()
                 .map_err(|_| api::ErrorCode::InternalError)?;
             let limits = &mut *limits;
-            if !limits.per_hub.allow(hub) {
+            // One token per push, not per request: the limit is on how many devices a hub pushes to.
+            if !limits.per_hub.allow_n(hub, pushes.len() as u32) {
                 return Ok(PushResp::TooManyPushes);
             }
             (0..pushes.len())
@@ -261,27 +262,49 @@ impl App {
             &running_state.phc_sealing_secret,
         )?;
 
+        // Gives back the per-blob tokens of pushes that weren't delivered: Synapse retries them, and
+        // the retry shouldn't be dropped as if it were one push too many.
+        let refund = |indices: &mut dyn Iterator<Item = usize>| {
+            if let Ok(mut limits) = app.shared.extra.push_limits.lock() {
+                for i in indices {
+                    let key = limits.blob_key(&pushes[i].blob);
+                    limits.per_blob.refund(&key);
+                }
+            }
+        };
+
         use api::ApiResultExt as _;
-        match app
+        let result = app
             .client
             .query::<api::phc::push::SendEP>(&running_state.constellation.phc_url, sealed)
             .await
-            .into_server_result()?
-        {
+            .into_server_result();
+        let result = match result {
+            Ok(result) => result,
+            Err(err) => {
+                refund(&mut relay.iter().copied());
+                return Err(err);
+            }
+        };
+        match result {
             // PHC's indices are into `relay`; map them back to the hub's.
-            api::phc::push::SendResp::Success(result) => Ok(PushResp::Success(PushResult {
-                rejected: result
-                    .rejected
-                    .iter()
-                    .filter_map(|&i| relay.get(i).copied())
-                    .collect(),
-                failed: result
-                    .failed
-                    .iter()
-                    .filter_map(|&i| relay.get(i).copied())
-                    .collect(),
-            })),
+            api::phc::push::SendResp::Success(result) => {
+                refund(&mut result.failed.iter().filter_map(|&i| relay.get(i).copied()));
+                Ok(PushResp::Success(PushResult {
+                    rejected: result
+                        .rejected
+                        .iter()
+                        .filter_map(|&i| relay.get(i).copied())
+                        .collect(),
+                    failed: result
+                        .failed
+                        .iter()
+                        .filter_map(|&i| relay.get(i).copied())
+                        .collect(),
+                }))
+            }
             api::phc::push::SendResp::RetryWithNewSecret => {
+                refund(&mut relay.iter().copied());
                 log::warn!("PHC could not open our pushes; is our constellation outdated?");
                 Err(api::ErrorCode::PleaseRetry)
             }

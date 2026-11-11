@@ -5,7 +5,9 @@ import unittest
 
 sys.path.append("modules")
 from pubhubs import _push_gateway_proxy
-from pubhubs._push_gateway_proxy import gateway_response, push_request
+import asyncio
+
+from pubhubs._push_gateway_proxy import APP_ID, gateway_response, only_registered, push_request, registered_blobs
 
 
 def notify_body(devices, prio="low"):
@@ -44,6 +46,57 @@ class PushRequestTest(unittest.TestCase):
         self.assertEqual(without_blob, ["old"])
         self.assertEqual(gateway_response(success(rejected=[], failed=[]), pushkeys, without_blob),
                          (200, {"rejected": ["old"]}))
+
+
+class OnlyRegisteredTest(unittest.TestCase):
+    def test_made_up_blobs_are_dropped(self):
+        # The gateway's url and PHC's blob key are public: anyone can post a notify body.
+        pushes = [{"blob": "REAL"}, {"blob": "FORGED"}, {"blob": "X"}]
+        kept, kept_keys, unknown = only_registered(pushes, ["k1", "k1", "nokey"], {("k1", "REAL")})
+        self.assertEqual(kept, [{"blob": "REAL"}])
+        self.assertEqual(kept_keys, ["k1"])
+        self.assertEqual(unknown, ["k1", "nokey"])
+
+
+class FakeTxn:
+    def __init__(self, rows):
+        self.rows = rows
+        self.executed = None
+
+    def execute(self, sql, args):
+        self.executed = (sql, args)
+
+    def fetchall(self):
+        return self.rows
+
+
+class FakeModuleApi:
+    def __init__(self, rows):
+        self.txn = FakeTxn(rows)
+
+    async def run_db_interaction(self, desc, fn, *args):
+        return fn(self.txn, *args)
+
+
+class RegisteredBlobsTest(unittest.TestCase):
+    def test_reads_blobs_from_pusher_data(self):
+        api = FakeModuleApi([
+            ("k1", '{"url": "u", "blob": "B1"}'),
+            ("k2", b'{"blob": "B2"}'),
+            ("k3", "not json"),
+            ("k4", '{"url": "u"}'),
+        ])
+        found = asyncio.run(registered_blobs(api, ["k1", "k2", "k3", "k4", None]))
+        self.assertEqual(found, {("k1", "B1"), ("k2", "B2")})
+        sql, args = api.txn.executed
+        self.assertEqual(args[0], APP_ID)
+        self.assertEqual(sorted(args[1:]), ["k1", "k2", "k3", "k4"])
+        self.assertEqual(sql.count("?"), 5)
+
+    def test_no_query_without_pushkeys(self):
+        api = FakeModuleApi([])
+        self.assertEqual(asyncio.run(registered_blobs(api, [])), set())
+        self.assertIsNone(api.txn.executed)
 
 
 def success(**result):

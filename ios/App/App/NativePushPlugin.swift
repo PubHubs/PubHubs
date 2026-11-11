@@ -15,8 +15,8 @@ import Capacitor
 /// this app's Localizable.strings keys, a badge of 1, and a `sealed_tag` (a random
 /// tag, encrypted afresh for every push) that nativePush.ts opens and maps to the
 /// hub. In the background iOS shows the alert, and tapping it opens that hub; in
-/// the foreground there's no alert and the app goes to the hub. The badge is
-/// cleared whenever the app becomes active.
+/// the foreground there's no alert and nothing happens, as the app shows new
+/// messages itself. The badge is cleared whenever the app becomes active.
 @objc(NativePushPlugin)
 public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerProtocol {
     public let identifier = "NativePushPlugin"
@@ -84,23 +84,19 @@ public class NativePushPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerP
 
     // MARK: - NotificationHandlerProtocol
 
-    /// A push arrived while the app is in the foreground: like Android (FcmService only shows
-    /// its notification when the app isn't in the foreground), don't show the alert, just tell JS.
+    /// A push arrived while the app is in the foreground: like Android (PushEvents.handlePush only
+    /// shows its notification when the app isn't in the foreground), don't show the alert. JS isn't
+    /// told either: going to the hub would take the user away from whatever they're doing.
     public func willPresent(notification: UNNotification) -> UNNotificationPresentationOptions {
-        emitPushReceived(notification.request.content.userInfo)
         return []
     }
 
     /// The user tapped the alert: open that hub, like tapping Android's notification does.
     public func didReceive(response: UNNotificationResponse) {
-        emitPushReceived(response.notification.request.content.userInfo)
-    }
-
-    private func emitPushReceived(_ userInfo: [AnyHashable: Any]) {
-        guard let sealedTag = userInfo["sealed_tag"] as? String else { return }
+        guard let sealedTag = response.notification.request.content.userInfo["sealed_tag"] as? String else { return }
         // retainUntilConsumed: a tap can cold-start the app, firing before the JS layer has
-        // attached its "pushReceived" listener; without this the event would be dropped instead
+        // attached its "pushTapped" listener; without this the event would be dropped instead
         // of delivered once JS is ready for it.
-        notifyListeners("pushReceived", data: ["sealed_tag": sealedTag], retainUntilConsumed: true)
+        notifyListeners("pushTapped", data: ["sealed_tag": sealedTag], retainUntilConsumed: true)
     }
 }

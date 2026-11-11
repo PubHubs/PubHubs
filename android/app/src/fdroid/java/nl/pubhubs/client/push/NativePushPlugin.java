@@ -56,9 +56,9 @@ public class NativePushPlugin extends Plugin implements PushEventEmitter {
     }
 
     @Override
-    public void emitPushReceived(JSObject data) {
+    public void emitPushTapped(JSObject data) {
         // Retained: a tap can start the app before JS listens.
-        notifyListeners("pushReceived", data, true);
+        notifyListeners("pushTapped", data, true);
     }
 
     /**

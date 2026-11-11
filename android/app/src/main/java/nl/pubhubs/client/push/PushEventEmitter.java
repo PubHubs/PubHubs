@@ -11,5 +11,6 @@ public interface PushEventEmitter {
 
     void emitPushUnavailable(JSObject data);
 
-    void emitPushReceived(JSObject data);
+    /** The user tapped a push notification: JS opens its hub. */
+    void emitPushTapped(JSObject data);
 }

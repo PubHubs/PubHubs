@@ -28,7 +28,10 @@ public final class PushEvents {
         activePlugin = plugin;
     }
 
-    /** Called by MainActivity's onResume/onPause: in the foreground, JS handles a push itself. */
+    /**
+     * Called by MainActivity's onResume/onPause: in the foreground the app shows new messages itself,
+     * so a push shows no notification.
+     */
     public static void setAppInForeground(boolean inForeground) {
         appInForeground = inForeground;
     }
@@ -59,23 +62,25 @@ public final class PushEvents {
         plugin.emitPushUnavailable(data);
     }
 
-    public static void notifyPushReceived(String sealedTag) {
-        Log.d(TAG, "push received (foreground=" + appInForeground + ")");
+    /** The user tapped a push notification (see MainActivity.handlePushIntent): JS opens its hub. */
+    public static void notifyPushTapped(String sealedTag) {
+        Log.d(TAG, "push tapped");
         PushEventEmitter plugin = activePlugin;
         if (plugin == null) return;
 
         JSObject data = new JSObject();
         data.put("sealed_tag", sealedTag);
-        plugin.emitPushReceived(data);
+        plugin.emitPushTapped(data);
     }
 
     /**
-     * What a Service does with a push: tell JS, and unless the app is in the foreground (where JS
-     * just opens the hub), show the generic notification.
+     * What a Service does with a push: unless the app is in the foreground, show the generic
+     * notification. JS only hears about it when the user taps that: navigating on arrival would
+     * take the user away from whatever they're doing.
      */
     public static void handlePush(android.content.Context context, String sealedTag) {
         if (sealedTag == null || sealedTag.isEmpty()) return;
-        notifyPushReceived(sealedTag);
+        Log.d(TAG, "push received (foreground=" + appInForeground + ")");
         if (!isAppInForeground()) {
             LocalNotifier.show(context, sealedTag);
         }

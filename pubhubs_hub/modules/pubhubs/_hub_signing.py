@@ -15,6 +15,7 @@ import base64
 import json
 import logging
 import os
+import tempfile
 import time
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -98,8 +99,9 @@ class HubSigningKey:
 def load_or_create_key(path: str) -> HubSigningKey:
     """Loads the hub's signing key from `path`, or makes one and stores it there.
 
-    Several Synapse workers may start at once, so the file is created exclusively: whoever loses the
-    race reads the winner's key."""
+    Several Synapse workers may start at once. The key is written to a temporary file first, and
+    then hard-linked into place, which fails if `path` exists: so `path` only ever holds a complete
+    key, and whoever loses the race reads the winner's."""
     try:
         with open(path) as f:
             return HubSigningKey.from_json(json.load(f))
@@ -107,13 +109,26 @@ def load_or_create_key(path: str) -> HubSigningKey:
         pass
 
     key = HubSigningKey.generate()
+    directory = os.path.dirname(os.path.abspath(path))
     try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except FileExistsError:
-        with open(path) as f:
-            return HubSigningKey.from_json(json.load(f))
-    with os.fdopen(fd, "w") as f:
-        json.dump(key.to_json(), f)
+        fd, tmp = tempfile.mkstemp(dir=directory, prefix=".hub_signing_key.")
+    except OSError as e:
+        raise RuntimeError(
+            f"cannot store the hub signing key in {directory} ({e}); set hub_signing_key_path in "
+            "the pubhubs module config to a writable location"
+        ) from e
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(key.to_json(), f)
+            f.flush()
+            os.fsync(f.fileno())
+        try:
+            os.link(tmp, path)
+        except FileExistsError:
+            with open(path) as f:
+                return HubSigningKey.from_json(json.load(f))
+    finally:
+        os.unlink(tmp)
     logger.info(f"made a new hub signing key, stored in {path}")
     return key
 

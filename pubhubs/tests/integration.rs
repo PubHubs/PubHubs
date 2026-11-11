@@ -1819,8 +1819,9 @@ async fn test_push(
         })
     );
 
-    // The same blob again, six times.  The default per-blob burst is 5, and it was pushed to once
-    // already: 4 are relayed (and fail, as before), the other 2 are dropped without telling the hub.
+    // The same blob again, six times.  The default per-blob burst is 5; the earlier push failed, so
+    // its token was given back: 5 are relayed (and fail, as before), the sixth is dropped without
+    // telling the hub.
     let resp = client
         .query::<api::tr::PushEP>(
             &constellation.transcryptor_url,
@@ -1833,7 +1834,7 @@ async fn test_push(
         resp,
         api::tr::PushResp::Success(api::tr::PushResult {
             rejected: vec![],
-            failed: vec![0, 1, 2, 3],
+            failed: vec![0, 1, 2, 3, 4],
         })
     );
 

@@ -91,6 +91,6 @@ public class MainActivity extends BridgeActivity {
         // Consumed, so recreating the activity (e.g. rotating) doesn't deliver it again.
         intent.removeExtra(EXTRA_PUSH_TAG);
 
-        PushEvents.notifyPushReceived(tag);
+        PushEvents.notifyPushTapped(tag);
     }
 }

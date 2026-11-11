@@ -48,6 +48,54 @@ def push_request(body: dict):
     return pushes, pushkeys, without_blob
 
 
+# The app id the app registers its pushers with (APP_ID in global-client/src/logic/nativePush.ts).
+APP_ID = "nl.pubhubs.client"
+
+
+async def registered_blobs(module_api: ModuleApi, pushkeys: list) -> set:
+    """The (pushkey, blob) pairs of this hub's pushers with these pushkeys, from Synapse's
+    `pushers` table."""
+    pushkeys = [pk for pk in set(pushkeys) if isinstance(pk, str)]
+    if not pushkeys:
+        return set()
+
+    def txn_fn(txn):
+        txn.execute(
+            f"SELECT pushkey, data FROM pushers WHERE app_id = ? AND pushkey IN ({','.join('?' * len(pushkeys))})",
+            (APP_ID, *pushkeys),
+        )
+        return txn.fetchall()
+
+    found = set()
+    for pushkey, data in await module_api.run_db_interaction("push_gateway_registered_blobs", txn_fn):
+        try:
+            if isinstance(data, (bytes, memoryview)):
+                data = bytes(data).decode("utf-8")
+            blob = (json.loads(data) if isinstance(data, str) else data or {}).get("blob")
+        except (ValueError, AttributeError):
+            continue
+        if isinstance(blob, str):
+            found.add((pushkey, blob))
+    return found
+
+
+def only_registered(pushes: list, pushkeys: list, registered: set):
+    """Keeps the pushes whose (pushkey, blob) belongs to a pusher on this hub.
+
+    The gateway's url is public, and PHC's blob key too, so anyone could make up notify bodies with
+    blobs of their own: they would use up this hub's push limit at the transcryptor, and have PHC
+    post to whatever they put in them. Returns the pushes and pushkeys to relay, and the pushkeys
+    that were left out."""
+    kept_pushes, kept_pushkeys, unknown = [], [], []
+    for push, pushkey in zip(pushes, pushkeys):
+        if (pushkey, push["blob"]) in registered:
+            kept_pushes.append(push)
+            kept_pushkeys.append(pushkey)
+        else:
+            unknown.append(pushkey)
+    return kept_pushes, kept_pushkeys, unknown
+
+
 def gateway_response(transcryptor_resp: dict, pushkeys: list, without_blob: list):
     """The (status, body) to answer Synapse with, given the transcryptor's answer. Synapse deletes
     the pushers of `rejected` pushkeys, and retries later when the status isn't 200."""
@@ -87,6 +135,14 @@ class PushGatewayProxyServlet(DirectServeJsonResource):
         except (JSONDecodeError, AttributeError, TypeError) as e:
             respond_with_json(request, 400, {"error": f"malformed notification: {e}"})
             return
+
+        if pushes:
+            registered = await registered_blobs(self._module_api, pushkeys)
+            pushes, pushkeys, unknown = only_registered(pushes, pushkeys, registered)
+            # Dropped, not rejected: the pusher may just have been registered again with a new blob,
+            # and rejecting its pushkey would make Synapse delete the new one.
+            if unknown:
+                logger.info(f"push gateway: dropped {len(unknown)} push(es) not matching a pusher on this hub")
 
         if not pushes:
             respond_with_json(request, 200, {"rejected": without_blob})

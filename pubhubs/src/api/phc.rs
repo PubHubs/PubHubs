@@ -153,7 +153,6 @@ pub mod hub {
     }
 }
 
-/// `.ph/user/...` endpoints, used by the ('global') web client
 /// `.ph/push/...` endpoints, for push notifications (see [`crate::api::tr::PushEP`] for the design)
 pub mod push {
     use super::*;
@@ -217,6 +216,7 @@ pub mod push {
     }
 }
 
+/// `.ph/user/...` endpoints, used by the ('global') web client
 pub mod user {
     use super::*;
 

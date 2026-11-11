@@ -377,8 +377,12 @@ impl PushKeys {
 pub(super) struct PushState {
     keys: Arc<PushKeys>,
 
-    /// Without redirects: UnifiedPush endpoints come from devices.
+    /// For Apple, Google and Google OAuth.
     http: awc::Client,
+
+    /// For UnifiedPush endpoints, which come from devices (or whoever made the blob): without
+    /// redirects, and only to public addresses (see [`PublicOnlyResolver`]).
+    webpush_http: awc::Client,
 
     /// APNs provider token and when it was made.  Apple wants it reused for 20 to 60 minutes.
     apns_token: RefCell<Option<(String, u64)>>,
@@ -419,6 +423,18 @@ impl PushState {
         Self {
             keys,
             http: awc::Client::builder()
+                .disable_redirects()
+                .timeout(std::time::Duration::from_secs(10))
+                .finish(),
+            webpush_http: awc::Client::builder()
+                .connector(
+                    awc::Connector::new().connector(
+                        actix_tls::connect::Connector::new(actix_tls::connect::Resolver::custom(
+                            PublicOnlyResolver,
+                        ))
+                        .service(),
+                    ),
+                )
                 .disable_redirects()
                 .timeout(std::time::Duration::from_secs(10))
                 .finish(),
@@ -723,7 +739,7 @@ impl PushState {
             Base64UrlUnpadded::encode_string(self.keys.vapid_key.public_key().as_ref());
 
         let resp = self
-            .http
+            .webpush_http
             .post(endpoint)
             .insert_header((
                 "authorization",
@@ -771,6 +787,78 @@ fn webpush_origin(endpoint: &str) -> Option<String> {
         return None;
     }
     Some(format!("https://{host}"))
+}
+
+/// Whether PHC may connect to `ip` for a UnifiedPush endpoint: not loopback, private, link-local,
+/// shared (CGNAT), documentation, multicast or otherwise special-purpose.  ([`std::net::Ipv4Addr`]'s
+/// `is_global` isn't stable yet.)
+fn is_public_ip(ip: std::net::IpAddr) -> bool {
+    use std::net::IpAddr;
+    match ip {
+        IpAddr::V4(v4) => {
+            let [a, b, c, _] = v4.octets();
+            !(v4.is_unspecified()
+                || v4.is_loopback()
+                || v4.is_private()
+                || v4.is_link_local()
+                || v4.is_broadcast()
+                || v4.is_documentation()
+                || v4.is_multicast()
+                || a == 0
+                || (a == 100 && (64..128).contains(&b)) // shared address space, RFC 6598
+                || (a == 192 && b == 0 && c == 0) // IETF protocol assignments
+                || (a == 198 && (b == 18 || b == 19)) // benchmarking
+                || a >= 240) // reserved
+        }
+        IpAddr::V6(v6) => {
+            if let Some(v4) = v6.to_ipv4_mapped() {
+                return is_public_ip(IpAddr::V4(v4));
+            }
+            let s = v6.segments();
+            // NAT64 (64:ff9b::/96) reaches whatever IPv4 address it embeds.
+            if s[..6] == [0x64, 0xff9b, 0, 0, 0, 0] {
+                let [a, b] = s[6].to_be_bytes();
+                let [c, d] = s[7].to_be_bytes();
+                return is_public_ip(IpAddr::V4(std::net::Ipv4Addr::new(a, b, c, d)));
+            }
+            !(v6.is_unspecified()
+                || v6.is_loopback()
+                || v6.is_multicast()
+                || (s[0] & 0xfe00) == 0xfc00 // unique local
+                || (s[0] & 0xffc0) == 0xfe80 // link-local
+                || (s[0] == 0x2001 && s[1] == 0x0db8) // documentation
+                || s[..5] == [0; 5]) // IPv4-compatible and other ::/80
+        }
+    }
+}
+
+/// Resolves host names with the system resolver, but only to public addresses (see
+/// [`is_public_ip`]).  PHC posts to UnifiedPush endpoints that come from devices, and whoever makes
+/// a blob chooses the endpoint: so [`webpush_origin`]'s check of the name isn't enough, as any name
+/// can resolve to an internal address.  Checking here, when connecting, also covers a name that
+/// resolves differently from one lookup to the next.
+struct PublicOnlyResolver;
+
+impl actix_tls::connect::Resolve for PublicOnlyResolver {
+    fn lookup<'a>(
+        &'a self,
+        host: &'a str,
+        port: u16,
+    ) -> futures::future::LocalBoxFuture<
+        'a,
+        Result<Vec<std::net::SocketAddr>, Box<dyn std::error::Error>>,
+    > {
+        Box::pin(async move {
+            let addrs: Vec<std::net::SocketAddr> = tokio::net::lookup_host((host, port))
+                .await?
+                .filter(|addr| is_public_ip(addr.ip()))
+                .collect();
+            if addrs.is_empty() {
+                return Err("no public address".into());
+            }
+            Ok(addrs)
+        })
+    }
 }
 
 /// Encrypts a Web Push message (RFC 8291, `aes128gcm` content encoding of RFC 8188, one record).
@@ -849,9 +937,14 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         }
 
+        // At once, not one after the other: each may take up to the client's timeout, and together
+        // they must stay within the transcryptor's.
+        let outcomes =
+            futures::future::join_all(req.pushes.iter().map(|push| app.push.deliver(push))).await;
+
         let mut resp = PushResult::default();
-        for (i, push) in req.pushes.iter().enumerate() {
-            match app.push.deliver(push).await {
+        for (i, outcome) in outcomes.into_iter().enumerate() {
+            match outcome {
                 Outcome::Delivered => {}
                 Outcome::Rejected => resp.rejected.push(i),
                 Outcome::Failed => resp.failed.push(i),
@@ -995,6 +1088,54 @@ mod tests {
                 .is_err(),
             "v2 blobs must have a tag key"
         );
+    }
+
+    #[test]
+    fn only_public_ips() {
+        for public in [
+            "1.1.1.1",
+            "159.100.250.1",
+            "2a00:1450:4001:80b::200e",
+            "::ffff:8.8.8.8",
+            "64:ff9b::808:808",
+        ] {
+            assert!(is_public_ip(public.parse().unwrap()), "{public}");
+        }
+        for internal in [
+            "127.0.0.1",
+            "10.1.2.3",
+            "172.16.0.1",
+            "192.168.1.1",
+            "169.254.169.254",
+            "100.64.0.1",
+            "0.0.0.0",
+            "0.1.2.3",
+            "192.0.0.1",
+            "198.18.0.1",
+            "203.0.113.5",
+            "224.0.0.1",
+            "255.255.255.255",
+            "240.0.0.1",
+            "::",
+            "::1",
+            "::127.0.0.1",
+            "::ffff:10.0.0.1",
+            "64:ff9b::a00:1",
+            "fd00::1",
+            "fe80::1",
+            "ff02::1",
+            "2001:db8::1",
+        ] {
+            assert!(!is_public_ip(internal.parse().unwrap()), "{internal}");
+        }
+    }
+
+    #[tokio::test]
+    async fn resolver_refuses_internal_addresses() {
+        use actix_tls::connect::Resolve as _;
+        assert!(PublicOnlyResolver.lookup("localhost", 443).await.is_err());
+        assert!(PublicOnlyResolver.lookup("127.0.0.1", 443).await.is_err());
+        assert!(PublicOnlyResolver.lookup("10.0.0.1", 443).await.is_err());
     }
 
     #[test]

@@ -1770,6 +1770,7 @@ version = "0.0.0"
 dependencies = [
  "actix-cors",
  "actix-http",
+ "actix-tls",
  "actix-web",
  "aead",
  "anyhow",

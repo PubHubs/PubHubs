@@ -57,7 +57,7 @@ bytes = { version = "1", features = ["serde"] }
 env_logger = { version = "0.11.8", default-features = false, features = ["auto-color"] }
 mime = { version = "0.3" }
 log = { version = "0.4", features = ["serde"] }
-tokio = { version = "1.47", features = ["rt", "macros", "rt-multi-thread", "sync", "time", "io-std"] }
+tokio = { version = "1.47", features = ["rt", "macros", "rt-multi-thread", "sync", "time", "io-std", "net"] }
 tokio-stream = { version = "0.1" } # <- dev dependency of tokio itself
 url = { version="2.5", features=["serde"] }
 
@@ -70,6 +70,10 @@ awc = { version = "3.8", default-features = false, features = ["rustls-0_23-webp
 
 # For `actix_http::error::ParseError` in the S3 connector; awc (which pulls it in) doesn't re-export it.
 actix-http = { version = "3.13", default-features = false }
+
+# For a custom DNS resolver in awc's connector: PHC posts to UnifiedPush endpoints that come from
+# devices, and only to public addresses (see servers/phc/push.rs).  awc already pulls it in.
+actix-tls = { version = "3.5", default-features = false, features = ["connect"] }
 
 # awc, object_store and reqwest all use rustls.  Adding the following features makes
 # sure we can enable the post-quantum key-exchange X25519MLKEM768 for them.
