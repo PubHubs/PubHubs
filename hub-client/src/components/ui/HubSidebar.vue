@@ -56,7 +56,7 @@
 							variant="secondary"
 							:aria-label="t('settings.edit_profile')"
 							:title="t('settings.edit_profile')"
-							@click="handleEditUserInfo"
+							@click="openProfile"
 						/>
 					</div>
 
@@ -135,19 +135,6 @@
 							@click="hubSettings.hideBar()"
 							>{{ t('menu.admin_tools_hub_settings') }}</MenuItem
 						>
-						<!-- <MenuItem
-							v-if="isHubAdmin"
-							:to="{ name: 'nop' }"
-							icon="shield"
-							@click="hubSettings.hideBar()"
-							>{{ t('menu.admin_dashboard') }}</MenuItem
-						> -->
-						<!-- <MenuItem
-							:to="{ name: 'nop' }"
-							icon="shield"
-							@click="hubSettings.hideBar()"
-							>{{ t('menu.steward_dashboard') }}</MenuItem
-						> -->
 					</Menu>
 				</CollapsibleHeader>
 
@@ -169,12 +156,6 @@
 							@click="hubSettings.hideBar()"
 							>{{ t('menu.admin_tools_roles') }}</MenuItem
 						>
-						<!-- <MenuItem
-							:to="{ name: 'nop' }"
-							icon="file"
-							@click="hubSettings.hideBar()"
-							>{{ t('menu.audit_log') }}</MenuItem
-						> -->
 					</Menu>
 				</CollapsibleHeader>
 
@@ -207,7 +188,7 @@
 	// Packages
 	import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRoute } from 'vue-router';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import H2 from '@hub-client/components/elements/H2.vue';
@@ -239,10 +220,6 @@
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
-	const emit = defineEmits<{
-		openSettings: [];
-	}>();
-
 	const { t } = useI18n();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
@@ -256,6 +233,7 @@
 	const { scrollToEnd } = useGlobalScroll();
 
 	const route = useRoute();
+	const router = useRouter();
 	const version = __APP_VERSION__;
 	// INFO: when adding a page to the moderation sidebar, update the routes
 	const moderationRoutes = new Set(['hub-settings', 'manage-rooms', 'manage-users', 'manage-roles', 'reports', 'editroom']);
@@ -289,6 +267,12 @@
 	const pill = reactive({ visible: false, top: 0, height: 0 });
 	let menuResizeObserver: ResizeObserver | undefined;
 
+	// Like a MenuItem: on mobile the page sits next to this menu, so slide over to it
+	function openProfile() {
+		scrollToEnd();
+		router.push({ name: 'profile-page' });
+	}
+
 	function updatePill() {
 		const root = menuRoot.value;
 		const itemRect = root?.querySelector<HTMLElement>('[data-rail-active]')?.getBoundingClientRect();
@@ -313,10 +297,4 @@
 	});
 
 	onBeforeUnmount(() => menuResizeObserver?.disconnect());
-
-	function handleEditUserInfo() {
-		scrollToEnd();
-		emit('openSettings');
-		hubSettings.hideBar();
-	}
 </script>

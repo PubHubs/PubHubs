@@ -123,8 +123,8 @@
 				@click="emit('edit')"
 			/>
 			<FloatingActionButton
-				v-if="isHubAdmin && !isRoomAdmin"
-				:label="t('admin.upgrade_to_steward')"
+				v-if="canMakeSelfRoomAdmin"
+				:label="t('admin.make_admin_text')"
 				icon="arrow-circle-up"
 				@click="emit('promote')"
 			/>
@@ -158,10 +158,11 @@
 
 	// Props
 	const props = defineProps({
+		canMakeSelfRoomAdmin: { type: Boolean, default: false },
+		isHubAdmin: { type: Boolean, default: false },
+		isRoomAdmin: { type: Boolean, default: false },
 		roomId: { type: String, default: '' },
 		roomName: { type: String, default: '' },
-		isRoomAdmin: { type: Boolean, default: false },
-		isHubAdmin: { type: Boolean, default: false },
 	});
 
 	const emit = defineEmits<{

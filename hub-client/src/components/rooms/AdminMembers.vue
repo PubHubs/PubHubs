@@ -32,7 +32,6 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { EventType } from 'matrix-js-sdk';
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -43,6 +42,7 @@
 
 	// Logic
 	import { APIService } from '@hub-client/logic/core/apiService';
+	import { findPowerLevelsContent, powerLevelOf } from '@hub-client/logic/utils/powerLevelUtils';
 
 	// Models
 	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
@@ -61,6 +61,7 @@
 	const user = useUser();
 	const pubhubs = usePubhubsStore();
 	const dialog = useDialog();
+	const modalHolder = dialog.newId();
 	const inProgress = ref<boolean>(false);
 
 	// Reactive state
@@ -72,7 +73,7 @@
 	});
 
 	onUnmounted(() => {
-		dialog.hideModal();
+		dialog.releaseModal(modalHolder);
 	});
 
 	// Watchers
@@ -95,7 +96,7 @@
 				return;
 			}
 
-			dialog.showModal();
+			dialog.holdModal(modalHolder);
 		} catch {
 			dialog.confirm(t('errors.error'));
 			return;
@@ -157,9 +158,8 @@
 	async function hasBecomeRoomAdmin(userId: string): Promise<boolean | undefined> {
 		// Extract power level event
 		const roomState = await APIService.adminGetRoomState(props.roomId);
-		const powerLevelsEvent = roomState.state.find((event) => event.type === EventType.RoomPowerLevels);
-		if (!powerLevelsEvent) return undefined;
-		const userPowerLevel = powerLevelsEvent.content.users || {};
-		return userPowerLevel[userId] === UserPowerLevel.Admin;
+		const powerLevelsContent = findPowerLevelsContent(roomState.state);
+		if (!powerLevelsContent) return undefined;
+		return powerLevelOf(powerLevelsContent, userId) === UserPowerLevel.Admin;
 	}
 </script>

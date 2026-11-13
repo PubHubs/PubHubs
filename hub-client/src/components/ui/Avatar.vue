@@ -31,6 +31,9 @@
 	// Composables
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
+	// Models
+	import { UserPowerLevel } from '@hub-client/models/users/TUser';
+
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
@@ -55,7 +58,7 @@
 		const room = rooms.room(props.roomId);
 		if (!room) return '';
 		if (room.isDirectMessageRoom()) return '';
-		return room.getPowerLevel(props.userId) >= 50 ? 'ring-2 ring-accent-steward/75' : '';
+		return room.getPowerLevel(props.userId) >= UserPowerLevel.Steward ? 'ring-2 ring-accent-steward/75' : '';
 	});
 	// The colour is derived from the user id, so it would still tell a deleted account apart.
 	const isDeleted = computed(() => !!props.userId && user.isDeactivatedUser(props.userId));

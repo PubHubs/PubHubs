@@ -3,7 +3,7 @@
 		v-if="user.isLoggedIn && setupReady"
 		class="bg-background font-body text-on-surface text-body flex h-screen w-full overflow-hidden"
 	>
-		<HubSidebar @open-settings="settingsDialog = true" />
+		<HubSidebar />
 
 		<div
 			class="h-full min-w-0 flex-1 overflow-x-hidden"
@@ -13,15 +13,11 @@
 			<router-view />
 		</div>
 
-		<SettingsDialog
-			v-if="settingsDialog"
-			@close="settingsDialog = false"
-		/>
-
 		<Dialog
-			v-if="dialog.visible"
-			:type="dialog.properties.type"
-			@close="dialog.close"
+			v-if="dialog.entry"
+			:key="dialog.entry.id"
+			:entry="dialog.entry"
+			@close="dialog.close(dialog.entry.id, $event)"
 		/>
 
 		<ContextMenu v-if="!isMobile" />
@@ -37,7 +33,6 @@
 
 	import ContextMenu from '@hub-client/components/elements/ContextMenu.vue';
 	// Components
-	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import HubSidebar from '@hub-client/components/ui/HubSidebar.vue';
 
@@ -78,7 +73,6 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubhubsStore();
-	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const pendingRouteFromParent = ref<RouteParamValue | null>(null);
 	const isMobile = computed(() => settings.isMobileState);

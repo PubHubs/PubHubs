@@ -87,6 +87,15 @@ export class APIService {
 	}
 
 	/**
+	 * Makes the current hub admin room admin of the room, also when every room admin has left it.
+	 * Joining the room is left to the caller.
+	 * @returns the power level the hub admin has afterwards, below room admin when nobody left on the hub is room admin
+	 */
+	static async takeOverRoom(roomId: string): Promise<number> {
+		return (await api_synapse.apiPOST<{ power_level: number }>(api_synapse.apiURLS.takeOverRoom, { room_id: roomId })).power_level;
+	}
+
+	/**
 	 *  https://element-hq.github.io/synapse/latest/admin_api/rooms.html#make-room-admin-api
 	 * @param roomId Room Id for the room to make the user an admin of.
 	 * @param userId User Id of the user to make an admin of the room.

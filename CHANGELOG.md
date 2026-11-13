@@ -12,6 +12,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not merged yet
 
+- [NEW] Allow stewards to promote users to stewards and experts.
 - [NEW] Users can delete their account erasing all their personal data either from all of pubhubs or per hub.
 - [IMPROVED] The room library has been redesigned
 - [IMPROVED] Updated the hub overview and discover page.
@@ -38,6 +39,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [INTERNAL] The draft GitHub release's notes leave out the changelog's INTERNAL entries; a release with only those says "Internal changes only.".
 - [INTERNAL] The copyright in LICENSE is the Privacy by Design Foundation's (Stichting Privacy by Design), which PubHubs belongs to, instead of iHub's.
 - [INTERNAL] The merge-to-stable template asks to update the website when a release changes what it describes.
+- [INTERNAL] Refactored dialog component
 - [INTERNAL] --localhost-client option added to mask and start_testhub.py for making hubs run as localhost
 - [INTERNAL] Added testflight release command for iOS
 

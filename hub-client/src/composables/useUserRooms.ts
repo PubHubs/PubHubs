@@ -1,6 +1,8 @@
 // Packages
-import { EventType } from 'matrix-js-sdk';
 import { type Ref, computed, ref, watch } from 'vue';
+
+// Composables
+import { usePowerLevels } from '@hub-client/composables/usePowerLevels';
 
 // Logic
 import { APIService } from '@hub-client/logic/core/apiService';
@@ -16,6 +18,7 @@ import { useUser } from '@hub-client/stores/user';
 export function useUserRooms(userId: Ref<string>, isAdmin: Ref<boolean>) {
 	const user = useUser();
 	const rooms = useRooms();
+	const { roomsWithPowerLevel } = usePowerLevels();
 	const currentUserId = computed(() => user.userId);
 	const targetUserJoinedRooms = ref<Set<string>>(new Set());
 
@@ -100,19 +103,7 @@ export function useUserRooms(userId: Ref<string>, isAdmin: Ref<boolean>) {
 				if (!isDirectRoom(roomId)) addRoom(roomId);
 			}
 		} else {
-			for (const entry of rooms.roomList) {
-				if (DirectRooms.includes(entry.roomType as RoomType)) continue;
-
-				const plEvent = entry.stateEvents.find((e) => e.type === EventType.RoomPowerLevels && e.content?.users);
-				let currentUserPower = UserPowerLevel.User;
-				if (plEvent) {
-					currentUserPower =
-						(plEvent.content.users as Record<string, number>)[currentUserIdVal] ??
-						(plEvent.content.users_default as number | undefined) ??
-						UserPowerLevel.User;
-				}
-				if (currentUserPower < UserPowerLevel.Steward) continue;
-
+			for (const entry of roomsWithPowerLevel(UserPowerLevel.Steward, currentUserIdVal)) {
 				if (isMember(entry.roomId, selectedUserId)) {
 					addRoom(entry.roomId);
 				}

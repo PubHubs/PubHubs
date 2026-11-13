@@ -16,7 +16,7 @@ from pubhubs._secured_rooms_class import SecuredRoom, PubHubsSecuredRoomType
 from pubhubs._secured_rooms_web import SecuredRoomsServlet
 from pubhubs._hub_client_api_config import HubClientApiConfig
 from pubhubs._spam_checker import SpamChecker
-from pubhubs._constants import EXPERT_VERIFICATION_MSGTYPE, EXPERT
+from pubhubs._constants import EXPERT_VERIFICATION_MSGTYPE, EXPERT, STEWARD, ROOM_ADMIN, USER
 from synapse.api.constants import EventTypes
 
 
@@ -589,3 +589,63 @@ class TestSpamChecker(IsolatedAsyncioTestCase):
         result = await checker.check_event_for_spam(event)
 
         self.assertIsInstance(result, str)
+
+
+class FakePowerLevelsChangeEvent:
+    def __init__(self, sender, content):
+        self.sender = sender
+        self.room_id = "room_id"
+        self.type = EventTypes.PowerLevels
+        self.content = content
+
+
+class TestPowerLevelsChangeCheck(IsolatedAsyncioTestCase):
+    SENDER = "@sender:domain"
+    TARGET = "@target:domain"
+
+    def power_levels(self, sender_level, target_level, **settings):
+        return {"users": {self.SENDER: sender_level, self.TARGET: target_level}, "events": {"m.room.power_levels": STEWARD}, **settings}
+
+    async def check(self, old_content, new_content):
+        checker = SpamChecker(FakeModuleApi(power_levels_content=old_content), FakeStore())
+        return await checker.check_event_for_spam(FakePowerLevelsChangeEvent(self.SENDER, new_content))
+
+    async def test_steward_can_make_expert(self):
+        result = await self.check(self.power_levels(STEWARD, USER), self.power_levels(STEWARD, EXPERT))
+        self.assertEqual(result, False)
+
+    async def test_steward_can_demote_expert(self):
+        result = await self.check(self.power_levels(STEWARD, EXPERT), self.power_levels(STEWARD, USER))
+        self.assertEqual(result, False)
+
+    async def test_steward_can_make_steward(self):
+        result = await self.check(self.power_levels(STEWARD, USER), self.power_levels(STEWARD, STEWARD))
+        self.assertEqual(result, False)
+
+    async def test_steward_cannot_make_room_admin(self):
+        result = await self.check(self.power_levels(STEWARD, USER), self.power_levels(STEWARD, ROOM_ADMIN))
+        self.assertIsInstance(result, str)
+
+    async def test_steward_cannot_change_settings(self):
+        result = await self.check(self.power_levels(STEWARD, USER, ban=50), self.power_levels(STEWARD, USER, ban=0))
+        self.assertIsInstance(result, str)
+
+    async def test_steward_cannot_change_users_default(self):
+        old = self.power_levels(STEWARD, USER)
+        new = {**old, "users_default": STEWARD}
+        result = await self.check(old, new)
+        self.assertIsInstance(result, str)
+
+    async def test_steward_cannot_add_unlisted_user_above_steward(self):
+        old = self.power_levels(STEWARD, USER)
+        new = {**old, "users": {**old["users"], "@new:domain": STEWARD + 1}}
+        result = await self.check(old, new)
+        self.assertIsInstance(result, str)
+
+    async def test_expert_cannot_make_expert(self):
+        result = await self.check(self.power_levels(EXPERT, USER), self.power_levels(EXPERT, EXPERT))
+        self.assertIsInstance(result, str)
+
+    async def test_room_admin_can_change_anything(self):
+        result = await self.check(self.power_levels(ROOM_ADMIN, USER, ban=50), self.power_levels(ROOM_ADMIN, STEWARD, ban=0))
+        self.assertEqual(result, False)

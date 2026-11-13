@@ -15,9 +15,9 @@
 				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y',
 				(isAnnouncementMessage || isWhisperMessage) &&
 					!redactedMessage &&
-					(props.room.getPowerLevel(event.sender!) === 100
+					(props.room.getPowerLevel(event.sender!) === UserPowerLevel.Admin
 						? 'border-accent-steward border-l-4'
-						: props.room.getPowerLevel(event.sender!) >= 50 && 'border-accent-steward border-l-4'),
+						: props.room.getPowerLevel(event.sender!) >= UserPowerLevel.Steward && 'border-accent-steward border-l-4'),
 			]"
 			role="article"
 		>
@@ -119,9 +119,9 @@
 								v-if="isAnnouncementMessage && !redactedMessage"
 								class="gap-050 inline-flex items-center leading-none"
 								:class="
-									props.room.getPowerLevel(event.sender!) === 100
+									props.room.getPowerLevel(event.sender!) === UserPowerLevel.Admin
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= UserPowerLevel.Steward && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny uppercase">{{ t('rooms.announcement') }}</span>
@@ -132,9 +132,9 @@
 								v-if="isWhisperMessage && !redactedMessage && event.sender! !== user.userId"
 								class="gap-050 inline-flex items-center leading-none"
 								:class="
-									props.room.getPowerLevel(event.sender!) === 100
+									props.room.getPowerLevel(event.sender!) === UserPowerLevel.Admin
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= UserPowerLevel.Steward && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny uppercase">{{ t('message.only_visible_to_you') }}</span>
@@ -143,9 +143,9 @@
 								v-if="isWhisperMessage && !redactedMessage && event.sender === user.userId && event.content!.whisper_to"
 								class="gap-050 inline-flex items-center leading-none"
 								:class="
-									props.room.getPowerLevel(event.sender!) === 100
+									props.room.getPowerLevel(event.sender!) === UserPowerLevel.Admin
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= UserPowerLevel.Steward && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny puppercase">{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
@@ -833,7 +833,7 @@
 			});
 		}
 
-		// Whisper (steward/super-steward only, for other users)
+		// Whisper (steward only, for other users)
 		if (
 			settings.isFeatureEnabled(FeatureFlag.whisper) &&
 			event.value.sender! !== user.userId &&

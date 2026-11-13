@@ -3,6 +3,9 @@ import { defineStore } from 'pinia';
 
 import { type TVariant } from '@hub-client/components/elements/Button.vue';
 
+// Logic
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 
@@ -15,11 +18,23 @@ import { Message, MessageType, useMessageBox } from '@hub-client/stores/messageb
 // Types
 type DialogButtonAction = number;
 
+// The dialog opened with show(), rendered by the shared Dialog instance in App.vue
+type DialogEntry = {
+	id: number;
+	properties: DialogProperties;
+	resolve: (action: DialogButtonAction) => void;
+};
+
 const DialogCancel = 0;
 const DialogNo = 0;
 const DialogOk = 1;
 const DialogYes = 1;
 const DialogSubmit = 1;
+
+const logger = createLogger('Dialog');
+
+const NESTED_DIALOG_ERROR =
+	'A dialog was opened while another dialog is open. Dialogs on top of dialogs are not allowed: make the first one a page or close it first.';
 
 /**
  * DialogButton class with:
@@ -78,15 +93,22 @@ class DialogProperties {
 
 /**
  * The main dialog store
+ *
+ * Only one dialog can be open at a time: never open a dialog from inside another dialog. A dialog that needs a
+ * confirmation or a follow-up step should become a page or put that step in its own content. Opening a second
+ * dialog logs an error; show() refuses it and answers DialogCancel.
  */
 const useDialog = defineStore('dialog', {
 	state: () => {
 		return {
 			global: false,
-			visible: false,
-			properties: new DialogProperties(),
-			resolveDialog: {} as (...args: unknown[]) => unknown,
-			callbacks: {} as { [index: DialogButtonAction]: (...args: unknown[]) => unknown },
+			nextId: 1,
+			// The dialog opened with show(), rendered by App.vue
+			entry: null as DialogEntry | null,
+			// The open dialog, a component dialog or the entry
+			openId: null as number | null,
+			// Whatever currently needs the parent frame's modal: the open dialog and other overlays such as the image lightbox
+			modalHolders: [] as number[],
 		};
 	},
 
@@ -95,56 +117,82 @@ const useDialog = defineStore('dialog', {
 			this.global = global;
 		},
 
+		newId(): number {
+			return this.nextId++;
+		},
+
+		/**
+		 * Called by every dialog when it opens, and by show() for the dialog rendered from the store.
+		 *
+		 * @returns the id to unregister with
+		 */
+		register(): number {
+			if (this.openId !== null) {
+				logger.error(NESTED_DIALOG_ERROR);
+			}
+			const id = this.newId();
+			this.openId = id;
+			this.holdModal(id);
+			return id;
+		},
+
+		unregister(id: number) {
+			if (this.openId === id) this.openId = null;
+			this.releaseModal(id);
+		},
+
+		/**
+		 * Asks the parent frame to cover its own UI.
+		 *
+		 * @param holder an id from newId() or register()
+		 */
+		holdModal(holder: number) {
+			if (this.modalHolders.includes(holder)) return;
+			this.modalHolders.push(holder);
+			if (this.modalHolders.length === 1) this.sendModal(MessageType.DialogShowModal);
+		},
+
+		releaseModal(holder: number) {
+			if (!this.modalHolders.includes(holder)) return;
+			this.modalHolders = this.modalHolders.filter((h) => h !== holder);
+			if (this.modalHolders.length === 0) this.sendModal(MessageType.DialogHideModal);
+		},
+
+		sendModal(type: MessageType.DialogShowModal | MessageType.DialogHideModal) {
+			if (globalThis.self !== window.top) {
+				const messagebox = useMessageBox();
+				messagebox.sendMessage(new Message(type));
+			}
+		},
+
 		/**
 		 * Call this to show a generic dialog with the given properties.
 		 *
 		 * @param properties DialogProperties
-		 * @returns Promise with the answer of the pressed button
+		 * @returns Promise with the answer of the pressed button, DialogCancel when another dialog is already open
 		 */
-		show(properties: DialogProperties | null = null) {
-			this.showModal();
+		show(properties: DialogProperties | null = null): Promise<DialogButtonAction> {
+			if (this.openId !== null) {
+				logger.error(NESTED_DIALOG_ERROR);
+				return Promise.resolve(DialogCancel);
+			}
 			return new Promise((resolve) => {
-				if (properties === null) {
-					this.properties = new DialogProperties();
-				} else {
-					this.properties = properties;
-				}
-				this.visible = true;
-				this.resolveDialog = resolve;
+				this.entry = { id: this.register(), properties: properties ?? new DialogProperties(), resolve };
 			});
 		},
 
 		/**
-		 * Closes and hides the dialog and retuns the answer
+		 * Closes the dialog opened with show() and gives the answer back to whoever opened it
 		 *
+		 * @param id the entry's id
 		 * @param returnValue the answer that will be given back
 		 */
-		close(returnValue: DialogButtonAction) {
-			this.hideModal();
-			this.visible = false;
-			const callback = this.callbacks[returnValue];
-			if (callback) {
-				callback(returnValue);
-			}
-			if (typeof this.resolveDialog === 'function') {
-				this.resolveDialog(returnValue);
-			}
-			// reset
-			this.properties = new DialogProperties();
-		},
-
-		showModal() {
-			if (globalThis.self !== window.top) {
-				const messagebox = useMessageBox();
-				messagebox.sendMessage(new Message(MessageType.DialogShowModal));
-			}
-		},
-
-		hideModal() {
-			if (globalThis.self !== window.top) {
-				const messagebox = useMessageBox();
-				messagebox.sendMessage(new Message(MessageType.DialogHideModal));
-			}
+		close(id: number, returnValue: DialogButtonAction) {
+			const entry = this.entry;
+			if (entry?.id !== id) return;
+			this.entry = null;
+			this.unregister(id);
+			entry.resolve(returnValue);
 		},
 
 		/**
@@ -163,14 +211,6 @@ const useDialog = defineStore('dialog', {
 			const { t } = i18n.global;
 			const message = t('errors.error', title);
 			return this.show(new DialogProperties(message, content, buttonsOk, true, true, type));
-		},
-
-		disableButton(nr: number) {
-			this.properties.buttons[nr].enabled = false;
-		},
-
-		enableButton(nr: number) {
-			this.properties.buttons[nr].enabled = true;
 		},
 
 		/**
@@ -208,14 +248,6 @@ const useDialog = defineStore('dialog', {
 		yesno(title: string, content: string = '', type: 'global' | 'hub' = 'hub') {
 			return this.show(new DialogProperties(title, content, buttonsYesNo, true, true, type));
 		},
-
-		addCallback(action: DialogButtonAction, callback: (...args: unknown[]) => unknown) {
-			this.callbacks[action] = callback;
-		},
-
-		removeCallback(action: DialogButtonAction) {
-			delete this.callbacks[action];
-		},
 	},
 });
 
@@ -227,6 +259,7 @@ export {
 	buttonsYesNo,
 	DialogButton,
 	type DialogButtonAction,
+	type DialogEntry,
 	DialogCancel,
 	DialogOk,
 	DialogYes,

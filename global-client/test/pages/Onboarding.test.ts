@@ -149,7 +149,7 @@ describe('Onboarding.vue', () => {
 		vi.mocked(mss.enterPubHubs).mockResolvedValueOnce({ key: 'errors.notid_attribute_already_taken' });
 		const wrapper = await mountOnboarding();
 
-		dialog.close(DialogOk);
+		dialog.close(dialog.entry!.id, DialogOk);
 		await flushPromises();
 		expect(mss.enterPubHubs).toHaveBeenLastCalledWith(expect.anything(), PHCEnterMode.LoginOrRegister, expect.anything(), false);
 

@@ -20,6 +20,7 @@
 				:class="isMobile ? 'py-150' : 'py-200'"
 			>
 				<FilterableList
+					v-if="!showUserInRoomForm || !selectedUserById"
 					:filter-keys="['displayname', 'name']"
 					:items="hubUsers as unknown as Array<Record<string, unknown>>"
 					:chip-filters="[{ label: t('rooms.admin_badge'), predicate: (item) => asUserAccount(item).admin }]"
@@ -64,6 +65,13 @@
 						</div>
 					</template>
 				</FilterableList>
+				<EditUserForm
+					v-else
+					:administrator="currentAdministrator"
+					:display-name="selectedUserDisplayName!"
+					:user-id="selectedUserById!"
+					@close="closeUserInRoomForm"
+				/>
 				<DisclosureRequestForm
 					v-if="showAskDisclosureAttrsForm && selectedUser"
 					:user="selectedUser"
@@ -79,20 +87,12 @@
 					:display-name="selectedUserDisplayName ?? ''"
 					:administrator="currentAdministrator"
 					:is-admin="isAdmin"
-					@edit="currentAdministrator ? (showUserInRoomForm = true) : undefined"
+					@edit="openUserInRoomForm"
 					@disclose="openDisclosureForSelectedUser"
 				/>
 			</RoomSidebar>
 		</div>
 	</div>
-
-	<UserInRoomsForm
-		v-if="showUserInRoomForm && selectedUserById && currentAdministrator"
-		:administrator="currentAdministrator"
-		:display-name="selectedUserDisplayName!"
-		:user-id="selectedUserById"
-		@close="showUserInRoomForm = false"
-	/>
 </template>
 
 <script lang="ts" setup>
@@ -103,7 +103,7 @@
 	// Components
 	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import UserInRoomsForm from '@hub-client/components/forms/UserInRoomsForm.vue';
+	import EditUserForm from '@hub-client/components/forms/EditUserForm.vue';
 	import DisclosureRequestForm from '@hub-client/components/rooms/DisclosureRequestForm.vue';
 	import RoomSidebar from '@hub-client/components/rooms/RoomSidebar.vue';
 	import TableRow from '@hub-client/components/rooms/TableRow.vue';
@@ -139,5 +139,7 @@
 		openDisclosureForSelectedUser,
 		closeAskDisclosureForm,
 		selectUser,
+		openUserInRoomForm,
+		closeUserInRoomForm,
 	} = useManageUsers();
 </script>

@@ -192,52 +192,6 @@ const useRooms = defineStore('rooms', {
 			return privateRoomsIn(this.menuRoomList);
 		},
 
-		/**
-		 * Highest matrix power level the current user holds across loaded rooms.
-		 * Synapse-admin status is intentionally excluded — that policy lives in roles.composable.
-		 * Returns UserPowerLevel.User (0) when the user has no override anywhere.
-		 */
-		userMaxRoomPowerLevel(): number {
-			const userStore = useUser();
-			const userId = userStore.userId;
-			if (!userId) return UserPowerLevel.User;
-			let highest = UserPowerLevel.User;
-			for (const listRoom of this.roomList) {
-				if (DirectRooms.includes(listRoom.roomType as RoomType)) continue;
-				const event = listRoom.stateEvents.find((e) => e.type === EventType.RoomPowerLevels && e.content.users);
-				if (!event) continue;
-				const users = event.content.users as Record<string, number>;
-				const level = users[userId] ?? (event.content.users_default as number | undefined) ?? UserPowerLevel.User;
-				if (level > highest) {
-					highest = level;
-					if (highest === UserPowerLevel.Admin) return highest;
-				}
-			}
-			return highest;
-		},
-
-		// TODO never used. Can be deleted?
-		// sortedRoomsArrayByJoinedTime(): Array<Room> {
-		// 	const user = useUser();
-		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
-		// 	rooms.sort((a, b) => {
-		// 		const aJoined = a.getMember(user.userId!)?.getLastModifiedTime();
-		// 		const bJoined = b.getMember(user.userId!)?.getLastModifiedTime();
-		// 		return aJoined! < bJoined! ? 1 : -1;
-		// 	});
-		// 	return rooms;
-		// },
-		// sortedRoomsArray(): Array<Room> {
-		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
-		// 	rooms.sort((a, b) => (a.name > b.name ? 1 : -1));
-		// 	return rooms;
-		// },
-		// privateRooms(): Array<Room> {
-		// 	const rooms: Array<Room> = Object.assign([], this.roomsArray);
-		// 	const privateRooms = rooms.filter((item) => item.getType() == RoomType.PH_MESSAGES_DM);
-		// 	return privateRooms;
-		// },
-
 		hasRooms(): boolean {
 			return this.roomsArray?.length > 0;
 		},
@@ -924,7 +878,7 @@ const useRooms = defineStore('rooms', {
 				// If moderators are updated then update the moderators join and leave in the room.
 
 				roomMembers.forEach(async (member: TRoomMember) => {
-					if (this.room(roomId)?.getPowerLevel(member.userId) !== 50 && member.userId !== user.userId) {
+					if (this.room(roomId)?.getPowerLevel(member.userId) !== UserPowerLevel.Steward && member.userId !== user.userId) {
 						if (stewardRoom.getMember(member.userId)?.membership !== 'leave') {
 							await pubhubs.client.kick(stewardRoom.roomId, member.userId);
 						}

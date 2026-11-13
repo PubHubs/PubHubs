@@ -36,10 +36,7 @@ function useModerationBase(room?: Ref<Room | undefined> | Room) {
 		const currentRoom = getCurrentRoom();
 		if (!currentRoom) return [];
 
-		const state = currentRoom.getStatePowerLevel();
-		if (!state) return [];
-
-		return Object.entries(state.content.users as Record<string, number>).reduce((acc, [userId, powerLevel]) => {
+		return Object.entries(currentRoom.getPowerLevelsContent()?.users ?? {}).reduce((acc, [userId, powerLevel]) => {
 			if (userId.startsWith('@notices_user:')) return acc;
 
 			const user: TPowerUser = {

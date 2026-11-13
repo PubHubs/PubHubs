@@ -372,7 +372,7 @@
 <script lang="ts" setup>
 	// Packages
 	import { type Room as MatrixRoom, MsgType } from 'matrix-js-sdk';
-	import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+	import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -662,6 +662,8 @@
 		if (signingFile.value?.matrixEvent.getId() !== eventId) return;
 		if (!hash) {
 			stopSigning();
+			// Let the signing dialog close first: a dialog can't open on top of another one
+			await nextTick();
 			dialog.confirm(t('roomlibrary.sign_error', [filenameOf(item)]));
 			return;
 		}

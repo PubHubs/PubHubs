@@ -34,6 +34,9 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	stewardSecuredRooms: 'client/steward/secured_rooms',
 	stewardReports: 'client/steward/reports',
 
+	// Client Hub admin APIs
+	takeOverRoom: 'client/take_over_room',
+
 	// Client Hub settings
 	hub: 'client/hub',
 	hubLogo: 'client/hublogo',

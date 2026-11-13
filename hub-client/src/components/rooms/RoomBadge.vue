@@ -15,6 +15,9 @@
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Composables
+	import { usePowerLevels } from '@hub-client/composables/usePowerLevels';
+
 	// Models
 	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
@@ -32,24 +35,13 @@
 
 	const { t } = useI18n();
 	const rooms = useRooms();
+	const { powerLevel } = usePowerLevels();
 
-	const room = computed(() => rooms.room(props.roomId));
-	const powerLevelState = computed(() => room.value?.getStatePowerLevel()?.content);
-
-	const userPowerLevel = computed(() => {
-		const r = room.value;
-		if (!r) return 0;
-		const statePowerLevel = powerLevelState.value?.users?.[props.user] ?? powerLevelState.value?.users_default;
-		if (typeof statePowerLevel === 'number') return statePowerLevel;
-
-		const memberPowerLevel = r.getPowerLevel(props.user);
-		return memberPowerLevel >= 0 ? memberPowerLevel : 0;
-	});
+	const userPowerLevel = computed(() => powerLevel(props.roomId, props.user));
 
 	const isAdmin = computed(() => userPowerLevel.value === UserPowerLevel.Admin);
-	const isSuperSteward = computed(() => userPowerLevel.value >= UserPowerLevel.SuperSteward);
 	const isSteward = computed(() => userPowerLevel.value >= UserPowerLevel.Steward);
-	const isRoomSteward = computed(() => isAdmin.value || isSteward.value || isSuperSteward.value);
+	const isRoomSteward = computed(() => isAdmin.value || isSteward.value);
 
 	// Check if user is an expert based on power level (>= 25)
 	const isExpert = computed(() => userPowerLevel.value >= UserPowerLevel.Expert);
