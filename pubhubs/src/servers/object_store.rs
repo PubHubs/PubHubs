@@ -165,6 +165,16 @@ pub trait ObjectDetails: std::marker::Sized {
     fn to_put_payload(&self) -> anyhow::Result<object_store::PutPayload>;
 }
 
+/// Returned by [`AppBase::get_object_if_changed`](crate::servers::AppBase::get_object_if_changed).
+pub enum IfChanged<T> {
+    /// The object is still at the version we already have.
+    Unchanged,
+
+    /// As [`AppBase::get_object`](crate::servers::AppBase::get_object) would return: the
+    /// object at its current version, or `None` if there is no such object (anymore).
+    Changed(Option<(T, object_store::UpdateVersion)>),
+}
+
 /// Default way to implement [`ObjectDetails`], via json serialization.
 pub trait JsonObjectDetails: serde::Serialize + serde::de::DeserializeOwned {
     type Identifier: std::fmt::Display;
@@ -208,13 +218,40 @@ where
     where
         T: ObjectDetails,
     {
+        match self.get_object_if_changed(id, None).await? {
+            IfChanged::Changed(result) => Ok(result),
+            IfChanged::Unchanged => {
+                log::error!(
+                    "{}'s object store: unconditional get reported 'not modified'",
+                    S::NAME
+                );
+                Err(api::ErrorCode::InternalError)
+            }
+        }
+    }
+
+    /// Like [`Self::get_object`], but returns [`IfChanged::Unchanged`] instead of the object when
+    /// it is still at version `known`, saving the transfer and parsing of an object we already
+    /// have.
+    pub async fn get_object_if_changed<T>(
+        &self,
+        id: &T::Identifier,
+        known: Option<&object_store::UpdateVersion>,
+    ) -> api::Result<IfChanged<T>>
+    where
+        T: ObjectDetails,
+    {
         let os = self.shared.object_store.as_object_store();
 
         let path = T::path_for(id);
 
         log::debug!("getting {path}");
 
-        match os.get(&path).await {
+        let mut options = object_store::GetOptions::new();
+        // Without an e-tag we cannot tell, so we get the object anyway.
+        options.if_none_match = known.and_then(|version| version.e_tag.clone());
+
+        match os.get_opts(&path, options).await {
             Ok(get_result) => {
                 let version = object_store::UpdateVersion {
                     e_tag: get_result.meta.e_tag.clone(),
@@ -231,7 +268,7 @@ where
 
                 log::debug!("got {path}");
 
-                Ok(Some((
+                Ok(IfChanged::Changed(Some((
                     T::from_bytes(bytes).map_err(|err| {
                         log::error!(
                             "{}'s object store: unexpected error parsing object at {path}: {err:#}",
@@ -240,11 +277,15 @@ where
                         api::ErrorCode::InternalError
                     })?,
                     version,
-                )))
+                ))))
             }
             Err(object_store::Error::NotFound { .. }) => {
                 log::debug!("did not get {path}: not found");
-                Ok(None)
+                Ok(IfChanged::Changed(None))
+            }
+            Err(object_store::Error::NotModified { .. }) => {
+                log::debug!("did not get {path}: not modified");
+                Ok(IfChanged::Unchanged)
             }
             // TODO: deal with timeouts
             Err(err) => Err({
@@ -384,5 +425,14 @@ impl JsonObjectDetails for crate::servers::phc::UserState {
 
     fn object_id(&self) -> &Id {
         &self.id
+    }
+}
+
+impl JsonObjectDetails for crate::servers::phc::DeletedPseudonyms {
+    type Identifier = &'static str;
+    const PREFIX: &str = "deleted-pseudonyms";
+
+    fn object_id(&self) -> &&'static str {
+        &Self::OBJECT_ID
     }
 }

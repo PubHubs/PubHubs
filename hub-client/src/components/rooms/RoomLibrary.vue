@@ -392,6 +392,7 @@
 	// Composables
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
+	import { useDeactivatedUsers } from '@hub-client/composables/useDeactivatedUsers';
 	import { useFileDownload } from '@hub-client/composables/useFileDownload';
 	import { type LibraryUpload, UploadStatus, useLibraryUpload } from '@hub-client/composables/useLibraryUpload';
 	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
@@ -444,6 +445,7 @@
 	const dialog = useDialog();
 	const { t } = useI18n();
 	const user = useUser();
+	const { nameOf } = useDeactivatedUsers();
 	const roles = useRoles();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
@@ -511,10 +513,7 @@
 
 	const filenameOf = (item: TimelineEvent): string => item.matrixEvent.getContent().filename ?? item.matrixEvent.getContent().body ?? '';
 	const sizeOf = (item: TimelineEvent): number => item.matrixEvent.getContent().info?.size ?? 0;
-	const uploaderOf = (item: TimelineEvent): string => {
-		const sender = item.matrixEvent.getSender() ?? '';
-		return user.userDisplayName(sender) ?? filters.extractPseudonym(sender);
-	};
+	const uploaderOf = (item: TimelineEvent): string => nameOf(item.matrixEvent.getSender() ?? '');
 	const signaturesOf = (item: TimelineEvent) => signaturesByFile.value.get(item.matrixEvent.getId() ?? '') ?? [];
 	const isSigned = (item: TimelineEvent) => signaturesOf(item).length > 0;
 

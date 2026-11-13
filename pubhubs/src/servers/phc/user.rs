@@ -63,6 +63,125 @@ impl App {
         Ok(StateResp::State(user_state.into_user_version(&app)))
     }
 
+    /// Implements [`DeleteAccountEP`]
+    ///
+    /// # Note on the implementation
+    ///
+    /// The object store gives us no transaction, so we order the steps to make every partial
+    /// result a state the user can either live with or retry out of:
+    ///
+    ///   (0) List the user's pseudonym at every hub as deleted, so the hubs deactivate their
+    ///       accounts there.  This needs the account, so it goes first.  Stopping here has hubs
+    ///       deactivate accounts of a user who still has a PubHubs account; entering such a hub
+    ///       again makes them a new member there, as it would have after the deletion.
+    ///   (1) Release the attributes, so nothing identifies this account anymore.  Stopping
+    ///       here leaves an account its owner can no longer log into, but can still delete
+    ///       with the auth token they hold - and if they never do, they register afresh with
+    ///       the same attributes, which is what they asked for anyway.
+    ///   (2) Delete the stored objects.  A failure here only orphans an object.
+    ///   (3) Delete the account itself.
+    ///
+    /// Doing it the other way around would leave attributes pointing at an account that is
+    /// gone, which [`Self::handle_user_enter`] cannot tell from a corrupted store.
+    pub(super) async fn handle_user_delete_account(
+        app: Rc<Self>,
+        auth_token: actix_web::web::Header<AuthToken>,
+    ) -> api::Result<DeleteAccountResp> {
+        let Ok((user_state, _)) = app
+            .open_auth_token_and_get_user_state(auth_token.into_inner())
+            .await?
+        else {
+            return Ok(DeleteAccountResp::RetryWithNewAuthToken);
+        };
+
+        // Deleting releases this account's attributes, so a banned user could delete their way
+        // to a clean account with the very attributes they were banned on.  Refuse.
+        if user_state.banned {
+            log::info!("refusing to delete banned account {}", user_state.id);
+            return Ok(DeleteAccountResp::Banned);
+        }
+
+        let user_id = user_state.id;
+
+        // (0)
+        if !app.list_deleted_pseudonyms(&user_state).await? {
+            return Ok(DeleteAccountResp::PleaseRetry);
+        }
+
+        // (1) An attribute may both identify this user and be bannable for them, so dedupe.
+        let attr_ids: HashSet<Id> = user_state
+            .allow_login_by
+            .iter()
+            .chain(user_state.could_be_banned_by.iter())
+            .copied()
+            .collect();
+
+        for attr_id in attr_ids {
+            let Some((mut attr_state, attr_state_version)) =
+                app.get_object::<AttrState>(&attr_id).await?
+            else {
+                log::warn!("account {user_id} refers to attribute {attr_id}, which does not exist");
+                continue;
+            };
+
+            if attr_state.may_identify_user == Some(user_id) {
+                attr_state.may_identify_user = None;
+            }
+
+            attr_state.bans_users.remove(&user_id);
+
+            // NOTE: `banned` is deliberately left as it is.  Removing the object would unban the
+            // attribute, and deleting an account would become a way to shed a ban on one.
+            //
+            // The `AttrState` is kept even when it ends up empty: the object store has no
+            // conditional delete, so deleting it could wipe out a claim another registration
+            // made on the released attribute after we read it.  An empty `AttrState` behaves as
+            // a missing one everywhere it is read.
+            if app
+                .put_object::<AttrState>(&attr_state, Some(attr_state_version))
+                .await?
+                .is_none()
+            {
+                log::info!(
+                    "could not release attribute {attr_id} of account {user_id}: \
+                    it was changed from under us"
+                );
+                return Ok(DeleteAccountResp::PleaseRetry);
+            }
+        }
+
+        // (2) Nothing points at these anymore, so a failure costs us storage, not correctness.
+        for (handle, object_details) in user_state.stored_objects.iter() {
+            match app
+                .delete_object::<super::user_object_store::UserObject>(object_details.id)
+                .await
+            {
+                Ok(true) => { /* ok */ }
+                Ok(false) => {
+                    log::warn!(
+                        "expected to delete object {handle} of account {user_id}, \
+                        but it is already gone"
+                    );
+                }
+                Err(err) => {
+                    log::warn!(
+                        "orphaning object {handle} of account {user_id}: failed to delete it: \
+                        {err:?}"
+                    );
+                }
+            }
+        }
+
+        // (3)
+        if !app.delete_object::<UserState>(user_id).await? {
+            log::warn!("expected to delete account {user_id}, but it is already gone");
+        }
+
+        log::info!("deleted account {user_id}");
+
+        Ok(DeleteAccountResp::Deleted)
+    }
+
     /// Implements [`EnterEP`]
     pub(super) async fn handle_user_enter(
         app: Rc<Self>,
@@ -211,15 +330,11 @@ impl App {
         // Attributes are fine, check if we have a user account, or create it if need be
         let ((user_state, mut user_state_version), new_account) = 'found_user: {
             if let Some(auth_token_user_id) = auth_token_user_id {
-                let user_and_version = app
-                    .get_object::<UserState>(&auth_token_user_id)
-                    .await?
-                    .ok_or_else(|| {
-                        log::error!(
-                            "a valid auth token passed during entry refers to a user with user_id {auth_token_user_id}  that does not exist",
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
+                let Ok(user_and_version) =
+                    app.get_auth_token_user_state(auth_token_user_id).await?
+                else {
+                    return Ok(EnterResp::RetryWithNewAuthToken);
+                };
 
                 break 'found_user (user_and_version, false);
             }
@@ -233,37 +348,38 @@ impl App {
                 if let Some((ias, ias_v)) =
                     app.get_object::<AttrState>(&identifying_attr.id).await?
                 {
-                    log::trace!(
-                        "enter: account exists for attribute {} of type {}",
-                        identifying_attr.value,
-                        identifying_attr.attr_type,
-                    );
-
-                    let user_id = ias.may_identify_user.ok_or_else(|| {
-                        log::error!(
-                            "identifying attribute {} of type {} has may_identify_user set to None",
-                            identifying_attr.value,
-                            identifying_attr.attr_type
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
+                    let may_identify_user = ias.may_identify_user;
 
                     attr_states.insert(identifying_attr.id, (ias, ias_v));
 
-                    let user_and_version = app
-                        .get_object::<UserState>(&user_id)
-                        .await?
-                        .ok_or_else(|| {
-                            log::error!(
-                                "identifying attribute {} of type {} refers to a user \
-                            account {user_id} that does not exist",
-                                identifying_attr.value,
-                                identifying_attr.attr_type
-                            );
-                            api::ErrorCode::InternalError
-                        })?;
+                    // An `AttrState` whose `may_identify_user` is unset belongs to a deleted
+                    // account (see `handle_user_delete_account`); it only lingers to carry a
+                    // ban.  There is no account to log into, so we fall through to the
+                    // no-account path below, which refuses a `Login` and lets a `Register`
+                    // run the usual checks - including the one on `banned`, now that this
+                    // attribute's state is in `attr_states`.
+                    if let Some(user_id) = may_identify_user {
+                        log::trace!(
+                            "enter: account exists for attribute {} of type {}",
+                            identifying_attr.value,
+                            identifying_attr.attr_type,
+                        );
 
-                    break 'found_user (user_and_version, false);
+                        let user_and_version = app
+                            .get_object::<UserState>(&user_id)
+                            .await?
+                            .ok_or_else(|| {
+                                log::error!(
+                                    "identifying attribute {} of type {} refers to a user \
+                                account {user_id} that does not exist",
+                                    identifying_attr.value,
+                                    identifying_attr.attr_type
+                                );
+                                api::ErrorCode::InternalError
+                            })?;
+
+                        break 'found_user (user_and_version, false);
+                    }
                 }
 
                 log::trace!(
@@ -350,24 +466,43 @@ impl App {
                     api::ErrorCode::InternalError
                 })?;
 
-            // Add identifying attribute.  We do not expect the attribute to exist, because
-            // otherwise we would be logging in, not registering.
-            assert!(!attr_states.contains_key(&identifying_attr.id));
-
-            let identifying_attr_state =
-                AttrState::new(identifying_attr.id, &identifying_attr, user_state.id);
-
-            if let Some(identifying_attr_state_version) = app
-                .put_object::<AttrState>(&identifying_attr_state, None)
-                .await
-                .inspect_err(|err| {
-                    log::warn!(
-                        "orphaned user account {} due to error with putting \
-                        identifying attribute: {err}",
-                        user_state.id
+            // Add identifying attribute.  Usually it does not exist yet, because otherwise we
+            // would be logging in, not registering - but an attribute released by an account
+            // deletion keeps its `AttrState` when that state still carries a ban, and such an
+            // attribute is up for grabs.  Claim it rather than create it, so the new account
+            // can be logged into with it.
+            let (identifying_attr_state, put_result) =
+                if let Some((mut released, released_version)) =
+                    attr_states.remove(&identifying_attr.id)
+                {
+                    assert!(
+                        released.may_identify_user.is_none(),
+                        "about to take an identifying attribute away from user {:?}",
+                        released.may_identify_user
                     );
-                })?
-            {
+
+                    released.may_identify_user = Some(user_state.id);
+
+                    let put_result = app
+                        .put_object::<AttrState>(&released, Some(released_version))
+                        .await;
+
+                    (released, put_result)
+                } else {
+                    let fresh =
+                        AttrState::new(identifying_attr.id, &identifying_attr, user_state.id);
+                    let put_result = app.put_object::<AttrState>(&fresh, None).await;
+
+                    (fresh, put_result)
+                };
+
+            if let Some(identifying_attr_state_version) = put_result.inspect_err(|err| {
+                log::warn!(
+                    "orphaned user account {} due to error with putting \
+                        identifying attribute: {err}",
+                    user_state.id
+                );
+            })? {
                 assert!(
                     attr_states
                         .insert(
@@ -421,7 +556,36 @@ impl App {
 
         // Add the missing attributes.  First the attribute states.
         for attr in attrs.values() {
-            if attr_states.contains_key(&attr.id) {
+            if let Some((attr_state, attr_state_version)) = attr_states.get(&attr.id) {
+                // An identifying attribute released by an account deletion is up for grabs, as
+                // it is during registration.  Not claiming it would leave it unable to identify
+                // anyone, while reporting it as already there.
+                if attr_state.may_identify_user.is_none()
+                    && !attr.not_identifying
+                    && !attr_state.banned
+                {
+                    let mut claimed = attr_state.clone();
+                    claimed.may_identify_user = Some(user_state.id);
+
+                    match app
+                        .put_object::<AttrState>(&claimed, Some(attr_state_version.clone()))
+                        .await
+                    {
+                        Ok(Some(claimed_version)) => {
+                            attr_states.insert(attr.id, (claimed, claimed_version));
+                            attr_add_status.insert(attr.id, AttrAddStatus::Added);
+                        }
+                        problem => {
+                            log::warn!(
+                                "problem claiming released attribute {}: {problem:?}",
+                                attr.value
+                            );
+                            attr_add_status.insert(attr.id, AttrAddStatus::PleaseTryAgain);
+                        }
+                    }
+                    continue;
+                }
+
                 attr_add_status
                     .entry(attr.id)
                     .or_insert(AttrAddStatus::AlreadyThere);
@@ -483,11 +647,8 @@ impl App {
                     assert!(attr_add_status.contains_key(&attr.id));
                 }
                 _ => {
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                            .is_none()
-                    );
+                    // Every attribute got a status in the loop above, so this overwrites it.
+                    attr_add_status.insert(attr.id, AttrAddStatus::PleaseTryAgain);
                 }
             }
         }
@@ -654,7 +815,9 @@ impl App {
             return Ok(RefreshResp::ReobtainAuthToken);
         }
 
-        let (user_state, _) = app.get_auth_token_user_state(inner.user_id).await?;
+        let Ok((user_state, _)) = app.get_auth_token_user_state(inner.user_id).await? else {
+            return Ok(RefreshResp::ReobtainAuthToken);
+        };
 
         Ok(
             match app.issue_auth_token(&user_state, inner.session_start)? {
@@ -791,22 +954,24 @@ impl App {
             return Ok(Err(OPAQUE));
         };
 
-        Ok(Ok(self.get_auth_token_user_state(user_id).await?))
+        self.get_auth_token_user_state(user_id).await
     }
 
     /// Retrieves the [`UserState`] of the user an auth token was issued to.
+    ///
+    /// Returns `Ok(Err(Opaque))` when that account no longer exists.
     async fn get_auth_token_user_state(
         &self,
         user_id: Id,
-    ) -> api::Result<(UserState, object_store::UpdateVersion)> {
-        self.get_object::<UserState>(&user_id)
-            .await?
-            .ok_or_else(|| {
-                log::error!(
-                    "auth token refers to non- (or no longer) existing user with id {user_id}",
-                );
-                api::ErrorCode::InternalError
-            })
+    ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
+        let Some(user_state_and_version) = self.get_object::<UserState>(&user_id).await? else {
+            // Normal after the account was deleted: tokens outlive it.  The holder is told to
+            // get a new one, which only an account can give them.
+            log::info!("auth token refers to no longer existing user with id {user_id}");
+            return Ok(Err(OPAQUE));
+        };
+
+        Ok(Ok(user_state_and_version))
     }
 }
 

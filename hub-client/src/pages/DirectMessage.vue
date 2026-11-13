@@ -247,6 +247,7 @@
 
 	// New design
 	import { useContextMenu } from '@hub-client/composables/contextMenu.composable';
+	import { useDeactivatedUsers } from '@hub-client/composables/useDeactivatedUsers';
 	// Composable
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
@@ -266,6 +267,7 @@
 	import { useUser } from '@hub-client/stores/user';
 
 	const { openMenu } = useContextMenu();
+	const { ensureKnown } = useDeactivatedUsers();
 	const contextMenuStore = useContextMenuStore();
 	const dialog = useDialog();
 	const pubhubs = usePubhubsStore();
@@ -304,6 +306,17 @@
 			});
 	});
 
+	// The other side of every conversation on screen, asked about in one go: a deleted account
+	// keeps its row in the list, but must not keep its pseudonym on it.
+	watch(
+		sortedPrivateRooms,
+		(entries) => {
+			const others = entries.flatMap((entry) => getOtherRoomMembers(entry.room, userStore.userId));
+			if (others.length > 0) ensureKnown(others);
+		},
+		{ immediate: true },
+	);
+
 	const mobileConversationTitle = computed(() => {
 		const room = sidebar.selectedDMRoom.value;
 		if (!room) return '';
@@ -315,6 +328,7 @@
 
 		const otherMembers = getOtherRoomMembers(room, userStore.userId);
 		if (otherMembers.length > 0) {
+			if (userStore.isDeactivatedUser(otherMembers[0])) return t('others.deleted_account');
 			return userStore.userDisplayName(otherMembers[0]) ?? t('menu.directmsg');
 		}
 
@@ -322,6 +336,7 @@
 		const notInvitedMemberIds = room.notInvitedMembersIdsOfPrivateRoom();
 		const otherId = notInvitedMemberIds.find((id) => id !== userStore.userId);
 		if (otherId) {
+			if (userStore.isDeactivatedUser(otherId)) return t('others.deleted_account');
 			const member = room.getMember(otherId);
 			return member?.rawDisplayName ?? t('menu.directmsg');
 		}

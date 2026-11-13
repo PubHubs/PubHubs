@@ -57,7 +57,12 @@
 		if (room.isDirectMessageRoom()) return '';
 		return room.getPowerLevel(props.userId) >= 50 ? 'ring-2 ring-accent-steward/75' : '';
 	});
-	const iconColor = computed(() => (props.userId ? onAccentColor(color(props.userId)) : 'text-on-surface'));
+	// The colour is derived from the user id, so it would still tell a deleted account apart.
+	const isDeleted = computed(() => !!props.userId && user.isDeactivatedUser(props.userId));
+	const iconColor = computed(() => {
+		if (isDeleted.value) return 'text-on-surface-dim';
+		return props.userId ? onAccentColor(color(props.userId)) : 'text-on-surface';
+	});
 	onMounted(async () => {
 		await getImage();
 	});
@@ -74,6 +79,7 @@
 
 	function getAvatarColor(): string {
 		if (!props.userId) return 'bg-surface-base';
+		if (isDeleted.value) return 'bg-surface-elevated';
 
 		if (!props.userId && !user.displayName) return 'bg-surface-base';
 		if (!props.userId && user.displayName) return bgColor(color(props.userId));

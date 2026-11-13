@@ -26,9 +26,11 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed } from 'vue';
+	import { computed, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Composables
+	import { useDeactivatedUsers } from '@hub-client/composables/useDeactivatedUsers';
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
 	// Logic
@@ -37,6 +39,7 @@
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const props = withDefaults(defineProps<Props>(), {
 		showDisplayName: true,
@@ -46,8 +49,11 @@
 		roomId: '',
 	});
 	const { color, textColor } = useUserColor();
+	const { ensureKnown } = useDeactivatedUsers();
+	const { t } = useI18n();
 	const rooms = useRooms();
 	const settings = useSettings();
+	const user = useUser();
 
 	interface Props {
 		userId: string;
@@ -58,13 +64,20 @@
 		roomId?: string;
 	}
 
+	// An account that has been deleted is shown as such, under neither its display name nor its
+	// pseudonym: the pseudonym is the handle others remember someone by, so leaving it on screen
+	// would keep identifying the person who asked to be gone.
+	const isDeleted = computed(() => user.isDeactivatedUser(props.userId));
+
 	// get Pseudonym
 	const pseudonym = computed(() => {
+		if (isDeleted.value) return '';
 		return filters.extractPseudonym(props.userId);
 	});
 
 	// If the display Name is not set then userDisplayName is equal to rawDisplayName. We only show pseudo
 	const displayName = computed(() => {
+		if (isDeleted.value) return t('others.deleted_account');
 		return props.userDisplayName ? props.userDisplayName : undefined;
 	});
 
@@ -94,6 +107,8 @@
 	});
 
 	const userColorClass = computed(() => {
+		// The colour is derived from the user id, so it would still tell this person apart.
+		if (isDeleted.value) return 'text-on-surface-dim';
 		if (isSteward.value) return 'text-accent-steward';
 		return props.chooseColor ? textColor(color(props.userId)) : '';
 	});
@@ -106,4 +121,16 @@
 		'font-semibold': !displayName.value,
 		[userColorClass.value]: !displayName.value,
 	}));
+
+	// Members of the room come with a display name, so the ones worth asking the hub about are
+	// those we have none for - which is exactly how a deleted account presents itself. Callers
+	// that pass `rawDisplayName` hand us the Matrix id rather than nothing when the name is
+	// missing, so that counts as having none.
+	watch(
+		() => [props.userId, props.userDisplayName] as const,
+		([userId, userDisplayName]) => {
+			if (userId && (!userDisplayName || userDisplayName === userId)) ensureKnown([userId]);
+		},
+		{ immediate: true },
+	);
 </script>

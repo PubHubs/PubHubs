@@ -25,6 +25,7 @@ const invisibleRelatesToTypes: string[] = [RelationType.Thread, RelationType.Rep
  * - whispers to other users
  * - redacted thread events
  * - hide-message moderation events (which mark another event as hidden)
+ * - messages pruned because their sender's account was erased
  */
 export function isVisibleEvent(event: Partial<TBaseEvent>, currentUserId: string | null): boolean {
 	if (event.type && !visibleEventTypes.includes(event.type)) return false;
@@ -59,6 +60,13 @@ export function isVisibleEvent(event: Partial<TBaseEvent>, currentUserId: string
 	if (event.unsigned?.redacted_because?.redacts) {
 		if (event.unsigned?.redacted_because?.content.reason === Redaction.DeletedFromThread) return false;
 	}
+
+	// A message with nothing in its content that was never redacted is one the server pruned on
+	// the way out: the sender's account has been erased, and whoever is reading was not in the
+	// room at the time. There is no message left to render - only an empty bubble carrying the
+	// sender's pseudonym, which is the one thing erasing the account was meant to take away.
+	// A genuine redaction keeps its `redacted_because` and its "message deleted" placeholder.
+	if (!content?.msgtype && !event.unsigned?.redacted_because) return false;
 
 	return true;
 }

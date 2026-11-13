@@ -30,12 +30,21 @@ export type LoginMethod = {
 	readonly register_attr: string[];
 };
 
+/**
+ * The handle of the PubHubs card attribute.
+ *
+ * The card is the one attribute a login discloses, and the only identifying attribute that can
+ * go stale: deleting the account it was issued for leaves the card sitting in the user's Yivi
+ * app, identifying nothing.
+ */
+export const cardAttrHandle = 'ph_card';
+
 export const loginMethods: Record<string, LoginMethod> = {
 	Yivi: {
 		source: Source.Yivi,
-		attr_types: ['email', 'phone', 'ph_card'],
-		identifying_attr: ['email', 'ph_card'],
-		login_attr: ['ph_card'],
+		attr_types: ['email', 'phone', cardAttrHandle],
+		identifying_attr: ['email', cardAttrHandle],
+		login_attr: [cardAttrHandle],
 		register_attr: ['email', 'phone'],
 	},
 } as const;

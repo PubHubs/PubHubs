@@ -535,7 +535,7 @@ class Program:
         sqlite_cur = sqlite_conn.cursor()
         pg_cur = pg_conn.cursor()
 
-        for table_name in ('allowed_to_join_room', 'secured_rooms', 'joined_hub'):
+        for table_name in ('allowed_to_join_room', 'secured_rooms', 'joined_hub', 'deleted_pseudonyms_since'):
             sqlite_cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
             row = sqlite_cur.fetchone()
             if row is None:

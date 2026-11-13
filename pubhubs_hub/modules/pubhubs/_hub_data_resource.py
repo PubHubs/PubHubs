@@ -18,6 +18,10 @@ logger = logging.getLogger("synapse.contrib." + __name__)
 
 CACHE_BUST_TIME = 600  # 10 minutes in seconds
 
+# Caps the IN clause of a `deactivated_users` lookup.  Clients ask about the users on screen,
+# so this is far above what a timeline or member list needs.
+MAX_USER_IDS_PER_QUERY = 200
+
 class HubDataResource(DirectServeJsonResource):
 	"""
 	HubDataResource provides a resource for handling hub database related requests.
@@ -27,7 +31,8 @@ class HubDataResource(DirectServeJsonResource):
 			Handles GET requests. Validates the user and processes the 'data' query parameter to:
 				- Retrieve admin users ('admin_users') or
 				- Retrieve latest room timestamps ('timestamps') or
-				- Check user consent status and onboarding requirements ('consent')
+				- Check user consent status and onboarding requirements ('consent') or
+				- Report which of the given 'user_ids' are deactivated ('deactivated_users')
 		async _async_render_POST(request: SynapseRequest) -> bytes:
 			Handles POST requests. Validates the user and processes the 'data' query parameter to:
 				- Record user consent acceptance ('consent')
@@ -137,6 +142,19 @@ class HubDataResource(DirectServeJsonResource):
 							})
 
 				response = room_notifications
+
+			case 'deactivated_users':
+				# Which of the given users no longer have an account.  Clients show those
+				# without their pseudonym, which they cannot work out for themselves: a
+				# deactivated user looks exactly like one who left the room.
+				requested = request.args.get(b"user_ids", [b""])[0].decode("utf-8")
+				user_ids = [user for user in requested.split(",") if user]
+
+				if len(user_ids) > MAX_USER_IDS_PER_QUERY:
+					respond_with_json(request, 400, {"error": "Too many user ids"})
+					return
+
+				response = await self._hub_store.get_deactivated_users(user_ids)
 
 			case _:
 				respond_with_json(request, 400, {"error": "Not given a valid data value"})

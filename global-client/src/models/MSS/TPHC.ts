@@ -116,6 +116,10 @@ export type StateResp = 'RetryWithNewAuthToken' | { State: UserState };
 
 export type PHCStateResp = Result<StateResp, ErrorCode>;
 
+export type DeleteAccountResp = 'RetryWithNewAuthToken' | 'PleaseRetry' | 'Banned' | 'Deleted';
+
+export type PHCDeleteAccountResp = Result<DeleteAccountResp, ErrorCode>;
+
 export enum GetObjectRespProblem {
 	RetryWithNewHmac = 'RetryWithNewHmac',
 	NotFound = 'NotFound',

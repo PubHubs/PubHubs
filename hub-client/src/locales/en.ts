@@ -69,10 +69,15 @@ const en = {
 		cant_find_room: 'This room is not available at the moment',
 		admin_error: 'You are not an admin!',
 		no_room_error: 'User {0} has not joined any room in the hub.',
-		// Reached on login, where a PubHubs card is the only thing disclosed - so it must not suggest
-		// logging in with something else, or registering with the card. Registering starts over from
-		// the attributes and hands out a card of its own.
+		// Reached on login when the PubHubs card feature is off, so what was disclosed is an email
+		// address rather than a card. The card case has its own message below.
 		account_does_not_exist: 'We could not find a PubHubs account for this. If you do not have an account yet, register a new one.',
+		// Reached on login with a PubHubs card that identifies nobody, which in practice means the
+		// account it was issued for has been deleted. It must send the user to registration - which
+		// hands out a card of its own - and get the dead card out of their Yivi app, or it will be
+		// offered again on the next attempt.
+		card_no_longer_valid:
+			'This PubHubs card does not belong to an account. That happens when the account it was issued for has been deleted. Register again to get a new card, and remove this one from your Yivi app so it is not offered next time.',
 		// Reached both when registering and when logging in, so it says neither.
 		attribute_banned: 'The following attribute is banned and cannot be used in PubHubs: {0}.',
 		banned: 'This account is banned and can no longer be used to login to PubHubs.',
@@ -333,6 +338,9 @@ const en = {
 	},
 	others: {
 		step: 'Step {0}',
+		// Stands in for the name *and* the pseudonym of a deleted account, which is why it says
+		// nothing that could be matched back to the person who held it.
+		deleted_account: 'Deleted account',
 		nop: 'This feature is not implemented yet.',
 		search: 'Search',
 		search_rooms: 'Search for rooms',
@@ -497,6 +505,30 @@ const en = {
 		language_changed: 'Language changed to `{0}`.',
 		title: 'Settings',
 		notifications: 'Notifications',
+		go_to_delete_account_page: 'Go to the page to delete your PubHubs account',
+		deactivate_account: 'Deactivate hub account',
+		deactivate_account_confirm_title: 'Deactivate your account at this hub?',
+		deactivate_account_confirm_content:
+			"This is permanent and cannot be undone. Your messages in this hub are made anonymous and can't be traced back to you by other users. The rest of your personal data at this hub is deleted. If you enter this hub again later, you do so as a new member, under a new name.",
+		deactivate_account_error: 'Failed to deactivate your account at this hub. Please try again.',
+		deactivate_account_needs_global_client:
+			'Your account at this hub can only be deactivated from within PubHubs. Open this hub through PubHubs and try again.',
+		go_to_deactivate_account_page: 'Go to the page to deactivate your account at this hub',
+		deactivate_account_done: 'Your account at this hub has been deactivated.',
+		deactivate_account_page_intro:
+			'Here you can permanently deactivate your account at this hub. Your PubHubs account and your accounts at other hubs stay as they are.',
+		deactivate_account_page_back: 'Back to the hub',
+		delete_account: 'Delete PubHubs account',
+		delete_account_confirm_title: 'Delete your PubHubs account?',
+		delete_account_confirm_content:
+			"This is permanent and cannot be undone. Your messages are made anonymous and can't be traced back to you by other users. The rest of your personal data is deleted. You can register again afterwards with the same Yivi credentials, but they will be linked to a new account.",
+		delete_account_done: 'Your PubHubs account has been deleted.',
+		delete_account_error: 'Failed to delete your account. Please try again.',
+		delete_account_banned: 'A banned account cannot be deleted.',
+		delete_account_page_intro: 'Here you can permanently delete your PubHubs account. Your accounts at the hubs are deactivated along with it.',
+		delete_account_page_login_first: 'Log in first, so we know which account to delete.',
+		delete_account_page_login: 'Log in to delete your account',
+		delete_account_page_back: 'Back to PubHubs',
 	},
 	hub_settings: {
 		heading: 'Hub settings',

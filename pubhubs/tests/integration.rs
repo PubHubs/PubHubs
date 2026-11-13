@@ -1153,6 +1153,47 @@ async fn main_integration_test_local(
     // let's check we got the same pseudonym in both cases.
     assert_eq!(first_access_token, access_token);
 
+    // Delete the account: the hub should learn the pseudonym it knew the user by.
+    let api::phc::user::DeleteAccountResp::Deleted = client
+        .query::<api::phc::user::DeleteAccountEP>(&constellation.phc_url, NoPayload)
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    let api::phc::hub::DeletedPseudonymsResp::Success { deleted } = client
+        .query::<api::phc::hub::DeletedPseudonymsEP>(
+            &constellation.phc_url,
+            api::phc::hub::DeletedPseudonymsReq { since: None },
+        )
+        .with_retry()
+        .await
+        .unwrap();
+
+    let deleted_entry = deleted
+        .iter()
+        .find(|entry| {
+            base16ct::lower::encode_string(entry.hashed_hub_pseudonym.as_bytes().as_slice())
+                == access_token
+        })
+        .expect("the deleted account's pseudonym at the hub should be listed");
+
+    // `since` is inclusive
+    let api::phc::hub::DeletedPseudonymsResp::Success { deleted } = client
+        .query::<api::phc::hub::DeletedPseudonymsEP>(
+            &constellation.phc_url,
+            api::phc::hub::DeletedPseudonymsReq {
+                since: Some(deleted_entry.deleted_at),
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap();
+    assert!(deleted.contains(deleted_entry));
+
     // clean-up
     mock_hub.actix_server_handle.stop(false).await;
     js.join_all().await;

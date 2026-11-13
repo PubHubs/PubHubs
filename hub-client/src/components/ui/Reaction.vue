@@ -31,6 +31,9 @@
 	import { type MatrixEvent } from 'matrix-js-sdk';
 	import { computed } from 'vue';
 
+	// Composables
+	import { useDeactivatedUsers } from '@hub-client/composables/useDeactivatedUsers';
+
 	// Logic
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -40,7 +43,6 @@
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { useUser } from '@hub-client/stores/user';
 
 	// Types
 	type ReactionItem = {
@@ -57,7 +59,7 @@
 	const logger = createLogger('Reaction');
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
-	const userStore = useUser();
+	const { nameOf } = useDeactivatedUsers();
 	const currentUserId = pubhubs.client.getUserId();
 
 	const MAX_USERS_IN_TOOLTIP = 3;
@@ -96,7 +98,7 @@
 		}
 		return Object.entries(map).map(([key, reactions]) => {
 			const validReactions = reactions.filter((r) => r.userId);
-			const names = validReactions.map((r) => userStore.userDisplayName(r.userId) ?? r.userId);
+			const names = validReactions.map((r) => nameOf(r.userId));
 			let tooltipTitle: string;
 			if (names.length <= MAX_USERS_IN_TOOLTIP) {
 				tooltipTitle = names.join(', ');

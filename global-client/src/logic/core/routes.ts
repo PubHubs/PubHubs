@@ -19,6 +19,13 @@ const routes = [
 		meta: { requiresAuth: false },
 	},
 	{ path: '/hub/:name/:roomId?', name: 'hub', component: Hub, meta: { requiresAuth: true } },
+	// Linked to from the app stores, which ask for a page where users can delete their account.
+	{
+		path: '/delete-account',
+		name: 'delete-account',
+		component: () => import('@global-client/pages/DeleteAccount.vue'),
+		meta: { requiresAuth: false },
+	},
 	{
 		path: '/error',
 		name: 'error',
