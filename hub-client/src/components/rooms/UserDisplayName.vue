@@ -36,6 +36,9 @@
 	// Logic
 	import filters from '@hub-client/logic/core/filters';
 
+	// Models
+	import { UserPowerLevel } from '@hub-client/models/users/TUser';
+
 	// Stores
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
@@ -103,7 +106,7 @@
 		const room = rooms.room(props.roomId);
 		if (!room) return false;
 		if (room.isDirectMessageRoom()) return false;
-		return room.getPowerLevel(props.userId) >= 50;
+		return room.getPowerLevel(props.userId) >= UserPowerLevel.Steward;
 	});
 
 	const userColorClass = computed(() => {

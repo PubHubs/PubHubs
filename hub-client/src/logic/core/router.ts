@@ -1,5 +1,4 @@
 // Packages
-import { EventTimeline, EventType } from 'matrix-js-sdk';
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 // Composables
@@ -11,7 +10,6 @@ import { UserRole } from '@hub-client/models/users/TUser';
 
 import { useHubSettings } from '@hub-client/stores/hub-settings';
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
-import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 // Stores
 import { useUser } from '@hub-client/stores/user';
 
@@ -34,38 +32,44 @@ const routes = [
 		name: 'manage-rooms',
 		component: () => import('@hub-client/pages/ManageRooms.vue'),
 		props: true,
-		meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Steward, UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/admin/edit/:id',
 		props: true,
 		name: 'editroom',
 		component: () => import('@hub-client/pages/EditRoom.vue'),
-		meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Steward, UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/manage-users',
 		name: 'manage-users',
 		component: () => import('@hub-client/pages/ManageUsers.vue'),
-		meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Steward, UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/manage-roles',
 		name: 'manage-roles',
 		component: () => import('@hub-client/pages/ManageRoles.vue'),
-		meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Steward, UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/reports',
 		name: 'reports',
 		component: () => import('@hub-client/pages/ManageReports.vue'),
-		meta: { accessFor: [UserRole.Steward, UserRole.SuperSteward, UserRole.Admin], hideBar: true, onboarding: true },
+		meta: { accessFor: [UserRole.Steward, UserRole.Admin], hideBar: true, onboarding: true },
 	},
 	{
 		path: '/hub-settings',
 		name: 'hub-settings',
 		component: () => import('@hub-client/pages/HubSettings.vue'),
 		meta: { accessFor: [UserRole.Admin], hideBar: true, onboarding: true },
+	},
+	{
+		path: '/profile-page',
+		name: 'profile-page',
+		component: () => import('@hub-client/pages/ProfilePage.vue'),
+		meta: { hideBar: true, onboarding: true },
 	},
 	{
 		path: '/direct-msg',
@@ -172,21 +176,9 @@ router.beforeEach((to, from) => {
 		const roomId = to.params.id ? (to.params.id as string) : undefined;
 
 		if (roomId) {
+			// Rooms not yet in state.rooms are covered by the room list fallback in usePowerLevels
 			if (roles.userHasAccessForRoles(accessRoles, roomId)) {
 				return true;
-			}
-			// Fallback: check the Matrix SDK room directly (rooms from sliding sync may not be in state.rooms)
-			const pubhubs = usePubhubsStore();
-			const matrixRoom = pubhubs.client?.getRoom(roomId);
-			if (matrixRoom) {
-				const powerLevelEvent = matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomPowerLevels, '');
-				if (powerLevelEvent) {
-					const content = powerLevelEvent.getContent() as { users?: Record<string, number>; users_default?: number };
-					const powerLevel = content?.users?.[user.userId ?? ''] ?? content?.users_default ?? 0;
-					if (accessRoles.includes(roles.getRoleByPowerLevel(powerLevel))) {
-						return true;
-					}
-				}
 			}
 		} else {
 			// Hub-wide pages (no room context): check hub-wide power level

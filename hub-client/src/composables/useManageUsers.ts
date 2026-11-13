@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { onBeforeRouteLeave, useRoute } from 'vue-router';
 
 // Composables
+import { usePowerLevels } from '@hub-client/composables/usePowerLevels';
 import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 // Logic
@@ -13,11 +14,11 @@ import { router } from '@hub-client/logic/core/router';
 // Models
 import { type Administrator } from '@hub-client/models/hubmanagement/models/admin';
 import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
-import { DirectRooms, type RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TUserAccount, UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';
+import { useSettings } from '@hub-client/stores/settings';
 import { useUser } from '@hub-client/stores/user';
 
 let cachedHubUsers: TUserAccount[] | null = null;
@@ -29,6 +30,7 @@ export function useManageUsers() {
 	const rooms = useRooms();
 	const route = useRoute();
 	const sidebar = useSidebar();
+	const settings = useSettings();
 
 	const hubUsers = ref<TUserAccount[]>([]);
 	const selectedUserById = ref<string>();
@@ -43,7 +45,8 @@ export function useManageUsers() {
 	watch(
 		() => sidebar.activeTab.value,
 		(tab) => {
-			if (tab === SidebarTab.None) {
+			// On mobile the sidebar is closed while the edit page is open, so the selection must survive that.
+			if (tab === SidebarTab.None && !showUserInRoomForm.value) {
 				selectedUserById.value = undefined;
 			}
 		},
@@ -98,19 +101,13 @@ export function useManageUsers() {
 	async function fetchStewardUsers(): Promise<TUserAccount[]> {
 		const roomsStore = useRooms();
 		await roomsStore.waitForInitialRoomsLoaded();
+		const { roomsWithPowerLevel } = usePowerLevels();
 		const userId = user.userId;
 		if (!userId) return [];
 
 		const userMap = new Map<string, TUserAccount>();
 
-		for (const entry of roomsStore.roomList) {
-			if (DirectRooms.includes(entry.roomType as RoomType)) continue;
-
-			const powerLevelEvent = entry.stateEvents.find((e) => e.type === EventType.RoomPowerLevels);
-			if (!powerLevelEvent) continue;
-			const stewardPl = powerLevelEvent.content?.users?.[userId] ?? powerLevelEvent.content?.users_default ?? 0;
-			if (stewardPl < UserPowerLevel.Steward) continue;
-
+		for (const entry of roomsWithPowerLevel(UserPowerLevel.Steward, userId)) {
 			const myMembership = entry.stateEvents.find((e) => e.type === EventType.RoomMember && e.state_key === userId);
 			if (myMembership?.content?.membership !== 'join') continue;
 
@@ -179,6 +176,21 @@ export function useManageUsers() {
 		sidebar.openTab(SidebarTab.ManageUser);
 	}
 
+	function openUserInRoomForm() {
+		showUserInRoomForm.value = true;
+		// The mobile sidebar is a fixed overlay that would cover the page.
+		if (settings.isMobileState) {
+			sidebar.close();
+		}
+	}
+
+	function closeUserInRoomForm() {
+		showUserInRoomForm.value = false;
+		if (sidebar.activeTab.value === SidebarTab.None) {
+			selectedUserById.value = undefined;
+		}
+	}
+
 	onBeforeRouteLeave(() => {
 		sidebar.closeInstantly();
 	});
@@ -198,5 +210,7 @@ export function useManageUsers() {
 		openDisclosureForSelectedUser,
 		closeAskDisclosureForm,
 		selectUser,
+		openUserInRoomForm,
+		closeUserInRoomForm,
 	};
 }

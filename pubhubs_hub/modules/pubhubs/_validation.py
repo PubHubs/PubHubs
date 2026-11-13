@@ -86,14 +86,15 @@ def get_user_power_level(user_id: str, power_levels_dict: dict) -> int:
         power_levels_dict: The power levels content from the room state
 
     Returns:
-        The user's power level, or 0 if not found
+        The user's explicit power level, else users_default, else 0 (as the Matrix spec defines it)
+
+    Only correct up to room version 11, which is fine while hubs create rooms with Synapse's default (10). From room
+    version 12 on, the room creators (the sender of m.room.create and its additional_creators) are no longer listed in
+    "users" and have unlimited power, so this would put them at users_default. Before the default moves to 12+, treat
+    the creators of v12+ rooms as above ROOM_ADMIN here; in older rooms the creator is in "users" like anyone else.
+    The hub client's powerLevelOf (hub-client/src/logic/utils/powerLevelUtils.ts) needs the same change.
     """
-    logger.info(f"Permission levels dict: {power_levels_dict}")
-    users = power_levels_dict.get('users', {})
-    logger.info(f"Users in dictionary: {users}")
-    if user_id in users:
-        return users[user_id]
-    return 0
+    return power_levels_dict.get("users", {}).get(user_id, power_levels_dict.get("users_default", 0))
 
 
 async def assert_has_power_level(

@@ -12,6 +12,7 @@ from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoom
 from ._store import HubStore
 from ._web import JoinServlet
 from ._spam_checker import SpamChecker
+from ._room_takeover import RoomTakeoverServlet
 from ._cors import modify_set_clickjacking_protection_headers, modify_set_cors_headers
 from ._constants import METHOD_POLLING_INTERVAL, CLIENT_URL, GLOBAL_CLIENT_URL
 from ._hub_resource import HubResource
@@ -63,6 +64,9 @@ class HubClientApi(object):
 
         run_in_background(self.store.create_tables)
 
+        # Created before the resources, since the room takeover needs it to let a former admin rejoin
+        self.spam_checker = SpamChecker(api, self.store)
+
         self.module_api.looping_background_call(self.store.remove_from_room, METHOD_POLLING_INTERVAL)
 
         api.register_web_resource("/_synapse/client/ph", JoinServlet(self._config, self.module_api, self.store))
@@ -92,7 +96,8 @@ class HubClientApi(object):
 
         api.register_web_resource("/_synapse/client/steward", StewardResource(api, self._config, self.store))
 
-        self.spam_checker = SpamChecker(api, self.store)
+        api.register_web_resource("/_synapse/client/take_over_room", RoomTakeoverServlet(api, self._config, self.spam_checker))
+
         api.register_spam_checker_callbacks(
             user_may_join_room=self.spam_checker.user_may_join_room,
             check_event_for_spam=self.spam_checker.check_event_for_spam,

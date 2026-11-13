@@ -41,9 +41,10 @@
 	</div>
 
 	<Dialog
-		v-if="dialog.visible"
-		:type="dialog.properties.type"
-		@close="dialog.close"
+		v-if="dialog.entry"
+		:key="dialog.entry.id"
+		:entry="dialog.entry"
+		@close="dialog.close(dialog.entry.id, $event)"
 	/>
 
 	<!-- Rendered in every viewport: on mobile it shows menus delegated from the hub iframe, on desktop

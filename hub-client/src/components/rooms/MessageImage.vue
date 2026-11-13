@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { nextTick, ref, watch } from 'vue';
+	import { nextTick, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -72,6 +72,7 @@
 	const imageActions = useImageActions();
 	const { t } = useI18n();
 	const dialog = useDialog();
+	const modalHolder = dialog.newId();
 	const showFullImage = ref(false);
 	const lightboxRef = ref<HTMLElement | null>(null);
 
@@ -87,13 +88,17 @@
 		},
 	];
 
+	onUnmounted(() => {
+		dialog.releaseModal(modalHolder);
+	});
+
 	watch(showFullImage, async (show) => {
 		if (show) {
-			dialog.showModal();
+			dialog.holdModal(modalHolder);
 			await nextTick();
 			lightboxRef.value?.focus();
 		} else {
-			dialog.hideModal();
+			dialog.releaseModal(modalHolder);
 		}
 	});
 </script>

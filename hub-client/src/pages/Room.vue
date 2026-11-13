@@ -230,7 +230,7 @@
 	import { QueryParameterKey } from '@hub-client/models/constants';
 
 	import { useConnection } from '@hub-client/stores/connection';
-	import { DialogOk, useDialog } from '@hub-client/stores/dialog';
+	import { DialogYes, useDialog } from '@hub-client/stores/dialog';
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -460,33 +460,22 @@
 		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
 	}
 
-	const handleKick = (roomId: string, reason?: string) => {
+	const handleKick = async (roomId: string, reason?: string) => {
 		const message = reason
 			? `${capitalize(t('moderation.removed_from_room'))}\n\n${capitalize(t('moderation.kick_reason'))}: ${reason}`
 			: capitalize(t('moderation.removed_from_room'));
-		dialogStore.yesno(message);
+		if ((await dialogStore.yesno(message)) !== DialogYes) return;
 
-		const handleOk = async () => {
-			cleanup();
-			await pubhubs.joinRoom(roomId);
-			const maxAttempts = 7;
-			for (let attempt = 0; attempt < maxAttempts; attempt++) {
-				const hasJoinEvent = membershipEvents.value.some(
-					(event) => event.content.membership === KnownMembership.Join && event.state_key === user.userId,
-				);
-				if (hasJoinEvent) {
-					router.push({ name: 'room', params: { id: roomId } });
-					break;
-				}
-				await delay(attempt);
+		await pubhubs.joinRoom(roomId);
+		const maxAttempts = 7;
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const hasJoinEvent = membershipEvents.value.some((event) => event.content.membership === KnownMembership.Join && event.state_key === user.userId);
+			if (hasJoinEvent) {
+				router.push({ name: 'room', params: { id: roomId } });
+				break;
 			}
-		};
-
-		const cleanup = () => {
-			dialogStore.removeCallback(DialogOk);
-		};
-
-		dialogStore.addCallback(DialogOk, handleOk);
+			await delay(attempt);
+		}
 	};
 
 	watchEffect(async () => {

@@ -28,6 +28,7 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { api_synapse } from '@hub-client/logic/core/api';
 import { PubHubsMgType, VideocallStateType } from '@hub-client/logic/core/events';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { type PowerLevelsUsers, findPowerLevelsContent, powerLevelOf } from '@hub-client/logic/utils/powerLevelUtils';
 import { mergeStateEvents } from '@hub-client/logic/utils/roomUtils';
 
 // Models
@@ -44,6 +45,7 @@ import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type StoredUnreadInfo, getStoredUnreadInfo, updateStoredUnreadInfo } from '@hub-client/models/rooms/unreadInfoCache';
 import type TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
+import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -248,13 +250,19 @@ export default class Room {
 		this.firstVisibleTimeStamp = 0;
 	}
 
-	public getPowerLevel(user_id: string): number {
-		const member = this.matrixRoom.getMember(user_id);
-		if (member) {
-			return member.powerLevel;
-		}
-		// If user is not a member.
-		return -1;
+	/**
+	 * Sliding-sync state is the source of power levels. The SDK state is only consulted for rooms
+	 * created without it (e.g. directly after a join), until the next sync fills stateEvents.
+	 */
+	public getPowerLevelsContent(): PowerLevelsUsers | undefined {
+		return (
+			findPowerLevelsContent(this.stateEvents) ??
+			this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomPowerLevels, '')?.getContent<PowerLevelsUsers>()
+		);
+	}
+
+	public getPowerLevel(userId: string | null | undefined): number {
+		return powerLevelOf(this.getPowerLevelsContent(), userId);
 	}
 
 	public getType(): string | undefined {
@@ -317,28 +325,6 @@ export default class Room {
 
 	public getStateJoinedMembers(): RoomMemberStateEvent[] {
 		return this.stateEvents.filter((item) => item.content.membership === 'join') as RoomMemberStateEvent[];
-	}
-
-	public getStateMemberPowerLevel(userId: string | null): number {
-		if (!userId) return 0;
-		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
-
-		if (event) {
-			return event.content.users[userId] ?? event.content.users_default ?? 0;
-		}
-		// Fall back to Matrix SDK room state (for rooms loaded without stateEvents)
-		const powerLevelEvent = this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomPowerLevels, '');
-		if (powerLevelEvent) {
-			const content = powerLevelEvent.getContent() as { users?: Record<string, number>; users_default?: number };
-			return content?.users?.[userId] ?? content?.users_default ?? 0;
-		}
-		return 0;
-	}
-
-	public getStatePowerLevel() {
-		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
-		if (!event) return null;
-		return event;
 	}
 
 	public getStateTimeout(): TTimeoutStateEvent | undefined {
@@ -411,7 +397,7 @@ export default class Room {
 	public getRoomStewards(): Array<TRoomMember> {
 		return this.getMembersIds()
 			.map((member) => this.getMember(member))
-			.filter((roomMember) => roomMember !== null && roomMember.powerLevel === 50) as unknown as Array<TRoomMember>;
+			.filter((roomMember) => roomMember !== null && this.getPowerLevel(roomMember.userId) === UserPowerLevel.Steward) as unknown as Array<TRoomMember>;
 	}
 	public getMembersIdsFromName(): Array<string> {
 		const roomMemberIds = this.name.split(',');
@@ -441,7 +427,10 @@ export default class Room {
 		const member = this.matrixRoom.getMember(user_id);
 
 		if (member) {
-			const sufficient = this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.hasSufficientPowerLevelFor('redact', member?.powerLevel);
+			const sufficient = this.matrixRoom
+				.getLiveTimeline()
+				.getState(EventTimeline.FORWARDS)
+				?.hasSufficientPowerLevelFor('redact', this.getPowerLevel(user_id));
 			return sufficient || false;
 		}
 		return false;

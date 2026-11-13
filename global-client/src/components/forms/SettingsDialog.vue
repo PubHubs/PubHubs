@@ -1,8 +1,9 @@
 <template>
 	<Dialog
-		:buttons="buttonsSubmitCancel"
+		:buttons="buttons"
 		:title="$t('settings.title')"
 		type="global"
+		@close="onClose"
 	>
 		<div class="flex flex-col gap-100">
 			<div class="flex flex-col justify-between md:flex-row">
@@ -134,7 +135,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+	import { nextTick, onMounted, reactive, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
@@ -151,20 +152,21 @@
 	// Stores
 	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
 
-	import { DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
+	import { DialogButton, type DialogButtonAction, DialogOk, buttonsSubmitCancel } from '@hub-client/stores/dialog';
 	import { NotificationsPermission, type Theme, type TimeFormat, useSettings } from '@hub-client/stores/settings';
 
 	const { t } = useI18n();
 
 	const { data, setSubmitButton, setData, updateData, dataIsChanged, changed } = useFormState();
 	const settings = useSettings();
-	const dialog = useDialog();
 	const installPromptStore = useInstallPromptStore();
 	const router = useRouter();
 	const promptAllow = ref<boolean>(false);
 	const promptReset = ref<boolean>(false);
 	const promptInfo = ref<boolean>(false);
 	const notificationSupported = 'Notification' in window;
+	// Copies, since the submit button gets disabled and the shared constants are used by other dialogs as well
+	const buttons = reactive(buttonsSubmitCancel.map((b) => new DialogButton(b.label, b.color, b.action)));
 
 	setData({
 		theme: { value: settings.getSetTheme as FormDataType },
@@ -223,32 +225,27 @@
 			});
 		}
 
-		dialog.addCallback(DialogOk, () => {
-			if (changed) {
-				let sendSettings = false;
-				if (dataIsChanged('theme')) {
-					settings.setTheme(data.theme.value as Theme);
-					sendSettings = true;
-				}
-				if (dataIsChanged('language')) {
-					settings.setLanguage(data.language.value as string);
-					sendSettings = true;
-				}
-				if (dataIsChanged('timeformat')) {
-					settings.setTimeFormat(data.timeformat.value as TimeFormat);
-					sendSettings = true;
-				}
-				if (sendSettings) {
-					settings.sendSettings();
-				}
-			}
-		});
-		setSubmitButton(dialog.properties.buttons[0]);
+		setSubmitButton(buttons[0]);
 	});
 
-	// The callback outlives this dialog in the store otherwise, and would apply this dialog's settings
-	// when the next dialog is answered with OK or yes - such as the one confirming account deletion.
-	onUnmounted(() => {
-		dialog.removeCallback(DialogOk);
-	});
+	function onClose(action: DialogButtonAction) {
+		if (action !== DialogOk || !changed.value) return;
+
+		let sendSettings = false;
+		if (dataIsChanged('theme')) {
+			settings.setTheme(data.theme.value as Theme);
+			sendSettings = true;
+		}
+		if (dataIsChanged('language')) {
+			settings.setLanguage(data.language.value as string);
+			sendSettings = true;
+		}
+		if (dataIsChanged('timeformat')) {
+			settings.setTimeFormat(data.timeformat.value as TimeFormat);
+			sendSettings = true;
+		}
+		if (sendSettings) {
+			settings.sendSettings();
+		}
+	}
 </script>

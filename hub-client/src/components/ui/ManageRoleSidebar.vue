@@ -74,10 +74,46 @@
 
 		<!-- Actions -->
 		<div class="border-surface-elevated flex flex-col items-center gap-200 border-t p-200">
+			<p
+				v-if="error"
+				aria-live="assertive"
+				class="text-accent-red text-label-small w-full text-pretty"
+				role="alert"
+			>
+				{{ error }}
+			</p>
+
+			<!-- Ways to get the rights a role change needs -->
+			<template v-if="hasPowerLevelAction && access === 'join-required'">
+				<p class="text-on-surface-dim text-label-small w-full text-pretty">
+					{{ t(userStore.isAdmin ? 'roles.join_room_as_admin_required' : 'roles.join_room_required', { room: role.roomName }) }}
+				</p>
+				<Button
+					variant="primary"
+					class="w-full"
+					@click="$emit('gain-access')"
+				>
+					{{ t(userStore.isAdmin ? 'roles.join_room_as_admin' : 'roles.join_room') }}
+				</Button>
+			</template>
+			<template v-if="hasPowerLevelAction && access === 'power-required'">
+				<p class="text-on-surface-dim text-label-small w-full text-pretty">
+					{{ t(userStore.isAdmin ? 'roles.become_room_admin_required' : 'roles.not_enough_rights', { room: role.roomName }) }}
+				</p>
+				<Button
+					v-if="userStore.isAdmin"
+					variant="primary"
+					class="w-full"
+					@click="$emit('gain-access')"
+				>
+					{{ t('roles.become_room_admin') }}
+				</Button>
+			</template>
+
 			<!-- Steward invitation actions -->
 			<template v-if="role.type === 'steward-invitation'">
 				<Button
-					v-if="role.status === 'disclosed'"
+					v-if="role.status === 'disclosed' && access === 'allowed'"
 					variant="primary"
 					class="w-full"
 					@click="$emit('promote-steward')"
@@ -96,7 +132,7 @@
 			<!-- Expert invitation actions -->
 			<template v-if="role.type === 'expert-invitation'">
 				<Button
-					v-if="role.status === 'disclosed'"
+					v-if="role.status === 'disclosed' && access === 'allowed'"
 					variant="primary"
 					class="w-full"
 					@click="$emit('promote-expert')"
@@ -113,7 +149,7 @@
 			</template>
 
 			<!-- Active steward actions -->
-			<template v-if="role.type === 'active-steward'">
+			<template v-if="role.type === 'active-steward' && access === 'allowed'">
 				<Button
 					variant="secondary"
 					class="w-full"
@@ -124,7 +160,7 @@
 			</template>
 
 			<!-- Active expert actions -->
-			<template v-if="role.type === 'active-expert'">
+			<template v-if="role.type === 'active-expert' && access === 'allowed'">
 				<Button
 					variant="secondary"
 					class="w-full"
@@ -149,19 +185,27 @@
 	import SidebarHeader from '@hub-client/components/ui/SidebarHeader.vue';
 
 	// Composables
-	import { type TRoleEntry } from '@hub-client/composables/manage-roles.composable';
+	import { type RoleAccess, type TRoleEntry } from '@hub-client/composables/manage-roles.composable';
 	import { useRoleDisplay } from '@hub-client/composables/roles-display.composable';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
 
 	// Props
-	const props = defineProps<{
-		role: TRoleEntry;
-	}>();
+	const props = withDefaults(
+		defineProps<{
+			access: RoleAccess;
+			error?: string | null;
+			role: TRoleEntry;
+		}>(),
+		{
+			error: null,
+		},
+	);
 
 	defineEmits<{
 		demote: [];
+		'gain-access': [];
 		'promote-steward': [];
 		'promote-expert': [];
 		reject: [];
@@ -176,4 +220,8 @@
 	const typeClasses = computed(() => getTypeClasses(props.role.type));
 	const statusLabel = computed(() => getStatusLabel(props.role.status));
 	const statusClasses = computed(() => getStatusClasses(props.role.status));
+	// Rejecting an invitation only touches the DM, so it needs no rights in the room
+	const hasPowerLevelAction = computed(
+		() => (props.role.type.includes('invitation') && props.role.status === 'disclosed') || props.role.type.startsWith('active-'),
+	);
 </script>

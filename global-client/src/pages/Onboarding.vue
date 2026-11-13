@@ -346,7 +346,7 @@
 	import { EnterCancelled, useMSS } from '@global-client/stores/mss';
 
 	// Stores
-	import { DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
+	import { DialogOk, useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
@@ -699,25 +699,8 @@
 	}
 
 	async function handleDuplicateAttributeError() {
-		dialog.okcancel(t('errors.notid_taken_title'), t('errors.notid_attribute_already_taken'));
-
-		const handleOk = async () => {
-			cleanup();
-			startYiviSessionMSS(false);
-		};
-
-		const handleCancel = async () => {
-			cleanup();
-			startYiviSessionMSS(true);
-		};
-
-		const cleanup = () => {
-			dialog.removeCallback(DialogOk);
-			dialog.removeCallback(DialogCancel);
-		};
-
-		dialog.addCallback(DialogOk, handleOk);
-		dialog.addCallback(DialogCancel, handleCancel);
+		const answer = await dialog.okcancel(t('errors.notid_taken_title'), t('errors.notid_attribute_already_taken'));
+		startYiviSessionMSS(answer !== DialogOk);
 	}
 </script>
 

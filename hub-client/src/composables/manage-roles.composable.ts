@@ -3,11 +3,14 @@ import { Direction, EventType, Filter, type IRoomEvent } from 'matrix-js-sdk';
 import { computed, onMounted, ref, watch } from 'vue';
 
 // Composables
+import { usePowerLevels } from '@hub-client/composables/usePowerLevels';
 import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
 
 // Logic
+import { APIService } from '@hub-client/logic/core/apiService';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { type PowerLevelsContent, findPowerLevelsContent, powerLevelOf, stateEventPowerLevel } from '@hub-client/logic/utils/powerLevelUtils';
 
 // Models
 import { DisclosurePurpose } from '@hub-client/models/components/signedMessages';
@@ -37,6 +40,13 @@ type TRoleInvitation = {
 	purpose: DisclosurePurpose;
 };
 
+// Whether the current user may change the selected role, checked against the server since a hub admin is often not in the room
+type RoleAccess = 'checking' | 'allowed' | 'join-required' | 'power-required';
+
+// How gaining access to a role's room went: below-admin when the hub admin got less than room admin, since nobody left
+// on the hub was room admin
+type GainAccessResult = 'done' | 'below-admin' | 'failed';
+
 // Types
 type RoleType = 'steward-invitation' | 'expert-invitation' | 'active-steward' | 'active-expert';
 
@@ -53,12 +63,20 @@ type TRoleEntry = {
 	invitation?: TRoleInvitation;
 };
 
+// A room whose roles are listed. Only rooms the user isn't synced with carry their power levels, the others are read live.
+type TManagedRoom = {
+	roomId: string;
+	name: string;
+	powerLevelUsers?: Record<string, number>;
+};
+
 function useManageRoles() {
 	// Stores
 	const userStore = useUser();
 	const roomStore = useRooms();
 	const pubhubsStore = usePubhubsStore();
 	const sidebar = useSidebar();
+	const { powerLevelUsers } = usePowerLevels();
 	const logger = createLogger('manage-roles');
 
 	// Constants
@@ -71,6 +89,8 @@ function useManageRoles() {
 	const isLoadingMore = ref(false);
 	const roleEntries = ref<TRoleEntry[]>([]);
 	const roleInvitations = ref<TRoleInvitation[]>([]);
+	const roleAccess = ref<RoleAccess>('checking');
+	const managedRooms = ref<TManagedRoom[]>([]);
 
 	// Pagination state: maps DM room ID to its pagination token
 	const paginationTokens = ref<Map<string, string | null>>(new Map());
@@ -101,12 +121,42 @@ function useManageRoles() {
 	};
 
 	/**
+	 * Collects the rooms whose roles are listed: the user's own rooms, and for hub admins also every other room in the public
+	 * room directory, so they see requests and roles in rooms they haven't joined. The power levels of those rooms aren't
+	 * synced, so they come from the admin API.
+	 */
+	const fetchManagedRooms = async () => {
+		const ownRooms: TManagedRoom[] = roomStore.roomList
+			.filter((room) => !DirectRooms.includes(room.roomType as RoomType))
+			.map((room) => ({ roomId: room.roomId, name: room.name }));
+		if (!isAdmin.value) {
+			managedRooms.value = ownRooms;
+			return;
+		}
+
+		const ownRoomIds = new Set(ownRooms.map((room) => room.roomId));
+		const otherRooms = (await pubhubsStore.getPublicRoomsSafe()).filter((room) => !ownRoomIds.has(room.room_id));
+		const fetchedRooms = await processBatched(otherRooms, BATCH_SIZE, async (room): Promise<TManagedRoom> => {
+			const managedRoom = { roomId: room.room_id, name: room.name ?? room.room_id };
+			try {
+				const roomState = await APIService.adminGetRoomState(room.room_id);
+				return { ...managedRoom, powerLevelUsers: findPowerLevelsContent(roomState.state)?.users ?? {} };
+			} catch (error) {
+				// The room's invitations can still be listed without its power levels
+				logger.error(`Failed to fetch power levels of ${room.room_id}:`, error);
+				return { ...managedRoom, powerLevelUsers: {} };
+			}
+		});
+		managedRooms.value = [...ownRooms, ...fetchedRooms];
+	};
+
+	/**
 	 * Fetches role invitations from DM rooms.
 	 * @param loadMore - If true, loads more messages using pagination tokens
 	 */
 	const fetchRoleInvitations = async (loadMore = false) => {
 		// Build a Set of public room IDs for O(1) lookup
-		const publicRoomIds = new Set(roomStore.roomList.filter((room) => !DirectRooms.includes(room.roomType as RoomType)).map((room) => room.roomId));
+		const publicRoomIds = new Set(managedRooms.value.map((room) => room.roomId));
 
 		// Get all DM rooms
 		const dmRooms = roomStore.fetchRoomList(DirectRooms).filter((room) => room.roomType === RoomType.PH_MESSAGES_DM);
@@ -239,7 +289,7 @@ function useManageRoles() {
 
 		// Add invitations to entries based on purpose
 		for (const invitation of roleInvitations.value) {
-			const room = roomStore.roomList.find((r) => r.roomId === invitation.roomId);
+			const room = managedRooms.value.find((r) => r.roomId === invitation.roomId);
 			const isExpert = invitation.purpose === DisclosurePurpose.Expert;
 			entries.push({
 				id: `${isExpert ? 'expert' : 'steward'}-inv-${invitation.userId}-${invitation.roomId}`,
@@ -255,42 +305,32 @@ function useManageRoles() {
 		}
 
 		// Add active stewards and experts from all rooms based on power levels
-		const allRooms = roomStore.roomList;
-		for (const room of allRooms) {
-			// Skip direct message rooms
-			if (DirectRooms.includes(room.roomType as RoomType)) continue;
+		for (const room of managedRooms.value) {
+			for (const [userId, powerLevel] of Object.entries(room.powerLevelUsers ?? powerLevelUsers(room.roomId))) {
+				// Skip system users
+				if (userId.startsWith('@notices_user:')) continue;
 
-			// Get power levels from state events
-			const powerLevelsEvent = room.stateEvents.find((e) => e.type === EventType.RoomPowerLevels);
-			if (powerLevelsEvent?.content?.users) {
-				const users = powerLevelsEvent.content.users as Record<string, number>;
-
-				for (const [userId, powerLevel] of Object.entries(users)) {
-					// Skip system users
-					if (userId.startsWith('@notices_user:')) continue;
-
-					// Experts: power level >= Expert (25) but < Steward (50)
-					if (powerLevel >= UserPowerLevel.Expert && powerLevel < UserPowerLevel.Steward) {
-						entries.push({
-							id: `expert-${userId}-${room.roomId}`,
-							userId,
-							displayName: userStore.userDisplayName(userId) ?? userId,
-							roomId: room.roomId,
-							roomName: room.name,
-							type: 'active-expert',
-						});
-					}
-					// Stewards: power level >= Steward (50) but < Admin (100)
-					else if (powerLevel >= UserPowerLevel.Steward && powerLevel < UserPowerLevel.Admin) {
-						entries.push({
-							id: `steward-${userId}-${room.roomId}`,
-							userId,
-							displayName: userStore.userDisplayName(userId) ?? userId,
-							roomId: room.roomId,
-							roomName: room.name,
-							type: 'active-steward',
-						});
-					}
+				// Experts: power level >= Expert (25) but < Steward (50)
+				if (powerLevel >= UserPowerLevel.Expert && powerLevel < UserPowerLevel.Steward) {
+					entries.push({
+						id: `expert-${userId}-${room.roomId}`,
+						userId,
+						displayName: userStore.userDisplayName(userId) ?? userId,
+						roomId: room.roomId,
+						roomName: room.name,
+						type: 'active-expert',
+					});
+				}
+				// Stewards: power level >= Steward (50) but < Admin (100)
+				else if (powerLevel >= UserPowerLevel.Steward && powerLevel < UserPowerLevel.Admin) {
+					entries.push({
+						id: `steward-${userId}-${room.roomId}`,
+						userId,
+						displayName: userStore.userDisplayName(userId) ?? userId,
+						roomId: room.roomId,
+						roomName: room.name,
+						type: 'active-steward',
+					});
 				}
 			}
 		}
@@ -316,13 +356,18 @@ function useManageRoles() {
 			return a.displayName.localeCompare(b.displayName);
 		});
 
-		roleEntries.value = entries;
+		roleEntries.value = entries.filter((entry) => !(entry.userId === userStore.userId && entry.type.includes('invitation')));
 	};
 
-	const fetchRoles = async () => {
+	/**
+	 * @param collectRooms - Off after a role change: that only happens in a room the user has joined, whose power levels
+	 * are read live, so this saves hub admins a state request for every room they aren't in
+	 */
+	const loadRoles = async (collectRooms: boolean) => {
 		isLoading.value = true;
 
 		try {
+			if (collectRooms) await fetchManagedRooms();
 			// Fetch invitations (both steward and expert) from all rooms
 			await fetchRoleInvitations();
 			rebuildRoleEntries();
@@ -330,6 +375,10 @@ function useManageRoles() {
 			isLoading.value = false;
 		}
 	};
+
+	const fetchRoles = () => loadRoles(true);
+
+	const refreshRoles = () => loadRoles(false);
 
 	const selectRole = (entry: TRoleEntry) => {
 		selectedRoleId.value = entry.id;
@@ -358,24 +407,32 @@ function useManageRoles() {
 		}
 	};
 
-	const promoteToSteward = async (entry: TRoleEntry) => {
-		if (entry.type !== 'steward-invitation' || !entry.invitation) return;
+	/**
+	 * @returns whether the power level change went through
+	 */
+	const promoteToSteward = async (entry: TRoleEntry): Promise<boolean> => {
+		if (entry.type !== 'steward-invitation' || !entry.invitation) return false;
 
 		try {
-			// Set user's power level to Steward (50); authorized by Synapse's own power-level checks for this room
+			// Set user's power level to Steward (50); the hub's spam checker allows stewards and up to do this
 			await pubhubsStore.client.setPowerLevel(entry.invitation.roomId, entry.invitation.userId, UserPowerLevel.Steward);
 
 			await removeRoleInvite(entry.invitation);
-			await fetchRoles();
+			await refreshRoles();
 			clearSelection();
 			sidebar.close();
+			return true;
 		} catch (error) {
 			logger.error('Failed to promote user to steward:', error);
+			return false;
 		}
 	};
 
-	const promoteToExpert = async (entry: TRoleEntry) => {
-		if (entry.type !== 'expert-invitation' || !entry.invitation) return;
+	/**
+	 * @returns whether the power level change went through
+	 */
+	const promoteToExpert = async (entry: TRoleEntry): Promise<boolean> => {
+		if (entry.type !== 'expert-invitation' || !entry.invitation) return false;
 
 		try {
 			// Set user's power level to Expert (25)
@@ -383,53 +440,120 @@ function useManageRoles() {
 
 			// Remove the invitation
 			await removeRoleInvite(entry.invitation);
-			await fetchRoles();
+			await refreshRoles();
 			clearSelection();
 			sidebar.close();
+			return true;
 		} catch (error) {
 			logger.error('Failed to promote user to expert:', error);
+			return false;
 		}
+	};
+
+	/**
+	 * The power level the current user needs in the room to change the given role.
+	 */
+	const requiredPowerLevel = (entry: TRoleEntry, content: PowerLevelsContent): number => {
+		// Matrix only lets someone change the level of a user below their own, so demoting another steward takes a room admin
+		if (entry.type === 'active-steward' && entry.userId !== userStore.userId) return UserPowerLevel.Admin;
+		// The hub's spam checker rejects power level changes from anyone below steward
+		return Math.max(stateEventPowerLevel(content, EventType.RoomPowerLevels), UserPowerLevel.Steward);
+	};
+
+	const fetchRoleAccess = async (entry: TRoleEntry): Promise<RoleAccess> => {
+		// Matrix only accepts power level changes from joined members, hub admins included
+		if (!(await pubhubsStore.isUserRoomMember(userStore.userId!, entry.roomId))) return 'join-required';
+		try {
+			const content = await pubhubsStore.getPowerLevelEventContent(entry.roomId);
+			return powerLevelOf(content, userStore.userId) >= requiredPowerLevel(entry, content) ? 'allowed' : 'power-required';
+		} catch (error) {
+			// The server still checks the change itself, so don't block on a failed lookup
+			logger.error(`Failed to fetch power levels of ${entry.roomId}:`, error);
+			return 'allowed';
+		}
+	};
+
+	const checkRoleAccess = async (entry: TRoleEntry) => {
+		roleAccess.value = 'checking';
+		const access = await fetchRoleAccess(entry);
+		// The selection may have moved on while waiting
+		if (selectedRoleId.value === entry.id) roleAccess.value = access;
+	};
+
+	/**
+	 * Joins the room of the role, as room admin for hub admins: joining alone leaves them at power level 0.
+	 */
+	const gainRoleAccess = async (entry: TRoleEntry): Promise<GainAccessResult> => {
+		let powerLevel: number | undefined;
+		if (isAdmin.value) {
+			try {
+				powerLevel = await APIService.takeOverRoom(entry.roomId);
+			} catch (error) {
+				logger.error(`Failed to make ${userStore.userId} room admin of ${entry.roomId}:`, error);
+				return 'failed';
+			}
+		}
+		// joinRoom reports its own failures (by going to the error page), only stop here
+		if ((await pubhubsStore.joinRoom(entry.roomId)) !== 0) return 'failed';
+		// Joined now, so read its power levels live from here on instead of the snapshot taken while not in it
+		managedRooms.value = managedRooms.value.map((room) => (room.roomId === entry.roomId ? { roomId: room.roomId, name: room.name } : room));
+		await checkRoleAccess(entry);
+		return powerLevel !== undefined && powerLevel < UserPowerLevel.Admin ? 'below-admin' : 'done';
 	};
 
 	const rejectInvitation = async (entry: TRoleEntry) => {
 		if (!entry.type.includes('invitation') || !entry.invitation) return;
 		await removeRoleInvite(entry.invitation);
-		await fetchRoles();
+		await refreshRoles();
 		clearSelection();
 		sidebar.close();
 	};
 
-	const demoteSteward = async (entry: TRoleEntry) => {
-		if (entry.type !== 'active-steward') return;
+	/**
+	 * @returns whether the power level change went through
+	 */
+	const demoteSteward = async (entry: TRoleEntry): Promise<boolean> => {
+		if (entry.type !== 'active-steward') return false;
 
 		try {
 			// Reset user's power level to User (0)
 			await pubhubsStore.client.setPowerLevel(entry.roomId, entry.userId, UserPowerLevel.User);
 
-			await fetchRoles();
+			await refreshRoles();
 			clearSelection();
 			sidebar.close();
+			return true;
 		} catch (error) {
 			logger.error('Failed to demote steward:', error);
+			return false;
 		}
 	};
 
-	const removeExpert = async (entry: TRoleEntry) => {
-		if (entry.type !== 'active-expert') return;
+	/**
+	 * @returns whether the power level change went through
+	 */
+	const removeExpert = async (entry: TRoleEntry): Promise<boolean> => {
+		if (entry.type !== 'active-expert') return false;
 
 		try {
 			// Reset user's power level to User (0)
 			await pubhubsStore.client.setPowerLevel(entry.roomId, entry.userId, UserPowerLevel.User);
 
-			await fetchRoles();
+			await refreshRoles();
 			clearSelection();
 			sidebar.close();
+			return true;
 		} catch (error) {
 			logger.error('Failed to remove expert:', error);
+			return false;
 		}
 	};
 
 	// Watchers
+	watch(selectedRole, (entry, previous) => {
+		if (entry && entry.id !== previous?.id) checkRoleAccess(entry);
+	});
+
 	watch(
 		() => sidebar.activeTab.value,
 		(tab) => {
@@ -452,6 +576,7 @@ function useManageRoles() {
 		isLoading,
 		isLoadingMore,
 		hasMoreToLoad,
+		roleAccess,
 		// Computed
 		isAdmin,
 		// Functions
@@ -462,9 +587,10 @@ function useManageRoles() {
 		promoteToSteward,
 		promoteToExpert,
 		rejectInvitation,
+		gainRoleAccess,
 		demoteSteward,
 		removeExpert,
 	};
 }
 
-export { RoleType, TRoleEntry, RoleInvitationStatus, TRoleInvitation, useManageRoles };
+export { GainAccessResult, RoleAccess, RoleType, TRoleEntry, RoleInvitationStatus, TRoleInvitation, useManageRoles };
