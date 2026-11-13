@@ -509,3 +509,56 @@ describe('Issuing the PubHubs card in a chained Yivi session', () => {
 		expect(mss.requestUserSecretObject).toHaveBeenCalledWith(expect.not.objectContaining({ ph_card: expect.anything() }));
 	});
 });
+
+describe('Logging in with an identifying attribute that finds no account', () => {
+	let mss: ReturnType<typeof useMSS>;
+	const mountPoint = ref<HTMLElement | null>(null);
+
+	beforeEach(() => {
+		setActivePinia(createPinia());
+		yiviSessions.length = 0;
+		mss = useMSS();
+		server.use(http.post('http://testdomain/.ph/user/enter', () => HttpResponse.json({ Ok: 'AccountDoesNotExist' }, { status: 200 })));
+	});
+
+	// A login that gets as far as asking PubHubs central to enter, with `handle` as the attribute
+	// the user was identified by. The Yivi widget is left running for the test to resolve.
+	const login = (handle: string) => {
+		const authServer = {
+			welcomeEPAuths: async () => attrTypes,
+			checkAttributes: () => new Set([handle]),
+			authStartEP: async () => ({ task: { Yivi: { disclosure_request: 'a-request', yivi_requestor_url: 'http://yivi-test/' } }, state: [1] }),
+			setState: vi.fn(),
+			getState: () => [1],
+			completeAuthEP: async () => ({ attrs: { [handle]: 'jwt' } }),
+		};
+		vi.spyOn(mss, 'getAuthServer').mockResolvedValue(authServer as unknown as Awaited<ReturnType<typeof mss.getAuthServer>>);
+		vi.spyOn(mss, 'validateAttributes').mockImplementation(() => {});
+		vi.spyOn(mss, 'decodeSignedAttributes').mockReturnValue({
+			identifying: { [handle]: { signedAttr: 'jwt', id: handle, value: 'a-value' } },
+			additional: [],
+			attributeValues: [handle],
+		});
+
+		return mss.enterPubHubs(loginMethods.Yivi, PHCEnterMode.Login, mountPoint);
+	};
+
+	test('a PubHubs card is reported as the dead credential it is', async () => {
+		// PubHubs central cannot tell a card whose account was deleted from one it never saw, so this
+		// is the only place the user can be told. Reporting it as a plain 'no account found' would
+		// leave them picking the same dead card out of their Yivi app on every attempt.
+		const run = login('ph_card');
+		await vi.waitFor(() => expect(yiviSessions).toHaveLength(1));
+		yiviSessions[0].resolve('a-disclosure');
+
+		await expect(run).resolves.toEqual({ key: 'errors.card_no_longer_valid' });
+	});
+
+	test('anything else keeps the message that sends the user to registration', async () => {
+		const run = login('email');
+		await vi.waitFor(() => expect(yiviSessions).toHaveLength(1));
+		yiviSessions[0].resolve('a-disclosure');
+
+		await expect(run).resolves.toEqual({ key: 'errors.account_does_not_exist' });
+	});
+});

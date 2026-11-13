@@ -14,7 +14,15 @@ import { delay } from '@hub-client/logic/utils/common';
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
-import { type AttrKeyResp, type AuthAttrKeyReq, type AuthStartReq, type CardReq, type LoginMethod, Source } from '@global-client/models/MSS/TAuths';
+import {
+	type AttrKeyResp,
+	type AuthAttrKeyReq,
+	type AuthStartReq,
+	type CardReq,
+	type LoginMethod,
+	Source,
+	cardAttrHandle,
+} from '@global-client/models/MSS/TAuths';
 import {
 	type DecodedAttributes,
 	type EnterStartResp,
@@ -294,7 +302,13 @@ const useMSS = defineStore('mss', {
 			// ? If there are several identifying attributes pick the first one
 			const identifyingHandle = Object.keys(identifying)[0];
 			const identifyingAttr = authSuccess.attrs[identifyingHandle];
-			const { entered, errorMessage } = await this.phcServer.enter(additional, enterMode, identifyingAttr, registerOnlyWithUniqueAttrs);
+			const { entered, errorMessage } = await this.phcServer.enter(
+				additional,
+				enterMode,
+				identifyingAttr,
+				registerOnlyWithUniqueAttrs,
+				identifyingHandle,
+			);
 			if (!entered) return errorMessage;
 
 			// 9. Issue a Pubhubs card if registering a new account
@@ -308,7 +322,7 @@ const useMSS = defineStore('mss', {
 				this.issuingCardInSameSession = chainedSession;
 				try {
 					const { cardAttr, errorMessage: cardError } = await this.issueCard(chainedYiviSession, comment, mountPoint, identifyingAttr, runId);
-					if (cardAttr) identifying['ph_card'] = cardAttr;
+					if (cardAttr) identifying[cardAttrHandle] = cardAttr;
 					else warningMessage = cardError;
 				} catch (error) {
 					// Card issuance failed (likely network error from battery saver)
@@ -434,7 +448,14 @@ const useMSS = defineStore('mss', {
 			this.logout();
 		},
 
-		async enterHub(id: string, enterStartResp: EnterStartResp): Promise<string | undefined> {
+		/**
+		 * Obtain the signed hashed hub pseudonym package for a hub's enter or deactivate flow; both
+		 * start with the same nonce and hub mac key from the hub.
+		 * @param id - Hub ID
+		 * @param startResp - Response from the hub's enter-start or deactivate-start endpoint
+		 * @returns The signed HHPP to send to the matching complete endpoint
+		 */
+		async obtainHhpp(id: string, startResp: EnterStartResp): Promise<string | undefined> {
 			const maxAttempts = 4;
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
 				if (attempt > 0) {
@@ -444,7 +465,7 @@ const useMSS = defineStore('mss', {
 				const sealedPPP = await this.phcServer.pppEP();
 				assert.isDefined(sealedPPP, 'Something went wrong, sealedPPP should be defined.');
 				const transcryptor = await this.getTranscryptor();
-				const sealedEhpp = await transcryptor.ehppEP({ nonce: enterStartResp.nonce, id, ppp: sealedPPP, hubMacKey: enterStartResp.hub_mac_key });
+				const sealedEhpp = await transcryptor.ehppEP({ nonce: startResp.nonce, id, ppp: sealedPPP, hubMacKey: startResp.hub_mac_key });
 
 				if (sealedEhpp === 'RetryWithNewPpp' && attempt < maxAttempts) {
 					continue;
@@ -452,7 +473,7 @@ const useMSS = defineStore('mss', {
 					throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
 				}
 				assert.isDefined(sealedEhpp, 'Something went wrong, sealedEhpp should be defined or you should have gone back to requesting a new Ppp.');
-				const signedHhpp = await this.phcServer.hhppEP(sealedEhpp, enterStartResp.hhpp_signature_scheme);
+				const signedHhpp = await this.phcServer.hhppEP(sealedEhpp, startResp.hhpp_signature_scheme);
 
 				if (signedHhpp === 'RetryWithNewPpp' && attempt < maxAttempts) {
 					continue;

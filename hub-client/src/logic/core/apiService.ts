@@ -16,7 +16,12 @@ export class APIService {
 	 * @returns TUserAccountList list of all user accounts.
 	 */
 	static async adminListUsers(from: string, to: string): Promise<TUserAccountList> {
-		return await api_synapse.apiGET<TUserAccountList>(api_synapse.apiURLS.usersAPIV3.slice(0, -1) + '?from=' + from + '&' + 'limit=' + to);
+		// `deactivated=false` is not the default on v3 the way it is on v2: leaving it off returns
+		// deleted accounts too, and they arrive without a display name, so every list built from
+		// this would fall back to showing their pseudonym.
+		return await api_synapse.apiGET<TUserAccountList>(
+			api_synapse.apiURLS.usersAPIV3.slice(0, -1) + '?from=' + from + '&' + 'limit=' + to + '&deactivated=false',
+		);
 	}
 
 	/**

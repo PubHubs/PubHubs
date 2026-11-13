@@ -74,6 +74,16 @@
 				{{ formState.message }}
 			</div>
 		</form>
+
+		<div class="border-surface-high mt-400 mb-400 border-t pt-400">
+			<Button
+				icon="user-circle-minus"
+				data-testid="deactivate-account"
+				@click="goToDeactivateAccount"
+			>
+				{{ $t('settings.go_to_deactivate_account_page') }}
+			</Button>
+		</div>
 	</Dialog>
 </template>
 
@@ -81,8 +91,10 @@
 	// Packages
 	import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
 
 	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 	import IconButton from '@hub-client/components/elements/IconButton.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
@@ -96,15 +108,18 @@
 	import { BlobManager } from '@hub-client/logic/core/blobManager';
 
 	// Stores
-	import { type DialogButtonAction, DialogSubmit, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
+	import { type DialogButtonAction, DialogCancel, DialogSubmit, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+
+	const emit = defineEmits<{ close: [action: DialogButtonAction] }>();
 
 	const { t } = useI18n();
 	const user = useUser();
 	const settings = useSettings();
 	const dialog = useDialog();
 	const formState = useFormState();
+	const router = useRouter();
 	const fileInput = ref<HTMLInputElement>();
 	const fileInfo = ref<File>();
 
@@ -145,6 +160,7 @@
 	});
 
 	async function dialogAction(action: DialogButtonAction) {
+		emit('close', action);
 		if (action === DialogSubmit) {
 			await submit();
 		}
@@ -203,5 +219,14 @@
 		avatarRemoved.value = true;
 		fileInfo.value = undefined;
 		getSubmitButton().enabled = true;
+	}
+
+	/**
+	 * Deactivating has a page of its own, as deleting the PubHubs account has in the global client.
+	 * Going there closes this dialog; unsaved settings are dropped, as on cancel.
+	 */
+	function goToDeactivateAccount() {
+		emit('close', DialogCancel);
+		router.push({ name: 'delete-hub-account' });
 	}
 </script>

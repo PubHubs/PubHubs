@@ -83,6 +83,21 @@ describe('Hub.vue', () => {
 		expect(hubs.changeHub).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'TestHub1', roomId: 'someRoomId' }));
 	});
 
+	test('leaving for a page without a hub goes there, not to the hubs overview', async () => {
+		const { router } = await mountHub('/hub/TestHub0');
+		const push = vi.spyOn(router, 'push');
+		vi.mocked(global.getHubData).mockClear();
+		vi.mocked(hubs.changeHub).mockClear();
+
+		// The page is still mounted when the route changes on the way out.
+		await router.replace('/delete-account');
+		await flushPromises();
+
+		expect(push).not.toHaveBeenCalled();
+		expect(global.getHubData).not.toHaveBeenCalled();
+		expect(hubs.changeHub).not.toHaveBeenCalled();
+	});
+
 	test('a hub that does not exist sends the user to the hubs overview', async () => {
 		const router = createRouter({ history: createMemoryHistory(), routes });
 		await router.push('/hub/NoSuchHub');

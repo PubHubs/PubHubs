@@ -1,6 +1,7 @@
 // Packages
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { markRaw } from 'vue';
 
 // Models
 import { Hub } from '@global-client/models/Hubs';
@@ -69,6 +70,33 @@ describe('hubs Store', () => {
 			const hubs = useHubs(pinia);
 			hubs.addHub(new Hub('test-Id', 'test', 'url', 'serverurl', 'description', pinia));
 			expect(hubs.hub('test-Id')).toBeTypeOf('object');
+		});
+	});
+
+	describe('changeHub', () => {
+		const withRouter = () => {
+			const hubs = useHubs(pinia);
+			const push = vi.fn(() => Promise.resolve());
+			hubs.router = markRaw({ push }) as unknown as typeof hubs.router;
+			return { hubs, push };
+		};
+
+		test('a hub that does not exist sends the user to the hubs overview', async () => {
+			const { hubs, push } = withRouter();
+
+			await hubs.changeHub({ name: 'NoSuchHub' });
+
+			expect(hubs.currentHubId).toEqual('');
+			expect(push).toHaveBeenCalledWith({ name: 'hubs-overview' });
+		});
+
+		test('leaving the hub page stays out of the way of where the user is going', async () => {
+			const { hubs, push } = withRouter();
+
+			await hubs.changeHub({ name: '', roomId: '' });
+
+			expect(hubs.currentHubId).toEqual('');
+			expect(push).not.toHaveBeenCalled();
 		});
 	});
 });

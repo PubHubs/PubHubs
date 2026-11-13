@@ -118,14 +118,25 @@
 					{{ $t('pwa.open_instructions') }}
 				</Button>
 			</div>
+			<div class="border-surface-high mt-400 border-t pt-400">
+				<Button
+					class="mb-300 w-fit"
+					icon="user-circle-minus"
+					data-testid="delete-account"
+					@click="goToDeleteAccount"
+				>
+					{{ $t('settings.go_to_delete_account_page') }}
+				</Button>
+			</div>
 		</div>
 	</Dialog>
 </template>
 
 <script lang="ts" setup>
 	// Packages
-	import { nextTick, onMounted, ref } from 'vue';
+	import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
 
 	import Button from '@hub-client/components/elements/Button.vue';
 	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
@@ -149,6 +160,7 @@
 	const settings = useSettings();
 	const dialog = useDialog();
 	const installPromptStore = useInstallPromptStore();
+	const router = useRouter();
 	const promptAllow = ref<boolean>(false);
 	const promptReset = ref<boolean>(false);
 	const promptInfo = ref<boolean>(false);
@@ -160,6 +172,14 @@
 		timeformat: { value: settings.getTimeFormat as FormDataType },
 		notifications: { value: settings.getNotificationsPermission as FormDataType },
 	});
+
+	/**
+	 * Deleting the account has a page of its own, which the app stores link to; going there leaves
+	 * this dialog, with the global bar it belongs to.  Unsaved settings are dropped, as on cancel.
+	 */
+	function goToDeleteAccount() {
+		router.push({ name: 'delete-account' });
+	}
 
 	function updateNotificationsPermission(event: string) {
 		promptAllow.value = false;
@@ -224,5 +244,11 @@
 			}
 		});
 		setSubmitButton(dialog.properties.buttons[0]);
+	});
+
+	// The callback outlives this dialog in the store otherwise, and would apply this dialog's settings
+	// when the next dialog is answered with OK or yes - such as the one confirming account deletion.
+	onUnmounted(() => {
+		dialog.removeCallback(DialogOk);
 	});
 </script>

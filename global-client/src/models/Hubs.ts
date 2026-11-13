@@ -9,8 +9,13 @@ import { type HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 
 // Models
 import {
+	type DeactivateCompleteResp,
+	type DeactivateStartResp,
 	type EnterCompleteResp,
 	type EnterStartResp,
+	type HubDeactivateCompleteReq,
+	type HubDeactivateCompleteResp,
+	type HubDeactivateStartResp,
 	type HubEnterCompleteReq,
 	type HubEnterCompleteResp,
 	type HubEnterStartResp,
@@ -99,6 +104,32 @@ class Hub {
 		} else {
 			return okEnterCompleteResp.Entered;
 		}
+	}
+
+	public async deactivateStartEP(accessToken: string): Promise<DeactivateStartResp> {
+		const deactivateStartRespFn = () =>
+			hub_api.api<HubDeactivateStartResp>(`${this.serverUrl}${hub_api.apiURLS.deactivateStart}`, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+				},
+			});
+		const okDeactivateStartResp = await handleErrors<DeactivateStartResp>(deactivateStartRespFn);
+		return okDeactivateStartResp;
+	}
+
+	public async deactivateCompleteEP(state: string, hhpp: string, accessToken: string): Promise<DeactivateCompleteResp> {
+		const requestPayload: HubDeactivateCompleteReq = { state, hhpp };
+		const deactivateCompleteRespFn = () =>
+			hub_api.api<HubDeactivateCompleteResp>(`${this.serverUrl}${hub_api.apiURLS.deactivateComplete}`, {
+				...requestOptions<HubDeactivateCompleteReq>(requestPayload),
+				headers: {
+					...requestOptions<HubDeactivateCompleteReq>(requestPayload).headers,
+					Authorization: `Bearer ${accessToken}`,
+				},
+			});
+		const okDeactivateCompleteResp = await handleErrors<DeactivateCompleteResp>(deactivateCompleteRespFn);
+		return okDeactivateCompleteResp;
 	}
 }
 

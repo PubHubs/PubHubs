@@ -47,6 +47,9 @@ vi.mock('@hub-client/stores/user', () => ({
 	useUser: () => ({
 		userId: '@me:hub',
 		userDisplayName: (userId: string) => ({ '@alice:hub': 'Alice', '@bob:hub': 'Bob', '@me:hub': 'Me' })[userId],
+		// A deleted account, as the hub reports it
+		isDeactivatedUser: (userId: string) => userId === '@abc-def:hub',
+		deactivationIsResolved: () => true,
 	}),
 }));
 
@@ -141,6 +144,13 @@ describe('RoomLibrary.vue', () => {
 		const wrapper = await mountLibrary();
 		expect(rowNames(wrapper)).toEqual(['mid.pdf', 'new.pdf', 'old.pdf']);
 		expect(wrapper.find('[data-testid="filemanager"] li').text()).toContain('Me · 1 KB · Today');
+	});
+
+	test('does not name a deleted uploader by their pseudonym', async () => {
+		const wrapper = await mountLibrary([libraryEvent({ id: '$gone', filename: 'gone.pdf', sender: '@abc-def:hub', ts: 1000 })]);
+		const row = wrapper.find('[data-testid="filemanager"] li').text();
+		expect(row).toContain(en.others.deleted_account);
+		expect(row).not.toContain('abc-def');
 	});
 
 	test('shows the sort order and reorders when another is picked', async () => {

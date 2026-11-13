@@ -68,6 +68,8 @@ const nl = {
 		no_room_error: 'Gebruiker {0} is niet aangesloten bij een kamer in de hub.',
 		// Zie de opmerkingen bij deze sleutels in en.ts.
 		account_does_not_exist: 'We konden hier geen PubHubs-account bij vinden. Heb je nog geen account, registreer er dan een.',
+		card_no_longer_valid:
+			'Deze PubHubs-kaart hoort niet bij een account. Dat gebeurt wanneer het account waarvoor de kaart is uitgegeven, is verwijderd. Registreer opnieuw voor een nieuwe kaart, en verwijder deze kaart uit je Yivi-app zodat die de volgende keer niet meer wordt aangeboden.',
 		attribute_banned: 'Het volgende attribuut is verbannen en kan niet in PubHubs worden gebruikt: {0}.',
 		banned: 'Dit account is verbannen en kan niet langer worden gebruikt om in te loggen bij PubHubs.',
 		attribute_already_taken: 'Het volgende attribuut is al gekoppeld aan een PubHubs account: {0}. Probeer in te loggen.',
@@ -322,6 +324,8 @@ const nl = {
 	},
 	others: {
 		step: 'Stap {0}',
+		// Zie de opmerking bij deze sleutel in en.ts.
+		deleted_account: 'Verwijderd account',
 		nop: 'Deze functionaliteit is nog niet geimplementeerd.',
 		search: 'Zoeken',
 		search_rooms: 'Zoek naar kamers',
@@ -485,6 +489,30 @@ const nl = {
 		language_changed: 'Taal gewijzigd in `{0}`.',
 		title: 'Instellingen',
 		notifications: 'Meldingen',
+		go_to_delete_account_page: 'Ga naar de pagina om je PubHubs-account te verwijderen',
+		deactivate_account: 'Hub-account deactiveren',
+		deactivate_account_confirm_title: 'Je account bij deze hub deactiveren?',
+		deactivate_account_confirm_content:
+			'Dit is permanent en kan niet ongedaan worden gemaakt. Je berichten in deze hub worden geanonimiseerd en kunnen door andere gebruikers niet meer naar jou worden herleid. De rest van je persoonlijke data bij deze hub wordt verwijderd. Kom je later terug in deze hub, dan ben je een nieuw lid met een nieuwe naam.',
+		deactivate_account_error: 'Je account bij deze hub deactiveren is mislukt. Probeer het opnieuw.',
+		deactivate_account_needs_global_client:
+			'Je account bij deze hub kan alleen vanuit PubHubs gedeactiveerd worden. Open deze hub via PubHubs en probeer het opnieuw.',
+		go_to_deactivate_account_page: 'Ga naar de pagina om je account bij deze hub te deactiveren',
+		deactivate_account_done: 'Je account bij deze hub is gedeactiveerd.',
+		deactivate_account_page_intro:
+			'Hier kun je je account bij deze hub permanent deactiveren. Je PubHubs-account en je accounts bij andere hubs blijven zoals ze zijn.',
+		deactivate_account_page_back: 'Terug naar de hub',
+		delete_account: 'PubHubs-account verwijderen',
+		delete_account_confirm_title: 'Je PubHubs-account verwijderen?',
+		delete_account_confirm_content:
+			'Dit is permanent en kan niet ongedaan worden gemaakt. Je berichten worden geanonimiseerd en kunnen door andere gebruikers niet meer naar jou worden herleid. De rest van je persoonlijke data wordt verwijderd. Je kunt je daarna opnieuw registreren met dezelfde Yivi-gegevens, maar die worden dan aan een nieuw account gekoppeld.',
+		delete_account_done: 'Je PubHubs-account is verwijderd.',
+		delete_account_error: 'Je account verwijderen is mislukt. Probeer het opnieuw.',
+		delete_account_banned: 'Een geblokkeerd account kan niet worden verwijderd.',
+		delete_account_page_intro: 'Hier kun je je PubHubs-account permanent verwijderen. Je accounts bij de hubs worden daarbij ook gedeactiveerd.',
+		delete_account_page_login_first: 'Log eerst in, zodat we weten welk account we moeten verwijderen.',
+		delete_account_page_login: 'Inloggen om je account te verwijderen',
+		delete_account_page_back: 'Terug naar PubHubs',
 	},
 	hub_settings: {
 		heading: 'Hub instellingen',

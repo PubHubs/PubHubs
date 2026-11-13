@@ -86,6 +86,13 @@ const routes = [
 		component: () => import('@hub-client/pages/DiscoverRoomsPage.vue'),
 		meta: { hideBar: true, onboarding: true },
 	},
+	// No onboarding: leaving the hub must not wait on agreeing to its terms.
+	{
+		path: '/delete-hub-account',
+		name: 'delete-hub-account',
+		component: () => import('@hub-client/pages/DeleteHubAccount.vue'),
+		meta: { hideBar: true },
+	},
 	{
 		path: '/error-page',
 		name: 'error-page',

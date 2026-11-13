@@ -55,7 +55,12 @@
 		});
 	});
 
-	watch(route, onRouteChange);
+	// The route also changes on the way out of this page, before it unmounts. That route is for the
+	// page we are going to, which has no hub in it: treating it as a hub that does not exist would
+	// send the user to the hubs overview instead.
+	watch(route, () => {
+		if (route.name === 'hub') onRouteChange();
+	});
 
 	const hubUrl = ref('');
 
@@ -128,7 +133,7 @@
 						const mss = useMSS();
 						const enterStartResp: EnterStartResp | undefined = await hub.enterStartEP();
 						assert.isDefined(enterStartResp, 'Something went wrong receiving/handling the response from enterStartEP.');
-						const hhpp = await mss.enterHub(id, enterStartResp);
+						const hhpp = await mss.obtainHhpp(id, enterStartResp);
 						assert.isDefined(hhpp, 'Something went wrong with getting the signedHhpp.');
 						const enterCompleteResp = await hub.enterCompleteEP(enterStartResp.state, hhpp);
 						if (enterCompleteResp === 'RetryFromStart' && attempt < maxAttempts - 1) continue;

@@ -5,6 +5,7 @@ import { type RouteParams } from 'vue-router';
 import { useMiniclientGate } from '@global-client/composables/miniclientGate.composable';
 
 // Logic
+import { deactivateHubAccount } from '@global-client/logic/core/deactivateHub';
 import { copyImageNatively } from '@global-client/logic/nativeClipboard';
 import { shareFileNatively } from '@global-client/logic/nativeFileShare';
 import { loadHubsCache, saveHubsCache } from '@global-client/logic/utils/hubsCache';
@@ -191,10 +192,13 @@ const useHubs = defineStore('hubs', {
 			// navigate the global client to hubs-overview. This is still a hub change
 			// (from whatever we were on to "no hub"), so the HubActive(false)
 			// above for the previous hub is correct and we return afterwards.
+			//
+			// An empty name is no hub on purpose: the hub page is being left, for a
+			// page the user is already on their way to, so we must not navigate.
 			if (hubId === undefined || !this.currentHubExists) {
 				this.currentHubId = '';
 				messagebox.resetCurrentHub();
-				this.router.push({ name: 'hubs-overview' });
+				if (hubName !== '') this.router.push({ name: 'hubs-overview' });
 				return;
 			}
 
@@ -383,6 +387,51 @@ const useHubs = defineStore('hubs', {
 					await global.saveGlobalSettings();
 					// Reload to trigger re-authentication with fresh credentials
 					location.reload();
+				});
+
+				// Handle account deactivation request from hub-client
+				messagebox.addCallback(iframeHubId, MessageType.RequestDeactivation, async (message: Message) => {
+					const { accessToken } = message.content as { accessToken: string };
+					// The main iframe is shared by all hubs, so the sender is the hub that is current now.
+					// Pin it down: the user may switch hubs while the deactivation runs.
+					const hub = this.currentHub;
+
+					if (!hub || !accessToken) {
+						messagebox.sendMessage(new Message(MessageType.DeactivationResult, { success: false, error: 'InvalidRequest' }), iframeHubId);
+						return;
+					}
+
+					const deactivatedHubId = hub.hubId;
+					// The result is only for the hub that asked; another hub may be in the iframe by now.
+					const stillShowingHub = () => this.currentHubId === deactivatedHubId;
+
+					try {
+						await deactivateHubAccount(hub, accessToken);
+
+						// Send success message to hub-client before cleanup
+						if (stillShowingHub()) {
+							messagebox.sendMessage(new Message(MessageType.DeactivationResult, { success: true }), iframeHubId);
+						}
+
+						// Unpin the hub
+						const index = global.pinnedHubs.findIndex((h) => h.hubId === deactivatedHubId);
+						if (index >= 0) {
+							global.removePinnedHub(index);
+							messagebox.resetMiniclient(deactivatedHubId);
+						}
+
+						await global.saveGlobalSettings();
+
+						if (stillShowingHub()) {
+							this.router.push({ name: 'hubs-overview' });
+						}
+					} catch (error) {
+						logger.error('Deactivation failed:', error);
+						const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+						if (stillShowingHub()) {
+							messagebox.sendMessage(new Message(MessageType.DeactivationResult, { success: false, error: errorMessage }), iframeHubId);
+						}
+					}
 				});
 			}
 		},

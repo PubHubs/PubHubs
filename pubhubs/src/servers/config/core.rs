@@ -400,6 +400,13 @@ pub mod phc {
         #[serde(default = "default_card_pseud_validity")]
         pub card_pseud_validity: core::time::Duration,
 
+        /// The pseudonyms of a deleted account are listed to hubs via
+        /// [`api::phc::hub::DeletedPseudonymsEP`] for this long.  A hub that does not ask within
+        /// this time keeps the account.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_deleted_pseudonym_retention")]
+        pub deleted_pseudonym_retention: core::time::Duration,
+
         /// Secret used to derive `hmac`s for the retrieval of user objects.
         ///
         /// Randomly generated if not set.
@@ -438,6 +445,10 @@ pub mod phc {
     fn default_card_pseud_validity() -> core::time::Duration {
         core::time::Duration::from_secs(30)
         // no user interaction required
+    }
+
+    fn default_deleted_pseudonym_retention() -> core::time::Duration {
+        core::time::Duration::from_secs(365 * 24 * 60 * 60) // 1 year - hubs may be down for long
     }
 }
 

@@ -149,6 +149,11 @@ enum MessageType {
 	// one writer to the LocalStore.
 	HubActive = 'hub-active', // Parent → miniclient: { active: boolean }; whether the miniclient's hub is the globally active hub.
 	AggregateUnreadState = 'aggregate-unread-state', // Hub-client → parent → matching miniclient: { hubId, state: UnreadState }.
+
+	// Account deactivation flow: hub-client requests deactivation via global-client
+	// which orchestrates HHPP retrieval and calls the hub's deactivation endpoint.
+	RequestDeactivation = 'request-deactivation', // Hub → Global: { accessToken: string }
+	DeactivationResult = 'deactivation-result', // Global → Hub: { success: boolean; error?: string }
 }
 
 /**

@@ -11,13 +11,20 @@
 			isMobile && global.hubCanGoBack ? 'overflow-x-hidden' : 'overflow-x-auto',
 		]"
 	>
-		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
-		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
+		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error' || route.name === 'delete-account')" />
+		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'delete-account')" />
 
 		<router-view
 			class="flex h-full shrink-0 overflow-y-auto"
 			:class="
-				isMobile && !(route.name === 'onboarding' || route.name === 'hubs-overview' || route.name === 'login' || route.name === 'error')
+				isMobile &&
+				!(
+					route.name === 'onboarding' ||
+					route.name === 'hubs-overview' ||
+					route.name === 'login' ||
+					route.name === 'error' ||
+					route.name === 'delete-account'
+				)
 					? 'w-[calc(200vw-80px)]!'
 					: 'w-[calc(100vw-80px)]! flex-1'
 			"

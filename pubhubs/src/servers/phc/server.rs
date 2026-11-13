@@ -98,12 +98,18 @@ pub struct App {
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
+    pub deleted_pseudonym_retention: core::time::Duration,
 
     /// channel for sending messages between apps
     pub broadcast: tokio::sync::broadcast::Sender<InterAppMsg>,
 
     pub cached_hub_info: std::cell::RefCell<api::CachedResponse<api::phc::user::CachedHubInfoEP>>,
     pub hub_cache_config: HubCacheConfig,
+
+    /// This app's copy of the deleted pseudonyms list and its version in the object store, so
+    /// that the many polls by hubs do not each get and parse the whole list.
+    pub cached_deleted_pseudonyms:
+        RefCell<Option<(Rc<super::DeletedPseudonyms>, object_store::UpdateVersion)>>,
 }
 
 impl Deref for App {
@@ -155,11 +161,13 @@ impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
         api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
+        api::phc::hub::DeletedPseudonymsEP::add_to(self, sc, App::handle_hub_deleted_pseudonyms);
 
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
         api::phc::user::RefreshEP::add_to(self, sc, App::handle_user_refresh);
         api::phc::user::StateEP::add_to(self, sc, App::handle_user_state);
+        api::phc::user::DeleteAccountEP::add_to(self, sc, App::handle_user_delete_account);
 
         api::phc::user::NewObjectEP::add_to(self, sc, App::handle_user_new_object);
         api::phc::user::OverwriteObjectEP::add_to(self, sc, App::handle_user_overwrite_object);
@@ -792,6 +800,7 @@ pub struct AppCreator {
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
     pub card_pseud_validity: core::time::Duration,
+    pub deleted_pseudonym_retention: core::time::Duration,
     pub hub_cache_config: HubCacheConfig,
 }
 
@@ -842,12 +851,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             user_object_hmac_secret: self.user_object_hmac_secret,
             quota: self.quota,
             card_pseud_validity: self.card_pseud_validity,
+            deleted_pseudonym_retention: self.deleted_pseudonym_retention,
             broadcast: context.broadcast.clone(),
             // cached_hub_info will be set later
             cached_hub_info: std::cell::RefCell::new(
                 api::Responder(Err(api::ErrorCode::PleaseRetry)).into_cached(),
             ),
             hub_cache_config: self.hub_cache_config,
+            cached_deleted_pseudonyms: RefCell::new(None),
         }
     }
 
@@ -898,6 +909,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_boxed_slice(),
             quota: xconf.user_quota.clone(),
             card_pseud_validity: xconf.card_pseud_validity,
+            deleted_pseudonym_retention: xconf.deleted_pseudonym_retention,
             hub_cache_config: xconf.hub_cache.clone(),
         })
     }

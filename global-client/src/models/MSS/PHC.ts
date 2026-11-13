@@ -10,7 +10,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 import { assert } from '@hub-client/logic/utils/assert';
 
 // Models
-import { type AttrKeyResp } from '@global-client/models/MSS/TAuths';
+import { type AttrKeyResp, cardAttrHandle } from '@global-client/models/MSS/TAuths';
 import { type ErrorCode, type Result, ResultResponse, type SignedIdentifyingAttrs } from '@global-client/models/MSS/TGeneral';
 import * as TPHC from '@global-client/models/MSS/TPHC';
 import UserSecretManager, { type AttrKeysFetcher } from '@global-client/models/MSS/UserSecret';
@@ -105,16 +105,23 @@ export default class PHCServer {
 	 * Handle the response from the EnterEP.
 	 *
 	 * @param enterResp The response from the EnterEP that needs to be handled.
+	 * @param identifyingHandle The handle of the attribute that was disclosed to identify the user, when there was one.
 	 * @returns An object with a boolean denoting whether the user successfully entered PubHubs and an errorMessage.
 	 * The errorMessage is null if the user successfully entered, an object with a translation key and a list of values to use in the translation otherwise.
 	 */
 	private _handleEnterResp(
 		enterResp: TPHC.EnterResp,
+		identifyingHandle?: string,
 	):
 		| { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }
 		| { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } {
 		if (enterResp === 'AccountDoesNotExist') {
-			return { entered: false, errorMessage: { key: 'errors.account_does_not_exist' }, enterResp: null };
+			// A card that identifies nothing is one whose account was deleted - PubHubs central
+			// cannot tell such a card from one it never saw, so this is as close as we get. Saying
+			// 'no account found' alone would leave the user re-picking the same dead card from
+			// their Yivi app on every attempt.
+			const key = identifyingHandle === cardAttrHandle ? 'errors.card_no_longer_valid' : 'errors.account_does_not_exist';
+			return { entered: false, errorMessage: { key }, enterResp: null };
 		} else if (enterResp === 'Banned') {
 			return { entered: false, errorMessage: { key: 'errors.banned' }, enterResp: null };
 		} else if (enterResp === 'NoBannableAttribute') {
@@ -153,6 +160,7 @@ export default class PHCServer {
 	 * @param identifyingAttr The attribute identifying the user when registering or logging in.
 	 * @param addAttrs The attributes that have to be added to the account, required when registering a new account or when no bannable attribute is registered for this account.
 	 * @param enterMode The mode determines whether we want to create an account if none exists and whether we expect an account to exist.
+	 * @param identifyingHandle The handle of `identifyingAttr`, used to phrase the error when no account is found.
 	 * @returns An object with a boolean to know whether the user successfully entered PubHubs or not and an error message (which is null if no error occured).
 	 */
 	public async enter(
@@ -160,6 +168,7 @@ export default class PHCServer {
 		enterMode: TPHC.PHCEnterMode,
 		identifyingAttr?: string,
 		registerOnlyWithUniqueAttrs: boolean = false,
+		identifyingHandle?: string,
 	): Promise<
 		| { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] }
 		| { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }
@@ -175,7 +184,7 @@ export default class PHCServer {
 		const okEnterResp = await handleErrors(() =>
 			this._phcAPI.api<TPHC.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<TPHC.PHCEnterReq>(requestPayload, authorization)),
 		);
-		return this._handleEnterResp(okEnterResp);
+		return this._handleEnterResp(okEnterResp, identifyingHandle);
 	}
 
 	/**
@@ -399,6 +408,44 @@ export default class PHCServer {
 				throw new Error('Unknown response from the state endpoint.');
 			}
 		}
+	}
+
+	/**
+	 * Permanently delete the current user's account at PubHubs central.
+	 *
+	 * The user's hub accounts need no deactivating beforehand: PHC lists the account's
+	 * pseudonym at every hub as deleted, and each hub deactivates its own account when it next
+	 * polls that list - unpinned and offline hubs included.
+	 *
+	 * @returns 'Deleted' when the account is gone, or the reason it is not.
+	 */
+	public async deleteAccountEP(): Promise<TPHC.DeleteAccountResp> {
+		const maxAttempts = 3;
+		let tokenRefreshed = false;
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const options = {
+				headers: { Authorization: (await this._getAuthToken()) ?? '' },
+				method: 'POST',
+			};
+			const okDeleteResp = await handleErrors<TPHC.DeleteAccountResp>(() =>
+				this._phcAPI.api<TPHC.PHCDeleteAccountResp>(this._phcAPI.apiURLS.deleteAccount, options),
+			);
+
+			if (okDeleteResp === 'PleaseRetry') {
+				continue; // somebody changed the account from under us
+			}
+			if (okDeleteResp === 'RetryWithNewAuthToken') {
+				// Only worth one refresh: a second RetryWithNewAuthToken means the account is
+				// already gone, since a token for a deleted account never opens again.
+				if (!tokenRefreshed && (await this._refreshAndRetry())) {
+					tokenRefreshed = true;
+					continue;
+				}
+				return okDeleteResp; // logout was triggered, or the account is no longer there
+			}
+			return okDeleteResp;
+		}
+		return 'PleaseRetry';
 	}
 
 	/**

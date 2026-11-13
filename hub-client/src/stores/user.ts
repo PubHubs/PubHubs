@@ -53,6 +53,10 @@ type State = {
 	adminStatusLoaded: boolean;
 	needsOnboarding: boolean;
 	needsConsent: boolean;
+	// Users whose account is gone, and the users we have an answer for. Both are filled by
+	// `useDeactivatedUsers`; deactivation is permanent, so an answer never goes stale.
+	deactivatedUsers: Set<string>;
+	resolvedDeactivation: Set<string>;
 };
 
 const logger = createLogger('User');
@@ -112,6 +116,8 @@ const useUser = defineStore('user', {
 		adminStatusLoaded: false,
 		needsOnboarding: false,
 		needsConsent: false,
+		deactivatedUsers: new Set<string>(),
+		resolvedDeactivation: new Set<string>(),
 	}),
 
 	getters: {
@@ -152,6 +158,25 @@ const useUser = defineStore('user', {
 		},
 		userConsent({ needsConsent }): boolean {
 			return needsConsent;
+		},
+
+		/**
+		 * Whether this user's account has been deactivated, as far as we have been told.
+		 *
+		 * False until the answer is in, so a name renders under its pseudonym for a moment
+		 * rather than flashing up as a deleted account.
+		 */
+		isDeactivatedUser: (state) => {
+			return (userId: string): boolean => {
+				return state.deactivatedUsers.has(userId);
+			};
+		},
+
+		/** Whether the hub has already been asked about this user. */
+		deactivationIsResolved: (state) => {
+			return (userId: string): boolean => {
+				return state.resolvedDeactivation.has(userId);
+			};
 		},
 
 		userDisplayName: (state) => {
@@ -315,6 +340,19 @@ const useUser = defineStore('user', {
 				contentAvatarUrl: cached.contentAvatarUrl,
 				avatarUrl: cached.avatarDataUrl,
 			});
+		},
+
+		/**
+		 * Record an answer from the hub about which users are deactivated.
+		 *
+		 * @param checked The users that were asked about.
+		 * @param deactivated The ones among them whose account is gone.
+		 */
+		setDeactivationResults(checked: string[], deactivated: string[]) {
+			// Reassigned rather than mutated: a `Set` is not deeply reactive in Pinia, so the
+			// components rendering these names would not re-render on a mutation.
+			this.deactivatedUsers = new Set([...this.deactivatedUsers, ...deactivated]);
+			this.resolvedDeactivation = new Set([...this.resolvedDeactivation, ...checked]);
 		},
 
 		// Profile setter method for all users.
