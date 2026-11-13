@@ -1,5 +1,5 @@
 <template>
-	<HeaderFooter>
+	<HeaderFooter data-testid="profile-page">
 		<template #header>
 			<div
 				class="flex h-full items-center gap-150"
@@ -147,6 +147,8 @@
 	const fileInput = ref<HTMLInputElement>();
 
 	function onFileChosen(event: Event) {
-		chooseAvatar((event.currentTarget as HTMLInputElement).files?.[0]);
+		const input = event.currentTarget as HTMLInputElement;
+		chooseAvatar(input.files?.[0]);
+		input.value = '';
 	}
 </script>
