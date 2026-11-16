@@ -21,7 +21,7 @@
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	// Models
-	import { type TPermissionNotice } from '@hub-client/models/videocall/TDeviceAccess';
+	import { type TPermissionNotice } from '@hub-client/models/videocall/TVideoCall';
 
 	// Props
 	defineProps<{

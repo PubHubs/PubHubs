@@ -66,11 +66,15 @@
 				</div>
 			</div>
 			<div
-				v-if="videoCall.undecryptable_participants.includes(props.username)"
-				class="bg-surface-base absolute inset-0 flex items-center justify-center rounded-md p-200 text-center"
+				v-if="decryptionState"
+				class="bg-surface-base absolute inset-0 flex flex-col items-center justify-center gap-100 rounded-md p-200 text-center"
 			>
-				<span class="text-label-small text-on-surface-dim">{{ t('videocall.undecryptable') }}</span>
+				<InlineSpinner v-if="decryptionState === 'pending'" />
+				<span class="text-label-small text-on-surface-dim">
+					{{ decryptionState === 'pending' ? t('videocall.decryption_pending') : t('videocall.undecryptable') }}
+				</span>
 			</div>
+
 			<div
 				v-if="!participant.isMicrophoneEnabled || isLocallyMuted"
 				class="bg-opacity-50 p-050 absolute bottom-200 left-200 rounded-full bg-black"
@@ -93,6 +97,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	import { useUserColor } from '@hub-client/composables/useUserColor';
 
@@ -118,6 +123,7 @@
 
 	// The same accent as participant's name
 	const placeholderColor = computed(() => textColor(color(participantUserId.value)));
+	const decryptionState = computed(() => videoCall.decryption_states[props.username]);
 	const isLocallyMuted = ref(videoCall.isLocallyMuted(props.username));
 	const isSpeaking = ref(props.participant.isSpeaking);
 

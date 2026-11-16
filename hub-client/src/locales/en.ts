@@ -1056,6 +1056,7 @@ const en = {
 	videocall: {
 		appear_as: "You'll appear as",
 		chat: 'Chat',
+		decryption_pending: 'Securing connection…',
 		devices: 'Devices',
 		disable_camera: 'Turn off camera',
 		duration: 'Duration',

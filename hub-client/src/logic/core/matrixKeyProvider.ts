@@ -16,7 +16,13 @@ export class MatrixKeyProvider extends BaseKeyProvider {
 	private keys = new Map<string, Map<number, Uint8Array>>();
 
 	public constructor() {
-		super({ sharedKey: false });
+		//super({ sharedKey: false });
+
+		// ratchetWindowSize: deriving the next key from the current one without sending a new one. Livekit supports it, Matrix not yet.
+		// To keep it futureproof Element passes 10, so that when Matrix starts supporting it, the calls keep working
+		// The overhead it costs now is minimal
+		// Set the keyRingSize to minimize the chance of collision of keys
+		super({ sharedKey: false, ratchetWindowSize: 10, keyringSize: 256 });
 	}
 
 	public setRTCSession(rtcSession: MatrixRTCSession): void {

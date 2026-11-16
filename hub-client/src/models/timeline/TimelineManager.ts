@@ -6,7 +6,7 @@ import { shallowReactive } from 'vue';
 import { useMatrix } from '@hub-client/composables/matrix.composable';
 
 // Logic
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { PubHubsMgType, VideocallStateType } from '@hub-client/logic/core/events';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
@@ -74,7 +74,17 @@ class TimelineManager {
 	private set timelineEvents(events: TimelineEvent[]) {
 		events.sort((a, b) => a.matrixEvent.getTs() - b.matrixEvent.getTs());
 		this._timelineEvents = events;
+
+		// Vue only notifies watchers when the id actually changes
+		this.latestVideoCall.eventId = events
+			.findLast(
+				(e) =>
+					e.matrixEvent.getContent()?.msgtype === PubHubsMgType.VideoCall &&
+					e.matrixEvent.getContent()?.videocallstate === VideocallStateType.Started,
+			)
+			?.matrixEvent.getId();
 	}
+
 	/** Increasing version counter, bumped on every timeline mutation */
 	private _timelineVersion: number = 0;
 	/** Contains all redacted events, deletions and edits */
@@ -95,6 +105,8 @@ class TimelineManager {
 	private editEvents: Map<string, MatrixEvent> = new Map();
 	// Bumped whenever an edit changed an event's content, so views that read an event once (e.g. reply snippets) can refresh
 	public readonly editsRevision = shallowReactive({ count: 0 });
+	// Event id of the newest "call started" message in the loaded timeline. Reactive, so older call messages can see they are no longer the latest.
+	public readonly latestVideoCall = shallowReactive<{ eventId: string | undefined }>({ eventId: undefined });
 
 	private roomId: string;
 

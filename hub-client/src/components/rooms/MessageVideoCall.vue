@@ -48,7 +48,7 @@
 	const rtcSession = currentRoom?.getMatrixRTCSession();
 
 	watch(
-		() => currentRoom?.relatedEventsRevision.count,
+		() => [currentRoom?.relatedEventsRevision.count, currentRoom?.latestVideoCall.eventId],
 		() => {
 			if (!isThreadEvent.value) checkHasCallEnded();
 		},

@@ -30,6 +30,7 @@ import { trackCallMembers } from '@hub-client/logic/core/trackCallMembers';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+import { type TDecryptionState } from '@hub-client/models/videocall/TVideoCall';
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
@@ -64,6 +65,7 @@ export const defaultLiveKitOptions: RoomOptions = {
 };
 
 const MembershipExpiryTime = 5 * 60 * 1000; // 5 minutes
+const LeaveRoomSessionTimeout = 1000; // timeout for rtcsession timeout
 let endCallCleanup: (() => void) | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
 let e2eeWorker: Worker | null = null; // Outside state for the same reason as endCallCleanup
 
@@ -93,7 +95,7 @@ const useVideoCall = defineStore('videoCall', {
 			screen_share: false,
 
 			locally_muted_participants: [] as string[],
-			undecryptable_participants: [] as string[], // LiveKit identities whose media we cannot decrypt
+			decryption_states: {} as Record<string, TDecryptionState>, // LiveKit identities whose media is not (yet) decrypting
 			selfView: true,
 			focus: [null, false] as [Participant | null, boolean],
 			_connecting: false,
@@ -264,7 +266,7 @@ const useVideoCall = defineStore('videoCall', {
 				}
 				if (this.rtc_session) {
 					try {
-						await this.rtc_session.leaveRoomSession(10);
+						await this.rtc_session.leaveRoomSession(LeaveRoomSessionTimeout);
 					} catch {
 						logger.debug('Cleanup after failed connect also failed', error);
 					}
@@ -316,7 +318,7 @@ const useVideoCall = defineStore('videoCall', {
 				}
 
 				this.togglePublishTracks(false);
-				this.undecryptable_participants = [];
+				this.decryption_states = {};
 
 				if (this.matrix_key_provider) {
 					this.matrix_key_provider.removeAllListeners();
@@ -345,7 +347,7 @@ const useVideoCall = defineStore('videoCall', {
 				// if necessary: send end message
 				if (this.rtc_session) {
 					try {
-						await this.rtc_session.leaveRoomSession(10);
+						await this.rtc_session.leaveRoomSession(LeaveRoomSessionTimeout);
 						if (isLastMember && this.eventId) {
 							if (currentRoom.isDirectMessageRoom()) {
 								// DirectMessageRooms cannot have threads: edit original videcallmessage and add end message
@@ -608,9 +610,11 @@ const useVideoCall = defineStore('videoCall', {
 			}
 		},
 
-		setParticipantDecryptable(identity: string, decryptable: boolean) {
-			const others = this.undecryptable_participants.filter((id) => id !== identity);
-			this.undecryptable_participants = decryptable ? others : [...others, identity];
+		setParticipantDecryptionState(identity: string, state: TDecryptionState | null) {
+			const next = { ...this.decryption_states };
+			if (state) next[identity] = state;
+			else delete next[identity];
+			this.decryption_states = next;
 		},
 
 		toggleFocus(participant: Participant | null, isScreenShare: boolean) {
