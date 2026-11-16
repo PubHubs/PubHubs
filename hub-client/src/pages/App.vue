@@ -167,6 +167,8 @@
 
 		await startMessageBox();
 
+		hubSettings.fetchHubInfo();
+
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {

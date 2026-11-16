@@ -95,6 +95,22 @@
 				</template>
 			</MediaUploadField>
 
+			<!-- Video calls -->
+			<ValidateField
+				v-model="videocallAdminEnabled"
+				:validation="{ required: false }"
+				name="videocall"
+				:help="videocallToggleDisabled ? videocallDisabledReason : $t('hub_settings.videocall_description')"
+			>
+				<Label>{{ $t('hub_settings.videocall_heading') }}</Label>
+				<Toggle
+					v-model="videocallToggleDisplayed"
+					:disabled="videocallToggleDisabled"
+				>
+					{{ videocallToggleDisplayed ? $t('hub_settings.videocall_toggle_on') : $t('hub_settings.videocall_toggle_off') }}
+				</Toggle>
+			</ValidateField>
+
 			<!-- Consent -->
 			<ValidateField
 				v-model="hubConsent"
@@ -142,6 +158,7 @@
 	import MarkdownEditor from '@hub-client/components/forms/elements/MarkdownEditor.vue';
 	import MediaUploadField from '@hub-client/components/forms/elements/MediaUploadField.vue';
 	import TextField from '@hub-client/components/forms/elements/TextField.vue';
+	import Toggle from '@hub-client/components/forms/elements/Toggle.vue';
 	import ValidateField from '@hub-client/components/forms/elements/ValidateField.vue';
 	import ValidatedForm from '@hub-client/components/forms/elements/ValidatedForm.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
@@ -154,7 +171,7 @@
 
 	// Stores
 	import { MAX_HUB_ICON_SIZE, useHubSettings } from '@hub-client/stores/hub-settings';
-	import { useSettings } from '@hub-client/stores/settings';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 	const hubSettings = useHubSettings();
 	const settings = useSettings();
@@ -186,6 +203,25 @@
 	const hubConsent = ref<string>(hubSettings.hubConsent);
 	const originalConsent = ref<string>(hubSettings.hubConsent);
 
+	const videocallAdminEnabled = ref<boolean>(hubSettings.videocallAdminEnabled);
+	const originalVideocallAdminEnabled = ref<boolean>(hubSettings.videocallAdminEnabled);
+
+	// The toggle is interactive only when the feature flag is on AND the hub has LiveKit configured.
+	const videocallFeatureEnabled = computed(() => settings.isFeatureEnabled(FeatureFlag.videocalls));
+	const videocallToggleDisabled = computed(() => !videocallFeatureEnabled.value || !hubSettings.videocallEnabled);
+	const videocallDisabledReason = computed(() =>
+		videocallFeatureEnabled.value ? t('hub_settings.videocall_disabled_reason') : t('hub_settings.videocall_feature_disabled_reason'),
+	);
+
+	// Shows the toggle as "off" while it is disabled, without touching the saved admin preference,
+	// so that preference applies again once LiveKit is configured.
+	const videocallToggleDisplayed = computed<boolean>({
+		get: () => (videocallToggleDisabled.value ? false : videocallAdminEnabled.value),
+		set: (val) => {
+			videocallAdminEnabled.value = val;
+		},
+	});
+
 	const version = ref<number>(0);
 
 	onBeforeMount(() => {
@@ -212,6 +248,7 @@
 			originalSummary.value = hubSummary.value;
 			originalContact.value = hubContact.value;
 			originalConsent.value = hubConsent.value;
+			originalVideocallAdminEnabled.value = videocallAdminEnabled.value;
 		}
 	}
 
@@ -220,7 +257,8 @@
 			hubDescription.value === originalDescription.value &&
 			hubSummary.value === originalSummary.value &&
 			hubContact.value === originalContact.value &&
-			hubConsent.value === originalConsent.value
+			hubConsent.value === originalConsent.value &&
+			videocallAdminEnabled.value === originalVideocallAdminEnabled.value
 		) {
 			return true;
 		}
@@ -228,7 +266,16 @@
 			version.value += 1;
 		}
 		try {
-			await hubSettings.setHubJSON(new HubSettingsJSONParser(hubDescription.value, hubSummary.value, hubContact.value, hubConsent.value, version.value));
+			await hubSettings.setHubJSON(
+				new HubSettingsJSONParser(
+					hubDescription.value,
+					hubSummary.value,
+					hubContact.value,
+					hubConsent.value,
+					version.value,
+					videocallAdminEnabled.value,
+				),
+			);
 			logger.info('Hub settings updated');
 			return true;
 		} catch (er) {
@@ -248,6 +295,8 @@
 			originalContact.value = hubContact.value;
 			hubConsent.value = hubSettingsJSON.consent;
 			originalConsent.value = hubConsent.value;
+			videocallAdminEnabled.value = hubSettingsJSON.videocall_admin_enabled === true;
+			originalVideocallAdminEnabled.value = videocallAdminEnabled.value;
 			version.value = hubSettingsJSON.version;
 		}
 	}

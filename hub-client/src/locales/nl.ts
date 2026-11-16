@@ -538,6 +538,12 @@ const nl = {
 		consent_heading: 'Hub huisregels',
 		consent_description: 'De huisregels die iedere user in de hub moet accepteren om binnen te komen.',
 		consent: 'Vul hier de huisregels van de hub in',
+		videocall_heading: 'Videogesprekken',
+		videocall_description: 'Sta gebruikers toe videogesprekken te starten en deel te nemen in privé- en beveiligde ruimtes op deze hub.',
+		videocall_toggle_on: 'Videogesprekken ingeschakeld',
+		videocall_toggle_off: 'Videogesprekken uitgeschakeld',
+		videocall_disabled_reason: 'Videogesprekken zijn niet geconfigureerd op deze hub.',
+		videocall_feature_disabled_reason: 'Videogesprekken zijn momenteel niet actief.',
 	},
 	admin: {
 		title: 'Beheerder',

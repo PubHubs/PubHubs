@@ -554,6 +554,12 @@ const en = {
 		consent_heading: 'Hub houserules',
 		consent_description: 'The houserules that every user has to accept to enter the hub.',
 		consent: 'Fill in the rules every user in your hub has to adhere to',
+		videocall_heading: 'Video calls',
+		videocall_description: 'Allow users to start and join video calls in private and secured rooms on this hub.',
+		videocall_toggle_on: 'Video calls enabled',
+		videocall_toggle_off: 'Video calls disabled',
+		videocall_disabled_reason: 'Video calls are not configured on this hub.',
+		videocall_feature_disabled_reason: 'Video calls are currently inactive.',
 	},
 	admin: {
 		title: 'Admin tools',

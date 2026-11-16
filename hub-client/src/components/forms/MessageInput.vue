@@ -54,7 +54,11 @@
 						>{{ $t('message.sign.add_signature') }}</PopoverButton
 					>
 					<PopoverButton
-						v-if="settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.isPrivateRoom() || room.isSecuredRoom())"
+						v-if="
+							hubSettings.videocallAvailable &&
+							settings.isFeatureEnabled(FeatureFlag.videocalls) &&
+							(room.isPrivateRoom() || room.isSecuredRoom())
+						"
 						icon="video"
 						data-testid="videocall"
 						:disabled="room.hasActiveCall()"
@@ -359,6 +363,7 @@
 
 	// Stores
 	import { buttonsCancel, useDialog } from '@hub-client/stores/dialog';
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
@@ -400,6 +405,7 @@
 	const route = useRoute();
 	const router = useRouter();
 	const videoCall = useVideoCall();
+	const hubSettings = useHubSettings();
 	const roles = useRoles();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
