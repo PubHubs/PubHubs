@@ -127,21 +127,22 @@ describe('VideoCallPage.vue - Exit button', () => {
 		expect(room.off.mock.calls).toEqual(room.on.mock.calls);
 	});
 
-	test('marks a participant undecryptable on an encryption error and clears it once their media decrypts', async () => {
-		const { videoCall } = await mountVideoCallPage(true);
-		const room = videoCall.livekit_room as unknown as { on: ReturnType<typeof vi.fn> };
-		const handlerFor = (event: string) =>
-			room.on.mock.calls
-				.filter(([name]) => name === event)
-				.map(([, handler]) => handler)
-				.at(-1);
+    test('marks a participant pending on an encryption error and clears it when they disconnect', async () => {
+        const { videoCall } = await mountVideoCallPage(true);
+        const room = videoCall.livekit_room as unknown as { on: ReturnType<typeof vi.fn> };
+        const handlerFor = (event: string) =>
+                room.on.mock.calls
+                        .filter(([name]) => name === event)
+                        .map(([, handler]) => handler)
+                        .at(-1);
 
-		handlerFor('encryptionError')(new Error('bad key'), { identity: '@b:hub:DEV2', isLocal: false });
-		expect(videoCall.undecryptable_participants).toEqual(['@b:hub:DEV2']);
+        handlerFor('encryptionError')(new Error('bad key'), { identity: '@b:hub:DEV2', isLocal: false });
+        expect(videoCall.decryption_states).toEqual({ '@b:hub:DEV2': 'pending' });
 
-		handlerFor('participantEncryptionStatusChanged')(true, { identity: '@b:hub:DEV2', isLocal: false });
-		expect(videoCall.undecryptable_participants).toEqual([]);
-	});
+        handlerFor('participantDisconnected')({ identity: '@b:hub:DEV2' });
+        expect(videoCall.decryption_states).toEqual({});
+    });
+
 
 	test('devices still opening when the page is left are released once they finish', async () => {
     	let resolveDevices: (devices: MediaDeviceInfo[]) => void = () => {};

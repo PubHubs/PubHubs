@@ -76,7 +76,7 @@
 	import { useVideoCallDevices } from '@hub-client/composables/useVideoCallDevices';
 
 	// Models
-	import { type TPermissionNotice } from '@hub-client/models/videocall/TDeviceAccess';
+	import { type TPermissionNotice } from '@hub-client/models/videocall/TVideoCall';
 
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';

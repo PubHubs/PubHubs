@@ -688,6 +688,10 @@ export default class Room {
 		return this.timelineManager.relatedEventsRevision;
 	}
 
+	public get latestVideoCall() {
+		return this.timelineManager.latestVideoCall;
+	}
+
 	public get editsRevision() {
 		return this.timelineManager.editsRevision;
 	}

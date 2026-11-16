@@ -1042,6 +1042,7 @@ const nl = {
 		appear_as: 'Je verschijnt als',
 		chat: 'Chat',
 		devices: 'Apparaten',
+		decryption_pending: 'Verbinding beveiligen…',
 		disable_camera: 'Camera uitzetten',
 		duration: 'Duur',
 		e2ee_blocked_body:

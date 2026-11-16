@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { CryptorError, CryptorErrorReason, type LocalParticipant, type Participant, type RemoteParticipant } from 'livekit-client';
+	import { type Room as LivekitRoom, type LocalParticipant, type Participant, type RemoteParticipant } from 'livekit-client';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
@@ -139,6 +139,7 @@
 	import { resetVideoCallDevices } from '@hub-client/composables/useVideoCallDevices';
 
 	// Logic
+	import { createDecryptionWatch } from '@hub-client/logic/core/decryptionWatch';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
@@ -202,34 +203,27 @@
 		syncRemoteParticipants();
 
 		removeLivekitListeners?.();
+		const decryptionWatch = createDecryptionWatch(livekitRoom as LivekitRoom);
+
 		const handler = () => {
 			syncRemoteParticipants();
 			videoCall.syncScreenShare();
 		};
 		const onEncryptionError = (error: Error, participant?: Participant) => {
 			logger.warn('Could not decrypt call media', { error, participant: participant?.identity });
-
-			// LiveKit 2.22's E2EE worker hands over a plain Error ("MissingKey: …"), not a CryptorError; accept both forms
-			const isMissingKey =
-				(error instanceof CryptorError && error.reason === CryptorErrorReason.MissingKey) ||
-				error.message.startsWith(CryptorErrorReason[CryptorErrorReason.MissingKey]);
-			if (isMissingKey) return;
-
-			// other errors set the decryption error-overlay on the video
-			if (participant && !participant.isLocal) videoCall.setParticipantDecryptable(participant.identity, false);
-			syncRemoteParticipants();
+			// Right after joining, frames often arrive just before their key; the watch decides whether it persists.
+			if (participant && !participant.isLocal) decryptionWatch.onError(participant.identity);
 		};
-		const onEncryptionStatus = (encrypted: boolean, participant?: Participant) => {
-			if (participant && encrypted) videoCall.setParticipantDecryptable(participant.identity, true);
-			syncRemoteParticipants();
-		};
+		const onParticipantDisconnected = (participant: RemoteParticipant) => decryptionWatch.forget(participant.identity);
+
 		participantEvents.forEach((event) => livekitRoom.on(event, handler));
 		livekitRoom.on('encryptionError', onEncryptionError);
-		livekitRoom.on('participantEncryptionStatusChanged', onEncryptionStatus);
+		livekitRoom.on('participantDisconnected', onParticipantDisconnected);
 		removeLivekitListeners = () => {
 			participantEvents.forEach((event) => livekitRoom.off(event, handler));
 			livekitRoom.off('encryptionError', onEncryptionError);
-			livekitRoom.off('participantEncryptionStatusChanged', onEncryptionStatus);
+			livekitRoom.off('participantDisconnected', onParticipantDisconnected);
+			decryptionWatch.stop();
 		};
 	};
 

@@ -7,7 +7,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { type FieldOption } from '@hub-client/models/validation/TFormOption';
-import { type TDeviceAccess } from '@hub-client/models/videocall/TDeviceAccess';
+import { type TDeviceAccess } from '@hub-client/models/videocall/TVideoCall';
 
 // Stores
 import useVideoCall from '@hub-client/stores/videoCall';

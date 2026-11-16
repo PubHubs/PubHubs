@@ -289,16 +289,18 @@ describe('videoCall store', () => {
 		});
 	});
 
-	describe('setParticipantDecryptable', () => {
-		test('tracks participants whose media cannot be decrypted, once each', () => {
-			const videoCall = useVideoCall();
+ 	describe('setParticipantDecryptionState', () => {
+    	test('sets, changes and clears the decryption state of a participant', () => {
+    	    const videoCall = useVideoCall();
 
-			videoCall.setParticipantDecryptable('@b:hub:DEV2', false);
-			videoCall.setParticipantDecryptable('@b:hub:DEV2', false);
-			expect(videoCall.undecryptable_participants).toEqual(['@b:hub:DEV2']);
+        	videoCall.setParticipantDecryptionState('@b:hub:DEV2', 'pending');
+        	expect(videoCall.decryption_states).toEqual({ '@b:hub:DEV2': 'pending' });
 
-			videoCall.setParticipantDecryptable('@b:hub:DEV2', true);
-			expect(videoCall.undecryptable_participants).toEqual([]);
-		});
-	});
+        	videoCall.setParticipantDecryptionState('@b:hub:DEV2', 'failed');
+    		expect(videoCall.decryption_states).toEqual({ '@b:hub:DEV2': 'failed' });
+
+        	videoCall.setParticipantDecryptionState('@b:hub:DEV2', null);
+        	expect(videoCall.decryption_states).toEqual({});
+    	});
+    });
 });

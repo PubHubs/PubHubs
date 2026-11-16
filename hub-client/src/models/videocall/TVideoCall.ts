@@ -13,4 +13,10 @@ type TDeviceAccess = 'pending' | 'granted' | 'denied' | 'unavailable';
 // browser's display picker being dismissed, or capture not being allowed at all.
 type TPermissionNotice = Exclude<TDeviceAccess, 'granted'> | 'screenshare';
 
-export { type TDeviceAccess, type TPermissionNotice };
+// What a remote participant's tile shows while their media does not decrypt.
+//
+// 'pending' - decryption fails, but the key may still be on its way (shown with a spinner)
+// 'failed'  - frames keep arriving without being decoded; the key is not coming
+type TDecryptionState = 'pending' | 'failed';
+
+export { type TDecryptionState, type TDeviceAccess, type TPermissionNotice };
