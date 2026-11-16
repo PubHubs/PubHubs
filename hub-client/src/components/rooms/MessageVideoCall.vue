@@ -4,7 +4,7 @@
 			{{ t(`videocall.state.${props.event.content.videocallstate}`) }}
 		</div>
 		<VideoCallButton
-			v-if="!isThreadEvent && !callEnded && !inCall"
+			v-if="!isThreadEvent && !callEnded && !inCall && hubSettings.videocallAvailable"
 			:is-start-button="false"
 			@click="JoinVideoCall()"
 		></VideoCallButton>
@@ -25,6 +25,7 @@
 	import { RelationType } from '@hub-client/models/constants';
 	import { type TMessageEvent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
@@ -36,6 +37,7 @@
 	const router = useRouter();
 	const rooms = useRooms();
 	const videoCall = useVideoCall();
+	const hubSettings = useHubSettings();
 	const { t } = useI18n();
 
 	// Hide the join button for the call you are already sitting in, thread root included.

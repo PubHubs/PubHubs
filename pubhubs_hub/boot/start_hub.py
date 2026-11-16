@@ -267,6 +267,9 @@ class Program:
         # Decide whether to start a bundled livekit-server. It won't 
         # run in production.
         explicit_livekit_config = os.environ.get("LIVEKIT_CONFIG_PATH")
+        # Tells the hub module (synapse inherits our environment) whether video calls can work;
+        # see is_videocall_configured in modules/pubhubs/_video_call_web.py.
+        os.environ["PUBHUBS_LIVEKIT_CONFIGURED"] = "true"
         if _using_external_livekit():
             print("External LiveKit configured; not starting the bundled livekit-server.", flush=True)
         elif not explicit_livekit_config and self._args.environment == "production":
@@ -279,6 +282,7 @@ class Program:
                 "your own livekit config with a private key.",
                 flush=True,
             )
+            os.environ["PUBHUBS_LIVEKIT_CONFIGURED"] = "false"
         else:
             # Resolve the config path:
             # 1) LIVEKIT_CONFIG_PATH env var

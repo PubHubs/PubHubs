@@ -40,6 +40,11 @@ def _get_livekit_settings():
     )
 
 
+def is_videocall_configured() -> bool:
+    """True iff boot/start_hub.py found a usable LiveKit: an external one, or the bundled one it started."""
+    return os.getenv("PUBHUBS_LIVEKIT_CONFIGURED") == "true"
+
+
 async def _create_room(room_name):
     livekit_url, livekit_api_key, livekit_api_secret = _get_livekit_settings()
 

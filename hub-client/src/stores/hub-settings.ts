@@ -35,6 +35,8 @@ type HubSettingsState = {
 	_contact: string;
 	_consent: string;
 	_version: number;
+	_videocallEnabled: boolean;
+	_videocallAdminEnabled: boolean;
 };
 
 export const toolbarSettings = {
@@ -87,6 +89,8 @@ const useHubSettings = defineStore('hub-settings', {
 			_contact: '',
 			_consent: '',
 			_version: 1,
+			_videocallEnabled: false,
+			_videocallAdminEnabled: false,
 		};
 	},
 
@@ -192,6 +196,16 @@ const useHubSettings = defineStore('hub-settings', {
 		hubConsentVersion(): number {
 			return this._version;
 		},
+		videocallEnabled(): boolean {
+			return this._videocallEnabled;
+		},
+		videocallAdminEnabled(): boolean {
+			return this._videocallAdminEnabled;
+		},
+		/** LiveKit is configured on this hub and the hub admin has video calls switched on. */
+		videocallAvailable(): boolean {
+			return this._videocallEnabled && this._videocallAdminEnabled;
+		},
 	},
 	actions: {
 		hideBar() {
@@ -241,6 +255,7 @@ const useHubSettings = defineStore('hub-settings', {
 				this._contact = response.contact;
 				this._consent = response.consent;
 				this._version = response.version ?? 1;
+				this._videocallAdminEnabled = response.videocall_admin_enabled === true;
 				return response;
 			} else {
 				return undefined;
@@ -248,6 +263,22 @@ const useHubSettings = defineStore('hub-settings', {
 		},
 		async setHubJSON(hubSettingsData: HubSettingsJSONParser) {
 			await api.apiPOST(api.apiURLS.hubSettings, hubSettingsData);
+			this._videocallAdminEnabled = hubSettingsData.videocall_admin_enabled === true;
+		},
+		async fetchHubInfo() {
+			try {
+				const response = await api.apiGET<{
+					Ok?: {
+						videocall_enabled?: boolean;
+						dynamic?: { settings?: { videocall_admin_enabled?: boolean } };
+					};
+				}>(api.apiURLS.hubPhInfo);
+				this._videocallEnabled = response?.Ok?.videocall_enabled === true;
+				this._videocallAdminEnabled = response?.Ok?.dynamic?.settings?.videocall_admin_enabled === true;
+			} catch {
+				this._videocallEnabled = false;
+				this._videocallAdminEnabled = false;
+			}
 		},
 	},
 });

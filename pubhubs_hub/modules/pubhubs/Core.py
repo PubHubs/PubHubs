@@ -1,3 +1,4 @@
+
 import logging
 import json
 import subprocess
@@ -40,6 +41,7 @@ from ._hhpp import (
     parse_verifying_key,
 )
 from ._base64url import b64url_decode, b64url_encode
+from ._video_call_web import is_videocall_configured
 from ._store import HubStore
 from ._native_app import set_own_hub_id
 
@@ -103,6 +105,7 @@ class Core:
         hub_info = {
                     'hub_version': version_string,
                     'database_engine': database_engine,
+                    'videocall_enabled': is_videocall_configured(),
                     'dynamic': { 'last_reload': 0 }
         }
 

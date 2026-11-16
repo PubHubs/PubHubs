@@ -14,12 +14,14 @@ export class HubSettingsJSONParser {
 	contact: string;
 	consent: string;
 	version: number;
+	videocall_admin_enabled: boolean;
 
-	constructor(description: string, summary: string, contact: string, consent: string, version: number) {
+	constructor(description: string, summary: string, contact: string, consent: string, version: number, videocall_admin_enabled: boolean = false) {
 		this.description = description ? description.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.summary = summary ? summary.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.contact = contact ? contact.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.consent = consent ? consent.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.version = version ? Number(version) : 1;
+		this.videocall_admin_enabled = videocall_admin_enabled === true;
 	}
 }
