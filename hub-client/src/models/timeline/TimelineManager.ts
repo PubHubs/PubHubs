@@ -197,6 +197,15 @@ class TimelineManager {
 	}
 
 	/**
+	 * Whether a /messages response reached the start (backward) or end (forward) of the room.
+	 * Only a missing token or an empty chunk counts. A chunk shorter than the limit is not enough:
+	 * the server applies the limit first and then drops events this user may not see.
+	 */
+	private isRoomBoundary(response: { end?: string; chunk: unknown[] }): boolean {
+		return !response.end || response.chunk.length === 0;
+	}
+
+	/**
 	 * Initalizes the file library timeline: fetch all files
 	 * @returns
 	 */
@@ -217,8 +226,8 @@ class TimelineManager {
 			const pageEvents = messageResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
 			newEvents.push(...pageEvents);
 			fileCount += pageEvents.filter((event) => [MsgType.File, MsgType.Image].includes(event.getContent().msgtype as MsgType)).length;
-			if (!messageResponse.end || messageResponse.chunk.length === 0) break;
-			fromToken = messageResponse.end;
+			if (this.isRoomBoundary(messageResponse)) break;
+			fromToken = messageResponse.end ?? null;
 		}
 		const newTimelineEvents = newEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
@@ -619,7 +628,7 @@ class TimelineManager {
 			collected = [...visibleEvents, ...collected];
 
 			currentToken = messagesResponse.end ?? null;
-			if (!messagesResponse.end || messagesResponse.chunk.length < SystemDefaults.initialRoomTimelineLimit) {
+			if (this.isRoomBoundary(messagesResponse)) {
 				reachedEnd = true;
 				this.paginationState.firstMessageId = collected[0]?.getId();
 			}
@@ -690,7 +699,7 @@ class TimelineManager {
 		// if the lastMessageId is undefined
 		// or this events contains the lastMessageId
 		// or one of the events is of the own user,
-		// than we can add the new events
+		// then we can add the new events
 		if (
 			this.paginationState.lastMessageId === undefined ||
 			this.timelineEvents.some((x) => x.matrixEvent.getId() === this.paginationState.lastMessageId) ||
@@ -819,7 +828,7 @@ class TimelineManager {
 	 * @param direction - Direction to paginate
 	 * @param limit - Number of visible events to fetch
 	 * @param timeline - The timeline to paginate from
-	 * @returns Array of visible MatrixEvents
+	 * @returns Array of visible MatrixEvents and also updates firstMessageId/lastMessageId to fit the new timeline
 	 */
 	private async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {
 		let iterations = 0;
@@ -835,21 +844,6 @@ class TimelineManager {
 			const eventMapper = this.client.getEventMapper();
 			const newEvents = messagesResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
 
-			// Check if we've reached the end of the timeline
-			if (messagesResponse.chunk.length < limit) {
-				reachedEnd = true;
-				const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
-				const lastMessageId =
-					newEvents.length > 0
-						? newEvents[newEvents.length - 1]?.event?.event_id
-						: this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
-				if (direction === Direction.Backward) {
-					this.paginationState.firstMessageId = firstMessageId;
-				} else {
-					this.paginationState.lastMessageId = lastMessageId;
-				}
-			}
-
 			// Filter to visible events and add to collection
 			const visibleEvents = this.prepareEvents(newEvents);
 			if (direction === Direction.Backward) {
@@ -861,9 +855,20 @@ class TimelineManager {
 			// Update token for next iteration
 			currentToken = messagesResponse.end ?? null;
 
-			// If no token returned, we've reached the end
-			if (!messagesResponse.end) {
+			if (this.isRoomBoundary(messagesResponse)) {
 				reachedEnd = true;
+			}
+		}
+
+		// first/lastMessageId need to be visible timelineEvents
+		if (reachedEnd) {
+			// Nothing visible found beyond the anchor: then the outermost visible message is the anchor itself
+			const visibleEvents = allVisibleEvents.length > 0 ? allVisibleEvents : timeline.getEvents().filter((e) => this.isVisibleEvent(e.event));
+
+			if (direction === Direction.Backward) {
+				this.paginationState.firstMessageId = visibleEvents[0]?.getId();
+			} else {
+				this.paginationState.lastMessageId = visibleEvents.at(-1)?.getId();
 			}
 		}
 

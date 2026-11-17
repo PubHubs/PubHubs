@@ -1052,6 +1052,8 @@ const nl = {
 		fullscreen: 'Volledig scherm',
 		fullscreen_tooltip: 'Volledig scherm in-/uitschakelen (Shift+F)',
 		hide_self_view: 'Verberg je eigen beeld',
+		insufficient_powerlevel_body: 'Deze kamer is niet ingesteld op videogesprekken. Gebruik een andere kamer.',
+		insufficient_powerlevel_title: 'Videogesprekken zijn in deze kamer niet ingesteld',
 		join: 'Deelnemen',
 		join_button: 'Neem deel aan videogesprek',
 		join_tooltip: 'Neem deel aan videogesprek',

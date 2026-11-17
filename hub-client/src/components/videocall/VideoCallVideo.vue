@@ -40,7 +40,7 @@
 		<div>
 			<video
 				ref="videoEl"
-				:class="['aspect-video', 'self-center', 'w-full', 'h-full', participant.isCameraEnabled ? '' : 'hidden']"
+				:class="['aspect-video', 'self-center', 'w-full', 'h-full', isCameraEnabled ? '' : 'hidden']"
 				playsInline
 				preload="auto"
 				tabIndex="{-1}"
@@ -53,7 +53,7 @@
 				autoplay
 			/>
 			<div
-				v-if="!participant.isCameraEnabled"
+				v-if="!isCameraEnabled"
 				class="bg-surface-base flex aspect-video h-full w-full items-center justify-center"
 				:class="placeholderColor"
 			>
@@ -76,7 +76,7 @@
 			</div>
 
 			<div
-				v-if="!participant.isMicrophoneEnabled || isLocallyMuted"
+				v-if="!isMicrophoneEnabled || isLocallyMuted"
 				class="bg-opacity-50 p-050 absolute bottom-200 left-200 rounded-full bg-black"
 			>
 				<Icon
@@ -90,8 +90,8 @@
 </template>
 
 <script setup lang="ts">
-	import { type Participant, Track } from 'livekit-client';
-	import { computed, nextTick, onMounted, ref, watch } from 'vue';
+	import { type Participant, ParticipantEvent, type RemoteTrack, Track } from 'livekit-client';
+	import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
@@ -100,6 +100,8 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	import { useUserColor } from '@hub-client/composables/useUserColor';
+
+	import { ParticipantTrackStateEvents } from '@hub-client/models/videocall/TVideoCall';
 
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
@@ -125,11 +127,23 @@
 	const placeholderColor = computed(() => textColor(color(participantUserId.value)));
 	const decryptionState = computed(() => videoCall.decryption_states[props.username]);
 	const isLocallyMuted = ref(videoCall.isLocallyMuted(props.username));
-	const isSpeaking = ref(props.participant.isSpeaking);
 
-	props.participant.on('isSpeakingChanged', () => {
+	// LiveKit changes these itself, outside Vue: without local refs the template would keep the value of the first render
+	// (e.g. the caller sees the joiner's camera as off, because the joiner only publishes it after connecting).
+	const isSpeaking = ref(props.participant.isSpeaking);
+	const isCameraEnabled = ref(props.participant.isCameraEnabled);
+	const isMicrophoneEnabled = ref(props.participant.isMicrophoneEnabled);
+
+	const updateSpeaking = () => {
 		isSpeaking.value = props.participant.isSpeaking;
-	});
+	};
+	const updateTrackState = () => {
+		isCameraEnabled.value = props.participant.isCameraEnabled;
+		isMicrophoneEnabled.value = props.participant.isMicrophoneEnabled;
+	};
+
+	props.participant.on(ParticipantEvent.IsSpeakingChanged, updateSpeaking);
+	ParticipantTrackStateEvents.forEach((event) => props.participant.on(event, updateTrackState));
 
 	watch(
 		[props.participant, videoEl, audioEl],
@@ -187,7 +201,7 @@
 
 	// Handle tracks that arrive AFTER the component has rendered (e.g., for the caller
 	// viewing the joiner — the track isn't subscribed yet when the watcher first fires).
-	props.participant.on('trackSubscribed', (track) => {
+	const onTrackSubscribed = (track: RemoteTrack) => {
 		if (track.source === Track.Source.Camera && videoEl.value) {
 			track.attach(videoEl.value);
 		} else if (track.source === Track.Source.Microphone && audioEl.value && !props.isSelfView) {
@@ -196,7 +210,8 @@
 				track.attach(audioEl.value);
 			}
 		}
-	});
+	};
+	props.participant.on(ParticipantEvent.TrackSubscribed, onTrackSubscribed);
 
 	// Handle already-subscribed tracks (e.g., when rejoining a call — the other
 	// participant's tracks are already subscribed before this component mounts).
@@ -214,6 +229,12 @@
 				}
 			}
 		});
+	});
+
+	onUnmounted(() => {
+		props.participant.off(ParticipantEvent.IsSpeakingChanged, updateSpeaking);
+		props.participant.off(ParticipantEvent.TrackSubscribed, onTrackSubscribed);
+		ParticipantTrackStateEvents.forEach((event) => props.participant.off(event, updateTrackState));
 	});
 
 	// TODO: This should not be a local method since it is being used in other places.

@@ -49,13 +49,15 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+
+	import { ParticipantTrackStateEvents } from '@hub-client/models/videocall/TVideoCall';
 
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';
@@ -71,9 +73,13 @@
 	const { t } = useI18n();
 	const videoCall = useVideoCall();
 	const user = useUser();
-	const remoteParticipant = ref(videoCall.getRemoteParticipant(props.remoteParticipantName));
-	const isMicrophoneEnabled = ref(remoteParticipant.value?.isMicrophoneEnabled);
-	const isCameraEnabled = ref(remoteParticipant.value?.isCameraEnabled);
+
+	// Not in a ref: Vue does not see LiveKit's own changes anyway, and the card never switches participant
+	const remoteParticipant = videoCall.getRemoteParticipant(props.remoteParticipantName);
+	// Vue cannot see Livekit's own changes, so keep reactive copies that are updated from Livekit's events
+	const isMicrophoneEnabled = ref(remoteParticipant?.isMicrophoneEnabled ?? false);
+	const isCameraEnabled = ref(remoteParticipant?.isCameraEnabled ?? false);
+
 	const isLocallyMuted = ref(videoCall.isLocallyMuted(props.remoteParticipantName));
 	const expandDrowpDown = ref(false);
 	const dropDown = ref<HTMLElement | null>(null);
@@ -87,23 +93,21 @@
 	);
 	const cameraOn = computed(() => (props.isSelf ? !!videoCall.video_track && !videoCall.mute_video_track : isCameraEnabled.value));
 
-	watch(
-		[remoteParticipant],
-		([remote]) => {
-			if (!remote) return;
-			isCameraEnabled.value = remote.isCameraEnabled;
-			isMicrophoneEnabled.value = remote.isMicrophoneEnabled;
-			isLocallyMuted.value = videoCall.isLocallyMuted(props.remoteParticipantName);
-		},
-		{ deep: true },
-	);
+	const updateTrackState = () => {
+		if (!remoteParticipant) return;
+		isCameraEnabled.value = remoteParticipant.isCameraEnabled;
+		isMicrophoneEnabled.value = remoteParticipant.isMicrophoneEnabled;
+	};
 
 	onMounted(() => {
 		document.addEventListener('click', handleClickOutside);
+		ParticipantTrackStateEvents.forEach((event) => remoteParticipant?.on(event, updateTrackState));
+		updateTrackState();
 	});
 
 	onUnmounted(() => {
 		document.removeEventListener('click', handleClickOutside);
+		ParticipantTrackStateEvents.forEach((event) => remoteParticipant?.off(event, updateTrackState));
 	});
 
 	function toggleMute() {
