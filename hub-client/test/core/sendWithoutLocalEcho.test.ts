@@ -230,3 +230,36 @@ describe('APIService.forceRoomJoin', () => {
 		expect(api_matrix.accessToken).toEqual('own-token');
 	});
 });
+
+describe('APIService.forceRoomLeave and revokeAccessToken', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		api_matrix.setAccessToken('');
+	});
+
+	// The sync runs on our own token; an impersonation token left on a shared client stops it.
+	test('leave goes out with the other token and restores our own', async () => {
+		api_matrix.setAccessToken('own-token');
+		const sentWith: string[] = [];
+		const apiPOST = vi.spyOn(api_matrix, 'apiPOST').mockImplementation(async () => {
+			sentWith.push(api_matrix.accessToken);
+			return {};
+		});
+
+		await APIService.forceRoomLeave(ROOM_ID, 'other-admin-token');
+
+		expect(apiPOST).toHaveBeenCalledWith(`${api_matrix.apiURLS.rooms}${encodeURIComponent(ROOM_ID)}/leave`, {});
+		expect(sentWith).toEqual(['other-admin-token']);
+		expect(api_matrix.accessToken).toEqual('own-token');
+	});
+
+	test('restores our own access token when revoking fails', async () => {
+		api_matrix.setAccessToken('own-token');
+		const apiPOST = vi.spyOn(api_matrix, 'apiPOST').mockRejectedValue(new Error('boom'));
+
+		await expect(APIService.revokeAccessToken('other-admin-token')).rejects.toThrow('boom');
+
+		expect(apiPOST).toHaveBeenCalledWith(api_matrix.apiURLS.logout, {});
+		expect(api_matrix.accessToken).toEqual('own-token');
+	});
+});

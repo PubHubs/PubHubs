@@ -65,6 +65,7 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 const api_matrix = new Api(BASE_URL + '/_matrix', {
 	rooms: 'client/v3/rooms/',
 	join: 'client/v3/join/',
+	logout: 'client/v3/logout',
 	whoami: 'client/v3/account/whoami',
 	keysQuery: 'client/v3/keys/query',
 });
