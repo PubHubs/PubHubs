@@ -1,3 +1,5 @@
+import { ParticipantEvent } from 'livekit-client';
+
 // Whether the browser has handed us the microphone and camera yet.
 //
 // 'pending'     - waiting for the user to answer the browser's permission prompt
@@ -19,4 +21,18 @@ type TPermissionNotice = Exclude<TDeviceAccess, 'granted'> | 'screenshare';
 // 'failed'  - frames keep arriving without being decoded; the key is not coming
 type TDecryptionState = 'pending' | 'failed';
 
-export { type TDecryptionState, type TDeviceAccess, type TPermissionNotice };
+// LiveKit events after which a participant's isCameraEnabled / isMicrophoneEnabled may have changed.
+// LiveKit updates these outside Vue, so components keep local refs and refresh them on these events.
+// The LocalTrack* events are only emitted by the local participant (self-view).
+const ParticipantTrackStateEvents = [
+	ParticipantEvent.TrackPublished,
+	ParticipantEvent.TrackUnpublished,
+	ParticipantEvent.TrackSubscribed,
+	ParticipantEvent.TrackUnsubscribed,
+	ParticipantEvent.TrackMuted,
+	ParticipantEvent.TrackUnmuted,
+	ParticipantEvent.LocalTrackPublished,
+	ParticipantEvent.LocalTrackUnpublished,
+] as const;
+
+export { type TDecryptionState, type TDeviceAccess, type TPermissionNotice, ParticipantTrackStateEvents };

@@ -18,6 +18,14 @@
 					<span class="text-label font-semibold">{{ t('videocall.e2ee_blocked_title') }}</span>
 					<span class="text-label-small text-on-surface-dim">{{ t('videocall.e2ee_blocked_body') }}</span>
 				</div>
+				<div
+					v-if="!videoCall.e2eeBlocked && videoCall.insufficientPowerlevel"
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.insufficient_powerlevel_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{ t('videocall.insufficient_powerlevel_body') }}</span>
+				</div>
 
 				<VideoCallPreview />
 
@@ -47,7 +55,7 @@
 					>
 					<Button
 						variant="primary"
-						:disabled="!devicesLoaded || videoCall.e2eeBlocked"
+						:disabled="!devicesLoaded || videoCall.e2eeBlocked || videoCall.insufficientPowerlevel"
 						@click="emit('join')"
 						>{{ t('videocall.join') }}</Button
 					>

@@ -55,7 +55,7 @@ function fakeRtcSession(memberships: Array<{ userId: string; deviceId: string }>
 	};
 }
 
-function enterCallRoom({ e2eeAvailable = true, memberships = [] as Array<{ userId: string; deviceId: string }>, isDirectMessageRoom = false } = {}) {
+function enterCallRoom({ e2eeAvailable = true, memberships = [] as Array<{ userId: string; deviceId: string }>, isDirectMessageRoom = false, powerLevels = {events: {'org.matrix.msc3401.call.member': 0 } } as object | null, } = {}) {
 	const rtcSession = fakeRtcSession(memberships);
 	(useRooms() as unknown as { currentRoom: unknown }).currentRoom = {
 		roomId: '!room:hub',
@@ -63,6 +63,7 @@ function enterCallRoom({ e2eeAvailable = true, memberships = [] as Array<{ userI
 			client: { getUserId: () => '@a:hub', getDeviceId: () => 'DEV1' },
 			getJoinedMembers: () => [{ userId: '@a:hub' }, { userId: '@b:hub' }],
 		},
+		getPowerLevelsContent: () => powerLevels ?? undefined,
 		getLiveKitTokenResponse: vi.fn().mockResolvedValue(['livekit-token', 'wss://livekit.hub']),
 		getMatrixRTCSession: () => rtcSession,
 		getLastVideoCallTimeLineEvent: () => undefined,
@@ -303,4 +304,29 @@ describe('videoCall store', () => {
         	expect(videoCall.decryption_states).toEqual({});
     	});
     });
+
+
+	describe('call.member power level', () => {
+        test('refuses to join in an old room without a call.member power level', async () => {
+            // No events entry: state_default (50) applies, the user has 0
+            const { rtcSession } = enterCallRoom({ powerLevels: { state_default: 50 } });
+            const videoCall = useVideoCall();
+
+            expect(videoCall.insufficientPowerlevel).toBe(true);
+            await expect(videoCall.connectToCall()).resolves.toBe(false);
+            expect(rtcSession.joinRTCSession).not.toHaveBeenCalled();
+            expect(livekit.rooms).toHaveLength(0);
+        });
+
+        
+        test('does not block when the power levels are not known yet', async () => {
+            enterCallRoom({ powerLevels: null });
+
+            expect(useVideoCall().insufficientPowerlevel).toBe(false);
+        });
+	});
+
+
+
+
 });

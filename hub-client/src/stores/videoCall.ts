@@ -28,6 +28,7 @@ import { MatrixKeyProvider } from '@hub-client/logic/core/matrixKeyProvider';
 import { router } from '@hub-client/logic/core/router';
 import { trackCallMembers } from '@hub-client/logic/core/trackCallMembers';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { type PowerLevelsContent, powerLevelOf, stateEventPowerLevel } from '@hub-client/logic/utils/powerLevelUtils';
 
 import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 import { type TDecryptionState } from '@hub-client/models/videocall/TVideoCall';
@@ -108,6 +109,16 @@ const useVideoCall = defineStore('videoCall', {
 		e2eeBlocked(): boolean {
 			return !isE2EESupported() || !usePubhubsStore().e2eeAvailable;
 		},
+
+		/** Old rooms may lack a call.member powerlevel, a normal user then gets a 403 error and stays invisible in the call */
+		insufficientPowerlevel(): boolean {
+			const currentRoom = useRooms().currentRoom;
+			const content = currentRoom?.getPowerLevelsContent() as PowerLevelsContent | undefined;
+			// Unknown power levels: don't block, joining would fail the same way as before
+			if (!currentRoom || !content) return false;
+			const userId = currentRoom.matrixRoom.client.getUserId();
+			return powerLevelOf(content, userId) < stateEventPowerLevel(content, 'org.matrix.msc3401.call.member');
+		},
 	},
 
 	actions: {
@@ -182,6 +193,10 @@ const useVideoCall = defineStore('videoCall', {
 			if (this._connecting) return false;
 			if (this.e2eeBlocked) {
 				logger.warn('Not joining: this session cannot do end-to-end encrypted calls');
+				return false;
+			}
+			if (this.insufficientPowerlevel) {
+				logger.warn('Not joining: insufficient powerlevel for call.member');
 				return false;
 			}
 			this._connecting = true;

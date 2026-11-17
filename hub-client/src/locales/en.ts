@@ -1067,6 +1067,8 @@ const en = {
 		fullscreen: 'Fullscreen',
 		fullscreen_tooltip: 'Toggle fullscreen (Shift+F)',
 		hide_self_view: 'Hide your own video',
+		insufficient_powerlevel_body: 'This room was not set up for videocalls. Please use another room.',
+		insufficient_powerlevel_title: 'Videocalls are not enabled in this room',
 		join: 'Join',
 		join_button: 'Join videocall',
 		join_tooltip: 'Join videocall',
