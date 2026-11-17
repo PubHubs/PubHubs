@@ -80,6 +80,10 @@ ignore = [
     # (see `servers::run`), so actix-web never negotiates HTTP/2 (which needs TLS ALPN or
     # `bind_auto_h2c`), and awc only speaks to the Yivi server and our own S3 endpoint.
     { id = "RUSTSEC-2026-0258", reason = "h2 0.3 is unfixable; the HTTP/2 code path is unreachable, see comment above." },
+    # chrono and humantime were declared unmaintained together (chronotope/chrono#1768).
+    # Remove these once our code no longer uses humantime and object_store has moved off both.
+    { id = "RUSTSEC-2026-0542", reason = "humantime is unmaintained; still used directly and via object_store until we migrate." },
+    { id = "RUSTSEC-2026-0543", reason = "chrono is unmaintained; pulled in via object_store, no alternative yet." },
     #"RUSTSEC-0000-0000",
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
