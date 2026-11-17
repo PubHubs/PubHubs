@@ -126,7 +126,7 @@
 					data-testid="delete-account"
 					@click="goToDeleteAccount"
 				>
-					{{ $t('settings.go_to_delete_account_page') }}
+					{{ $t('settings.delete_account') }}
 				</Button>
 			</div>
 		</div>

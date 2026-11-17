@@ -108,25 +108,32 @@
 		await APIService.makeRoomAdmin(roomId, user.userId ?? '');
 	}
 
-	async function attemptToJoinPrevAdmin(adminId: string): Promise<void> {
-		const accessToken = await APIService.adminUserLogin(adminId);
-		await APIService.forceRoomJoin(props.roomId, accessToken.access_token);
-	}
-
-	async function leavePrevAdmin(roomId: string, prevAdminId: string): Promise<void> {
-		const accessToken = await APIService.adminUserLogin(prevAdminId);
-		// Temporarily set the token
-		pubhubs.client.setAccessToken(accessToken.access_token);
-		await pubhubs.client.leave(roomId);
+	/**
+	 * Lets the room creator hand admin over to us: join as them, make us admin, and leave as them again.
+	 *
+	 */
+	async function handOverFromPrevAdmin(prevAdminId: string): Promise<void> {
+		const { access_token: prevAdminToken } = await APIService.adminUserLogin(prevAdminId);
+		try {
+			await APIService.forceRoomJoin(props.roomId, prevAdminToken);
+			await joinAndMakeAdmin(props.roomId);
+			await APIService.forceRoomLeave(props.roomId, prevAdminToken);
+		} finally {
+			await APIService.revokeAccessToken(prevAdminToken).catch(() => undefined);
+		}
 	}
 
 	// Event handlers
 	async function handleActionClick(): Promise<void> {
 		if (!roomCreator.value) return;
 		inProgress.value = true;
-		await attemptToJoinPrevAdmin(roomCreator.value);
-		await joinAndMakeAdmin(props.roomId);
-		await leavePrevAdmin(props.roomId, roomCreator.value);
+		try {
+			await handOverFromPrevAdmin(roomCreator.value);
+		} catch {
+			inProgress.value = false;
+			dialog.confirm(t('errors.error'));
+			return;
+		}
 		await completeFlow();
 	}
 

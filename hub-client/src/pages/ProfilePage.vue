@@ -100,14 +100,14 @@
 				</div>
 			</form>
 
-			<div class="border-on-surface-disabled/25 border-t-2 pt-400">
+			<div class="border-on-surface-disabled/25 w-fit border-t-2 pt-400">
 				<Button
 					data-testid="deactivate-account"
 					icon="user-circle-minus"
 					variant="secondary"
 					@click="router.push({ name: 'delete-hub-account' })"
 				>
-					{{ $t('settings.go_to_deactivate_account_page') }}
+					{{ $t('settings.deactivate_account') }}
 				</Button>
 			</div>
 		</div>

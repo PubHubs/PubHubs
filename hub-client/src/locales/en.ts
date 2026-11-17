@@ -505,7 +505,6 @@ const en = {
 		language_changed: 'Language changed to `{0}`.',
 		title: 'Settings',
 		notifications: 'Notifications',
-		go_to_delete_account_page: 'Go to the page to delete your PubHubs account',
 		deactivate_account: 'Deactivate hub account',
 		deactivate_account_confirm_title: 'Deactivate your account at this hub?',
 		deactivate_account_confirm_content:
@@ -513,7 +512,6 @@ const en = {
 		deactivate_account_error: 'Failed to deactivate your account at this hub. Please try again.',
 		deactivate_account_needs_global_client:
 			'Your account at this hub can only be deactivated from within PubHubs. Open this hub through PubHubs and try again.',
-		go_to_deactivate_account_page: 'Go to the page to deactivate your account at this hub',
 		deactivate_account_done: 'Your account at this hub has been deactivated.',
 		deactivate_account_page_intro:
 			'Here you can permanently deactivate your account at this hub. Your PubHubs account and your accounts at other hubs stay as they are.',

@@ -489,7 +489,6 @@ const nl = {
 		language_changed: 'Taal gewijzigd in `{0}`.',
 		title: 'Instellingen',
 		notifications: 'Meldingen',
-		go_to_delete_account_page: 'Ga naar de pagina om je PubHubs-account te verwijderen',
 		deactivate_account: 'Hub-account deactiveren',
 		deactivate_account_confirm_title: 'Je account bij deze hub deactiveren?',
 		deactivate_account_confirm_content:
@@ -497,7 +496,6 @@ const nl = {
 		deactivate_account_error: 'Je account bij deze hub deactiveren is mislukt. Probeer het opnieuw.',
 		deactivate_account_needs_global_client:
 			'Je account bij deze hub kan alleen vanuit PubHubs gedeactiveerd worden. Open deze hub via PubHubs en probeer het opnieuw.',
-		go_to_deactivate_account_page: 'Ga naar de pagina om je account bij deze hub te deactiveren',
 		deactivate_account_done: 'Je account bij deze hub is gedeactiveerd.',
 		deactivate_account_page_intro:
 			'Hier kun je je account bij deze hub permanent deactiveren. Je PubHubs-account en je accounts bij andere hubs blijven zoals ze zijn.',
