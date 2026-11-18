@@ -35,9 +35,9 @@ export default {
 			reason: "No fixed version exists: 6.6.1 is the latest elliptic release, and the only upgrade npm can suggest is a major downgrade of vite-plugin-node-polyfills. We do not use elliptic ourselves; it arrives through that plugin's crypto-browserify shim, and the advisory is about the strictness of its ECDSA verification.",
 		},
 		{
-			id: 'GHSA-gcqx-w48m-w2h4',
-			reason: 'No fixed version exists: 4.3.1 is the latest deepmerge release. yivi-client and yivi-web only use it to merge their own defaults with the options object our code passes in, and @rollup/plugin-node-resolve (through vite-plugin-pwa) only at build time, so no server data or user input reaches mergeObject().',
-			expires: '2027-01-31',
+			id: 'GHSA-fc5q-39xc-vjpf',
+			reason: "No fixed version exists: 4.0.7 is the latest picomatch release. It reaches us only through build and dev tooling (vite, vitest, vite-plugin-pwa/tinyglobby, @rollup/pluginutils, vue-tsc, lint-staged, and vue-router's build-time unplugin). Every glob it compiles comes from our own build, test and lint config, never from user input, so the ReDoS is not reachable by an attacker.",
+			expires: '2027-02-01',
 		},
 		{
 			id: 'GHSA-g3hv-75wg-m249',
