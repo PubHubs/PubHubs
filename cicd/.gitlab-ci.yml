@@ -18,9 +18,16 @@ variables:
     # `fastest` trades a somewhat bigger archive for a lot less CPU.
     FF_USE_FASTZIP: 'true'
     CACHE_COMPRESSION_LEVEL: fastest
+    # Tags that trigger a release pipeline: vX.Y.Z and vX.Y.Z-rcN.
+    RELEASE_TAG_REGEX: '/^v\d+\.\d+\.\d+(-rc\d+)?$/' # e.g. v3.2.0, v3.2.0-rc1
+    # Final releases only (no -rcN).
+    STABLE_TAG_REGEX: '/^v\d+\.\d+\.\d+$/' # e.g. v3.2.0
+    # Usage in a job:
+    #   rules:
+    #       - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
 
 before_script:
-    - if [ -n "${CI_COMMIT_TAG}" ]; then ENVIRONMENT=stable; fi
+    - case "${CI_COMMIT_TAG}" in v[0-9]*.[0-9]*.[0-9]*) ENVIRONMENT=stable ;; esac
     - if [ -z "${ENVIRONMENT}" ]; then ENVIRONMENT="${CI_COMMIT_REF_NAME}"; fi
     - echo "Environment=${ENVIRONMENT}"
 
@@ -100,7 +107,7 @@ changelog-release-check:
         - docker
     image: alpine:3
     rules:
-        - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\d+)?$/
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     script:
         - VERSION="${CI_COMMIT_TAG%%-*}"
         - awk -v v="- ${VERSION}" '/^## / { on = substr($0, length($0) - length(v) + 1) == v; next } on' CHANGELOG.md > notes.md
@@ -212,6 +219,8 @@ rust-doc:
         - chmod 600 $UPDATE_RUST_DOC_MAIN_KEY
         - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_RUST_DOC_MAIN_KEY
 
+# The stable images and deploys run only for release tags (vX.Y.Z or vX.Y.Z-rcN).
+# Any other tag would build that commit as :stable and overwrite production.
 build-pubhubs:
     stage: publish-images
     rules:
@@ -219,7 +228,7 @@ build-pubhubs:
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:${CI_COMMIT_REF_NAME}
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs-buildcache:main
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:stable
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs-buildcache:stable
@@ -260,7 +269,7 @@ deploy-main-phmss:
 deploy-stable-phmss:
     stage: deploy-own
     rules:
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     needs:
         - build-pubhubs
     tags: [docker]
@@ -307,7 +316,7 @@ build-hub:
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub-buildcache:main
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:stable
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub-buildcache:stable
@@ -348,7 +357,7 @@ deploy-main-hub:
 deploy-stable-hubs:
     stage: deploy-own
     rules:
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     needs:
         - build-hub
     tags: [docker]
@@ -381,7 +390,7 @@ deploy-stable-hubs:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
 
 client-format-check:
     extends: .node-setup
@@ -457,7 +466,7 @@ build-hubclient:
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:${CI_COMMIT_REF_NAME}
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client-buildcache:main
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:stable
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client-buildcache:stable
@@ -503,7 +512,7 @@ deploy-main-hubclient:
 deploy-stable-hubclients:
     stage: deploy-own
     rules:
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     needs: *deployhubclientneeds
     tags: [docker]
     image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
@@ -534,7 +543,7 @@ deploy-main-globalclient:
 deploy-stable-globalclient:
     stage: deploy-own
     rules:
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     needs:
         - job: globalclient-build
           optional: true
@@ -594,7 +603,7 @@ android-build-check:
 build-android:
     stage: build-app
     rules:
-        - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+        - if: $CI_COMMIT_TAG =~ $STABLE_TAG_REGEX
     tags:
         - docker
     image: $ANDROID_IMAGE

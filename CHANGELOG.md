@@ -42,6 +42,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [INTERNAL] Refactored dialog component
 - [INTERNAL] --localhost-client option added to mask and start_testhub.py for making hubs run as localhost
 - [INTERNAL] Added testflight release command for iOS
+- [INTERNAL] Only release tags (vX.Y.Z, vX.Y.Z-rcN) trigger build and deploy stable pipelines
 
 ## 18 September 2026 - v3.5.5
 
