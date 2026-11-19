@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 #
-# Lets stewards appoint experts and other stewards in rooms created before that was possible.
+# Brings the power levels of rooms created before these were set at room creation in line with new rooms:
 #
-# New rooms get "m.room.power_levels": 50 in their power levels, so stewards may send that event. Older
-# rooms still have Synapse's default of 100, so only their room admin can change roles. This script
-# lowers it to 50 in every existing room (direct message rooms excluded); the hub's SpamChecker still
-# limits stewards to changing users between user, expert and steward.
+# - "m.room.power_levels": 50, so stewards may appoint experts and other stewards. Older rooms still have
+#   Synapse's default of 100, so only their room admin can change roles. The hub's SpamChecker still
+#   limits stewards to changing users between user, expert and steward.
+# - The videocall membership events at 0, so ordinary members can join a call. Older rooms fall back to
+#   the state_default of 50, so members get a 403 and stay invisible in the call.
 #
-# Only someone at the current level (normally a room admin) may change it, so the script uses the
-# Synapse admin API to act as a joined local user with the highest power level in each room.
+# Levels are only ever lowered, never raised. Direct message rooms are excluded.
+#
+# Only someone at the current level (normally a room admin) may change power levels, so the script uses
+# the Synapse admin API to act as a joined local user with the highest power level in each room.
 #
 # Usage:
 #   SYNAPSE_ADMIN_TOKEN=<access token of a hub admin> ./allow_stewards_to_promote.py https://hub.example.com
@@ -28,8 +31,17 @@ import urllib.request
 
 logger = logging.getLogger(__name__)
 
+USER = 0
 STEWARD = 50
 POWER_LEVELS = "m.room.power_levels"
+# Keep in sync with the power_level_content_override in hub-client/src/composables/useEditRoom.ts and
+# pubhubs_hub/modules/pubhubs/_secured_rooms_class.py
+MAX_EVENT_LEVELS = {
+    POWER_LEVELS: STEWARD,
+    "org.matrix.msc3401.call": USER,
+    "org.matrix.msc3401.call.member": USER,
+    "org.matrix.msc4143.rtc.member": USER,
+}
 # Synapse's default level for state events not listed in "events"
 STATE_DEFAULT = 50
 # Keep in sync with DirectRooms in hub-client/src/models/rooms/TBaseRoom.ts
@@ -39,7 +51,7 @@ PUPPET_TOKEN_VALIDITY_MS = 5 * 60 * 1000
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Let stewards change power levels in existing rooms")
+    parser = argparse.ArgumentParser(description="Let stewards change roles and members join videocalls in existing rooms")
     parser.add_argument("homeserver", help="base url of the hub's Synapse, e.g. https://hub.example.com")
     parser.add_argument("--apply", action="store_true", help="actually update the rooms instead of only reporting")
     parser.add_argument(
@@ -135,20 +147,31 @@ class Program:
             return "skipped"
         content = power_levels_event["content"]
         events = content.get("events", {})
-        current_level = events.get(POWER_LEVELS, content.get("state_default", STATE_DEFAULT))
-        if current_level <= STEWARD:
+        state_default = content.get("state_default", STATE_DEFAULT)
+        current_levels = {event_type: events.get(event_type, state_default) for event_type in MAX_EVENT_LEVELS}
+        changes = {
+            event_type: (current_levels[event_type], max_level)
+            for event_type, max_level in MAX_EVENT_LEVELS.items()
+            if current_levels[event_type] > max_level
+        }
+        if not changes:
             return "already ok"
+        description = ", ".join(f"{event_type} from {old} to {new}" for event_type, (old, new) in changes.items())
 
-        sender = self.find_sender(room_id, content, current_level)
+        # Synapse requires the sender to be allowed to send power levels and to be at or above every old
+        # level it changes.
+        required_level = max(current_levels[POWER_LEVELS], *(old for old, _new in changes.values()))
+        sender = self.find_sender(room_id, content, required_level)
         if sender is None:
-            logger.warning(f"{name} ({room_id}): no joined local user at level {current_level} or higher, skipping")
+            logger.warning(f"{name} ({room_id}): no joined local user at level {required_level} or higher, skipping")
             return "skipped"
 
         if not self._args.apply:
-            logger.info(f"{name} ({room_id}): would lower {POWER_LEVELS} from {current_level} to {STEWARD} as {sender}")
+            logger.info(f"{name} ({room_id}): would lower {description} as {sender}")
             return "updated"
 
-        new_content = {**content, "events": {**events, POWER_LEVELS: STEWARD}}
+        new_levels = {event_type: new for event_type, (_old, new) in changes.items()}
+        new_content = {**content, "events": {**events, **new_levels}}
         if sender == self._admin_user_id:
             # Synapse doesn't let admins log in as themselves, but then the admin token itself will do.
             self._synapse.set_power_levels(room_id, new_content, self._args.token)
@@ -158,7 +181,7 @@ class Program:
                 self._synapse.set_power_levels(room_id, new_content, token)
             finally:
                 self._synapse.logout(token)
-        logger.info(f"{name} ({room_id}): lowered {POWER_LEVELS} from {current_level} to {STEWARD} as {sender}")
+        logger.info(f"{name} ({room_id}): lowered {description} as {sender}")
         return "updated"
 
     def find_sender(self, room_id, content, required_level):
