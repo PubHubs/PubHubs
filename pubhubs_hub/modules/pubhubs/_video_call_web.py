@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import json
 from urllib.parse import urlparse
 
 from livekit import api
@@ -13,6 +14,7 @@ from synapse.module_api import ModuleApi
 from ._constants import LIVEKIT_API_KEY_DEFAULT, LIVEKIT_API_SECRET_DEFAULT, LIVEKIT_URL, ROOM_ADMIN
 from ._store import HubStore
 from ._validation import get_user_power_level
+from ._hub_client_api_config import HubClientApiConfig
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,24 @@ def _get_livekit_settings():
 def is_videocall_configured() -> bool:
     """True iff boot/start_hub.py found a usable LiveKit: an external one, or the bundled one it started."""
     return os.getenv("PUBHUBS_LIVEKIT_CONFIGURED") == "true"
+
+
+def _is_videocall_admin_enabled(config: HubClientApiConfig) -> bool:
+    """The hub admin's toggle in the hub settings; hubs whose settings predate the toggle count as off (same as the client)."""
+    path = config.hub_description_path
+    if not os.path.exists(path):
+        path = config.default_hub_description_path
+    try:
+        with open(path, "r") as fd:
+            return json.load(fd).get("videocall_admin_enabled") is True
+    except (OSError, ValueError):
+        logger.exception("Could not read hub settings for videocall_admin_enabled")
+        return False
+
+
+def is_videocall_available(config: HubClientApiConfig) -> bool:
+    """LiveKit was found at boot and the hub admin has switched video calls on."""
+    return is_videocall_configured() and _is_videocall_admin_enabled(config)
 
 
 async def _create_room(room_name):
@@ -96,7 +116,7 @@ class VideoCallServlet(DirectServeJsonResource):
 
     def __init__(
             self,
-            config: dict,
+            config: HubClientApiConfig,
             store: HubStore,
             api: ModuleApi,
     ):
@@ -131,6 +151,10 @@ class VideoCallServlet(DirectServeJsonResource):
         # Authenticate the user
         user = await self.module_api.get_user_by_req(request)
 
+        if not is_videocall_available(self.config):
+            respond_with_json(request, 403, {"error": "Video calls are not available on this hub"}, True)
+            return
+
         pseudonym = user.authenticated_entity + ":" + user.device_id
 
         room_name = parse_string(request, "room_id")
@@ -148,6 +172,10 @@ class VideoCallServlet(DirectServeJsonResource):
         """Create a new video call room"""
 
         user = await self.module_api.get_user_by_req(request)
+
+        if not is_videocall_available(self.config):
+            respond_with_json(request, 403, {"error": "Video calls are not available on this hub"}, True)
+            return
 
         room_name = parse_string(request, "room_id")
 

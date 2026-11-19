@@ -1094,6 +1094,8 @@ const nl = {
 		start_screen_share: 'Deel je scherm',
 		start_tooltip: 'Start videogesprek',
 		stop_screen_share: 'Stop met je scherm delen',
+		unavailable_body: 'Videogesprekken zijn momenteel niet beschikbaar op deze hub.',
+		unavailable_title: 'Videogesprekken niet beschikbaar',
 		undecryptable: 'Kan deze video niet ontsleutelen',
 		unmute_for_me: 'Dempen opheffen voor mij',
 		unmute_microphone: 'Microfoon aanzetten',

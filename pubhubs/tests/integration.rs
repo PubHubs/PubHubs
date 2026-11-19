@@ -1687,6 +1687,7 @@ async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_
         hub_version: "n/a".to_owned(),
         hub_client_url: "http://example.com".parse().unwrap(),
         database_engine: api::hub::DatabaseEngine::Sqlite3,
+        videocall_enabled: false,
         dynamic: None,
     }))
 }

@@ -67,10 +67,12 @@
 		await router.push({ name: 'videocall' });
 	}
 
-	onMounted(() => {
+	onMounted(async () => {
 		if (!isThreadEvent.value) {
-			checkHasCallEnded();
 			rtcSession?.on(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+			await checkHasCallEnded();
+			// A running call while this tab thinks calls are off: the hub admin may have switched them on since, so re-read the flags and let the Join button appear.
+			if (!callEnded.value && !hubSettings.videocallAvailable) void hubSettings.fetchHubInfo();
 		}
 	});
 

@@ -608,6 +608,14 @@
 		},
 	);
 
+	// Re-read the video call flags each time the popover opens, so a hub admin switching calls on or off shows up without a page reload.
+	watch(
+		() => messageInput.state.popover,
+		(open) => {
+			if (open) void hubSettings.fetchHubInfo();
+		},
+	);
+
 	onMounted(async () => {
 		globalThis.addEventListener('keydown', handleKeydown);
 		reset();

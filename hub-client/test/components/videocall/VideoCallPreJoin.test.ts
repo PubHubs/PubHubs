@@ -26,13 +26,15 @@ vi.mock('livekit-client', async () => {
 	};
 });
 
-async function mountPreJoin({ blocked }: { blocked: boolean }) {
+async function mountPreJoin({ blocked, unavailable = false }: { blocked: boolean, unavailable?: boolean }) {
 	Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query: () => Promise.resolve({ state: 'granted' }) } });
 	Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: () => Promise.resolve({ getTracks: () => [] }) } });
 
 	const i18n = setUpi18n();
 	const pinia = createTestingPinia({ createSpy: vi.fn, stubActions: false });
-	(useVideoCall(pinia) as unknown as { e2eeBlocked: boolean }).e2eeBlocked = blocked;
+	const videoCall = useVideoCall(pinia) as unknown as { e2eeBlocked: boolean; videocallUnavailable: boolean };
+	videoCall.e2eeBlocked = blocked;
+    videoCall.videocallUnavailable = unavailable;
 
 	const wrapper = mount(VideoCallPreJoin, {
 		global: {
@@ -63,4 +65,11 @@ describe('VideoCallPreJoin.vue', () => {
 		expect(wrapper.text()).not.toContain(i18n.global.t('videocall.e2ee_blocked_title'));
 		expect(joinButton.attributes('disabled')).toBeUndefined();
 	});
+
+	test('explains why and disables joining when the hub has video calls switched off', async () => {
+    	const { i18n, joinButton, wrapper } = await mountPreJoin({ blocked: false, unavailable: true });
+
+        expect(wrapper.text()).toContain(i18n.global.t('videocall.unavailable_title'));
+        expect(joinButton.attributes('disabled')).toBeDefined();
+    });
 });
