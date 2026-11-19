@@ -1109,6 +1109,8 @@ const en = {
 		start_screen_share: 'Share your screen',
 		start_tooltip: 'Start videocall',
 		stop_screen_share: 'Stop sharing your screen',
+		unavailable_body: 'Videocalls are currently not available on this hub.',
+		unavailable_title: 'Videocalls are not available',
 		undecryptable: 'Cannot decrypt this video',
 		unmute_for_me: 'Unmute for me',
 		unmute_microphone: 'Unmute microphone',

@@ -8,10 +8,12 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
 import useVideoCall from '@hub-client/stores/videoCall';
+import { useHubSettings } from '@hub-client/stores/hub-settings';
 
 // Logic
 import { setUpi18n } from '@hub-client/i18n';
 import { VideocallStateType } from '@hub-client/logic/core/events';
+import { ApiError } from '@hub-client/logic/core/apiCore';
 
 const livekit = vi.hoisted(() => ({
 	rooms: [] as Array<{ options: unknown; setE2EEEnabled: ReturnType<typeof vi.fn>; connect: ReturnType<typeof vi.fn> }>,
@@ -55,7 +57,7 @@ function fakeRtcSession(memberships: Array<{ userId: string; deviceId: string }>
 	};
 }
 
-function enterCallRoom({ e2eeAvailable = true, memberships = [] as Array<{ userId: string; deviceId: string }>, isDirectMessageRoom = false, powerLevels = {events: {'org.matrix.msc3401.call.member': 0 } } as object | null, } = {}) {
+function enterCallRoom({ e2eeAvailable = true, memberships = [] as Array<{ userId: string; deviceId: string }>, isDirectMessageRoom = false, powerLevels = {events: {'org.matrix.msc3401.call.member': 0 } } as object | null, videocallAvailable = true} = {}) {
 	const rtcSession = fakeRtcSession(memberships);
 	(useRooms() as unknown as { currentRoom: unknown }).currentRoom = {
 		roomId: '!room:hub',
@@ -70,6 +72,7 @@ function enterCallRoom({ e2eeAvailable = true, memberships = [] as Array<{ userI
 		isDirectMessageRoom: () => isDirectMessageRoom,
 	};
 	usePubhubsStore().e2eeAvailable = e2eeAvailable;
+	useHubSettings().$patch({ _videocallEnabled: videocallAvailable, _videocallAdminEnabled: videocallAvailable });
 	return { rtcSession };
 }
 
@@ -326,7 +329,28 @@ describe('videoCall store', () => {
         });
 	});
 
+  	describe('video calls not available on the hub', () => {
+    	test('refuses to join when the hub has video calls switched off', async () => {
+        	const { rtcSession } = enterCallRoom({ videocallAvailable: false });
+            const videoCall = useVideoCall();
 
+            expect(videoCall.videocallUnavailable).toBe(true);
+            await expect(videoCall.connectToCall()).resolves.toBe(false);
+            expect(rtcSession.joinRTCSession).not.toHaveBeenCalled();
+            expect(livekit.rooms).toHaveLength(0);
+        });
+
+        test('re-reads the hub flags when the server refuses the call with 403', async () => {
+            enterCallRoom();
+            const hubSettings = useHubSettings();
+            vi.mocked(hubSettings.fetchHubInfo).mockResolvedValue(undefined);
+            const room = useRooms().currentRoom as unknown as { getLiveKitTokenResponse: ReturnType<typeof vi.fn> };
+            room.getLiveKitTokenResponse.mockRejectedValue(new ApiError('Video calls are not available on this hub', 403));
+
+            await expect(useVideoCall().connectToCall()).resolves.toBe(false);
+            expect(hubSettings.fetchHubInfo).toHaveBeenCalledOnce();
+        });
+    });
 
 
 });

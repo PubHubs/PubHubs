@@ -88,13 +88,22 @@ def make_servlet(rooms=None, allowed=None, power_levels=None):
     return VideoCallServlet({}, FakeStore(rooms=rooms, allowed=allowed), FakeModuleApi(power_levels=power_levels))
 
 
-async def call_get(servlet, room_id):
+async def call_get(servlet, room_id, available=True):
     request = FakeRequest(room_id=room_id)
     capture = ResponseCapture()
-    with patch.object(_video_call_web, "respond_with_json", capture):
+    with patch.object(_video_call_web, "respond_with_json", capture), \
+        patch.object(_video_call_web, "is_videocall_available", return_value=available):
         await servlet._async_render_GET(request)
     return capture
 
+
+async def call_post(servlet, room_id, available=True):
+    request = FakeRequest(room_id=room_id)
+    capture = ResponseCapture()
+    with patch.object(_video_call_web, "respond_with_json", capture), \
+        patch.object(_video_call_web, "is_videocall_available", return_value=available):
+        await servlet._async_render_POST(request)
+    return capture
 
 class VideoCallAuthorizationTest(IsolatedAsyncioTestCase):
     async def test_non_secured_room_does_not_require_disclosure_grant(self):
@@ -146,3 +155,26 @@ class VideoCallServletGetEndpointTest(IsolatedAsyncioTestCase):
         response = await call_get(servlet, SECURED_ROOM)
 
         self.assertEqual(response.code, 200)
+
+class VideoCallAvailabilityTest(IsolatedAsyncioTestCase):
+    """Switching video calls off (admin toggle, or no LiveKit at boot) must be enforced
+    by the server, not only by hiding the buttons in the client."""
+
+    async def test_get_token_rejected_when_videocall_unavailable(self):
+        # Non-secured room: with video calls available this request gets 200,
+        # so the 403 can only come from the availability guard.
+        servlet = make_servlet(rooms={})
+
+        response = await call_get(servlet, DM_ROOM, available=False)
+
+        self.assertEqual(response.code, 403)
+        self.assertEqual(response.payload, {"error": "Video calls are not available on this hub"})
+
+
+    async def test_create_room_rejected_when_videocall_unavailable(self):
+        servlet = make_servlet(rooms={})
+
+        response = await call_post(servlet, DM_ROOM, available=False)
+
+        self.assertEqual(response.code, 403)
+        self.assertEqual(response.payload, {"error": "Video calls are not available on this hub"})

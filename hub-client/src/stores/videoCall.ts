@@ -22,6 +22,7 @@ import { type MatrixRTCSession } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSess
 import { defineStore } from 'pinia';
 import { markRaw } from 'vue';
 
+import { ApiError } from '@hub-client/logic/core/apiCore';
 import { createE2EEWorker } from '@hub-client/logic/core/e2eeWorker';
 import { VideocallStateType } from '@hub-client/logic/core/events';
 import { MatrixKeyProvider } from '@hub-client/logic/core/matrixKeyProvider';
@@ -33,9 +34,17 @@ import { type PowerLevelsContent, powerLevelOf, stateEventPowerLevel } from '@hu
 import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 import { type TDecryptionState } from '@hub-client/models/videocall/TVideoCall';
 
+import { useHubSettings } from '@hub-client/stores/hub-settings';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 const logger = createLogger('Videocall');
+
+/** A 403 may mean the hub switched video calls off after this client read the flags. Re-read them so buttons and notices follow. */
+async function refreshOn403(error: unknown) {
+	if (error instanceof ApiError && error.status === 403) {
+		await useHubSettings().fetchHubInfo();
+	}
+}
 
 const defaultLiveKitPublishOptions: TrackPublishDefaults = {
 	audioPreset: AudioPresets.music,
@@ -119,6 +128,10 @@ const useVideoCall = defineStore('videoCall', {
 			const userId = currentRoom.matrixRoom.client.getUserId();
 			return powerLevelOf(content, userId) < stateEventPowerLevel(content, 'org.matrix.msc3401.call.member');
 		},
+		/** The hub refuses calls: LiveKit was not found at boot, or the hub admin switched calls off. */
+		videocallUnavailable(): boolean {
+			return !useHubSettings().videocallAvailable;
+		},
 	},
 
 	actions: {
@@ -136,6 +149,7 @@ const useVideoCall = defineStore('videoCall', {
 				await currentRoom.initializeCall();
 			} catch (error) {
 				logger.error('Initializing call failed ', error);
+				await refreshOn403(error);
 				return false;
 			}
 
@@ -197,6 +211,10 @@ const useVideoCall = defineStore('videoCall', {
 			}
 			if (this.insufficientPowerlevel) {
 				logger.warn('Not joining: insufficient powerlevel for call.member');
+				return false;
+			}
+			if (this.videocallUnavailable) {
+				logger.warn('Not joining: video calls are not available on this hub');
 				return false;
 			}
 			this._connecting = true;
@@ -270,6 +288,8 @@ const useVideoCall = defineStore('videoCall', {
 				return true;
 			} catch (error) {
 				logger.error('Could not connect to the call', error);
+
+				await refreshOn403(error);
 
 				// cleanup
 				if (this.livekit_room) {

@@ -39,6 +39,11 @@ pub struct InfoResp {
     #[serde(default)]
     pub database_engine: DatabaseEngine,
 
+    /// Whether this hub found a usable LiveKit at boot, so video calls can work at all.
+    /// Defaults to `false` for hubs predating this field.
+    #[serde(default)]
+    pub videocall_enabled: bool,
+
     /// Changeable information about this hub.
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]

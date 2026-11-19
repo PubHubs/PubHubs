@@ -255,7 +255,6 @@ const useHubSettings = defineStore('hub-settings', {
 				this._contact = response.contact;
 				this._consent = response.consent;
 				this._version = response.version ?? 1;
-				this._videocallAdminEnabled = response.videocall_admin_enabled === true;
 				return response;
 			} else {
 				return undefined;
@@ -265,6 +264,11 @@ const useHubSettings = defineStore('hub-settings', {
 			await api.apiPOST(api.apiURLS.hubSettings, hubSettingsData);
 			this._videocallAdminEnabled = hubSettingsData.videocall_admin_enabled === true;
 		},
+		/**
+		 * The only place the video call flags are read: `videocall_enabled` (LiveKit found at hub boot)
+		 * and the admin's `videocall_admin_enabled` from the hub settings.
+		 * When the admin saves it setHubJSON updates the latter.
+		 */
 		async fetchHubInfo() {
 			try {
 				const response = await api.apiGET<{
