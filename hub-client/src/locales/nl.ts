@@ -1049,6 +1049,8 @@ const nl = {
 		enable_camera: 'Camera aanzetten',
 		exit: 'Sluiten',
 		exit_fullscreen: 'Volledig scherm sluiten',
+		experimental_body: 'Videogesprekken zijn nog in ontwikkeling en werken misschien niet altijd zoals verwacht.',
+		experimental_title: 'Let op',
 		fullscreen: 'Volledig scherm',
 		fullscreen_tooltip: 'Volledig scherm in-/uitschakelen (Shift+F)',
 		hide_self_view: 'Verberg je eigen beeld',
