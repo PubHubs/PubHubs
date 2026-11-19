@@ -4,6 +4,7 @@ import { type RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state
 
 // Logic
 import { APIService } from '@hub-client/logic/core/apiService';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { type IRoomManagement } from '@hub-client/models/hubmanagement/interfaces/IRoomManagement';
@@ -17,6 +18,8 @@ import { type TUserJoinedRooms } from '@hub-client/models/users/TUser';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+const logger = createLogger('Administrator');
 
 /* Administrator can create, delete, update room. Administrator can also change permissions.  */
 /* Matrix synapse uses power levels but admin class use Permissions instead of power level */
@@ -62,13 +65,18 @@ export class Administrator implements IUserManagement, IRoomManagement, ISuspend
 		// Get list of room Ids
 		const joinedRoomIds: TUserJoinedRooms = await APIService.adminListJoinedRoomId(userId);
 
-		// Use utility function to concurrently fetch and extract data for powerlevel
-		return await Promise.all(
+		// One room whose state can't be read (e.g. no power levels event) must not hide all the others.
+		const results = await Promise.allSettled(
 			joinedRoomIds.joined_rooms.map(async (roomId) => {
 				const { roomName, userPowerLevel, isPublicRoom, adminPowerLevel } = await ManagementUtils.getRoomNameAndPowerLevel(roomId, userId);
 				return { room_id: roomId, room_name: roomName, room_pl: userPowerLevel, public: isPublicRoom, admin_permission: adminPowerLevel };
 			}),
 		);
+		return results.flatMap((result, i) => {
+			if (result.status === 'fulfilled') return [result.value];
+			logger.warn('Skipping room in user permissions', { roomId: joinedRoomIds.joined_rooms[i], error: result.reason });
+			return [];
+		});
 	}
 
 	/**
