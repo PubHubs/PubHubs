@@ -92,9 +92,13 @@ function useRoles() {
 		return roles.includes(userRole(roomId));
 	};
 
+	/**
+	 * Whether the current user may carry out the action in the room. Based on the room power level only: the server enforces
+	 * kicks, bans and timeouts by power level, so a hub admin without rights in the room can't do them there either.
+	 */
 	const userHasPermissionForAction = (action: UserAction, roomId: string | undefined = undefined): boolean => {
 		assert(action in UserAction, 'Given action not a defined action');
-		const role = userRole(roomId);
+		const role = getRoleByPowerLevel(userPowerLevel(roomId));
 		return UserRoleActions[role].includes(action);
 	};
 
