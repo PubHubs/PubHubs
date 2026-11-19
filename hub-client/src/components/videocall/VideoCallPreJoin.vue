@@ -11,6 +11,13 @@
 
 			<div class="flex w-full max-w-7000 flex-col gap-200 lg:gap-300">
 				<div
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.experimental_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{ t('videocall.experimental_body') }}</span>
+				</div>
+				<div
 					v-if="videoCall.e2eeBlocked"
 					class="bg-surface rounded-base flex flex-col gap-100 p-200"
 					role="alert"

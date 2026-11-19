@@ -1064,6 +1064,8 @@ const en = {
 		enable_camera: 'Turn on camera',
 		exit: 'Exit',
 		exit_fullscreen: 'Exit fullscreen',
+		experimental_body: 'Videocalls are still under development and may not always work as expected.',
+		experimental_title: 'Please note',
 		fullscreen: 'Fullscreen',
 		fullscreen_tooltip: 'Toggle fullscreen (Shift+F)',
 		hide_self_view: 'Hide your own video',
