@@ -41,6 +41,16 @@
 					<span class="text-label font-semibold">{{ t('videocall.unavailable_title') }}</span>
 					<span class="text-label-small text-on-surface-dim">{{ t('videocall.unavailable_body') }}</span>
 				</div>
+				<div
+					v-if="videoCall.connect_error && !videoCall.e2eeBlocked && !videoCall.insufficientPowerlevel && !videoCall.videocallUnavailable"
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.connect_failed_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{
+						videoCall.connect_error === ConnectError.Media ? t('videocall.connect_failed_media_body') : t('videocall.connect_failed_body')
+					}}</span>
+				</div>
 
 				<VideoCallPreview />
 
@@ -70,9 +80,9 @@
 					>
 					<Button
 						variant="primary"
-						:disabled="!devicesLoaded || videoCall.e2eeBlocked || videoCall.insufficientPowerlevel || videoCall.videocallUnavailable"
+						:disabled="joining || !devicesLoaded || videoCall.e2eeBlocked || videoCall.insufficientPowerlevel || videoCall.videocallUnavailable"
 						@click="emit('join')"
-						>{{ t('videocall.join') }}</Button
+						>{{ joining ? t('videocall.connecting') : t('videocall.join') }}</Button
 					>
 				</ButtonGroup>
 			</div>
@@ -104,7 +114,13 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 	// Stores
-	import useVideoCall from '@hub-client/stores/videoCall';
+	import useVideoCall, { ConnectError } from '@hub-client/stores/videoCall';
+
+	defineProps({
+		joining: {
+			type: Boolean,
+		},
+	});
 
 	const emit = defineEmits<{
 		join: [];
