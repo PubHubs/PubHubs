@@ -5,6 +5,7 @@
 	>
 		<VideoCallPreJoin
 			v-if="!connectInputs"
+			:joining="joining"
 			@exit="goBack()"
 			@join="joinRoom()"
 		/>
@@ -71,7 +72,7 @@
 					</div>
 
 					<div
-						v-if="selfView"
+						v-if="selfView && localParticipant"
 						class="absolute right-200 bottom-900 w-[25vw] max-w-4000"
 					>
 						<VideoCallVideo
@@ -158,6 +159,8 @@
 	const isFullscreen = ref(false);
 
 	const connectInputs = ref(false);
+	// A join is in progress. (the whole join, not just livekit connect)
+	const joining = ref(false);
 
 	const remotes = ref<unknown[]>([]);
 	const remotesNames = computed(() => remotes.value.map((participant) => (participant as RemoteParticipant).identity));
@@ -273,6 +276,7 @@
 	);
 
 	onUnmounted(() => {
+		videoCall.connect_error = null;
 		resetVideoCallDevices();
 		videoCall.leaveCall();
 		sidebar.closeInstantly();
@@ -291,11 +295,17 @@
 	};
 
 	const joinRoom = async () => {
-		const connected = await videoCall.joinCall();
-		if (!connected) return;
-		connectInputs.value = true;
-		videoCall.togglePublishTracks(true);
-		syncRemoteParticipants();
+		if (joining.value) return;
+		joining.value = true;
+		try {
+			const connected = await videoCall.joinCall();
+			if (!connected) return;
+			connectInputs.value = true;
+			videoCall.togglePublishTracks(true);
+			syncRemoteParticipants();
+		} finally {
+			joining.value = false;
+		}
 	};
 
 	// RoomThread renders whatever thread the room points at, so open the call's own thread alongside
