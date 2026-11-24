@@ -20,7 +20,7 @@ import { useHubs } from '@global-client/stores/hubs';
 
 import { Theme, TimeFormat, useSettings } from '@hub-client/stores/settings';
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 

@@ -48,7 +48,7 @@ function clearDeviceCopies() {
 }
 
 beforeAll(async () => {
-	server.listen({ onUnhandledRequest: 'error' });
+	server.listen({ onUnhandledFrame: 'error' });
 	await api.api(api.apiURLS.login);
 	const phcServer = new PHCServer();
 	const attrKeys: Record<string, AttrKeyResp> = { email: { latest_key: ['someKey1', 'timestamp1'], old_key: null } };
