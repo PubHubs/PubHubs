@@ -13,7 +13,7 @@ pkgs.buildGoModule.override { go = pkgs.go_1_27; } rec {
   # update the trailing version comment next to this package in flake.nix.  Afterwards run
   # `direnv reload` and check `yivi version`: direnv only watches flake.nix and flake.lock, so
   # without a reload the shell keeps serving the previously built binary.
-  version = "1.3.1";
+  version = "1.6.0";
 
   src = pkgs.fetchFromGitHub {
     owner = "privacybydesign";
