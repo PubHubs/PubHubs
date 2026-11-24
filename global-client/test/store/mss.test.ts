@@ -21,7 +21,7 @@ import { useMSS } from '@global-client/stores/mss';
 const emailKey = await attrValueKey('emailAttrId', 'emailAttrValue');
 const phoneKey = await attrValueKey('phoneAttrId', 'phoneAttrValue');
 
-beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 

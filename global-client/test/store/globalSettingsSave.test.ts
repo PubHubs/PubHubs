@@ -18,7 +18,7 @@ import { type GlobalSettings, useGlobal } from '@global-client/stores/global';
 const OBJ = 'http://testdomain/.ph/user/obj';
 
 beforeAll(async () => {
-	server.listen({ onUnhandledFrame: 'error' });
+	server.listen({ onUnhandledRequest: 'error' });
 	// A logged-in user with a user secret, as in global.test.ts.
 	await api.api(api.apiURLS.login);
 	const phcServer = new PHCServer();

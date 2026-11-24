@@ -9,7 +9,7 @@ import { api_synapse } from '@hub-client/logic/core/api';
 // Stores
 import { type TSecuredRoom } from '@hub-client/stores/rooms';
 
-beforeAll(() => server.listen({ onUnhandledFrame: 'warn' }));
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 

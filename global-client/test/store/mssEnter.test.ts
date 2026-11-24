@@ -57,7 +57,7 @@ const authsHandlers = [
 	),
 ];
 
-beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 

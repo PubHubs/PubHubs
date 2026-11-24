@@ -36,7 +36,7 @@
 		"@vitejs/plugin-vue": "^6",
 		"@vue/test-utils": "^2.2.3",
 		"jsdom": "^31",
-		"msw": "^3",
+		"msw": "^2.12.4",
 		"tailwindcss": "^4.2.2",
 		"typescript": "^6.0.3",
 		"vite": "^8.2.2",

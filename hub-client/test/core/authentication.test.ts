@@ -19,7 +19,7 @@ vi.mock('matrix-js-sdk', async (importOriginal) => {
 	return { ...original, createClient: (opts: { baseUrl: string }) => createClient(opts) };
 });
 
-beforeAll(() => server.listen({ onUnhandledFrame: 'warn' }));
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 
