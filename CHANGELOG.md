@@ -43,6 +43,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [INTERNAL] --localhost-client option added to mask and start_testhub.py for making hubs run as localhost
 - [INTERNAL] Added testflight release command for iOS
 - [INTERNAL] Only release tags (vX.Y.Z, vX.Y.Z-rcN) trigger build and deploy stable pipelines
+- [INTERNAL] Updated Rust dependency `url` to 2.5.9 to fix security advisory RUSTSEC-2026-0592.
 
 ## 18 September 2026 - v3.5.5
 
