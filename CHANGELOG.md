@@ -14,6 +14,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 - [NEW] Allow stewards to promote users to stewards and experts.
 - [NEW] Users can delete their account erasing all their personal data either from all of pubhubs or per hub.
+- [NEW] Videocalls are available in Direct and Secured rooms. For this to work a hub needs to install a Livekit server. Note: this is still in development.
 - [IMPROVED] The room library has been redesigned
 - [IMPROVED] Updated the hub overview and discover page.
 - [IMPROVED] Users are no longer logged out when PubHubs Central restarts. An auth token can now be refreshed until the user has been inactive for 90 days, and at most a year after logging in.
