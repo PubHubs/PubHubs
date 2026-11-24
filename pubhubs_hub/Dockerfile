@@ -13,7 +13,7 @@ RUN git clone https://github.com/privacybydesign/irmago . --branch v1.3.1 --dept
 
 ## FINAL CONTAINER STAGE
 
-FROM ghcr.io/element-hq/synapse:v1.160.0
+FROM ghcr.io/element-hq/synapse:v1.165.0
 
 COPY --from=yivi_build /go/bin/yivi /usr/bin/yivi
 # Pinned: `latest` makes the build unreproducible and forces a registry round-trip every build.
