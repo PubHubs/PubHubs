@@ -1054,6 +1054,10 @@ const en = {
 	videocall: {
 		appear_as: "You'll appear as",
 		chat: 'Chat',
+		connect_failed_body: 'Something went wrong while connecting. Please try again.',
+		connect_failed_media_body: 'The video connection could not be set up. Please try again later, or try another network.',
+		connect_failed_title: 'Could not join the videocall',
+		connecting: 'Connecting…',
 		decryption_pending: 'Securing connection…',
 		devices: 'Devices',
 		disable_camera: 'Turn off camera',

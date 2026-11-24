@@ -1,6 +1,7 @@
 import { useRooms } from './rooms';
 import {
 	AudioPresets,
+	ConnectionError,
 	DefaultReconnectPolicy,
 	Room as LiveKitRoom,
 	type LocalAudioTrack,
@@ -46,6 +47,15 @@ async function refreshOn403(error: unknown) {
 	}
 }
 
+/**
+ * LiveKit's error when the WebRTC (ICE) connection cannot be made: usually a network or firewall that blocks media.
+ * LiveKit has no reason code for this (it is an InternalError), so the message is the only distinguishing mark;
+ * if LiveKit rewords it, the user sees the generic message instead.
+ */
+function isMediaConnectError(error: unknown): boolean {
+	return error instanceof ConnectionError && error.message.includes('could not establish pc connection');
+}
+
 const defaultLiveKitPublishOptions: TrackPublishDefaults = {
 	audioPreset: AudioPresets.music,
 	dtx: true,
@@ -79,6 +89,11 @@ const LeaveRoomSessionTimeout = 1000; // timeout for rtcsession timeout
 let endCallCleanup: (() => void) | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
 let e2eeWorker: Worker | null = null; // Outside state for the same reason as endCallCleanup
 
+export enum ConnectError {
+	Media = 'media',
+	Generic = 'generic',
+}
+
 const useVideoCall = defineStore('videoCall', {
 	state: () => {
 		return {
@@ -110,6 +125,7 @@ const useVideoCall = defineStore('videoCall', {
 			focus: [null, false] as [Participant | null, boolean],
 			_connecting: false,
 			_leaving: false,
+			connect_error: null as ConnectError | null, // why the last connect failed. shown on the PreJoin screen
 		};
 	},
 
@@ -203,8 +219,9 @@ const useVideoCall = defineStore('videoCall', {
 		 * @returns
 		 */
 		async connectToCall(): Promise<boolean> {
-			if (this.livekit_room) return true;
+			// livekit room is already set while connect() is still pending, so check _connecting first
 			if (this._connecting) return false;
+			if (this.livekit_room) return true;
 			if (this.e2eeBlocked) {
 				logger.warn('Not joining: this session cannot do end-to-end encrypted calls');
 				return false;
@@ -218,6 +235,7 @@ const useVideoCall = defineStore('videoCall', {
 				return false;
 			}
 			this._connecting = true;
+			this.connect_error = null;
 
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
@@ -232,7 +250,10 @@ const useVideoCall = defineStore('videoCall', {
 				const LiveKitTokenResponse = await currentRoom.getLiveKitTokenResponse();
 				this.token = LiveKitTokenResponse[0];
 				this.target_url = LiveKitTokenResponse[1];
-				if (!this.token || !this.target_url) return false;
+				if (!this.token || !this.target_url) {
+					this.connect_error = ConnectError.Generic;
+					return false;
+				}
 
 				// Call keys are only shared with devices the encryption layer knows; see trackCallMembers.
 				await trackCallMembers(
@@ -288,7 +309,7 @@ const useVideoCall = defineStore('videoCall', {
 				return true;
 			} catch (error) {
 				logger.error('Could not connect to the call', error);
-
+				this.connect_error = isMediaConnectError(error) ? ConnectError.Media : ConnectError.Generic;
 				await refreshOn403(error);
 
 				// cleanup

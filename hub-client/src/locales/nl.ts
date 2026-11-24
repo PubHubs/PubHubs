@@ -1039,6 +1039,10 @@ const nl = {
 	videocall: {
 		appear_as: 'Je verschijnt als',
 		chat: 'Chat',
+		connect_failed_body: 'Er ging iets mis bij het verbinden. Probeer het opnieuw.',
+		connect_failed_media_body: 'De videoverbinding kon niet worden opgezet. Probeer het later opnieuw, of probeer een ander netwerk.',
+		connect_failed_title: 'Kan niet deelnemen aan het videogesprek',
+		connecting: 'Verbinden…',
 		devices: 'Apparaten',
 		decryption_pending: 'Verbinding beveiligen…',
 		disable_camera: 'Camera uitzetten',
