@@ -1,6 +1,6 @@
 variables:
     # Tag of the rust-stable image from ilab/docker-build, as <rust version>-<pipeline iid>.
-    RUST_IMAGE_TAG: 1.97.1-229
+    RUST_IMAGE_TAG: 1.99.1-235
     RUST_IMAGE: registry.science.ru.nl/ilab/docker-build/rust-stable:${RUST_IMAGE_TAG}
     RUSTUP_AUTO_INSTALL: '0'
     # Node major for the client jobs; keep it equal to the `FROM node:<major>-slim` in
