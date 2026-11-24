@@ -11,7 +11,7 @@ _Sort as in this example list
 - _[TYPO] - If a translation/typo in the UI has been changed or implemented_
 - _[INTERNAL] - Code changes not affecting functionality_
 
-## Changed not merged yet
+## 24 November 2026 - v3.6.0
 
 - [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
 - [BUG] Fixed that a fast switch of Hubs (or leave) can leave iframe blank
