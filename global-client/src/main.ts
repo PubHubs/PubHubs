@@ -7,14 +7,13 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import '@hub-client/assets/tailwind.css';
 
 // Logic
+import { installNavigationGuard } from '@global-client/logic/core/navigationGuards';
 import { routes } from '@global-client/logic/core/routes';
 
 import { focus, safeHtml, twClass } from '@hub-client/logic/core/directives';
 
 // Pages
 import App from '@global-client/pages/App.vue';
-
-import { useGlobal } from '@global-client/stores/global';
 
 import { setUpi18n } from '@hub-client/i18n';
 
@@ -35,21 +34,8 @@ const router = createRouter({
 	},
 	sensitive: true,
 });
-router.beforeEach((to, from) => {
-	if (to.name === 'error' && from.name === undefined) {
-		return { name: 'home' };
-	}
-});
 
-router.beforeEach(async (to, _from) => {
-	const global = useGlobal();
-	const isLoggedIn = await global.checkLoginAndSettings();
-
-	if (to.meta.requiresAuth && !isLoggedIn) {
-		const redirectPath = to.fullPath;
-		return { name: 'login', query: redirectPath === '/' ? {} : { redirect: redirectPath } };
-	}
-});
+installNavigationGuard(router);
 
 // Set up Pinia store
 const pinia = createPinia();

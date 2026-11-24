@@ -1,14 +1,51 @@
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
+_Sort as in this example list
 
-- _[BUG] - If the change is a bugfix (from own branch)_
+- _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
+- _[SECURITY] - Security patch_
 - _[HOTFIX] - If it is a small bug (typo or styling) that is done directly on stable_
-- _[TYPO] - If a translation/typo in the UI has been changed or implemented_
+- _[BUG] - If the change is a bugfix (from own branch)_
 - _[NEW] - If it is a new feature_
 - _[IMPROVED] - Extends or improves an existing feature_
 - _[REMOVED] - Removes an existing feature_
-- _[SECURITY] - Security patch_
-- _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
+- _[TYPO] - If a translation/typo in the UI has been changed or implemented_
 - _[INTERNAL] - Code changes not affecting functionality_
+
+## 24 November 2026 - v3.6.0
+
+- [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
+- [BUG] Fixed that a fast switch of Hubs (or leave) can leave iframe blank
+- [BUG] Fixed that changing the display name or avatar could wipe the other one, and that the avatar could disappear after closing the profile settings.
+- [BUG] Fixed that new messages stay blank or below visible area in timeline
+- [BUG] Fixed that ~ would break url links.
+- [BUG] Fixed that the 'System' theme only followed the system theme when PubHubs was (re)loaded.
+- [BUG] Fixed that a logout could redirect a user from the register page.
+- [BUG] Fixed that a reply showed the original message instead of the edited one.
+- [BUG] Fixed that longer messages were sometimes cut off.
+- [BUG] Fixed that headings were shown in a fallback font instead of Atkinson Hyperlegible.
+- [BUG] Fixed that text was shown in a fallback font instead of Inter, whose files were missing.
+- [BUG] Fixed that pinned hubs were not loaded on the first login after a PubHubs Central restart.
+- [BUG] Fixed zooming in/out on App's Login screen when clicking on mascotte
+- [NEW] Allow stewards to promote users to stewards and experts.
+- [NEW] Users can delete their account erasing all their personal data either from all of pubhubs or per hub.
+- [NEW] Videocalls are available in Direct and Secured rooms. For this to work a hub needs to install a Livekit server. Note: this is still in development.
+- [NEW] iOS capacitor stuff added, ready for testing
+- [IMPROVED] The room library has been redesigned
+- [IMPROVED] Updated the hub overview and discover page.
+- [IMPROVED] Users are no longer logged out when PubHubs Central restarts. An auth token can now be refreshed until the user has been inactive for 90 days, and at most a year after logging in.
+- [IMPROVED] File uploads now give feedback in the UI when they fail, instead of silently being handled.
+- [IMPROVED] The app's fonts are WOFF2 instead of TTF, so they download faster; the emoji font went from 24 MB to 5 MB.
+- [IMPROVED] The documentation has been restructured and brought up to date, and a CONTRIBUTING.md explains that contributions go through the PubHubs team.
+- [INTERNAL, NEW] Hub owners can ask for their hub to be registered with an issue form on the GitHub mirror; the team's steps are in the GitLab `add-hub` issue template.
+- [INTERNAL, NEW] The pipeline of a merge request fails when it doesn't add to CHANGELOG.md (unless it has the `No changelog` label), and that of a release tag (also `-rcN`) when CHANGELOG.md has no entries under its version, which the GitHub release takes as its notes.
+- [INTERNAL] The draft GitHub release's notes leave out the changelog's INTERNAL entries; a release with only those says "Internal changes only.".
+- [INTERNAL] The copyright in LICENSE is the Privacy by Design Foundation's (Stichting Privacy by Design), which PubHubs belongs to, instead of iHub's.
+- [INTERNAL] The merge-to-stable template asks to update the website when a release changes what it describes.
+- [INTERNAL] Refactored dialog component
+- [INTERNAL] --localhost-client option added to mask and start_testhub.py for making hubs run as localhost
+- [INTERNAL] Added testflight release command for iOS
+- [INTERNAL] Only release tags (vX.Y.Z, vX.Y.Z-rcN) trigger build and deploy stable pipelines
+- [INTERNAL] Updated Rust dependency `url` to 2.5.9 to fix security advisory RUSTSEC-2026-0592.
 
 ## 18 September 2026 - v3.5.5
 
@@ -17,6 +54,7 @@ _Please add a brief description of any changes and any migrations to be performe
 ## 10 September 2026 - v.3.5.4
 
 - [NEW] From this version onwards pinned images will be shared for every full release and the new `latest` tag points to the latest full release. The `stable` tag is unchanged, it points to the latest full release or release-candidate.
+- [NEW] When entering pubhubs home users get redirected to the last pinned hub they visited, with a fallback `MyHubs` page if the user has no pinned hubs or the loading of the hub-client fails.
 - [IMPROVED] Login and registration recover from a Yivi session that is interrupted.
 - [IMPROVED] The rtcSession now rules the videocallpages, instead of the usermessages
 - [IMPROVED] In the file libray files can now be deleted by admins, stewards and the users that uploaded them

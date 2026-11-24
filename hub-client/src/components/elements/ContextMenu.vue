@@ -1,9 +1,9 @@
 <template>
 	<teleport to="body">
-		<!-- Desktop backdrop -->
+		<!-- Desktop backdrop: no scrim, it only catches the click that closes the menu -->
 		<div
 			v-if="store.isOpen && !isMobile"
-			class="bg-scrim/50 dark:bg-scrim/75 fixed inset-0 z-9998"
+			class="fixed inset-0 z-9998"
 			@pointerdown.prevent.stop="store.close"
 			@click.prevent.stop
 		/>
@@ -12,7 +12,7 @@
 		<div
 			v-if="store.isOpen && !isMobile"
 			ref="menuRef"
-			class="bg-surface-elevated fixed z-9999 flex w-fit max-w-4000 min-w-1000 flex-col rounded shadow-2xl"
+			class="bg-surface-elevated border-on-surface-disabled/25 fixed z-9999 flex w-fit max-w-4000 min-w-1000 flex-col rounded border shadow-lg"
 			:style="{ left: `${pos.x}px`, top: `${pos.y}px` }"
 			role="menu"
 			data-testid="contextmenu"
@@ -32,6 +32,7 @@
 					:aria-label="item.ariaLabel"
 					:disabled="item.disabled"
 					:icon="item.icon"
+					:reserve-icon-space="reserveIconSpace"
 					:variant="item.variant"
 					:label="item.label"
 					:title="item.title"
@@ -88,6 +89,7 @@
 						:aria-label="item.ariaLabel"
 						:disabled="item.disabled"
 						:icon="item.icon"
+						:reserve-icon-space="reserveIconSpace"
 						:variant="item.variant"
 						:label="item.label"
 						:title="item.title"
@@ -123,6 +125,9 @@
 	const menuRef = ref<HTMLElement | null>(null);
 	const itemButtons = ref<HTMLButtonElement[]>([]);
 	const pos = ref({ x: 0, y: 0 });
+
+	// Align labels when only some items have an icon
+	const reserveIconSpace = computed(() => store.items.some((item) => !item.divider && item.icon));
 
 	// Positioning (desktop only)
 	const clampPosition = (x: number, y: number) => {

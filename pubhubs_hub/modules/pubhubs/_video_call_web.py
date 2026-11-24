@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import json
 from urllib.parse import urlparse
 
 from livekit import api
@@ -13,6 +14,7 @@ from synapse.module_api import ModuleApi
 from ._constants import LIVEKIT_API_KEY_DEFAULT, LIVEKIT_API_SECRET_DEFAULT, LIVEKIT_URL, ROOM_ADMIN
 from ._store import HubStore
 from ._validation import get_user_power_level
+from ._hub_client_api_config import HubClientApiConfig
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +42,29 @@ def _get_livekit_settings():
     )
 
 
+def is_videocall_configured() -> bool:
+    """True iff boot/start_hub.py found a usable LiveKit: an external one, or the bundled one it started."""
+    return os.getenv("PUBHUBS_LIVEKIT_CONFIGURED") == "true"
+
+
+def _is_videocall_admin_enabled(config: HubClientApiConfig) -> bool:
+    """The hub admin's toggle in the hub settings; hubs whose settings predate the toggle count as off (same as the client)."""
+    path = config.hub_description_path
+    if not os.path.exists(path):
+        path = config.default_hub_description_path
+    try:
+        with open(path, "r") as fd:
+            return json.load(fd).get("videocall_admin_enabled") is True
+    except (OSError, ValueError):
+        logger.exception("Could not read hub settings for videocall_admin_enabled")
+        return False
+
+
+def is_videocall_available(config: HubClientApiConfig) -> bool:
+    """LiveKit was found at boot and the hub admin has switched video calls on."""
+    return is_videocall_configured() and _is_videocall_admin_enabled(config)
+
+
 async def _create_room(room_name):
     livekit_url, livekit_api_key, livekit_api_secret = _get_livekit_settings()
 
@@ -59,6 +84,22 @@ async def _create_room(room_name):
     await lkapi.aclose()
 
 
+async def _call_is_active(room_name: str) -> bool:
+    """Whether anyone is connected to the room's LiveKit call; a room that does not exist on livekit roomlist has no call."""
+    livekit_url, livekit_api_key, livekit_api_secret = _get_livekit_settings()
+    lkapi = api.LiveKitAPI(livekit_url, livekit_api_key, livekit_api_secret)
+    try:
+        # list_participants fails for a room that does not exist, so check that first.
+        rooms = await lkapi.room.list_rooms(api.ListRoomsRequest(names=[room_name]))
+        if not rooms.rooms:
+            return False
+        # Not num_participants from list_rooms: that count can be 0 while someone is connected.
+        participants = await lkapi.room.list_participants(api.ListParticipantsRequest(room=room_name))
+        return len(participants.participants) > 0
+    finally:
+        await lkapi.aclose()
+
+
 async def _generate_access_token(pseudonym, username, room_name):
     livekit_url, livekit_api_key, livekit_api_secret = _get_livekit_settings()
 
@@ -75,7 +116,7 @@ class VideoCallServlet(DirectServeJsonResource):
 
     def __init__(
             self,
-            config: dict,
+            config: HubClientApiConfig,
             store: HubStore,
             api: ModuleApi,
     ):
@@ -83,6 +124,7 @@ class VideoCallServlet(DirectServeJsonResource):
         self.config = config
         self.store = store
         self.module_api = api
+        self.putChild(b"status", VideoCallStatusServlet(api))
 
     async def _may_use_video_call(self, user_id: str, room_id: str) -> bool:
         """Only secured rooms require the Yivi-disclosure allow-list check —
@@ -109,6 +151,10 @@ class VideoCallServlet(DirectServeJsonResource):
         # Authenticate the user
         user = await self.module_api.get_user_by_req(request)
 
+        if not is_videocall_available(self.config):
+            respond_with_json(request, 403, {"error": "Video calls are not available on this hub"}, True)
+            return
+
         pseudonym = user.authenticated_entity + ":" + user.device_id
 
         room_name = parse_string(request, "room_id")
@@ -127,6 +173,10 @@ class VideoCallServlet(DirectServeJsonResource):
 
         user = await self.module_api.get_user_by_req(request)
 
+        if not is_videocall_available(self.config):
+            respond_with_json(request, 403, {"error": "Video calls are not available on this hub"}, True)
+            return
+
         room_name = parse_string(request, "room_id")
 
         if not await self._may_use_video_call(user.authenticated_entity, room_name):
@@ -139,3 +189,27 @@ class VideoCallServlet(DirectServeJsonResource):
         except TypeError as e:
             logger.exception("Failed to create LiveKit room")
             respond_with_json(request, 400, {"errors": f"{str(e)}"}, True)
+
+
+class VideoCallStatusServlet(DirectServeJsonResource):
+    """GET /_synapse/client/videocall/status?room_id=<id>: whether anyone is connected to the room's call."""
+
+    def __init__(self, module_api: ModuleApi):
+        super().__init__()
+        self.module_api = module_api
+
+    async def _async_render_GET(self, request: SynapseRequest):
+        user = await self.module_api.get_user_by_req(request)
+        user_id = user.authenticated_entity
+        room_id = parse_string(request, "room_id", required=True)
+
+        # Only joined members may see whether a call is going on.
+        room_state = await self.module_api.get_room_state(room_id, [(EventTypes.Member, user_id)])
+        member_event = room_state.get((EventTypes.Member, user_id))
+        if not member_event or member_event.membership != "join":
+            respond_with_json(request, 403, {"error": "User is not a member of this room"}, True)
+            return
+
+        # Synapse runs on Twisted, not asyncio; the LiveKit API needs a running asyncio loop, so give it its own in a worker thread.
+        active = await self.module_api.defer_to_thread(asyncio.run, _call_is_active(room_id))
+        respond_with_json(request, 200, {"active": active}, True)

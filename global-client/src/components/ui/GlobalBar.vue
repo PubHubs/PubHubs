@@ -7,16 +7,15 @@
 			<div class="flex h-full w-full max-w-svh flex-col overflow-y-hidden">
 				<div class="border-on-surface-disabled/25 flex aspect-square h-[80px] items-center justify-center border-b-2 p-200">
 					<router-link
-						v-slot="{ isExactActive }"
 						class="group focus-visible:ring-accent-blue-interactive flex h-full w-full items-center justify-center rounded transition-all outline-none focus-visible:ring-3"
-						:to="{ name: 'home' }"
-						:title="t('home.discover_hubs')"
-						:aria-label="t('home.discover_hubs')"
+						:to="{ name: 'hubs-overview' }"
+						:title="t('home.hubs_overview')"
+						:aria-label="t('home.hubs_overview')"
 					>
 						<Icon
 							class="text-accent-blue-interactive/80 transition-color h-600 w-600 duration-200"
-							:class="isExactActive ? '' : 'group-hover:text-accent-blue'"
-							:data-rail-active="isExactActive || undefined"
+							:class="isOverviewActive ? '' : 'group-hover:text-accent-blue'"
+							:data-rail-active="isOverviewActive || undefined"
 							type="compass"
 						/>
 					</router-link>
@@ -76,7 +75,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { nextTick, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef, watch } from 'vue';
+	import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
@@ -100,6 +99,8 @@
 	const route = useRoute();
 	const global = useGlobal();
 	const hubs = useHubs();
+
+	const isOverviewActive = computed(() => route.name === 'hubs-overview');
 
 	const settingsDialog = ref(false);
 	const aboutDialog = ref(false);

@@ -1,12 +1,14 @@
 import { useRooms } from './rooms';
 import {
 	AudioPresets,
+	ConnectionError,
 	DefaultReconnectPolicy,
 	Room as LiveKitRoom,
 	type LocalAudioTrack,
 	type LocalVideoTrack,
 	type Participant,
 	type RemoteParticipant,
+	RoomEvent,
 	type RoomOptions,
 	ScreenSharePresets,
 	Track,
@@ -15,19 +17,44 @@ import {
 	VideoPresets,
 	createLocalAudioTrack,
 	createLocalVideoTrack,
+	isE2EESupported,
 } from 'livekit-client';
-import { type MatrixRTCSession, MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
+import { type MatrixRTCSession } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
 import { defineStore } from 'pinia';
+import { markRaw } from 'vue';
 
+import { ApiError } from '@hub-client/logic/core/apiCore';
+import { createE2EEWorker } from '@hub-client/logic/core/e2eeWorker';
+import { VideocallStateType } from '@hub-client/logic/core/events';
 import { MatrixKeyProvider } from '@hub-client/logic/core/matrixKeyProvider';
 import { router } from '@hub-client/logic/core/router';
+import { trackCallMembers } from '@hub-client/logic/core/trackCallMembers';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { type PowerLevelsContent, powerLevelOf, stateEventPowerLevel } from '@hub-client/logic/utils/powerLevelUtils';
 
 import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+import { type TDecryptionState } from '@hub-client/models/videocall/TVideoCall';
 
+import { useHubSettings } from '@hub-client/stores/hub-settings';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 const logger = createLogger('Videocall');
+
+/** A 403 may mean the hub switched video calls off after this client read the flags. Re-read them so buttons and notices follow. */
+async function refreshOn403(error: unknown) {
+	if (error instanceof ApiError && error.status === 403) {
+		await useHubSettings().fetchHubInfo();
+	}
+}
+
+/**
+ * LiveKit's error when the WebRTC (ICE) connection cannot be made: usually a network or firewall that blocks media.
+ * LiveKit has no reason code for this (it is an InternalError), so the message is the only distinguishing mark;
+ * if LiveKit rewords it, the user sees the generic message instead.
+ */
+function isMediaConnectError(error: unknown): boolean {
+	return error instanceof ConnectionError && error.message.includes('could not establish pc connection');
+}
 
 const defaultLiveKitPublishOptions: TrackPublishDefaults = {
 	audioPreset: AudioPresets.music,
@@ -58,7 +85,14 @@ export const defaultLiveKitOptions: RoomOptions = {
 };
 
 const MembershipExpiryTime = 5 * 60 * 1000; // 5 minutes
+const LeaveRoomSessionTimeout = 1000; // timeout for rtcsession timeout
 let endCallCleanup: (() => void) | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
+let e2eeWorker: Worker | null = null; // Outside state for the same reason as endCallCleanup
+
+export enum ConnectError {
+	Media = 'media',
+	Generic = 'generic',
+}
 
 const useVideoCall = defineStore('videoCall', {
 	state: () => {
@@ -81,15 +115,39 @@ const useVideoCall = defineStore('videoCall', {
 			video_track: null as LocalVideoTrack | null,
 			selected_video_device_id: null as string | null,
 			mute_video_track: false,
+			selected_output_device_id: null as string | null,
 
 			screen_share: false,
 
 			locally_muted_participants: [] as string[],
+			decryption_states: {} as Record<string, TDecryptionState>, // LiveKit identities whose media is not (yet) decrypting
 			selfView: true,
 			focus: [null, false] as [Participant | null, boolean],
 			_connecting: false,
 			_leaving: false,
+			connect_error: null as ConnectError | null, // why the last connect failed. shown on the PreJoin screen
 		};
+	},
+
+	getters: {
+		/** Calls are always end-to-end encrypted; a session that cannot encrypt may not join. */
+		e2eeBlocked(): boolean {
+			return !isE2EESupported() || !usePubhubsStore().e2eeAvailable;
+		},
+
+		/** Old rooms may lack a call.member powerlevel, a normal user then gets a 403 error and stays invisible in the call */
+		insufficientPowerlevel(): boolean {
+			const currentRoom = useRooms().currentRoom;
+			const content = currentRoom?.getPowerLevelsContent() as PowerLevelsContent | undefined;
+			// Unknown power levels: don't block, joining would fail the same way as before
+			if (!currentRoom || !content) return false;
+			const userId = currentRoom.matrixRoom.client.getUserId();
+			return powerLevelOf(content, userId) < stateEventPowerLevel(content, 'org.matrix.msc3401.call.member');
+		},
+		/** The hub refuses calls: LiveKit was not found at boot, or the hub admin switched calls off. */
+		videocallUnavailable(): boolean {
+			return !useHubSettings().videocallAvailable;
+		},
 	},
 
 	actions: {
@@ -107,6 +165,7 @@ const useVideoCall = defineStore('videoCall', {
 				await currentRoom.initializeCall();
 			} catch (error) {
 				logger.error('Initializing call failed ', error);
+				await refreshOn403(error);
 				return false;
 			}
 
@@ -123,10 +182,19 @@ const useVideoCall = defineStore('videoCall', {
 			const connected = await this.connectToCall();
 			if (!connected) return false;
 
-			// check if first user, if so: message for video call start
-			if (this.rtc_session?.memberships?.length === 1) {
+			// on demand getting single instance, because the store has no setup context
+			const { getI18n } = await import('@hub-client/i18n');
+			const { t } = getI18n().global;
+
+			// first user: message for video call start (Livekit knows who is actually connected, Matrix memberships can linger for minutes)
+			if (this.livekit_room?.remoteParticipants.size === 0) {
 				// create message for timeline to show the call has started
-				const eventId = await pubhubs.addVideoCallMessage(currentRoom.roomId, message ?? 'VideoCall Started');
+				const eventId = await pubhubs.addVideoCallMessage(
+					currentRoom.roomId,
+					VideocallStateType.Started,
+					message ?? t('videocall.state.started'),
+					undefined,
+				);
 				this.eventId = eventId;
 			}
 
@@ -134,8 +202,10 @@ const useVideoCall = defineStore('videoCall', {
 			if (this.eventId) {
 				void (async () => {
 					try {
-						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent;
-						await pubhubs.addMessage(currentRoom.roomId, 'Joined', threadRoot, undefined);
+						const threadRoot = currentRoom.isDirectMessageRoom()
+							? undefined
+							: ((await pubhubs.getEvent(currentRoom.roomId, this.eventId!)) as TMessageEvent);
+						await pubhubs.addVideoCallMessage(currentRoom.roomId, VideocallStateType.Joined, t('videocall.state.joined'), threadRoot);
 					} catch {
 						// Ignore best-effort "Joined" message failures.
 					}
@@ -149,9 +219,23 @@ const useVideoCall = defineStore('videoCall', {
 		 * @returns
 		 */
 		async connectToCall(): Promise<boolean> {
-			if (this.livekit_room) return true;
+			// livekit room is already set while connect() is still pending, so check _connecting first
 			if (this._connecting) return false;
+			if (this.livekit_room) return true;
+			if (this.e2eeBlocked) {
+				logger.warn('Not joining: this session cannot do end-to-end encrypted calls');
+				return false;
+			}
+			if (this.insufficientPowerlevel) {
+				logger.warn('Not joining: insufficient powerlevel for call.member');
+				return false;
+			}
+			if (this.videocallUnavailable) {
+				logger.warn('Not joining: video calls are not available on this hub');
+				return false;
+			}
 			this._connecting = true;
+			this.connect_error = null;
 
 			const rooms = useRooms();
 			const currentRoom = rooms.currentRoom;
@@ -166,17 +250,28 @@ const useVideoCall = defineStore('videoCall', {
 				const LiveKitTokenResponse = await currentRoom.getLiveKitTokenResponse();
 				this.token = LiveKitTokenResponse[0];
 				this.target_url = LiveKitTokenResponse[1];
-				if (!this.token || !this.target_url) return false;
+				if (!this.token || !this.target_url) {
+					this.connect_error = ConnectError.Generic;
+					return false;
+				}
+
+				// Call keys are only shared with devices the encryption layer knows; see trackCallMembers.
+				await trackCallMembers(
+					currentRoom.matrixRoom.client,
+					currentRoom.matrixRoom.getJoinedMembers().map((member) => member.userId),
+				);
 
 				this.rtc_session = currentRoom.getMatrixRTCSession();
 
 				this.rtc_session.joinRTCSession({ userId: userId, deviceId: deviceId, memberId: `${userId}:${deviceId}` }, [], undefined, {
 					membershipEventExpiryMs: MembershipExpiryTime,
+					manageMediaKeys: true,
 				});
-				this.addEndCallListener();
 
 				const matrix_key_provider = new MatrixKeyProvider();
-				this.matrix_key_provider = matrix_key_provider;
+
+				// LiveKit hands the provider to its worker; it must not be a Vue proxy.
+				this.matrix_key_provider = markRaw(matrix_key_provider);
 				matrix_key_provider.setRTCSession(this.rtc_session as MatrixRTCSession);
 
 				// The timeline may lag behind after creating/joining a call.
@@ -188,15 +283,7 @@ const useVideoCall = defineStore('videoCall', {
 					}
 				}
 
-				// E2EE is currently disabled. Don't pass e2ee options to the room —
-				// having a worker/keyProvider configured but disabled corrupts remote video frames.
-				// TODO: Re-enable E2EE when ready:
-				// const e2ee = {
-				// 	keyProvider: matrix_key_provider as BaseKeyProvider,
-				// 	worker: new Worker(new URL('livekit-client/e2ee-worker', import.meta.url)),
-				// };
-				// this.options.e2ee = e2ee;
-
+				e2eeWorker = createE2EEWorker();
 				const isFirefox = navigator.userAgent.includes('Firefox');
 				const roomOptions: RoomOptions = {
 					...defaultLiveKitOptions,
@@ -207,29 +294,41 @@ const useVideoCall = defineStore('videoCall', {
 						simulcast: isFirefox ? false : defaultLiveKitPublishOptions.simulcast,
 						videoCodec: isFirefox ? 'vp8' : 'vp9',
 					},
+					e2ee: { keyProvider: matrix_key_provider, worker: e2eeWorker },
 				};
 
 				this.livekit_room = new LiveKitRoom(roomOptions);
+				await this.livekit_room.setE2EEEnabled(true);
 
 				await this.livekit_room.connect(this.target_url, this.token, {
 					autoSubscribe: true,
 				});
+				this.addCallListeners();
+
+				await this.applyOutputDevice();
 				return true;
-			} catch {
+			} catch (error) {
+				logger.error('Could not connect to the call', error);
+				this.connect_error = isMediaConnectError(error) ? ConnectError.Media : ConnectError.Generic;
+				await refreshOn403(error);
+
+				// cleanup
 				if (this.livekit_room) {
 					try {
 						await this.livekit_room.disconnect(true);
 					} catch {
-						// best effort
+						logger.debug('Cleanup after failed connect also failed', error);
 					}
 				}
 				if (this.rtc_session) {
 					try {
-						await this.rtc_session.leaveRoomSession(10);
+						await this.rtc_session.leaveRoomSession(LeaveRoomSessionTimeout);
 					} catch {
-						//
+						logger.debug('Cleanup after failed connect also failed', error);
 					}
 				}
+				e2eeWorker?.terminate();
+				e2eeWorker = null;
 				this.livekit_room = null;
 				return false;
 			} finally {
@@ -248,13 +347,18 @@ const useVideoCall = defineStore('videoCall', {
 
 			this._leaving = true;
 			try {
-				// Clean up eventlisteners
+				// on demand getting single instance, because the store has no setup context
+				const { getI18n } = await import('@hub-client/i18n');
+				const { t } = getI18n().global;
+
+				// Clean up eventlisteners. Keep this before livekitroom.disconnect to prevent listener-loop
 				if (endCallCleanup) {
 					endCallCleanup();
 					endCallCleanup = null;
 				}
 
 				const errors: unknown[] = [];
+				const isLastMember = this.livekit_room.remoteParticipants.size === 0;
 
 				// disconnect the livekit room
 				try {
@@ -270,17 +374,15 @@ const useVideoCall = defineStore('videoCall', {
 				}
 
 				this.togglePublishTracks(false);
+				this.decryption_states = {};
 
 				if (this.matrix_key_provider) {
 					this.matrix_key_provider.removeAllListeners();
 					this.matrix_key_provider = null;
 				}
 
-				if (this.options.e2ee) {
-					// @ts-expect-error -- worker exists when e2ee options were created, but RoomOptions typing is broader
-					this.options.e2ee.worker.terminate();
-					this.options.e2ee = undefined;
-				}
+				e2eeWorker?.terminate();
+				e2eeWorker = null;
 
 				await this.changeAudioDevice(null);
 				await this.changeVideoDevice(null);
@@ -288,8 +390,10 @@ const useVideoCall = defineStore('videoCall', {
 				// send left-message
 				if (this.eventId) {
 					try {
-						const threadRoot = (await pubhubs.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent;
-						await pubhubs.addThreadMessageWithoutLocalEcho(currentRoom.roomId, 'Left', threadRoot);
+						const threadRoot = currentRoom.isDirectMessageRoom()
+							? undefined
+							: ((await pubhubs.getEvent(currentRoom.roomId, this.eventId)) as TMessageEvent);
+						await pubhubs.addVideoCallMessage(currentRoom.roomId, VideocallStateType.Left, t('videocall.state.left'), threadRoot);
 					} catch (error) {
 						errors.push(error);
 					}
@@ -299,10 +403,20 @@ const useVideoCall = defineStore('videoCall', {
 				// if necessary: send end message
 				if (this.rtc_session) {
 					try {
-						const isLastMember = this.rtc_session.memberships.length === 1; // check if you are the last participant before leaving, it takes some time for the memberships to sync
-						await this.rtc_session.leaveRoomSession(10);
+						await this.rtc_session.leaveRoomSession(LeaveRoomSessionTimeout);
 						if (isLastMember && this.eventId) {
-							await pubhubs.addEndVideoCallMessage(currentRoom.roomId, this.eventId, 'Ended');
+							if (currentRoom.isDirectMessageRoom()) {
+								// DirectMessageRooms cannot have threads: edit original videcallmessage and add end message
+								await pubhubs.addEndVideoCallMessage(
+									currentRoom.roomId,
+									VideocallStateType.StartedEnded,
+									this.eventId,
+									t('videocall.state.startedended'),
+								);
+								await pubhubs.addVideoCallMessage(currentRoom.roomId, VideocallStateType.Ended, t('videocall.state.ended'), undefined);
+							} else {
+								await pubhubs.addEndVideoCallMessage(currentRoom.roomId, VideocallStateType.Ended, this.eventId, t('videocall.state.ended'));
+							}
 						}
 					} catch (error) {
 						errors.push(error);
@@ -316,8 +430,12 @@ const useVideoCall = defineStore('videoCall', {
 
 				this.audio_track = null;
 				this.selected_audio_device_id = null;
+				this.mute_audio_track = false;
 				this.video_track = null;
 				this.selected_video_device_id = null;
+				this.mute_video_track = false;
+				this.selected_output_device_id = null;
+				this.screen_share = false;
 				this.focus = [null, false];
 
 				if (errors.length) {
@@ -328,24 +446,27 @@ const useVideoCall = defineStore('videoCall', {
 			}
 		},
 
-		addEndCallListener() {
-			const rooms = useRooms();
-			if (!rooms.currentRoom) return;
+		addCallListeners() {
+			const livekitRoom = this.livekit_room;
+			if (!livekitRoom) return;
 
-			const rtcSession = rooms.currentRoom.getMatrixRTCSession();
-
-			const onMembershipsChanged = () => {
-				if (!rooms.currentRoom) return;
-				if (rtcSession.memberships.length === 0) {
-					endCallCleanup?.();
-					endCallCleanup = null;
-					router.push({ name: 'room', params: { id: rooms.currentRoom.roomId } });
-					this.leaveCall();
+			// Server closed the room, removed us, or reconnecting failed: we are no longer in the call.
+			const onDisconnected = async () => {
+				const roomId = useRooms().currentRoom?.roomId;
+				endCallCleanup?.();
+				endCallCleanup = null;
+				if (roomId) router.push({ name: 'room', params: { id: roomId } });
+				try {
+					await this.leaveCall();
+				} catch (error) {
+					logger.error('leaveCall failed after LiveKit disconnect', error);
 				}
 			};
 
-			rtcSession.on(MatrixRTCSessionEvent.MembershipsChanged, onMembershipsChanged);
-			endCallCleanup = () => rtcSession.off(MatrixRTCSessionEvent.MembershipsChanged, onMembershipsChanged);
+			livekitRoom.on(RoomEvent.Disconnected, onDisconnected);
+			endCallCleanup = () => {
+				livekitRoom.off(RoomEvent.Disconnected, onDisconnected);
+			};
 		},
 
 		async toggleAudioTrack(should_publish: boolean) {
@@ -420,7 +541,7 @@ const useVideoCall = defineStore('videoCall', {
 
 		async toggleAudioTrackMute(should_mute: boolean) {
 			this.mute_audio_track = should_mute;
-			if (!this.livekit_room || !this.audio_track) {
+			if (!this.audio_track) {
 				return;
 			}
 
@@ -433,7 +554,7 @@ const useVideoCall = defineStore('videoCall', {
 
 		async toggleVideoTrackMute(mute: boolean) {
 			this.mute_video_track = mute;
-			if (!this.livekit_room || !this.video_track) {
+			if (!this.video_track) {
 				return;
 			}
 
@@ -444,11 +565,30 @@ const useVideoCall = defineStore('videoCall', {
 			}
 		},
 
-		async toggleScreenShare(screenShare: boolean) {
-			this.screen_share = screenShare;
-			if (!this.livekit_room) return;
+		/**
+		 * @returns whether the screen share is now in the requested state. Starting one opens the
+		 * browser's own picker, which rejects when the user dismisses it or the site is not allowed to
+		 * capture the display at all.
+		 */
+		async toggleScreenShare(screenShare: boolean): Promise<boolean> {
+			if (!this.livekit_room) return false;
 
-			await this.livekit_room.localParticipant.setScreenShareEnabled(this.screen_share);
+			try {
+				await this.livekit_room.localParticipant.setScreenShareEnabled(screenShare);
+				this.screen_share = screenShare;
+				return true;
+			} catch (error) {
+				logger.warn('Could not toggle screen sharing', error);
+				this.screen_share = false;
+				return false;
+			}
+		},
+
+		/**
+		 * Follows LiveKit, because our screen share can also end outside our button (e.g. the browser's "Stop sharing").
+		 */
+		syncScreenShare() {
+			this.screen_share = this.livekit_room?.localParticipant.isScreenShareEnabled ?? false;
 		},
 
 		toggleSelfView(selfView: boolean) {
@@ -468,6 +608,10 @@ const useVideoCall = defineStore('videoCall', {
 					resolution: VideoPresets.h720,
 					deviceId: deviceId,
 				});
+
+				if (this.mute_video_track) {
+					await this.video_track.mute();
+				}
 
 				if (this.livekit_room && this.should_publish_video_track && this.video_track) {
 					await this.livekit_room.localParticipant.publishTrack(this.video_track as LocalVideoTrack);
@@ -491,12 +635,42 @@ const useVideoCall = defineStore('videoCall', {
 					noiseSuppression: true,
 				});
 
+				if (this.mute_audio_track) {
+					await this.audio_track.mute();
+				}
+
 				if (this.livekit_room && this.should_publish_audio_track && this.audio_track) {
 					await this.livekit_room.localParticipant.publishTrack(this.audio_track as LocalAudioTrack);
 				}
 			} else {
 				this.audio_track = null;
 			}
+		},
+
+		async changeOutputDevice(deviceId: string | null) {
+			this.selected_output_device_id = deviceId;
+			await this.applyOutputDevice();
+		},
+
+		/**
+		 * Route remote audio to the selected speaker. Best effort: setSinkId is unsupported in
+		 * Firefox, and there is nothing to route until a room is connected.
+		 */
+		async applyOutputDevice() {
+			if (!this.livekit_room || !this.selected_output_device_id) return;
+
+			try {
+				await this.livekit_room.switchActiveDevice('audiooutput', this.selected_output_device_id);
+			} catch (error) {
+				logger.warn('Could not switch audio output device', error);
+			}
+		},
+
+		setParticipantDecryptionState(identity: string, state: TDecryptionState | null) {
+			const next = { ...this.decryption_states };
+			if (state) next[identity] = state;
+			else delete next[identity];
+			this.decryption_states = next;
 		},
 
 		toggleFocus(participant: Participant | null, isScreenShare: boolean) {

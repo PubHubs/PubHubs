@@ -1,17 +1,7 @@
 <template>
 	<div class="flex flex-1 flex-col overflow-hidden">
 		<!-- Back button (fixed header; content below scrolls) -->
-		<button
-			class="text-on-surface-dim border-on-surface-disabled/25 flex items-center gap-100 border-y-2 px-200 py-150 transition-colors hover:cursor-pointer"
-			type="button"
-			@click="$emit('back')"
-		>
-			<Icon
-				size="sm"
-				type="caret-left"
-			/>
-			<span class="text-body-small">{{ t('dialog.back') }}</span>
-		</button>
+		<SidebarBackButton @click="$emit('back')" />
 
 		<!-- Scrollable content -->
 		<div class="flex flex-1 flex-col gap-300 overflow-y-auto px-200 pt-300 pb-400">
@@ -71,7 +61,7 @@
 					/>
 					<button
 						v-else
-						class="hover:bg-surface-elevated rounded-base flex items-center gap-150 p-150 text-left transition-colors hover:cursor-pointer"
+						class="hover:bg-surface-elevated rounded-base outline-accent-blue-interactive flex items-center gap-150 p-150 text-left transition-colors hover:cursor-pointer focus-visible:outline-3"
 						:class="item.variant"
 						type="button"
 						:title="item.title"
@@ -135,6 +125,7 @@
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 	import CollapsibleHeader from '@hub-client/components/ui/CollapsibleHeader.vue';
 	import RoomLink from '@hub-client/components/ui/RoomLink.vue';
+	import SidebarBackButton from '@hub-client/components/ui/SidebarBackButton.vue';
 
 	// Models
 	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';

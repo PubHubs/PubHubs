@@ -10,6 +10,8 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 // Logic
 import { api_synapse } from '@hub-client/logic/core/api';
 import filters from '@hub-client/logic/core/filters';
+import { hubStorage } from '@hub-client/logic/core/hubStorage';
+import { isNetworkError } from '@hub-client/logic/core/networkError';
 import { router } from '@hub-client/logic/core/router';
 import { type ConsentJSONParser } from '@hub-client/logic/json-utility';
 import { createLogger } from '@hub-client/logic/logging/Logger';
@@ -51,9 +53,58 @@ type State = {
 	adminStatusLoaded: boolean;
 	needsOnboarding: boolean;
 	needsConsent: boolean;
+	// Users whose account is gone, and the users we have an answer for. Both are filled by
+	// `useDeactivatedUsers`; deactivation is permanent, so an answer never goes stale.
+	deactivatedUsers: Set<string>;
+	resolvedDeactivation: Set<string>;
 };
 
 const logger = createLogger('User');
+
+// The last consent answer from the hub, kept in HubStorage for when the hub can't be reached.
+const CONSENT_STORAGE_KEY = 'consent';
+type ConsentState = { needsConsent: boolean; needsOnboarding: boolean };
+
+// The user's own profile as last known, kept in HubStorage for when the hub can't be reached (the hub
+// sidebar shows it). The avatar is kept as the image itself: the blob: URL it is shown from is gone
+// after a restart.
+const OWN_PROFILE_STORAGE_KEY = 'ownProfile';
+type OwnProfile = { displayName?: string; contentAvatarUrl?: string; avatarDataUrl?: string };
+
+async function toDataUrl(objectUrl: string): Promise<string | undefined> {
+	try {
+		const blob = await (await fetch(objectUrl)).blob();
+		const bytes = new Uint8Array(await blob.arrayBuffer());
+		let binary = '';
+		// In chunks: spreading a whole image into one call can exceed the argument limit.
+		for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+		return `data:${blob.type};base64,${btoa(binary)}`;
+	} catch (error) {
+		logger.warn('Could not keep the avatar image', { error });
+		return undefined;
+	}
+}
+
+// An empty name or avatar comes as '', null or undefined; all mean the same.
+const orUndefined = (value?: string | null): string | undefined => value || undefined;
+
+function revokeBlobUrl(url?: string) {
+	if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+}
+
+// Profile updates per user (per room), run one after the other so they land in the order they came in.
+const profileUpdates = new Map<string, Promise<void>>();
+
+function queueProfileUpdate(userId: string, update: () => Promise<void>): Promise<void> {
+	const next = (profileUpdates.get(userId) ?? Promise.resolve())
+		.then(update)
+		.catch((error) => logger.warn('Could not update the profile of a user', { userId, error }));
+	profileUpdates.set(userId, next);
+	void next.finally(() => {
+		if (profileUpdates.get(userId) === next) profileUpdates.delete(userId);
+	});
+	return next;
+}
 
 const useUser = defineStore('user', {
 	state: (): State => ({
@@ -65,6 +116,8 @@ const useUser = defineStore('user', {
 		adminStatusLoaded: false,
 		needsOnboarding: false,
 		needsConsent: false,
+		deactivatedUsers: new Set<string>(),
+		resolvedDeactivation: new Set<string>(),
 	}),
 
 	getters: {
@@ -107,6 +160,25 @@ const useUser = defineStore('user', {
 			return needsConsent;
 		},
 
+		/**
+		 * Whether this user's account has been deactivated, as far as we have been told.
+		 *
+		 * False until the answer is in, so a name renders under its pseudonym for a moment
+		 * rather than flashing up as a deleted account.
+		 */
+		isDeactivatedUser: (state) => {
+			return (userId: string): boolean => {
+				return state.deactivatedUsers.has(userId);
+			};
+		},
+
+		/** Whether the hub has already been asked about this user. */
+		deactivationIsResolved: (state) => {
+			return (userId: string): boolean => {
+				return state.resolvedDeactivation.has(userId);
+			};
+		},
+
 		userDisplayName: (state) => {
 			return (userId: string): string | undefined => {
 				return state.usersProfile.get(userId)?.displayName;
@@ -134,43 +206,37 @@ const useUser = defineStore('user', {
 			);
 			if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
 
-			const { getAuthorizedMediaUrl } = useMatrixFiles();
-
-			membersOnlyProfileUpdate.forEach(async (member) => {
-				const memberToUpdate = this.usersProfile.get(member.sender);
-
-				// data is going to be set async. So we already add a userprofile from the current data that we know of
-				if (!memberToUpdate) {
-					this.setUserProfile(member.sender, { displayName: member.content.displayname, contentAvatarUrl: member.content.avatar_url });
-				}
-
-				// only update the member if not available yet in userProfile, or if displayname/avatarurl has changed
-				if (
-					!memberToUpdate ||
-					memberToUpdate?.displayName !== member.content.displayname ||
-					memberToUpdate?.contentAvatarUrl !== member.content.avatar_url
-				) {
-					const profile: UserProfile = {};
-
-					if (memberToUpdate?.displayName !== member.content.displayname) {
-						profile.displayName = member.content.displayname ?? undefined;
-					}
-
-					if (memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
-						// Revoke old avatar blob URL before replacing
-						if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
-							URL.revokeObjectURL(memberToUpdate.avatarUrl);
-						}
-						const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
-						profile.avatarUrl = avatarUrl;
-						profile.contentAvatarUrl = member.content.avatar_url;
-					}
-
-					this.setUserProfile(member.sender, profile);
-				}
-			});
+			const updates = membersOnlyProfileUpdate.map((member) =>
+				queueProfileUpdate(member.sender, () => this.applyMemberProfile(member.sender, member.content.displayname, member.content.avatar_url)),
+			);
+			await Promise.all(updates);
 
 			return true;
+		},
+
+		/**
+		 * Brings the cached profile of a user up to date with the name and avatar from a member event.
+		 * Only runs through {@link queueProfileUpdate}: it compares with the cached entry when it runs,
+		 * and the avatar download in between would otherwise let an older update win.
+		 */
+		async applyMemberProfile(userId: string, displayname?: string | null, avatar_url?: string | null) {
+			const displayName = orUndefined(displayname);
+			const contentAvatarUrl = orUndefined(avatar_url);
+			const current = this.usersProfile.get(userId);
+
+			// The name first, so it shows while the avatar is still downloading.
+			if (!current || orUndefined(current.displayName) !== displayName) {
+				this.setUserProfile(userId, { displayName });
+			}
+
+			if (current && orUndefined(current.contentAvatarUrl) === contentAvatarUrl) return;
+
+			const { getAuthorizedMediaUrl } = useMatrixFiles();
+			const avatarUrl = contentAvatarUrl ? await getAuthorizedMediaUrl(contentAvatarUrl) : undefined;
+			const oldAvatarUrl = this.usersProfile.get(userId)?.avatarUrl;
+			this.setUserProfile(userId, { avatarUrl, contentAvatarUrl });
+			// Only now that it is no longer shown.
+			if (oldAvatarUrl !== avatarUrl) revokeBlobUrl(oldAvatarUrl);
 		},
 
 		// Storing my  UserId
@@ -187,16 +253,13 @@ const useUser = defineStore('user', {
 				return;
 			}
 			if (this.userId) {
-				const existing = this.usersProfile.get(this.userId) ?? {};
-				this.setUserProfile(this.userId, { ...existing, displayName: name });
+				this.setUserProfile(this.userId, { displayName: orUndefined(name) });
+				void this.storeOwnProfile();
 			}
 		},
 
 		async setAvatarUrl(avatarUrl: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
-
-			const { getAuthorizedMediaUrl } = useMatrixFiles();
-			const authorizedUrl = await getAuthorizedMediaUrl(avatarUrl);
 
 			try {
 				await this.client.setAvatarUrl(avatarUrl);
@@ -205,61 +268,112 @@ const useUser = defineStore('user', {
 				return;
 			}
 
-			// Revoke old avatar blob URL before replacing
-			const oldAvatar = this.userId ? this.usersProfile.get(this.userId)?.avatarUrl : undefined;
-			if (oldAvatar?.startsWith('blob:')) {
-				URL.revokeObjectURL(oldAvatar);
-			}
+			const userId = this.userId;
+			if (!userId) return;
+			const contentAvatarUrl = orUndefined(avatarUrl);
 
-			if (this.userId) {
-				const existing = this.usersProfile.get(this.userId) ?? {};
-				this.setUserProfile(this.userId, { ...existing, contentAvatarUrl: avatarUrl, avatarUrl: authorizedUrl });
-			}
+			// Queued with the member events, which also bring this change: whichever comes first downloads it.
+			await queueProfileUpdate(userId, async () => {
+				if (orUndefined(this.usersProfile.get(userId)?.contentAvatarUrl) === contentAvatarUrl) return;
+				const { getAuthorizedMediaUrl } = useMatrixFiles();
+				// An empty one removes the avatar; there is nothing to download.
+				const authorizedUrl = contentAvatarUrl ? await getAuthorizedMediaUrl(contentAvatarUrl) : undefined;
+				const oldAvatar = this.usersProfile.get(userId)?.avatarUrl;
+				this.setUserProfile(userId, { contentAvatarUrl, avatarUrl: authorizedUrl });
+				if (oldAvatar !== authorizedUrl) revokeBlobUrl(oldAvatar);
+			});
+			void this.storeOwnProfile();
 		},
 
 		// Profile setter method for me.
-		// This method is used during login of me.
-		async setProfile(profile: { avatar_url?: string; displayname?: string }) {
-			if (!this.userId) return;
+		// This method is used during login of me. The server leaves out a name or avatar that was
+		// cleared, so a missing one clears what restoreOwnProfile brought back.
+		async setProfile(profile: { avatar_url?: string | null; displayname?: string | null }) {
+			const userId = this.userId;
+			if (!userId) return;
 
-			const existing = this.usersProfile.get(this.userId) ?? {};
-			const profileData: UserProfile = { ...existing };
+			const displayName = orUndefined(profile.displayname);
+			const contentAvatarUrl = orUndefined(profile.avatar_url);
 
-			if (profile.displayname !== undefined) {
-				profileData.displayName = profile.displayname;
-			}
+			await queueProfileUpdate(userId, async () => {
+				const current = this.usersProfile.get(userId);
+				const profileData: UserProfile = { displayName };
 
-			if (profile.avatar_url !== undefined) {
-				const { getAuthorizedMediaUrl } = useMatrixFiles();
-				const authorizedUrl = await getAuthorizedMediaUrl(profile.avatar_url);
-				const oldAvatar = this.usersProfile.get(this.userId)?.avatarUrl;
-				if (oldAvatar?.startsWith('blob:')) {
-					URL.revokeObjectURL(oldAvatar);
+				// A data: URL is the copy restoreOwnProfile brought back; download the avatar for real.
+				const needsAvatar = contentAvatarUrl !== orUndefined(current?.contentAvatarUrl) || !current?.avatarUrl || current.avatarUrl.startsWith('data:');
+				if (!contentAvatarUrl) {
+					profileData.avatarUrl = undefined;
+					profileData.contentAvatarUrl = undefined;
+				} else if (needsAvatar) {
+					const { getAuthorizedMediaUrl } = useMatrixFiles();
+					profileData.avatarUrl = await getAuthorizedMediaUrl(contentAvatarUrl);
+					profileData.contentAvatarUrl = contentAvatarUrl;
 				}
-				profileData.avatarUrl = authorizedUrl;
-				profileData.contentAvatarUrl = profile.avatar_url;
-			}
 
-			this.setUserProfile(this.userId, profileData);
+				const oldAvatar = this.usersProfile.get(userId)?.avatarUrl;
+				this.setUserProfile(userId, profileData);
+				if ('avatarUrl' in profileData && oldAvatar !== profileData.avatarUrl) revokeBlobUrl(oldAvatar);
+			});
+			void this.storeOwnProfile();
+		},
+
+		/** Keep the own profile in HubStorage, see {@link restoreOwnProfile}. */
+		async storeOwnProfile() {
+			if (!this.userId) return;
+			const profile = this.usersProfile.get(this.userId);
+			if (!profile) return;
+			const avatarUrl = profile.avatarUrl;
+			const avatarDataUrl = avatarUrl?.startsWith('blob:') ? await toDataUrl(avatarUrl) : avatarUrl?.startsWith('data:') ? avatarUrl : undefined;
+			await hubStorage.set<OwnProfile>(OWN_PROFILE_STORAGE_KEY, {
+				displayName: profile.displayName,
+				contentAvatarUrl: profile.contentAvatarUrl,
+				avatarDataUrl,
+			});
+		},
+
+		/** Show the own profile as last known, for when the hub can't be reached. */
+		async restoreOwnProfile() {
+			const cached = await hubStorage.get<OwnProfile>(OWN_PROFILE_STORAGE_KEY);
+			if (!cached || !this.userId) return;
+			this.setUserProfile(this.userId, {
+				displayName: cached.displayName,
+				contentAvatarUrl: cached.contentAvatarUrl,
+				avatarUrl: cached.avatarDataUrl,
+			});
+		},
+
+		/**
+		 * Record an answer from the hub about which users are deactivated.
+		 *
+		 * @param checked The users that were asked about.
+		 * @param deactivated The ones among them whose account is gone.
+		 */
+		setDeactivationResults(checked: string[], deactivated: string[]) {
+			// Reassigned rather than mutated: a `Set` is not deeply reactive in Pinia, so the
+			// components rendering these names would not re-render on a mutation.
+			this.deactivatedUsers = new Set([...this.deactivatedUsers, ...deactivated]);
+			this.resolvedDeactivation = new Set([...this.resolvedDeactivation, ...checked]);
 		},
 
 		// Profile setter method for all users.
-		// This method is used when syncing profiles of users.
+		// This method is used when syncing profiles of users. Merges into the cached profile: only the
+		// fields given change, a field given as undefined is cleared.
 		setUserProfile(userId: string, profileData: UserProfile) {
-			this.usersProfile.set(userId, profileData);
+			this.usersProfile.set(userId, { ...this.usersProfile.get(userId), ...profileData });
 		},
 
+		/**
+		 * @throws when the hub could not store the consent; the caller has to tell the user, who would
+		 *   otherwise be sent back to the house rules without knowing why.
+		 */
 		async setUserConsentVersion(version: number): Promise<void> {
 			const data = {
 				version: version,
 			};
-			try {
-				await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=consent`, data);
-				this.needsConsent = false;
-				this.needsOnboarding = false;
-			} catch (error) {
-				logger.error(error);
-			}
+			await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=consent`, data);
+			this.needsConsent = false;
+			this.needsOnboarding = false;
+			void hubStorage.set<ConsentState>(CONSENT_STORAGE_KEY, { needsConsent: false, needsOnboarding: false });
 		},
 		// #endregion
 
@@ -297,13 +411,25 @@ const useUser = defineStore('user', {
 				if (response) {
 					this.needsConsent = response.needs_consent;
 					this.needsOnboarding = response.needs_onboarding;
+					void hubStorage.set<ConsentState>(CONSENT_STORAGE_KEY, { needsConsent: this.needsConsent, needsOnboarding: this.needsOnboarding });
 				}
 			} catch (error) {
-				logger.error('Could not check if user needs consent, ', error);
-				router.push({ name: 'error-page' });
-				this.needsConsent = true;
+				if (isNetworkError(error)) {
+					// Go by the last answer from the hub. Without one, ask for consent: a request the hub's CORS
+					// policy blocks looks just like an unreachable hub, while the rest of the hub may still work,
+					// so letting the user in would skip the house rules. This runs again once the hub is back.
+					const cached = await hubStorage.get<ConsentState>(CONSENT_STORAGE_KEY);
+					logger.warn('The hub is unreachable; using the last known consent state', { cached });
+					this.needsConsent = cached?.needsConsent ?? true;
+					this.needsOnboarding = cached?.needsOnboarding ?? false;
+				} else {
+					logger.error('Could not check if user needs consent, ', error);
+					router.push({ name: 'error-page' });
+					this.needsConsent = true;
+				}
 			}
-			if (this.needsConsent || this.needsOnboarding) {
+			// Already on the onboarding page (a re-check on reconnect): pushing it again would make it its own originalRoute.
+			if ((this.needsConsent || this.needsOnboarding) && router.currentRoute.value.name !== 'onboarding') {
 				const onboardingType = this.needsOnboarding ? OnboardingType.full : OnboardingType.consent;
 				router.push({ name: 'onboarding', query: { type: onboardingType, originalRoute: router.currentRoute.value.path } });
 			}

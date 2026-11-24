@@ -1,0 +1,148 @@
+<template>
+	<div class="h-full overflow-y-auto">
+		<div class="flex min-h-full flex-col items-center justify-center gap-300 p-200 lg:gap-400">
+			<VideoCallPermissionDialog
+				v-if="permissionState"
+				:state="permissionState"
+				@close="dismissedFor = permissionState"
+			/>
+
+			<H1>{{ t('videocall.prejoin_title') }}</H1>
+
+			<div class="flex w-full max-w-7000 flex-col gap-200 lg:gap-300">
+				<div
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.experimental_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{ t('videocall.experimental_body') }}</span>
+				</div>
+				<div
+					v-if="videoCall.e2eeBlocked"
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.e2ee_blocked_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{ t('videocall.e2ee_blocked_body') }}</span>
+				</div>
+				<div
+					v-if="!videoCall.e2eeBlocked && videoCall.insufficientPowerlevel"
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.insufficient_powerlevel_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{ t('videocall.insufficient_powerlevel_body') }}</span>
+				</div>
+				<div
+					v-if="!videoCall.e2eeBlocked && !videoCall.insufficientPowerlevel && videoCall.videocallUnavailable"
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.unavailable_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{ t('videocall.unavailable_body') }}</span>
+				</div>
+				<div
+					v-if="videoCall.connect_error && !videoCall.e2eeBlocked && !videoCall.insufficientPowerlevel && !videoCall.videocallUnavailable"
+					class="bg-surface rounded-base flex flex-col gap-100 p-200"
+					role="alert"
+				>
+					<span class="text-label font-semibold">{{ t('videocall.connect_failed_title') }}</span>
+					<span class="text-label-small text-on-surface-dim">{{
+						videoCall.connect_error === ConnectError.Media ? t('videocall.connect_failed_media_body') : t('videocall.connect_failed_body')
+					}}</span>
+				</div>
+
+				<VideoCallPreview />
+
+				<div
+					v-if="user.userId"
+					class="flex min-w-0 flex-wrap items-center justify-center gap-100"
+				>
+					<span class="text-label-small text-on-surface-dim">{{ t('videocall.appear_as') }}</span>
+					<UserDisplayName
+						:user-id="user.userId"
+						:user-display-name="user.userDisplayName(user.userId)"
+					/>
+					<RoomBadge
+						v-if="currentRoom && !currentRoom.isDirectMessageRoom()"
+						:user="user.userId"
+						:room-id="currentRoom.roomId"
+					/>
+				</div>
+
+				<VideoCallDevicePicker />
+
+				<ButtonGroup class="justify-center">
+					<Button
+						variant="tertiary"
+						@click="emit('exit')"
+						>{{ t('videocall.exit') }}</Button
+					>
+					<Button
+						variant="primary"
+						:disabled="joining || !devicesLoaded || videoCall.e2eeBlocked || videoCall.insufficientPowerlevel || videoCall.videocallUnavailable"
+						@click="emit('join')"
+						>{{ joining ? t('videocall.connecting') : t('videocall.join') }}</Button
+					>
+				</ButtonGroup>
+			</div>
+		</div>
+	</div>
+</template>
+
+<script setup lang="ts">
+	// Packages
+	import { computed, onMounted, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+	import VideoCallDevicePicker from '@hub-client/components/videocall/VideoCallDevicePicker.vue';
+	import VideoCallPermissionDialog from '@hub-client/components/videocall/VideoCallPermissionDialog.vue';
+	import VideoCallPreview from '@hub-client/components/videocall/VideoCallPreview.vue';
+
+	// Composables
+	import { useVideoCallDevices } from '@hub-client/composables/useVideoCallDevices';
+
+	// Models
+	import { type TPermissionNotice } from '@hub-client/models/videocall/TVideoCall';
+
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
+	// Stores
+	import useVideoCall, { ConnectError } from '@hub-client/stores/videoCall';
+
+	defineProps({
+		joining: {
+			type: Boolean,
+		},
+	});
+
+	const emit = defineEmits<{
+		join: [];
+		exit: [];
+	}>();
+
+	const { t } = useI18n();
+	const videoCall = useVideoCall();
+	const { access, devicesLoaded, setUpDevices } = useVideoCallDevices();
+	const rooms = useRooms();
+	const user = useUser();
+
+	const currentRoom = computed(() => rooms.currentRoom);
+
+	// Keyed to the state it dismissed, so waving away "blocked" does not also hide a later
+	// "no devices found", while a refresh that changes nothing stays quiet.
+	const dismissedFor = ref<TPermissionNotice>();
+
+	const permissionState = computed(() => {
+		if (access.value === 'granted' || dismissedFor.value === access.value) return undefined;
+		return access.value;
+	});
+
+	onMounted(() => void setUpDevices());
+</script>

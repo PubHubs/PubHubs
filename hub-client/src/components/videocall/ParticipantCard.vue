@@ -1,5 +1,5 @@
 <template>
-	<div class="group bg-surface-base m-150 mb-0 flex items-center justify-between overflow-hidden rounded-md py-100 pr-200 pl-100">
+	<div class="group bg-surface-base rounded-base flex items-center justify-between overflow-hidden py-100 pr-200 pl-100">
 		<div class="flex w-full items-center gap-100 truncate">
 			<div class="flex h-fit w-full flex-col overflow-hidden">
 				<UserDisplayName
@@ -7,22 +7,27 @@
 					:user-display-name="user.userDisplayName(participantUserId)"
 				/>
 			</div>
+			<span
+				v-if="isSelf"
+				class="text-on-surface-dim text-label-small shrink-0"
+				>{{ t('videocall.you') }}</span
+			>
 		</div>
 		<Icon
-			v-if="!isCameraEnabled"
-			type="video_mute"
+			v-if="!cameraOn"
+			type="video-camera-slash"
 			size="sm"
 			class="text-on-surface-dim rounded-md stroke-0 p-100"
 		/>
 		<Icon
-			v-if="!isMicrophoneEnabled || videoCall.isLocallyMuted(remoteParticipantName)"
-			type="microphone_mute"
+			v-if="!micOn"
+			type="microphone-slash"
 			size="sm"
 			class="text-on-surface-dim rounded-md stroke-0 p-100"
 		/>
-		<div>
+		<div v-if="!isSelf">
 			<Icon
-				type="dots"
+				type="dots-three-vertical"
 				size="sm"
 				class="hover:text-accent-primary stroke-0 p-100 hover:cursor-pointer"
 				@click.stop="toggleDropDown()"
@@ -36,7 +41,7 @@
 					variant="secondary"
 					@click="toggleMute"
 				>
-					{{ isLocallyMuted ? 'Unmute for me' : 'Mute for me' }}
+					{{ isLocallyMuted ? t('videocall.unmute_for_me') : t('videocall.mute_for_me') }}
 				</Button>
 			</div>
 		</div>
@@ -44,47 +49,65 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, onUnmounted, ref, watch } from 'vue';
+	import { computed, onMounted, onUnmounted, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 
+	import { ParticipantTrackStateEvents } from '@hub-client/models/videocall/TVideoCall';
+
 	import { useUser } from '@hub-client/stores/user';
 	import useVideoCall from '@hub-client/stores/videoCall';
 
-	const props = defineProps<{
-		remoteParticipantName: string;
-	}>();
+	const props = withDefaults(
+		defineProps<{
+			remoteParticipantName: string;
+			isSelf?: boolean;
+		}>(),
+		{ isSelf: false },
+	);
 
+	const { t } = useI18n();
 	const videoCall = useVideoCall();
 	const user = useUser();
-	const remoteParticipant = ref(videoCall.getRemoteParticipant(props.remoteParticipantName));
-	const isMicrophoneEnabled = ref(remoteParticipant.value?.isMicrophoneEnabled);
-	const isCameraEnabled = ref(remoteParticipant.value?.isCameraEnabled);
+
+	// Not in a ref: Vue does not see LiveKit's own changes anyway, and the card never switches participant
+	const remoteParticipant = videoCall.getRemoteParticipant(props.remoteParticipantName);
+	// Vue cannot see Livekit's own changes, so keep reactive copies that are updated from Livekit's events
+	const isMicrophoneEnabled = ref(remoteParticipant?.isMicrophoneEnabled ?? false);
+	const isCameraEnabled = ref(remoteParticipant?.isCameraEnabled ?? false);
+
 	const isLocallyMuted = ref(videoCall.isLocallyMuted(props.remoteParticipantName));
 	const expandDrowpDown = ref(false);
 	const dropDown = ref<HTMLElement | null>(null);
 	const participantUserId = ref(computeParticipantId(props.remoteParticipantName));
 
-	watch(
-		[remoteParticipant],
-		([remote]) => {
-			if (!remote) return;
-			isCameraEnabled.value = remote.isCameraEnabled;
-			isMicrophoneEnabled.value = remote.isMicrophoneEnabled;
-			isLocallyMuted.value = videoCall.isLocallyMuted(props.remoteParticipantName);
-		},
-		{ deep: true },
+	// LiveKit only reports the state of remote participants; our own comes from the store.
+	const micOn = computed(() =>
+		props.isSelf
+			? !!videoCall.audio_track && !videoCall.mute_audio_track
+			: isMicrophoneEnabled.value && !videoCall.isLocallyMuted(props.remoteParticipantName),
 	);
+	const cameraOn = computed(() => (props.isSelf ? !!videoCall.video_track && !videoCall.mute_video_track : isCameraEnabled.value));
+
+	const updateTrackState = () => {
+		if (!remoteParticipant) return;
+		isCameraEnabled.value = remoteParticipant.isCameraEnabled;
+		isMicrophoneEnabled.value = remoteParticipant.isMicrophoneEnabled;
+	};
 
 	onMounted(() => {
 		document.addEventListener('click', handleClickOutside);
+		ParticipantTrackStateEvents.forEach((event) => remoteParticipant?.on(event, updateTrackState));
+		updateTrackState();
 	});
 
 	onUnmounted(() => {
 		document.removeEventListener('click', handleClickOutside);
+		ParticipantTrackStateEvents.forEach((event) => remoteParticipant?.off(event, updateTrackState));
 	});
 
 	function toggleMute() {

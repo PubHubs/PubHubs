@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        base-config rather than debug-overrides: WebView's support for debug-overrides is not
+        guaranteed across versions, and this whole file only exists in the debug source set anyway.
+
+        cleartextTrafficPermitted must be repeated here: specifying any network security config
+        supersedes the manifest's android:usesCleartextTraffic, and the default for targetSdk 28+
+        is false — which would break global-client's plain-HTTP PHC/PubHubs URLs.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

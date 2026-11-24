@@ -9,7 +9,7 @@ import { en } from '@hub-client/locales/en';
 import { nl } from '@hub-client/locales/nl';
 
 // Re-exported so existing importers of '@hub-client/i18n' keep working.
-import { type Language, fallbackLanguage, supportedLanguages } from '@hub-client/language';
+import { fallbackLanguage } from '@hub-client/language';
 
 // associate locale to language
 const languageLocale: Record<string, Locale> = {
@@ -81,18 +81,30 @@ const i18nOptions: I18nOptions = {
 	},
 };
 
+// Save a shared instance for stores to translate without a setup context
+let _i18n: ReturnType<typeof setUpi18n> | null = null;
+
 const setUpi18n = function (_app?: App) {
 	const i18n = createI18n(i18nOptions);
+	_i18n = i18n;
 	setLanguage(i18n, fallbackLanguage);
 	return i18n;
 };
 
 const setLanguage = function (i18n: { global: { locale: unknown } }, language: string) {
 	(i18n.global.locale as { value: string }).value = language;
+	document.documentElement.lang = language;
 };
 
 const currentLanguage = function (i18n: { global: { locale: unknown } }) {
 	return (i18n.global.locale as { value: string }).value;
 };
 
-export { Language, currentLanguage, fallbackLanguage, setLanguage, setUpi18n, supportedLanguages, languageLocale };
+// Returns the shared instance so stores can translate without a setup context.
+const getI18n = function () {
+	return _i18n ?? setUpi18n();
+};
+
+export { currentLanguage, fallbackLanguage, setLanguage, setUpi18n, languageLocale, getI18n };
+
+export { type Language, supportedLanguages } from '@hub-client/language';

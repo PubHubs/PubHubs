@@ -375,6 +375,20 @@ pub mod phc {
         #[serde(default = "default_auth_token_validity")]
         pub auth_token_validity: core::time::Duration,
 
+        /// An expired auth token can be refreshed (without the user logging in again) for at most
+        /// this long after it expired.  Logs out users that have been inactive for this long.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_auth_token_max_idle")]
+        pub auth_token_max_idle: core::time::Duration,
+
+        /// Auth tokens can be refreshed for at most this long after the user logged in, after
+        /// which the user must log in again, active or not.
+        ///
+        /// The max duration stops a leaked authtoken from being valid indefinitely.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_auth_session_max_duration")]
+        pub auth_session_max_duration: core::time::Duration,
+
         /// [`api::phc::user::PpNonce`]s issued to the global client are valid for this duration.
         #[serde(with = "time_ext::human_duration")]
         #[serde(default = "default_pp_nonce_validity")]
@@ -385,6 +399,13 @@ pub mod phc {
         #[serde(with = "time_ext::human_duration")]
         #[serde(default = "default_card_pseud_validity")]
         pub card_pseud_validity: core::time::Duration,
+
+        /// The pseudonyms of a deleted account are listed to hubs via
+        /// [`api::phc::hub::DeletedPseudonymsEP`] for this long.  A hub that does not ask within
+        /// this time keeps the account.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_deleted_pseudonym_retention")]
+        pub deleted_pseudonym_retention: core::time::Duration,
 
         /// Secret used to derive `hmac`s for the retrieval of user objects.
         ///
@@ -408,6 +429,14 @@ pub mod phc {
         // to their Yivi app
     }
 
+    fn default_auth_token_max_idle() -> core::time::Duration {
+        core::time::Duration::from_secs(90 * 24 * 60 * 60) // 90 days
+    }
+
+    fn default_auth_session_max_duration() -> core::time::Duration {
+        core::time::Duration::from_secs(365 * 24 * 60 * 60) // 1 year
+    }
+
     fn default_pp_nonce_validity() -> core::time::Duration {
         core::time::Duration::from_secs(30)
         // no user interaction required
@@ -416,6 +445,10 @@ pub mod phc {
     fn default_card_pseud_validity() -> core::time::Duration {
         core::time::Duration::from_secs(30)
         // no user interaction required
+    }
+
+    fn default_deleted_pseudonym_retention() -> core::time::Duration {
+        core::time::Duration::from_secs(365 * 24 * 60 * 60) // 1 year - hubs may be down for long
     }
 }
 

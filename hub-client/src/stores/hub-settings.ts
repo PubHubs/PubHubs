@@ -8,12 +8,16 @@ import { useImageActions } from '@hub-client/composables/useImageActions';
 
 // Logic
 import { api_synapse as api } from '@hub-client/logic/core/api';
+import { hubStorage } from '@hub-client/logic/core/hubStorage';
+import { isNetworkError } from '@hub-client/logic/core/networkError';
 import { type HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 import { CONFIG } from '@hub-client/logic/logging/Config';
 
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { FeatureFlag, Theme, useSettings } from '@hub-client/stores/settings';
+
+const HUB_SETTINGS_STORAGE_KEY = 'hubSettings';
 
 // Types
 type HubInformation = {
@@ -31,6 +35,8 @@ type HubSettingsState = {
 	_contact: string;
 	_consent: string;
 	_version: number;
+	_videocallEnabled: boolean;
+	_videocallAdminEnabled: boolean;
 };
 
 export const toolbarSettings = {
@@ -83,6 +89,8 @@ const useHubSettings = defineStore('hub-settings', {
 			_contact: '',
 			_consent: '',
 			_version: 1,
+			_videocallEnabled: false,
+			_videocallAdminEnabled: false,
 		};
 	},
 
@@ -188,6 +196,16 @@ const useHubSettings = defineStore('hub-settings', {
 		hubConsentVersion(): number {
 			return this._version;
 		},
+		videocallEnabled(): boolean {
+			return this._videocallEnabled;
+		},
+		videocallAdminEnabled(): boolean {
+			return this._videocallAdminEnabled;
+		},
+		/** LiveKit is configured on this hub and the hub admin has video calls switched on. */
+		videocallAvailable(): boolean {
+			return this._videocallEnabled && this._videocallAdminEnabled;
+		},
 	},
 	actions: {
 		hideBar() {
@@ -216,10 +234,22 @@ const useHubSettings = defineStore('hub-settings', {
 		async deleteBanner() {
 			await api.apiDELETE(api.apiURLS.hubBanner);
 		},
+		/**
+		 * The hub's settings (description, contact, house rules). Kept in HubStorage, so the last copy is
+		 * there while the hub can't be reached; only then is the network error passed on.
+		 */
 		async getHubJSON(): Promise<HubSettingsJSONParser | undefined> {
 			const settings = useSettings();
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				const response = await api.apiGET<HubSettingsJSONParser>(api.apiURLS.hubSettings);
+				let response: HubSettingsJSONParser;
+				try {
+					response = await api.apiGET<HubSettingsJSONParser>(api.apiURLS.hubSettings);
+					void hubStorage.set(HUB_SETTINGS_STORAGE_KEY, response);
+				} catch (error) {
+					const cached = isNetworkError(error) ? await hubStorage.get<HubSettingsJSONParser>(HUB_SETTINGS_STORAGE_KEY) : undefined;
+					if (!cached) throw error;
+					response = cached;
+				}
 				this._summary = response.summary;
 				this._description = response.description;
 				this._contact = response.contact;
@@ -232,6 +262,27 @@ const useHubSettings = defineStore('hub-settings', {
 		},
 		async setHubJSON(hubSettingsData: HubSettingsJSONParser) {
 			await api.apiPOST(api.apiURLS.hubSettings, hubSettingsData);
+			this._videocallAdminEnabled = hubSettingsData.videocall_admin_enabled === true;
+		},
+		/**
+		 * The only place the video call flags are read: `videocall_enabled` (LiveKit found at hub boot)
+		 * and the admin's `videocall_admin_enabled` from the hub settings.
+		 * When the admin saves it setHubJSON updates the latter.
+		 */
+		async fetchHubInfo() {
+			try {
+				const response = await api.apiGET<{
+					Ok?: {
+						videocall_enabled?: boolean;
+						dynamic?: { settings?: { videocall_admin_enabled?: boolean } };
+					};
+				}>(api.apiURLS.hubPhInfo);
+				this._videocallEnabled = response?.Ok?.videocall_enabled === true;
+				this._videocallAdminEnabled = response?.Ok?.dynamic?.settings?.videocall_admin_enabled === true;
+			} catch {
+				this._videocallEnabled = false;
+				this._videocallAdminEnabled = false;
+			}
 		},
 	},
 });

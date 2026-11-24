@@ -248,6 +248,8 @@ pub enum MessageCode {
     // new >v3.3.0
     /// Seals the transcryptor's master encryption key part in its discovery info.
     MasterEncKeyPart = 14,
+    // new >v3.4.0
+    Ehps = 15,
 
     /// Only used as an example in a doctest
     Example = 65535,

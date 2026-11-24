@@ -1,41 +1,28 @@
-// Walter's code
-// import { BaseKeyProvider, createKeyMaterialFromBuffer } from 'livekit-client';
-// import { MatrixRTCSession, MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
-// export class MatrixKeyProvider extends BaseKeyProvider {
-// 	private rtcSession: MatrixRTCSession | null = null;
-// 	private keys = new Map<string, Map<number, Uint8Array>>();
-// 	public constructor() {
-// 		super({ sharedKey: false });
-// 	}
-// 	public setRTCSession(rtcSession: MatrixRTCSession): void {
-// 		if (this.rtcSession) {
-// 			this.rtcSession.off(MatrixRTCSessionEvent.EncryptionKeyChanged, this.onEncryptionKeyChanged);
-// 		}
-// 		this.rtcSession = rtcSession;
-// 		this.rtcSession.off(MatrixRTCSessionEvent.EncryptionKeyChanged, this.onEncryptionKeyChanged);
-// 		this.rtcSession.on(MatrixRTCSessionEvent.EncryptionKeyChanged, this.onEncryptionKeyChanged);
-// 		// The new session could be aware of keys of which the old session wasn't,
-// 		// so emit a key changed event.
-// 		for (const [participant, encryptionKeys] of this.rtcSession.getEncryptionKeys()) {
-// 			for (const [index, encryptionKey] of encryptionKeys.entries()) {
-// 				this.onEncryptionKeyChanged(encryptionKey, index, participant);
-// 			}
-// 		}
-// 	}
-// 	private onEncryptionKeyChanged = async (encryptionKey: Uint8Array, encryptionKeyIndex: number, participantId: string): Promise<void> => {
-// 		this.onSetEncryptionKey(await createKeyMaterialFromBuffer(encryptionKey.buffer as ArrayBuffer), participantId, encryptionKeyIndex);
-// 		this.keys.set(participantId, new Map([[encryptionKeyIndex, encryptionKey]]));
-// 	};
-// }
 import { BaseKeyProvider, createKeyMaterialFromBuffer } from 'livekit-client';
 import { type MatrixRTCSession, MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc/MatrixRTCSession';
+
+import { createLogger } from '@hub-client/logic/logging/Logger';
+
+const logger = createLogger('matrixKeyProvider');
+
+function membershipIdentity(membership: unknown): string | undefined {
+	if (typeof membership !== 'object' || membership === null) return undefined;
+	const { userId, deviceId } = membership as { userId?: unknown; deviceId?: unknown };
+	return typeof userId === 'string' && typeof deviceId === 'string' ? `${userId}:${deviceId}` : undefined;
+}
 
 export class MatrixKeyProvider extends BaseKeyProvider {
 	private rtcSession: MatrixRTCSession | null = null;
 	private keys = new Map<string, Map<number, Uint8Array>>();
 
 	public constructor() {
-		super({ sharedKey: false });
+		//super({ sharedKey: false });
+
+		// ratchetWindowSize: deriving the next key from the current one without sending a new one. Livekit supports it, Matrix not yet.
+		// To keep it futureproof Element passes 10, so that when Matrix starts supporting it, the calls keep working
+		// The overhead it costs now is minimal
+		// Set the keyRingSize to minimize the chance of collision of keys
+		super({ sharedKey: false, ratchetWindowSize: 10, keyringSize: 256 });
 	}
 
 	public setRTCSession(rtcSession: MatrixRTCSession): void {
@@ -56,12 +43,10 @@ export class MatrixKeyProvider extends BaseKeyProvider {
 		}, 0);
 	}
 
+	// LiveKit looks up decryption keys by participant identity, which the hub issues as `user:device`.
 	private onEncryptionKeyChanged = (encryptionKey: Uint8Array, encryptionKeyIndex: number, membership: unknown, rtcBackendIdentity?: string): void => {
-		const membershipUserId =
-			typeof membership === 'object' && membership !== null && 'userId' in membership && typeof membership.userId === 'string'
-				? membership.userId
-				: undefined;
-		const participantId = membershipUserId ?? rtcBackendIdentity ?? 'unknown';
+		const participantId = rtcBackendIdentity ?? membershipIdentity(membership);
+		if (!participantId) return;
 
 		createKeyMaterialFromBuffer(encryptionKey.buffer as ArrayBuffer)
 			.then((keyMaterial) => {
@@ -71,6 +56,6 @@ export class MatrixKeyProvider extends BaseKeyProvider {
 				}
 				this.keys.get(participantId)?.set(encryptionKeyIndex, encryptionKey);
 			})
-			.catch(() => undefined);
+			.catch((error) => logger.error('E2EE key material failed', error));
 	};
 }

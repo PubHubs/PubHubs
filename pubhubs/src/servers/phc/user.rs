@@ -63,6 +63,125 @@ impl App {
         Ok(StateResp::State(user_state.into_user_version(&app)))
     }
 
+    /// Implements [`DeleteAccountEP`]
+    ///
+    /// # Note on the implementation
+    ///
+    /// The object store gives us no transaction, so we order the steps to make every partial
+    /// result a state the user can either live with or retry out of:
+    ///
+    ///   (0) List the user's pseudonym at every hub as deleted, so the hubs deactivate their
+    ///       accounts there.  This needs the account, so it goes first.  Stopping here has hubs
+    ///       deactivate accounts of a user who still has a PubHubs account; entering such a hub
+    ///       again makes them a new member there, as it would have after the deletion.
+    ///   (1) Release the attributes, so nothing identifies this account anymore.  Stopping
+    ///       here leaves an account its owner can no longer log into, but can still delete
+    ///       with the auth token they hold - and if they never do, they register afresh with
+    ///       the same attributes, which is what they asked for anyway.
+    ///   (2) Delete the stored objects.  A failure here only orphans an object.
+    ///   (3) Delete the account itself.
+    ///
+    /// Doing it the other way around would leave attributes pointing at an account that is
+    /// gone, which [`Self::handle_user_enter`] cannot tell from a corrupted store.
+    pub(super) async fn handle_user_delete_account(
+        app: Rc<Self>,
+        auth_token: actix_web::web::Header<AuthToken>,
+    ) -> api::Result<DeleteAccountResp> {
+        let Ok((user_state, _)) = app
+            .open_auth_token_and_get_user_state(auth_token.into_inner())
+            .await?
+        else {
+            return Ok(DeleteAccountResp::RetryWithNewAuthToken);
+        };
+
+        // Deleting releases this account's attributes, so a banned user could delete their way
+        // to a clean account with the very attributes they were banned on.  Refuse.
+        if user_state.banned {
+            log::info!("refusing to delete banned account {}", user_state.id);
+            return Ok(DeleteAccountResp::Banned);
+        }
+
+        let user_id = user_state.id;
+
+        // (0)
+        if !app.list_deleted_pseudonyms(&user_state).await? {
+            return Ok(DeleteAccountResp::PleaseRetry);
+        }
+
+        // (1) An attribute may both identify this user and be bannable for them, so dedupe.
+        let attr_ids: HashSet<Id> = user_state
+            .allow_login_by
+            .iter()
+            .chain(user_state.could_be_banned_by.iter())
+            .copied()
+            .collect();
+
+        for attr_id in attr_ids {
+            let Some((mut attr_state, attr_state_version)) =
+                app.get_object::<AttrState>(&attr_id).await?
+            else {
+                log::warn!("account {user_id} refers to attribute {attr_id}, which does not exist");
+                continue;
+            };
+
+            if attr_state.may_identify_user == Some(user_id) {
+                attr_state.may_identify_user = None;
+            }
+
+            attr_state.bans_users.remove(&user_id);
+
+            // NOTE: `banned` is deliberately left as it is.  Removing the object would unban the
+            // attribute, and deleting an account would become a way to shed a ban on one.
+            //
+            // The `AttrState` is kept even when it ends up empty: the object store has no
+            // conditional delete, so deleting it could wipe out a claim another registration
+            // made on the released attribute after we read it.  An empty `AttrState` behaves as
+            // a missing one everywhere it is read.
+            if app
+                .put_object::<AttrState>(&attr_state, Some(attr_state_version))
+                .await?
+                .is_none()
+            {
+                log::info!(
+                    "could not release attribute {attr_id} of account {user_id}: \
+                    it was changed from under us"
+                );
+                return Ok(DeleteAccountResp::PleaseRetry);
+            }
+        }
+
+        // (2) Nothing points at these anymore, so a failure costs us storage, not correctness.
+        for (handle, object_details) in user_state.stored_objects.iter() {
+            match app
+                .delete_object::<super::user_object_store::UserObject>(object_details.id)
+                .await
+            {
+                Ok(true) => { /* ok */ }
+                Ok(false) => {
+                    log::warn!(
+                        "expected to delete object {handle} of account {user_id}, \
+                        but it is already gone"
+                    );
+                }
+                Err(err) => {
+                    log::warn!(
+                        "orphaning object {handle} of account {user_id}: failed to delete it: \
+                        {err:?}"
+                    );
+                }
+            }
+        }
+
+        // (3)
+        if !app.delete_object::<UserState>(user_id).await? {
+            log::warn!("expected to delete account {user_id}, but it is already gone");
+        }
+
+        log::info!("deleted account {user_id}");
+
+        Ok(DeleteAccountResp::Deleted)
+    }
+
     /// Implements [`EnterEP`]
     pub(super) async fn handle_user_enter(
         app: Rc<Self>,
@@ -78,8 +197,8 @@ impl App {
             register_only_with_unique_attrs,
         } = req.into_inner();
 
-        let auth_token_user_id = if let Some(auth_token) = auth_token {
-            let Ok(user_id) = app.open_auth_token(auth_token.into_inner()) else {
+        let auth_token_inner = if let Some(auth_token) = auth_token {
+            let Ok(inner) = app.open_auth_token_inner(auth_token.into_inner(), false) else {
                 return Ok(EnterResp::RetryWithNewAuthToken);
             };
 
@@ -88,9 +207,15 @@ impl App {
                 return Err(api::ErrorCode::BadRequest);
             }
 
-            Some(user_id)
+            Some(inner)
         } else {
             None
+        };
+        let auth_token_user_id = auth_token_inner.as_ref().map(|inner| inner.user_id);
+
+        let session_start = match (&identifying_attr, &auth_token_inner) {
+            (None, Some(inner)) => inner.session_start,
+            _ => jwt::NumericDate::now(),
         };
 
         if auth_token_user_id.is_none() && identifying_attr.is_none() {
@@ -205,15 +330,11 @@ impl App {
         // Attributes are fine, check if we have a user account, or create it if need be
         let ((user_state, mut user_state_version), new_account) = 'found_user: {
             if let Some(auth_token_user_id) = auth_token_user_id {
-                let user_and_version = app
-                    .get_object::<UserState>(&auth_token_user_id)
-                    .await?
-                    .ok_or_else(|| {
-                        log::error!(
-                            "a valid auth token passed during entry refers to a user with user_id {auth_token_user_id}  that does not exist",
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
+                let Ok(user_and_version) =
+                    app.get_auth_token_user_state(auth_token_user_id).await?
+                else {
+                    return Ok(EnterResp::RetryWithNewAuthToken);
+                };
 
                 break 'found_user (user_and_version, false);
             }
@@ -227,37 +348,38 @@ impl App {
                 if let Some((ias, ias_v)) =
                     app.get_object::<AttrState>(&identifying_attr.id).await?
                 {
-                    log::trace!(
-                        "enter: account exists for attribute {} of type {}",
-                        identifying_attr.value,
-                        identifying_attr.attr_type,
-                    );
-
-                    let user_id = ias.may_identify_user.ok_or_else(|| {
-                        log::error!(
-                            "identifying attribute {} of type {} has may_identify_user set to None",
-                            identifying_attr.value,
-                            identifying_attr.attr_type
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
+                    let may_identify_user = ias.may_identify_user;
 
                     attr_states.insert(identifying_attr.id, (ias, ias_v));
 
-                    let user_and_version = app
-                        .get_object::<UserState>(&user_id)
-                        .await?
-                        .ok_or_else(|| {
-                            log::error!(
-                                "identifying attribute {} of type {} refers to a user \
-                            account {user_id} that does not exist",
-                                identifying_attr.value,
-                                identifying_attr.attr_type
-                            );
-                            api::ErrorCode::InternalError
-                        })?;
+                    // An `AttrState` whose `may_identify_user` is unset belongs to a deleted
+                    // account (see `handle_user_delete_account`); it only lingers to carry a
+                    // ban.  There is no account to log into, so we fall through to the
+                    // no-account path below, which refuses a `Login` and lets a `Register`
+                    // run the usual checks - including the one on `banned`, now that this
+                    // attribute's state is in `attr_states`.
+                    if let Some(user_id) = may_identify_user {
+                        log::trace!(
+                            "enter: account exists for attribute {} of type {}",
+                            identifying_attr.value,
+                            identifying_attr.attr_type,
+                        );
 
-                    break 'found_user (user_and_version, false);
+                        let user_and_version = app
+                            .get_object::<UserState>(&user_id)
+                            .await?
+                            .ok_or_else(|| {
+                                log::error!(
+                                    "identifying attribute {} of type {} refers to a user \
+                                account {user_id} that does not exist",
+                                    identifying_attr.value,
+                                    identifying_attr.attr_type
+                                );
+                                api::ErrorCode::InternalError
+                            })?;
+
+                        break 'found_user (user_and_version, false);
+                    }
                 }
 
                 log::trace!(
@@ -344,24 +466,43 @@ impl App {
                     api::ErrorCode::InternalError
                 })?;
 
-            // Add identifying attribute.  We do not expect the attribute to exist, because
-            // otherwise we would be logging in, not registering.
-            assert!(!attr_states.contains_key(&identifying_attr.id));
-
-            let identifying_attr_state =
-                AttrState::new(identifying_attr.id, &identifying_attr, user_state.id);
-
-            if let Some(identifying_attr_state_version) = app
-                .put_object::<AttrState>(&identifying_attr_state, None)
-                .await
-                .inspect_err(|err| {
-                    log::warn!(
-                        "orphaned user account {} due to error with putting \
-                        identifying attribute: {err}",
-                        user_state.id
+            // Add identifying attribute.  Usually it does not exist yet, because otherwise we
+            // would be logging in, not registering - but an attribute released by an account
+            // deletion keeps its `AttrState` when that state still carries a ban, and such an
+            // attribute is up for grabs.  Claim it rather than create it, so the new account
+            // can be logged into with it.
+            let (identifying_attr_state, put_result) =
+                if let Some((mut released, released_version)) =
+                    attr_states.remove(&identifying_attr.id)
+                {
+                    assert!(
+                        released.may_identify_user.is_none(),
+                        "about to take an identifying attribute away from user {:?}",
+                        released.may_identify_user
                     );
-                })?
-            {
+
+                    released.may_identify_user = Some(user_state.id);
+
+                    let put_result = app
+                        .put_object::<AttrState>(&released, Some(released_version))
+                        .await;
+
+                    (released, put_result)
+                } else {
+                    let fresh =
+                        AttrState::new(identifying_attr.id, &identifying_attr, user_state.id);
+                    let put_result = app.put_object::<AttrState>(&fresh, None).await;
+
+                    (fresh, put_result)
+                };
+
+            if let Some(identifying_attr_state_version) = put_result.inspect_err(|err| {
+                log::warn!(
+                    "orphaned user account {} due to error with putting \
+                        identifying attribute: {err}",
+                    user_state.id
+                );
+            })? {
                 assert!(
                     attr_states
                         .insert(
@@ -415,7 +556,36 @@ impl App {
 
         // Add the missing attributes.  First the attribute states.
         for attr in attrs.values() {
-            if attr_states.contains_key(&attr.id) {
+            if let Some((attr_state, attr_state_version)) = attr_states.get(&attr.id) {
+                // An identifying attribute released by an account deletion is up for grabs, as
+                // it is during registration.  Not claiming it would leave it unable to identify
+                // anyone, while reporting it as already there.
+                if attr_state.may_identify_user.is_none()
+                    && !attr.not_identifying
+                    && !attr_state.banned
+                {
+                    let mut claimed = attr_state.clone();
+                    claimed.may_identify_user = Some(user_state.id);
+
+                    match app
+                        .put_object::<AttrState>(&claimed, Some(attr_state_version.clone()))
+                        .await
+                    {
+                        Ok(Some(claimed_version)) => {
+                            attr_states.insert(attr.id, (claimed, claimed_version));
+                            attr_add_status.insert(attr.id, AttrAddStatus::Added);
+                        }
+                        problem => {
+                            log::warn!(
+                                "problem claiming released attribute {}: {problem:?}",
+                                attr.value
+                            );
+                            attr_add_status.insert(attr.id, AttrAddStatus::PleaseTryAgain);
+                        }
+                    }
+                    continue;
+                }
+
                 attr_add_status
                     .entry(attr.id)
                     .or_insert(AttrAddStatus::AlreadyThere);
@@ -477,11 +647,8 @@ impl App {
                     assert!(attr_add_status.contains_key(&attr.id));
                 }
                 _ => {
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                            .is_none()
-                    );
+                    // Every attribute got a status in the loop above, so this overwrites it.
+                    attr_add_status.insert(attr.id, AttrAddStatus::PleaseTryAgain);
                 }
             }
         }
@@ -537,7 +704,7 @@ impl App {
         }
         let user_state = new_user_state;
 
-        let auth_token_package = app.issue_auth_token(&user_state)?;
+        let auth_token_package = app.issue_auth_token(&user_state, session_start)?;
 
         Ok(EnterResp::Entered {
             new_account,
@@ -635,24 +802,38 @@ impl App {
         app: Rc<Self>,
         auth_token: actix_web::web::Header<AuthToken>,
     ) -> api::Result<RefreshResp> {
-        let Ok((user_state, _)) = app
-            // the `true` means we allow expired access tokens
-            .open_auth_token_and_get_user_state_ext(auth_token.into_inner(), true)
-            .await?
-        else {
+        // the `true` means we allow expired access tokens
+        let Ok(inner) = app.open_auth_token_inner(auth_token.into_inner(), true) else {
             return Ok(RefreshResp::ReobtainAuthToken);
         };
 
-        Ok(match app.issue_auth_token(&user_state)? {
-            Ok(atp) => RefreshResp::Success(atp),
-            Err(atdr) => RefreshResp::Denied(atdr),
-        })
+        if !inner.may_be_refreshed(
+            jwt::NumericDate::now(),
+            app.auth_token_max_idle,
+            app.auth_session_max_duration,
+        ) {
+            return Ok(RefreshResp::ReobtainAuthToken);
+        }
+
+        let Ok((user_state, _)) = app.get_auth_token_user_state(inner.user_id).await? else {
+            return Ok(RefreshResp::ReobtainAuthToken);
+        };
+
+        Ok(
+            match app.issue_auth_token(&user_state, inner.session_start)? {
+                Ok(atp) => RefreshResp::Success(atp),
+                Err(atdr) => RefreshResp::Denied(atdr),
+            },
+        )
     }
 
     /// Issues auth token for given user, if allowed
+    ///
+    /// `session_start` is when the user last logged in, carried over from token to token.
     fn issue_auth_token(
         &self,
         user_state: &UserState,
+        session_start: jwt::NumericDate,
     ) -> api::Result<Result<AuthTokenPackage, AuthTokenDeniedReason>> {
         if user_state.could_be_banned_by.is_empty() {
             return Ok(Err(AuthTokenDeniedReason::NoBannableAttribute));
@@ -670,6 +851,7 @@ impl App {
                 user_id: user_state.id,
                 iat,
                 exp,
+                session_start,
             }
             .seal(&self.auth_token_secret)?,
         }))
@@ -687,6 +869,10 @@ pub(super) struct AuthTokenInner {
 
     /// When this token was issued.
     iat: jwt::NumericDate,
+
+    /// When the user logged in, i.e. the `iat` of the first token in the chain of refreshes that
+    /// led to this token.
+    session_start: jwt::NumericDate,
 }
 
 impl AuthTokenInner {
@@ -704,28 +890,56 @@ impl AuthTokenInner {
         crypto::unseal(&*sealed.inner, key, b"")
     }
 
-    /// Opens this [`AuthToken`], returning the enclosed user's [`Id`].
-    fn open(self, accept_expired: bool) -> Result<Id, Opaque> {
+    /// Checks whether this [`AuthToken`] is still valid, unless `accept_expired` is set.
+    fn open(self, accept_expired: bool) -> Result<Self, Opaque> {
         if !accept_expired && self.exp < jwt::NumericDate::now() {
             return Err(OPAQUE);
         }
 
-        Ok(self.user_id)
+        Ok(self)
+    }
+
+    /// Whether a new auth token may be issued based on this (possibly expired) one at `now`,
+    /// without the user logging in again.
+    fn may_be_refreshed(
+        &self,
+        now: jwt::NumericDate,
+        max_idle: core::time::Duration,
+        max_session: core::time::Duration,
+    ) -> bool {
+        if self.exp.add_clamp(max_idle.as_secs()) < now {
+            log::debug!(
+                "refusing to refresh auth token of idle user {}",
+                self.user_id
+            );
+            return false;
+        }
+
+        if self.session_start.add_clamp(max_session.as_secs()) < now {
+            log::debug!(
+                "refusing to refresh auth token of user {}: session too old",
+                self.user_id
+            );
+            return false;
+        }
+
+        true
     }
 }
 
 impl App {
     /// Opens the given [`AuthToken`] returning the enclosed user's [`Id`].
     pub(super) fn open_auth_token(&self, auth_token: AuthToken) -> Result<Id, Opaque> {
-        self.open_auth_token_ext(auth_token, false)
+        Ok(self.open_auth_token_inner(auth_token, false)?.user_id)
     }
 
-    /// Like [`Self::open_auth_token`], but with the option to accept an expired auth token.
-    pub(super) fn open_auth_token_ext(
+    /// Like [`Self::open_auth_token`], but returns the whole contents of the auth token, and has
+    /// the option to accept an expired auth token.
+    pub(super) fn open_auth_token_inner(
         &self,
         auth_token: AuthToken,
         accept_expired: bool,
-    ) -> Result<Id, Opaque> {
+    ) -> Result<AuthTokenInner, Opaque> {
         AuthTokenInner::unseal(&auth_token, &self.auth_token_secret)?.open(accept_expired)
     }
 
@@ -736,30 +950,28 @@ impl App {
         &self,
         auth_token: AuthToken,
     ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
-        self.open_auth_token_and_get_user_state_ext(auth_token, false)
-            .await
-    }
-
-    /// Like [`Self::open_auth_token_and_get_user_state`] but with the option to accept an expired auth
-    /// token.
-    pub(super) async fn open_auth_token_and_get_user_state_ext(
-        &self,
-        auth_token: AuthToken,
-        accept_expired: bool,
-    ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
-        let Ok(user_id) = self.open_auth_token_ext(auth_token, accept_expired) else {
+        let Ok(user_id) = self.open_auth_token(auth_token) else {
             return Ok(Err(OPAQUE));
         };
 
-        Ok(Ok(self
-            .get_object::<UserState>(&user_id)
-            .await?
-            .ok_or_else(|| {
-                log::error!(
-                    "auth token refers to non- (or no longer) existing user with id {user_id}",
-                );
-                api::ErrorCode::InternalError
-            })?))
+        self.get_auth_token_user_state(user_id).await
+    }
+
+    /// Retrieves the [`UserState`] of the user an auth token was issued to.
+    ///
+    /// Returns `Ok(Err(Opaque))` when that account no longer exists.
+    async fn get_auth_token_user_state(
+        &self,
+        user_id: Id,
+    ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
+        let Some(user_state_and_version) = self.get_object::<UserState>(&user_id).await? else {
+            // Normal after the account was deleted: tokens outlive it.  The holder is told to
+            // get a new one, which only an account can give them.
+            log::info!("auth token refers to no longer existing user with id {user_id}");
+            return Ok(Err(OPAQUE));
+        };
+
+        Ok(Ok(user_state_and_version))
     }
 }
 
@@ -883,5 +1095,59 @@ impl UserState {
                 .map(|(handle, uod)| (handle, uod.into_user_version(&app.user_object_hmac_secret)))
                 .collect(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const DAY: u64 = 24 * 60 * 60;
+    const MAX_IDLE: core::time::Duration = core::time::Duration::from_secs(90 * DAY);
+    const MAX_SESSION: core::time::Duration = core::time::Duration::from_secs(365 * DAY);
+
+    fn token(session_start: u64, exp: u64) -> AuthTokenInner {
+        AuthTokenInner {
+            user_id: Id::random(),
+            exp: jwt::NumericDate::new_clamp(exp),
+            iat: jwt::NumericDate::new_clamp(exp - 3600),
+            session_start: jwt::NumericDate::new_clamp(session_start),
+        }
+    }
+
+    fn may_be_refreshed_at(token: &AuthTokenInner, now: u64) -> bool {
+        token.may_be_refreshed(jwt::NumericDate::new_clamp(now), MAX_IDLE, MAX_SESSION)
+    }
+
+    #[test]
+    fn refresh_limits() {
+        let start = 1_000_000_000;
+
+        // recently expired token of a fresh session
+        assert!(may_be_refreshed_at(
+            &token(start, start + 3600),
+            start + 7200
+        ));
+
+        // idle limit, measured from expiry
+        let t = token(start, start + 3600);
+        assert!(may_be_refreshed_at(&t, start + 3600 + 90 * DAY));
+        assert!(!may_be_refreshed_at(&t, start + 3600 + 90 * DAY + 1));
+
+        // session limit, measured from login, regardless of activity
+        let t = token(start, start + 365 * DAY - 60);
+        assert!(may_be_refreshed_at(&t, start + 365 * DAY));
+        assert!(!may_be_refreshed_at(&t, start + 365 * DAY + 1));
+    }
+
+    #[test]
+    fn auth_token_keeps_session_start() {
+        let key: crypto::SealingKey = b"test"
+            .as_slice()
+            .derive_sealing_key(sha2::Sha256::new(), "test");
+
+        let t = token(1_000_000_000, 1_000_003_600);
+        let inner = AuthTokenInner::unseal(&t.seal(&key).unwrap(), &key).unwrap();
+        assert_eq!(inner.session_start, t.session_start);
     }
 }

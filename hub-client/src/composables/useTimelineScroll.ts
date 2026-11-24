@@ -1,11 +1,12 @@
 // Packages
-import { type Ref, computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { type InjectionKey, type Ref, computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { ScrollBehavior, ScrollPosition, TimelineScrollConstants } from '@hub-client/models/constants';
+import type { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import type { TCurrentEvent } from '@hub-client/models/events/types';
 import type Room from '@hub-client/models/rooms/Room';
 
@@ -23,7 +24,28 @@ export interface InitialScrollParams {
 	lastReadEventId?: string;
 }
 
+// Provided by the timeline so message bubbles can use its scroll container as IntersectionObserver root
+export const timelineScrollRootKey: InjectionKey<Ref<HTMLElement | null>> = Symbol('timelineScrollRoot');
+
 const { SCROLL_THRESHOLD, SCROLL_DEBOUNCE } = TimelineScrollConstants;
+
+/**
+ * Events added after the newest one seen before. Older events added by backward pagination
+ * end up before that one, so they are not included.
+ */
+export function getNewTimelineEvents(
+	timeline: TimelineEvent[],
+	lastSeenEventId: string | undefined,
+	oldTimelineLength: number,
+	isLoadingPrevious: boolean,
+): TimelineEvent[] {
+	const lastSeenIndex = lastSeenEventId ? timeline.findIndex((item) => item.matrixEvent.event.event_id === lastSeenEventId) : -1;
+	if (lastSeenIndex !== -1) return timeline.slice(lastSeenIndex + 1);
+
+	// Last seen event is gone (e.g. a replaced local echo): fall back to the length difference, which is unreliable while older messages load
+	if (isLoadingPrevious || oldTimelineLength === 0) return [];
+	return timeline.slice(oldTimelineLength);
+}
 
 export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room, currentUserId: string) {
 	const isAtNewest = ref(true);
@@ -60,6 +82,19 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 		container.value.scrollTo({ top: 0, behavior: 'smooth' });
 		isAtNewest.value = true;
 		newMessageCount.value = 0;
+	}
+
+	/**
+	 * Jumps (instantly) to the newest message once the new content is rendered.
+	 * Unlike a smooth scroll this cannot be interrupted, and with column-reverse scrollTop 0 keeps the bottom pinned when bubbles grow afterwards.
+	 */
+	async function pinToNewest() {
+		isAtNewest.value = true;
+		newMessageCount.value = 0;
+		await nextTick();
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+		if (!container.value) return;
+		container.value.scrollTop = 0;
 	}
 
 	function applyHighlight(element: HTMLElement) {
@@ -143,14 +178,9 @@ export function useTimelineScroll(container: Ref<HTMLElement | null>, room: Room
 	}
 
 	function handleNewMessage(_eventId: string, senderId: string) {
-		if (senderId === currentUserId) {
-			scrollToNewest();
-			return;
-		}
-
-		if (isAtNewest.value) {
-			// Auto-scroll to show new message when caught up
-			scrollToNewest();
+		if (senderId === currentUserId || isAtNewest.value) {
+			// Auto-scroll to show new message when it is our own or when caught up
+			pinToNewest();
 			return;
 		}
 

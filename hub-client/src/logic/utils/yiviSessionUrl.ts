@@ -13,12 +13,25 @@
 // Packages
 import { SessionManagement } from '@privacybydesign/yivi-client';
 
-type SessionUrlAsserter = { _assertSafeSessionUrl: (url: string) => void };
+// Stores
+import { useSettings } from '@hub-client/stores/settings';
+
+type SessionUrlAsserter = { _assertSafeSessionUrl: (url: string) => void; _pubhubsRelaxed?: true };
+
+// Decided per call rather than at import: hub-client can't read Capacitor.DEBUG itself (Capacitor only
+// injects it into the app shell's origin), so it learns that the app is a debug build from the handshake
+// with global-client.
+const insecureYiviSessionUrlsAllowed = (): boolean => import.meta.env.DEV || useSettings().isNativeDebugApp;
 
 const allowInsecureYiviSessionUrlsInDev = (): void => {
-	if (!import.meta.env.DEV) return;
+	const prototype = SessionManagement.prototype as unknown as SessionUrlAsserter;
+	if (prototype._pubhubsRelaxed) return;
+	prototype._pubhubsRelaxed = true;
 
-	(SessionManagement.prototype as unknown as SessionUrlAsserter)._assertSafeSessionUrl = (url: string) => {
+	const original = prototype._assertSafeSessionUrl;
+	prototype._assertSafeSessionUrl = function (this: SessionUrlAsserter, url: string) {
+		if (!insecureYiviSessionUrlsAllowed()) return original.call(this, url);
+
 		if (typeof url !== 'string' || url.length === 0) throw new Error('Missing or invalid sessionPtr URL in mappings');
 		if (url.startsWith('//')) throw new Error(`Refusing to use protocol-relative sessionPtr URL: ${url}`);
 

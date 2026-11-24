@@ -10,6 +10,8 @@
 //   npm update <package>          picks up a fixed patch or minor release without touching package.json
 //   npm audit fix                 the same, for everything npm can fix on its own
 //   a bump in package.json        when the fix needs a new major or minor of a direct dependency
+//   an "overrides" entry          when the vulnerable package sits under a dependency that has not
+//                                 released a fix yet, and a compatible version can be forced in its place
 //
 // Each entry takes:
 //   id       the advisory id as the check prints it (a GHSA id, or `npm-<number>` without one)
@@ -31,6 +33,16 @@ export default {
 		{
 			id: 'GHSA-848j-6mx2-7j84',
 			reason: "No fixed version exists: 6.6.1 is the latest elliptic release, and the only upgrade npm can suggest is a major downgrade of vite-plugin-node-polyfills. We do not use elliptic ourselves; it arrives through that plugin's crypto-browserify shim, and the advisory is about the strictness of its ECDSA verification.",
+		},
+		{
+			id: 'GHSA-fc5q-39xc-vjpf',
+			reason: "No fixed version exists: 4.0.7 is the latest picomatch release. It reaches us only through build and dev tooling (vite, vitest, vite-plugin-pwa/tinyglobby, @rollup/pluginutils, vue-tsc, lint-staged, and vue-router's build-time unplugin). Every glob it compiles comes from our own build, test and lint config, never from user input, so the ReDoS is not reachable by an attacker.",
+			expires: '2027-02-01',
+		},
+		{
+			id: 'GHSA-g3hv-75wg-m249',
+			reason: 'Only minimatch 11 is fixed, and no dependent accepts it yet: eslint and @eslint/* want ^3, @trivago/prettier-plugin-sort-imports ^9, filelist (jake/ejs, under workbox-build) ^5, typescript-eslint and editorconfig ^10. An override to 11 would break the ^3 consumers, whose API differs. Dev tooling only: the patterns it matches come from our own lint, format and build config, not from user input, so the denial of service is not reachable by an attacker.',
+			expires: '2027-03-01',
 		},
 	],
 };

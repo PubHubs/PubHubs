@@ -4,6 +4,7 @@ import { ref } from 'vue';
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
+import { requestFileShare, shouldDelegateToGlobalClient } from '@hub-client/logic/core/requestFileShare';
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
@@ -65,7 +66,11 @@ const useFileDownload = () => {
  * @param href blob url, or a url on the media server
  * @param filename name the file gets on disk
  */
-function saveAs(href: string, filename: string) {
+async function saveAs(href: string, filename: string) {
+	if (shouldDelegateToGlobalClient()) {
+		await requestFileShare(href, filename);
+		return;
+	}
 	const anchor = document.createElement('a');
 	anchor.href = href;
 	anchor.download = filename;

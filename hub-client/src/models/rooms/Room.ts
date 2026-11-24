@@ -26,8 +26,9 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 // Logic
 import { api_synapse } from '@hub-client/logic/core/api';
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { PubHubsMgType, VideocallStateType } from '@hub-client/logic/core/events';
 import { createLogger } from '@hub-client/logic/logging/Logger';
+import { type PowerLevelsUsers, findPowerLevelsContent, powerLevelOf } from '@hub-client/logic/utils/powerLevelUtils';
 import { mergeStateEvents } from '@hub-client/logic/utils/roomUtils';
 
 // Models
@@ -44,6 +45,7 @@ import { type TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { type StoredUnreadInfo, getStoredUnreadInfo, updateStoredUnreadInfo } from '@hub-client/models/rooms/unreadInfoCache';
 import type TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
+import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -78,6 +80,10 @@ export default class Room {
 
 	/** Whether the first sliding sync response has been received for this room's subscription */
 	public syncDataReceived: boolean = false;
+
+	/** Whether anyone is connected to this room's call, according to LiveKit. Public for Vue reactivity. */
+	public callActive: boolean = false;
+	private callActiveRequestId = 0;
 
 	// timelinemanager of currently shown events
 	private timelineManager: TimelineManager;
@@ -244,13 +250,19 @@ export default class Room {
 		this.firstVisibleTimeStamp = 0;
 	}
 
-	public getPowerLevel(user_id: string): number {
-		const member = this.matrixRoom.getMember(user_id);
-		if (member) {
-			return member.powerLevel;
-		}
-		// If user is not a member.
-		return -1;
+	/**
+	 * Sliding-sync state is the source of power levels. The SDK state is only consulted for rooms
+	 * created without it (e.g. directly after a join), until the next sync fills stateEvents.
+	 */
+	public getPowerLevelsContent(): PowerLevelsUsers | undefined {
+		return (
+			findPowerLevelsContent(this.stateEvents) ??
+			this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomPowerLevels, '')?.getContent<PowerLevelsUsers>()
+		);
+	}
+
+	public getPowerLevel(userId: string | null | undefined): number {
+		return powerLevelOf(this.getPowerLevelsContent(), userId);
 	}
 
 	public getType(): string | undefined {
@@ -313,28 +325,6 @@ export default class Room {
 
 	public getStateJoinedMembers(): RoomMemberStateEvent[] {
 		return this.stateEvents.filter((item) => item.content.membership === 'join') as RoomMemberStateEvent[];
-	}
-
-	public getStateMemberPowerLevel(userId: string | null): number {
-		if (!userId) return 0;
-		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
-
-		if (event) {
-			return event.content.users[userId] ?? event.content.users_default ?? 0;
-		}
-		// Fall back to Matrix SDK room state (for rooms loaded without stateEvents)
-		const powerLevelEvent = this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.getStateEvents(EventType.RoomPowerLevels, '');
-		if (powerLevelEvent) {
-			const content = powerLevelEvent.getContent() as { users?: Record<string, number>; users_default?: number };
-			return content?.users?.[userId] ?? content?.users_default ?? 0;
-		}
-		return 0;
-	}
-
-	public getStatePowerLevel() {
-		const event = this.stateEvents.filter((event) => event.type === EventType.RoomPowerLevels).find((event) => event.content.users);
-		if (!event) return null;
-		return event;
 	}
 
 	public getStateTimeout(): TTimeoutStateEvent | undefined {
@@ -407,7 +397,7 @@ export default class Room {
 	public getRoomStewards(): Array<TRoomMember> {
 		return this.getMembersIds()
 			.map((member) => this.getMember(member))
-			.filter((roomMember) => roomMember !== null && roomMember.powerLevel === 50) as unknown as Array<TRoomMember>;
+			.filter((roomMember) => roomMember !== null && this.getPowerLevel(roomMember.userId) === UserPowerLevel.Steward) as unknown as Array<TRoomMember>;
 	}
 	public getMembersIdsFromName(): Array<string> {
 		const roomMemberIds = this.name.split(',');
@@ -437,7 +427,10 @@ export default class Room {
 		const member = this.matrixRoom.getMember(user_id);
 
 		if (member) {
-			const sufficient = this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.hasSufficientPowerLevelFor('redact', member?.powerLevel);
+			const sufficient = this.matrixRoom
+				.getLiveTimeline()
+				.getState(EventTimeline.FORWARDS)
+				?.hasSufficientPowerLevelFor('redact', this.getPowerLevel(user_id));
 			return sufficient || false;
 		}
 		return false;
@@ -695,6 +688,18 @@ export default class Room {
 		return this.timelineManager.relatedEventsRevision;
 	}
 
+	public get latestVideoCall() {
+		return this.timelineManager.latestVideoCall;
+	}
+
+	public get editsRevision() {
+		return this.timelineManager.editsRevision;
+	}
+
+	public getLatestEdit(eventId: string): MatrixEvent | undefined {
+		return this.timelineManager.getLatestEdit(eventId);
+	}
+
 	public getVerifications(eventId: string): MatrixEvent[] {
 		return this.timelineManager.getVerifications(eventId);
 	}
@@ -719,6 +724,9 @@ export default class Room {
 	 * Initialization room timeline: subscribes to sliding sync and loads initial messages
 	 */
 	public async initTimeline() {
+		// check if a livekitcall is active
+		void this.refreshCallActive();
+
 		this.syncDataReceived = false;
 		this.timelineManager.initRoomTimeline(this.matrixRoom.roomId);
 
@@ -822,26 +830,33 @@ export default class Room {
 
 		const nonCurrentThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
 
-		this.timelineManager.loadFromSlidingSync(nonCurrentThreadEvents).then((scrollToEventId) => {
-			if (!this.timelineReady) {
-				this.timelineReady = true;
-			}
-			if (scrollToEventId) {
-				this.setCurrentEvent({ eventId: scrollToEventId });
-			}
-			// Seed reply counts from server-bundled m.thread data, for threads this client has not
-			// opened yet. Once a thread is loaded, TRoomThread owns the count: it excludes deleted
-			// replies, which the bundled count still includes, so seeding over it would revive them.
-			const roomsStore = useRooms();
-			for (const event of this.timelineManager.getEvents()) {
-				const eventId = event.matrixEvent.getId();
-				if (!eventId || roomsStore.threadLengths[this.roomId]?.[eventId] !== undefined) continue;
-				const bundled = event.matrixEvent.getServerAggregatedRelation<IThreadBundledRelationship>('m.thread');
-				if (bundled?.count != null) {
-					roomsStore.setThreadLength(this.roomId, eventId, bundled.count);
+		this.timelineManager
+			.loadFromSlidingSync(nonCurrentThreadEvents)
+			.then((scrollToEventId) => {
+				if (!this.timelineReady) {
+					this.timelineReady = true;
 				}
-			}
-		});
+				if (scrollToEventId) {
+					this.setCurrentEvent({ eventId: scrollToEventId });
+				}
+				// Seed reply counts from server-bundled m.thread data, for threads this client has not
+				// opened yet. Once a thread is loaded, TRoomThread owns the count: it excludes deleted
+				// replies, which the bundled count still includes, so seeding over it would revive them.
+				const roomsStore = useRooms();
+				for (const event of this.timelineManager.getEvents()) {
+					const eventId = event.matrixEvent.getId();
+					if (!eventId || roomsStore.threadLengths[this.roomId]?.[eventId] !== undefined) continue;
+					const bundled = event.matrixEvent.getServerAggregatedRelation<IThreadBundledRelationship>('m.thread');
+					if (bundled?.count != null) {
+						roomsStore.setThreadLength(this.roomId, eventId, bundled.count);
+					}
+				}
+			})
+			.catch((error) => {
+				logger.error('Loading sliding sync events into the timeline failed', { roomId: this.roomId, error });
+				// Don't leave the room in a loading state forever, the next sync can fill the timeline
+				this.timelineReady = true;
+			});
 	}
 
 	public getTimeline(): TimelineEvent[] {
@@ -1049,14 +1064,31 @@ export default class Room {
 		await api_synapse.apiPOST(api_synapse.apiURLS.videoCall + '?room_id=' + this.roomId, {});
 	}
 
+	/**
+	 * API call that checks whether anyone is connected to this room's LiveKit call.
+	 * Matrix memberships are not used: they can linger for minutes after a crash or failed leave.
+	 */
+	public async refreshCallActive(): Promise<void> {
+		const requestId = ++this.callActiveRequestId;
+		try {
+			const response = await api_synapse.apiGET<{ active: boolean }>(api_synapse.apiURLS.videoCallStatus + '?room_id=' + encodeURIComponent(this.roomId));
+			// A later refresh may have started meanwhile; only the newest answer counts.
+			if (requestId === this.callActiveRequestId) this.callActive = response.active;
+		} catch (error) {
+			logger.warn('Could not fetch call status', error);
+		}
+	}
+
 	public hasActiveCall(): boolean {
-		return this.getMatrixRTCSession().memberships.length > 0;
+		return this.callActive;
 	}
 
 	public getLastVideoCallTimeLineEvent(): MatrixEvent | undefined {
 		const timeline = this.getLiveTimelineEvents();
 
-		const lastVideoCallMessage = timeline.findLast((e) => e.event.content?.msgtype === PubHubsMgType.VideoCall);
+		const lastVideoCallMessage = timeline.findLast(
+			(e) => e.event.content?.msgtype === PubHubsMgType.VideoCall && e.event.content?.videocallstate === VideocallStateType.Started,
+		);
 		if (!lastVideoCallMessage || !lastVideoCallMessage.event.event_id) {
 			return undefined;
 		}

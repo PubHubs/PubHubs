@@ -4,7 +4,7 @@ from synapse.http.server import DirectServeJsonResource, respond_with_json
 
 from ._hub_client_api_config import HubClientApiConfig
 from ._validation import user_validator
-from ._cors import set_allow_origin_header
+from ._cors import set_allow_origin_header, set_public_allow_origin_header
 from ._constants import HUB_ADMIN, GUEST
 
 import logging
@@ -38,6 +38,8 @@ class HubMediaResource(DirectServeJsonResource):
 
 	@user_validator(GUEST)
 	async def _async_render_GET(self, request: SynapseRequest) -> bytes:
+		set_public_allow_origin_header(request)
+
 		path = self._get_media_path()
 
 		if not os.path.exists(path):

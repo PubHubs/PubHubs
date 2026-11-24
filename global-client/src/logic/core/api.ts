@@ -15,6 +15,8 @@ const hub_api = new Api('_synapse', {
 	info: 'client/.ph/info',
 	enterStart: 'client/.ph/enter-start',
 	enterComplete: 'client/.ph/enter-complete',
+	deactivateStart: 'client/.ph/deactivate-start',
+	deactivateComplete: 'client/.ph/deactivate-complete',
 });
 
 const phc_api = _env.PHC_URL
@@ -23,6 +25,7 @@ const phc_api = _env.PHC_URL
 			enter: '.ph/user/enter',
 			refresh: '.ph/user/refresh',
 			state: '.ph/user/state',
+			deleteAccount: '.ph/user/delete',
 			getObject: '.ph/user/obj/by-hash',
 			newObject: '.ph/user/obj/by-handle',
 			overwriteObject: '.ph/user/obj/by-hash',

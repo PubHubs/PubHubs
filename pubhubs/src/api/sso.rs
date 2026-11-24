@@ -196,6 +196,19 @@ pub struct EncryptedHubPseudonymPackage {
 
 having_message_code!(EncryptedHubPseudonymPackage, Ehpp);
 
+/// Returned (in sealed form) by [`tr::EhpsEP`]: one user's pseudonym at each of several hubs,
+/// without saying which pseudonym belongs to which hub.
+///
+/// NB: travels inside [`Sealed`], which uses postcard (positional, no field names): field order
+/// and presence ARE the wire format.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EncryptedHubPseudonymsPackage {
+    /// Hub pseudonyms `g_H Id_U`, each elgamal encrypted for `x_PHC`, in random order.
+    pub encrypted_hub_pseudonyms: Vec<elgamal::Triple>,
+}
+
+having_message_code!(EncryptedHubPseudonymsPackage, Ehps);
+
 /// Returned (signed) by [`phc::user::HhppEP`], needed for [`hub::EnterCompleteEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]

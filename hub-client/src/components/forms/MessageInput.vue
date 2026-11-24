@@ -54,7 +54,11 @@
 						>{{ $t('message.sign.add_signature') }}</PopoverButton
 					>
 					<PopoverButton
-						v-if="settings.isFeatureEnabled(FeatureFlag.videocalls) && (room.isPrivateRoom() || room.isSecuredRoom())"
+						v-if="
+							hubSettings.videocallAvailable &&
+							settings.isFeatureEnabled(FeatureFlag.videocalls) &&
+							(room.isPrivateRoom() || room.isSecuredRoom())
+						"
 						icon="video"
 						data-testid="videocall"
 						:disabled="room.hasActiveCall()"
@@ -101,7 +105,7 @@
 			</div>
 		</div>
 
-		<div class="flex max-h-[50vh] items-end justify-between gap-100">
+		<div class="flex max-h-[50dvh] items-end justify-between gap-100 overflow-y-auto">
 			<div class="bg-surface-base rounded-base w-full shadow">
 				<!-- Editing a message -->
 				<InputModeBar
@@ -197,7 +201,7 @@
 				<div
 					v-if="messageInput.state.textArea"
 					class="rounded-base border-surface-elevated flex items-center gap-x-200 border-3 px-200 py-100"
-					:class="isInputDisabled ? 'cursor-not-allowed opacity-50' : ''"
+					:class="{ 'cursor-not-allowed opacity-50': isInputDisabled, 'gap-x-0!': isMobile }"
 				>
 					<Icon
 						v-if="isInputDisabled"
@@ -359,6 +363,7 @@
 
 	// Stores
 	import { buttonsCancel, useDialog } from '@hub-client/stores/dialog';
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
@@ -400,6 +405,7 @@
 	const route = useRoute();
 	const router = useRouter();
 	const videoCall = useVideoCall();
+	const hubSettings = useHubSettings();
 	const roles = useRoles();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
@@ -599,6 +605,14 @@
 
 			messageInput.state.sendButtonEnabled = isValidMessage();
 			nextTick(() => elTextInput.value?.$el.focus());
+		},
+	);
+
+	// Re-read the video call flags each time the popover opens, so a hub admin switching calls on or off shows up without a page reload.
+	watch(
+		() => messageInput.state.popover,
+		(open) => {
+			if (open) void hubSettings.fetchHubInfo();
 		},
 	);
 
@@ -889,7 +903,6 @@
 			const accessToken = pubhubs.Auth.getAccessToken();
 			if (!accessToken) return;
 			fileUpload(
-				t('errors.file_upload'),
 				accessToken,
 				uploadUrl,
 				allTypes,
@@ -904,10 +917,10 @@
 					messageInput.cancelFileUpload();
 					messageInput.state.sendButtonEnabled = isValidMessage();
 				},
-				() => {
-					// On error: reset state so user can try again
+				(error) => {
 					messageInput.cancelFileUpload();
 					messageInput.state.sendButtonEnabled = isValidMessage();
+					dialog.confirm(t('errors.file_upload_failed'), t(error.key, error.params));
 				},
 			);
 		} else if (messageActions.replyingTo && inReplyTo.value) {
@@ -987,22 +1000,27 @@
 		const accessToken = pubhubs.Auth.getAccessToken();
 		if (!accessToken) return;
 		messageInput.closeFileUpload();
-		await asyncFileUpload(
-			accessToken,
-			uploadUrl,
-			file,
-			(_progress) => {},
-			async (url) => {
-				const fileInfo: Omit<FileInfo, 'previewUrl'> = {
-					mxcUrl: url,
-					filename: file.name,
-					mimetype: file.type,
-					size: file.size,
-					msgtype: imageTypes.includes(file.type) ? MsgType.Image : MsgType.File,
-				};
-				await pubhubs.editFileMessage(props.room.roomId, originalEvent, caption, fileInfo);
-			},
-		);
+		try {
+			await asyncFileUpload(
+				accessToken,
+				uploadUrl,
+				file,
+				(_progress) => {},
+				async (url) => {
+					const fileInfo: Omit<FileInfo, 'previewUrl'> = {
+						mxcUrl: url,
+						filename: file.name,
+						mimetype: file.type,
+						size: file.size,
+						msgtype: imageTypes.includes(file.type) ? MsgType.Image : MsgType.File,
+					};
+					await pubhubs.editFileMessage(props.room.roomId, originalEvent, caption, fileInfo);
+				},
+				(error) => dialog.confirm(t('errors.file_upload_failed'), t(error.key, error.params)),
+			);
+		} catch {
+			// Already reported to the user through the error callback.
+		}
 		messageInput.cancelFileUpload();
 	}
 

@@ -1,6 +1,6 @@
 // Packages
 import { YiviClient } from '@privacybydesign/yivi-client';
-import { YiviCore } from '@privacybydesign/yivi-core';
+import { type StateChangeEvent, YiviCore, type YiviPlugin, type YiviState } from '@privacybydesign/yivi-core';
 import { YiviWeb } from '@privacybydesign/yivi-web';
 import { type Ref } from 'vue';
 
@@ -26,6 +26,10 @@ const logger = createLogger('YiviHandler');
 
 // Counts the mount points that have been given a generated id, see `yiviElementSelector`.
 let yiviMountCount = 0;
+
+// The states yivi-core reaches when a session did not succeed. They only end the session when the
+// widget cannot start it again by itself, see `endOnFailure`.
+const noSuccessStates: Set<YiviState> = new Set(['Cancelled', 'TimedOut', 'Error']);
 
 allowInsecureYiviSessionUrlsInDev();
 
@@ -75,6 +79,8 @@ const yiviElementSelector = (element: HTMLElement): string => {
  * Show the Yivi widget in `mountPoint` and run a session against `yiviRequestorUrl`.
  *
  * @param mountPoint The element to render the widget into.
+ * @param endOnFailure Whether a session that did not succeed ends here rather than leaving the widget
+ * to start it again, see below.
  * @returns The session, so a caller that is replaced or unmounted can stop it, together with the
  * promise carrying its result. The two are handed out together because a session left running keeps
  * polling the Yivi server and holds on to the element the next session renders into.
@@ -84,6 +90,7 @@ const startYiviAuthentication = (
 	yiviRequestorUrl: string,
 	disclosureRequest: string,
 	mountPoint: YiviMountPoint,
+	endOnFailure = false,
 ): { session: YiviSession; result: Promise<string> } => {
 	const settings = useSettings();
 	const element = mountPoint.value;
@@ -114,24 +121,41 @@ const startYiviAuthentication = (
 		throw initError;
 	}
 
-	// Aborting rejects the result promise like any other failure, so the reason is remembered to keep
-	// a session that was stopped on purpose out of the error log.
-	let aborted = false;
-	let rejectAborted: (reason: Error) => void;
-	const abortedResult = new Promise<never>((_resolve, reject) => {
-		rejectAborted = reject;
+	// Stopping the session rejects the result promise like any other failure, so the reason is
+	// remembered to keep a session that was ended on purpose out of the error log.
+	let stopped = false;
+	let rejectStopped: (reason: Error) => void;
+	const stoppedResult = new Promise<never>((_resolve, reject) => {
+		rejectStopped = reject;
 	});
 
-	const session: YiviSession = {
-		abort: () => {
-			aborted = true;
-			yivi.abort();
-			// `YiviCore.abort()` is a no-op while the session is uninitialised or already in an end
-			// state, so the result is settled here rather than left to the core: a caller waiting for a
-			// session it has stopped would otherwise wait for good.
-			rejectAborted(new Error('Yivi session aborted'));
-		},
+	/**
+	 * End the session and settle its result with `reason`.
+	 *
+	 * `YiviCore.abort()` is a no-op while the session is uninitialised or already in an end state, so
+	 * the result is settled here rather than left to the core: a caller waiting for a session that has
+	 * been stopped would otherwise wait for good.
+	 */
+	const stop = (reason: Error): void => {
+		stopped = true;
+		yivi.abort();
+		rejectStopped(reason);
 	};
+
+	const session: YiviSession = { abort: () => stop(new Error('Yivi session aborted')) };
+
+	if (endOnFailure) {
+		yivi.use(
+			class implements YiviPlugin {
+				stateChange({ newState }: StateChangeEvent): void {
+					if (!noSuccessStates.has(newState)) return;
+					// Transitioning from here would move the state machine on while the other plugins are
+					// still being told about this state, so it waits a tick.
+					queueMicrotask(() => stop(new Error(`Yivi session ${newState.toLowerCase()}`)));
+				}
+			},
+		);
+	}
 
 	const started = yivi
 		.start()
@@ -148,9 +172,9 @@ const startYiviAuthentication = (
 			}
 		})
 		.catch((startError: unknown) => {
-			if (aborted) {
-				logger.info('Yivi session aborted');
-				throw new Error('Yivi session aborted');
+			if (stopped) {
+				logger.info('Yivi session stopped');
+				throw new Error('Yivi session stopped');
 			}
 			// Rethrow. A caller that cannot tell a finished session from a failed one would carry an
 			// `undefined` disclosure into the next request, or report a PubHubs card as issued that
@@ -159,9 +183,9 @@ const startYiviAuthentication = (
 			throw startError instanceof Error ? startError : new Error(`Yivi session failed: ${describeSessionFailure(startError)}`);
 		});
 
-	// Whichever comes first. `race` keeps a handler on both, so the core rejecting after an abort has
-	// already settled the result does not go unhandled.
-	return { session, result: Promise.race([started, abortedResult]) };
+	// Whichever comes first. `race` keeps a handler on both, so the core rejecting after the session
+	// was stopped - which has already settled the result - does not go unhandled.
+	return { session, result: Promise.race([started, stoppedResult]) };
 };
 
 export { canOpenYiviApp, startYiviAuthentication };

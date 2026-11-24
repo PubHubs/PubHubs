@@ -5,8 +5,14 @@ import { type RouteParams } from 'vue-router';
 import { useMiniclientGate } from '@global-client/composables/miniclientGate.composable';
 
 // Logic
+import { deactivateHubAccount } from '@global-client/logic/core/deactivateHub';
+import { copyImageNatively } from '@global-client/logic/nativeClipboard';
+import { shareFileNatively } from '@global-client/logic/nativeFileShare';
+import { loadHubsCache, saveHubsCache } from '@global-client/logic/utils/hubsCache';
 import { type LocalStore } from '@global-client/logic/utils/localStore';
+import { hubClientOrigin, hubHandshakeOptions } from '@global-client/logic/utils/nativeHubClient';
 
+import { type FileShareRequest } from '@hub-client/logic/core/requestFileShare';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { assert } from '@hub-client/logic/utils/assert';
 
@@ -47,7 +53,8 @@ const useHubs = defineStore('hubs', {
 		return {
 			currentHubId: '' as string,
 			currentRoomId: '' as string,
-			hubs: {} as { [index: string]: Hub },
+			// Starts from the last known hub list, so hubs can be shown and opened while PHC is unreachable.
+			hubs: loadHubsCache(),
 		};
 	},
 
@@ -114,6 +121,16 @@ const useHubs = defineStore('hubs', {
 	actions: {
 		async addHub(hub: Hub) {
 			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.hubName, hub.url, hub.serverUrl), hub);
+			saveHubsCache(this.hubs);
+		},
+
+		/** Forget hubs PHC no longer lists. */
+		retainHubs(hubIds: string[]) {
+			const keep = new Set(hubIds);
+			for (const hubId of Object.keys(this.hubs)) {
+				if (!keep.has(hubId)) delete this.hubs[hubId];
+			}
+			saveHubsCache(this.hubs);
 		},
 
 		addHubs(hubs: HubList) {
@@ -130,7 +147,7 @@ const useHubs = defineStore('hubs', {
 
 			// Start conversation with hub frame and sync latest settings. A false result means this
 			// handshake was superseded or torn down while we waited, so the frame it belonged to is gone.
-			if (!(await messagebox.startCommunication(this.hubs[hubId].url, frameId))) return;
+			if (!(await messagebox.startCommunication(hubClientOrigin(this.hubs[hubId]), frameId, hubHandshakeOptions(this.hubs[hubId])))) return;
 
 			// Hub client signals when it transitions to having unread messages
 			messagebox.addCallback(frameId, MessageType.UnreadMessages, () => {
@@ -172,15 +189,16 @@ const useHubs = defineStore('hubs', {
 			}
 
 			// If the target is not a valid hub, reset currentHubId to '' and
-			// navigate the global client to home. This is still a hub change
+			// navigate the global client to hubs-overview. This is still a hub change
 			// (from whatever we were on to "no hub"), so the HubActive(false)
 			// above for the previous hub is correct and we return afterwards.
-			if (typeof hubId === 'undefined' || !this.currentHubExists) {
+			//
+			// An empty name is no hub on purpose: the hub page is being left, for a
+			// page the user is already on their way to, so we must not navigate.
+			if (hubId === undefined || !this.currentHubExists) {
 				this.currentHubId = '';
 				messagebox.resetCurrentHub();
-				// TODO: find a way router can be part of a store that TypeScript swallows.
-				// @ts-expect-error -- router is injected as plugin, not in store type
-				this.router.push({ name: 'home' });
+				if (hubName !== '') this.router.push({ name: 'hubs-overview' });
 				return;
 			}
 
@@ -209,7 +227,7 @@ const useHubs = defineStore('hubs', {
 				// Start conversation with hub frame and sync latest settings. A false result means a later
 				// hub change superseded this one while we waited; that call owns currentHubId now, so
 				// registering callbacks here would attach them to a hub the user already left.
-				if (!(await messagebox.startCommunication(this.currentHub.url, iframeHubId))) return;
+				if (!(await messagebox.startCommunication(hubClientOrigin(this.currentHub), iframeHubId, hubHandshakeOptions(this.currentHub)))) return;
 
 				// The main hub iframe reuses iframeHubId across hubs — read currentHubId
 				// at message-arrival time so callbacks always use the current hub.
@@ -303,15 +321,6 @@ const useHubs = defineStore('hubs', {
 					global.setHubCanGoBack(message.content === true);
 				});
 
-				// Dim the bar while a desktop context menu (rendered inside the hub iframe) is open.
-				// Kept separate from the dialog modal so the two never clear each other's dimming.
-				messagebox.addCallback(iframeHubId, MessageType.ContextMenuShowModal, () => {
-					global.showContextMenuModal();
-				});
-				messagebox.addCallback(iframeHubId, MessageType.ContextMenuHideModal, () => {
-					global.hideContextMenuModal();
-				});
-
 				// Store and remove access tokens when sent from the hub client
 				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
 					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content as string);
@@ -351,6 +360,27 @@ const useHubs = defineStore('hubs', {
 					});
 				});
 
+				// As ClipboardWrite, for an image. Same reason: the hub's iframe cannot
+				// reach the clipboard. A hub only asks in the native app, which is also
+				// the only place the web clipboard API cannot do this -- hence the plugin.
+				messagebox.addCallback(iframeHubId, MessageType.ClipboardWriteImage, (message: Message) => {
+					const image = message.content as Blob;
+					copyImageNatively(image).catch((err) => {
+						logger.error('Failed to write the image to clipboard:', err);
+					});
+				});
+
+				// Save a hub's file and offer it to the OS from the top-level frame, the
+				// only one Capacitor runs plugins for. Registered per hub frame, so only
+				// the active hub can ask.
+				messagebox.addCallback(iframeHubId, MessageType.FileShare, (message: Message) => {
+					const { blob, filename } = message.content as FileShareRequest;
+					shareFileNatively(blob, filename).catch((err) => {
+						// Dismissing the system sheet rejects too, so this is not necessarily a failure.
+						logger.error('Failed to hand the file to the system sheet:', err);
+					});
+				});
+
 				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, async () => {
 					global.removeAccessToken(this.currentHubId);
 					// Save settings to persist the token removal before reloading
@@ -358,13 +388,60 @@ const useHubs = defineStore('hubs', {
 					// Reload to trigger re-authentication with fresh credentials
 					location.reload();
 				});
+
+				// Handle account deactivation request from hub-client
+				messagebox.addCallback(iframeHubId, MessageType.RequestDeactivation, async (message: Message) => {
+					const { accessToken } = message.content as { accessToken: string };
+					// The main iframe is shared by all hubs, so the sender is the hub that is current now.
+					// Pin it down: the user may switch hubs while the deactivation runs.
+					const hub = this.currentHub;
+
+					if (!hub || !accessToken) {
+						messagebox.sendMessage(new Message(MessageType.DeactivationResult, { success: false, error: 'InvalidRequest' }), iframeHubId);
+						return;
+					}
+
+					const deactivatedHubId = hub.hubId;
+					// The result is only for the hub that asked; another hub may be in the iframe by now.
+					const stillShowingHub = () => this.currentHubId === deactivatedHubId;
+
+					try {
+						await deactivateHubAccount(hub, accessToken);
+
+						// Send success message to hub-client before cleanup
+						if (stillShowingHub()) {
+							messagebox.sendMessage(new Message(MessageType.DeactivationResult, { success: true }), iframeHubId);
+						}
+
+						// Unpin the hub
+						const index = global.pinnedHubs.findIndex((h) => h.hubId === deactivatedHubId);
+						if (index >= 0) {
+							global.removePinnedHub(index);
+							messagebox.resetMiniclient(deactivatedHubId);
+						}
+
+						await global.saveGlobalSettings();
+
+						if (stillShowingHub()) {
+							this.router.push({ name: 'hubs-overview' });
+						}
+					} catch (error) {
+						logger.error('Deactivation failed:', error);
+						const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+						if (stillShowingHub()) {
+							messagebox.sendMessage(new Message(MessageType.DeactivationResult, { success: false, error: errorMessage }), iframeHubId);
+						}
+					}
+				});
 			}
 		},
 	},
 });
 
 function sendNotification(hubName: string) {
-	const img = '/client/img/icons/favicon-32x32.png';
+	// The iOS app's WKWebView has no Notifications API at all, so check before using it.
+	if (!('Notification' in globalThis)) return;
+	const img = `${import.meta.env.BASE_URL}img/icons/favicon-32x32.png`;
 	const i18n = setUpi18n();
 	const language = useSettings().language;
 	setLanguage(i18n, language);

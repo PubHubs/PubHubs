@@ -138,7 +138,23 @@ describe('isVisibleEvent', () => {
 		expect(isVisibleEvent(baseEvent({ type: undefined }), userId)).toBe(true);
 	});
 
-	test('event with no content passes if type is RoomMessage', () => {
-		expect(isVisibleEvent({ type: EventType.RoomMessage }, userId)).toBe(true);
+	test('a message the server emptied on the way out is not visible', () => {
+		// What an erased sender's message looks like to someone who was not in the room at the
+		// time: the server prunes the content but keeps the envelope, and there is no redaction
+		// to point at. All that is left to render is the sender's pseudonym.
+		expect(isVisibleEvent(baseEvent({ content: {} }), userId)).toBe(false);
+		expect(isVisibleEvent({ type: EventType.RoomMessage }, userId)).toBe(false);
+	});
+
+	test('a redacted message stays visible, so its placeholder can be shown', () => {
+		expect(
+			isVisibleEvent(
+				baseEvent({
+					content: {},
+					unsigned: { redacted_because: { redacts: '$event1', content: { reason: 'Deleted' } } as unknown as TBaseEvent },
+				}),
+				userId,
+			),
+		).toBe(true);
 	});
 });

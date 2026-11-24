@@ -1,20 +1,20 @@
 // Packages
-import { Direction, EventTimeline, EventType, Filter, type IRoomEvent, type MatrixClient, type MatrixEvent } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventType, Filter, type IRoomEvent, type MatrixClient, type MatrixEvent, MsgType } from 'matrix-js-sdk';
 import { shallowReactive } from 'vue';
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
 
 // Logic
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { PubHubsMgType, VideocallStateType } from '@hub-client/logic/core/events';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { MatrixEventType, Redaction, type RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { type TExpertVerificationMessageContent } from '@hub-client/models/events/TExpertEvent';
-import { type TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+import { editedContent } from '@hub-client/models/events/edits';
 import { isVisibleEvent } from '@hub-client/models/events/isVisibleEvent';
 import { type TCurrentEvent } from '@hub-client/models/events/types';
 
@@ -74,7 +74,17 @@ class TimelineManager {
 	private set timelineEvents(events: TimelineEvent[]) {
 		events.sort((a, b) => a.matrixEvent.getTs() - b.matrixEvent.getTs());
 		this._timelineEvents = events;
+
+		// Vue only notifies watchers when the id actually changes
+		this.latestVideoCall.eventId = events
+			.findLast(
+				(e) =>
+					e.matrixEvent.getContent()?.msgtype === PubHubsMgType.VideoCall &&
+					e.matrixEvent.getContent()?.videocallstate === VideocallStateType.Started,
+			)
+			?.matrixEvent.getId();
 	}
+
 	/** Increasing version counter, bumped on every timeline mutation */
 	private _timelineVersion: number = 0;
 	/** Contains all redacted events, deletions and edits */
@@ -93,6 +103,10 @@ class TimelineManager {
 	private expertVerificationEvents = shallowReactive(new Map<string, MatrixEvent[]>());
 	// Latest m.replace edit event per target eventId (used to merge edited content into the original)
 	private editEvents: Map<string, MatrixEvent> = new Map();
+	// Bumped whenever an edit changed an event's content, so views that read an event once (e.g. reply snippets) can refresh
+	public readonly editsRevision = shallowReactive({ count: 0 });
+	// Event id of the newest "call started" message in the loaded timeline. Reactive, so older call messages can see they are no longer the latest.
+	public readonly latestVideoCall = shallowReactive<{ eventId: string | undefined }>({ eventId: undefined });
 
 	private roomId: string;
 
@@ -183,19 +197,38 @@ class TimelineManager {
 	}
 
 	/**
+	 * Whether a /messages response reached the start (backward) or end (forward) of the room.
+	 * Only a missing token or an empty chunk counts. A chunk shorter than the limit is not enough:
+	 * the server applies the limit first and then drops events this user may not see.
+	 */
+	private isRoomBoundary(response: { end?: string; chunk: unknown[] }): boolean {
+		return !response.end || response.chunk.length === 0;
+	}
+
+	/**
 	 * Initalizes the file library timeline: fetch all files
 	 * @returns
 	 */
 	async initFileLibrary() {
-		const messageResponse = await this.client.createMessagesRequest(
-			this.roomId,
-			null,
-			SystemDefaults.maxLibraryFiles,
-			Direction.Backward,
-			this.LibraryFilter,
-		);
 		const eventMapper = this.client.getEventMapper();
-		const newEvents = messageResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+		const newEvents: MatrixEvent[] = [];
+		let fileCount = 0;
+		let fromToken: string | null = null;
+		// Signatures and deleted files also fill pages, so keep paging (capped) until enough files are found
+		for (let page = 0; page < SystemDefaults.maxLibraryPages && fileCount < SystemDefaults.maxLibraryFiles; page++) {
+			const messageResponse = await this.client.createMessagesRequest(
+				this.roomId,
+				fromToken,
+				SystemDefaults.maxLibraryFiles,
+				Direction.Backward,
+				this.LibraryFilter,
+			);
+			const pageEvents = messageResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
+			newEvents.push(...pageEvents);
+			fileCount += pageEvents.filter((event) => [MsgType.File, MsgType.Image].includes(event.getContent().msgtype as MsgType)).length;
+			if (this.isRoomBoundary(messageResponse)) break;
+			fromToken = messageResponse.end ?? null;
+		}
 		const newTimelineEvents = newEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
 
 		// This is called on opening the filelibrary. Then there may already have been some files added through the sliding sync.
@@ -231,9 +264,17 @@ class TimelineManager {
 		return event.getContent()?.[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Replace;
 	}
 
-	/** Records the latest (by ts) m.replace edit for its target event. */
+	/**
+	 * Records the latest (by ts) m.replace edit for its target event.
+	 * For an original event, records the edit the server bundled with it (MSC3925), which is the only
+	 * source of the edit when the edit event itself lies outside the loaded window.
+	 */
 	private updateEditEvent(event: MatrixEvent): void {
-		if (!this.isEditEvent(event)) return;
+		if (!this.isEditEvent(event)) {
+			const bundledEdit = event.replacingEvent();
+			if (bundledEdit && this.isEditEvent(bundledEdit)) this.updateEditEvent(bundledEdit);
+			return;
+		}
 		const targetEventId = event.getContent()?.[RelationType.RelatesTo]?.event_id;
 		if (!targetEventId) return;
 		const existing = this.editEvents.get(targetEventId);
@@ -256,8 +297,6 @@ class TimelineManager {
 		const changedIds: string[] = [];
 
 		for (const [targetEventId, editEvent] of this.editEvents) {
-			const editTs = editEvent.getTs() ?? 0;
-
 			// Prefer the managed timeline (so we can swap the wrapper for reactivity), fall back to the SDK room.
 			const index = this._timelineEvents.findIndex((e) => e.matrixEvent.getId() === targetEventId);
 			const target = index !== -1 ? this._timelineEvents[index].matrixEvent : room?.findEventById(targetEventId);
@@ -268,19 +307,10 @@ class TimelineManager {
 				continue;
 			}
 
-			const currentContent = target.event.content as TTextMessageEventContent | undefined;
-			// Skip when this (or a newer) edit was already applied.
-			if (currentContent?.ph_edited_ts !== undefined && currentContent.ph_edited_ts >= editTs) continue;
-
-			const newContent = editEvent.getContent()?.['m.new_content'] as TTextMessageEventContent | undefined;
-			if (!newContent) continue;
-
-			const originalRelatesTo = currentContent?.[RelationType.RelatesTo];
-			target.event.content = {
-				...newContent,
-				...(originalRelatesTo ? { [RelationType.RelatesTo]: originalRelatesTo } : {}),
-				ph_edited_ts: editTs,
-			};
+			// Undefined when this (or a newer) edit was already applied.
+			const content = editedContent(target.event, editEvent.event);
+			if (!content) continue;
+			target.event.content = content;
 
 			if (index !== -1) {
 				// Fresh wrapper re-runs the content transform (regenerates ph_body) and changes the prop
@@ -290,7 +320,10 @@ class TimelineManager {
 			changedIds.push(targetEventId);
 		}
 
-		if (changedIds.length > 0) this._timelineVersion++;
+		if (changedIds.length > 0) {
+			this._timelineVersion++;
+			this.editsRevision.count++;
+		}
 		return changedIds;
 	}
 
@@ -365,6 +398,11 @@ class TimelineManager {
 	 * Get all verification events for a target message.
 	 * Returns an array of verification events (one per expert who verified).
 	 */
+	/** Latest known m.replace edit of an event, including edits whose target is not in the loaded timeline. */
+	public getLatestEdit(eventId: string): MatrixEvent | undefined {
+		return this.editEvents.get(eventId);
+	}
+
 	public getVerifications(eventId: string): MatrixEvent[] {
 		return this.expertVerificationEvents.get(eventId) ?? [];
 	}
@@ -590,7 +628,7 @@ class TimelineManager {
 			collected = [...visibleEvents, ...collected];
 
 			currentToken = messagesResponse.end ?? null;
-			if (!messagesResponse.end || messagesResponse.chunk.length < SystemDefaults.initialRoomTimelineLimit) {
+			if (this.isRoomBoundary(messagesResponse)) {
 				reachedEnd = true;
 				this.paginationState.firstMessageId = collected[0]?.getId();
 			}
@@ -661,7 +699,7 @@ class TimelineManager {
 		// if the lastMessageId is undefined
 		// or this events contains the lastMessageId
 		// or one of the events is of the own user,
-		// than we can add the new events
+		// then we can add the new events
 		if (
 			this.paginationState.lastMessageId === undefined ||
 			this.timelineEvents.some((x) => x.matrixEvent.getId() === this.paginationState.lastMessageId) ||
@@ -790,7 +828,7 @@ class TimelineManager {
 	 * @param direction - Direction to paginate
 	 * @param limit - Number of visible events to fetch
 	 * @param timeline - The timeline to paginate from
-	 * @returns Array of visible MatrixEvents
+	 * @returns Array of visible MatrixEvents and also updates firstMessageId/lastMessageId to fit the new timeline
 	 */
 	private async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {
 		let iterations = 0;
@@ -806,21 +844,6 @@ class TimelineManager {
 			const eventMapper = this.client.getEventMapper();
 			const newEvents = messagesResponse.chunk.map((x: IRoomEvent) => eventMapper(x));
 
-			// Check if we've reached the end of the timeline
-			if (messagesResponse.chunk.length < limit) {
-				reachedEnd = true;
-				const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
-				const lastMessageId =
-					newEvents.length > 0
-						? newEvents[newEvents.length - 1]?.event?.event_id
-						: this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
-				if (direction === Direction.Backward) {
-					this.paginationState.firstMessageId = firstMessageId;
-				} else {
-					this.paginationState.lastMessageId = lastMessageId;
-				}
-			}
-
 			// Filter to visible events and add to collection
 			const visibleEvents = this.prepareEvents(newEvents);
 			if (direction === Direction.Backward) {
@@ -832,9 +855,20 @@ class TimelineManager {
 			// Update token for next iteration
 			currentToken = messagesResponse.end ?? null;
 
-			// If no token returned, we've reached the end
-			if (!messagesResponse.end) {
+			if (this.isRoomBoundary(messagesResponse)) {
 				reachedEnd = true;
+			}
+		}
+
+		// first/lastMessageId need to be visible timelineEvents
+		if (reachedEnd) {
+			// Nothing visible found beyond the anchor: then the outermost visible message is the anchor itself
+			const visibleEvents = allVisibleEvents.length > 0 ? allVisibleEvents : timeline.getEvents().filter((e) => this.isVisibleEvent(e.event));
+
+			if (direction === Direction.Backward) {
+				this.paginationState.firstMessageId = visibleEvents[0]?.getId();
+			} else {
+				this.paginationState.lastMessageId = visibleEvents.at(-1)?.getId();
 			}
 		}
 

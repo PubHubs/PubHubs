@@ -2,10 +2,16 @@
 import { EventType } from 'matrix-js-sdk';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { usePowerLevels } from '@hub-client/composables/usePowerLevels';
+
+// Logic
+import { APIService } from '@hub-client/logic/core/apiService';
+
 // Models
 import { DisclosurePurpose } from '@hub-client/models/components/signedMessages';
 import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
-import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { type TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { type TUser, type TUserAccount, UserPowerLevel } from '@hub-client/models/users/TUser';
 import { type FieldOption } from '@hub-client/models/validation/TFormOption';
@@ -94,9 +100,9 @@ const useDropDownData = () => {
 	const purposeOptions = (): PurposeOption[] => {
 		const { t } = useI18n();
 		return [
-			{ value: DisclosurePurpose.Steward, label: t('roles.type_steward') },
-			{ value: DisclosurePurpose.Expert, label: t('roles.type_expert') },
-			{ value: DisclosurePurpose.Information, label: t('roles.type_information') },
+			{ value: DisclosurePurpose.Steward, label: t('admin.ask_disclosure_purpose_steward') },
+			{ value: DisclosurePurpose.Expert, label: t('admin.ask_disclosure_purpose_expert') },
+			{ value: DisclosurePurpose.Information, label: t('admin.ask_disclosure_purpose_information') },
 		];
 	};
 
@@ -107,20 +113,13 @@ const useDropDownData = () => {
 	 */
 	const fetchUsersFromModeratedRooms = (): TUserAccount[] => {
 		const userStore = useUser();
-		const roomsStore = useRooms();
+		const { roomsWithPowerLevel } = usePowerLevels();
 		const userId = userStore.userId;
 		if (!userId) return [];
 
 		const userMap = new Map<string, TUserAccount>();
 
-		for (const entry of roomsStore.roomList) {
-			if (DirectRooms.includes(entry.roomType as RoomType)) continue;
-
-			const powerLevelEvent = entry.stateEvents.find((e) => e.type === EventType.RoomPowerLevels);
-			if (!powerLevelEvent) continue;
-			const myPl = powerLevelEvent.content?.users?.[userId] ?? powerLevelEvent.content?.users_default ?? 0;
-			if (myPl < UserPowerLevel.Steward) continue;
-
+		for (const entry of roomsWithPowerLevel(UserPowerLevel.Steward, userId)) {
 			const myMembership = entry.stateEvents.find((e) => e.type === EventType.RoomMember && e.state_key === userId);
 			if (myMembership?.content?.membership !== 'join') continue;
 
@@ -189,12 +188,6 @@ const useDropDownData = () => {
 		return await userList([me]);
 	};
 
-	// TODO: Members of a room
-	// const memberList = (roomId:string) => {
-	// }
-	// const memberListWithoutMe = (roomId:string) => {
-	// }
-
 	// Rooms
 	const publicRoomList = async (): Promise<Array<TPublicRoom>> => {
 		const roomsStore = useRooms();
@@ -202,6 +195,23 @@ const useDropDownData = () => {
 		const rooms = roomsStore.publicRooms;
 		return rooms;
 	};
+
+	/**
+	 * Synchronous, so a form can filter one fetched room list per selected user without refetching.
+	 */
+	const roomsJoinedBy = (rooms: Array<TPublicRoom>, user: string): Array<TPublicRoom> => {
+		const roomsStore = useRooms();
+		return rooms.filter((room) => {
+			const entry = roomsStore.roomList.find((r) => r.roomId === room.room_id);
+			return !!entry?.stateEvents.some((e) => e.type === EventType.RoomMember && e.state_key === user && e.content?.membership === 'join');
+		});
+	};
+
+	/**
+	 * The ids of the rooms a user has joined, asked from the server through the admin API, so only for hub admins.
+	 * Unlike roomsJoinedBy it also covers rooms the current user isn't in.
+	 */
+	const roomIdsJoinedBy = async (userId: string): Promise<Set<string>> => new Set((await APIService.adminListJoinedRoomId(userId)).joined_rooms);
 
 	const yiviAttributes = (): Array<Attribute> => {
 		const { t } = useI18n();
@@ -217,6 +227,8 @@ const useDropDownData = () => {
 		userList,
 		userListWithoutMe,
 		publicRoomList,
+		roomIdsJoinedBy,
+		roomsJoinedBy,
 		yiviAttributes,
 		purposeOptions,
 	};

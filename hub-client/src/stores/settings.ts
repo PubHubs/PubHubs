@@ -1,5 +1,7 @@
 // Packages
+import { Capacitor } from '@capacitor/core';
 import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
 // Logic
 import { CONFIG } from '@hub-client/logic/logging/Config';
@@ -46,6 +48,7 @@ enum FeatureFlag {
 	roomLibrary = 'roomLibrary',
 	phCard = 'phCard',
 	whisper = 'whisper',
+	chainedSession = 'chainedSession',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -81,6 +84,10 @@ interface Settings {
 	 * Should have type 'Language', but for some reason the build gives an error when trying to import it from '@hub-client/i18n.
 	 */
 	language: string;
+	/**
+	 * Remember the last visited hub to quickly returning to it when loading Pubhubs.
+	 */
+	lastHubId: string;
 
 	_i18n?: i18nSettings;
 
@@ -89,12 +96,24 @@ interface Settings {
 
 let readyHandler: ((e: MessageEvent) => void) | null = null;
 
+// Whether the system prefers a dark theme. matchMedia() itself is not reactive, so getActiveTheme
+// would keep the system theme it first saw; this ref follows the media query's change events instead.
+const systemPrefersDark = ref(false);
+if (globalThis.matchMedia) {
+	const darkQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
+	systemPrefersDark.value = darkQuery.matches;
+	darkQuery.addEventListener('change', (event) => {
+		systemPrefersDark.value = event.matches;
+	});
+}
+
 const defaultSettings: Settings = {
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
 	pagination: 150,
 	displayNameMaxLength: 40,
 	language: fallbackLanguage,
+	lastHubId: '',
 	_i18n: undefined,
 	// First check if the Notifications API is supported.
 	notificationsPermission:
@@ -125,6 +144,7 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: false,
+			chainedSession: false,
 		},
 		main: {
 			signedMessages: true,
@@ -142,6 +162,7 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: true,
+			chainedSession: false,
 		},
 		local: {
 			signedMessages: true,
@@ -159,6 +180,7 @@ const defaultSettings: Settings = {
 			consent: true,
 			phCard: true,
 			whisper: true,
+			chainedSession: false,
 		},
 	},
 };
@@ -167,6 +189,12 @@ const useSettings = defineStore('settings', {
 	state: () => ({
 		...defaultSettings,
 		isMobileState: true as boolean | undefined,
+		// Whether we run inside the native app. Correct as-is in the global client,
+		// which is the frame Capacitor exposes its bridge to; the hub client always
+		// reads false here and is told the real value over the messagebox.
+		isNativeApp: Capacitor.isNativePlatform(),
+		// Whether that native app is a debug build. Same story as isNativeApp.
+		isNativeDebugApp: Capacitor.DEBUG ?? false,
 	}),
 
 	getters: {
@@ -187,7 +215,7 @@ const useSettings = defineStore('settings', {
 			if (state.theme !== Theme.System) {
 				return state.theme;
 			}
-			if (globalThis.matchMedia('(prefers-color-scheme: dark)').matches) {
+			if (systemPrefersDark.value) {
 				return Theme.Dark;
 			}
 			return Theme.Light;
@@ -199,6 +227,9 @@ const useSettings = defineStore('settings', {
 
 		getTimeFormat: (state: Settings): TimeFormat => {
 			return state.timeformat;
+		},
+		getLastVisitedHub: (state: Settings): string => {
+			return state.lastHubId;
 		},
 
 		getNotificationsPermission: (state: Settings): NotificationsPermission => {
@@ -281,6 +312,17 @@ const useSettings = defineStore('settings', {
 				if (send) this.sendSettings();
 			}
 		},
+		setLastVisitedHub(hubId: string) {
+			this.lastHubId = hubId;
+		},
+
+		setIsNativeApp(isNativeApp: boolean) {
+			this.isNativeApp = isNativeApp;
+		},
+
+		setIsNativeDebugApp(isNativeDebugApp: boolean) {
+			this.isNativeDebugApp = isNativeDebugApp;
+		},
 
 		sendSettings() {
 			const messagebox = useMessageBox();
@@ -290,6 +332,8 @@ const useSettings = defineStore('settings', {
 						theme: this.theme as Theme,
 						timeformat: this.timeformat as TimeFormat,
 						language: this.language,
+						isNativeApp: this.isNativeApp,
+						isNativeDebugApp: this.isNativeDebugApp,
 					}),
 				);
 			}

@@ -3,6 +3,7 @@ import { EventType } from 'matrix-js-sdk';
 
 // Logic
 import { APIService } from '@hub-client/logic/core/apiService';
+import { findPowerLevelsContent, powerLevelOf } from '@hub-client/logic/utils/powerLevelUtils';
 
 // Models
 import { type TRoomCreate, type TState } from '@hub-client/models/events/TStateEvent';
@@ -38,19 +39,13 @@ export class ManagementUtils {
 		const joinRuleEvent = roomState.state.find((event) => event.type === EventType.RoomJoinRules);
 		const isPublicRoom = joinRuleEvent?.content?.join_rule === 'public';
 
-		// Extract power level event
-		const powerLevelsEvent = roomState.state.find((event) => event.type === EventType.RoomPowerLevels);
-		if (!powerLevelsEvent) throw new Error('Event for Power Level not found.');
+		const powerLevelsContent = findPowerLevelsContent(roomState.state);
+		if (!powerLevelsContent) throw new Error('Event for Power Level not found.');
 
-		// If the user object exits in power level
-		const usersPowerLevel = powerLevelsEvent.content.users || {};
-
-		// If there is no user object or the given userId is not present in user object
-		// then permission is of normal user - no user object means no permission.
-		const userPowerLevel = usersPowerLevel[userId] || 0;
+		const userPowerLevel = powerLevelOf(powerLevelsContent, userId);
 
 		// Check whether admin has rights to the room i.e., admin has created the room.
-		const adminPowerLevel = (pubhubs.getUserId && usersPowerLevel[pubhubs.getUserId]) || 0;
+		const adminPowerLevel = powerLevelOf(powerLevelsContent, pubhubs.getUserId);
 
 		return { roomId, roomName, userPowerLevel, isPublicRoom, adminPowerLevel: adminPowerLevel };
 	}

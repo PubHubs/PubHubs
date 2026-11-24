@@ -18,6 +18,16 @@ class BadRequestError(HTTPError):
     status = 400
 
 
+class NotFoundError(HTTPError):
+    """404 Not Found."""
+    status = 404
+
+
+class ConflictError(HTTPError):
+    """409 Conflict: the request can't be carried out in the current state."""
+    status = 409
+
+
 class ForbiddenError(HTTPError):
     """403 Forbidden."""
     status = 403

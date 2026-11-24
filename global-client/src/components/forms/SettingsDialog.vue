@@ -1,8 +1,9 @@
 <template>
 	<Dialog
-		:buttons="buttonsSubmitCancel"
+		:buttons="buttons"
 		:title="$t('settings.title')"
 		type="global"
+		@close="onClose"
 	>
 		<div class="flex flex-col gap-100">
 			<div class="flex flex-col justify-between md:flex-row">
@@ -47,7 +48,10 @@
 					</Button>
 				</ButtonGroup>
 			</div>
-			<div class="flex flex-col justify-between md:flex-row">
+			<div
+				v-if="!useSettings().isNativeApp"
+				class="flex flex-col justify-between md:flex-row"
+			>
 				<Label>{{ t('settings.notifications') }}</Label>
 				<ButtonGroup
 					v-if="notificationSupported"
@@ -68,7 +72,7 @@
 				</p>
 			</div>
 			<div
-				v-if="promptAllow || promptReset"
+				v-if="(promptAllow || promptReset) && !useSettings().isNativeApp"
 				class="flex"
 			>
 				<Icon
@@ -90,7 +94,7 @@
 				</p>
 			</div>
 			<div
-				v-if="promptInfo"
+				v-if="promptInfo && !useSettings().isNativeApp"
 				class="flex"
 			>
 				<div class="mr-050 flex h-250 w-250 shrink-0 items-center justify-center rounded-full border-2">
@@ -104,7 +108,7 @@
 				</p>
 			</div>
 			<div
-				v-if="installPromptStore.conditionsMet"
+				v-if="installPromptStore.conditionsMet && !useSettings().isNativeApp"
 				class="flex flex-col justify-between md:flex-row"
 			>
 				<Label>{{ $t('pwa.add_app') }}</Label>
@@ -115,14 +119,25 @@
 					{{ $t('pwa.open_instructions') }}
 				</Button>
 			</div>
+			<div class="border-surface-high mt-400 border-t pt-400">
+				<Button
+					class="mb-300 w-fit"
+					icon="user-circle-minus"
+					data-testid="delete-account"
+					@click="goToDeleteAccount"
+				>
+					{{ $t('settings.delete_account') }}
+				</Button>
+			</div>
 		</div>
 	</Dialog>
 </template>
 
 <script lang="ts" setup>
 	// Packages
-	import { nextTick, onMounted, ref } from 'vue';
+	import { nextTick, onMounted, reactive, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
 
 	import Button from '@hub-client/components/elements/Button.vue';
 	import ButtonGroup from '@hub-client/components/elements/ButtonGroup.vue';
@@ -137,19 +152,21 @@
 	// Stores
 	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
 
-	import { DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
+	import { DialogButton, type DialogButtonAction, DialogOk, buttonsSubmitCancel } from '@hub-client/stores/dialog';
 	import { NotificationsPermission, type Theme, type TimeFormat, useSettings } from '@hub-client/stores/settings';
 
 	const { t } = useI18n();
 
 	const { data, setSubmitButton, setData, updateData, dataIsChanged, changed } = useFormState();
 	const settings = useSettings();
-	const dialog = useDialog();
 	const installPromptStore = useInstallPromptStore();
+	const router = useRouter();
 	const promptAllow = ref<boolean>(false);
 	const promptReset = ref<boolean>(false);
 	const promptInfo = ref<boolean>(false);
 	const notificationSupported = 'Notification' in window;
+	// Copies, since the submit button gets disabled and the shared constants are used by other dialogs as well
+	const buttons = reactive(buttonsSubmitCancel.map((b) => new DialogButton(b.label, b.color, b.action)));
 
 	setData({
 		theme: { value: settings.getSetTheme as FormDataType },
@@ -157,6 +174,14 @@
 		timeformat: { value: settings.getTimeFormat as FormDataType },
 		notifications: { value: settings.getNotificationsPermission as FormDataType },
 	});
+
+	/**
+	 * Deleting the account has a page of its own, which the app stores link to; going there leaves
+	 * this dialog, with the global bar it belongs to.  Unsaved settings are dropped, as on cancel.
+	 */
+	function goToDeleteAccount() {
+		router.push({ name: 'delete-account' });
+	}
 
 	function updateNotificationsPermission(event: string) {
 		promptAllow.value = false;
@@ -200,26 +225,27 @@
 			});
 		}
 
-		dialog.addCallback(DialogOk, () => {
-			if (changed) {
-				let sendSettings = false;
-				if (dataIsChanged('theme')) {
-					settings.setTheme(data.theme.value as Theme);
-					sendSettings = true;
-				}
-				if (dataIsChanged('language')) {
-					settings.setLanguage(data.language.value as string);
-					sendSettings = true;
-				}
-				if (dataIsChanged('timeformat')) {
-					settings.setTimeFormat(data.timeformat.value as TimeFormat);
-					sendSettings = true;
-				}
-				if (sendSettings) {
-					settings.sendSettings();
-				}
-			}
-		});
-		setSubmitButton(dialog.properties.buttons[0]);
+		setSubmitButton(buttons[0]);
 	});
+
+	function onClose(action: DialogButtonAction) {
+		if (action !== DialogOk || !changed.value) return;
+
+		let sendSettings = false;
+		if (dataIsChanged('theme')) {
+			settings.setTheme(data.theme.value as Theme);
+			sendSettings = true;
+		}
+		if (dataIsChanged('language')) {
+			settings.setLanguage(data.language.value as string);
+			sendSettings = true;
+		}
+		if (dataIsChanged('timeformat')) {
+			settings.setTimeFormat(data.timeformat.value as TimeFormat);
+			sendSettings = true;
+		}
+		if (sendSettings) {
+			settings.sendSettings();
+		}
+	}
 </script>

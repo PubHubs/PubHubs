@@ -45,6 +45,7 @@
 
 	// Logic
 	import { cacheBust } from '@global-client/logic/utils/cacheBust';
+	import { hubMatrixApiUrl, hubMiniclientBase } from '@global-client/logic/utils/nativeHubClient';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
@@ -91,9 +92,10 @@
 	// ...and only once it is not about to compete with a hub the user is opening.
 	const showMiniclient = computed(() => mayStartMiniclient.value && canStartMiniclient.value);
 
-	const miniclientSrc = computed(
-		() => `${hub.value?.url}/miniclient.html?${new URLSearchParams({ accessToken: JSON.stringify(authInfo.value), hubId: props.hubId, cb: cacheBust })}`,
-	);
+	const miniclientSrc = computed(() => {
+		if (!hub.value) return '';
+		return `${hubMiniclientBase(hub.value)}?${new URLSearchParams({ accessToken: JSON.stringify(authInfo.value), hubId: props.hubId, cb: cacheBust, HUB_URL: hubMatrixApiUrl(hub.value.serverUrl), PARENT_URL: window.location.origin })}`;
+	});
 
 	// setupMiniclient awaits a handshake with the miniclient iframe, so running it while that
 	// iframe is not mounted would leave it waiting on a frame that never appears. Its callbacks

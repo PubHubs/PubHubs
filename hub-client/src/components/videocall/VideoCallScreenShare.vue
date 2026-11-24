@@ -27,8 +27,8 @@
 </template>
 
 <script setup lang="ts">
-	import { type Participant, Track } from 'livekit-client';
-	import { computed, ref, watch } from 'vue';
+	import { type Participant, ParticipantEvent, type RemoteTrack, Track } from 'livekit-client';
+	import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 
@@ -45,42 +45,41 @@
 	const screenShareEl = ref<HTMLVideoElement | null>(null);
 	const participantUserId = computed(() => computeParticipantId(props.username));
 
+	const screenShareTrack = () => props.participant.getTrackPublication(Track.Source.ScreenShare)?.track;
+
+	const attachScreenShare = () => {
+		const track = screenShareTrack();
+		if (track && screenShareEl.value) {
+			track.attach(screenShareEl.value);
+		}
+	};
+
+	// The publication can arrive before its track is subscribed (E2EE makes this slower), so attach on subscription too.
+	const onTrackSubscribed = (track: RemoteTrack) => {
+		if (track.source === Track.Source.ScreenShare) {
+			attachScreenShare();
+		}
+	};
+
 	watch(
-		[props.participant, screenShareEl],
-		([remote, screenShareElement]) => {
-			const screenShareTrack = remote.getTrackPublication(Track.Source.ScreenShare);
-			if (!screenShareElement || !screenShareTrack) {
-				return;
-			}
-
-			// Need to repopulate the video element, else it will nog work...
-			setTimeout(function () {
-				const temp_new_screen_share_el = screenShareTrack.track?.attach(screenShareElement) as HTMLVideoElement | undefined;
-
-				if (temp_new_screen_share_el) {
-					screenShareEl.value = temp_new_screen_share_el;
-				}
-			}, 100);
-
-			document.body.addEventListener(
-				'click',
-				() => {
-					let ScreenShareTrackNew = remote.getTrackPublication(Track.Source.ScreenShare);
-
-					if (!ScreenShareTrackNew) {
-						return;
-					}
-
-					const temp_new_screen_share_el = ScreenShareTrackNew.track?.attach(screenShareElement) as HTMLVideoElement | undefined;
-					if (temp_new_screen_share_el) {
-						screenShareEl.value = temp_new_screen_share_el;
-					}
-				},
-				{ once: true },
-			);
+		() => props.participant,
+		(participant, oldParticipant) => {
+			oldParticipant?.off(ParticipantEvent.TrackSubscribed, onTrackSubscribed);
+			participant.on(ParticipantEvent.TrackSubscribed, onTrackSubscribed);
+			attachScreenShare();
 		},
-		{ deep: true },
+		{ immediate: true },
 	);
+
+	watch(screenShareEl, attachScreenShare);
+
+	onBeforeUnmount(() => {
+		props.participant.off(ParticipantEvent.TrackSubscribed, onTrackSubscribed);
+		const track = screenShareTrack();
+		if (track && screenShareEl.value) {
+			track.detach(screenShareEl.value);
+		}
+	});
 
 	function computeParticipantId(user: string): string {
 		const lastColonIndex = user.lastIndexOf(':');

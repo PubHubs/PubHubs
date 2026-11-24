@@ -1,12 +1,33 @@
 variables:
-    RUST_IMAGE: registry.science.ru.nl/ilab/docker-build/rust-stable:1.97.1-229
+    # Tag of the rust-stable image from ilab/docker-build, as <rust version>-<pipeline iid>.
+    RUST_IMAGE_TAG: 1.97.1-229
+    RUST_IMAGE: registry.science.ru.nl/ilab/docker-build/rust-stable:${RUST_IMAGE_TAG}
+    RUSTUP_AUTO_INSTALL: '0'
+    # Node major for the client jobs; keep it equal to the `FROM node:<major>-slim` in
+    # hub-client/Dockerfile.
+    NODE_VERSION: '26'
+    # The android-build image from ilab/docker-build, for the Android app, as
+    # <compileSdk>-<pipeline iid>.
+    ANDROID_IMAGE: registry.science.ru.nl/ilab/docker-build/android-build:36-232
     DOCKER_DRIVER: overlay2
     CARGO_INCREMENTAL: '0'
     CARGO_NET_RETRY: '3'
     CARGO_TERM_COLOR: always
+    # The runner's default cache archiver is single-threaded gzip, and the rust `target/` caches
+    # below are by far the largest thing it has to pack and unpack.  fastzip is parallel, and
+    # `fastest` trades a somewhat bigger archive for a lot less CPU.
+    FF_USE_FASTZIP: 'true'
+    CACHE_COMPRESSION_LEVEL: fastest
+    # Tags that trigger a release pipeline: vX.Y.Z and vX.Y.Z-rcN.
+    RELEASE_TAG_REGEX: '/^v\d+\.\d+\.\d+(-rc\d+)?$/' # e.g. v3.2.0, v3.2.0-rc1
+    # Final releases only (no -rcN).
+    STABLE_TAG_REGEX: '/^v\d+\.\d+\.\d+$/' # e.g. v3.2.0
+    # Usage in a job:
+    #   rules:
+    #       - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
 
 before_script:
-    - if [ -n "${CI_COMMIT_TAG}" ]; then ENVIRONMENT=stable; fi
+    - case "${CI_COMMIT_TAG}" in v[0-9]*.[0-9]*.[0-9]*) ENVIRONMENT=stable ;; esac
     - if [ -z "${ENVIRONMENT}" ]; then ENVIRONMENT="${CI_COMMIT_REF_NAME}"; fi
     - echo "Environment=${ENVIRONMENT}"
 
@@ -14,6 +35,7 @@ before_script:
 stages: # List of stages for jobs, and their order of execution
     - tests
     - publish-images
+    - build-app
     - deploy-own
 
 # Shared by every job that builds an image.
@@ -53,6 +75,45 @@ stages: # List of stages for jobs, and their order of execution
         - export PH_VERSION="${CI_COMMIT_TAG:-$(git describe --tags)}"
         - echo "Version=${PH_VERSION}"
 
+# Every merge request adds its change to CHANGELOG.md (see the merge request template).  This job is
+# only in the pipeline of a merge request that leaves CHANGELOG.md alone, and fails there.  A merge
+# request with nothing for the changelog gets the `No changelog` label instead.
+changelog-check:
+    stage: tests
+    tags:
+        - docker
+    interruptible: true
+    image: alpine:3
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes:
+              - CHANGELOG.md
+          when: never
+        - if: $CI_MERGE_REQUEST_LABELS =~ /(^|,)No changelog(,|$)/
+          when: never
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    script:
+        - echo "Add this merge request's change to the 'Changed not merged yet' part of CHANGELOG.md, with its prefix."
+        - echo "Or, if it has nothing to add, give the merge request the 'No changelog' label and run a new pipeline (retrying this job is not enough)."
+        - exit 1
+
+# A release's notes on GitHub are its version's part of CHANGELOG.md, without its INTERNAL entries, under a
+# heading like "## 18 September 2026 - v3.5.5" (see .github/workflows/android-release.yml).  This fails when that
+# part is missing or empty, already on the vX.Y.Z-rc0 tag, so it can be fixed before the release is
+# tagged.  The deploys don't wait for it.
+changelog-release-check:
+    stage: tests
+    tags:
+        - docker
+    image: alpine:3
+    rules:
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
+    script:
+        - VERSION="${CI_COMMIT_TAG%%-*}"
+        - awk -v v="- ${VERSION}" '/^## / { on = substr($0, length($0) - length(v) + 1) == v; next } on' CHANGELOG.md > notes.md
+        - grep -q '[^[:space:]]' notes.md || { echo "CHANGELOG.md has no entries under a heading ending in '- ${VERSION}'"; exit 1; }
+        - cat notes.md
+
 .rust-job:
     stage: tests
     tags:
@@ -63,16 +124,19 @@ stages: # List of stages for jobs, and their order of execution
         CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
     rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes:
+              - pubhubs/**/*
+              - cicd/.gitlab-ci.yml
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
 
 rust-clippy:
     extends: .rust-job
     cache:
-        key: rust-clippy-$CI_COMMIT_REF_SLUG
+        key: rust-clippy-$RUST_IMAGE_TAG-$CI_COMMIT_REF_SLUG
         # New branches and MRs warm-start from main's cache instead of building cold.
         fallback_keys:
-            - rust-clippy-main
+            - rust-clippy-$RUST_IMAGE_TAG-main
         paths:
             - pubhubs/target/
             - .cargo/
@@ -83,9 +147,9 @@ rust-clippy:
 rust-test:
     extends: .rust-job
     cache: &rust-test-cache
-        key: rust-test-$CI_COMMIT_REF_SLUG
+        key: rust-test-$RUST_IMAGE_TAG-$CI_COMMIT_REF_SLUG
         fallback_keys:
-            - rust-test-main
+            - rust-test-$RUST_IMAGE_TAG-main
         paths:
             - pubhubs/target/
             - .cargo/
@@ -102,6 +166,10 @@ rust-deny:
     interruptible: true
     rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes:
+              - pubhubs/Cargo.lock
+              - pubhubs/deny.toml
+              - cicd/.gitlab-ci.yml
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
     image: $RUST_IMAGE
@@ -109,9 +177,9 @@ rust-deny:
         CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
     cache:
         # Only the crates.io index and the advisory database, not the build artifacts.
-        key: rust-deny-$CI_COMMIT_REF_SLUG
+        key: rust-deny-$RUST_IMAGE_TAG-$CI_COMMIT_REF_SLUG
         fallback_keys:
-            - rust-deny-main
+            - rust-deny-$RUST_IMAGE_TAG-main
         paths:
             - .cargo/
     script:
@@ -151,6 +219,8 @@ rust-doc:
         - chmod 600 $UPDATE_RUST_DOC_MAIN_KEY
         - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_RUST_DOC_MAIN_KEY
 
+# The stable images and deploys run only for release tags (vX.Y.Z or vX.Y.Z-rcN).
+# Any other tag would build that commit as :stable and overwrite production.
 build-pubhubs:
     stage: publish-images
     rules:
@@ -158,7 +228,7 @@ build-pubhubs:
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:${CI_COMMIT_REF_NAME}
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs-buildcache:main
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:stable
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs-buildcache:stable
@@ -199,7 +269,7 @@ deploy-main-phmss:
 deploy-stable-phmss:
     stage: deploy-own
     rules:
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     needs:
         - build-pubhubs
     tags: [docker]
@@ -246,7 +316,7 @@ build-hub:
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub-buildcache:main
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:stable
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub-buildcache:stable
@@ -282,11 +352,12 @@ deploy-main-hub:
         - cd pubhubs_hub
         - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
         - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-main
+        - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-reviewhub-matrix-main
 
 deploy-stable-hubs:
     stage: deploy-own
     rules:
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     needs:
         - build-hub
     tags: [docker]
@@ -299,7 +370,7 @@ deploy-stable-hubs:
         - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-open-source-dev-matrix
 
 .node-setup:
-    image: node:26
+    image: node:${NODE_VERSION}
     tags: [docker]
     interruptible: true
     variables:
@@ -319,7 +390,7 @@ deploy-stable-hubs:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
 
 client-format-check:
     extends: .node-setup
@@ -338,12 +409,11 @@ npm-audit:
     tags:
         - docker
     interruptible: true
-    image: node:26
+    image: node:${NODE_VERSION}
     rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
         - if: $CI_COMMIT_BRANCH == "main"
         - if: $CI_COMMIT_BRANCH == "stable"
-        - if: $CI_COMMIT_TAG
     # registry.npmjs.org answering 503 for the advisory endpoint has nothing to do with the branch
     # being tested, and no change here can fix it.  The check retries and then exits 75, which lands
     # the job in "warning" instead of turning an unrelated pipeline red.
@@ -396,7 +466,7 @@ build-hubclient:
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:${CI_COMMIT_REF_NAME}
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client-buildcache:main
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
           variables:
               CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:stable
               BUILD_CACHE_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client-buildcache:stable
@@ -437,11 +507,12 @@ deploy-main-hubclient:
         - cd hub-client
         - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
         - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-main
+        - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-reviewhub-client-main
 
 deploy-stable-hubclients:
     stage: deploy-own
     rules:
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     needs: *deployhubclientneeds
     tags: [docker]
     image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
@@ -463,7 +534,7 @@ deploy-main-globalclient:
         - client-type-check
         - globalclient-unit-test
     tags: [docker]
-    image: node:26
+    image: node:${NODE_VERSION}
     script:
         - cd global-client/dist
         - chmod 600 $UPDATE_GLOBAL_CLIENT_MAIN_KEY
@@ -472,7 +543,7 @@ deploy-main-globalclient:
 deploy-stable-globalclient:
     stage: deploy-own
     rules:
-        - if: $CI_COMMIT_TAG
+        - if: $CI_COMMIT_TAG =~ $RELEASE_TAG_REGEX
     needs:
         - job: globalclient-build
           optional: true
@@ -485,8 +556,87 @@ deploy-stable-globalclient:
         - job: globalclient-unit-test
           optional: true
     tags: [docker]
-    image: node:26
+    image: node:${NODE_VERSION}
     script:
         - cd global-client/dist
         - chmod 600 $UPDATE_GLOBAL_CLIENT_STABLE_KEY
         - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_STABLE_KEY
+
+# Builds the Android app, unsigned, in merge requests and on main when something the app build depends
+# on changed, so a broken app build shows up before a release tag does. build-android below does the
+# signed build on release tags.
+android-build-check:
+    stage: tests
+    tags:
+        - docker
+    interruptible: true
+    image: $ANDROID_IMAGE
+    variables:
+        GRADLE_USER_HOME: ${CI_PROJECT_DIR}/.gradle-home
+        npm_config_cache: ${CI_PROJECT_DIR}/.npm
+    cache:
+        key: android-build
+        paths:
+            - .gradle-home/caches
+            - .gradle-home/wrapper
+            - .npm
+    rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes: &android-build-inputs
+              - android/**/*
+              - capacitor.config.ts
+              - package.json
+              - package-lock.json
+              - global-client/config/**/*
+              - cicd/.gitlab-ci.yml
+        - if: $CI_COMMIT_BRANCH == "main"
+          changes: *android-build-inputs
+    script:
+        - npm ci --prefer-offline --no-audit --no-fund
+        - npm run cap:sync:android:release
+        - cd android
+        # PUBHUBS_KEYSTORE is unset, so this builds unsigned (see android/app/build.gradle).
+        - ./gradlew --no-daemon assembleRelease
+
+# Builds the Android app on a release tag: the app bundle for the Play Store and an APK, both signed
+# with the upload key. See "Release builds" in docs/app/README.md. Uploading to Play is still by hand.
+build-android:
+    stage: build-app
+    rules:
+        - if: $CI_COMMIT_TAG =~ $STABLE_TAG_REGEX
+    tags:
+        - docker
+    image: $ANDROID_IMAGE
+    variables:
+        GRADLE_USER_HOME: ${CI_PROJECT_DIR}/.gradle-home
+        npm_config_cache: ${CI_PROJECT_DIR}/.npm
+    cache:
+        key: android-build
+        paths:
+            - .gradle-home/caches
+            - .gradle-home/wrapper
+            - .npm
+    script:
+        - !reference [.version, script]
+        # The version in build.gradle has to be set for this release (see the merge-to-stable template);
+        # Play only takes each version code once.
+        - VERSION_NAME="${CI_COMMIT_TAG#v}"
+        - VERSION_CODE=$(echo "${VERSION_NAME}" | awk -F. '{ print $1 * 10000 + $2 * 100 + $3 }')
+        - >
+            grep -qF "versionName \"${VERSION_NAME}\"" android/app/build.gradle && grep -qE "^ *versionCode ${VERSION_CODE}$" android/app/build.gradle
+            || { echo "android/app/build.gradle needs versionName \"${VERSION_NAME}\" and versionCode ${VERSION_CODE}"; exit 1; }
+        # The signing variables are protected, so they are only there on protected tags.
+        - test -n "${PUBHUBS_KEYSTORE_BASE64}" || { echo "PUBHUBS_KEYSTORE_BASE64 is not set; is the tag protected?"; exit 1; }
+        - export PUBHUBS_KEYSTORE="$(mktemp)"
+        - echo "${PUBHUBS_KEYSTORE_BASE64}" | base64 -d > "${PUBHUBS_KEYSTORE}"
+        - npm ci
+        - npm run cap:sync:android:release
+        - cd android
+        - ./gradlew --no-daemon bundleRelease assembleRelease
+        - rm "${PUBHUBS_KEYSTORE}"
+    artifacts:
+        name: pubhubs-android-${CI_COMMIT_TAG}
+        paths:
+            - android/app/build/outputs/bundle/release/app-release.aab
+            - android/app/build/outputs/apk/release/app-release.apk
+        expire_in: never

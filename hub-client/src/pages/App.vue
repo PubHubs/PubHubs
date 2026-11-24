@@ -3,7 +3,7 @@
 		v-if="user.isLoggedIn && setupReady"
 		class="bg-background font-body text-on-surface text-body flex h-screen w-full overflow-hidden"
 	>
-		<HubSidebar @open-settings="settingsDialog = true" />
+		<HubSidebar />
 
 		<div
 			class="h-full min-w-0 flex-1 overflow-x-hidden"
@@ -13,15 +13,11 @@
 			<router-view />
 		</div>
 
-		<SettingsDialog
-			v-if="settingsDialog"
-			@close="settingsDialog = false"
-		/>
-
 		<Dialog
-			v-if="dialog.visible"
-			:type="dialog.properties.type"
-			@close="dialog.close"
+			v-if="dialog.entry"
+			:key="dialog.entry.id"
+			:entry="dialog.entry"
+			@close="dialog.close(dialog.entry.id, $event)"
 		/>
 
 		<ContextMenu v-if="!isMobile" />
@@ -37,7 +33,6 @@
 
 	import ContextMenu from '@hub-client/components/elements/ContextMenu.vue';
 	// Components
-	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import HubSidebar from '@hub-client/components/ui/HubSidebar.vue';
 
@@ -49,13 +44,14 @@
 
 	// Logic
 	import { PubHubsInvisibleMsgType, PubHubsMgType } from '@hub-client/logic/core/events';
+	// Stores
+	import { hubStorage } from '@hub-client/logic/core/hubStorage';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 	import { hubId } from '@hub-client/logic/utils/hubId';
 
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 
-	// Stores
 	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { type HubInformation } from '@hub-client/stores/hub-settings';
@@ -77,7 +73,6 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubhubsStore();
-	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const pendingRouteFromParent = ref<RouteParamValue | null>(null);
 	const isMobile = computed(() => settings.isMobileState);
@@ -172,6 +167,8 @@
 
 		await startMessageBox();
 
+		hubSettings.fetchHubInfo();
+
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {
@@ -205,9 +202,11 @@
 	};
 
 	async function startMessageBox() {
+		// Only the handshake with the app shell provides a storage key; running solo there is none.
+		if (hubSettings.isSolo) hubStorage.disable();
 		if (!hubSettings.isSolo) {
 			messagebox.init(MessageBoxType.Child);
-			await messagebox.startCommunication(hubSettings.parentUrl);
+			await messagebox.startCommunication(hubSettings.parentUrl, 'parentFrame', { hubServerUrl: hubSettings.hubUrl });
 
 			// Ask for Hub name etc.
 			messagebox.addCallback('parentFrame', MessageType.HubInformation, (message: Message) => {

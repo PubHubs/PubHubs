@@ -74,7 +74,7 @@
 			class="absolute right-150 bottom-150 flex gap-100"
 		>
 			<FloatingActionButton
-				v-if="isAdmin"
+				v-if="isAdmin || visibleRooms.length > 0"
 				:label="t('admin.user_perm_heading')"
 				icon="pencil-simple"
 				@click="emit('edit')"

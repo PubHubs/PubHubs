@@ -2,7 +2,7 @@
 	<div
 		v-context-menu="onContextMenu"
 		class="flex w-full items-center gap-100 rounded-md p-100"
-		:class="[clickable && 'cursor-pointer', isContextMenuTarget && 'bg-surface-elevated']"
+		:class="[clickable && 'hover:bg-surface-elevated cursor-pointer', isContextMenuTarget && 'bg-surface-elevated']"
 		@click="onClick"
 	>
 		<UserBadge
@@ -10,8 +10,15 @@
 			:room-id="roomId"
 			size="lg"
 		>
-			<!-- Trailing state indicator: warning icon, timeout countdown, ... -->
-			<slot />
+			<div class="flex items-center gap-100">
+				<span
+					v-if="userId === user.userId"
+					class="text-on-surface-dim"
+					>{{ t('admin.you_suffix') }}</span
+				>
+				<!-- Trailing state indicator: warning icon, timeout countdown, ... -->
+				<slot />
+			</div>
 		</UserBadge>
 	</div>
 </template>
@@ -19,6 +26,7 @@
 <script setup lang="ts">
 	// Packages
 	import { computed } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import UserBadge from '@hub-client/components/ui/UserBadge.vue';
@@ -31,6 +39,7 @@
 
 	// Stores
 	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
+	import { useUser } from '@hub-client/stores/user';
 
 	const props = withDefaults(
 		defineProps<{
@@ -48,6 +57,8 @@
 
 	const emit = defineEmits<{ select: [userId: string] }>();
 
+	const { t } = useI18n();
+	const user = useUser();
 	const contextMenuStore = useContextMenuStore();
 	const { openMenu } = useContextMenu();
 

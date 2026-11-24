@@ -111,12 +111,15 @@
 			>
 				<ManageRoleSidebar
 					v-if="selectedRole"
+					:error="actionError"
 					:role="selectedRole"
+					:access="roleAccess"
 					@promote-steward="handlePromoteSteward"
 					@promote-expert="handlePromoteExpert"
 					@reject="handleReject"
 					@demote="handleDemote"
 					@remove-expert="handleRemoveExpert"
+					@gain-access="handleGainAccess"
 				/>
 				<div
 					v-else
@@ -136,7 +139,7 @@
 
 <script lang="ts" setup>
 	// Packages
-	import { computed, ref } from 'vue';
+	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { onBeforeRouteLeave } from 'vue-router';
 
@@ -173,6 +176,8 @@
 
 	const isMobile = computed(() => settings.isMobileState);
 	const showDisclosureForm = ref(false);
+	// Shown in the sidebar, since that is where the action was started
+	const actionError = ref<string | null>(null);
 	const emptyUser: TUserAccount = {
 		name: '',
 		displayname: '',
@@ -196,12 +201,14 @@
 		isLoading,
 		isLoadingMore,
 		hasMoreToLoad,
+		roleAccess,
 		fetchRoles,
 		loadMoreInvitations,
 		selectRole,
 		promoteToSteward,
 		promoteToExpert,
 		rejectInvitation,
+		gainRoleAccess,
 		demoteSteward,
 		removeExpert,
 	} = useManageRoles();
@@ -221,6 +228,19 @@
 		},
 	]);
 
+	// A failure belongs to the role it happened on
+	watch(selectedRoleId, () => {
+		actionError.value = null;
+	});
+
+	const handleGainAccess = async () => {
+		if (!selectedRole.value) return;
+		const { roomName } = selectedRole.value;
+		const result = await gainRoleAccess(selectedRole.value);
+		if (result === 'failed') actionError.value = t('roles.make_room_admin_failed', { room: roomName });
+		if (result === 'below-admin') actionError.value = t('roles.made_room_admin_below_admin', { room: roomName });
+	};
+
 	const asRoleEntry = (item: Record<string, unknown>): TRoleEntry => item as unknown as TRoleEntry;
 
 	const handleSelectRole = (entry: TRoleEntry) => {
@@ -231,17 +251,21 @@
 		selectRole(entry);
 	};
 
+	const reportFailure = (succeeded: boolean) => {
+		actionError.value = succeeded ? null : t('admin.user_perm_change_failed');
+	};
+
 	const handlePromoteSteward = async () => {
 		if (!selectedRole.value) return;
 		if (await dialog.okcancel(t('roles.promote_steward_confirm', { name: selectedRole.value.displayName }))) {
-			await promoteToSteward(selectedRole.value);
+			reportFailure(await promoteToSteward(selectedRole.value));
 		}
 	};
 
 	const handlePromoteExpert = async () => {
 		if (!selectedRole.value) return;
 		if (await dialog.okcancel(t('roles.promote_expert_confirm', { name: selectedRole.value.displayName }))) {
-			await promoteToExpert(selectedRole.value);
+			reportFailure(await promoteToExpert(selectedRole.value));
 		}
 	};
 
@@ -254,15 +278,19 @@
 
 	const handleDemote = async () => {
 		if (!selectedRole.value) return;
-		if (await dialog.okcancel(t('roles.demote_confirm', { name: selectedRole.value.displayName }))) {
-			await demoteSteward(selectedRole.value);
+		const message =
+			selectedRole.value.userId === user.userId
+				? t('roles.demote_self_confirm', { room: selectedRole.value.roomName })
+				: t('roles.demote_confirm', { name: selectedRole.value.displayName });
+		if (await dialog.okcancel(message)) {
+			reportFailure(await demoteSteward(selectedRole.value));
 		}
 	};
 
 	const handleRemoveExpert = async () => {
 		if (!selectedRole.value) return;
 		if (await dialog.okcancel(t('roles.remove_expert_confirm', { name: selectedRole.value.displayName }))) {
-			await removeExpert(selectedRole.value);
+			reportFailure(await removeExpert(selectedRole.value));
 		}
 	};
 

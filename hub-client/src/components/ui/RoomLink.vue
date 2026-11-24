@@ -2,7 +2,7 @@
 	<div
 		role="link"
 		tabindex="0"
-		class="hover:bg-surface-sunken flex w-full cursor-pointer items-center gap-100 rounded-md p-100"
+		class="hover:bg-surface-elevated outline-accent-blue-interactive flex w-full cursor-pointer items-center gap-100 rounded-md p-100 focus-visible:outline-3"
 		@click="navigate"
 		@keydown.enter="navigate"
 		@keydown.space.prevent="navigate"

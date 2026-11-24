@@ -1,13 +1,14 @@
 <template>
 	<div
 		v-if="hub"
-		class="bg-surface-base border-surface-elevated rounded-base relative flex w-full max-w-full flex-col overflow-hidden border-3"
+		class="bg-surface-base border-surface-elevated rounded-base hover:border-accent-blue-interactive relative flex w-full max-w-full flex-col overflow-hidden border-3 transition-colors"
 	>
 		<button
 			type="button"
 			class="focus-visible:ring-accent-blue-interactive absolute inset-0 z-10 cursor-pointer rounded-none outline-none focus-visible:ring-3 focus-visible:ring-inset"
 			:aria-label="t('home.enter_hub', { hub: hub.hubName })"
 			@click="enterHub(hub)"
+			@contextmenu.prevent="openHubContextMenu"
 		/>
 		<!-- The banner takes whatever height the card has left over: cards in a grid row stretch to the
 		     tallest of them, and that spare height is better spent on the image than left empty. -->
@@ -43,6 +44,7 @@
 
 <script lang="ts" setup>
 	// Packages
+	import { Capacitor } from '@capacitor/core';
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
@@ -51,40 +53,64 @@
 	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
+	// Composables
+	import { usePinnedHubs } from '@global-client/composables/pinnedHubs.composable';
+
 	// Models
+	import { createLogger } from '@hub-client/logic/logging/Logger';
+
 	import { type Hub } from '@global-client/models/Hubs';
+
+	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
 
 	import { useGlobal } from '@global-client/stores/global';
 	import { useMSS } from '@global-client/stores/mss';
 
 	// Stores
+	import { useContextMenuStore } from '@hub-client/stores/contextMenu.store';
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const props = defineProps<{ hub: Hub }>();
 	const router = useRouter();
 	const dialog = useDialog();
+	const contextMenu = useContextMenuStore();
 	const { t } = useI18n();
 	const _mss = useMSS();
-	const _global = useGlobal();
+	const global = useGlobal();
 	const settings = useSettings();
+	const { pinHub, unpinHub } = usePinnedHubs();
+	const logger = createLogger('HubBlock');
 
 	const isMobile = computed(() => settings.isMobileState);
+	const pinned = computed(() => Boolean(global.existsInPinnedHubs(props.hub.hubId)));
 
 	const summary = ref<string>('');
 
+	// Right-clicking a card pins or unpins the hub without entering it, like the hub menu does.
+	function openHubContextMenu(event: MouseEvent) {
+		const items: MenuItem[] = pinned.value
+			? [{ label: t('dialog.hub_unpin_title'), icon: 'push-pin-slash', isDelicate: true, onClick: () => unpinHub(props.hub.hubId) }]
+			: [{ label: t('dialog.hub_pin_title'), icon: 'push-pin', onClick: () => pinHub(props.hub) }];
+		contextMenu.open(items, event.clientX, event.clientY);
+	}
+
 	async function enterHub(hub: Hub) {
-		let canEnterHub = false;
-		try {
-			// entering only the hub would generate a CORS-error.
-			// Since we only need to know if the hub is running, we can send a no-cors.
-			// The response will be empty, but the type 'opaque' will indicate the url is up and running
-			const response = await fetch(hub.url, { mode: 'no-cors' });
-			if (response.type === 'opaque') {
-				canEnterHub = true;
+		// The native app runs its own copy of hub-client (nativeHubClient.ts), so whether hub.url is up
+		// says nothing there, and checking it would keep a known hub from opening offline.
+		let canEnterHub = Capacitor.isNativePlatform();
+		if (!canEnterHub) {
+			try {
+				// entering only the hub would generate a CORS-error.
+				// Since we only need to know if the hub is running, we can send a no-cors.
+				// The response will be empty, but the type 'opaque' will indicate the url is up and running
+				const response = await fetch(hub.url, { mode: 'no-cors' });
+				if (response.type === 'opaque') {
+					canEnterHub = true;
+				}
+			} catch {
+				// intentionally left empty
 			}
-		} catch {
-			// intentionally left empty
 		}
 		if (canEnterHub) {
 			router.push({ name: 'hub', params: { name: hub.name } });
@@ -97,7 +123,10 @@
 		loadHubSettings(props.hub);
 	});
 	async function loadHubSettings(hub: Hub): Promise<void> {
-		const hubSettingsJSON = await hub.getHubJSON();
+		const hubSettingsJSON = await hub.getHubJSON().catch((error) => {
+			logger.warn(`Could not load the settings of hub ${hub.name}`, { error });
+			return undefined;
+		});
 		if (hubSettingsJSON) {
 			summary.value = hubSettingsJSON.summary ? hubSettingsJSON.summary : props.hub.description;
 		} else {

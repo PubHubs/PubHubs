@@ -11,10 +11,9 @@
 		/>
 		<span
 			v-if="icon"
-			class="mr-075 h-100 w-100"
+			class="flex shrink-0 items-center"
 		>
 			<Icon
-				class="-mt-050"
 				size="sm"
 				:type="icon"
 			/>

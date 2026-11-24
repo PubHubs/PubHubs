@@ -11,8 +11,8 @@
 				:collapsible="false"
 			>
 				<ReportedMessagePreview
-					:event-id="report.event_id"
-					:room-id="report.room_id"
+					:event="event"
+					:is-loading="isLoadingEvent"
 				/>
 			</CollapsibleHeader>
 
@@ -106,7 +106,9 @@
 
 	// Props
 	const props = defineProps({
+		event: { type: Object as PropType<Record<string, unknown> | null>, default: null },
 		isAdmin: { type: Boolean, default: false },
+		isLoadingEvent: { type: Boolean, default: false },
 		report: { type: Object as PropType<TEventReport | undefined>, default: undefined },
 	});
 

@@ -1,8 +1,16 @@
 // Pages
 import Hub from '@global-client/pages/Hub.vue';
 
+// `releasesMiniclients` marks the pages that show the hub overview rather than opening a hub: the
+// pinned-hub miniclients have nothing to stay out of the way of there, so the navigation guard lets
+// them start warming up. See miniclientGate.composable.ts.
 const routes = [
-	{ path: '/', name: 'home', component: () => import('@global-client/pages/Home.vue'), meta: { requiresAuth: true } },
+	{
+		path: '/',
+		name: 'hubs-overview',
+		component: () => import('@global-client/pages/HubsOverview.vue'),
+		meta: { requiresAuth: true, releasesMiniclients: true },
+	},
 	{ path: '/login', name: 'login', component: () => import('@global-client/pages/Login.vue'), meta: { requiresAuth: false } },
 	{
 		path: '/register',
@@ -11,6 +19,13 @@ const routes = [
 		meta: { requiresAuth: false },
 	},
 	{ path: '/hub/:name/:roomId?', name: 'hub', component: Hub, meta: { requiresAuth: true } },
+	// Linked to from the app stores, which ask for a page where users can delete their account.
+	{
+		path: '/delete-account',
+		name: 'delete-account',
+		component: () => import('@global-client/pages/DeleteAccount.vue'),
+		meta: { requiresAuth: false },
+	},
 	{
 		path: '/error',
 		name: 'error',

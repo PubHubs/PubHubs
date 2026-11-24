@@ -456,7 +456,8 @@
 				selection.value.push(index);
 			}
 		} else {
-			if (selection.value.includes(index) && !force) {
+			// Picking the selected option again clears it, unless the dropdown may not be cleared
+			if (selection.value.includes(index) && !force && props.clearable) {
 				selection.value = [];
 			} else {
 				selection.value = [index];

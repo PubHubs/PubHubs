@@ -151,6 +151,59 @@ pub mod hub {
             }
         }
     }
+
+    /// Used by a hub to learn which of its users deleted their PubHubs account (see
+    /// [`super::user::DeleteAccountEP`]), so it can deactivate what is left of them there.
+    ///
+    /// There is one list for all hubs, holding a deleted account's hashed pseudonym at every
+    /// hub: PHC does not know which hub each belongs to (see [`crate::api::tr::EhpsEP`]), so
+    /// each hub picks out its own by looking them up, and ignores the rest.
+    ///
+    /// Not authenticated: a hashed hub pseudonym means something only to the hub it was made
+    /// for, which knows it already.  What anyone else can learn is how many accounts were
+    /// deleted when.  The hub does act on the answer by deactivating accounts, so it must ask PHC
+    /// directly, as it does for [`super::user::WelcomeEP`] - whose answer it trusts just as much.
+    pub struct DeletedPseudonymsEP {}
+    impl EndpointDetails for DeletedPseudonymsEP {
+        type RequestType = DeletedPseudonymsReq;
+        type ResponseType = Result<DeletedPseudonymsResp>;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/hub/deleted-pseudonyms";
+    }
+
+    /// Request type of [`DeletedPseudonymsEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct DeletedPseudonymsReq {
+        /// Only list pseudonyms deleted at or after this moment.  Pass the largest
+        /// [`DeletedPseudonym::deleted_at`] seen so far: inclusive, so nothing deleted in that
+        /// same second is missed, at the cost of seeing some pseudonyms twice.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub since: Option<NumericDate>,
+    }
+
+    /// Returned by [`DeletedPseudonymsEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[must_use]
+    pub enum DeletedPseudonymsResp {
+        /// Oldest first.  Pseudonyms are forgotten some time after their deletion (by default a
+        /// year), so a hub that is offline for longer misses them.
+        Success { deleted: Vec<DeletedPseudonym> },
+    }
+
+    /// One entry of [`DeletedPseudonymsResp::Success`].
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
+    pub struct DeletedPseudonym {
+        /// As in [`sso::HashedHubPseudonymPackage::hashed_hub_pseudonym`]: what some hub knows the
+        /// user by.  Most belong to other hubs, and a hub's own may be of a user who never
+        /// entered it.
+        pub hashed_hub_pseudonym: CurvePoint,
+
+        pub deleted_at: NumericDate,
+    }
 }
 
 /// `.ph/user/...` endpoints, used by the ('global') web client
@@ -518,6 +571,51 @@ pub mod user {
 
         /// Size of the object in bytes
         pub size: u32,
+    }
+
+    /// Permanently delete the current user's account at pubhubs central.
+    ///
+    /// Everything pubhubs central holds for the account goes: the account itself, the objects
+    /// stored for it, and the claim its attributes had on it.  The attributes themselves are
+    /// freed, so the same person can register again with them - under a new account, and
+    /// therefore under new pseudonyms at every hub.  Bans are not freed; see
+    /// `handle_user_delete_account`.
+    ///
+    /// The user's accounts at hubs are deactivated by the hubs themselves.  Pubhubs central does
+    /// not know which hubs the user entered, so it has the transcryptor compute the user's
+    /// pseudonym at every hub (see [`crate::api::tr::EhpsEP`]), before the account and with it
+    /// the means to do so are gone, and lists them - hashed, and without saying which hub each
+    /// belongs to - via [`super::hub::DeletedPseudonymsEP`].  Each hub picks out its own when it
+    /// next asks, which may be much later for a hub that is offline.
+    pub struct DeleteAccountEP {}
+    impl EndpointDetails for DeleteAccountEP {
+        type RequestType = NoPayload;
+        type ResponseType = Result<DeleteAccountResp>;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/user/delete";
+    }
+
+    /// Returned by [`DeleteAccountEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    #[must_use]
+    pub enum DeleteAccountResp {
+        /// The auth token provided is expired or otherwise invalid.  Obtain a new one via the
+        /// [`RefreshEP`] and retry.
+        RetryWithNewAuthToken,
+
+        /// Someone else changed the account while we were deleting it.  Nothing is gone that
+        /// stops the user from retrying.
+        PleaseRetry,
+
+        /// This account is banned, and a banned account cannot be deleted: deleting it would
+        /// release its attributes for a fresh registration.
+        Banned,
+
+        /// The account is gone.  Not reversible.
+        Deleted,
     }
 
     /// Retrieves a user object with the given `hash` from PubHubs central

@@ -447,15 +447,17 @@
 	const getRevokedRedCardMenuItems = (memberId: string): MenuItem[] => buildMemberMenu(memberId);
 
 	const getRedCardMenuItems = (memberId: string): MenuItem[] =>
-		buildMemberMenu(memberId, when(roles.userHasPermissionForAction(UserAction.Ban), revokeRedCardItem(memberId)));
+		buildMemberMenu(memberId, when(roles.userHasPermissionForAction(UserAction.Ban, props.room.roomId), revokeRedCardItem(memberId)));
 
 	const getRedCardUserDetails = (memberId: string): MenuItem[] =>
-		buildMemberMenu(memberId, when(roles.userHasPermissionForAction(UserAction.Ban), revokeRedCardItem(memberId)), [directMessageItem(memberId)]);
+		buildMemberMenu(memberId, when(roles.userHasPermissionForAction(UserAction.Ban, props.room.roomId), revokeRedCardItem(memberId)), [
+			directMessageItem(memberId),
+		]);
 
 	/** Full moderation set, offered from the member profile panel. */
 	const getMemberUserDetailsMenuItems = (memberId: string): MenuItem[] => {
-		const canKick = roles.userHasPermissionForAction(UserAction.Kick);
-		const canBan = roles.userHasPermissionForAction(UserAction.Ban);
+		const canKick = roles.userHasPermissionForAction(UserAction.Kick, props.room.roomId);
+		const canBan = roles.userHasPermissionForAction(UserAction.Ban, props.room.roomId);
 		// Moderation only applies to plain members, never to stewards or experts.
 		const isPlainMember = nonPowerMemberIds.value.includes(memberId);
 
@@ -463,7 +465,7 @@
 			...when(canWhisper.value && isPlainMember, whisperItem(memberId)),
 			...when(canKick && isPlainMember, kickItem(memberId)),
 			...when(
-				roles.userHasPermissionForAction(UserAction.Timeout) && canTimeoutUser(memberId) && isPlainMember,
+				roles.userHasPermissionForAction(UserAction.Timeout, props.room.roomId) && canTimeoutUser(memberId) && isPlainMember,
 				isUserTimedOut(memberId) ? revokeTimeoutItem(memberId) : timeOutItem(memberId),
 			),
 			...when(canKick && isPlainMember, yellowCardItem(memberId)),

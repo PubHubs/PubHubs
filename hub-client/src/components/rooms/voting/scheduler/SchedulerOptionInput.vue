@@ -1,6 +1,6 @@
 <template>
 	<div class="gap-075 mb-100 flex flex-col items-start justify-start">
-		<label class="text-label-small text-on-surface-dim">{{ $t('message.voting.option') }}</label>
+		<label class="text-label-small text-on-surface-dim">{{ $t('message.voting.option_number', { number: index + 1 }) }}</label>
 		<div class="flex w-full items-center gap-100">
 			<div class="relative grow">
 				<button
@@ -124,6 +124,7 @@
 
 	const props = defineProps<{
 		option: SchedulerOption;
+		index: number;
 	}>();
 
 	const emit = defineEmits(['updateOption', 'removeOption']);

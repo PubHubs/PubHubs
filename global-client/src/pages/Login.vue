@@ -11,11 +11,11 @@
 
 	<div
 		v-else
-		class="flex w-full flex-col"
+		class="flex h-svh w-full flex-col"
 	>
 		<AuthHeader />
 
-		<div class="bg-background h-[calc(100svh-80px)] w-full">
+		<div class="bg-background min-h-0 w-full flex-1">
 			<div
 				class="flex h-full w-full items-center justify-center"
 				:class="isMobile ? 'flex-col' : 'flex-row'"
@@ -24,7 +24,10 @@
 					class="bg-surface-sunken/50 flex shrink-0 items-center justify-center"
 					:class="isMobile ? 'h-2/5 w-full px-600' : 'h-full w-1/2 px-2000'"
 				>
-					<figure class="h-auto w-full">
+					<figure
+						class="h-auto w-full touch-manipulation select-none"
+						@click="onMascotTap"
+					>
 						<img
 							:alt="$t('login.mascot_alt', [$t('common.app_name')])"
 							src="../assets/mascot-welcome.svg"
@@ -68,7 +71,7 @@
 										<!-- Yivi injects content here - must be empty -->
 										<div
 											ref="yiviMountPoint"
-											class="yivi-mount absolute inset-0 z-50"
+											class="yivi-mount relative inset-0 z-50"
 										/>
 									</div>
 									<!-- Popup tail, centered on the login button -->
@@ -119,6 +122,7 @@
 <script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, onUnmounted, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
 
 	import AuthHeader from '@global-client/components/ui/onboarding/AuthHeader.vue';
@@ -131,6 +135,10 @@
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Logic
+	import { onExternalAppMissing } from '@global-client/logic/linkHandler';
+	import { createTapCounter, inReviewMode, reviewModeAvailable, switchReviewMode } from '@global-client/logic/reviewMode';
+
+	import { isNetworkError } from '@hub-client/logic/core/networkError';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
@@ -140,9 +148,11 @@
 	// Stores
 	import { EnterCancelled, useMSS } from '@global-client/stores/mss';
 
+	import { useDialog } from '@hub-client/stores/dialog';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
+	const { t } = useI18n();
 	const router = useRouter();
 	const route = useRoute();
 
@@ -163,10 +173,22 @@
 	const qrLoading = ref<boolean>(false);
 	const error = ref<{ key: string; values?: string[] } | undefined>();
 
+	let removeExternalAppMissingListener: (() => void) | null = null;
+
 	// The element the Yivi widget renders into, inside the popup above the login button.
 	const yiviMountPoint = ref<HTMLElement | null>(null);
 
 	const isMobile = computed(() => settings.isMobileState);
+
+	// Ten quick taps on the mascot offer app store reviewers the review environment, see logic/reviewMode.ts.
+	const onMascotTap =
+		reviewModeAvailable() && !inReviewMode()
+			? createTapCounter(10, 1000, async () => {
+					if (await useDialog().yesno(t('review_mode.enter_title'), t('review_mode.enter_text'), 'global')) {
+						switchReviewMode(true, '/register');
+					}
+				})
+			: () => {};
 
 	// Check for message passed via query params (e.g., from logout)
 	const message = computed(() => {
@@ -201,10 +223,23 @@
 			await mss.initializeServers();
 			loading.value = false;
 		} catch (error) {
-			router.replace({ name: 'error' });
+			router.replace(isNetworkError(error) ? { name: 'error', query: { errorKey: 'errors.needs_connection' } } : { name: 'error' });
 			logger.error('Could not initialize the servers for the multi-server setup.', { error });
 		}
 	});
+
+	// In the native app the Yivi button is a link the OS has to route to the Yivi
+	// app; when nothing can handle it the tap goes nowhere, so report it here.
+	onMounted(async () => {
+		removeExternalAppMissingListener = await onExternalAppMissing((url) => {
+			error.value = { key: 'login.yivi_app_missing', values: [] };
+			show.value = false;
+			qrLoading.value = false;
+			logger.error('No app on this device could open the Yivi link.', { url });
+		});
+	});
+
+	onUnmounted(() => removeExternalAppMissingListener?.());
 
 	onUnmounted(() => {
 		window.removeEventListener('pageshow', closePopupOnPageShow);

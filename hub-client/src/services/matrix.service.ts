@@ -261,7 +261,7 @@ class MatrixService {
 			const joinPromises: Promise<void>[] = [];
 
 			for (const [roomId, roomData] of Object.entries(roomList)) {
-				currentUser.loadFromSlidingSync(roomData);
+				void currentUser.loadFromSlidingSync(roomData);
 
 				// Get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
 				const latestRoomMemberInfo = roomData.required_state
@@ -274,7 +274,10 @@ class MatrixService {
 				if (latestRoomMemberInfo?.content.membership === 'leave' || latestRoomMemberInfo?.content.membership === 'ban') {
 					continue;
 				}
-				if (!(this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join)) {
+				// Checks for filtering out broken rooms. (isPendingInvite && hasName)
+				const isPendingInvite = roomData.invite_state !== undefined;
+				const hasName = !!(roomData.name || this.roomsStore.roomList.find((r) => r.roomId === roomId)?.name);
+				if (!isPendingInvite && hasName && !(this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join)) {
 					// Sliding sync sends delta required_state, so the create event may be absent on subsequent updates.
 					// Fall back to the already-stored room type to avoid overwriting a DM type with the default.
 					const storedRoomType = this.roomsStore.roomList.find((r) => r.roomId === roomId)?.roomType;

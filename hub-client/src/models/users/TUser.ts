@@ -27,7 +27,6 @@ type TUserAccountList = {
 
 enum UserRole {
 	Admin = 'Admin',
-	SuperSteward = 'SuperSteward',
 	Steward = 'Steward',
 	Expert = 'Expert',
 	User = 'User',
@@ -35,7 +34,6 @@ enum UserRole {
 
 enum UserPowerLevel {
 	Admin = 100,
-	SuperSteward = 75,
 	Steward = 50,
 	Expert = 25,
 	User = 0,
@@ -59,11 +57,10 @@ const UserRoleActionsOwn = {
 	[UserRole.User]: [UserAction.MessageSteward],
 	[UserRole.Expert]: [UserAction.VerifyMessage],
 	[UserRole.Steward]: [UserAction.StewardPanel, UserAction.RoomAnnouncement, UserAction.Kick, UserAction.Ban, UserAction.Timeout],
-	[UserRole.SuperSteward]: [UserAction.Invite],
 	[UserRole.Admin]: [UserAction.Invite, UserAction.AdminPanel],
 } as Record<UserRole, UserAction[]>;
 
-const roleHierarchy: UserRole[] = [UserRole.User, UserRole.Expert, UserRole.Steward, UserRole.SuperSteward, UserRole.Admin];
+const roleHierarchy: UserRole[] = [UserRole.User, UserRole.Expert, UserRole.Steward, UserRole.Admin];
 
 // Each role gets its own actions plus all actions of roles below it
 const UserRoleActions = Object.fromEntries(

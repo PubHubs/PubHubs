@@ -163,6 +163,19 @@
 				</RoomSidebar>
 			</div>
 		</template>
+		<!-- Not known yet, e.g. opened from the room list as last known before the first sync is in. -->
+		<div
+			v-else-if="isLoading"
+			class="flex h-full w-full items-center justify-center"
+		>
+			<p
+				v-if="!connection.isOn"
+				class="text-label-small px-200 text-center opacity-70"
+			>
+				{{ t('state.room_offline') }}
+			</p>
+			<InlineSpinner v-else />
+		</div>
 	</div>
 	<!-- Secure room join dialog -->
 	<RoomLoginDialog
@@ -216,7 +229,8 @@
 	// Models
 	import { QueryParameterKey } from '@hub-client/models/constants';
 
-	import { DialogOk, useDialog } from '@hub-client/stores/dialog';
+	import { useConnection } from '@hub-client/stores/connection';
+	import { DialogYes, useDialog } from '@hub-client/stores/dialog';
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -233,6 +247,7 @@
 	const logger = createLogger('Room');
 
 	const { t } = useI18n();
+	const connection = useConnection();
 	const route = useRoute();
 	const rooms = useRooms();
 	const user = useUser();
@@ -445,33 +460,22 @@
 		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
 	}
 
-	const handleKick = (roomId: string, reason?: string) => {
+	const handleKick = async (roomId: string, reason?: string) => {
 		const message = reason
 			? `${capitalize(t('moderation.removed_from_room'))}\n\n${capitalize(t('moderation.kick_reason'))}: ${reason}`
 			: capitalize(t('moderation.removed_from_room'));
-		dialogStore.yesno(message);
+		if ((await dialogStore.yesno(message)) !== DialogYes) return;
 
-		const handleOk = async () => {
-			cleanup();
-			await pubhubs.joinRoom(roomId);
-			const maxAttempts = 7;
-			for (let attempt = 0; attempt < maxAttempts; attempt++) {
-				const hasJoinEvent = membershipEvents.value.some(
-					(event) => event.content.membership === KnownMembership.Join && event.state_key === user.userId,
-				);
-				if (hasJoinEvent) {
-					router.push({ name: 'room', params: { id: roomId } });
-					break;
-				}
-				await delay(attempt);
+		await pubhubs.joinRoom(roomId);
+		const maxAttempts = 7;
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const hasJoinEvent = membershipEvents.value.some((event) => event.content.membership === KnownMembership.Join && event.state_key === user.userId);
+			if (hasJoinEvent) {
+				router.push({ name: 'room', params: { id: roomId } });
+				break;
 			}
-		};
-
-		const cleanup = () => {
-			dialogStore.removeCallback(DialogOk);
-		};
-
-		dialogStore.addCallback(DialogOk, handleOk);
+			await delay(attempt);
+		}
 	};
 
 	watchEffect(async () => {

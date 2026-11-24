@@ -6,7 +6,7 @@ import { type Ref, computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { SystemDefaults, TimelineScrollConstants } from '@hub-client/models/constants';
 import type Room from '@hub-client/models/rooms/Room';
 
-const { PAGINATION_COOLDOWN } = TimelineScrollConstants;
+const { PAGINATION_COOLDOWN, SCROLL_THRESHOLD } = TimelineScrollConstants;
 
 export function useTimelinePagination(container: Ref<HTMLElement | null>, room: Room) {
 	const isLoadingPrevious = ref(false);
@@ -66,6 +66,8 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 
 		const newOffset = el.getBoundingClientRect().top - cont.getBoundingClientRect().top;
 		const delta = newOffset - anchor.offset;
+		// Writing scrollTop needlessly would cancel an in-progress smooth scroll
+		if (Math.abs(delta) < 1) return;
 		cont.scrollTop += delta;
 	}
 
@@ -94,17 +96,26 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 		const prevOldestEventId = room.getTimelineOldestMessageId();
 
 		if (prevOldestEventId) {
-			// Anchor on the topmost visible message (survives pruning of newest)
-			const anchor = getScrollAnchor(cont, 'top');
-
 			// Load older messages
 			await room.paginate(Direction.Backward, SystemDefaults.paginationBatchSize, prevOldestEventId);
+
+			// Measure after the fetch: the DOM is unchanged until timelineVersion is bumped,
+			// so a scroll made during the network round trip is respected.
+			// Anchor on the topmost visible message (survives pruning of newest)
+			const anchor = getScrollAnchor(cont, 'top');
+			// Older messages are added at the visual top, so a user at the newest message should stay there
+			const wasAtNewest = cont.scrollTop >= -SCROLL_THRESHOLD;
+
 			timelineVersion.value = room.getTimelineVersion();
 
 			// Wait for DOM update then restore scroll position
 			await nextTick();
 			await new Promise((resolve) => requestAnimationFrame(resolve));
-			if (anchor) restoreScrollAnchor(cont, anchor);
+			if (wasAtNewest) {
+				cont.scrollTop = 0;
+			} else if (anchor) {
+				restoreScrollAnchor(cont, anchor);
+			}
 		}
 
 		isLoadingPrevious.value = false;
@@ -119,18 +130,20 @@ export function useTimelinePagination(container: Ref<HTMLElement | null>, room: 
 
 		const cont = container.value;
 		if (!cont) {
-			isLoadingPrevious.value = false;
+			isLoadingNext.value = false;
 			return;
 		}
 
 		const prevNewestEventId = room.getTimelineNewestMessageEventId();
 
 		if (prevNewestEventId) {
+			// Load newer messages
+			await room.paginate(Direction.Forward, SystemDefaults.paginationBatchSize, prevNewestEventId);
+
+			// Measure after the fetch (DOM is unchanged until timelineVersion is bumped).
 			// Anchor on the bottommost visible message (survives pruning of oldest)
 			const anchor = getScrollAnchor(cont, 'bottom');
 
-			// Load newer messages
-			await room.paginate(Direction.Forward, SystemDefaults.paginationBatchSize, prevNewestEventId);
 			timelineVersion.value = room.getTimelineVersion();
 
 			// Wait for DOM update then restore scroll position

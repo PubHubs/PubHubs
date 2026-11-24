@@ -1,59 +1,52 @@
 <template>
-	<img
-		v-if="authMediaUrl?.url"
-		v-context-menu="
-			(evt: any) =>
-				openMenu(evt, [
-					{ label: t('menu.copy_image'), icon: 'copy', onClick: () => authMediaUrl?.url && imageActions.copyImage(authMediaUrl.url) },
-					{
-						label: t('menu.save_image'),
-						icon: 'download-simple',
-						onClick: () => authMediaUrl?.url && saveAs(authMediaUrl.url, message.filename ?? message.body ?? 'image'),
-					},
-				])
-		"
-		:alt="message.body"
-		:src="authMediaUrl.url"
-		class="rounded-base border-surface-elevated max-h-[25rem] w-xs cursor-pointer border-3 object-contain"
-		@click.stop="showFullImage = true"
-		@touchstart.stop
-	/>
-	<Teleport to="body">
-		<div
-			v-if="showFullImage"
-			ref="lightboxRef"
-			tabindex="-1"
-			class="bg-scrim/50 dark:bg-scrim/75 fixed inset-0 z-50 flex items-center justify-center outline-none"
-			@click.self="showFullImage = false"
-			@contextmenu.prevent
-			@keydown.escape="showFullImage = false"
-		>
-			<img
-				:alt="message.body"
-				:src="authMediaUrl?.url"
-				class="max-h-[90vh] max-w-[90vw] object-contain"
-			/>
-			<button
-				type="button"
-				class="absolute top-200 right-200 cursor-pointer text-white hover:text-gray-300"
-				:title="t('dialog.close')"
-				@click="showFullImage = false"
+	<div class="flex min-w-0 flex-col gap-100">
+		<img
+			v-if="authMediaUrl?.url"
+			v-context-menu="(evt: any) => openMenu(evt, imageMenuItems())"
+			:alt="message.body"
+			:src="authMediaUrl.url"
+			class="rounded-base border-surface-elevated max-h-[25rem] w-xs cursor-pointer border-3 object-contain"
+			@click.stop="showFullImage = true"
+			@touchstart.stop
+		/>
+		<Teleport to="body">
+			<div
+				v-if="showFullImage"
+				ref="lightboxRef"
+				tabindex="-1"
+				class="bg-scrim/50 dark:bg-scrim/75 fixed inset-0 z-50 flex items-center justify-center outline-none"
+				@click.self="showFullImage = false"
+				@contextmenu.prevent
+				@keydown.escape="showFullImage = false"
 			>
-				<Icon type="x" />
-			</button>
-		</div>
-	</Teleport>
-	<!-- Message body with mention support -->
-	<MessageBodyWithMentions
-		v-if="message.body !== message.filename"
-		:body="message.body"
-		:ph-body="message.ph_body"
-	/>
+				<img
+					v-context-menu="(evt: any) => openMenu(evt, imageMenuItems())"
+					:alt="message.body"
+					:src="authMediaUrl?.url"
+					class="max-h-[90vh] max-w-[90vw] object-contain"
+				/>
+				<button
+					type="button"
+					class="absolute top-200 right-200 cursor-pointer text-white hover:text-gray-300"
+					:title="t('dialog.close')"
+					@click="showFullImage = false"
+				>
+					<Icon type="x" />
+				</button>
+			</div>
+		</Teleport>
+		<!-- Message body with mention support -->
+		<MessageBodyWithMentions
+			v-if="message.body !== message.filename"
+			:body="message.body"
+			:ph-body="message.ph_body"
+		/>
+	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { nextTick, ref, watch } from 'vue';
+	import { nextTick, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -67,6 +60,7 @@
 	import { useImageActions } from '@hub-client/composables/useImageActions';
 
 	// Models
+	import { type MenuItem } from '@hub-client/models/components/contextMenu.models';
 	import { type TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	// Stores
@@ -78,18 +72,33 @@
 	const imageActions = useImageActions();
 	const { t } = useI18n();
 	const dialog = useDialog();
+	const modalHolder = dialog.newId();
 	const showFullImage = ref(false);
 	const lightboxRef = ref<HTMLElement | null>(null);
 
 	const { authMediaUrl } = useAuthMediaUrl(() => props.message.url);
 
+	// Same menu on the image in the timeline and in the full screen preview
+	const imageMenuItems = (): MenuItem[] => [
+		{ label: t('menu.copy_image'), icon: 'copy', onClick: () => authMediaUrl.value?.url && imageActions.copyImage(authMediaUrl.value.url) },
+		{
+			label: t('menu.save_image'),
+			icon: 'download-simple',
+			onClick: () => authMediaUrl.value?.url && saveAs(authMediaUrl.value.url, props.message.filename ?? props.message.body ?? 'image'),
+		},
+	];
+
+	onUnmounted(() => {
+		dialog.releaseModal(modalHolder);
+	});
+
 	watch(showFullImage, async (show) => {
 		if (show) {
-			dialog.showModal();
+			dialog.holdModal(modalHolder);
 			await nextTick();
 			lightboxRef.value?.focus();
 		} else {
-			dialog.hideModal();
+			dialog.releaseModal(modalHolder);
 		}
 	});
 </script>

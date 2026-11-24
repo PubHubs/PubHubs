@@ -1,6 +1,6 @@
 <template>
 	<Dialog
-		:title="$t('admin.ask_disclosure_title')"
+		:title="title"
 		:width="isMobile ? 'px-400 w-full' : 'w-[600px] px-400'"
 		@close="close()"
 	>
@@ -10,6 +10,16 @@
 			:class="isMobile ? 'w-full' : 'w-[450px]'"
 			@submit.prevent
 		>
+			<!-- The goal comes first: it decides what the rest of the form is for -->
+			<DropDown
+				v-model="form.purpose"
+				:transformer="dropDownData.transformPurpose"
+				:options="purposeOptions"
+				:filtered="false"
+				:help="purposeHelp"
+				:validation="{ required: true }"
+				>{{ $t('admin.ask_disclosure_purpose_title') }}</DropDown
+			>
 			<DropDown
 				v-model="form.user"
 				:transformer="dropDownData.transformUser"
@@ -17,14 +27,6 @@
 				:filtered="true"
 				:validation="{ required: true }"
 				>{{ $t('admin.ask_disclosure_user_title') }}</DropDown
-			>
-			<DropDown
-				v-model="form.purpose"
-				:transformer="dropDownData.transformPurpose"
-				:options="purposeOptions"
-				:filtered="false"
-				:validation="{ required: true }"
-				>{{ $t('admin.ask_disclosure_purpose_title') }}</DropDown
 			>
 			<DropDown
 				v-model="form.attributes"
@@ -38,7 +40,7 @@
 			<DropDown
 				v-model="form.where_room"
 				:transformer="dropDownData.transformRoom"
-				:options="roomOptions"
+				:options="applicableRoomOptions"
 				:filtered="true"
 				:validation="{ required: true }"
 				>{{ $t('rooms.room') }}</DropDown
@@ -46,7 +48,7 @@
 
 			<TextArea
 				v-model="form.message"
-				placeholder="Add a message to your disclosure request"
+				:placeholder="$t('admin.ask_disclosure_message_placeholder')"
 				:validation="{ required: true, maxLength: 100 }"
 				@keydown.esc.stop
 				>{{ $t('admin.ask_disclosure_message_title') }}</TextArea
@@ -71,7 +73,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onBeforeMount, ref } from 'vue';
+	import { computed, onBeforeMount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -84,10 +86,14 @@
 
 	// Composables
 	import { useDropDownData } from '@hub-client/composables/DropDownData.composable';
+	import { useRoles } from '@hub-client/composables/roles.composable';
+
+	// Logic
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Models
-	import { type AskDisclosureMessage } from '@hub-client/models/components/signedMessages';
-	import { type TUserAccount } from '@hub-client/models/users/TUser';
+	import { type AskDisclosureMessage, DisclosurePurpose } from '@hub-client/models/components/signedMessages';
+	import { type TUserAccount, UserPowerLevel } from '@hub-client/models/users/TUser';
 	import { type Attribute } from '@hub-client/models/yivi/Tyivi';
 
 	// Stores
@@ -104,10 +110,20 @@
 
 	const pubhubsStore = usePubhubsStore();
 	const dropDownData = useDropDownData();
+	const roles = useRoles();
+	const logger = createLogger('disclosure-request-form');
+
+	const requiredPowerLevel: Record<DisclosurePurpose, number> = {
+		[DisclosurePurpose.Steward]: UserPowerLevel.Steward,
+		[DisclosurePurpose.Expert]: UserPowerLevel.Steward,
+		[DisclosurePurpose.Information]: UserPowerLevel.User,
+	};
 
 	const { t } = useI18n();
-	const roomOptions = ref<TPublicRoom[]>([]);
+	const publicRooms = ref<TPublicRoom[]>([]);
 	const userOptions = ref<TUserAccount[]>([]);
+	// Hub admins can invite for rooms they aren't in, where the selected user's membership isn't synced, so they ask the server
+	const serverJoinedRoomIds = ref<Set<string> | undefined>();
 	const purposeOptions = dropDownData.purposeOptions();
 	const yiviAttributes = dropDownData.yiviAttributes();
 	const settings = useSettings();
@@ -121,14 +137,58 @@
 		purpose: purposeOptions[0],
 	});
 
+	const purposeTexts: Record<DisclosurePurpose, { title: string; help: string }> = {
+		[DisclosurePurpose.Steward]: { title: 'admin.ask_disclosure_title_steward', help: 'admin.ask_disclosure_purpose_steward_help' },
+		[DisclosurePurpose.Expert]: { title: 'admin.ask_disclosure_title_expert', help: 'admin.ask_disclosure_purpose_expert_help' },
+		[DisclosurePurpose.Information]: { title: 'admin.ask_disclosure_title_information', help: 'admin.ask_disclosure_purpose_information_help' },
+	};
+
+	const title = computed(() => t(purposeTexts[form.value.purpose.value].title));
+	const purposeHelp = computed(() => t(purposeTexts[form.value.purpose.value].help));
+
+	const roomOptions = computed(() => {
+		if (!form.value.user.name) return publicRooms.value;
+		const joinedRoomIds = serverJoinedRoomIds.value;
+		if (joinedRoomIds) return publicRooms.value.filter((room) => joinedRoomIds.has(room.room_id));
+		return dropDownData.roomsJoinedBy(publicRooms.value, form.value.user.name);
+	});
+
+	const applicableRoomOptions = computed(() => {
+		if (roles.userIsHubAdmin()) return roomOptions.value;
+		const required = requiredPowerLevel[form.value.purpose.value];
+		return roomOptions.value.filter((room) => roles.userPowerLevel(room.room_id) >= required);
+	});
+
 	onBeforeMount(async () => {
-		roomOptions.value = await dropDownData.publicRoomList();
-		userOptions.value = await dropDownData.userList();
+		publicRooms.value = await dropDownData.publicRoomList();
+		userOptions.value = await dropDownData.userListWithoutMe();
 
 		form.value.user = {
 			name: props.user.name,
 			displayname: props.user.displayname,
 		} as TUserAccount;
+	});
+
+	watch(
+		() => form.value.user.name,
+		async (userId) => {
+			serverJoinedRoomIds.value = undefined;
+			if (!userId || !roles.userIsHubAdmin()) return;
+			try {
+				const joinedRoomIds = await dropDownData.roomIdsJoinedBy(userId);
+				// The selection may have moved to another user while waiting
+				if (form.value.user.name === userId) serverJoinedRoomIds.value = joinedRoomIds;
+			} catch (error) {
+				// Keeps offering the rooms the local state knows about
+				logger.error(`Failed to fetch the rooms ${userId} has joined:`, error);
+			}
+		},
+	);
+
+	watch(applicableRoomOptions, (rooms) => {
+		if (form.value.where_room.room_id && !rooms.some((room) => room.room_id === form.value.where_room.room_id)) {
+			form.value.where_room = { room_id: '', name: '' };
+		}
 	});
 
 	async function close() {

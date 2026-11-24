@@ -202,7 +202,7 @@
 		</ValidatedForm>
 
 		<!-- Fixed action buttons -->
-		<div class="fixed right-500 bottom-250 z-20 flex items-center gap-200">
+		<div class="absolute right-400 z-20 flex items-center gap-200 md:fixed md:bottom-250">
 			<Button
 				variant="error"
 				@click.stop.prevent="back()"
@@ -405,18 +405,21 @@
 				if (!Array.isArray(value)) return false;
 				// Should have at least one attribute
 				if (value.length < 1) return false;
-				const first = value[0] as TEditRoomFormAttributes;
-				if (!first.label || !first.accepted) return false;
-				// Attribute should be an existing Yivi attribute
-				if (!yiviAttributes.includes(first.label)) return false;
-				// At least one accepted value for the attribute
-				if (first.accepted.length < 1) return false;
-				// Yes all good!
-				return true;
+
+				// Check value of each attribute
+				return (value as TEditRoomFormAttributes[]).every((attr) => {
+					if (!attr.label || !attr.accepted) return false;
+					// Attribute should be an existing Yivi attribute
+					if (!yiviAttributes.includes(attr.label)) return false;
+					// At least one accepted value for the attribute
+					if (attr.accepted.length < 1) return false;
+					// Yes all good!
+					return true;
+				});
 			},
 			args: [] as unknown[],
 			message: {
-				translationKey: 'rooms.incorrect_attributes',
+				translationKey: 'rooms.secured_room_attributes_edit_error',
 				parameters: [],
 			},
 		} as ValidationRule;

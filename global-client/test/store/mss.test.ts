@@ -12,10 +12,14 @@ import { api } from '@global-client/logic/core/api';
 import PHCServer from '@global-client/models/MSS/PHC';
 import { AttrKeyResp } from '@global-client/models/MSS/TAuths';
 import { SignedIdentifyingAttrs } from '@global-client/models/MSS/TGeneral';
-import { UserSecretData, UserSecretObject } from '@global-client/models/MSS/TPHC';
+import { UserSecretData, UserSecretObject, attrValueKey } from '@global-client/models/MSS/TPHC';
 
 // Stores
 import { useMSS } from '@global-client/stores/mss';
+
+// The keys the entries for the attribute values below are stored under.
+const emailKey = await attrValueKey('emailAttrId', 'emailAttrValue');
+const phoneKey = await attrValueKey('phoneAttrId', 'phoneAttrValue');
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
@@ -138,7 +142,7 @@ describe('Multi-server setup', () => {
 			const parsedObject = JSON.parse(decodedUserSecret) as UserSecretObject;
 			const decryptedUserSecretBytes = await phcServer['_userSecretManager']['_decryptUserSecret'](
 				'someKey3',
-				parsedObject.data['emailAttrId']['emailAttrValue'],
+				parsedObject.data['emailAttrId'][emailKey],
 			);
 
 			expect(userSecretBytes).toEqual(decryptedUserSecretBytes);
@@ -154,15 +158,11 @@ describe('Multi-server setup', () => {
 			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey4', '4'],
-					old_key: beforeResp.userSecret.object.data.emailAttrId
-						? 'someKey' + beforeResp.userSecret.object.data.emailAttrId['emailAttrValue'].ts
-						: null,
+					old_key: beforeResp.userSecret.object.data.emailAttrId ? 'someKey' + beforeResp.userSecret.object.data.emailAttrId[emailKey].ts : null,
 				},
 				phonenumber: {
 					latest_key: ['somePhoneKey1', '1'],
-					old_key: beforeResp.userSecret.object.data.phoneAttrId
-						? 'somePhoneKey' + beforeResp.userSecret.object.data.phoneAttrId['phoneAttrValue'].ts
-						: null,
+					old_key: beforeResp.userSecret.object.data.phoneAttrId ? 'somePhoneKey' + beforeResp.userSecret.object.data.phoneAttrId[phoneKey].ts : null,
 				},
 			};
 
@@ -205,15 +205,11 @@ describe('Multi-server setup', () => {
 			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey5', '5'],
-					old_key: beforeResp.userSecret.object.data.emailAttrId
-						? 'someKey' + beforeResp.userSecret.object.data.emailAttrId['emailAttrValue'].ts
-						: null,
+					old_key: beforeResp.userSecret.object.data.emailAttrId ? 'someKey' + beforeResp.userSecret.object.data.emailAttrId[emailKey].ts : null,
 				},
 				phonenumber: {
 					latest_key: ['somePhoneKey2', '2'],
-					old_key: beforeResp.userSecret.object.data.phoneAttrId
-						? 'somePhoneKey' + beforeResp.userSecret.object.data.phoneAttrId['phoneAttrValue'].ts
-						: null,
+					old_key: beforeResp.userSecret.object.data.phoneAttrId ? 'somePhoneKey' + beforeResp.userSecret.object.data.phoneAttrId[phoneKey].ts : null,
 				},
 			};
 
@@ -260,15 +256,11 @@ describe('Multi-server setup', () => {
 			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey6', '6'],
-					old_key: beforeResp.userSecret.object.data.emailAttrId
-						? 'someKey' + beforeResp.userSecret.object.data.emailAttrId['emailAttrValue'].ts
-						: null,
+					old_key: beforeResp.userSecret.object.data.emailAttrId ? 'someKey' + beforeResp.userSecret.object.data.emailAttrId[emailKey].ts : null,
 				},
 				phonenumber: {
 					latest_key: ['somePhoneKey3', '3'],
-					old_key: beforeResp.userSecret.object.data.phoneAttrId
-						? 'somePhoneKey' + beforeResp.userSecret.object.data.phoneAttrId['phoneAttrValue'].ts
-						: null,
+					old_key: beforeResp.userSecret.object.data.phoneAttrId ? 'somePhoneKey' + beforeResp.userSecret.object.data.phoneAttrId[phoneKey].ts : null,
 				},
 			};
 
@@ -333,15 +325,11 @@ describe('Multi-server setup', () => {
 			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey7', '7'],
-					old_key: beforeResp.userSecret.object.data.emailAttrId
-						? 'someKey' + beforeResp.userSecret.object.data.emailAttrId['emailAttrValue'].ts
-						: null,
+					old_key: beforeResp.userSecret.object.data.emailAttrId ? 'someKey' + beforeResp.userSecret.object.data.emailAttrId[emailKey].ts : null,
 				},
 				phonenumber: {
 					latest_key: ['somePhoneKey4', '4'],
-					old_key: beforeResp.userSecret.object.data.phoneAttrId
-						? 'somePhoneKey' + beforeResp.userSecret.object.data.phoneAttrId['phoneAttrValue'].ts
-						: null,
+					old_key: beforeResp.userSecret.object.data.phoneAttrId ? 'somePhoneKey' + beforeResp.userSecret.object.data.phoneAttrId[phoneKey].ts : null,
 				},
 			};
 

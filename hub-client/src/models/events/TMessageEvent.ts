@@ -4,7 +4,7 @@ import { type EventType, type MsgType } from 'matrix-js-sdk';
 import { type EncryptedFile, type FileInfo, type ImageInfo } from 'matrix-js-sdk/lib/@types/media';
 
 // Logic
-import { type PubHubsMgType } from '@hub-client/logic/core/events';
+import { type PubHubsMgType, type VideocallStateType } from '@hub-client/logic/core/events';
 
 // Models
 import { type SignedMessage } from '@hub-client/models/components/signedMessages';
@@ -51,8 +51,7 @@ export interface TBaseMessageEventContent {
 		| PubHubsMgType.VotingWidgetPickOption
 		| PubHubsMgType.VotingWidgetAddVoteOption
 		| PubHubsMgType.HideMessage
-		| PubHubsMgType.VideoCall
-		| PubHubsMgType.VideoCallEnded;
+		| PubHubsMgType.VideoCall;
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
@@ -112,12 +111,9 @@ export interface TWhisperMessageEventContent extends TPrivilegedMessageEventCont
 export interface TVideoCallMessageEventContent extends TBaseMessageEventContent {
 	msgtype: PubHubsMgType.VideoCall;
 	timestamp: number;
+	videocallstate?: VideocallStateType;
 }
 
-export interface TVideoCallEndedMessageEventContent extends TBaseMessageEventContent {
-	msgtype: PubHubsMgType.VideoCallEnded;
-	timestamp: number;
-}
 export interface THideMessageContent extends TBaseMessageEventContent {
 	msgtype: PubHubsMgType.HideMessage;
 	ph_hidden_label: string | undefined;
@@ -132,5 +128,4 @@ export type TMessageEventContent =
 	| TSignedMessageEventContent
 	| TPrivilegedMessageEventContent
 	| TVotingWidgetMessageEventContent
-	| TVideoCallMessageEventContent
-	| TVideoCallEndedMessageEventContent;
+	| TVideoCallMessageEventContent;

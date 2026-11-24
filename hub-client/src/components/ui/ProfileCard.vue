@@ -9,7 +9,10 @@
 					:user-id="userId ? userId : event.sender"
 				/>
 				<div
-					v-if="userStore.userId !== (userId ? userId : event.sender) && props.room?.getPowerLevel(userId ? userId : event.sender) !== 50"
+					v-if="
+						userStore.userId !== (userId ? userId : event.sender) &&
+						props.room?.getPowerLevel(userId ? userId : event.sender) !== UserPowerLevel.Steward
+					"
 					class="bg-surface-base mb-100 rounded-md p-[2%]"
 				>
 					<Button
@@ -53,6 +56,7 @@
 	// Models
 	import { type TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import Room from '@hub-client/models/rooms/Room';
+	import { UserPowerLevel } from '@hub-client/models/users/TUser';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';

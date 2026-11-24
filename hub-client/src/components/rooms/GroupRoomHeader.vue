@@ -28,7 +28,10 @@
 					:key="member.userId"
 					class="mx-050 truncate"
 				>
-					{{ member.rawDisplayName }}
+					<MemberName
+						:raw-display-name="member.rawDisplayName"
+						:user-id="member.userId"
+					/>
 					<span v-if="index < memberList.length - 1">,</span>
 				</span>
 			</p>
@@ -42,6 +45,7 @@
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import MemberName from '@hub-client/components/rooms/MemberName.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
 	// Models

@@ -158,6 +158,9 @@ class SecuredRoom:
             "power_level_content_override": {
                 "users": {user: ROOM_ADMIN, server_notices_user: STEWARD},
                 "events": {
+                    # Stewards appoint experts and other stewards; SpamChecker limits which power levels
+                    # they may actually change.
+                    "m.room.power_levels": STEWARD,
                     "pubhubs.timeout": STEWARD,
                     "pubhubs.yellow_card": STEWARD,
                     "org.matrix.msc3401.call": USER,

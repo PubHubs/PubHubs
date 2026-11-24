@@ -65,8 +65,13 @@ def main():
 
     parser.add_argument("--hub-client-url", default=None,
                         help="Overwrites the hub client url in the homeserver configuration")
+    parser.add_argument("--hub-dev-url", default=None,
+                        help="Sets dev_url in the HubClientApi module configuration: a second hub client url "
+                             "whose requests the hub accepts, for local development")
     parser.add_argument("--hub-server-url", default=None,
                         help="Overwrites the hub server url (public_baseurl) in the homeserver configuration")
+    parser.add_argument("--public-yivi-url", default=None,
+                        help="Overwrites the public_yivi_url in the HubClientApi module configuration")
     parser.add_argument("--global-client-url", default=None,
                         help="Overwrites the global client url in the homeserver configuration")
     parser.add_argument("--replace-sqlite3-by-postgres",
@@ -252,7 +257,9 @@ class Program:
                           output_file=live_config_path,
                           environment=self._args.environment,
                           hub_client_url=self._args.hub_client_url,
+                          hub_dev_url=self._args.hub_dev_url,
                           hub_server_url=self._args.hub_server_url,
+                          public_yivi_url=self._args.public_yivi_url,
                           global_client_url=self._args.global_client_url,
                           replace_sqlite3_by_postgres=replace_sqlite3_by_postgres_now,
                           server_name=self._args.server_name)
@@ -260,6 +267,9 @@ class Program:
         # Decide whether to start a bundled livekit-server. It won't 
         # run in production.
         explicit_livekit_config = os.environ.get("LIVEKIT_CONFIG_PATH")
+        # Tells the hub module (synapse inherits our environment) whether video calls can work;
+        # see is_videocall_configured in modules/pubhubs/_video_call_web.py.
+        os.environ["PUBHUBS_LIVEKIT_CONFIGURED"] = "true"
         if _using_external_livekit():
             print("External LiveKit configured; not starting the bundled livekit-server.", flush=True)
         elif not explicit_livekit_config and self._args.environment == "production":
@@ -272,6 +282,7 @@ class Program:
                 "your own livekit config with a private key.",
                 flush=True,
             )
+            os.environ["PUBHUBS_LIVEKIT_CONFIGURED"] = "false"
         else:
             # Resolve the config path:
             # 1) LIVEKIT_CONFIG_PATH env var
@@ -528,7 +539,7 @@ class Program:
         sqlite_cur = sqlite_conn.cursor()
         pg_cur = pg_conn.cursor()
 
-        for table_name in ('allowed_to_join_room', 'secured_rooms', 'joined_hub'):
+        for table_name in ('allowed_to_join_room', 'secured_rooms', 'joined_hub', 'deleted_pseudonyms_since'):
             sqlite_cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
             row = sqlite_cur.fetchone()
             if row is None:

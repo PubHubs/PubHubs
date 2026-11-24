@@ -3,6 +3,8 @@ export enum ErrorCode {
 	PleaseRetry = 'PleaseRetry',
 	InternalError = 'InternalError',
 	BadRequest = 'BadRequest',
+	Unauthorized = 'Unauthorized',
+	PseudonymMismatch = 'PseudonymMismatch',
 }
 
 export enum ResultResponse {
@@ -62,6 +64,20 @@ export type EnterCompleteResp =
 	  };
 
 export type HubEnterCompleteResp = Result<EnterCompleteResp, ErrorCode>;
+
+// Deactivation types - reuse EnterStartResp structure as they're identical
+export type DeactivateStartResp = EnterStartResp;
+
+export type HubDeactivateStartResp = Result<DeactivateStartResp, ErrorCode>;
+
+export type HubDeactivateCompleteReq = {
+	state: string;
+	hhpp: string;
+};
+
+export type DeactivateCompleteResp = 'Deactivated' | 'RetryFromStart';
+
+export type HubDeactivateCompleteResp = Result<DeactivateCompleteResp, ErrorCode>;
 
 export type ReturnCard =
 	| { cardAttr: null; errorMessage: { key: string; values?: string[] | undefined } }

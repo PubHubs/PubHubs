@@ -13,6 +13,6 @@
 
 <script lang="ts" setup>
 	// Assets
-	const logoLightUrl = '/client/img/logo.svg';
-	const logoDarkUrl = '/client/img/logo-dark.svg';
+	const logoLightUrl = `${import.meta.env.BASE_URL}img/logo.svg`;
+	const logoDarkUrl = `${import.meta.env.BASE_URL}img/logo-dark.svg`;
 </script>

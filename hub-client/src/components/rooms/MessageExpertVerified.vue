@@ -88,8 +88,9 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
-	// Models
+	// Composables
 	import { type TVerificationInfo } from '@hub-client/composables/moderation/expert-verification.composable';
+	import { useDeactivatedUsers } from '@hub-client/composables/useDeactivatedUsers';
 
 	// Stores
 	import { useUser } from '@hub-client/stores/user';
@@ -104,14 +105,13 @@
 
 	const { t } = useI18n();
 	const userStore = useUser();
+	const { nameOf } = useDeactivatedUsers();
 
 	const expertUserId = computed(() => props.verificationInfo.expert_user_id);
 
 	const expertAvatarUrl = computed(() => userStore.userAvatar(expertUserId.value));
 
-	const expertDisplayName = computed(() => {
-		return userStore.userDisplayName(props.verificationInfo.expert_user_id) ?? props.verificationInfo.expert_user_id;
-	});
+	const expertDisplayName = computed(() => nameOf(expertUserId.value));
 
 	const verificationType = computed(() => props.verificationInfo.verification_type ?? 'verified');
 

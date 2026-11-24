@@ -53,3 +53,44 @@ pub enum EhppResp {
     /// The requested encrypted hub pseudonym package
     Success(Sealed<sso::EncryptedHubPseudonymPackage>),
 }
+
+/// Requests one user's pseudonyms at several hubs at once, in random order, as an
+/// [`sso::EncryptedHubPseudonymsPackage`].  Used by PHC when an account is deleted, see
+/// [`phc::user::DeleteAccountEP`].
+///
+/// PHC needs those pseudonyms, but must not learn which hub each belongs to: PHC knows who the
+/// user is, so that would tell it who is behind a pseudonym at a given hub.  Hence PHC does not
+/// use [`EhppEP`] for this, which would have it name the hub of every pseudonym it gets.
+///
+/// This relies on PHC asking for many hubs at once; asking for one hub would tell it everything.
+/// That PHC does not is part of the same trust in PHC as that it does not use [`EhppEP`] itself.
+pub struct EhpsEP {}
+impl EndpointDetails for EhpsEP {
+    type RequestType = EhpsReq;
+    type ResponseType = Result<EhpsResp>;
+
+    const METHOD: http::Method = http::Method::POST;
+    const PATH: &'static str = ".ph/ehps";
+}
+
+/// Request type of [`EhpsEP`].
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct EhpsReq {
+    /// Requests a pseudonym for each of these hubs.
+    pub hubs: Vec<id::Id>,
+
+    /// The polymorphic pseudonym from which to create the hub pseudonyms.
+    pub ppp: Sealed<sso::PolymorphicPseudonymPackage>,
+}
+
+/// Returned by [`EhpsEP`].
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
+pub enum EhpsResp {
+    RetryWithNewPpp,
+
+    /// The requested encrypted hub pseudonyms package
+    Success(Sealed<sso::EncryptedHubPseudonymsPackage>),
+}

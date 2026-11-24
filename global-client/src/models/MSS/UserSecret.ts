@@ -15,7 +15,15 @@
  * Layout of the stored object
  * ---------------------------
  *
- *     { version: 1, data: { <attrId>: { <attrValue>: { ts, encUserSecret } } } }
+ *     { version: 2, data: { <attrId>: { <attrValueKey>: { ts, encUserSecret } } } }
+ *
+ * `<attrValueKey>` is `TPHC.attrValueKey()`: a SHA-256 hash of the attribute type and value, so that
+ * PHC, which stores the object as it is, does not see the user's email address or card id. Objects of
+ * version 1, and the bare map from before `version` existed, are keyed by the attribute value itself.
+ * They are read through `TPHC.getHashedUserSecretData()`, which hashes those keys, so every lookup
+ * uses the hashed key whatever version was read. The next login writes the object as version 2, with
+ * every entry under its hashed key, including those for attributes that login did not disclose. An
+ * account that never logs in again keeps its older object, attribute values included.
  *
  * Every identifying attribute the account can be entered with needs an entry of its own, and an
  * attribute added later needs one too: a PubHubs card is disclosed on its own at the next login, so
@@ -53,7 +61,10 @@
  *     `usersecretbackup` is the authoritative one and is copied back over `usersecret`. Both are
  *     decrypted first to check that they really do hold the same secret; if they hold *different*
  *     secrets, something is wrong that the client cannot repair on its own, and the user is shown an
- *     error instead of being silently switched to one of the two;
+ *     error instead of being silently switched to one of the two. The copies may be in different
+ *     versions (a version 2 rewrite next to a version 1 backup); each is decrypted through its own
+ *     hashed keys, the backup's bytes are copied back as they are, and the store at the end of the
+ *     login writes them as version 2 again;
  *   - a `usersecret` in the current format but no `usersecretbackup`: an earlier login was
  *     interrupted between steps 2 and 3, or the backup was removed. `usersecret` was verified in
  *     step 2 before the backup write was attempted, so it is the best copy there is: it is used, and
@@ -304,9 +315,11 @@ export default class UserSecretManager {
 		backupUserSecret: { object: TPHC.UserSecretObjectNew; rawData: ArrayBuffer; details: TPHC.UserObjectDetails },
 		attrKeysBackupUserSecret: Record<string, AttrKeyResp>,
 	): Promise<{ equalSecret: false } | { equalSecret: true; stored: boolean }> {
-		const userSecretData = TPHC.getUserSecretData(userSecret.object);
+		// The copies need not be in the same version: a login interrupted while rewriting an older object
+		// leaves a version 2 usersecret next to an older usersecretbackup. Both are read through hashed keys.
+		const userSecretData = await TPHC.getHashedUserSecretData(userSecret.object);
 		const userSecretDecrypted = await this._decryptUserSecretAllAttr(identifyingAttrs, attrKeysUserSecret, userSecretData);
-		const backupData = TPHC.getUserSecretData(backupUserSecret.object);
+		const backupData = await TPHC.getHashedUserSecretData(backupUserSecret.object);
 		const backupDecrypted = await this._decryptUserSecretAllAttr(identifyingAttrs, attrKeysBackupUserSecret, backupData);
 
 		// The usersecrets stored in the usersecret and usersecretbackup objects are expected to be equal.
@@ -329,7 +342,7 @@ export default class UserSecretManager {
 	 *
 	 * @param identifyingAttrs The signed identifying attributes the user revealed.
 	 * @param attrKeyResp The response from the attrKeysEP with the requested attribute keys.
-	 * @param userSecretData The encrypted user secret per attribute type and value.
+	 * @param userSecretData The encrypted user secret per attribute type and hashed value, as returned by `TPHC.getHashedUserSecretData()`.
 	 * @param useNewKey Whether to decrypt with the latest attribute key instead of the key the secret was stored with.
 	 * @returns The user secret.
 	 * @throws Will throw an error if a key is missing, the secrets do not match, or the secret cannot be recovered at all.
@@ -343,8 +356,9 @@ export default class UserSecretManager {
 		let referenceUserSecret: Uint8Array | null = null;
 		for (const [handle, attr] of Object.entries(identifyingAttrs)) {
 			const key = useNewKey ? attrKeyResp[handle].latest_key[0] : attrKeyResp[handle].old_key;
+			const valueKey = await TPHC.attrValueKey(attr.id, attr.value);
 			// If the user secret was not stored before for this combination of attribute type and value, continue.
-			if (!userSecretData[attr.id]?.[attr.value]) {
+			if (!userSecretData[attr.id]?.[valueKey]) {
 				continue;
 			}
 			// If there is no old_key in the attrKeyResp for this attribute, something went wrong
@@ -352,7 +366,7 @@ export default class UserSecretManager {
 				throw new Error(`Expected an old_key in the attrKeyResp for attribute with type ${attr.id} and value ${attr.value}`);
 			}
 			// Try to decrypt the user secret
-			const decryptedUserSecret = await this._decryptUserSecret(key, userSecretData[attr.id][attr.value]);
+			const decryptedUserSecret = await this._decryptUserSecret(key, userSecretData[attr.id][valueKey]);
 			if (referenceUserSecret === null) {
 				referenceUserSecret = decryptedUserSecret;
 			} else if (!buffersAreEqual(referenceUserSecret, decryptedUserSecret)) {
@@ -417,7 +431,7 @@ export default class UserSecretManager {
 		const storedUserSecret = await this._decodeUserSecretObject<TPHC.UserSecretObject>('usersecret');
 		assert.isNotNull(storedUserSecret, 'Could not retrieve the user secret object even though it seems to be properly stored.');
 
-		const userSecretData = TPHC.getUserSecretData(storedUserSecret.decodedObject);
+		const userSecretData = await TPHC.getHashedUserSecretData(storedUserSecret.decodedObject);
 		const decryptedUserSecret = await this._decryptUserSecretAllAttr(identifyingAttrs, attrKeyResp, userSecretData, true);
 		if (!buffersAreEqual(computedUserSecretObject.userSecret, decryptedUserSecret)) {
 			throw new Error('The decrypted stored user secret does not match the user secret that should have been stored.');
@@ -484,7 +498,9 @@ export default class UserSecretManager {
 	): Promise<{ newUserSecretObject: TPHC.UserSecretObjectNew; userSecret: Uint8Array }> {
 		let newUserSecretData: TPHC.UserSecretData = {};
 		if (userSecretObject !== null) {
-			newUserSecretData = TPHC.getUserSecretData(userSecretObject);
+			// Every entry is carried over under its hashed key, also those for attributes not disclosed in
+			// this login, so that no attribute value of an older object ends up in the one written now.
+			newUserSecretData = await TPHC.getHashedUserSecretData(userSecretObject);
 		}
 		let userSecret: Uint8Array | null = null;
 		if (useSessionSecret) {
@@ -509,10 +525,13 @@ export default class UserSecretManager {
 			const encodedKey = new Uint8Array(Buffer.from(base64fromBase64Url(keyResp.latest_key[0]), 'base64'));
 			const cipherText = await this._objectStore.encryptData(userSecret, encodedKey);
 			// Use local OR assignment operator (||=) to make sure that newUserSecretObject is initialized before assigning the nested property
-			(newUserSecretData[attr.id] ||= {})[attr.value] = { ts: keyResp.latest_key[1], encUserSecret: Buffer.from(cipherText).toString('base64') };
+			(newUserSecretData[attr.id] ||= {})[await TPHC.attrValueKey(attr.id, attr.value)] = {
+				ts: keyResp.latest_key[1],
+				encUserSecret: Buffer.from(cipherText).toString('base64'),
+			};
 		}
 		const newUserSecretObject: TPHC.UserSecretObject = {
-			version: 1,
+			version: 2,
 			data: newUserSecretData,
 		};
 		return { newUserSecretObject, userSecret };

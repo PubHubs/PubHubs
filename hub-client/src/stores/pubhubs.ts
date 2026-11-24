@@ -19,6 +19,7 @@ import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { type RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 import { type RoomMessageEventContent, type TimelineEvents } from 'matrix-js-sdk/lib/types';
 import { defineStore } from 'pinia';
+import { watch } from 'vue';
 
 // Composables
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -27,12 +28,14 @@ import { useMatrix } from '@hub-client/composables/matrix.composable';
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 import { APIService } from '@hub-client/logic/core/apiService';
 import { Authentication } from '@hub-client/logic/core/authentication';
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { PubHubsMgType, type VideocallStateType } from '@hub-client/logic/core/events';
 import { removeHtml } from '@hub-client/logic/core/htmlText';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
+import { installOfflineSimulation, onReconnect, reachabilityOf, registerProbe, trackedFetch, whenReachable } from '@hub-client/logic/core/reachability';
 import { router } from '@hub-client/logic/core/router';
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { SyncProfile } from '@hub-client/logic/matrix.logic';
+import { ensureSingleExecution } from '@hub-client/logic/pubhubs';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 import { getOtherRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
@@ -46,10 +49,10 @@ import {
 	type TMentions,
 	type TMessageEvent,
 	type TTextMessageEventContent,
-	type TVideoCallEndedMessageEventContent,
 	type TVideoCallMessageEventContent,
 	type TWhisperMessageEventContent,
 } from '@hub-client/models/events/TMessageEvent';
+import { withEdit } from '@hub-client/models/events/edits';
 import {
 	type TVotingWidgetClose,
 	type TVotingWidgetEditEventContent,
@@ -68,11 +71,13 @@ import { useConnection } from '@hub-client/stores/connection';
 import { useDialog } from '@hub-client/stores/dialog';
 import { useMessageActions } from '@hub-client/stores/message-actions';
 import { type TPublicRoom, useRooms } from '@hub-client/stores/rooms';
+import { useSettings } from '@hub-client/stores/settings';
 import { useUser } from '@hub-client/stores/user';
 
 const logger = createLogger('PubHubs');
-const publicRoomsLoading: Promise<TPublicRoom[]> | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
-const updateRoomsPerforming: Promise<void> | null = null; // Kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
+// In-flight promises, kept outside of state to avoid being wrapped in Vue's reactive proxy, not accessible outside this module
+const publicRoomsLoading: { current: Promise<TPublicRoom[]> | null } = { current: null };
+const updateRoomsPerforming: { current: Promise<void> | null } = { current: null };
 
 const usePubhubsStore = defineStore('pubhubs', {
 	state: () => ({
@@ -80,6 +85,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		client: {} as MatrixClient,
 		publicRooms: [] as TPublicRoom[],
 		lastPublicCheck: 0,
+		e2eeAvailable: false,
 	}),
 
 	getters: {
@@ -107,7 +113,9 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async login(options: { unreadOnly?: boolean } = {}) {
 			logger.debug('START PubHubs.login');
 			try {
-				const _client = await this.Auth.login();
+				// Crypto must start before sync; the unread-only miniclient never joins calls, so it skips it.
+				const _client = await this.Auth.login({ withCrypto: !options.unreadOnly });
+				this.e2eeAvailable = this.Auth.e2eeAvailable;
 
 				logger.debug('PubHubs.logged in (X) - started client');
 				this.client = _client as MatrixClient;
@@ -117,12 +125,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 				const { init, startSync } = useMatrix();
 				init(_client as MatrixClient);
-				startSync(options.unreadOnly ? SyncProfile.UnreadOnly : SyncProfile.Full); // Do not await this async function, since it will be running continuously in the background
+				this.watchHubServer(_client as MatrixClient);
+				// Offline, matrix-js-sdk retries its first request (push rules) without any pause, so only
+				// start once the hub server answers. Not awaited: syncing runs in the background.
+				void whenReachable(this.client.baseUrl).then(() => startSync(options.unreadOnly ? SyncProfile.UnreadOnly : SyncProfile.Full));
 
 				logger.debug('PubHubs.logged in ()');
-
-				const connection = useConnection();
-				connection.on();
 
 				const newUserId = user.userId;
 				if (newUserId !== null) {
@@ -134,15 +142,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 					if (!options.unreadOnly) {
 						user.fetchIsAdministrator(this.client as MatrixClient);
 						user.fetchIfUserNeedsConsent();
+						// Checked against the cached answer while the hub was unreachable; check for real now.
+						onReconnect(this.client.baseUrl, () => user.fetchIfUserNeedsConsent().then(() => undefined));
 
 						// Deliberately not awaited. This is two network operations — the profile lookup, and
 						// inside setProfile a download of the user's own avatar — and App.vue keeps the whole
 						// hub UI behind `v-if="setupReady"` until login() resolves. Nothing rendered at that
 						// point needs either; the name and avatar fill in when they arrive.
-						void this.client
-							.getProfileInfo(newUserId)
-							.then((profile) => user.setProfile(profile))
-							.catch((error) => logger.debug('There is no profile information (avatar or displayname) for this user.', { error }));
+						const client = this.client;
+						const loadProfile = () =>
+							client
+								.getProfileInfo(newUserId)
+								.then((profile) => user.setProfile(profile))
+								.catch((error) => logger.debug('There is no profile information (avatar or displayname) for this user.', { error }));
+						// The last known profile first: without a connection the lookup may fail, or not answer at all.
+						void user.restoreOwnProfile().finally(loadProfile);
+						// Likewise the room list, shown in the menu until the first sync is in.
+						void useRooms().restoreRoomList();
+						// Shown from the copy on this device while the hub was unreachable; load it for real now.
+						onReconnect(client.baseUrl, loadProfile);
 					}
 				}
 			} catch (error: unknown) {
@@ -156,38 +174,24 @@ const usePubhubsStore = defineStore('pubhubs', {
 		},
 
 		/**
-		 * To avoid calling the same async method multiple times, we can use this method to ensure
-		 * that only one instance of the async function is running at a time.
-		 *
-		 * @param func - The async function to be executed
-		 * @param stateVar - The state variable to keep track of the current promise
-		 * @returns - The result of the passed async function
+		 * Keep track of whether this hub's server can be reached (see logic/core/reachability.ts), and
+		 * mirror that in the connection store.
 		 */
-		async ensureSingleExecution<T>(func: () => Promise<T>, stateVar: { current: Promise<T> | null }): Promise<T> {
-			// If a promise is already running, return it
-			if (stateVar.current) {
-				return stateVar.current;
-			}
-
-			// Create and store the promise
-			stateVar.current = new Promise<T>((resolve, reject) => {
-				try {
-					resolve(func());
-				} catch (error) {
-					reject(error);
-				} finally {
-					stateVar.current = null; // Reset state after execution
-				}
-			});
-
-			// Return the promise
-			return stateVar.current;
+		watchHubServer(client: MatrixClient) {
+			const baseUrl = client.baseUrl;
+			if (import.meta.env.DEV || useSettings().isNativeDebugApp) installOfflineSimulation();
+			registerProbe(baseUrl, () => trackedFetch(`${baseUrl}/_matrix/client/versions`));
+			const connection = useConnection();
+			// Unknown counts as on, as before this was tracked.
+			watch(
+				() => reachabilityOf(baseUrl),
+				(state) => (state === 'offline' ? connection.off() : connection.on()),
+				{ immediate: true },
+			);
 		},
 
 		async updateRooms() {
-			return this.ensureSingleExecution(() => this.performUpdateRooms(), {
-				current: updateRoomsPerforming,
-			});
+			return ensureSingleExecution(updateRoomsPerforming, () => this.performUpdateRooms());
 		},
 
 		/**
@@ -197,7 +201,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async performUpdateRooms() {
 			const rooms = useRooms();
 
-			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
+			const allPublicRooms = await this.getPublicRoomsSafe(); // all public rooms, including their names
 			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
 			const knownRooms = this.client.getRooms(); // get all the rooms of the matrix js SDK client
 
@@ -246,7 +250,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 				if (matrixRoom) {
 					this.client.store.storeRoom(matrixRoom);
 
-					const publicRoomEntry = (await this.getAllPublicRooms()).find((r: TPublicRoom) => r.room_id === roomId);
+					const publicRoomEntry = (await this.getPublicRoomsSafe()).find((r: TPublicRoom) => r.room_id === roomId);
 					const roomName = publicRoomEntry?.name ?? matrixRoom.name ?? undefined;
 
 					let roomType: string = RoomType.PH_MESSAGES_DEFAULT;
@@ -326,8 +330,25 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return false;
 		},
 
-		async getAllPublicRooms(force: boolean = false) {
-			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(force), { current: publicRoomsLoading });
+		async getAllPublicRooms(force: boolean = false): Promise<TPublicRoom[]> {
+			// A forced refresh must not be satisfied by a fetch that started before the change it wants to see.
+			if (force && publicRoomsLoading.current) {
+				await publicRoomsLoading.current.catch(() => {});
+			}
+			return ensureSingleExecution(publicRoomsLoading, () => this.performGetAllPublicRooms(force));
+		},
+
+		/**
+		 * Like getAllPublicRooms, but never rejects: on a failed fetch the last known (possibly stale or empty) list is returned.
+		 * For callers that only use the public rooms as enrichment (names, types) and should not fail when they can't be fetched.
+		 */
+		async getPublicRoomsSafe(force: boolean = false): Promise<TPublicRoom[]> {
+			try {
+				return await this.getAllPublicRooms(force);
+			} catch (error) {
+				logger.warn('Fetching public rooms failed, using cached list', { error });
+				return this.publicRooms;
+			}
 		},
 
 		// actual performing of publicRooms API call
@@ -340,23 +361,38 @@ const usePubhubsStore = defineStore('pubhubs', {
 			if (Date.now() < this.lastPublicCheck + SystemDefaults.publicRoomsReload && !force) {
 				return this.publicRooms;
 			}
+			const previousCheck = this.lastPublicCheck;
 			this.lastPublicCheck = Date.now();
 
-			const limit = 100; // because we need all the public rooms, limit is set high to limit the number of calls, 100 seems to be the internal matrix API max
-			let publicRoomsResponse = await this.client.publicRooms({ limit: limit });
-			let public_rooms = publicRoomsResponse.chunk;
+			try {
+				const limit = 100; // because we need all the public rooms, limit is set high to limit the number of calls, 100 seems to be the internal matrix API max
+				let publicRoomsResponse = await this.client.publicRooms({ limit: limit });
+				let public_rooms = publicRoomsResponse.chunk;
 
-			// Previous versions had a problem, but I cannot reproduce it anymore: DANGER this while loop turns infinite when the generated public rooms request is a POST request. This happens when the optional 'options' parameter is supplied to 'this.client.publicRooms'. Then the pagination doesn't work anymore and the loop becomes infinite.
-			while (publicRoomsResponse.next_batch) {
-				publicRoomsResponse = await this.client.publicRooms({
-					since: publicRoomsResponse.next_batch,
-					limit: limit,
-				});
-				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
+				// Pagination is bounded: stop when the server repeats a token, returns an empty page, or the page cap is reached.
+				let pages = 1;
+				while (publicRoomsResponse.next_batch) {
+					if (pages >= SystemDefaults.maxPublicRoomsPages) {
+						logger.warn('Public rooms pagination stopped: page limit reached', { pages });
+						break;
+					}
+					const since = publicRoomsResponse.next_batch;
+					publicRoomsResponse = await this.client.publicRooms({ since, limit });
+					pages++;
+					public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
+					if (publicRoomsResponse.next_batch === since || publicRoomsResponse.chunk.length === 0) {
+						logger.warn('Public rooms pagination stopped: server returned no progress', { since });
+						break;
+					}
+				}
+
+				this.publicRooms = public_rooms;
+				return public_rooms;
+			} catch (error) {
+				// Don't let a failed fetch mark the (stale or empty) cache as fresh.
+				this.lastPublicCheck = previousCheck;
+				throw error;
 			}
-
-			this.publicRooms = public_rooms;
-			return public_rooms;
 		},
 
 		getAllRooms(): Array<MatrixRoom> {
@@ -373,17 +409,23 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @returns a single event based on roomId/eventId
 		 */
 		async getEvent(roomId: string, eventId: string) {
-			// 1. TimelineManager._timelineEvents — applyEdits() mutates these PubHubs-owned objects.
+			// 1. TimelineManager._timelineEvents — applyEdits() has already written any loaded edit into these.
 			const rooms = useRooms();
 			const timelineEvent = rooms.room(roomId)?.findEventById(eventId);
 			if (timelineEvent) return timelineEvent.event;
 
-			// 2. SDK room — applyEdits() mutates SDK-owned objects for events outside _timelineEvents.
-			const cachedEvent = this.client.getRoom(roomId)?.findEventById(eventId);
-			if (cachedEvent) return cachedEvent.event;
+			// Outside the managed timeline an edit is not necessarily applied yet, so merge the latest known one.
+			// The SDK and the server (MSC3925 bundled aggregation) may know of edits the TimelineManager never loaded.
+			const knownEdit = rooms.room(roomId)?.getLatestEdit(eventId)?.event;
 
-			// 3. Network fallback — returns original unedited content.
-			return await this.client.fetchRoomEvent(roomId, eventId);
+			// 2. Get SDK edits that are not loaded by the timelineManager yet.
+			const cachedEvent = this.client.getRoom(roomId)?.findEventById(eventId);
+			if (cachedEvent) return withEdit(cachedEvent.event, knownEdit ?? cachedEvent.replacingEvent()?.event);
+
+			// 3. The server returns the original content, with the latest edit bundled. For if the sdk does not find anything.
+			const fetchedEvent = await this.client.fetchRoomEvent(roomId, eventId);
+			const bundledEdit = fetchedEvent.unsigned?.['m.relations']?.[RelationType.Replace] as Partial<TBaseEvent> | undefined;
+			return withEdit(fetchedEvent, knownEdit ?? bundledEdit);
 		},
 
 		/**
@@ -397,7 +439,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			try {
 				const matrixRoom = await this.client.joinRoom(room_id);
 				this.client.store.storeRoom(matrixRoom);
-				const publicRoomEntry = (await this.getAllPublicRooms()).find((r: TPublicRoom) => r.room_id === room_id);
+				const publicRoomEntry = (await this.getPublicRoomsSafe()).find((r: TPublicRoom) => r.room_id === room_id);
 				const roomType: string = knownRoomType ?? publicRoomEntry?.room_type ?? getRoomType(matrixRoom);
 				const roomName = knownRoomName ?? publicRoomEntry?.name ?? matrixRoom?.name ?? room_id;
 				roomStore.initRoomsWithMatrixRoom(matrixRoom, roomName, roomType, []);
@@ -902,36 +944,46 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 * @param text
 		 * @returns
 		 */
-		async addVideoCallMessage(roomId: string, text: string): Promise<string> {
+		async addVideoCallMessage(roomId: string, state: VideocallStateType, text: string, threadRoot: TMessageEvent | undefined): Promise<string> {
 			const content: TVideoCallMessageEventContent = {
 				msgtype: PubHubsMgType.VideoCall,
 				body: text,
+				videocallstate: state,
 				timestamp: Date.now(),
 			};
+
+			if (threadRoot) {
+				this._addRelatesToMessageContent(content as unknown as TTextMessageEventContent, threadRoot, undefined);
+			}
 			// @ts-expect-error -- SDK sendMessage typing does not include custom videocall content shape
-			const response = await this.client.sendMessage(roomId, content);
+			const response = await this.client.sendMessage(roomId, null, content);
 			return response.event_id;
 		},
 
 		/**
-		 * Adds the message that a videocall was ended
+		 * Adds the message that a videocall was ended as an edit to the opening-message
 		 * @param roomId
-		 * @param eventId
+		 * @param videocallEventId
 		 * @param text
 		 */
-		async addEndVideoCallMessage(roomId: string, eventId: string, text: string) {
-			const content: TVideoCallEndedMessageEventContent = {
-				msgtype: PubHubsMgType.VideoCallEnded,
+		async addEndVideoCallMessage(roomId: string, state: VideocallStateType, videoCallEventId: string, text: string) {
+			const newContent: TVideoCallMessageEventContent = {
+				msgtype: PubHubsMgType.VideoCall,
 				body: text,
-				'm.relates_to': {
-					rel_type: PubHubsMgType.VideoCallEnded,
-					event_id: eventId,
-				},
+				videocallstate: state,
 				timestamp: Date.now(),
 			};
-
-			// @ts-expect-error -- SDK sendEvent typing does not include custom videocall modify payload
-			await this.client.sendEvent(roomId, PubHubsMgType.VideoCallModify, content);
+			const content = {
+				...newContent,
+				// Fallback body for clients that don't understand edits (Matrix convention).
+				body: '* ' + (newContent.body ?? text),
+				'm.new_content': newContent,
+				[RelationType.RelatesTo]: {
+					rel_type: RelationType.Replace,
+					event_id: videoCallEventId,
+				},
+			};
+			await this.client.sendMessage(roomId, null, content as unknown as RoomMessageEventContent);
 		},
 
 		/**

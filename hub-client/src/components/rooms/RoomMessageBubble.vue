@@ -15,9 +15,9 @@
 				isPrivilegedMessage && !redactedMessage && 'border-y-on-surface-disabled border-y',
 				(isAnnouncementMessage || isWhisperMessage) &&
 					!redactedMessage &&
-					(props.room.getPowerLevel(event.sender!) === 100
+					(props.room.getPowerLevel(event.sender!) === UserPowerLevel.Admin
 						? 'border-accent-steward border-l-4'
-						: props.room.getPowerLevel(event.sender!) >= 50 && 'border-accent-steward border-l-4'),
+						: props.room.getPowerLevel(event.sender!) >= UserPowerLevel.Steward && 'border-accent-steward border-l-4'),
 			]"
 			role="article"
 		>
@@ -119,9 +119,9 @@
 								v-if="isAnnouncementMessage && !redactedMessage"
 								class="gap-050 inline-flex items-center leading-none"
 								:class="
-									props.room.getPowerLevel(event.sender!) === 100
+									props.room.getPowerLevel(event.sender!) === UserPowerLevel.Admin
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= UserPowerLevel.Steward && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny uppercase">{{ t('rooms.announcement') }}</span>
@@ -132,9 +132,9 @@
 								v-if="isWhisperMessage && !redactedMessage && event.sender! !== user.userId"
 								class="gap-050 inline-flex items-center leading-none"
 								:class="
-									props.room.getPowerLevel(event.sender!) === 100
+									props.room.getPowerLevel(event.sender!) === UserPowerLevel.Admin
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= UserPowerLevel.Steward && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny uppercase">{{ t('message.only_visible_to_you') }}</span>
@@ -143,9 +143,9 @@
 								v-if="isWhisperMessage && !redactedMessage && event.sender === user.userId && event.content!.whisper_to"
 								class="gap-050 inline-flex items-center leading-none"
 								:class="
-									props.room.getPowerLevel(event.sender!) === 100
+									props.room.getPowerLevel(event.sender!) === UserPowerLevel.Admin
 										? 'text-accent-steward'
-										: props.room.getPowerLevel(event.sender!) >= 50 && 'text-accent-steward'
+										: props.room.getPowerLevel(event.sender!) >= UserPowerLevel.Steward && 'text-accent-steward'
 								"
 							>
 								<span class="text-label-tiny puppercase">{{ t('message.whisper_to') }}: {{ whisperTargetDisplayName }}</span>
@@ -269,7 +269,7 @@
 						</div>
 					</div>
 
-					<div class="flex items-center gap-100">
+					<div class="flex w-full min-w-0 items-center gap-100">
 						<template v-if="hasBeenVisible">
 							<MessageHidden
 								v-if="(event.content?.ph_hidden === true || hideState.isHidden) && !redactedMessage"
@@ -455,7 +455,7 @@
 <script setup lang="ts">
 	// Packages
 	import { MatrixEvent, MsgType } from 'matrix-js-sdk';
-	import { capitalize, computed, onBeforeUnmount, onMounted, ref } from 'vue';
+	import { capitalize, computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
@@ -490,6 +490,7 @@
 	import { useModerationHideMessage } from '@hub-client/composables/moderation/hide-message.composable';
 	import { useRoles } from '@hub-client/composables/roles.composable';
 	import { SidebarTab, useSidebar } from '@hub-client/composables/useSidebar';
+	import { timelineScrollRootKey } from '@hub-client/composables/useTimelineScroll';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
@@ -581,6 +582,7 @@
 	const isVisible = ref(false);
 	const hasBeenVisible = ref(false);
 	let observer: IntersectionObserver | null = null;
+	const timelineScrollRoot = inject(timelineScrollRootKey, null);
 
 	onMounted(() => {
 		source.value = `${CONFIG._env.PARENT_URL}#/hub/${hubSettings.hubName}/${props.room.roomId}`;
@@ -597,8 +599,10 @@
 					});
 				},
 				{
-					root: null, // viewport
-					rootMargin: '500px', // Start loading 500px before entering viewport
+					// The timeline's scroll container when the bubble is inside it, so rootMargin also applies there (falls back to the viewport,
+					// e.g. for the preview in the delete dialog, which the timeline renders outside its scroll container)
+					root: timelineScrollRoot?.value?.contains(messageRoot.value) ? timelineScrollRoot.value : null,
+					rootMargin: '500px', // Start loading 500px before entering the visible area
 					threshold: 0,
 				},
 			);
@@ -829,7 +833,7 @@
 			});
 		}
 
-		// Whisper (steward/super-steward only, for other users)
+		// Whisper (steward only, for other users)
 		if (
 			settings.isFeatureEnabled(FeatureFlag.whisper) &&
 			event.value.sender! !== user.userId &&

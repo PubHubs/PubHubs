@@ -111,6 +111,7 @@
 	// Composables
 	import { useMentionsDisplay } from '@hub-client/composables/mention-display.composable';
 	import { useModerationBase } from '@hub-client/composables/moderation/base.composable';
+	import { useDeactivatedUsers } from '@hub-client/composables/useDeactivatedUsers';
 
 	// Logic
 	import { PubHubsMgType } from '@hub-client/logic/core/events';
@@ -146,6 +147,7 @@
 
 	const userStore = useUser();
 	const { t } = useI18n();
+	const { nameOf } = useDeactivatedUsers();
 
 	const cardEl = ref<HTMLElement | null>(null);
 	function activate() {
@@ -205,6 +207,8 @@
 		if (msgtype === MsgType.Image) return { icon: 'image-square', text: t('rooms.preview_image') };
 		if (msgtype === MsgType.File) return { icon: 'file', text: content.body || t('rooms.preview_file') };
 		if (msgtype === PubHubsMgType.SignedMessage) return { icon: 'seal-check', text: t('rooms.preview_signed') };
+		if (msgtype === PubHubsMgType.VideoCall) return { icon: '', text: t('videocall.message_preview') };
+
 		if (msgtype.startsWith('pubhubs.voting_widget')) return { icon: 'chart-bar', text: t('rooms.preview_poll') };
 
 		// For text and announcement, use plain-text body
@@ -235,17 +239,15 @@
 		const userId = getOtherDMUserId() ?? getOtherUserIdFromRoomName();
 		if (!userId) return undefined;
 
-		// userDisplayName is from the user profile store (populated via member state events).
-		// Unlike rawDisplayName, it never falls back to the Matrix ID — so it's safe to use directly.
-		// extractPseudonym is always a valid fallback when userId is known.
-		return userStore.userDisplayName(userId) ?? filters.extractPseudonym(userId);
+		return nameOf(userId);
 	});
 
 	const secondaryInfo = computed(() => {
 		const type = roomType.value;
 		if (type === RoomType.PH_MESSAGES_DM) {
 			const userId = getOtherDMUserId() ?? getOtherUserIdFromRoomName();
-			return userId ? filters.extractPseudonym(userId) : '';
+			// A deleted account is not to be known by its pseudonym, see nameOf
+			return userId && !userStore.isDeactivatedUser(userId) ? filters.extractPseudonym(userId) : '';
 		}
 		if (type === RoomType.PH_MESSAGE_ADMIN_CONTACT) {
 			return getOtherUserDisplayName();

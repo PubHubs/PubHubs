@@ -18,6 +18,14 @@ enum PubHubsStateEventType {
 	YellowCard = 'pubhubs.yellow_card',
 }
 
+enum VideocallStateType {
+	Started = 'started',
+	Joined = 'joined',
+	Left = 'left',
+	Ended = 'ended',
+	StartedEnded = 'started and ended', // For direct rooms where the messages are not in a thread
+}
+
 enum PubHubsMsgType {
 	Default = '',
 	SignedMessage = 'pubhubs.signed_message',
@@ -35,7 +43,6 @@ enum PubHubsMsgType {
 	VotingWidgetReply = 'pubhubs.voting_widget.reply',
 	VotingWidgetModify = 'pubhubs.voting_widget.modify',
 	VideoCall = 'pubhubs.videocall',
-	VideoCallEnded = 'pubhubs.videocall.ended',
 	VideoCallModify = 'pubhubs.videocall.modify',
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
@@ -143,4 +150,4 @@ class Events {
 	}
 }
 
-export { Events, PubHubsMsgType as PubHubsMgType, PubHubsInvisibleMsgType, PubHubsStateEventType };
+export { Events, PubHubsMsgType as PubHubsMgType, PubHubsInvisibleMsgType, PubHubsStateEventType, VideocallStateType };

@@ -6,7 +6,6 @@
 	/>
 </template>
 
-<!-- FIXME: Multiple type errors -->
 <script lang="ts" setup>
 	// Packages
 	import { onMounted, useTemplateRef } from 'vue';

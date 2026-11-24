@@ -16,7 +16,12 @@ export class APIService {
 	 * @returns TUserAccountList list of all user accounts.
 	 */
 	static async adminListUsers(from: string, to: string): Promise<TUserAccountList> {
-		return await api_synapse.apiGET<TUserAccountList>(api_synapse.apiURLS.usersAPIV3.slice(0, -1) + '?from=' + from + '&' + 'limit=' + to);
+		// `deactivated=false` is not the default on v3 the way it is on v2: leaving it off returns
+		// deleted accounts too, and they arrive without a display name, so every list built from
+		// this would fall back to showing their pseudonym.
+		return await api_synapse.apiGET<TUserAccountList>(
+			api_synapse.apiURLS.usersAPIV3.slice(0, -1) + '?from=' + from + '&' + 'limit=' + to + '&deactivated=false',
+		);
 	}
 
 	/**
@@ -52,10 +57,16 @@ export class APIService {
 
 	/**
 	 * Fetch a single event report with full details including event_json.
+	 * Admins use the Synapse admin API, stewards the hub endpoint scoped to the rooms they moderate.
+	 * @param isAdmin Whether the user is an admin
 	 * @param reportId The report ID to fetch
+	 * @param roomId The room the report belongs to, required by the steward endpoint
 	 */
-	static async fetchReportDetail(reportId: number): Promise<TEventReportDetail> {
-		return await api_synapse.apiGET<TEventReportDetail>(`${api_synapse.apiURLS.eventReports}/${reportId}`);
+	static async fetchReportDetail(isAdmin: boolean, reportId: number, roomId: string): Promise<TEventReportDetail> {
+		if (isAdmin) {
+			return await api_synapse.apiGET<TEventReportDetail>(`${api_synapse.apiURLS.eventReports}/${reportId}`);
+		}
+		return await api_synapse.apiGET<TEventReportDetail>(`${api_synapse.apiURLS.stewardReports}/${reportId}?room_id=${encodeURIComponent(roomId)}`);
 	}
 
 	/**
@@ -73,6 +84,15 @@ export class APIService {
 	 */
 	static async adminGetRoomMembers(roomId: string): Promise<RoomMembers> {
 		return await api_synapse.apiGET<RoomMembers>(`${api_synapse.apiURLS.roomsAPIV1}${roomId}/members`);
+	}
+
+	/**
+	 * Makes the current hub admin room admin of the room, also when every room admin has left it.
+	 * Joining the room is left to the caller.
+	 * @returns the power level the hub admin has afterwards, below room admin when nobody left on the hub is room admin
+	 */
+	static async takeOverRoom(roomId: string): Promise<number> {
+		return (await api_synapse.apiPOST<{ power_level: number }>(api_synapse.apiURLS.takeOverRoom, { room_id: roomId })).power_level;
 	}
 
 	/**
@@ -108,17 +128,38 @@ export class APIService {
 		return await api_synapse.apiGET(api_synapse.apiURLS.usersAPIV2 + userId);
 	}
 
-	// Join the room with an access token of another admin
-	static async forceRoomJoin(roomId: string, accessToken: string) {
-		// Put our own token back afterwards: `api_matrix` is shared, so leaving the impersonated
-		// admin's token on it would send every later call - room messages included - as that admin.
+	/**
+	 * Make one client-server call with another user's access token.
+	 *
+	 * Puts our own token back afterwards: `api_matrix` is shared, so leaving the impersonated
+	 * user's token on it would send every later call - room messages included - as that user.
+	 */
+	private static async withAccessToken<T>(accessToken: string, request: () => Promise<T>): Promise<T> {
 		const ownAccessToken = api_matrix.accessToken;
 		try {
 			api_matrix.setAccessToken(accessToken);
-			await api_matrix.apiPOST(api_matrix.apiURLS.join + roomId, {});
+			return await request();
 		} finally {
 			api_matrix.setAccessToken(ownAccessToken);
 		}
+	}
+
+	// Join the room with an access token of another admin
+	static async forceRoomJoin(roomId: string, accessToken: string) {
+		await APIService.withAccessToken(accessToken, () => api_matrix.apiPOST(api_matrix.apiURLS.join + roomId, {}));
+	}
+
+	// Leave the room with an access token of another admin
+	static async forceRoomLeave(roomId: string, accessToken: string) {
+		await APIService.withAccessToken(accessToken, () => api_matrix.apiPOST(`${api_matrix.apiURLS.rooms}${encodeURIComponent(roomId)}/leave`, {}));
+	}
+
+	/**
+	 * Revoke an access token, e.g. one from `adminUserLogin`: Synapse keeps those valid until they are logged out.
+	 * See https://spec.matrix.org/latest/client-server-api/#post_matrixclientv3logout
+	 */
+	static async revokeAccessToken(accessToken: string) {
+		await APIService.withAccessToken(accessToken, () => api_matrix.apiPOST(api_matrix.apiURLS.logout, {}));
 	}
 
 	/**

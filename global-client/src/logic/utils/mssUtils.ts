@@ -2,6 +2,7 @@
 import { Buffer } from 'node:buffer';
 
 // Logic
+import { isNetworkError } from '@hub-client/logic/core/networkError';
 import { delay } from '@hub-client/logic/utils/common';
 
 // Models
@@ -38,12 +39,13 @@ export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCo
 			return handleErrorCodes<T>(response);
 		} catch (error) {
 			if (error instanceof Error && error.message === ErrorCode.PleaseRetry) {
-				delay(retry);
+				await delay(retry);
 				continue;
 			}
-			// Also retry on network errors (e.g., caused by battery saver throttling requests)
-			if (error instanceof TypeError && error.message.includes('NetworkError')) {
-				delay(retry);
+			// Also retry on network errors (e.g., caused by battery saver throttling requests), but give up
+			// with the network error itself, so callers can tell it apart from a refusal.
+			if (isNetworkError(error) && retry < maxRetries - 1) {
+				await delay(retry);
 				continue;
 			}
 			throw error;

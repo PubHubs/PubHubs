@@ -27,23 +27,33 @@ impl App {
             return Ok(PppResp::RetryWithNewAuthToken);
         };
 
+        Ok(PppResp::Success(app.seal_ppp(&user_state, running_state)?))
+    }
+
+    /// Packs up `user_state`'s polymorphic pseudonym for the transcryptor, as [`PppEP`] hands it
+    /// to the global client.
+    pub(super) fn seal_ppp(
+        &self,
+        user_state: &super::UserState,
+        running_state: &crate::servers::server::RunningState<ExtraRunningState>,
+    ) -> api::Result<api::Sealed<PolymorphicPseudonymPackage>> {
         let now = api::NumericDate::now();
 
         let nonce_inner = PpNonceInner {
             user_id: user_state.id,
-            not_valid_after: now.add_clamp(app.pp_nonce_validity.as_secs()),
+            not_valid_after: now.add_clamp(self.pp_nonce_validity.as_secs()),
             issued_at: now,
         };
 
-        Ok(PppResp::Success(api::Sealed::new(
+        api::Sealed::new(
             &PolymorphicPseudonymPackage {
                 // we make sure to rerandomize the polymorphic pseudonym so the transcryptor cannot
                 // track the user based on it
-                polymorphic_pseudonym: user_state.polymorphic_pseudonym.rerandomize(),
-                nonce: api::Sealed::new(&nonce_inner, &app.pp_nonce_secret)?.into(),
+                polymorphic_pseudonym: user_state.polymorphic_pseudonym.clone().rerandomize(),
+                nonce: api::Sealed::new(&nonce_inner, &self.pp_nonce_secret)?.into(),
             },
             &running_state.t_sealing_secret,
-        )?))
+        )
     }
 
     /// Implements [`HhppEP`].
@@ -103,10 +113,7 @@ impl App {
             // if the sealing secret is still valid.
         };
 
-        let hashed_hub_pseudonym: api::CurvePoint =
-            RistrettoPoint::hash_from_bytes::<sha2::Sha512>(hub_pseudonym.compress().as_bytes())
-                .compress()
-                .into();
+        let hashed_hub_pseudonym = hash_hub_pseudonym(&hub_pseudonym);
 
         let hhpp = HashedHubPseudonymPackage {
             hashed_hub_pseudonym,
@@ -141,6 +148,13 @@ impl App {
 
         Ok(HhppResp::Success(signed))
     }
+}
+
+/// What a hub knows a user by: the hub pseudonym, hashed so that the hub cannot recover it.
+pub(super) fn hash_hub_pseudonym(hub_pseudonym: &RistrettoPoint) -> api::CurvePoint {
+    RistrettoPoint::hash_from_bytes::<sha2::Sha512>(hub_pseudonym.compress().as_bytes())
+        .compress()
+        .into()
 }
 
 /// The contents of a [`PpNonce`].

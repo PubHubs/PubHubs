@@ -137,7 +137,7 @@
 
 <script lang="ts" setup>
 	import { EventType, NotificationCountType } from 'matrix-js-sdk';
-	import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+	import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 
 	// Components
 	import P from '@hub-client/components/elements/P.vue';
@@ -154,7 +154,7 @@
 	// Composables
 	import useReadMarker from '@hub-client/composables/useReadMarker';
 	import { useTimelinePagination } from '@hub-client/composables/useTimelinePagination';
-	import { useTimelineScroll } from '@hub-client/composables/useTimelineScroll';
+	import { getNewTimelineEvents, timelineScrollRootKey, useTimelineScroll } from '@hub-client/composables/useTimelineScroll';
 
 	// Logic
 	import { ElementObserver } from '@hub-client/logic/core/elementObserver';
@@ -208,6 +208,11 @@
 	const editingMessage = ref<{ event: TMessageEvent } | undefined>(undefined);
 	const editingMessageProp = computed(() => editingMessage.value as { event: TMessageEvent } | undefined);
 	const initialLoadComplete = ref(false);
+	// Newest event seen by onTimelineChange, to tell live messages apart from paginated older ones
+	let lastSeenNewestEventId: string | undefined;
+
+	// Message bubbles use the timeline as root for their lazy-render observer
+	provide(timelineScrollRootKey, elRoomTimeline);
 
 	const { READ_DELAY_MS, PAGINATION_COOLDOWN, SCROLL_DEBOUNCE } = TimelineScrollConstants;
 	const { messageGroupGap } = SystemDefaults;
@@ -610,6 +615,9 @@
 
 		if (!rooms.currentRoom) return;
 
+		const newMessages = getNewTimelineEvents(props.room.getChronologicalTimeline(), lastSeenNewestEventId, oldTimelineLength, isLoadingPrevious.value);
+		lastSeenNewestEventId = props.room.getChronologicalTimeline().at(-1)?.matrixEvent.event.event_id;
+
 		// Fresh room load - handle initial scroll and pagination
 		if (oldTimelineLength === 0 && newTimelineLength > 0) {
 			await nextTick();
@@ -631,11 +639,8 @@
 		}
 
 		// Notify scroll composable about new messages (for indicator)
-		// Skip during pagination - these are old messages being loaded, not new ones
-		if (newTimelineLength > oldTimelineLength && oldTimelineLength > 0 && !isLoadingPrevious.value && !isLoadingNext.value) {
-			const timeline = props.room.getChronologicalTimeline();
-			const newMessages = timeline.slice(oldTimelineLength);
-
+		// Skip during forward pagination - these are loaded messages, not live ones
+		if (!isLoadingNext.value) {
 			newMessages.forEach((item) => {
 				const eventId = item.matrixEvent.event.event_id;
 				const senderId = item.matrixEvent.event.sender;

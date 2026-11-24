@@ -10,7 +10,7 @@ import { createLogger } from '@hub-client/logic/logging/Logger';
 import { assert } from '@hub-client/logic/utils/assert';
 
 // Models
-import { type AttrKeyResp } from '@global-client/models/MSS/TAuths';
+import { type AttrKeyResp, cardAttrHandle } from '@global-client/models/MSS/TAuths';
 import { type ErrorCode, type Result, ResultResponse, type SignedIdentifyingAttrs } from '@global-client/models/MSS/TGeneral';
 import * as TPHC from '@global-client/models/MSS/TPHC';
 import UserSecretManager, { type AttrKeysFetcher } from '@global-client/models/MSS/UserSecret';
@@ -105,16 +105,23 @@ export default class PHCServer {
 	 * Handle the response from the EnterEP.
 	 *
 	 * @param enterResp The response from the EnterEP that needs to be handled.
+	 * @param identifyingHandle The handle of the attribute that was disclosed to identify the user, when there was one.
 	 * @returns An object with a boolean denoting whether the user successfully entered PubHubs and an errorMessage.
 	 * The errorMessage is null if the user successfully entered, an object with a translation key and a list of values to use in the translation otherwise.
 	 */
 	private _handleEnterResp(
 		enterResp: TPHC.EnterResp,
+		identifyingHandle?: string,
 	):
 		| { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }
 		| { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } {
 		if (enterResp === 'AccountDoesNotExist') {
-			return { entered: false, errorMessage: { key: 'errors.account_does_not_exist' }, enterResp: null };
+			// A card that identifies nothing is one whose account was deleted - PubHubs central
+			// cannot tell such a card from one it never saw, so this is as close as we get. Saying
+			// 'no account found' alone would leave the user re-picking the same dead card from
+			// their Yivi app on every attempt.
+			const key = identifyingHandle === cardAttrHandle ? 'errors.card_no_longer_valid' : 'errors.account_does_not_exist';
+			return { entered: false, errorMessage: { key }, enterResp: null };
 		} else if (enterResp === 'Banned') {
 			return { entered: false, errorMessage: { key: 'errors.banned' }, enterResp: null };
 		} else if (enterResp === 'NoBannableAttribute') {
@@ -153,6 +160,7 @@ export default class PHCServer {
 	 * @param identifyingAttr The attribute identifying the user when registering or logging in.
 	 * @param addAttrs The attributes that have to be added to the account, required when registering a new account or when no bannable attribute is registered for this account.
 	 * @param enterMode The mode determines whether we want to create an account if none exists and whether we expect an account to exist.
+	 * @param identifyingHandle The handle of `identifyingAttr`, used to phrase the error when no account is found.
 	 * @returns An object with a boolean to know whether the user successfully entered PubHubs or not and an error message (which is null if no error occured).
 	 */
 	public async enter(
@@ -160,6 +168,7 @@ export default class PHCServer {
 		enterMode: TPHC.PHCEnterMode,
 		identifyingAttr?: string,
 		registerOnlyWithUniqueAttrs: boolean = false,
+		identifyingHandle?: string,
 	): Promise<
 		| { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] }
 		| { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }
@@ -175,7 +184,7 @@ export default class PHCServer {
 		const okEnterResp = await handleErrors(() =>
 			this._phcAPI.api<TPHC.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<TPHC.PHCEnterReq>(requestPayload, authorization)),
 		);
-		return this._handleEnterResp(okEnterResp);
+		return this._handleEnterResp(okEnterResp, identifyingHandle);
 	}
 
 	/**
@@ -402,6 +411,44 @@ export default class PHCServer {
 	}
 
 	/**
+	 * Permanently delete the current user's account at PubHubs central.
+	 *
+	 * The user's hub accounts need no deactivating beforehand: PHC lists the account's
+	 * pseudonym at every hub as deleted, and each hub deactivates its own account when it next
+	 * polls that list - unpinned and offline hubs included.
+	 *
+	 * @returns 'Deleted' when the account is gone, or the reason it is not.
+	 */
+	public async deleteAccountEP(): Promise<TPHC.DeleteAccountResp> {
+		const maxAttempts = 3;
+		let tokenRefreshed = false;
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const options = {
+				headers: { Authorization: (await this._getAuthToken()) ?? '' },
+				method: 'POST',
+			};
+			const okDeleteResp = await handleErrors<TPHC.DeleteAccountResp>(() =>
+				this._phcAPI.api<TPHC.PHCDeleteAccountResp>(this._phcAPI.apiURLS.deleteAccount, options),
+			);
+
+			if (okDeleteResp === 'PleaseRetry') {
+				continue; // somebody changed the account from under us
+			}
+			if (okDeleteResp === 'RetryWithNewAuthToken') {
+				// Only worth one refresh: a second RetryWithNewAuthToken means the account is
+				// already gone, since a token for a deleted account never opens again.
+				if (!tokenRefreshed && (await this._refreshAndRetry())) {
+					tokenRefreshed = true;
+					continue;
+				}
+				return okDeleteResp; // logout was triggered, or the account is no longer there
+			}
+			return okDeleteResp;
+		}
+		return 'PleaseRetry';
+	}
+
+	/**
 	 * Retrieve a user object with a given hash from PubHubs central.
 	 * Authorization happens by using the HMAC from the userObjectDetails, so the access token is not included in the headers of the request.
 	 *
@@ -470,6 +517,14 @@ export default class PHCServer {
 	}
 
 	async getDecryptedUserObject(handle: string) {
+		return (await this.getDecryptedUserObjectWithHash(handle))?.data ?? null;
+	}
+
+	/**
+	 * Like {@link getDecryptedUserObject}, but also returns the hash the object is stored under, to pass
+	 * to {@link encryptAndStoreObjectIfUnchanged} later.
+	 */
+	async getDecryptedUserObjectWithHash(handle: string): Promise<{ data: string; hash: string } | null> {
 		// Retrieve the contents of the object and the userSecret
 		const getObjectResp = await this.getUserObject(handle);
 		if (!getObjectResp?.object) {
@@ -486,7 +541,7 @@ export default class PHCServer {
 		// Decode the data
 		const decoder = new TextDecoder();
 		const decodedData = decoder.decode(decryptedData);
-		return decodedData;
+		return { data: decodedData, hash: getObjectResp.details.hash };
 	}
 
 	/**
@@ -667,6 +722,76 @@ export default class PHCServer {
 		const encodedUserSecret = new Uint8Array(Buffer.from(userSecret, 'base64'));
 		const encryptedData = await this.encryptData(encodedData, encodedUserSecret);
 		await this.storeObject(handle, encryptedData, overwriteHash);
+	}
+
+	/**
+	 * Store an object only if the stored copy is still the one the caller last saw: the object stored
+	 * under `expectedHash`, or no object at all when `expectedHash` is null. Unlike
+	 * {@link encryptAndStoreObject}, a copy changed in the meantime (by another device) is never
+	 * overwritten; the caller gets `conflict` and is expected to reload, merge and try again.
+	 *
+	 * @returns `stored` with the new hash, `conflict`, or `loggedOut` when the auth token could not be
+	 *   refreshed (the logout procedure has been triggered then).
+	 */
+	async encryptAndStoreObjectIfUnchanged<T>(
+		handle: string,
+		data: T,
+		expectedHash: string | null,
+	): Promise<{ result: 'stored'; hash: string } | { result: 'conflict' } | { result: 'loggedOut' }> {
+		const userSecret = await this.getUserSecretInfo();
+		assert.isDefined(userSecret, 'Could not retrieve the userSecret from localstorage.');
+		const encodedData = new TextEncoder().encode(JSON.stringify(data));
+		const object = await this.encryptData(encodedData, new Uint8Array(Buffer.from(userSecret, 'base64')));
+
+		const maxAttempts = 3;
+		let tokenRefreshed = false;
+		for (let attempts = 0; attempts < maxAttempts; attempts++) {
+			const options = {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/octet-stream',
+					Authorization: (await this._getAuthToken()) ?? '',
+				},
+				body: object as unknown as Uint8Array,
+			};
+			const url =
+				expectedHash === null
+					? this._phcAPI.apiURLS.newObject + '/' + handle
+					: this._phcAPI.apiURLS.overwriteObject + '/' + handle + '/' + expectedHash;
+			const resp = await handleErrors<TPHC.StoreObjectResp>(() => this._phcAPI.api<TPHC.PHCStoreObjectResp>(url, options));
+			switch (resp) {
+				case 'PleaseRetry':
+					continue;
+				case 'RetryWithNewAuthToken':
+					if (!tokenRefreshed && (await this._refreshAndRetry())) {
+						tokenRefreshed = true;
+						continue;
+					}
+					return { result: 'loggedOut' };
+				// MissingHash: an object appeared where we expected none. HashDidNotMatch / NotFound: the
+				// object we expected was replaced or removed. All mean our copy is out of date.
+				case 'MissingHash':
+				case 'HashDidNotMatch':
+				case 'NotFound':
+					this._userStateObjects = undefined;
+					return { result: 'conflict' };
+				case 'NoChanges':
+					assert.isNotNull(expectedHash, 'NoChanges cannot be the answer to storing a new object.');
+					return { result: 'stored', hash: expectedHash };
+				default:
+					if ('QuotumReached' in resp) {
+						throw new Error(`Could not store the user object with handle ${handle}, because the quotum is reached.`);
+					} else if ('Stored' in resp) {
+						this._userStateObjects = resp.Stored.stored_objects;
+						const details = this._userStateObjects[handle];
+						assert.isDefined(details, `The object with handle ${handle} is missing from the state PHC returned after storing it.`);
+						return { result: 'stored', hash: details.hash };
+					} else {
+						throw new Error('Unknown response for storing a user object.');
+					}
+			}
+		}
+		throw new Error(`Could not store the user object with handle ${handle}: PHC kept asking to retry.`);
 	}
 
 	// #region Hub Login

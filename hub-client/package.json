@@ -18,6 +18,8 @@
 		"node": ">=22.0.0"
 	},
 	"dependencies": {
+		"@matrix-org/matrix-sdk-crypto-wasm": "^18.9.0",
+		"@capacitor/core": "^8.5.0",
 		"@privacybydesign/yivi-client": "^1.0.1",
 		"@privacybydesign/yivi-core": "^1.0.0",
 		"@privacybydesign/yivi-web": "^1.0.3",
@@ -34,7 +36,7 @@
 		"livekit-client": "^2.13.5",
 		"loglevel": "^1.8.0",
 		"marked": "^18.0.10",
-		"matrix-js-sdk": "^42.2.0",
+		"matrix-js-sdk": "^43.0.0",
 		"pinia": "^4.0.3",
 		"sanitize-html": "^2.15.0",
 		"tailwind-merge": "^3",
@@ -49,14 +51,14 @@
 		"@types/sanitize-html": "^2.13.0",
 		"@vitejs/plugin-vue": "^6",
 		"@vue/test-utils": "^2.2.3",
-		"jsdom": "^29",
+		"jsdom": "^30",
 		"msw": "^2.12.4",
 		"tailwindcss": "^4.2.2",
 		"typescript": "^6.0.3",
 		"vite": "^8.2.2",
 		"vite-plugin-node-polyfills": "^0.28.0",
-		"vitest": "^4",
-		"vue-tsc": "^3.3.10"
+		"vitest": "^5",
+		"vue-tsc": "3.3.11"
 	},
 	"browser": {
 		"http": false,

@@ -100,6 +100,7 @@ impl Deref for App {
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         EhppEP::add_to(self, sc, App::handle_ehpp);
+        EhpsEP::add_to(self, sc, App::handle_ehps);
         api::server::HubPingEP::add_to(self, sc, App::handle_hub_ping);
     }
 
@@ -205,6 +206,46 @@ impl App {
                 hub_nonce,
                 phc_nonce,
                 hub_id_mac,
+            },
+            &running_state.phc_sealing_secret,
+        )?))
+    }
+
+    /// Implements [`EhpsEP`]
+    async fn handle_ehps(app: Rc<Self>, req: web::Json<EhpsReq>) -> api::Result<EhpsResp> {
+        use rand::seq::SliceRandom as _;
+
+        let running_state = app.running_state_or_please_retry()?;
+
+        let EhpsReq { hubs, ppp } = req.into_inner();
+
+        let Ok(api::sso::PolymorphicPseudonymPackage {
+            polymorphic_pseudonym,
+            nonce: _,
+        }) = ppp.open(&running_state.phc_sealing_secret)
+        else {
+            return Ok(EhpsResp::RetryWithNewPpp);
+        };
+
+        // Each is rerandomized by `t_encrypted_hub_pseudonym`, so only the order could still
+        // tell PHC which hub is which.
+        let mut encrypted_hub_pseudonyms: Vec<elgamal::Triple> = hubs
+            .into_iter()
+            .map(|hub| {
+                phcrypto::t_encrypted_hub_pseudonym(
+                    polymorphic_pseudonym.clone(),
+                    &***app.pseud_factor_secret,
+                    &app.master_enc_key_part_inv,
+                    hub,
+                )
+            })
+            .collect();
+
+        encrypted_hub_pseudonyms.shuffle(&mut rand::rand_core::UnwrapErr(rand::rngs::SysRng));
+
+        Ok(EhpsResp::Success(api::Sealed::new(
+            &api::sso::EncryptedHubPseudonymsPackage {
+                encrypted_hub_pseudonyms,
             },
             &running_state.phc_sealing_secret,
         )?))

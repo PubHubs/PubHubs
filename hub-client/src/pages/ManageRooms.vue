@@ -80,7 +80,7 @@
 				</FilterableList>
 				<div
 					v-if="isAdmin"
-					class="absolute right-200 bottom-200 z-50"
+					class="fixed right-200 bottom-200 z-50"
 				>
 					<FloatingActionButton
 						:label="t('rooms.add_room')"
@@ -99,6 +99,7 @@
 					:room-name="selectedRoomName ?? ''"
 					:is-room-admin="selectedRoomIsAdmin"
 					:is-hub-admin="isAdmin"
+					:can-make-self-room-admin="canMakeSelfRoomAdmin"
 					@go-to-room="goToSelectedRoom"
 					@edit="editSelectedRoom"
 					@remove="removeSelectedRoom"
@@ -152,6 +153,7 @@
 		selectedRoomName,
 		isAdmin,
 		selectedRoomIsAdmin,
+		canMakeSelfRoomAdmin,
 		allRoomsWithType,
 		roomTypeFilters,
 		newPublicRoom,

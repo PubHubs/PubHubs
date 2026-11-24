@@ -11,30 +11,40 @@
 			isMobile && global.hubCanGoBack ? 'overflow-x-hidden' : 'overflow-x-auto',
 		]"
 	>
-		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
-		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
+		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error' || route.name === 'delete-account')" />
+		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'delete-account')" />
 
 		<router-view
 			class="flex h-full shrink-0 overflow-y-auto"
 			:class="
-				isMobile && !(route.name === 'onboarding' || route.name === 'home' || route.name === 'login' || route.name === 'error')
+				isMobile &&
+				!(
+					route.name === 'onboarding' ||
+					route.name === 'hubs-overview' ||
+					route.name === 'login' ||
+					route.name === 'error' ||
+					route.name === 'delete-account'
+				)
 					? 'w-[calc(200vw-80px)]!'
 					: 'w-[calc(100vw-80px)]! flex-1'
 			"
 		/>
 
-		<!-- 0-width element for snapping -->
+		<!-- 0-width element for snapping to the end. Only rendered along with the hub iframe (see Hub.vue):
+		     until then the layout fits the screen and this snap point coincides with the global bar's, and
+		     Chrome may keep it when the hub widens the layout, opening the hub on its page instead of its menu. -->
 		<div
-			v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')"
+			v-if="route.name === 'hub' && hubs.currentHubExists"
 			class="w-0 shrink-0 snap-end"
 			:class="!isMobile && 'hidden'"
 		/>
 	</div>
 
 	<Dialog
-		v-if="dialog.visible"
-		:type="dialog.properties.type"
-		@close="dialog.close"
+		v-if="dialog.entry"
+		:key="dialog.entry.id"
+		:entry="dialog.entry"
+		@close="dialog.close(dialog.entry.id, $event)"
 	/>
 
 	<!-- Rendered in every viewport: on mobile it shows menus delegated from the hub iframe, on desktop
@@ -44,6 +54,8 @@
 
 <script lang="ts" setup>
 	// Packages
+	import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
+	import { StatusBar, Style } from '@capacitor/status-bar';
 	import { computed, onMounted, onUnmounted, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
@@ -59,7 +71,12 @@
 	import useRootScroll from '@global-client/composables/useRootScroll';
 
 	// Logic
+	import { phc_api } from '@global-client/logic/core/api';
+	import { setSystemBarColorNatively } from '@global-client/logic/nativeSystemBars';
+
 	import device from '@hub-client/logic/core/device';
+	import { isNetworkError } from '@hub-client/logic/core/networkError';
+	import { installOfflineSimulation, onReconnect, registerProbe } from '@hub-client/logic/core/reachability';
 	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
@@ -83,7 +100,7 @@
 	const installPromptStore = useInstallPromptStore();
 	const route = useRoute();
 	const router = useRouter();
-	const _hubs = useHubs();
+	const hubs = useHubs();
 
 	// Wrapping the getter inside a computed to trigger the watch function to save any changes in global settings
 	const computedGlobalSettings = computed(() => global.getGlobalSettings);
@@ -149,6 +166,7 @@
 		messagebox.init(MessageBoxType.Parent);
 
 		addHubs();
+		watchPHCReachability();
 
 		// Watch for changes in the permission for notifications by the user to reflect these changes once the user opens the settings dialog
 		if ('permissions' in navigator) {
@@ -164,15 +182,34 @@
 		logger.info('App.vue onMounted done', { language: settings.getActiveLanguage });
 	}
 
-	// Function to add hubs
+	// Function to add hubs (only pinned hubs on startup for lazy loading)
 	async function addHubs() {
 		try {
-			await global.getHubs();
+			const isLoggedIn = await global.checkLoginAndSettings();
+			if (!isLoggedIn) return;
+			await global.getPinnedHubsData();
 		} catch (error) {
-			global.setLoadingHubs(false);
-			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
 			logger.error('Error adding hubs', { error });
+			// Unreachable with nothing cached: the list fills in once PHC is back (watchPHCReachability).
+			if (isNetworkError(error)) return;
+			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
 		}
+	}
+
+	/**
+	 * When PHC can't be reached the app runs on the copies on this device (see docs/app/offline.md).
+	 * Once PHC answers again, reload the settings (merging changes made meanwhile, and storing the
+	 * result, see global.finishLogin), and refresh the hub list.
+	 */
+	function watchPHCReachability() {
+		if (import.meta.env.DEV || Capacitor.DEBUG) installOfflineSimulation();
+		if (!phc_api) return;
+		const phc = phc_api;
+		registerProbe(phc.baseURL, () => phc.apiGET(phc.apiURLS.welcome));
+		onReconnect(phc.baseURL, async () => {
+			await global.checkLoginAndSettings();
+		});
+		onReconnect(phc.baseURL, addHubs);
 	}
 
 	function setTheme(theme: string) {
@@ -180,7 +217,8 @@
 		const isDark = theme === 'dark';
 		html.classList.toggle('dark', isDark);
 
-		const themeColor = isDark ? '#464545' : '#ffffff';
+		// Read after toggling the class above, so this is the background of the theme just applied.
+		const themeColor = getComputedStyle(html).getPropertyValue('--surface-background').trim();
 		let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
 		if (!meta) {
 			meta = document.createElement('meta');
@@ -188,6 +226,22 @@
 			document.head.appendChild(meta);
 		}
 		meta.content = themeColor;
+
+		syncStatusBar(isDark, themeColor);
+	}
+
+	// Keeps the native system bars in sync with the app's current theme: on iOS the reserved status bar strip (see capacitor.config.ts plugins.StatusBar.overlaysWebView), on Android the status bar and the navigation bar.
+	async function syncStatusBar(isDark: boolean, backgroundColor: string) {
+		if (Capacitor.getPlatform() === 'android') {
+			// In this order: setStyle resets the colour behind the bars to the theme's window background.
+			await SystemBars.setStyle({ style: isDark ? SystemBarsStyle.Dark : SystemBarsStyle.Light });
+			await setSystemBarColorNatively(backgroundColor);
+			return;
+		}
+		if (Capacitor.getPlatform() !== 'ios') return;
+
+		await StatusBar.setBackgroundColor({ color: backgroundColor });
+		await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
 	}
 
 	// Lifecycle hook

@@ -40,6 +40,9 @@ function useEditRoom() {
 				},
 				power_level_content_override: {
 					events: {
+						// Stewards appoint experts and other stewards; the hub's spam checker limits which
+						// power levels they may actually change.
+						'm.room.power_levels': UserPowerLevel.Steward,
 						'pubhubs.timeout': UserPowerLevel.Steward,
 						// Warnings are a sanction: only stewards may write them, otherwise a member can
 						// forge or clear warnings by sending the state event themselves.

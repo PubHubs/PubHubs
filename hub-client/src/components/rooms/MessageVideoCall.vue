@@ -1,29 +1,33 @@
 <template>
 	<div class="gap-050 flex items-center wrap-break-word">
 		<div class="overflow-hidden text-ellipsis">
-			{{ body }}
+			{{ t(`videocall.state.${props.event.content.videocallstate}`) }}
 		</div>
 		<VideoCallButton
-			v-if="!callEnded"
+			v-if="!isThreadEvent && !callEnded && !inCall && hubSettings.videocallAvailable"
 			:is-start-button="false"
 			@click="JoinVideoCall()"
 		></VideoCallButton>
 	</div>
-	<div v-if="duration">Duration: {{ duration }}</div>
+	<div v-if="props.event.content.videocallstate === VideocallStateType.Ended">{{ t('videocall.duration') }}: {{ duration }}</div>
 </template>
 
 <script setup lang="ts">
 	import { MatrixRTCSessionEvent } from 'matrix-js-sdk/lib/matrixrtc';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
 	import VideoCallButton from '@hub-client/components/ui/VideoCallButton.vue';
 
-	import { PubHubsMgType } from '@hub-client/logic/core/events';
+	import { PubHubsMgType, VideocallStateType } from '@hub-client/logic/core/events';
 
-	import { type TMessageEvent, type TMessageEventContent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { RelationType } from '@hub-client/models/constants';
+	import { type TMessageEvent, type TVideoCallMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useRooms } from '@hub-client/stores/rooms';
+	import useVideoCall from '@hub-client/stores/videoCall';
 
 	const props = defineProps<{
 		event: TMessageEvent<TVideoCallMessageEventContent>;
@@ -32,19 +36,28 @@
 
 	const router = useRouter();
 	const rooms = useRooms();
+	const videoCall = useVideoCall();
+	const hubSettings = useHubSettings();
+	const { t } = useI18n();
+
+	// Hide the join button for the call you are already sitting in, thread root included.
+	const inCall = computed(() => !!videoCall.livekit_room);
 	const callEnded = ref(false);
 	const duration = ref<string | undefined>(undefined);
-	const body = computed(() => props.event.content?.body ?? '');
 	const currentRoom = rooms.currentRoom;
 	const rtcSession = currentRoom?.getMatrixRTCSession();
 
 	watch(
-		() => currentRoom?.relatedEventsRevision.count,
-		() => checkHasCallEnded(),
+		() => [currentRoom?.relatedEventsRevision.count, currentRoom?.latestVideoCall.eventId],
+		() => {
+			if (!isThreadEvent.value) checkHasCallEnded();
+		},
 	);
 
+	const isThreadEvent = computed(() => props.event.content?.['m.relates_to']?.rel_type === RelationType.Thread);
+
 	function onMemberShipsChanged() {
-		checkHasCallEnded();
+		if (!isThreadEvent.value) checkHasCallEnded();
 	}
 
 	async function JoinVideoCall() {
@@ -54,13 +67,19 @@
 		await router.push({ name: 'videocall' });
 	}
 
-	onMounted(() => {
-		checkHasCallEnded();
-		rtcSession?.on(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+	onMounted(async () => {
+		if (!isThreadEvent.value) {
+			rtcSession?.on(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+			await checkHasCallEnded();
+			// A running call while this tab thinks calls are off: the hub admin may have switched them on since, so re-read the flags and let the Join button appear.
+			if (!callEnded.value && !hubSettings.videocallAvailable) void hubSettings.fetchHubInfo();
+		}
 	});
 
 	onUnmounted(() => {
-		rtcSession?.off(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+		if (!isThreadEvent.value) {
+			rtcSession?.off(MatrixRTCSessionEvent.MembershipsChanged, onMemberShipsChanged);
+		}
 	});
 
 	async function checkHasCallEnded() {
@@ -69,9 +88,13 @@
 		// catch all ended videocalls and calculate their duration
 		const relatedEvents = currentRoom.getRelatedEvents(props.event.event_id).map((x) => x.matrixEvent);
 		for (const event of relatedEvents) {
-			const newContent = event.event.content as TMessageEventContent;
-			if (props.event.event_id !== event.event.event_id && newContent.msgtype === PubHubsMgType.VideoCallEnded) {
-				duration.value = calculateDuration(props.event.content?.timestamp ?? 0, newContent.timestamp);
+			const newContent = event.event.content as TVideoCallMessageEventContent;
+			if (
+				props.event.event_id !== event.event.event_id &&
+				newContent.msgtype === PubHubsMgType.VideoCall &&
+				newContent.videocallstate === VideocallStateType.Ended
+			) {
+				duration.value = calculateDuration(props.event.origin_server_ts, newContent.timestamp);
 				callEnded.value = true;
 				return; // need to return from the method, therefore the for-loop
 			}
@@ -86,6 +109,7 @@
 			return;
 		}
 
+		await currentRoom.refreshCallActive();
 		if (!currentRoom.hasActiveCall()) {
 			callEnded.value = true;
 			if (!duration.value) duration.value = 'Unknown';

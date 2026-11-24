@@ -28,10 +28,15 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	notice: 'client/notices',
 	securedRoomPublicMetadata: 'client/secured_room/public_metadata',
 	videoCall: 'client/videocall',
+	hubPhInfo: 'client/.ph/info',
+	videoCallStatus: 'client/videocall/status',
 
 	// Client Steward APIs
 	stewardSecuredRooms: 'client/steward/secured_rooms',
 	stewardReports: 'client/steward/reports',
+
+	// Client Hub admin APIs
+	takeOverRoom: 'client/take_over_room',
 
 	// Client Hub settings
 	hub: 'client/hub',
@@ -60,6 +65,9 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 const api_matrix = new Api(BASE_URL + '/_matrix', {
 	rooms: 'client/v3/rooms/',
 	join: 'client/v3/join/',
+	logout: 'client/v3/logout',
+	whoami: 'client/v3/account/whoami',
+	keysQuery: 'client/v3/keys/query',
 });
 
 // Set up 401 Unauthorized handlers to trigger re-authentication

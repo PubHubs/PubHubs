@@ -45,6 +45,11 @@ export function useManageRooms() {
 		return userPowerLevel(selectedRoomId.value) >= UserPowerLevel.Steward;
 	});
 
+	const canMakeSelfRoomAdmin = computed(() => {
+		if (!selectedRoomId.value || !isAdmin.value) return false;
+		return userPowerLevel(selectedRoomId.value) < UserPowerLevel.Admin;
+	});
+
 	onBeforeRouteLeave(() => {
 		sidebar.closeInstantly();
 	});
@@ -246,6 +251,7 @@ export function useManageRooms() {
 		selectedRoomName,
 		isAdmin,
 		selectedRoomIsAdmin,
+		canMakeSelfRoomAdmin,
 		allRoomsWithType,
 		roomTypeFilters,
 		sidebar,

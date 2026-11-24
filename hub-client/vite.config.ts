@@ -32,6 +32,10 @@ const emitVersionFile: Plugin = {
 
 export default defineConfig({
 	logLevel: 'warn',
+	// Each hub deploys this build at the root of its own domain. The native app instead bundles it under
+	// a '/hub/' subpath, served on a separate origin per hub (see build:hub:native in package.json and
+	// src/logic/utils/nativeHubOrigin.ts), overriding this with HUB_CLIENT_BASE=/hub/.
+	base: process.env.HUB_CLIENT_BASE ?? '/',
 	define: {
 		__APP_VERSION__: JSON.stringify(version),
 	},

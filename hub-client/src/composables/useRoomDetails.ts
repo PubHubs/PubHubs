@@ -2,6 +2,9 @@
 import { type Ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Composables
+import { usePowerLevels } from '@hub-client/composables/usePowerLevels';
+
 // Logic
 import { getRoomMembers } from '@hub-client/logic/utils/roomUtils';
 
@@ -26,6 +29,7 @@ export function useRoomDetails(roomId: Ref<string>) {
 	const user = useUser();
 	const yiviStore = useYivi();
 	const { t } = useI18n();
+	const { powerLevelUsers } = usePowerLevels();
 
 	const matrixRoom = computed(() => (roomId.value ? rooms.room(roomId.value) : undefined));
 	const publicRoom = computed(() => (roomId.value ? rooms.getPublicRoom(roomId.value) : undefined));
@@ -89,28 +93,13 @@ export function useRoomDetails(roomId: Ref<string>) {
 			.filter((id) => !id.startsWith('@notices_user:'));
 	});
 
-	const powerLevels = computed<Record<string, number> | null>(() => {
-		if (!roomId.value) return null;
-		if (matrixRoom.value) {
-			const state = matrixRoom.value.getStatePowerLevel();
-			if (state?.content?.users) return state.content.users as Record<string, number>;
-			return null;
-		}
-		const entry = roomListEntry.value;
-		if (entry?.stateEvents) {
-			const event = entry.stateEvents.find((e) => e.type === 'm.room.power_levels' && e.content?.users);
-			if (event) return event.content.users as Record<string, number>;
-		}
-		return null;
-	});
+	const powerLevels = computed<Record<string, number>>(() => (roomId.value ? powerLevelUsers(roomId.value) : {}));
 
 	const powerUsers = computed<RoomSteward[]>(() => {
 		if (!roomId.value) return [];
-		const levels = powerLevels.value;
 		const members = allMemberIds.value;
-		if (!levels) return [];
 
-		return Object.entries(levels)
+		return Object.entries(powerLevels.value)
 			.filter(([uid]) => !uid.startsWith('@notices_user:'))
 			.filter(([uid]) => members.includes(uid))
 			.filter(([, level]) => level >= UserPowerLevel.Steward)

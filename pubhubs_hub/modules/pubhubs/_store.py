@@ -129,6 +129,18 @@ class HubStore:
                 (),
             )
 
+            # A single row: the `deleted_at` of the last deleted account handled, so a restart
+            # does not have us go through PHC's whole list of deleted pseudonyms again.
+            txn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS deleted_pseudonyms_since(
+                    id INTEGER PRIMARY KEY CHECK (id = 0),
+                    since BIGINT NOT NULL
+                )
+                """,
+                (),
+            )
+
         await self._module_api.run_db_interaction(
             "allowed_and_secured_rooms_create_tables",
             create_tables_txn,
@@ -513,6 +525,100 @@ class HubStore:
             remove_allowed_join_room_row_txn,
             room_id,
             user_id
+        )
+
+    async def get_deactivated_users(self, user_ids: list[str]) -> list[str]:
+        """Which of `user_ids` belong to a deactivated account.
+
+        Clients need this to tell an account that is gone from a member who merely left a
+        room: the first must not be shown under its pseudonym, the second must.  Matrix
+        exposes deactivation only to server admins, hence this endpoint.
+
+        :param user_ids: the users to look up; an empty list short-circuits.
+        :return: the subset that is deactivated, in no particular order.
+        """
+
+        if not user_ids:
+            return []
+
+        def get_deactivated_users_txn(
+                txn: LoggingTransaction,
+                user_ids_txn: list[str]) -> list[str]:
+            placeholders = ",".join("?" * len(user_ids_txn))
+            txn.execute(
+                f"""
+                SELECT name FROM users WHERE deactivated = 1 AND name IN ({placeholders})
+                """,
+                tuple(user_ids_txn),
+            )
+            return [row[0] for row in txn.fetchall()]
+
+        return await self._module_api.run_db_interaction(
+            "get_deactivated_users",
+            get_deactivated_users_txn,
+            user_ids
+        )
+
+    async def delete_user_rows(self, user_id: str) -> None:
+        """Delete everything this module stores about a user.
+
+        Called when an account is deactivated: the matrix id is unlinked from the hub
+        pseudonym right after, so these rows can never be matched to anyone again.  Leaving
+        them would also hand a returning user -- who gets a fresh matrix id -- nothing,
+        while keeping expired secured-room grants around forever.
+        """
+
+        def delete_user_rows_txn(
+                txn: LoggingTransaction,
+                user_id_txn: str) -> None:
+            txn.execute(
+                """
+                DELETE FROM allowed_to_join_room WHERE user_id = ?
+                """,
+                (user_id_txn,),
+            )
+            txn.execute(
+                """
+                DELETE FROM joined_hub WHERE user_id = ?
+                """,
+                (user_id_txn,),
+            )
+
+        await self._module_api.run_db_interaction(
+            "delete_user_rows",
+            delete_user_rows_txn,
+            user_id
+        )
+
+    async def get_deleted_pseudonyms_since(self) -> Optional[int]:
+        """The `since` to ask PHC's deleted pseudonyms for, as last saved; None if never saved."""
+
+        def get_deleted_pseudonyms_since_txn(txn: LoggingTransaction) -> Optional[int]:
+            txn.execute("SELECT since FROM deleted_pseudonyms_since WHERE id = 0", ())
+            row = txn.fetchone()
+            return None if row is None else row[0]
+
+        return await self._module_api.run_db_interaction(
+            "get_deleted_pseudonyms_since",
+            get_deleted_pseudonyms_since_txn,
+        )
+
+    async def set_deleted_pseudonyms_since(self, since: int) -> None:
+        """Saves the `since` to ask PHC's deleted pseudonyms for, see `get_deleted_pseudonyms_since`."""
+
+        def set_deleted_pseudonyms_since_txn(txn: LoggingTransaction, since_txn: int) -> None:
+            txn.execute(
+                """
+                INSERT INTO deleted_pseudonyms_since (id, since) VALUES (0, ?)
+                ON CONFLICT (id) DO UPDATE SET since = excluded.since
+                """,
+                (since_txn,),
+            )
+
+        await self._module_api.run_db_interaction(
+            "set_deleted_pseudonyms_since",
+            set_deleted_pseudonyms_since_txn,
+            since,
         )
 
     async def has_joined(self, user_id: str) -> bool:
