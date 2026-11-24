@@ -1,25 +1,19 @@
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
+_Sort as in this example list
 
-- _[BUG] - If the change is a bugfix (from own branch)_
+- _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
+- _[SECURITY] - Security patch_
 - _[HOTFIX] - If it is a small bug (typo or styling) that is done directly on stable_
-- _[TYPO] - If a translation/typo in the UI has been changed or implemented_
+- _[BUG] - If the change is a bugfix (from own branch)_
 - _[NEW] - If it is a new feature_
 - _[IMPROVED] - Extends or improves an existing feature_
 - _[REMOVED] - Removes an existing feature_
-- _[SECURITY] - Security patch_
-- _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
+- _[TYPO] - If a translation/typo in the UI has been changed or implemented_
 - _[INTERNAL] - Code changes not affecting functionality_
 
 ## Changed not merged yet
 
-- [NEW] Allow stewards to promote users to stewards and experts.
-- [NEW] Users can delete their account erasing all their personal data either from all of pubhubs or per hub.
-- [NEW] Videocalls are available in Direct and Secured rooms. For this to work a hub needs to install a Livekit server. Note: this is still in development.
-- [IMPROVED] The room library has been redesigned
-- [IMPROVED] Updated the hub overview and discover page.
-- [IMPROVED] Users are no longer logged out when PubHubs Central restarts. An auth token can now be refreshed until the user has been inactive for 90 days, and at most a year after logging in.
-- [IMPROVED] File uploads now give feedback in the UI when they fail, instead of silently being handled.
-- [IMPROVED] The app's fonts are WOFF2 instead of TTF, so they download faster; the emoji font went from 24 MB to 5 MB.
+- [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
 - [BUG] Fixed that a fast switch of Hubs (or leave) can leave iframe blank
 - [BUG] Fixed that changing the display name or avatar could wipe the other one, and that the avatar could disappear after closing the profile settings.
 - [BUG] Fixed that new messages stay blank or below visible area in timeline
@@ -32,8 +26,15 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Fixed that text was shown in a fallback font instead of Inter, whose files were missing.
 - [BUG] Fixed that pinned hubs were not loaded on the first login after a PubHubs Central restart.
 - [BUG] Fixed zooming in/out on App's Login screen when clicking on mascotte
-- [SECURITY] PubHubs Central no longer stores identifying attribute values (such as email addresses) in plain text next to the encrypted user secret; they are replaced by a hash at the user's next login.
+- [NEW] Allow stewards to promote users to stewards and experts.
+- [NEW] Users can delete their account erasing all their personal data either from all of pubhubs or per hub.
+- [NEW] Videocalls are available in Direct and Secured rooms. For this to work a hub needs to install a Livekit server. Note: this is still in development.
 - [NEW] iOS capacitor stuff added, ready for testing
+- [IMPROVED] The room library has been redesigned
+- [IMPROVED] Updated the hub overview and discover page.
+- [IMPROVED] Users are no longer logged out when PubHubs Central restarts. An auth token can now be refreshed until the user has been inactive for 90 days, and at most a year after logging in.
+- [IMPROVED] File uploads now give feedback in the UI when they fail, instead of silently being handled.
+- [IMPROVED] The app's fonts are WOFF2 instead of TTF, so they download faster; the emoji font went from 24 MB to 5 MB.
 - [IMPROVED] The documentation has been restructured and brought up to date, and a CONTRIBUTING.md explains that contributions go through the PubHubs team.
 - [INTERNAL, NEW] Hub owners can ask for their hub to be registered with an issue form on the GitHub mirror; the team's steps are in the GitLab `add-hub` issue template.
 - [INTERNAL, NEW] The pipeline of a merge request fails when it doesn't add to CHANGELOG.md (unless it has the `No changelog` label), and that of a release tag (also `-rcN`) when CHANGELOG.md has no entries under its version, which the GitHub release takes as its notes.
