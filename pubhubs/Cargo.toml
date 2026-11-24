@@ -45,7 +45,7 @@ async-trait = { version = "0.1" }
 async-stream = { version = "0.3" }
 
 # Yivi interaction
-qrcode = { version = "0.14", default-features = false } # we only use unicode rendering
+qrcode = { version = "0.15", default-features = false, features = ["std"] } # we only use unicode rendering; `std` provides `impl Error for QrError`
 regex = { version = "1.11" }
 
 # Web dependencies
