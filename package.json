@@ -46,27 +46,28 @@
 		]
 	},
 	"devDependencies": {
+		"@capacitor/android": "^8.5.0",
 		"@capacitor/cli": "^8.4.2",
 		"@capacitor/core": "^8.4.2",
-		"@capacitor/android": "^8.5.0",
-		"@capacitor/ios": "^8.5.0",
 		"@capacitor/filesystem": "^8.1.2",
+		"@capacitor/ios": "^8.5.0",
 		"@capacitor/share": "^8.0.1",
 		"@capacitor/status-bar": "^8.0.3",
 		"@eslint-community/eslint-plugin-eslint-comments": "^4",
-		"@eslint/js": "^9",
+		"@eslint/js": "^10.0.1",
 		"@trivago/prettier-plugin-sort-imports": "^6.0.0",
-		"eslint": "^9",
+		"eslint": "^10.15.0",
 		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-vue": "^9",
+		"eslint-plugin-vue": "^10.12.1",
 		"husky": "^9.1.7",
-		"jsdom": "^29",
-		"lint-staged": "^16",
+		"jsdom": "^31",
+		"lint-staged": "^17",
 		"prettier": "^3.5.0",
-		"prettier-plugin-tailwindcss": "^0.7.2",
+		"prettier-plugin-tailwindcss": "^0.8.1",
 		"smol-toml": "^1.7.1",
 		"typescript": "^6.0.3",
-		"typescript-eslint": "^8"
+		"typescript-eslint": "^8",
+		"vue-eslint-parser": "^10.4.2"
 	},
 	"overrides": {
 		"xcode": {

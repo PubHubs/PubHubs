@@ -15,4 +15,4 @@ livekit-api>=1.0.2
 pynacl>=1.5.0
 # Use the same version as the docker image is built from.  The [oidc] extra pulls in authlib,
 # needed by pseudonyms.py's `synapse.handlers.oidc` import; taking it from the extra leaves that floor in synapse's hands.
-matrix-synapse[oidc]==1.160.0
+matrix-synapse[oidc]==1.165.0

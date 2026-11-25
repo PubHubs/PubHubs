@@ -146,7 +146,7 @@
 	ParticipantTrackStateEvents.forEach((event) => props.participant.on(event, updateTrackState));
 
 	watch(
-		[props.participant, videoEl, audioEl],
+		[() => props.participant, videoEl, audioEl],
 		([participant, videoElement, audioElement]) => {
 			if (!(videoElement && audioElement)) {
 				return;

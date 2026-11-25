@@ -82,11 +82,11 @@
           pythonEnv = pkgs.python3.withPackages (ps: [
             # matrix-synapse is packaged as an application rather than a library;
             # toPythonModule exposes its `synapse` package to `import`.
-            (ps.toPythonModule pkgs.matrix-synapse-unwrapped) # 1.159.0
-            ps.authlib # 1.7.2
-            ps.cryptography # 49.0.0
+            (ps.toPythonModule pkgs.matrix-synapse-unwrapped) # 1.165.0
+            ps.authlib # 1.9.1
+            ps.cryptography # 50.0.2
             ps.livekit-api # 1.1.0
-            ps.pyopenssl # 26.3.0
+            ps.pyopenssl # 26.4.0
             ps.twisted # 26.4.0
           ]);
         in
@@ -96,34 +96,34 @@
               with pkgs;
               [
                 # Docker
-                buildkit # 0.32.2
-                docker # 29.7.2
+                buildkit # 0.34.2
+                docker # 29.9.3
 
                 # Node
-                nodejs # 24.19.0
+                nodejs_26 # 26.13.1
 
                 # Python (provides python3, plus the hub's Synapse dependencies)
-                pythonEnv # 3.14.6
+                pythonEnv # 3.14.10
 
                 # Rust (pinned via ./rust-toolchain.toml)
                 rustToolchain
-                cargo-deny # 0.20.2
+                cargo-deny # 0.21.0
                 cargo-outdated # 0.19.0
-                cargo-edit # 0.13.13
+                cargo-edit # 0.13.14
                 cargo-watch # 8.5.3
 
                 # Android / Capacitor
-                android-tools # 37.0.0
+                android-tools # 37.0.0p1
                 androidSdk.androidsdk
                 openjdk21
                 android-studio
 
                 # Other
                 mask # 0.11.7
-                openssl # 3.6.3
+                openssl # 3.5.9
                 pkg-config # 0.29.2
-                sqlite # 3.53.3
-                tmux # 3.7a
+                sqlite # 3.54.0
+                tmux # 3.8
               ]
               ++ [
                 # Custom packages

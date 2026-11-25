@@ -41,6 +41,9 @@ export default defineConfig([
 			eqeqeq: ['error', 'smart'],
 			'no-console': 'warn',
 
+			// New in ESLint 10; TODO: clean up the 11 hits, then remove this line.
+            'no-useless-assignment': 'off',
+
 			// TypeScript
 			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
 			'@typescript-eslint/no-explicit-any': 'warn',
@@ -53,6 +56,14 @@ export default defineConfig([
 			'vue/multi-word-component-names': 'off',
 			'vue/no-unused-refs': 'warn',
 			'vue/no-v-html': 'error',
+			// New in eslint-plugin-vue 10; TODO: clean up the 9 hits, then remove this line.
+            'vue/no-required-prop-with-default': 'off',
 		},
 	},
+	// TypeScript (vue-tsc) already catches undefined names. typescript-eslint turns no-undef off
+    // for .ts files, but not for .vue files.
+    {
+    	files: ['**/*.vue'],
+        rules: { 'no-undef': 'off' },
+    },
 ]);

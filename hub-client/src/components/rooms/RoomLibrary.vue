@@ -353,8 +353,7 @@
 			/>
 			<div class="flex flex-col items-center text-center">
 				<p>
-					{{ t('roomlibrary.sign_file_hash') }} <span class="italic">{{ filenameOf(signingFile) }}</span
-					>:
+					{{ t('roomlibrary.sign_file_hash') }} <span class="italic">{{ filenameOf(signingFile) }}</span>:
 				</p>
 				<InlineSpinner
 					v-if="!fileHash"

@@ -111,6 +111,9 @@ class UpdateConfig:
             "prefer_local_users": True,
             "show_locked_users": False,
         },
+        # Synapse 1.165 moved its default to room version 12, which changes room
+        # IDs and creator power levels in ways the clients do not handle yet.
+        "default_room_version": "11",
     }
     # Settings a hub owner does not need to configure, but may. Unlike
     # DONT_CHANGE_CONFIG these are only filled in when absent: an owner who did

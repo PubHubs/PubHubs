@@ -18,8 +18,8 @@ class NetworkError extends Error {
 }
 
 // fetch() rejects with a TypeError when a request never got an answer; the message differs per
-// engine (Chromium, WebKit, Firefox, React Native / older polyfills).
-const FETCH_FAILURE_MESSAGE = /Failed to fetch|Load failed|NetworkError|Network request failed/i;
+// engine (Chromium, WebKit, Firefox, React Native / older polyfills, Node/undici).
+const FETCH_FAILURE_MESSAGE = /Failed to fetch|Load failed|NetworkError|Network request failed|fetch failed/i;
 
 function isNetworkError(error: unknown): boolean {
 	if (error instanceof NetworkError) return true;
